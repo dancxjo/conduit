@@ -111,7 +111,7 @@ fn install_gallery_input_test_catalogs(
 
 fn record_parts() -> (String, Vec<u8>) {
     let value = StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/text@1")).unwrap(),
+        StructuredInfoType::leaf(kind_id("value/text")).unwrap(),
         b"CALLING".to_vec(),
     )
     .unwrap();
@@ -166,7 +166,7 @@ fn bounded_frame_round_trips_exact_type_and_payload_in_caller_storage() {
 #[test]
 fn declared_form_values_wrap_frame_and_deframe_exact_structured_info() {
     let original = StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/text@1")).unwrap(),
+        StructuredInfoType::leaf(kind_id("value/text")).unwrap(),
         b"CALLING".to_vec(),
     )
     .unwrap();
@@ -225,7 +225,7 @@ fn every_maximum_frame_fits_its_declared_structured_leaf() {
         MAXIMUM_TYPED_RECORD_FRAME_BYTES,
         conduit_core::MAXIMUM_STRUCTURED_LEAF_BYTES
     );
-    let payload_type = StructuredInfoType::leaf(kind_id("value/bytes@1")).unwrap();
+    let payload_type = StructuredInfoType::leaf(kind_id("value/bytes")).unwrap();
     let empty = StructuredInfoValue::leaf(payload_type.clone(), Vec::new()).unwrap();
     let canonical_overhead = empty.canonical_bytes().unwrap().len();
     let maximum_content = MAXIMUM_TYPED_RECORD_PAYLOAD_BYTES - canonical_overhead;
@@ -324,7 +324,7 @@ fn type_payload_and_output_bounds_refuse_before_writing_past_capacity() {
     );
     let oversized_payload = [0_u8; MAXIMUM_TYPED_RECORD_PAYLOAD_BYTES + 1];
     assert_eq!(
-        TypedRecordRef::new("value/bytes@1", &oversized_payload),
+        TypedRecordRef::new("value/bytes", &oversized_payload),
         Err(TypedRecordFrameRefusal::PayloadTooLarge)
     );
     assert_eq!(
@@ -339,7 +339,7 @@ fn type_payload_and_output_bounds_refuse_before_writing_past_capacity() {
         Err(TypedRecordFrameRefusal::PayloadTypeMismatch)
     );
     assert_eq!(
-        TypedRecordRef::new("value/text@1", b"not canonical"),
+        TypedRecordRef::new("value/text", b"not canonical"),
         Err(TypedRecordFrameRefusal::MalformedPayload)
     );
 }

@@ -34,7 +34,7 @@ fn receipt(body: &Body) -> EmbodiedModelReceipt {
                     kind_id("robotics/battery-state@1"),
                 ],
                 wired_outputs: expressive
-                    .then(|| kind_id("value/text@1"))
+                    .then(|| kind_id("value/text"))
                     .into_iter()
                     .collect(),
                 expressive_output_wired: expressive,
@@ -61,7 +61,7 @@ fn receipt(body: &Body) -> EmbodiedModelReceipt {
         body_id: body.body_id.as_str().into(),
         perception_value_kind: kind_id("perception/scene-summary@1"),
         state_value_kind: kind_id("robotics/battery-state@1"),
-        expressive_value_kind: kind_id("value/text@1"),
+        expressive_value_kind: kind_id("value/text"),
         protected_effect_kind: kind_id("effect/indicator-set@1"),
         views,
         ambient_host_access: false,

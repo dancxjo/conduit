@@ -18,7 +18,7 @@ pub const COPY_RESULT_TYPE: &str = "FileCopyResult";
 
 pub fn copy_result_type() -> StructuredInfoType {
     let quantity = StructuredInfoType::leaf(kind_id(conduit_core::QUANTITY_INFO_ID)).unwrap();
-    let unit = StructuredInfoType::leaf(kind_id("value/unit@1")).unwrap();
+    let unit = StructuredInfoType::leaf(kind_id("value/unit")).unwrap();
     let outcome = StructuredInfoType::variant(
         kind_id("file/copy-outcome@1"),
         vec![

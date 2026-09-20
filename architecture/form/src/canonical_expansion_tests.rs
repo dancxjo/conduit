@@ -466,7 +466,7 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
             }],
             outputs: vec![PortDescriptor {
                 port_id: port_id("value"),
-                value_kind: kind_id("value/count@1"),
+                value_kind: kind_id("value/count"),
                 direction: PortDirection::Output,
                 temporal: conduit_core::PortTemporal::Current,
             }],
@@ -493,7 +493,7 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
             kind_contract_revision: KindContractRevision::from("test/current@1"),
             inputs: vec![PortDescriptor {
                 port_id: port_id("value"),
-                value_kind: kind_id("value/count@1"),
+                value_kind: kind_id("value/count"),
                 direction: PortDirection::Input,
                 temporal: conduit_core::PortTemporal::Current,
             }],

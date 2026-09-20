@@ -60,7 +60,7 @@ fn project_at(artifact: &StructuredSignPresentation, depth: PresentationDepth) -
 fn structured_sign_projection_discloses_shape_progressively_without_leaf_content() {
     let note_type = StructuredInfoType::record(
         KindId::from("music/note@1"),
-        vec![StructuredFieldType::new("pitch", leaf_type("value/count@1")).unwrap()],
+        vec![StructuredFieldType::new("pitch", leaf_type("value/count")).unwrap()],
     )
     .unwrap();
     let event_type = StructuredInfoType::variant(
@@ -70,7 +70,11 @@ fn structured_sign_projection_discloses_shape_progressively_without_leaf_content
     .unwrap();
     let note = StructuredInfoValue::record(
         note_type,
-        vec![StructuredFieldValue::new("pitch", leaf("value/count@1", &[60])).unwrap()],
+        vec![StructuredFieldValue::new(
+            "pitch",
+            leaf("value/count", &conduit_core::encode_count(60)),
+        )
+        .unwrap()],
     )
     .unwrap();
     let event = StructuredInfoValue::variant(event_type.clone(), "note_on", note).unwrap();
@@ -94,13 +98,13 @@ fn structured_sign_projection_discloses_shape_progressively_without_leaf_content
 fn llm_leaf_bytes_never_enter_presentation_content() {
     let output_type = StructuredInfoType::record(
         KindId::from("llm/extraction@1"),
-        vec![StructuredFieldType::new("answer", leaf_type("value/text@1")).unwrap()],
+        vec![StructuredFieldType::new("answer", leaf_type("value/text")).unwrap()],
     )
     .unwrap();
     let output = StructuredInfoValue::record(
         output_type.clone(),
         vec![
-            StructuredFieldValue::new("answer", leaf("value/text@1", b"private model output"))
+            StructuredFieldValue::new("answer", leaf("value/text", b"private model output"))
                 .unwrap(),
         ],
     )

@@ -959,7 +959,7 @@ The typed decision-kind slice from #776 is accepted at exact main
 `b14d83742205f8dfd54e10d22a5eb90ea2333f79`; push workflow `31445629459`
 passed `check`, `browser-host`, and `conduitos-boot`. The portable catalog now
 defines one-shot `logic/compare`, `logic/not`, and scalar `logic/select` ports
-using only exact `value/scalar@1` and `value/bool@1` info. Comparison admits the
+using only exact `value/scalar` and `value/bool` info. Comparison admits the
 finite configured set `lt`, `le`, `eq`, `ne`, `ge`, and `gt`; Boolean input is
 canonical and never coerced; select requires both candidates to have the same
 complete scalar Value contract.
@@ -987,7 +987,7 @@ The bounded scalar-math slice from #777 is accepted at exact main
 `38ccb4030f098ddbf1f8b3df0142bb906cc1465a`; push workflow `31450091681`
 passed `check`, `browser-host`, and `conduitos-boot`. The portable catalog now
 defines one-shot `math/clamp`, `math/scale`, and `math/deadband` contracts with
-exact `value/scalar@1` input and output ports. Signed raw microunit
+exact `value/scalar` input and output ports. Signed raw microunit
 configuration is represented directly in checked forms, plans, generated fixed
 images, and stable identities. Clamp uses inclusive minimum and maximum bounds;
 scale uses the accepted Scalar fixed-point checked multiplication, including

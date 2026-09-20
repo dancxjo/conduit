@@ -1,10 +1,6 @@
 //! Exact portable Info emitted by a continuous local-Vision realization.
 
-use alloc::{
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
     kind_id, StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
     StructuredInfoValue, StructuredVariantCase,
@@ -213,15 +209,15 @@ fn case(name: &str, value_type: StructuredInfoType) -> StructuredVariantCase {
 }
 
 fn text_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/text@1")).expect("reviewed text")
+    StructuredInfoType::leaf(kind_id("value/text")).expect("reviewed text")
 }
 
 fn count_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/count@1")).expect("reviewed count")
+    StructuredInfoType::leaf(kind_id("value/count")).expect("reviewed count")
 }
 
 fn unit_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/unit@1")).expect("reviewed unit")
+    StructuredInfoType::leaf(kind_id("value/unit")).expect("reviewed unit")
 }
 
 fn text_value(value: &str) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
@@ -229,7 +225,7 @@ fn text_value(value: &str) -> Result<StructuredInfoValue, StructuredInfoRefusal>
 }
 
 fn count_value(value: u64) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
-    StructuredInfoValue::leaf(count_type(), value.to_string().into_bytes())
+    StructuredInfoValue::leaf(count_type(), conduit_core::encode_count(value).to_vec())
 }
 
 fn unit_value() -> Result<StructuredInfoValue, StructuredInfoRefusal> {

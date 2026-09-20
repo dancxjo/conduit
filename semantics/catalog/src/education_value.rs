@@ -1,6 +1,6 @@
 //! Shared bounded structured-value construction for education fixtures.
 
-use alloc::{string::ToString, vec::Vec};
+use alloc::vec::Vec;
 use conduit_core::{
     Quantity, QuantityUnit, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
     StructuredInfoValue, StructuredInfoValueShape,
@@ -18,12 +18,12 @@ pub(super) fn ratio_value(value: i64) -> Result<StructuredInfoValue, EducationIn
 }
 
 pub(super) fn unit_value() -> Result<StructuredInfoValue, EducationInfoRefusal> {
-    leaf_value("value/unit@1", Vec::new())
+    leaf_value("value/unit", Vec::new())
 }
 
 pub(super) fn text_value(value: &str) -> StructuredInfoValue {
     StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id("value/text@1")).unwrap(),
+        StructuredInfoType::leaf(conduit_core::kind_id("value/text")).unwrap(),
         value.as_bytes().to_vec(),
     )
     .expect("bounded deterministic education text")
@@ -31,8 +31,8 @@ pub(super) fn text_value(value: &str) -> StructuredInfoValue {
 
 pub(super) fn count_value(value: u64) -> StructuredInfoValue {
     StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id("value/count@1")).unwrap(),
-        value.to_string().into_bytes(),
+        StructuredInfoType::leaf(conduit_core::kind_id("value/count")).unwrap(),
+        conduit_core::encode_count(value).to_vec(),
     )
     .expect("bounded deterministic education count")
 }
@@ -76,6 +76,13 @@ pub(super) fn leaf_text(value: &StructuredInfoValue) -> Result<&str, EducationIn
         return Err(EducationInfoRefusal::MalformedInfo);
     };
     core::str::from_utf8(bytes).map_err(|_| EducationInfoRefusal::MalformedInfo)
+}
+
+pub(super) fn leaf_count(value: &StructuredInfoValue) -> Result<u64, EducationInfoRefusal> {
+    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+        return Err(EducationInfoRefusal::MalformedInfo);
+    };
+    conduit_core::decode_count(bytes).map_err(|_| EducationInfoRefusal::MalformedInfo)
 }
 
 pub(super) fn variant_payload_type(

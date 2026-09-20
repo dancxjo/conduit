@@ -63,11 +63,14 @@ fn validate_node(
 ) -> Result<(), Refusal> {
     *remaining = remaining.checked_sub(1).ok_or(Refusal::TooManyNodes)?;
     match ty.shape() {
-        Shape::Leaf(_) => {
+        Shape::Leaf(kind) => {
             expect(cursor.byte()? == 0)?;
-            if cursor.bytes()?.len() > MAXIMUM_STRUCTURED_LEAF_BYTES {
+            let encoded = cursor.bytes()?;
+            if encoded.len() > MAXIMUM_STRUCTURED_LEAF_BYTES {
                 return Err(Refusal::LeafTooLarge);
             }
+            crate::validate_primitive_info(kind.as_str(), encoded)
+                .map_err(Refusal::InvalidPrimitiveLeaf)?;
         }
         Shape::Collection { element, length } => {
             expect(cursor.byte()? == 1)?;

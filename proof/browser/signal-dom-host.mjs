@@ -7,7 +7,7 @@ export const BrowserDomFailure = Object.freeze({
 
 const SIGNAL_VALUE_KIND = "value/signal";
 const SIGNAL_PRESENTATION_KIND = "presentation/signal";
-const BOOL_VALUE_KIND = "value/bool@1";
+const BOOL_VALUE_KIND = "value/bool";
 const BOOL_PRESENTATION_KIND = "presentation/bool";
 const LOCAL_PRESENTATION_EFFECT = 2;
 const DISTRIBUTED_PRESENTATION_EFFECT = 3;

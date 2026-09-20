@@ -17,7 +17,7 @@ fn checked_and_definitions() -> (
     KindDefinition,
     KindDefinition,
 ) {
-    let text = StructuredInfoType::leaf(KindId::from("value/text@1")).unwrap();
+    let text = StructuredInfoType::leaf(KindId::from("value/text")).unwrap();
     let feedback = StructuredInfoType::record(
         KindId::from("product/feedback@1"),
         vec![StructuredFieldType::new("status", text.clone()).unwrap()],

@@ -299,7 +299,7 @@ mod tests {
             gear_id: GearId::from("demo"),
             descriptor: PortDescriptor {
                 port_id: port_id("value"),
-                value_kind: kind_id("value/text@1"),
+                value_kind: kind_id("value/text"),
                 direction,
                 temporal: PortTemporal::Value,
             },
@@ -359,7 +359,7 @@ mod tests {
             identity: "cord/0".into(),
             source_port: source.identity,
             sink_port: sink.identity,
-            value_kind: kind_id("value/text@1"),
+            value_kind: kind_id("value/text"),
             temporal: PortTemporal::Value,
         };
         let view = cord_presentation(

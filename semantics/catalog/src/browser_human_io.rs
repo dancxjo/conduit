@@ -59,12 +59,12 @@ pub fn image_observation_reference_type() -> StructuredInfoType {
             .unwrap(),
             StructuredFieldType::new(
                 "height",
-                StructuredInfoType::leaf(kind_id("value/count@1")).unwrap(),
+                StructuredInfoType::leaf(kind_id("value/count")).unwrap(),
             )
             .unwrap(),
             StructuredFieldType::new(
                 "width",
-                StructuredInfoType::leaf(kind_id("value/count@1")).unwrap(),
+                StructuredInfoType::leaf(kind_id("value/count")).unwrap(),
             )
             .unwrap(),
         ],
@@ -73,8 +73,8 @@ pub fn image_observation_reference_type() -> StructuredInfoType {
 }
 
 pub fn image_text_record_type() -> StructuredInfoType {
-    let text = || StructuredInfoType::leaf(kind_id("value/text@1")).expect("text type");
-    let unit = || StructuredInfoType::leaf(kind_id("value/unit@1")).expect("unit type");
+    let text = || StructuredInfoType::leaf(kind_id("value/text")).expect("text type");
+    let unit = || StructuredInfoType::leaf(kind_id("value/unit")).expect("unit type");
     let metadata = StructuredInfoType::record(
         kind_id("human/image-text-metadata@1"),
         vec![
@@ -97,7 +97,7 @@ pub fn image_text_record_type() -> StructuredInfoType {
             StructuredFieldType::new("caption", text()).unwrap(),
             StructuredFieldType::new(
                 "content_digest",
-                StructuredInfoType::leaf(kind_id("value/bytes@1")).unwrap(),
+                StructuredInfoType::leaf(kind_id("value/bytes")).unwrap(),
             )
             .unwrap(),
             StructuredFieldType::new("image", image_observation_reference_type()).unwrap(),
@@ -122,7 +122,7 @@ pub fn image_text_record_value(
     record
         .validate(expected_image_profile)
         .map_err(ImageTextValueRefusal::InvalidRecord)?;
-    let text = |value: &str| leaf_value("value/text@1", value.as_bytes().to_vec());
+    let text = |value: &str| leaf_value("value/text", value.as_bytes().to_vec());
     let mut slots = Vec::with_capacity(conduit_human::MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES);
     for entry in &record.metadata {
         let metadata = StructuredInfoValue::record(
@@ -143,7 +143,7 @@ pub fn image_text_record_value(
             StructuredInfoValue::variant(
                 metadata_slot_type(),
                 "absent",
-                leaf_value("value/unit@1", Vec::new())?,
+                leaf_value("value/unit", Vec::new())?,
             )
             .map_err(|_| ImageTextValueRefusal::Malformed)?,
         );
@@ -156,7 +156,7 @@ pub fn image_text_record_value(
             field_value("caption", text(&record.caption)?),
             field_value(
                 "content_digest",
-                leaf_value("value/bytes@1", record.content_digest.to_vec())?,
+                leaf_value("value/bytes", record.content_digest.to_vec())?,
             ),
             field_value("image", image_observation_value(&record.image)?),
             field_value("metadata", metadata),
@@ -324,7 +324,7 @@ pub fn install_human_media_catalogs(
                 ),
                 PortDescriptor {
                     port_id: port_id("caption"),
-                    value_kind: kind_id("value/text@1"),
+                    value_kind: kind_id("value/text"),
                     direction: PortDirection::Input,
                     temporal: PortTemporal::Value,
                 },
@@ -393,7 +393,7 @@ fn leaf_value(
 }
 
 fn count_value(value: u16) -> Result<StructuredInfoValue, ImageTextValueRefusal> {
-    leaf_value("value/count@1", u64::from(value).to_le_bytes().to_vec())
+    leaf_value("value/count", u64::from(value).to_le_bytes().to_vec())
 }
 
 fn field_value(name: &str, value: StructuredInfoValue) -> StructuredFieldValue {

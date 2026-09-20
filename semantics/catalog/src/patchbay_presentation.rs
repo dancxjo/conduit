@@ -13,7 +13,7 @@ pub const PATCHBAY_PORT_KIND: &str = "patchbay/port";
 pub const PATCHBAY_CORD_KIND: &str = "patchbay/cord";
 pub const PATCHBAY_PRESENTATION_REVISION: &str = "conduit.patchbay/presentation@1";
 pub const PATCHBAY_PRESENTATION_INPUT: &str = "subject";
-pub const PATCHBAY_PRESENTATION_VALUE_KIND: &str = "value/text@1";
+pub const PATCHBAY_PRESENTATION_VALUE_KIND: &str = "value/text";
 pub const MAX_PATCHBAY_PRESENTATION_BYTES: u32 = 1_024;
 pub const PATCHBAY_ROOT_BACK_SOURCE: &str = "form presentation/patchbay (\n > subject: Text\n) {\n front: patchbay/gear-front\n port: patchbay/port\n cord: patchbay/cord\n subject > front.subject\n subject > port.subject\n subject > cord.subject\n}\n";
 pub const PATCHBAY_GEAR_FACE_BACK_SOURCE: &str = "form patchbay/gear-front (\n > subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport(width = 320, height = 200, children = 3, child-width = 40, child-height = 30)\n inset: layout/inset(inset = 8)\n column: layout/column(gap = 3)\n icon: presentation/icon(icon = \"type\", accessibility-name = \"Patchbay\")\n frame: presentation/frame(role = \"panel\", accessibility-name = \"Gear Front\")\n rect: graphics/rect(style = \"stroke\")\n resolved-text: graphics/text(text = \"r\")\n resolved-icon: graphics/icon(icon = \"type\")\n manifest: presentation/graphics\n subject > text.text\n viewport > inset > column\n icon > frame > rect > resolved-text > resolved-icon > manifest.scene\n}\n";
@@ -130,7 +130,7 @@ mod tests {
     #[test]
     fn one_canonical_family_carries_subject_text_not_widget_or_renderer_types() {
         for contract in patchbay_presentation_contracts() {
-            assert_eq!(contract.inputs[0].value_kind.as_str(), "value/text@1");
+            assert_eq!(contract.inputs[0].value_kind.as_str(), "value/text");
             let rendered = alloc::format!("{contract:?}").to_ascii_lowercase();
             for forbidden in ["widget", "dom", "css", "framebuffer", "socket"] {
                 assert!(!rendered.contains(forbidden));

@@ -169,7 +169,7 @@ fn append_command() -> Vec<u8> {
             origin: conduit_time::HistoricalEntryOrigin::OperatorAuthored,
             value: BoundedResourceRef {
                 identity: ResourceSemanticIdentity::from_digest([1; 32]),
-                content_profile: conduit_core::kind_id("value/text@1"),
+                content_profile: conduit_core::kind_id("value/text"),
                 access_class: ResourceClassId::from("conduit.resource/history-value@1"),
                 extent: ResourceExtent {
                     bytes: 4,

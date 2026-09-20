@@ -363,10 +363,10 @@ fn count(value: &StructuredInfoValue) -> Result<u16, HostedVisionRefusal> {
     let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
         return Err(HostedVisionRefusal::MalformedImageResource);
     };
-    core::str::from_utf8(bytes)
-        .map_err(|_| HostedVisionRefusal::MalformedImageResource)?
-        .parse()
-        .map_err(|_| HostedVisionRefusal::MalformedImageResource)
+    conduit_core::decode_count(bytes)
+        .ok()
+        .and_then(|value| u16::try_from(value).ok())
+        .ok_or(HostedVisionRefusal::MalformedImageResource)
 }
 
 #[cfg(test)]

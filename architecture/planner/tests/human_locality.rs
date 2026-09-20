@@ -444,7 +444,7 @@ fn remote_capacity_cannot_override_authority_or_data_locality_requirements() {
         .push(conduit_core::AuthorityRequirement {
             contract_id: authority.clone(),
             host_operation_contract_id: operation,
-            subject_kind: conduit_core::kind_id("value/text@1"),
+            subject_kind: conduit_core::kind_id("value/text"),
         });
     let observations = observations(&hosts);
     let heavy = form

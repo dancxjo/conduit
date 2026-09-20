@@ -23,7 +23,7 @@ pub(super) fn literal(build_id: &str) -> CapabilityOffer<'_> {
         input: None,
         output: Some(PortOffer {
             name: "text",
-            value_kind: "value/text@1",
+            value_kind: "value/text",
             direction: PortDirection::Output,
             closes: true,
         }),
@@ -71,7 +71,7 @@ pub(super) fn presentation(build_id: &str) -> CapabilityOffer<'_> {
         secondary_base: None,
         input: Some(PortOffer {
             name: "text",
-            value_kind: "value/text@1",
+            value_kind: "value/text",
             direction: PortDirection::Input,
             closes: true,
         }),

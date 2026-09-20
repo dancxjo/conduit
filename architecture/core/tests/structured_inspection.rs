@@ -1,8 +1,9 @@
 use conduit_core::{
-    BootId, HostId, KindId, Observation, ObservationKind, Quantity, QuantityDecodeRefusal,
-    QuantityUnit, SignId, StructuredFieldType, StructuredFieldValue, StructuredInfoInspection,
-    StructuredInfoInspectionRefusal, StructuredInfoInspectionShape, StructuredInfoLeafSemantic,
-    StructuredInfoType, StructuredInfoValue, ValuePayload, MAXIMUM_STRUCTURED_INSPECTION_NODES,
+    encode_count, BootId, HostId, KindId, Observation, ObservationKind, PrimitiveInfoRefusal,
+    Quantity, QuantityDecodeRefusal, QuantityUnit, SignId, StructuredFieldType,
+    StructuredFieldValue, StructuredInfoInspection, StructuredInfoInspectionRefusal,
+    StructuredInfoInspectionShape, StructuredInfoLeafSemantic, StructuredInfoType,
+    StructuredInfoValue, ValuePayload, MAXIMUM_STRUCTURED_INSPECTION_NODES,
 };
 
 fn leaf_type(kind: &str) -> StructuredInfoType {
@@ -37,28 +38,28 @@ fn music_and_llm_signs_share_one_leaf_redacting_inspection() {
     let note_type = StructuredInfoType::record(
         KindId::from("music/note@1"),
         vec![
-            StructuredFieldType::new("pitch", leaf_type("value/count@1")).unwrap(),
-            StructuredFieldType::new("velocity", leaf_type("value/count@1")).unwrap(),
+            StructuredFieldType::new("pitch", leaf_type("value/count")).unwrap(),
+            StructuredFieldType::new("velocity", leaf_type("value/count")).unwrap(),
         ],
     )
     .unwrap();
     let note = StructuredInfoValue::record(
         note_type.clone(),
         vec![
-            StructuredFieldValue::new("pitch", leaf("value/count@1", &[60])).unwrap(),
-            StructuredFieldValue::new("velocity", leaf("value/count@1", &[101])).unwrap(),
+            StructuredFieldValue::new("pitch", leaf("value/count", &encode_count(60))).unwrap(),
+            StructuredFieldValue::new("velocity", leaf("value/count", &encode_count(101))).unwrap(),
         ],
     )
     .unwrap();
     let extraction_type = StructuredInfoType::record(
         KindId::from("llm/extraction@1"),
-        vec![StructuredFieldType::new("private_answer", leaf_type("value/text@1")).unwrap()],
+        vec![StructuredFieldType::new("private_answer", leaf_type("value/text")).unwrap()],
     )
     .unwrap();
     let extraction = StructuredInfoValue::record(
         extraction_type.clone(),
         vec![
-            StructuredFieldValue::new("private_answer", leaf("value/text@1", b"do-not-retain"))
+            StructuredFieldValue::new("private_answer", leaf("value/text", b"do-not-retain"))
                 .unwrap(),
         ],
     )
@@ -80,7 +81,7 @@ fn music_and_llm_signs_share_one_leaf_redacting_inspection() {
 
 #[test]
 fn inspection_has_a_tighter_cap_and_reports_every_omitted_node() {
-    let collection_type = StructuredInfoType::collection(leaf_type("value/count@1"), Some(8))
+    let collection_type = StructuredInfoType::collection(leaf_type("value/count"), Some(8))
         .expect("finite collection type");
     let fields: Vec<_> = (0..64)
         .map(|index| {
@@ -92,7 +93,7 @@ fn inspection_has_a_tighter_cap_and_reports_every_omitted_node() {
     let values: Vec<_> = (0..64)
         .map(|index| {
             let items = (0..8)
-                .map(|item| leaf("value/count@1", &[index, item]))
+                .map(|item| leaf("value/count", &encode_count(index * 8 + item)))
                 .collect();
             StructuredFieldValue::new(
                 format!("field-{index:02}"),
@@ -110,15 +111,15 @@ fn inspection_has_a_tighter_cap_and_reports_every_omitted_node() {
 
 #[test]
 fn non_value_malformed_and_wrong_profile_signs_refuse_distinctly() {
-    let expected = leaf_type("value/text@1");
-    let mut non_value = sign(&leaf("value/text@1", b"ok"));
+    let expected = leaf_type("value/text");
+    let mut non_value = sign(&leaf("value/text", b"ok"));
     non_value.kind = ObservationKind::PlanCompleted;
     assert_eq!(
         StructuredInfoInspection::from_sign(&non_value, &expected),
         Err(StructuredInfoInspectionRefusal::NotValueSign)
     );
 
-    let mut wrong_profile = sign(&leaf("value/text@1", b"ok"));
+    let mut wrong_profile = sign(&leaf("value/text", b"ok"));
     let ObservationKind::ValueProduced { value } = &mut wrong_profile.kind else {
         unreachable!()
     };
@@ -128,7 +129,7 @@ fn non_value_malformed_and_wrong_profile_signs_refuse_distinctly() {
         Err(StructuredInfoInspectionRefusal::ProfileMismatch)
     );
 
-    let mut malformed = sign(&leaf("value/text@1", b"ok"));
+    let mut malformed = sign(&leaf("value/text", b"ok"));
     let ObservationKind::ValueProduced { value } = &mut malformed.kind else {
         unreachable!()
     };
@@ -153,14 +154,14 @@ fn quantity_signs_retain_exact_typed_semantics_without_general_leaf_disclosure()
         } if *observed == quantity
     ));
 
-    let malformed = leaf(conduit_core::QUANTITY_INFO_ID, &[0; 8]);
+    let quantity_type = leaf_type(conduit_core::QUANTITY_INFO_ID);
     assert_eq!(
-        StructuredInfoInspection::from_sign(&sign(&malformed), malformed.value_type()),
-        Err(StructuredInfoInspectionRefusal::InvalidQuantity(
-            QuantityDecodeRefusal::WrongLength {
+        StructuredInfoValue::leaf(quantity_type, vec![0; 8]),
+        Err(conduit_core::StructuredInfoRefusal::InvalidPrimitiveLeaf(
+            PrimitiveInfoRefusal::Quantity(QuantityDecodeRefusal::WrongLength {
                 expected: conduit_core::QUANTITY_ENCODED_LEN,
                 actual: 8,
-            }
+            })
         ))
     );
 }

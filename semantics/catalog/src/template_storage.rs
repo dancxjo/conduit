@@ -314,7 +314,7 @@ mod tests {
     #[test]
     fn malformed_template_is_distinct_from_collection_capacity_or_name_refusal() {
         let wrong_type = StructuredInfoValue::leaf(
-            StructuredInfoType::leaf(kind_id("value/text@1")).unwrap(),
+            StructuredInfoType::leaf(kind_id("value/text")).unwrap(),
             b"not a normalized pattern".to_vec(),
         )
         .unwrap();

@@ -184,7 +184,7 @@ mod tests {
             configuration: vec![
                 entry(
                     "value-profile",
-                    ConfigurationValue::Text("value/text@1".into()),
+                    ConfigurationValue::Text("value/text".into()),
                 ),
                 entry(
                     "clock-basis",

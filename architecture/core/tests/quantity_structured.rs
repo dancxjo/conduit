@@ -37,7 +37,7 @@ fn every_quantity_unit_has_one_round_tripping_canonical_tag() {
         assert_eq!(Quantity::decode(&quantity.encode()), Ok(quantity));
         assert_ne!(quantity.semantic_digest(), [0; 32]);
     }
-    assert_eq!(QUANTITY_INFO_ID, "value/quantity@1");
+    assert_eq!(QUANTITY_INFO_ID, "value/quantity");
 }
 
 #[test]

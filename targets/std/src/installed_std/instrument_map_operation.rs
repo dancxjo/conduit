@@ -306,20 +306,16 @@ fn count(value: &StructuredInfoValue, detail: u16) -> Result<u64, u16> {
     let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
         return Err(detail);
     };
-    let text = core::str::from_utf8(bytes).map_err(|_| detail)?;
-    let parsed = text.parse::<u64>().map_err(|_| detail)?;
-    (parsed.to_string() == text).then_some(parsed).ok_or(detail)
+    conduit_core::decode_count(bytes).map_err(|_| detail)
 }
 
 fn boolean(value: &StructuredInfoValue, detail: u16) -> Result<bool, u16> {
     let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
         return Err(detail);
     };
-    match bytes {
-        b"true" => Ok(true),
-        b"false" => Ok(false),
-        _ => Err(detail),
-    }
+    conduit_core::InfoBool::decode(bytes)
+        .map(conduit_core::InfoBool::get)
+        .map_err(|_| detail)
 }
 
 fn detail(_: u16) -> String {

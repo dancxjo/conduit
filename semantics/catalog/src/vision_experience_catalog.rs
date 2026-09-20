@@ -23,7 +23,7 @@ pub const VISUAL_IMPRESSION_TYPE: &str = "VisualImpression";
 pub const VISUAL_EXPERIENCE_TYPE: &str = "VisualExperience";
 
 fn text() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/text@1")).expect("reviewed text")
+    StructuredInfoType::leaf(kind_id("value/text")).expect("reviewed text")
 }
 
 fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {

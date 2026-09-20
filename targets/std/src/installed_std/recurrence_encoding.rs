@@ -23,7 +23,7 @@ pub(super) fn encode_batch(occurrences: &[RecurrenceOccurrence]) -> Result<Vec<u
         .collect::<Result<Vec<_>, String>>()?;
     while slots.len() < usize::from(conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS) {
         slots.push(
-            StructuredInfoValue::variant(slot_type.clone(), "unused", leaf("value/unit@1", "")?)
+            StructuredInfoValue::variant(slot_type.clone(), "unused", leaf("value/unit", "")?)
                 .map_err(structured)?,
         );
     }
@@ -51,12 +51,12 @@ fn occurrence_value(occurrence: &RecurrenceOccurrence) -> Result<StructuredInfoV
     StructuredInfoValue::record(
         conduit_semantic_catalog::recurrence_occurrence_type(),
         vec![
-            value_field("identity", leaf("value/text@1", &occurrence.identity)?),
+            value_field("identity", leaf("value/text", &occurrence.identity)?),
             value_field("instant", occurrence_instant(&occurrence.at)?),
             value_field("ordinal", count(u64::from(occurrence.ordinal))?),
             value_field(
                 "recurrence_identity",
-                leaf("value/text@1", &occurrence.recurrence_identity)?,
+                leaf("value/text", &occurrence.recurrence_identity)?,
             ),
         ],
     )

@@ -216,7 +216,7 @@ fn timing_value(classification: &str, delta_micros: i64) -> StructuredInfoValue 
     record(
         timing_feedback_type(),
         vec![
-            ("beat", leaf("value/count@1", b"3")),
+            ("beat", leaf("value/count", &conduit_core::encode_count(3))),
             (
                 "classification",
                 leaf("music/timing-classification@1", classification.as_bytes()),
@@ -228,9 +228,18 @@ fn timing_value(classification: &str, delta_micros: i64) -> StructuredInfoValue 
                     delta_micros.to_string().as_bytes(),
                 ),
             ),
-            ("expected_time_micros", leaf("value/count@1", b"3000000")),
-            ("observed", leaf("value/boolean@1", b"true")),
-            ("observed_time_micros", leaf("value/count@1", b"3045000")),
+            (
+                "expected_time_micros",
+                leaf("value/count", &conduit_core::encode_count(3_000_000)),
+            ),
+            (
+                "observed",
+                leaf("value/bool", &conduit_core::InfoBool::TRUE.encode()),
+            ),
+            (
+                "observed_time_micros",
+                leaf("value/count", &conduit_core::encode_count(3_045_000)),
+            ),
             (
                 "recovery_state",
                 leaf("music/recovery-state@1", b"improving"),

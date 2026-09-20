@@ -47,11 +47,15 @@ fn test_mapping() -> InstrumentMapping {
 }
 
 fn leaf(kind: &str, value: impl ToString) -> StructuredInfoValue {
-    StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id(kind)).unwrap(),
-        value.to_string().into_bytes(),
-    )
-    .unwrap()
+    let value = value.to_string();
+    let bytes = match kind {
+        "value/count" => conduit_core::encode_count(value.parse().unwrap()).to_vec(),
+        "value/bool" => conduit_core::InfoBool::new(value.parse::<bool>().unwrap())
+            .encode()
+            .to_vec(),
+        _ => value.into_bytes(),
+    };
+    StructuredInfoValue::leaf(StructuredInfoType::leaf(kind_id(kind)).unwrap(), bytes).unwrap()
 }
 
 fn control(tag: &str, fields: Vec<(&str, StructuredInfoValue)>) -> StructuredInfoValue {
@@ -80,10 +84,10 @@ fn button(index: u64, down: bool, occurrence: u64, time: u64) -> StructuredInfoV
     control(
         "button",
         vec![
-            ("index", leaf("value/count@1", index)),
-            ("down", leaf("value/boolean@1", down)),
-            ("occurrence", leaf("value/count@1", occurrence)),
-            ("event_time_micros", leaf("value/count@1", time)),
+            ("index", leaf("value/count", index)),
+            ("down", leaf("value/bool", down)),
+            ("occurrence", leaf("value/count", occurrence)),
+            ("event_time_micros", leaf("value/count", time)),
         ],
     )
 }
@@ -92,9 +96,9 @@ fn analog(index: u64, value: u64, time: u64) -> StructuredInfoValue {
     control(
         "analog",
         vec![
-            ("index", leaf("value/count@1", index)),
-            ("value", leaf("value/count@1", value)),
-            ("event_time_micros", leaf("value/count@1", time)),
+            ("index", leaf("value/count", index)),
+            ("value", leaf("value/count", value)),
+            ("event_time_micros", leaf("value/count", time)),
         ],
     )
 }
@@ -233,7 +237,7 @@ fn wrong_profile_and_malformed_canonical_input_fail_closed() {
         next_order: 0,
         emitted: false,
     };
-    let wrong = leaf("value/count@1", 1).canonical_bytes().unwrap();
+    let wrong = leaf("value/count", 1).canonical_bytes().unwrap();
     assert!(matches!(
         operation.resume_value(PortId(0), &wrong),
         OperationAction::Fail(Failure {

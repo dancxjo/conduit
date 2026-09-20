@@ -24,7 +24,7 @@ pub fn image_text_std_offer() -> CapabilityOffer {
         ),
         PortDescriptor {
             port_id: conduit_core::port_id("caption"),
-            value_kind: conduit_core::kind_id("value/text@1"),
+            value_kind: conduit_core::kind_id("value/text"),
             direction: conduit_core::PortDirection::Input,
             temporal: conduit_core::PortTemporal::Value,
         },

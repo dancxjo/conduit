@@ -15,7 +15,7 @@ pub const SPEECH_SYNTHESIZE_STREAM_KIND: &str = "speech/synthesize-stream";
 pub const SPEECH_SYNTHESIZE_STREAM_REVISION: &str = "conduit.speech/synthesize-stream@1";
 pub const AUDIO_PLAY_KIND: &str = "audio/play";
 pub const AUDIO_PLAY_REVISION: &str = "conduit.std/audio-play@1";
-pub const TEXT_VALUE_KIND: &str = "value/text@1";
+pub const TEXT_VALUE_KIND: &str = "value/text";
 pub const MAXIMUM_TEXT_BYTES: u32 = 256;
 /// At most about three seconds of signed 16-bit mono speech at 22.05 kHz.
 pub const MAXIMUM_PCM_BYTES: u32 = 131_072;
