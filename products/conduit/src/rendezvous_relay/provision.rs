@@ -1,3 +1,7 @@
+use conduit_body::{
+    encode_running_host_rendezvous_text, RendezvousAuthentication, RendezvousCandidate,
+    RendezvousLineFamily, RunningHostRendezvousDescriptor, MAX_RENDEZVOUS_ENVELOPE_BYTES,
+};
 use serde_json::json;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
@@ -128,10 +132,36 @@ pub(crate) fn provision(options: ProvisionOptions) -> Result<(), String> {
         "candidate_binding": route_id,
         "transport_binding": transport_binding
     });
+    let rendezvous = RunningHostRendezvousDescriptor::new(
+        vec![RendezvousCandidate {
+            candidate_id: route_id.clone(),
+            line_family: RendezvousLineFamily::AuthenticatedConduitLine,
+            reachability: options.relay_url.clone(),
+            authentication: RendezvousAuthentication {
+                server_identity: options.server_identity.clone(),
+                transport_binding_sha256: certificate_binding,
+            },
+            expires_at_millis,
+            maximum_attempts: options.maximum_attempts,
+            attempt_timeout_millis: 30_000,
+        }],
+        rendezvous_session_secret
+            .try_into()
+            .expect("fixed provisioning secret slice"),
+        now_millis()?,
+    )
+    .map_err(|error| format!("construct shared relay rendezvous descriptor: {error:?}"))?;
+    let mut rendezvous_text = [0_u8; MAX_RENDEZVOUS_ENVELOPE_BYTES];
+    let rendezvous_text_len =
+        encode_running_host_rendezvous_text(&rendezvous, &mut rendezvous_text)
+            .map_err(|error| format!("encode shared relay rendezvous descriptor: {error:?}"))?;
+    let rendezvous_text = core::str::from_utf8(&rendezvous_text[..rendezvous_text_len])
+        .expect("rendezvous manifestation is ASCII");
     let endpoint = |role: &str, binding: &str, capability: &[u8]| {
         json!({
             "schema": HOST_ENDPOINT_SCHEMA,
             "address": address,
+            "rendezvous": rendezvous_text,
             "candidate": {
                 "schema": CANDIDATE_SCHEMA,
                 "relay_implementation_id": conduit_protected_line::RELAY_SERVICE_IMPLEMENTATION_ID,
@@ -147,8 +177,7 @@ pub(crate) fn provision(options: ProvisionOptions) -> Result<(), String> {
                 "relay_capability": capability,
                 "protected_session_psk": protected_session_psk,
                 "bounds": limits
-            },
-            "rendezvous_session_secret": rendezvous_session_secret
+            }
         })
     };
     let mut first = endpoint("initiator", &first_binding, first_capability);
@@ -165,10 +194,8 @@ pub(crate) fn provision(options: ProvisionOptions) -> Result<(), String> {
     erase_secret_array(&mut slot["second_capability"]);
     erase_secret_array(&mut first["candidate"]["relay_capability"]);
     erase_secret_array(&mut first["candidate"]["protected_session_psk"]);
-    erase_secret_array(&mut first["rendezvous_session_secret"]);
     erase_secret_array(&mut second["candidate"]["relay_capability"]);
     erase_secret_array(&mut second["candidate"]["protected_session_psk"]);
-    erase_secret_array(&mut second["rendezvous_session_secret"]);
     if let Err(error) = result {
         if directory_created {
             cleanup_incomplete_output(&options.output)
