@@ -178,7 +178,8 @@ jobs:
             "$ACCEPTED_MAIN_SHA" "$RELEASE_PR" \
             "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/" \
             "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
-            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$PRODUCT_RUN_ID"
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$PRODUCT_RUN_ID" \
+            target/pages-site-with-truth/supply-chain/conduitos-x86_64-pc
           source_tree=$(git rev-parse 'HEAD^{tree}')
           node tools/ci/seal-pages-carrier.mjs \
             target/pages-site-with-truth target/pages-carrier-with-truth \

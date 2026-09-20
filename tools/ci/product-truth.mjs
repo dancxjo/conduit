@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 
 export const PRODUCT_TRUTH_SCHEMA = "conduit.product-truth/v1";
 export const MAX_EVIDENCE_RECEIPTS = 32;
+export const MAX_SUPPLY_CHAIN_EXPORTS = 8;
 const MAX_TEXT_LENGTH = 2_048;
 export const PROOF_CLASSES = Object.freeze(new Set([
   "source-capability",
@@ -27,6 +28,7 @@ export function buildProductTruth(input) {
     development: { ...input.development },
     accepted_release: { ...input.accepted_release },
     publication: { ...input.publication },
+    supply_chain: (input.supply_chain ?? []).map((item) => ({ ...item })),
     evidence: input.evidence.map((item) => ({ ...item })),
     lag: {
       accepted_release_behind_development:
@@ -67,6 +69,16 @@ function validateInput(input) {
   if (input.evidence.length > MAX_EVIDENCE_RECEIPTS) {
     throw new Error("product truth exceeds the evidence bound");
   }
+  if (!Array.isArray(input.supply_chain ?? [])) throw new Error("product truth supply-chain exports are invalid");
+  if ((input.supply_chain ?? []).length > MAX_SUPPLY_CHAIN_EXPORTS) throw new Error("product truth exceeds the supply-chain export bound");
+  for (const item of input.supply_chain ?? []) {
+    requiredText(item?.artifact_id, "supply-chain ArtifactId");
+    requiredText(item?.build_id, "supply-chain BuildId");
+    if (item?.representation !== "oci-image-layout@1") throw new Error("unknown supply-chain representation");
+    digest(item?.manifest_digest, "supply-chain manifest digest");
+    digest(item?.index_digest, "supply-chain index digest");
+    requiredText(item?.index_url, "supply-chain index URL");
+  }
   const surfaces = new Set();
   for (const item of input.evidence) {
     requiredText(item?.surface, "evidence surface");
@@ -91,6 +103,10 @@ function sha(value, label) {
 
 function positiveInteger(value, label) {
   if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${label} is invalid`);
+}
+
+function digest(value, label) {
+  if (typeof value !== "string" || !/^sha256:[0-9a-f]{64}$/.test(value)) throw new Error(`${label} is invalid`);
 }
 
 function deepFreeze(value) {
