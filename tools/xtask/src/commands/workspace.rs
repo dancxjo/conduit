@@ -13,26 +13,6 @@ pub struct WorkspaceArgs {
 
 pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
-    run_step(
-        &Step::new(
-            "demo.workspace.runtime",
-            "Build the shared Crèche and ordinary Body execution runtime",
-            "cargo",
-            &[
-                "build",
-                "-p",
-                "conduit-browser-runtime",
-                "--target",
-                "wasm32-unknown-unknown",
-                "--release",
-                "--no-default-features",
-                "--features",
-                "creche-surface,form-runner",
-            ],
-        ),
-        &root,
-        opts,
-    )?;
     if args.check {
         run_step(
             &Step::new(
@@ -80,6 +60,29 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
                 "target/workspace-release-artifacts",
                 "--generation",
                 "1",
+            ],
+        ),
+        &root,
+        opts,
+    )?;
+    // Host release fabrication also builds a narrower browser runtime in the
+    // shared target directory. Build the Workspace-featured runtime last so
+    // the staging input cannot be replaced by that intermediate artifact.
+    run_step(
+        &Step::new(
+            "demo.workspace.runtime",
+            "Build the shared Crèche and ordinary Body execution runtime",
+            "cargo",
+            &[
+                "build",
+                "-p",
+                "conduit-browser-runtime",
+                "--target",
+                "wasm32-unknown-unknown",
+                "--release",
+                "--no-default-features",
+                "--features",
+                "creche-surface,form-runner",
             ],
         ),
         &root,
