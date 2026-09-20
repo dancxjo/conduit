@@ -84,6 +84,9 @@ impl BrowserUsbSession {
         &mut self,
         terminal: BrowserUsbTerminal,
     ) -> Result<(), BrowserUsbRefusal> {
+        let resource = current_resource(&self.phase)
+            .ok_or(BrowserUsbRefusal::WrongPhase)?
+            .clone();
         if !matches!(self.phase, BrowserUsbPhase::UsePlaying { .. })
             || !matches!(
                 terminal,
@@ -96,6 +99,14 @@ impl BrowserUsbSession {
             return Err(BrowserUsbRefusal::WrongPhase);
         }
         self.retained_transfer = None;
+        self.registry
+            .set_lifecycle(
+                &HostBaseId::from("browser/base/web-usb"),
+                &resource.base_instance_id,
+                resource.provider_generation,
+                BaseLifecycle::Degraded,
+            )
+            .map_err(|_| BrowserUsbRefusal::WrongPhase)?;
         self.phase = BrowserUsbPhase::Terminal(terminal);
         Ok(())
     }
@@ -104,6 +115,9 @@ impl BrowserUsbSession {
         &mut self,
         terminal: BrowserUsbTerminal,
     ) -> Result<(), BrowserUsbRefusal> {
+        let resource = current_resource(&self.phase)
+            .ok_or(BrowserUsbRefusal::WrongPhase)?
+            .clone();
         if !matches!(
             self.phase,
             BrowserUsbPhase::ResourceTruth(_)
@@ -118,6 +132,20 @@ impl BrowserUsbSession {
             return Err(BrowserUsbRefusal::WrongPhase);
         }
         self.retained_transfer = None;
+        self.registry
+            .set_lifecycle(
+                &HostBaseId::from("browser/base/web-usb"),
+                &resource.base_instance_id,
+                resource.provider_generation,
+                match terminal {
+                    BrowserUsbTerminal::DeviceLost => BaseLifecycle::Lost,
+                    BrowserUsbTerminal::CloseFailed | BrowserUsbTerminal::Closed => {
+                        BaseLifecycle::Stopped
+                    }
+                    _ => return Err(BrowserUsbRefusal::WrongPhase),
+                },
+            )
+            .map_err(|_| BrowserUsbRefusal::WrongPhase)?;
         self.phase = BrowserUsbPhase::Terminal(terminal);
         Ok(())
     }

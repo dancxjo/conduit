@@ -1,8 +1,12 @@
 //! Finite WebUSB Base admission. The sibling browser adapter owns only WebUSB mechanics.
 
+use std::{format, vec, vec::Vec};
+
 use conduit_core::{
-    AuthorityContractId, AuthorityGrantId, BaseImplementationId, BaseInstanceId, BootId, HostId,
-    HostOperationContractId, HostOperationId, OfferGeneration, PlanId, ResourceClassId,
+    resource_offer, AuthorityContractId, AuthorityGrantId, BaseEnforcementClass,
+    BaseImplementationId, BaseInstanceId, BaseLifecycle, BaseProviderEntry, BaseRegistry,
+    BaseRegistryLimits, BaseRegistryRefusal, BootId, HostAdvertisement, HostBaseId, HostBaseKindId,
+    HostId, HostOperationContractId, HostOperationId, OfferGeneration, PlanId, ResourceClassId,
     ResourceHandleId,
 };
 
@@ -86,10 +90,12 @@ pub(crate) struct UsbAcquisitionRequest {
 pub(crate) struct AcquiredUsbResource {
     pub(crate) host_id: HostId,
     pub(crate) boot_id: BootId,
+    pub(crate) offer_generation: OfferGeneration,
     pub(crate) handle_id: ResourceHandleId,
     pub(crate) class_id: ResourceClassId,
     pub(crate) base_implementation_id: BaseImplementationId,
     pub(crate) base_instance_id: BaseInstanceId,
+    pub(crate) provider_generation: u64,
     pub(crate) configuration: UsbConfiguration,
     pub(crate) transfer_bounds: UsbTransferBounds,
     pub(crate) use_authority_contract: AuthorityContractId,
@@ -119,6 +125,7 @@ pub(crate) struct UsbUseRequirement {
     pub(crate) class_id: ResourceClassId,
     pub(crate) base_implementation_id: BaseImplementationId,
     pub(crate) base_instance_id: BaseInstanceId,
+    pub(crate) provider_generation: u64,
     pub(crate) configuration: UsbConfiguration,
     pub(crate) transfer_bounds: UsbTransferBounds,
 }
@@ -240,10 +247,11 @@ pub(crate) struct BrowserUsbSession {
     retained_transfer: Option<RetainedUsbTransfer>,
     admitted_in_transfers: u16,
     admitted_out_transfers: u16,
+    registry: BaseRegistry,
 }
 
 impl BrowserUsbSession {
-    pub(crate) const fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             phase: BrowserUsbPhase::OfferAvailable,
             expected_operation: None,
@@ -252,6 +260,14 @@ impl BrowserUsbSession {
             retained_transfer: None,
             admitted_in_transfers: 0,
             admitted_out_transfers: 0,
+            registry: BaseRegistry::new(BaseRegistryLimits {
+                maximum_bases: 1,
+                maximum_capabilities_per_base: 1,
+                maximum_resources_per_base: 1,
+                maximum_advertised_capabilities: 1,
+                maximum_advertised_resources: 1,
+            })
+            .expect("browser WebUSB registry limits are fixed and valid"),
         }
     }
 
@@ -272,6 +288,13 @@ impl BrowserUsbSession {
     }
     pub(crate) const fn admitted_out_transfers(&self) -> u16 {
         self.admitted_out_transfers
+    }
+
+    pub(crate) fn project_current_base(
+        &self,
+        advertisement: &mut HostAdvertisement,
+    ) -> Result<(), BaseRegistryRefusal> {
+        self.registry.project_ready_into(advertisement)
     }
 
     pub(crate) fn seal_acquisition(
@@ -347,6 +370,7 @@ impl BrowserUsbSession {
                 || resource.class_id.as_str() != USB_RESOURCE_CLASS
                 || resource.base_implementation_id.as_str() != USB_BASE_IMPLEMENTATION
                 || resource.base_instance_id.as_str().is_empty()
+                || resource.provider_generation == 0
                 || resource.configuration != request.configuration
                 || resource.transfer_bounds != request.transfer_bounds
                 || resource.use_authority_contract.as_str() != USB_USE_AUTHORITY
@@ -361,7 +385,30 @@ impl BrowserUsbSession {
         self.expected_host_id = None;
         self.expected_boot_id = None;
         self.phase = match result {
-            UsbAcquisitionResult::Acquired(resource) => BrowserUsbPhase::ResourceTruth(*resource),
+            UsbAcquisitionResult::Acquired(resource) => {
+                let resource = *resource;
+                self.registry
+                    .register(BaseProviderEntry {
+                        base_id: HostBaseId::from("browser/base/web-usb"),
+                        provider_instance_id: resource.base_instance_id.clone(),
+                        provider_generation: resource.provider_generation,
+                        implementation_id: resource.base_implementation_id.clone(),
+                        mechanism_family: HostBaseKindId::from("browser.base/web-usb@1"),
+                        enforcement_class: BaseEnforcementClass::Cooperative,
+                        lifecycle: BaseLifecycle::Ready,
+                        capabilities: Vec::new(),
+                        resources: vec![resource_offer(
+                            &format!(
+                                "browser/web-usb/{}/resource",
+                                resource.base_instance_id.as_str()
+                            ),
+                            USB_RESOURCE_CLASS,
+                            1,
+                        )],
+                    })
+                    .map_err(|_| BrowserUsbRefusal::MalformedResource)?;
+                BrowserUsbPhase::ResourceTruth(resource)
+            }
             UsbAcquisitionResult::PermissionDenied => {
                 BrowserUsbPhase::Terminal(BrowserUsbTerminal::PermissionDenied)
             }
@@ -410,6 +457,7 @@ impl BrowserUsbSession {
             || requirement.class_id != resource.class_id
             || requirement.base_implementation_id != resource.base_implementation_id
             || requirement.base_instance_id != resource.base_instance_id
+            || requirement.provider_generation != resource.provider_generation
             || requirement.configuration != resource.configuration
             || requirement.transfer_bounds != resource.transfer_bounds
         {
@@ -434,6 +482,7 @@ impl BrowserUsbSession {
     }
 
     pub(crate) fn cancel(&mut self) -> Result<(), BrowserUsbRefusal> {
+        let current = current_resource(&self.phase).cloned();
         self.expected_operation = None;
         self.expected_host_id = None;
         self.expected_boot_id = None;
@@ -451,7 +500,26 @@ impl BrowserUsbSession {
             }
             _ => return Err(BrowserUsbRefusal::WrongPhase),
         };
+        if let Some(resource) = current {
+            self.registry
+                .set_lifecycle(
+                    &HostBaseId::from("browser/base/web-usb"),
+                    &resource.base_instance_id,
+                    resource.provider_generation,
+                    BaseLifecycle::Stopped,
+                )
+                .map_err(|_| BrowserUsbRefusal::WrongPhase)?;
+        }
         Ok(())
+    }
+}
+
+pub(super) fn current_resource(phase: &BrowserUsbPhase) -> Option<&AcquiredUsbResource> {
+    match phase {
+        BrowserUsbPhase::ResourceTruth(resource)
+        | BrowserUsbPhase::UsePlanned { resource, .. }
+        | BrowserUsbPhase::UsePlaying { resource, .. } => Some(resource),
+        _ => None,
     }
 }
 

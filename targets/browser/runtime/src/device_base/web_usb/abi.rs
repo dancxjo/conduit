@@ -202,10 +202,12 @@ pub extern "C" fn conduit_browser_usb_complete_acquisition(
                 UsbAcquisitionResult::Acquired(Box::new(AcquiredUsbResource {
                     host_id: state.host_id.clone(),
                     boot_id: state.boot_id.clone(),
+                    offer_generation: OfferGeneration(1),
                     handle_id: ResourceHandleId::from(handle.as_str()),
                     class_id: ResourceClassId::from(USB_RESOURCE_CLASS),
                     base_implementation_id: BaseImplementationId::from(USB_BASE_IMPLEMENTATION),
                     base_instance_id: BaseInstanceId::from(base_instance.as_str()),
+                    provider_generation: 1,
                     configuration: state.configuration,
                     transfer_bounds: state.transfer_bounds,
                     use_authority_contract: AuthorityContractId::from(USB_USE_AUTHORITY),
@@ -287,6 +289,7 @@ pub extern "C" fn conduit_browser_usb_start_use(plan_len: usize, use_authority: 
             class_id: resource.class_id.clone(),
             base_implementation_id: resource.base_implementation_id.clone(),
             base_instance_id: resource.base_instance_id.clone(),
+            provider_generation: resource.provider_generation,
             configuration: state.configuration,
             transfer_bounds: state.transfer_bounds,
         };

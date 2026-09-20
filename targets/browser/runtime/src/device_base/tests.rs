@@ -374,6 +374,9 @@ fn pressure_limits_loss_and_cancellation_remain_distinct() {
         pressure.phase(),
         &BrowserSerialPhase::Terminal(BrowserSerialTerminal::TransferTooLarge)
     );
+    let mut degraded = advertisement(3);
+    pressure.project_current_base(&mut degraded).unwrap();
+    assert!(degraded.bases.is_empty());
 
     let mut cancelled = acquiring();
     cancelled.cancel().unwrap();
