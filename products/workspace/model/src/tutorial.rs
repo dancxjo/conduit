@@ -3,8 +3,8 @@ use crate::WorkspaceBody;
 use alloc::{format, vec, vec::Vec};
 use conduit_body::{
     BodyBiographyRecordKind, BodyState, FulfillmentReadiness, PurposeCompletionPolicy,
-    PurposeObligation, PurposeObligationState, PurposeRefusal, PurposeState, WakeLifecycle,
-    WakeLifecycleEvent, derive_fulfillment_readiness,
+    PurposeObligation, PurposeObligationState, PurposeRefusal, PurposeState, WakeLifecycleEvent,
+    derive_fulfillment_readiness,
 };
 use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, PresentationMechanism, SemanticAction,
@@ -39,8 +39,8 @@ pub fn presentation(
     revision: u32,
     playback: TutorialPlayback,
 ) -> Result<SemanticApplicationView, conduit_presentation::SemanticPresentationRefusal> {
-    let guidance = guidance(body, playback);
     let purpose = purpose_state(body).expect("validated Body evidence must project valid purpose");
+    let guidance = guidance(body, playback, &purpose);
     let readiness = derive_fulfillment_readiness(&purpose)
         .expect("validated tutorial purpose must derive readiness");
     let readiness_text = match &readiness {
@@ -183,7 +183,7 @@ fn exact_obligation(
     }
 }
 
-fn guidance(body: &WorkspaceBody, playback: TutorialPlayback) -> Guidance {
+fn guidance(body: &WorkspaceBody, playback: TutorialPlayback, purpose: &PurposeState) -> Guidance {
     let evidence = body.evidence();
     if matches!(evidence.body.state, BodyState::Fulfilled { .. }) {
         return Guidance {
@@ -194,11 +194,13 @@ fn guidance(body: &WorkspaceBody, playback: TutorialPlayback) -> Guidance {
             label: "Inspect lifecycle evidence",
         };
     }
-    if evidence
-        .wakes
-        .iter()
-        .any(|wake| wake.lifecycle == WakeLifecycle::Failed)
-    {
+    if purpose.obligations.iter().any(|obligation| {
+        obligation.obligation_id == "repair-fault"
+            && matches!(
+                obligation.state,
+                PurposeObligationState::RepairRequired { .. }
+            )
+    }) {
         return Guidance {
             phase: "repair",
             title: "Inspect the real fault",

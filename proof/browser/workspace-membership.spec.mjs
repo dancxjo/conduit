@@ -147,6 +147,39 @@ test("the ordinary Face binds and admits one compiler-free reviewed browser Host
   });
   expect(replan.evidence.evidence.body.workset.forms).toEqual(authoredForms);
   expect(replan.evidence.realization).toBeNull();
+
+  await expect(page.locator('[data-application-key="tutorial-guidance"]')).toContainText("Tutorial · repair");
+  await page.getByRole("button", { name: "Inspect lifecycle evidence", exact: true }).click();
+  const inspected = JSON.parse(await page.locator("[data-inspection-content] pre").textContent());
+  expect(inspected.refusal).toMatchObject({
+    code: "ExecutionLineUnavailable",
+    message: "Body proposal selected an admitted Host without a current execution Line",
+  });
+  expect(inspected.body.wakes.at(-1).rejections).toEqual(failedWake.rejections);
+  await page.locator("[data-close-inspection]").click();
+
+  await page.evaluate(() => globalThis.__conduitWorkspace.settled());
+  await page.reload();
+  await expect(page.getByRole("button", { name: "wake body", exact: true })).toBeVisible();
+  const restored = await page.evaluate(() => ({
+    current: globalThis.__conduitWorkspace.current(),
+    evidence: globalThis.__conduitWorkspace.evidence(),
+  }));
+  expect(restored.current.body_id).toBe(replan.evidence.evidence.body.body_id);
+  expect(restored.evidence.current_host_offers).toHaveLength(1);
+  expect(restored.evidence.evidence.membership.parts.filter(part => !part.current)).toHaveLength(1);
+
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  const repaired = await page.evaluate(() => ({
+    current: globalThis.__conduitWorkspace.current(),
+    evidence: globalThis.__conduitWorkspace.evidence(),
+  }));
+  expect(repaired.current.body_id).toBe(restored.current.body_id);
+  expect(repaired.evidence.realization.plan.plan_id).not.toBe(replan.playback.proposal.plan.plan_id);
+  expect(repaired.evidence.evidence.wakes.at(-1).lifecycle).toBe("Playing");
+  await expect(page.locator('[data-application-key="tutorial-guidance"]')).toContainText("Tutorial · continuity");
+  await expect(page.locator('[data-application-key="tutorial-guidance"]')).not.toContainText("Tutorial · repair");
 });
 
 test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context, browser }) => {
