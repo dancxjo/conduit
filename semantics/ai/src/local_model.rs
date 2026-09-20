@@ -301,6 +301,7 @@ impl LocalModelOffer {
             ),
         ];
         resource_requirements.sort();
+        let semantic_maximum_queue_items = contract.limits.max_queue_items;
         CapabilityOfferBuilder::new(
             contract.into_capability_contract(),
             CapabilityRealization {
@@ -321,7 +322,10 @@ impl LocalModelOffer {
         )
         .narrow_capacity(CapabilityLimits {
             max_active_instances: self.limits.maximum_in_flight,
-            max_queue_items: self.limits.maximum_queue_items,
+            max_queue_items: self
+                .limits
+                .maximum_queue_items
+                .min(semantic_maximum_queue_items),
             max_queue_bytes: self.limits.maximum_queue_bytes,
         })
         .expect("validated local-model capacity narrows portable LLM semantics")

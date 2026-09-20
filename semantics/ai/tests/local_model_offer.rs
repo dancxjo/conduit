@@ -87,7 +87,14 @@ fn initialized_offer_exposes_eight_exact_finite_l0_capabilities() {
                 })
         }));
         assert_eq!(capability.limits.max_active_instances, 1);
-        assert_eq!(capability.limits.max_queue_items, 4);
+        assert_eq!(
+            capability.limits.max_queue_items,
+            if capability.kind_id.as_str() == "llm/generate-stream" {
+                4
+            } else {
+                1
+            }
+        );
         assert_eq!(capability.limits.max_queue_bytes, 16_384);
         assert!(capability.authority_requirements.is_empty());
         assert_eq!(
