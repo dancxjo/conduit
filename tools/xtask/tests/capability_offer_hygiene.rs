@@ -86,6 +86,21 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "semantic contract owner",
     ),
     (
+        "semantics/catalog/src/state_count.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
+        "semantics/catalog/src/state_toggle.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
+        "semantics/catalog/src/input_semantics.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
         "semantics/catalog/src/quantity_info.rs",
         0,
         "semantic contract owner",
@@ -205,6 +220,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         0,
         "fully migrated",
     ),
+    ("targets/std/offers/src/state_input.rs", 0, "fully migrated"),
     (
         "targets/std/offers/src/quantity_info.rs",
         0,

@@ -10,7 +10,7 @@ use alloc::vec::Vec;
 use conduit_core::KindContractRevision;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
-    PortTemporal,
+    PortTemporal, SemanticCapabilityContract,
 };
 
 pub const STATE_COUNT_KIND: &str = "state/count";
@@ -66,6 +66,19 @@ pub fn state_count_contract() -> StandardKindContract {
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
         example: "count: state/count(0)".to_string(),
+    }
+}
+
+pub fn state_count_semantic_contract() -> SemanticCapabilityContract {
+    let contract = state_count_contract();
+    SemanticCapabilityContract {
+        startup_parameters: super::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: STATE_COUNT_CONTRACT_REVISION.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        limits: contract.limits,
     }
 }
 
@@ -169,6 +182,14 @@ mod tests {
         assert_ne!(state.kind_id, presentation.kind_id);
         assert!(state.browser_manifestation_honest);
         assert!(presentation.browser_manifestation_honest);
+        let semantics = state_count_semantic_contract();
+        assert_eq!(
+            semantics.kind_contract_revision.as_str(),
+            STATE_COUNT_CONTRACT_REVISION
+        );
+        assert_eq!(semantics.startup_parameters.len(), 1);
+        assert_eq!(semantics.startup_parameters[0].name, "start");
+        assert!(semantics.startup_parameters[0].has_default);
     }
 
     #[cfg(feature = "form-catalog")]
