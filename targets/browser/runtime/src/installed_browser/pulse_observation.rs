@@ -1,8 +1,8 @@
 //! Browser installation of the shared recurring pulse-observation operation.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    FrontStartupParameter, ImplementationId, ImplementationOffer,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, ImplementationId,
 };
 
 const PROFILE: &str = "browser/pulse-observe-ordered-64@1";
@@ -10,36 +10,19 @@ const IMPLEMENTATION: &str = "browser/kernel-pulse-observe@1";
 const ARTIFACT: &str = "conduit-browser-runtime/pulse-observe@1";
 
 fn offer() -> CapabilityOffer {
-    let contract = conduit_time::pulse_observe_kind_definition();
-    CapabilityOffer {
-        capability_id: CapabilityId::from("pulse-observe"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        startup_parameters: ["period-ms"]
-            .into_iter()
-            .map(|name| FrontStartupParameter {
-                name: name.into(),
-                value_type: conduit_core::kind_id("value/count"),
-                has_default: true,
-            })
-            .collect(),
-        shorthand: None,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        conduit_time::pulse_observe_semantic_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from("pulse-observe"),
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_operations: vec![],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
         },
-        host_operations: vec![],
-        resource_requirements: vec![],
-        authority_requirements: vec![],
-        limits: CapabilityLimits {
-            max_active_instances: 8,
-            max_queue_items: 1,
-            max_queue_bytes: conduit_time::TICK_ENCODED_LEN,
-        },
-    }
+    )
+    .build()
 }
 
 fn prepare(

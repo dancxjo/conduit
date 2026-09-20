@@ -54,6 +54,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         0,
         "semantic contract owner",
     ),
+    (
+        "semantics/time/src/catalog.rs",
+        0,
+        "semantic contract owner",
+    ),
     ("semantics/signal/src/control.rs", 0, "fully migrated"),
     ("semantics/signal/src/lib.rs", 0, "fully migrated"),
     ("semantics/tongues/src/contract.rs", 0, "fully migrated"),
@@ -89,6 +94,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     (
         "targets/browser/runtime/src/installed_browser/record_delivery.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/browser/runtime/src/installed_browser/pulse_observation.rs",
         0,
         "fully migrated",
     ),
@@ -160,6 +170,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     (
         "targets/std/offers/src/typed_record.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/std/offers/src/pulse_observation.rs",
         0,
         "fully migrated",
     ),
