@@ -216,7 +216,7 @@ conduit-form = { path = "../../architecture/form" }
 conduit-kernel = { path = "../../architecture/kernel" }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
-conduit-protected-line = { path = "../../architecture/protected-line", default-features = false }
+conduit-protected-line = { path = "../../architecture/protected-line", default-features = false, features = ["noise-session"] }
 conduit-presentation = { path = "../../semantics/presentation" }
 conduit-tour-model = { path = "../../products/tour/model" }
 embedded-io = { version = "0.7.1", optional = true, default-features = false }
