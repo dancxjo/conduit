@@ -31,6 +31,7 @@ conduit-host-fabrication = { path = "../../fabrication/host" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-language = { path = "../../semantics/language" }
 conduit-data = { path = "../../semantics/data" }
+conduit-finance = { path = "../../semantics/finance" }
 conduit-midi = { path = "../../mechanisms/protocols/midi" }
 conduit-create-oi = { path = "../../mechanisms/devices/create-oi", optional = true }
 conduit-net = { path = "../../semantics/net", features = ["form-catalog"] }

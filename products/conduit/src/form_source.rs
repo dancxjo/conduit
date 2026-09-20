@@ -121,7 +121,7 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     conduit_semantic_catalog::install_vision_catalogs(&mut startup, &mut profiles)?;
     conduit_language::install_linguistics_catalogs(&mut startup, &mut profiles)?;
     conduit_data::install_tabular_catalogs(&mut startup, &mut profiles)?;
-    conduit_data::install_finance_catalogs(&mut startup, &mut profiles)?;
+    conduit_finance::install_finance_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_job_catalogs(&mut startup, &mut profiles)?;
     conduit_net::install_application_network_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_robotics_catalogs(&mut startup, &mut profiles)?;

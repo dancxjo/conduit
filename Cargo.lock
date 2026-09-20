@@ -547,6 +547,7 @@ dependencies = [
  "conduit-chat",
  "conduit-core",
  "conduit-data",
+ "conduit-finance",
  "conduit-form",
  "conduit-host-fabrication",
  "conduit-kernel",
@@ -706,6 +707,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-language",
  "conduit-linear-framebuffer-fabrication",
+ "conduit-little-seismograph-fixture",
  "conduit-net",
  "conduit-plan-lowering",
  "conduit-planner",
@@ -794,6 +796,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "conduit-little-seismograph-fixture",
 ]
 
 [[package]]
@@ -809,6 +812,14 @@ dependencies = [
  "conduit-r1-network-conformance",
  "conduit-signal",
  "conduit-signal-conformance",
+]
+
+[[package]]
+name = "conduit-finance"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
 ]
 
 [[package]]
@@ -954,6 +965,15 @@ name = "conduit-linear-framebuffer-fabrication"
 version = "0.1.0"
 dependencies = [
  "conduit-host-fabrication",
+]
+
+[[package]]
+name = "conduit-little-seismograph-fixture"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-data",
+ "conduit-form",
 ]
 
 [[package]]
@@ -1197,6 +1217,7 @@ dependencies = [
  "conduit-core",
  "conduit-create-oi",
  "conduit-data",
+ "conduit-finance",
  "conduit-form",
  "conduit-host-fabrication",
  "conduit-human",
@@ -3504,6 +3525,7 @@ dependencies = [
  "conduit-form",
  "conduit-human",
  "conduit-kernel",
+ "conduit-little-seismograph-fixture",
  "conduit-net",
  "conduit-observatory",
  "conduit-plan-lowering",
@@ -5648,6 +5670,7 @@ dependencies = [
  "conduit-create-oi",
  "conduit-data",
  "conduit-embedded-build",
+ "conduit-finance",
  "conduit-form",
  "conduit-home-model",
  "conduit-home-native",
@@ -5659,6 +5682,7 @@ dependencies = [
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
+ "conduit-little-seismograph-fixture",
  "conduit-midi",
  "conduit-net",
  "conduit-observatory",

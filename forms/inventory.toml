@@ -222,7 +222,7 @@ reusable_entries = [
   { entry = "measurement-threshold", title = "Measurement Threshold", composition = { parent = "little-seismograph-processing", occurrences = ["decide"] }, deterministic = { package = "conduit-data", test = "measurement_threshold", case = "threshold_is_a_reusable_form_independent_of_presentation" } },
   { entry = "measurement-plot", title = "Measurement Plot", composition = { parent = "little-seismograph-processing", occurrences = ["plot"] }, deterministic = { package = "conduit-data", test = "measurement_plot", case = "reusable_plot_projection_has_an_exact_checked_form_contract" } },
 ]
-deterministic = { package = "conduit-data", test = "little_seismograph", case = "processing_composes_four_reusable_forms_without_source_copying" }
+deterministic = { package = "conduit-little-seismograph-fixture", test = "little_seismograph", case = "processing_composes_four_reusable_forms_without_source_copying" }
 browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed Form little-seismograph runs browser-safe" }
 [[forms]]
 slug = "normalized-control-measurement"

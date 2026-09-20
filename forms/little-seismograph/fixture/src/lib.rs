@@ -1,5 +1,9 @@
 //! Canonical deterministic inputs for the Little Seismograph specimen.
 
+#![no_std]
+
+extern crate alloc;
+
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal, Quantity,
@@ -7,7 +11,7 @@ use conduit_core::{
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 
-use crate::{
+use conduit_data::{
     measurement_hysteresis_profile_type, measurement_sample_type, measurement_window_profile_type,
     FullWindowPolicy, MeasurementHysteresisProfile, MeasurementRange, MeasurementSample,
     MeasurementThresholdPolicy, MeasurementThresholdState, MeasurementWindowProfile,
@@ -112,6 +116,10 @@ fn output(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduit_data::{
+        summarize_measurement_window, BoundedMeasurementWindow, MeasurementHysteresis,
+        MeasurementThresholdTransition,
+    };
 
     #[test]
     fn deterministic_inputs_preserve_exact_profile_clock_and_transition() {
@@ -123,20 +131,20 @@ mod tests {
             .iter()
             .all(|sample| sample.observed_at.clock_basis.as_str() == profile.clock_basis));
 
-        let mut window = crate::BoundedMeasurementWindow::new(profile).unwrap();
+        let mut window = BoundedMeasurementWindow::new(profile).unwrap();
         for sample in samples {
             window.push(sample).unwrap();
         }
         assert_eq!(window.discarded_samples(), 0);
-        let summary = crate::summarize_measurement_window(&window).unwrap();
-        let decision = crate::MeasurementHysteresis::new(threshold.policy, threshold.initial_state)
+        let summary = summarize_measurement_window(&window).unwrap();
+        let decision = MeasurementHysteresis::new(threshold.policy, threshold.initial_state)
             .unwrap()
             .evaluate(&summary)
             .unwrap();
         assert_eq!(decision.state, MeasurementThresholdState::Above);
         assert_eq!(
             decision.transition,
-            Some(crate::MeasurementThresholdTransition::RoseAbove)
+            Some(MeasurementThresholdTransition::RoseAbove)
         );
     }
 }

@@ -2,7 +2,7 @@ use conduit_core::{
     BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     PortTemporal, StructuredInfoValue, StructuredInfoValueShape, PROTOCOL_VERSION,
 };
-use conduit_data::{
+use conduit_finance::{
     add_money, add_money_values, compare_money, compare_money_values, convert_money,
     convert_money_values, decode_money_value, deterministic_finance_fixture,
     deterministic_rate_observation, install_finance_catalogs, Currency, FinanceRefusal,
