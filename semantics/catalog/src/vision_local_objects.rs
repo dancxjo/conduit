@@ -1,6 +1,6 @@
 //! Exact typed object observations emitted by the bounded local-CV realization.
 
-use alloc::{string::ToString, vec, vec::Vec};
+use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
     StructuredInfoValue, StructuredVariantCase, QUANTITY_INFO_ID,
@@ -282,7 +282,7 @@ fn text_type() -> StructuredInfoType {
 }
 
 fn count_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/count@1")).expect("reviewed count")
+    StructuredInfoType::leaf(kind_id("value/count")).expect("reviewed count")
 }
 
 fn unit_type() -> StructuredInfoType {
@@ -294,7 +294,7 @@ fn text_value(value: &str) -> Result<StructuredInfoValue, StructuredInfoRefusal>
 }
 
 fn count_value(value: u64) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
-    StructuredInfoValue::leaf(count_type(), value.to_string().into_bytes())
+    StructuredInfoValue::leaf(count_type(), conduit_core::encode_count(value).to_vec())
 }
 
 fn unit_value() -> Result<StructuredInfoValue, StructuredInfoRefusal> {
