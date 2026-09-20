@@ -4,10 +4,9 @@ use crate::{
 };
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId,
-    AuthorityRequirement, BootId, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    FrontStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, ImplementationOffer,
-    OfferGeneration, PROTOCOL_VERSION,
+    AuthorityRequirement, BootId, CapabilityId, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
+    HostOperationRequirement, HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
 };
 use serde::{Deserialize, Serialize};
 
@@ -80,6 +79,43 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
         host_operation(SYNTHESIZE_OPERATION, MAXIMUM_TEXT_BYTES, MAXIMUM_PCM_BYTES);
     let mut output_operation_requirement = host_operation(output_operation, MAXIMUM_PCM_BYTES, 256);
     output_operation_requirement.target_kind = Some(kind_id(AUDIO_PLAY_KIND));
+    let synthesis = CapabilityOfferBuilder::new(
+        synth.into_semantic_capability_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(format!("{host}/synthesize")),
+            execution_profile_id: ExecutionProfileId::from("conduit.speech/deterministic-hosted@1"),
+            implementation_id: ImplementationId::from("tongues/fixture-tts-adapter@5748f20e"),
+            artifact_id: ArtifactId::from("tongues-pipeline/text-to-speech@5748f20e"),
+            host_operations: vec![synthesis_operation],
+            resource_requirements: {
+                let mut requirements = vec![
+                    resource_requirement(CPU_RESOURCE, 1),
+                    resource_requirement(PCM_BUFFER_RESOURCE, 1),
+                ];
+                requirements.sort_by(|left, right| left.class_id.cmp(&right.class_id));
+                requirements
+            },
+            authority_requirements: vec![],
+        },
+    )
+    .build();
+    let output = CapabilityOfferBuilder::new(
+        present.into_semantic_capability_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(format!("{host}/output")),
+            execution_profile_id: ExecutionProfileId::from("conduit.audio/bounded-output@1"),
+            implementation_id: ImplementationId::from(output_impl),
+            artifact_id: ArtifactId::from(output_artifact),
+            host_operations: vec![output_operation_requirement.clone()],
+            resource_requirements: vec![resource_requirement(resource, 1)],
+            authority_requirements: vec![AuthorityRequirement {
+                contract_id: AuthorityContractId::from(authority),
+                host_operation_contract_id: output_operation_requirement.contract_id,
+                subject_kind: kind_id(AUDIO_PLAY_KIND),
+            }],
+        },
+    )
+    .build();
     SpeechHostFixture {
         advertisement: HostAdvertisement {
             protocol_version: PROTOCOL_VERSION,
@@ -96,65 +132,7 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
                 resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
                 resources
             },
-            capabilities: vec![
-                CapabilityOffer {
-                    startup_parameters: vec![FrontStartupParameter {
-                        name: "maximum-output-bytes".into(),
-                        value_type: conduit_core::kind_id("value/count"),
-                        has_default: true,
-                    }],
-                    shorthand: None,
-                    capability_id: CapabilityId::from(format!("{host}/synthesize")),
-                    kind_id: synth.kind_id,
-                    kind_contract_revision: synth.kind_contract_revision,
-                    inputs: synth.inputs,
-                    outputs: synth.outputs,
-                    implementation: ImplementationOffer {
-                        execution_profile_id: ExecutionProfileId::from(
-                            "conduit.speech/deterministic-hosted@1",
-                        ),
-                        implementation_id: ImplementationId::from(
-                            "tongues/fixture-tts-adapter@5748f20e",
-                        ),
-                        artifact_id: ArtifactId::from("tongues-pipeline/text-to-speech@5748f20e"),
-                    },
-                    host_operations: vec![synthesis_operation],
-                    resource_requirements: {
-                        let mut requirements = vec![
-                            resource_requirement(CPU_RESOURCE, 1),
-                            resource_requirement(PCM_BUFFER_RESOURCE, 1),
-                        ];
-                        requirements.sort_by(|left, right| left.class_id.cmp(&right.class_id));
-                        requirements
-                    },
-                    authority_requirements: vec![],
-                    limits: synth.limits,
-                },
-                CapabilityOffer {
-                    startup_parameters: vec![],
-                    shorthand: None,
-                    capability_id: CapabilityId::from(format!("{host}/output")),
-                    kind_id: present.kind_id,
-                    kind_contract_revision: present.kind_contract_revision,
-                    inputs: present.inputs,
-                    outputs: present.outputs,
-                    implementation: ImplementationOffer {
-                        execution_profile_id: ExecutionProfileId::from(
-                            "conduit.audio/bounded-output@1",
-                        ),
-                        implementation_id: ImplementationId::from(output_impl),
-                        artifact_id: ArtifactId::from(output_artifact),
-                    },
-                    host_operations: vec![output_operation_requirement.clone()],
-                    resource_requirements: vec![resource_requirement(resource, 1)],
-                    authority_requirements: vec![AuthorityRequirement {
-                        contract_id: AuthorityContractId::from(authority),
-                        host_operation_contract_id: output_operation_requirement.contract_id,
-                        subject_kind: kind_id(AUDIO_PLAY_KIND),
-                    }],
-                    limits: present.limits,
-                },
-            ],
+            capabilities: vec![synthesis, output],
             planner_capabilities: vec![],
         },
         facts: SpeechRealizationFacts {
