@@ -493,6 +493,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     ("semantics/ai/src/local_model.rs", 0, "fully migrated"),
     ("semantics/ai/src/provider.rs", 0, "fully migrated"),
+    (
+        "semantics/presentation/src/contract.rs",
+        0,
+        "fully migrated",
+    ),
     ("targets/std/offers/src/copy_file.rs", 0, "fully migrated"),
     (
         "targets/std/offers/src/final_normalized_pattern.rs",
