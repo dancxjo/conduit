@@ -24,6 +24,7 @@ fn authored_motion_runs_through_protected_finite_base_and_production_kernel() {
         crate::hosted_vision::decode_image_resource_for_test(&encoded);
     let base = FiniteHostedVisionBase::new(
         vec![HostedVisionFrame {
+            canonical_image: encoded.clone(),
             resource,
             width,
             height,
@@ -139,7 +140,7 @@ fn authored_motion_runs_through_protected_finite_base_and_production_kernel() {
             disposition: TerminalDisposition::Completed
         })
     ));
-    assert!(report.kernel.is_some());
+    assert_eq!(report.kernel.unwrap().post_play_start_allocations, 0);
 }
 
 fn catalogs(

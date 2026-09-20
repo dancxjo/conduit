@@ -451,6 +451,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut image_text_hosts = image_text_operation::prepare_hosts(fragment);
     let mut image_text_record_hosts = image_text_record_operation::prepare_hosts(fragment);
     let mut vision_request_sequence = 0_u64;
+    let mut vision_run_id = String::with_capacity(active_play.active_play_id.as_str().len() + 64);
     let mut address_detect_hosts = address_detect_operation::prepare_hosts(fragment);
     #[cfg(any(test, feature = "local-model-proof"))]
     let mut recorded_speech_hosts = recorded_speech_operation::prepare_hosts(fragment)?;
@@ -925,15 +926,20 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 vision_request_sequence = vision_request_sequence
                     .checked_add(1)
                     .ok_or_else(|| "local Vision request sequence exhausted".to_string())?;
-                let run_id = format!(
-                    "{}/node-{}/request-{vision_request_sequence}",
-                    active_play.active_play_id.as_str(),
-                    request.node.0
-                );
+                vision_run_id.clear();
+                std::fmt::Write::write_fmt(
+                    &mut vision_run_id,
+                    format_args!(
+                        "{}/node-{}/request-{vision_request_sequence}",
+                        active_play.active_play_id.as_str(),
+                        request.node.0
+                    ),
+                )
+                .map_err(|_| "local Vision run identity exceeded admitted storage".to_string())?;
                 let encoded = vision
                     .as_deref_mut()
                     .ok_or_else(|| "local Vision request has no admitted Base".to_string())?
-                    .execute_motion(input, &run_id);
+                    .execute_motion(input, &vision_run_id);
                 let (disposition, output, failure) = match encoded {
                     Ok(encoded) => {
                         let value = scheduler

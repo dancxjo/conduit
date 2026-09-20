@@ -16,8 +16,11 @@ use conduit_semantic_catalog::{
 pub const MAXIMUM_HOSTED_VISION_RESOURCES: usize = 8;
 
 pub struct FiniteHostedVisionBase {
-    vision: HostedContinuousVision<FiniteVisionProvider>,
-    provider_instance_id: String,
+    provider: FiniteVisionProvider,
+    workspace: ContinuousLocalVision,
+    last_frame: Option<usize>,
+    last_observation: Option<ContinuousLocalVisionObservation>,
+    motion_encoder: conduit_semantic_catalog::PreparedLocalVisionMotionEncoder,
     minimum_motion_delta: u8,
     component_threshold: u8,
     minimum_component_area: u32,
@@ -38,14 +41,19 @@ impl FiniteHostedVisionBase {
         {
             return Err(HostedVisionRefusal::InvalidOutput);
         }
+        let provider = FiniteVisionProvider::new(frames)?;
         Ok(Self {
-            vision: HostedContinuousVision::new(
-                FiniteVisionProvider::new(frames)?,
-                width,
-                height,
-                maximum_components,
-            )?,
-            provider_instance_id,
+            provider,
+            workspace: ContinuousLocalVision::new(width, height, maximum_components)
+                .map_err(HostedVisionRefusal::LocalCv)?,
+            last_frame: None,
+            last_observation: None,
+            motion_encoder: conduit_semantic_catalog::PreparedLocalVisionMotionEncoder::new(
+                conduit_std_offers::LOCAL_VISION_IMPLEMENTATION,
+                provider_instance_id,
+                conduit_std_offers::LOCAL_VISION_ARTIFACT,
+            )
+            .map_err(|_| HostedVisionRefusal::InvalidOutput)?,
             minimum_motion_delta: 32,
             component_threshold: 128,
             minimum_component_area: 2,
@@ -72,23 +80,33 @@ impl FiniteHostedVisionBase {
         input: &[u8],
         run_id: &str,
     ) -> Result<&[u8], HostedVisionRefusal> {
-        self.vision.observe_motion_encoded(
-            input,
-            self.minimum_motion_delta,
-            self.component_threshold,
-            self.minimum_component_area,
-            &conduit_semantic_catalog::LocalVisionProvenance {
-                implementation_id: conduit_std_offers::LOCAL_VISION_IMPLEMENTATION.into(),
-                provider_instance_id: self.provider_instance_id.clone(),
-                artifact_id: conduit_std_offers::LOCAL_VISION_ARTIFACT.into(),
-                run_id: run_id.into(),
-            },
-        )
+        let (frame_index, pixels) = self.provider.resolve_exact_canonical(input)?;
+        if self.last_frame != Some(frame_index) {
+            self.last_observation = Some(
+                self.workspace
+                    .observe(
+                        pixels,
+                        self.minimum_motion_delta,
+                        self.component_threshold,
+                        self.minimum_component_area,
+                    )
+                    .map_err(HostedVisionRefusal::LocalCv)?,
+            );
+            self.last_frame = Some(frame_index);
+        }
+        let observation = self
+            .last_observation
+            .as_ref()
+            .ok_or(HostedVisionRefusal::InvalidOutput)?;
+        self.motion_encoder
+            .encode(input, observation, run_id)
+            .map_err(|_| HostedVisionRefusal::InvalidOutput)
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HostedVisionFrame {
+    pub canonical_image: Vec<u8>,
     pub resource: BoundedResourceRef,
     pub width: u16,
     pub height: u16,
@@ -141,8 +159,28 @@ impl FiniteVisionProvider {
             {
                 return Err(HostedVisionRefusal::ResourceShapeMismatch);
             }
+            let (_, canonical_resource, canonical_width, canonical_height) =
+                decode_image_resource(&frame.canonical_image)?;
+            if canonical_resource != frame.resource
+                || canonical_width != frame.width
+                || canonical_height != frame.height
+            {
+                return Err(HostedVisionRefusal::ResourceShapeMismatch);
+            }
         }
         Ok(Self { frames })
+    }
+
+    fn resolve_exact_canonical(
+        &self,
+        encoded: &[u8],
+    ) -> Result<(usize, &[u8]), HostedVisionRefusal> {
+        self.frames
+            .iter()
+            .enumerate()
+            .find(|(_, frame)| frame.canonical_image == encoded)
+            .map(|(index, frame)| (index, frame.grayscale_pixels.as_slice()))
+            .ok_or(HostedVisionRefusal::UnavailableResourceGeneration)
     }
 }
 
@@ -180,6 +218,7 @@ pub struct HostedContinuousVision<P> {
     width: u16,
     height: u16,
     last: Option<HostedVisionObservation>,
+    #[cfg(test)]
     output: Vec<u8>,
 }
 
@@ -197,6 +236,7 @@ impl<P: HostedVisionProvider> HostedContinuousVision<P> {
             width,
             height,
             last: None,
+            #[cfg(test)]
             output: Vec::with_capacity(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES),
         })
     }
@@ -235,7 +275,8 @@ impl<P: HostedVisionProvider> HostedContinuousVision<P> {
         Ok(self.last.as_ref().expect("observation was just installed"))
     }
 
-    pub fn observe_motion_encoded(
+    #[cfg(test)]
+    fn observe_motion_encoded(
         &mut self,
         encoded: &[u8],
         minimum_motion_delta: u8,
@@ -346,6 +387,7 @@ mod tests {
         pixels[65] = 255;
         pixels[66] = 255;
         let provider = FiniteVisionProvider::new(vec![HostedVisionFrame {
+            canonical_image: encoded.clone(),
             resource: source,
             width: 64,
             height: 48,
@@ -377,6 +419,7 @@ mod tests {
         unavailable.lifetime.version =
             conduit_core::ResourceVersionIdentity::from_digest([0x33; 32]);
         let mut provider = FiniteVisionProvider::new(vec![HostedVisionFrame {
+            canonical_image: encoded.clone(),
             resource: installed,
             width: 64,
             height: 48,
@@ -399,6 +442,7 @@ mod tests {
         let image = deterministic_vision_fixture().unwrap().image;
         let encoded = image.canonical_bytes().unwrap();
         let provider = FiniteVisionProvider::new(vec![HostedVisionFrame {
+            canonical_image: encoded.clone(),
             resource: reference(&encoded),
             width: 64,
             height: 48,
