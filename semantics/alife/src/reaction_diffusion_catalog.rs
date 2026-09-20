@@ -2,11 +2,15 @@
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, SemanticCapabilityContract,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 
-use crate::{REACTION_DIFFUSION_REQUEST_INFO_ID, REACTION_DIFFUSION_STATE_INFO_ID};
+use crate::{
+    REACTION_DIFFUSION_MAXIMUM_STATE_BYTES, REACTION_DIFFUSION_REQUEST_INFO_ID,
+    REACTION_DIFFUSION_STATE_INFO_ID,
+};
 
 pub const REACTION_DIFFUSION_EVOLVE_KIND: &str = "field/evolve";
 pub const REACTION_DIFFUSION_KIND_REVISION: &str = "conduit.std/field-evolve@1";
@@ -26,12 +30,29 @@ pub fn install_reaction_diffusion_catalogs(
 }
 
 pub fn reaction_diffusion_definition() -> KindDefinition {
+    let contract = reaction_diffusion_semantic_contract();
     KindDefinition {
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: vec![],
+    }
+}
+
+pub fn reaction_diffusion_semantic_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
         kind_id: kind_id(REACTION_DIFFUSION_EVOLVE_KIND),
         kind_contract_revision: KindContractRevision::from(REACTION_DIFFUSION_KIND_REVISION),
         inputs: reaction_diffusion_inputs(),
         outputs: reaction_diffusion_outputs(),
-        configuration: vec![],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: REACTION_DIFFUSION_MAXIMUM_STATE_BYTES,
+        },
     }
 }
 
@@ -84,6 +105,12 @@ mod tests {
         );
         assert_eq!(definition.inputs[0].direction, PortDirection::Input);
         assert_eq!(definition.outputs[0].direction, PortDirection::Output);
+        assert_eq!(
+            reaction_diffusion_semantic_contract()
+                .limits
+                .max_queue_items,
+            1
+        );
 
         let portable_truth = alloc::format!("{definition:?}").to_ascii_lowercase();
         for forbidden in [
