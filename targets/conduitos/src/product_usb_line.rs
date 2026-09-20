@@ -45,17 +45,17 @@ pub fn prepare(
         device.slot,
         device.attachment_epoch,
     );
-    let interfront_id = identity::derive_usb_interface(&device_id, ready.interfront_number, 0);
+    let interface_id = identity::derive_usb_interface(&device_id, ready.interface_number, 0);
     let realization = UsbLineRealization {
         controller_id,
         device_id,
-        interfront_id,
+        interface_id,
         input_endpoint_id: identity::derive_usb_endpoint(
-            &interfront_id,
+            &interface_id,
             ready.input_endpoint_address,
         ),
         output_endpoint_id: identity::derive_usb_endpoint(
-            &interfront_id,
+            &interface_id,
             ready.output_endpoint_address,
         ),
         attachment_epoch: device.attachment_epoch,

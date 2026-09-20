@@ -367,7 +367,7 @@ pub fn execute_fixture_join(
         attachment_id,
         host_id: advertisement.host_id.clone(),
         boot_id: advertisement.boot_id.clone(),
-        interfront_pool_id: resource.pool_id.clone(),
+        resource_pool_id: resource.pool_id.clone(),
         generation,
     })
 }

@@ -78,7 +78,7 @@ pub extern "C" fn conduit_browser_usb_start_acquisition(
     explicit_action: i32,
     request_authority: i32,
     configuration_value: u8,
-    interfront_number: u8,
+    interface_number: u8,
     alternate_setting: u8,
     in_endpoint: u8,
     out_endpoint: u8,
@@ -100,7 +100,7 @@ pub extern "C" fn conduit_browser_usb_start_acquisition(
     };
     let configuration = UsbConfiguration {
         configuration_value,
-        interfront_number,
+        interface_number,
         alternate_setting,
         in_endpoint,
         out_endpoint,

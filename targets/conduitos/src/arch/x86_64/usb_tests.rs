@@ -24,7 +24,7 @@ fn bounded_configuration_retains_structural_truth_without_semantics() {
     let mut device = blank_device();
     parse_configuration(&KEYBOARD_CONFIGURATION, &mut device).unwrap();
     assert_eq!(device.configuration_value, 1);
-    assert_eq!(device.interfront_count, 1);
+    assert_eq!(device.interface_count, 1);
     assert_eq!(device.endpoint_count, 1);
     assert_eq!(device.interfaces[0].class, 3);
     assert_eq!(device.endpoints[0].address, 0x81);
@@ -51,7 +51,7 @@ fn oversized_configuration_refuses_before_parsing() {
 }
 
 #[test]
-fn interfront_and_endpoint_limits_are_finite() {
+fn interface_and_endpoint_limits_are_finite() {
     assert_eq!(descriptor::MAX_INTERFACES, 4);
     assert_eq!(descriptor::MAX_ENDPOINTS, 8);
     assert_eq!(MAX_OUTSTANDING_CONTROL_TRANSFERS, 1);
@@ -160,7 +160,7 @@ fn port_reset_distinguishes_progress_failure_and_vanish() {
 }
 
 #[test]
-fn excessive_interfront_count_refuses() {
+fn excessive_interface_count_refuses() {
     let mut bytes = [0_u8; 61];
     bytes[..9].copy_from_slice(&[9, 2, 61, 0, 5, 1, 0, 0x80, 50]);
     for index in 0..5 {

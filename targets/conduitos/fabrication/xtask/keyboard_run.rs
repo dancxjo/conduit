@@ -66,7 +66,7 @@ pub(super) fn validate(
         || keyboard.artifact_build != boot.build_id
         || keyboard.controller_base_id != xhci.base_id
         || keyboard.device_instance_id != usb.device_instance_id
-        || keyboard.interfront_id != hid.interfront_id
+        || keyboard.interface_id != hid.interface_id
         || keyboard.endpoint_id != hid.endpoint_id
         || !exact_id(&keyboard.plan_id)
         || !exact_id(&keyboard.active_play_id)

@@ -20,7 +20,7 @@ pub const STREAM_HEADER: u8 = 19;
 /// iRobot Create Open Interface v2 contract, not the later Create 2 OI.
 pub const CREATE_1_OI_SPECIFICATION: &str = "iRobot Create Open Interface v2";
 pub const CREATE_1_OI_SPECIFICATION_URL: &str =
-    "https://ptolemy.berkeley.edu/projects/chess/eecs124/iRobotDocs/CreateOpenInterfront_v2.pdf";
+    "https://ptolemy.berkeley.edu/projects/chess/eecs124/iRobotDocs/CreateOpenInterface_v2.pdf";
 pub const CREATE_1_OI_PROTOCOL_VERSION: u8 = 2;
 pub const CREATE_1_PLAY_LED_MASK: u8 = 1 << 1;
 pub const CREATE_1_ADVANCE_LED_MASK: u8 = 1 << 3;

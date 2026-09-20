@@ -32,9 +32,9 @@ pub(super) fn validate(
         || hid.controller_base_id != xhci.base_id
         || hid.boot_id != boot.boot_id
         || hid.device_instance_id != usb.device_instance_id
-        || hid.interfront_id != usb.first_interfront_id
+        || hid.interface_id != usb.first_interface_id
         || hid.endpoint_id != usb.first_endpoint_id
-        || hid.interfront_number != usb.first_interfront_number
+        || hid.interface_number != usb.first_interface_number
         || hid.endpoint_address != usb.first_endpoint_address
         || hid.endpoint_dci != 3
         || hid.endpoint_maximum_packet_size != 8

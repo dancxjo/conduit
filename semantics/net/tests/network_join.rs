@@ -47,7 +47,7 @@ fn boot_scoped_attachment_info_round_trips_through_one_bounded_value() {
         host_id: "r1/pico-w",
         boot_id:
             "conduit-pico-w-signal/runtime-boot:0000000000000000:00000000000000000000000000000000",
-        interfront_pool_id: "r1/pico-wifi-station-0",
+        resource_pool_id: "r1/pico-wifi-station-0",
         generation: 1,
     };
     let mut encoded = [0_u8; MAXIMUM_JOIN_OUTPUT_BYTES as usize];
@@ -78,7 +78,7 @@ fn base_executes_with_exact_resource_authority_and_boot_scoped_attachment() {
     .unwrap();
     assert_eq!(attachment.host_id, advertisement.host_id);
     assert_eq!(attachment.boot_id, advertisement.boot_id);
-    assert_eq!(attachment.interfront_pool_id, resource().pool_id);
+    assert_eq!(attachment.resource_pool_id, resource().pool_id);
 }
 
 #[test]
