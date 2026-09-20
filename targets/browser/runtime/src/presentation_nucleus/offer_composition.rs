@@ -1,7 +1,6 @@
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, CapabilityOffer,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PRESENTATION_RESOURCE_CLASS,
+    kind_id, present_host_operation_requirement, resource_requirement, CapabilityOffer,
+    HostOperationContractId, HostOperationRequirement, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_presentation::{
     MAX_GRAPHICS_SCENE_BYTES, MAX_LAYOUT_FRAME_BYTES, MAX_PRESENTATION_COMPOSITION_BYTES,
@@ -28,29 +27,34 @@ pub fn offers() -> Vec<CapabilityOffer> {
     ]
     .into_iter()
     .map(|kind| {
-        let mut offer = portable_offer(kind)
-            .or_else(|| (kind == conduit_semantic_catalog::TEXT_PRESENTATION_KIND).then(text_offer))
-            .expect("accepted browser presentation Kind has one canonical offer");
-        offer.capability_id =
-            conduit_core::CapabilityId::from(format!("browser/{kind}-capability@1").as_str());
-        offer.implementation.execution_profile_id =
-            ExecutionProfileId::from(BROWSER_PRESENTATION_PROFILE);
-        offer.implementation.implementation_id =
-            ImplementationId::from(format!("browser/{kind}-implementation@1").as_str());
-        offer.implementation.artifact_id = ArtifactId::from(BROWSER_PRESENTATION_ARTIFACT);
-        offer
+        let capability = format!("browser/{kind}-capability@1");
+        let implementation = format!("browser/{kind}-implementation@1");
+        portable_offer_for(kind, &capability, &implementation)
+            .or_else(|| {
+                (kind == conduit_semantic_catalog::TEXT_PRESENTATION_KIND)
+                    .then(|| text_offer_for(&capability, &implementation))
+            })
+            .expect("accepted browser presentation Kind has one canonical offer")
     })
     .collect()
 }
 
+#[cfg(test)]
 pub(super) fn text_offer() -> CapabilityOffer {
+    text_offer_for(
+        "browser-text-presentation-v1",
+        "browser/presentation-text-implementation@1",
+    )
+}
+
+fn text_offer_for(capability: &str, implementation: &str) -> CapabilityOffer {
     conduit_semantic_catalog::realization_offer(
         conduit_semantic_catalog::text_presentation_contract(),
         conduit_semantic_catalog::TEXT_PRESENTATION_CONTRACT_REVISION,
         conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: "browser-text-presentation-v1",
+            capability,
             execution_profile: BROWSER_PRESENTATION_PROFILE,
-            implementation: "browser/presentation-text-implementation@1",
+            implementation,
             artifact: BROWSER_PRESENTATION_ARTIFACT,
         },
         vec![present_host_operation_requirement(
@@ -62,7 +66,20 @@ pub(super) fn text_offer() -> CapabilityOffer {
     )
 }
 
+#[cfg(test)]
 pub(super) fn portable_offer(kind: &str) -> Option<CapabilityOffer> {
+    portable_offer_for(
+        kind,
+        "browser/portable-presentation-front",
+        "browser/portable-presentation-front@1",
+    )
+}
+
+fn portable_offer_for(
+    kind: &str,
+    capability: &str,
+    implementation: &str,
+) -> Option<CapabilityOffer> {
     let (contract, revision, operation) =
         if let Some(contract) = conduit_semantic_catalog::layout_contract_for(kind) {
             let operation = (kind != conduit_semantic_catalog::LAYOUT_VIEWPORT_KIND).then_some((
@@ -114,9 +131,9 @@ pub(super) fn portable_offer(kind: &str) -> Option<CapabilityOffer> {
         contract,
         revision,
         conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: "browser/portable-presentation-front",
+            capability,
             execution_profile: BROWSER_PRESENTATION_PROFILE,
-            implementation: "browser/portable-presentation-front@1",
+            implementation,
             artifact: BROWSER_PRESENTATION_ARTIFACT,
         },
         host_operations,
