@@ -38,6 +38,18 @@ beneath Play for the out-of-band path. Emergency admission and terminal machine
 halt/reset deliberately are not callable Form gears, because ordinary work must
 neither acquire shutdown authority nor become able to delay or veto that path.
 
+Remote emergency admission consumes only frames opened by an exact current
+protected Line session. The local adapter additionally pins one current Body
+membership credential, peer Host/Boot, and session binding; encrypted reachability
+alone is not authority. Each bounded request carries the exact Body and credential
+identity plus a monotonic session freshness value. The emergency phrase is absent
+from this protocol and knowledge of it grants no remote authority.
+
+Local reduction is decided before optional onward propagation and does not wait
+for remote peers. Propagation has a finite target count, no implicit retry, and
+retains each delivered, unreachable, unauthorized, or refused outcome so partial
+reachability cannot be reported as global success.
+
 The current source-level contract and deterministic tests do not establish a
 microphone implementation, false-positive threshold, architecture halt/reset
 support beyond the existing x86_64 rescue reset, physical/HIL behavior,

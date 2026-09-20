@@ -32,6 +32,7 @@ pub mod recorded_house_proof;
 #[cfg(feature = "local-model-proof")]
 mod recorded_house_receipt;
 pub mod relay_client;
+pub mod remote_emergency;
 pub mod text_lab_live;
 pub mod text_lab_split;
 #[cfg(feature = "local-model-proof")]
