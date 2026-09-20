@@ -599,8 +599,8 @@ The difference is useful:
 ```mermaid
 flowchart LR
     kind["kind<br/>what the work means"] -->|"realized by"| back["back<br/>how this host realizes it"]
-    back -->|"during a step"| call["call<br/>one admitted request"]
-    call --> host["host machinery"]
+    back -->|"during a step"| hostcall["call<br/>one admitted request"]
+    hostcall --> host["host machinery"]
 ```
 
 ---
