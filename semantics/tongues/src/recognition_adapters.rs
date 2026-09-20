@@ -6,7 +6,7 @@
 
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal,
+    PortTemporal, SemanticCapabilityContract,
 };
 use conduit_form::{
     check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindDefinition,
@@ -188,6 +188,35 @@ pub fn speech_result_to_event_stream_limits() -> CapabilityLimits {
         max_queue_items: 1,
         max_queue_bytes: MAXIMUM_RECOGNITION_RESULT_BYTES.max(MAXIMUM_RECOGNITION_EVENT_BYTES)
             as u32,
+    }
+}
+
+pub fn speech_window_to_clip_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(
+        speech_window_to_clip_definition(),
+        speech_window_to_clip_limits(),
+    )
+}
+
+pub fn speech_result_to_event_stream_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(
+        speech_result_to_event_stream_definition(),
+        speech_result_to_event_stream_limits(),
+    )
+}
+
+fn semantic_contract(
+    definition: KindDefinition,
+    limits: CapabilityLimits,
+) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits,
     }
 }
 

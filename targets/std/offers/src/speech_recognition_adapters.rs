@@ -1,8 +1,9 @@
 //! Hosted std realizations for explicit Tongues single-shot/streaming adapters.
 
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
+    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, SemanticCapabilityContract,
 };
 
 pub const SPEECH_WINDOW_TO_CLIP_STD_IMPLEMENTATION: &str = "std/speech-window-to-clip@1";
@@ -14,21 +15,13 @@ pub const SPEECH_WINDOW_CLOSE_OPERATION: &str = "conduit.host/speech-window-clos
 pub const SPEECH_RESULT_TO_EVENT_OPERATION: &str = "conduit.host/speech-result-to-event-stream@1";
 
 pub fn speech_window_to_clip_std_offer() -> CapabilityOffer {
-    let definition = conduit_tongues::speech_window_to_clip_definition();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("std-speech-window-to-clip-v1"),
-        kind_id: definition.kind_id,
-        kind_contract_revision: definition.kind_contract_revision,
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from("std/speech-window-kernel@1"),
-            implementation_id: ImplementationId::from(SPEECH_WINDOW_TO_CLIP_STD_IMPLEMENTATION),
-            artifact_id: ArtifactId::from("conduit-std-host/speech-window-to-clip@1"),
-        },
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations: vec![
+    offer(
+        conduit_tongues::speech_window_to_clip_semantic_contract(),
+        "std-speech-window-to-clip-v1",
+        "std/speech-window-kernel@1",
+        SPEECH_WINDOW_TO_CLIP_STD_IMPLEMENTATION,
+        "conduit-std-host/speech-window-to-clip@1",
+        vec![
             HostOperationRequirement {
                 contract_id: HostOperationContractId::from(SPEECH_WINDOW_PUSH_OPERATION),
                 target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
@@ -45,40 +38,47 @@ pub fn speech_window_to_clip_std_offer() -> CapabilityOffer {
                 maximum_output_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
             },
         ],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: conduit_tongues::speech_window_to_clip_limits(),
-    }
+    )
 }
 
 pub fn speech_result_to_event_stream_std_offer() -> CapabilityOffer {
-    let definition = conduit_tongues::speech_result_to_event_stream_definition();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("std-speech-result-to-event-stream-v1"),
-        kind_id: definition.kind_id,
-        kind_contract_revision: definition.kind_contract_revision,
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from("std/speech-result-event-kernel@1"),
-            implementation_id: ImplementationId::from(
-                SPEECH_RESULT_TO_EVENT_STREAM_STD_IMPLEMENTATION,
-            ),
-            artifact_id: ArtifactId::from("conduit-std-host/speech-result-to-event-stream@1"),
-        },
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations: vec![HostOperationRequirement {
+    offer(
+        conduit_tongues::speech_result_to_event_stream_semantic_contract(),
+        "std-speech-result-to-event-stream-v1",
+        "std/speech-result-event-kernel@1",
+        SPEECH_RESULT_TO_EVENT_STREAM_STD_IMPLEMENTATION,
+        "conduit-std-host/speech-result-to-event-stream@1",
+        vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(SPEECH_RESULT_TO_EVENT_OPERATION),
             target_kind: Some(kind_id(conduit_tongues::SPEECH_RESULT_TO_EVENT_STREAM_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32,
             maximum_output_bytes: conduit_tongues::MAXIMUM_RECOGNITION_EVENT_BYTES as u32,
         }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: conduit_tongues::speech_result_to_event_stream_limits(),
-    }
+    )
+}
+
+fn offer(
+    contract: SemanticCapabilityContract,
+    capability: &str,
+    profile: &str,
+    implementation: &str,
+    artifact: &str,
+    host_operations: Vec<HostOperationRequirement>,
+) -> CapabilityOffer {
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(capability),
+            execution_profile_id: ExecutionProfileId::from(profile),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from(artifact),
+            host_operations,
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
+        },
+    )
+    .build()
 }
 
 #[cfg(test)]
