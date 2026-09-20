@@ -36,6 +36,7 @@ struct Negotiation {
 pub struct BrowserWebRtcRendezvous {
     grants: Vec<GrantedSession>,
     negotiations: Vec<Negotiation>,
+    bootstrap: Option<WebRtcBootstrapConfiguration>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -53,11 +54,28 @@ impl Default for BrowserWebRtcRendezvous {
         Self {
             grants: Vec::with_capacity(MAX_WEBRTC_NEGOTIATIONS),
             negotiations: Vec::with_capacity(MAX_WEBRTC_NEGOTIATIONS),
+            bootstrap: None,
         }
     }
 }
 
 impl BrowserWebRtcRendezvous {
+    pub fn configure_bootstrap(
+        &mut self,
+        configuration: WebRtcBootstrapConfiguration,
+        now_millis: u64,
+    ) -> Result<(), BrowserWebRtcRendezvousRefusal> {
+        configuration
+            .validate(now_millis)
+            .map_err(|_| BrowserWebRtcRendezvousRefusal::InvalidBootstrap)?;
+        self.bootstrap = Some(configuration);
+        Ok(())
+    }
+
+    pub fn clear_bootstrap(&mut self) {
+        self.bootstrap = None;
+    }
+
     pub fn prepare(
         &self,
         presence: &HostPresenceTable,
