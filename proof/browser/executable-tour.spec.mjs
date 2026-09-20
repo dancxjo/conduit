@@ -608,7 +608,7 @@ test("Tour Patchbay shows an invalid Form, marks its broken Cord, and explains t
   await expect(patchbay.locator(".react-flow__edge.diagnostic-error")).toHaveCount(1);
   await expect(patchbay.locator(".compact-patchbay-diagnostic")).toContainText("CND-FRM-045");
   await expect(patchbay.locator(".compact-patchbay-diagnostic")).toContainText("How to fix:");
-  await expect(patchbay.locator(".compact-patchbay-diagnostic")).toContainText("value/text@1");
+  await expect(patchbay.locator(".compact-patchbay-diagnostic")).toContainText("value/text");
 
   await listing.fill(original.replace('"hello"', '"latest"'));
   await expect(patchbay).toHaveAttribute("data-disposition", "accepted");

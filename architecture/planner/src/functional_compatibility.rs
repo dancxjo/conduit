@@ -22,7 +22,7 @@ pub(crate) fn default_placements_unvalidated(
                     .iter()
                     .map(move |offer| (host_index, host, offer))
             })
-            .filter(|(_, _, offer)| offer.checked_front() == gear.checked_front())
+            .filter(|(_, _, offer)| gear.accepts_realization(offer))
             .filter(|(_, host, offer)| {
                 selected_counts
                     .get(&(host.host_id.clone(), offer.capability_id.clone()))
@@ -35,7 +35,6 @@ pub(crate) fn default_placements_unvalidated(
             (
                 *host_index,
                 offer.kind_id != gear.kind_id,
-                offer.kind_contract_revision != gear.kind_contract_revision,
                 offer.capability_id.clone(),
             )
         });

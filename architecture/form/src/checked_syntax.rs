@@ -60,6 +60,25 @@ impl StartupCatalog {
         self.kinds.get(kind)
     }
 
+    /// Resolves authoring spellings into the canonical startup type identities
+    /// carried by checked Fronts and realization offers.
+    pub fn canonical_startup_parameters(
+        &self,
+        signature: &KindSignature,
+    ) -> Result<Vec<conduit_core::FrontStartupParameter>, conduit_core::StructuredInfoRefusal> {
+        signature
+            .startup_parameters
+            .iter()
+            .map(|parameter| {
+                Ok(conduit_core::FrontStartupParameter {
+                    name: parameter.name.clone(),
+                    value_type: crate::value_type::checked_value_kind(&parameter.value_type, self)?,
+                    has_default: parameter.default.is_some(),
+                })
+            })
+            .collect()
+    }
+
     pub fn insert_structured_type(
         &mut self,
         name: impl Into<String>,
@@ -85,6 +104,9 @@ impl StartupCatalog {
         let name = name.into();
         if name.is_empty() {
             return Err("startup value Kind alias must not be empty".into());
+        }
+        if self.value_kind_aliases.get(&name) == Some(&value_kind) {
+            return Ok(());
         }
         if self.value_kind_aliases.contains_key(&name) || self.structured_types.contains_key(&name)
         {
@@ -129,7 +151,7 @@ pub struct CheckedStartupParameter {
 pub struct CheckedCanonicalGear {
     pub name: Option<String>,
     pub kind: String,
-    pub startup_parameters: Vec<StartupParameterSignature>,
+    pub startup_parameters: Vec<conduit_core::FrontStartupParameter>,
     pub startup_bindings: Vec<CheckedStartupBinding>,
     pub source_span: Span,
 }

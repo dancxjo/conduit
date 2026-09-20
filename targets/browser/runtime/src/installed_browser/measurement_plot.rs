@@ -3,9 +3,9 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision, PlannedGear,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ConfigurationValue, ExecutionProfileId, HostOperationRequirement, ImplementationId,
+    PlannedGear,
 };
 use conduit_data::{MeasurementPlotOverflowPolicy, MeasurementPlotProfile, MeasurementPlotSeries};
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
@@ -21,46 +21,27 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 };
 
 fn offer() -> CapabilityOffer {
-    let contract = conduit_data::measurement_plot_kind_definition();
+    let contract = conduit_data::measurement_plot_semantic_contract();
     let kind = contract.kind_id.clone();
-    CapabilityOffer {
-        startup_parameters: [("points", "Count", true), ("when-full", "Text", true)]
-            .map(
-                |(name, value_type, has_default)| conduit_core::FrontStartupParameter {
-                    name: name.into(),
-                    value_type: value_type.into(),
-                    has_default,
-                },
-            )
-            .into(),
-        shorthand: None,
-        capability_id: CapabilityId::from(IMPLEMENTATION),
-        kind_id: kind.clone(),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_data::MEASUREMENT_PLOT_CONTRACT_REVISION,
-        ),
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-plot@1"),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HOST_OPERATION.into(),
+                target_kind: Some(kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                maximum_output_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HOST_OPERATION.into(),
-            target_kind: Some(kind),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-            maximum_output_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        },
-    }
+    )
+    .build()
 }
 
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
@@ -203,6 +184,18 @@ mod tests {
 
     #[test]
     fn installed_browser_plot_projects_an_exact_typed_window() {
+        let offer = offer();
+        let semantic = conduit_data::measurement_plot_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.shorthand, semantic.shorthand);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert_eq!(offer.limits, semantic.limits);
         let mut window = BoundedMeasurementWindow::new(MeasurementWindowProfile {
             capacity: 3,
             unit: QuantityUnit::Millivolt,

@@ -382,15 +382,7 @@ fn instantiate_gear(
         gear_id: gear_id.clone(),
         kind_id: definition.kind_id.clone(),
         kind_contract_revision: definition.kind_contract_revision.clone(),
-        startup_parameters: gear
-            .startup_parameters
-            .iter()
-            .map(|parameter| conduit_core::FrontStartupParameter {
-                name: parameter.name.clone(),
-                value_type: parameter.value_type.clone(),
-                has_default: parameter.default.is_some(),
-            })
-            .collect(),
+        startup_parameters: gear.startup_parameters.clone(),
         shorthand: match (definition.inputs.as_slice(), definition.outputs.as_slice()) {
             ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
             _ => None,

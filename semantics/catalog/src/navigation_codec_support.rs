@@ -69,10 +69,7 @@ pub(crate) fn count(value: &StructuredInfoValue) -> Result<u64, NavigationCodecE
     let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
         return Err(NavigationCodecError::Malformed);
     };
-    core::str::from_utf8(bytes)
-        .map_err(|_| NavigationCodecError::Malformed)?
-        .parse()
-        .map_err(|_| NavigationCodecError::Malformed)
+    conduit_core::decode_count(bytes).map_err(|_| NavigationCodecError::Malformed)
 }
 
 pub(crate) fn quantity(
@@ -126,15 +123,15 @@ pub(crate) fn validity(value: &StructuredInfoValue) -> Result<(String, u64), Nav
 
 pub(crate) fn text_value(value: &str) -> Result<StructuredInfoValue, NavigationCodecError> {
     Ok(StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/text@1"))?,
+        StructuredInfoType::leaf(kind_id("value/text"))?,
         value.as_bytes().to_vec(),
     )?)
 }
 
 pub(crate) fn count_value(value: u64) -> Result<StructuredInfoValue, NavigationCodecError> {
     Ok(StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/count@1"))?,
-        value.to_string().into_bytes(),
+        StructuredInfoType::leaf(kind_id("value/count"))?,
+        conduit_core::encode_count(value).to_vec(),
     )?)
 }
 

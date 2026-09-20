@@ -5,7 +5,8 @@ use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationEntry, ConfigurationValue, InfoBool,
-    PortDescriptor, PortDirection, PortTemporal, Scalar, BOOL_INFO_ID, SCALAR_INFO_ID,
+    PortDescriptor, PortDirection, PortTemporal, Scalar, SemanticCapabilityContract, BOOL_INFO_ID,
+    SCALAR_INFO_ID,
 };
 use conduit_robotics::{
     BatteryObservation, OdometryObservation, OrientationObservation, RangeObservation,
@@ -283,7 +284,6 @@ pub fn robotics_drive_differential_contract() -> StandardKindContract {
     }
 }
 
-#[cfg(any(feature = "form-catalog", test))]
 pub(crate) fn robotics_contracts_with_revisions() -> Vec<(StandardKindContract, &'static str)> {
     vec![
         (
@@ -315,6 +315,21 @@ pub(crate) fn robotics_contracts_with_revisions() -> Vec<(StandardKindContract, 
             ROBOTICS_DRIVE_DIFFERENTIAL_REVISION,
         ),
     ]
+}
+
+pub fn robotics_semantic_contract(kind: &str) -> Option<SemanticCapabilityContract> {
+    robotics_contracts_with_revisions()
+        .into_iter()
+        .find(|(contract, _)| contract.kind_id.as_str() == kind)
+        .map(|(contract, revision)| SemanticCapabilityContract {
+            startup_parameters: super::startup_front(&contract.configuration),
+            shorthand: None,
+            kind_id: contract.kind_id,
+            kind_contract_revision: revision.into(),
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            limits: contract.limits,
+        })
 }
 
 fn source_contract(

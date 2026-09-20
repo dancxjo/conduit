@@ -18,6 +18,9 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
 
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
+    startup
+        .insert_value_kind_alias("ChatMessage", kind_id("chat/message@1"))
+        .unwrap();
     for signature in [
         KindSignature {
             kind: "test/source".into(),
@@ -185,10 +188,10 @@ fn exact_back_admission_refuses_stale_source_and_checked_form_identities() {
     assert!(matches!(
         backs.insert_exact(
             high,
-            &[StartupParameterSignature {
+            &[conduit_core::FrontStartupParameter {
                 name: "count".into(),
-                value_type: "Count".into(),
-                default: Some("1".into()),
+                value_type: conduit_core::kind_id("value/count"),
+                has_default: true,
             }],
             &document,
             "test/pass",
@@ -200,10 +203,10 @@ fn exact_back_admission_refuses_stale_source_and_checked_form_identities() {
     assert!(matches!(
         backs.insert_exact(
             high,
-            &[StartupParameterSignature {
+            &[conduit_core::FrontStartupParameter {
                 name: "count".into(),
-                value_type: "Count".into(),
-                default: Some("1".into()),
+                value_type: conduit_core::kind_id("value/count"),
+                has_default: true,
             }],
             &document,
             "test/pass",
@@ -216,10 +219,10 @@ fn exact_back_admission_refuses_stale_source_and_checked_form_identities() {
     backs
         .insert_exact(
             high,
-            &[StartupParameterSignature {
+            &[conduit_core::FrontStartupParameter {
                 name: "count".into(),
-                value_type: "Count".into(),
-                default: Some("1".into()),
+                value_type: conduit_core::kind_id("value/count"),
+                has_default: true,
             }],
             &document,
             "test/pass",
@@ -466,7 +469,7 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
             }],
             outputs: vec![PortDescriptor {
                 port_id: port_id("value"),
-                value_kind: kind_id("value/count@1"),
+                value_kind: kind_id("value/count"),
                 direction: PortDirection::Output,
                 temporal: conduit_core::PortTemporal::Current,
             }],
@@ -493,7 +496,7 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
             kind_contract_revision: KindContractRevision::from("test/current@1"),
             inputs: vec![PortDescriptor {
                 port_id: port_id("value"),
-                value_kind: kind_id("value/count@1"),
+                value_kind: kind_id("value/count"),
                 direction: PortDirection::Input,
                 temporal: conduit_core::PortTemporal::Current,
             }],

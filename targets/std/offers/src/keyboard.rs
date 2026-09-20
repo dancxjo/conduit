@@ -2,9 +2,9 @@
 pub mod button;
 
 use conduit_core::{
-    kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    INPUT_RESOURCE_CLASS,
+    kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer,
+    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, INPUT_RESOURCE_CLASS,
 };
 use conduit_human::{KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID};
 
@@ -23,25 +23,19 @@ pub fn next_key_event_host_operation_requirement() -> HostOperationRequirement {
 }
 
 pub fn hosted_keyboard_offer(capability: &str, artifact: &str) -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::keyboard_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(capability),
-        kind_id: contract.kind_id,
-        kind_contract_revision: conduit_semantic_catalog::keyboard_contract_revision(),
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        conduit_semantic_catalog::keyboard_semantic_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(HOSTED_KEYBOARD_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(HOSTED_KEYBOARD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(artifact),
+            host_operations: vec![next_key_event_host_operation_requirement()],
+            resource_requirements: vec![resource_requirement(INPUT_RESOURCE_CLASS, 1)],
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![next_key_event_host_operation_requirement()],
-        resource_requirements: vec![resource_requirement(INPUT_RESOURCE_CLASS, 1)],
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]

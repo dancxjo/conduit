@@ -279,7 +279,7 @@ fn text_literal_fixture_offer(implementation: &str) -> conduit_core::CapabilityO
     conduit_core::CapabilityOffer {
         startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "value".into(),
-            value_type: "Text".into(),
+            value_type: conduit_core::kind_id("value/text"),
             has_default: false,
         }],
         shorthand: None,

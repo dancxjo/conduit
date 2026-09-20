@@ -315,7 +315,7 @@ fn startup_parameters() -> alloc::vec::Vec<FrontStartupParameter> {
     .into_iter()
     .map(|name| FrontStartupParameter {
         name: name.to_string(),
-        value_type: "Count".to_string(),
+        value_type: conduit_core::kind_id("value/count"),
         has_default: true,
     })
     .collect()

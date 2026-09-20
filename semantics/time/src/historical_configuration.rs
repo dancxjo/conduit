@@ -109,7 +109,7 @@ pub fn historical_timeline_kind_definition() -> conduit_form::KindDefinition {
         configuration: vec![
             ConfigurationField {
                 key: "value-profile".to_string(),
-                default_value: ConfigurationValue::Text("value/text@1".to_string()),
+                default_value: ConfigurationValue::Text("value/text".to_string()),
                 validation: ConfigurationRule::TextBytes {
                     maximum: MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES as u32,
                 },
@@ -170,5 +170,40 @@ pub fn historical_timeline_kind_definition() -> conduit_form::KindDefinition {
                 },
             },
         ],
+    }
+}
+
+#[cfg(feature = "form-catalog")]
+pub fn historical_timeline_semantic_contract() -> conduit_core::SemanticCapabilityContract {
+    use conduit_core::{kind_id, CapabilityLimits, FrontStartupParameter};
+
+    let definition = historical_timeline_kind_definition();
+    conduit_core::SemanticCapabilityContract {
+        startup_parameters: [
+            ("value-profile", "value/text"),
+            ("clock-basis", "value/text"),
+            ("time-scale", "value/text"),
+            ("maximum-entries", "value/count"),
+            ("maximum-referenced-bytes", "value/count"),
+            ("overflow-policy", "value/text"),
+            ("first-sequence", "value/count"),
+        ]
+        .into_iter()
+        .map(|(name, value_type)| FrontStartupParameter {
+            name: name.into(),
+            value_type: kind_id(value_type),
+            has_default: true,
+        })
+        .collect(),
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 1,
+            max_queue_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
     }
 }

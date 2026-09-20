@@ -4,8 +4,8 @@
 use alloc::string::ToString;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
+    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
 };
 
 pub const MORSE_PATTERN_VALUE_KIND: &str = "value/morse-pattern@1";
@@ -80,6 +80,31 @@ pub struct MorseKindContract {
     pub outputs: Vec<PortDescriptor>,
     pub configuration: Vec<(&'static str, ConfigurationValue)>,
     pub limits: CapabilityLimits,
+}
+
+impl MorseKindContract {
+    pub fn into_semantic_contract(self) -> SemanticCapabilityContract {
+        SemanticCapabilityContract {
+            startup_parameters: self
+                .configuration
+                .iter()
+                .map(|(name, _)| FrontStartupParameter {
+                    name: (*name).into(),
+                    value_type: kind_id("value/count"),
+                    has_default: true,
+                })
+                .collect(),
+            shorthand: Some((
+                self.inputs[0].port_id.clone(),
+                self.outputs[0].port_id.clone(),
+            )),
+            kind_id: self.kind_id,
+            kind_contract_revision: self.kind_contract_revision,
+            inputs: self.inputs,
+            outputs: self.outputs,
+            limits: self.limits,
+        }
+    }
 }
 
 #[cfg(feature = "form-catalog")]

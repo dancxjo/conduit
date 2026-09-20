@@ -251,15 +251,15 @@ fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
 }
 
 fn unit_type() -> StructuredInfoType {
-    leaf("value/unit@1")
+    leaf("value/unit")
 }
 
 fn text_type() -> StructuredInfoType {
-    leaf("value/text@1")
+    leaf("value/text")
 }
 
 fn count_type() -> StructuredInfoType {
-    leaf("value/count@1")
+    leaf("value/count")
 }
 
 pub fn network_address_type() -> StructuredInfoType {
@@ -414,7 +414,7 @@ pub fn network_frame_type() -> StructuredInfoType {
     let payload = StructuredInfoType::variant(
         kind_id("net/frame-payload@1"),
         vec![
-            case("inline", leaf("value/bytes@1")),
+            case("inline", leaf("value/bytes")),
             case("resource", leaf(RESOURCE_REFERENCE_INFO_ID)),
         ],
     )

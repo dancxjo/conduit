@@ -5,6 +5,28 @@ use conduit_core::{
     TemporalInstant, TemporalScale,
 };
 
+#[test]
+fn browser_replay_control_preserves_semantics_and_explicitly_narrows_capacity() {
+    let offer = offer();
+    let semantic = conduit_time::replay_control_semantic_contract();
+    assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+    assert_eq!(offer.kind_id, semantic.kind_id);
+    assert_eq!(
+        offer.kind_contract_revision,
+        semantic.kind_contract_revision
+    );
+    assert_eq!(offer.inputs, semantic.inputs);
+    assert_eq!(offer.outputs, semantic.outputs);
+    assert_eq!(offer.limits.max_active_instances, 1);
+    assert_eq!(offer.limits.max_queue_items, MAXIMUM_INPUTS as u16);
+    assert_eq!(
+        offer.limits.max_queue_bytes,
+        super::super::MAXIMUM_BROWSER_VALUE_BYTES as u32 * MAXIMUM_INPUTS
+    );
+    assert!(offer.limits.max_active_instances < semantic.limits.max_active_instances);
+    assert!(offer.limits.max_queue_bytes < semantic.limits.max_queue_bytes);
+}
+
 fn value(slot: u16) -> ValueRef {
     ValueRef {
         slot,

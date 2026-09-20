@@ -4,9 +4,9 @@
 
 use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
+    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
+    PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
 };
 
 pub const JOB_PROOF_RUN_OPERATION: &str = "proof.host/process-job-run@1";
@@ -24,10 +24,13 @@ pub fn education_proof_offers() -> Vec<CapabilityOffer> {
 }
 
 pub fn vision_proof_offers() -> Vec<CapabilityOffer> {
-    proof_domain_offers(
-        conduit_semantic_catalog::vision_kind_contracts(),
-        conduit_semantic_catalog::VISION_REVISION,
-    )
+    conduit_semantic_catalog::vision_kind_contracts()
+        .into_iter()
+        .map(|(kind, inputs, outputs)| {
+            let revision = conduit_semantic_catalog::vision_kind_revision(kind.as_str());
+            proof_domain_offer(kind, inputs, outputs, revision, DOMAIN_PROOF_OPERATION)
+        })
+        .collect()
 }
 
 pub fn robotics_structured_proof_offers() -> Vec<CapabilityOffer> {
@@ -121,13 +124,10 @@ pub fn proof_domain_offer(
 }
 
 pub fn recurrence_proof_offer() -> CapabilityOffer {
+    let contract = conduit_semantic_catalog::recurrence_semantic_contract();
     let result = conduit_semantic_catalog::recurrence_result_type();
     CapabilityOffer {
-        startup_parameters: vec![FrontStartupParameter {
-            name: "request".into(),
-            value_type: conduit_semantic_catalog::RECURRENCE_REQUEST_TYPE.into(),
-            has_default: false,
-        }],
+        startup_parameters: contract.startup_parameters,
         shorthand: None,
         capability_id: CapabilityId::from("proof/time-expand-recurrence"),
         kind_id: kind_id(conduit_semantic_catalog::RECURRENCE_KIND),

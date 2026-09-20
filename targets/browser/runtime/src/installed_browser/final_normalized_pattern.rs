@@ -3,8 +3,8 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ConfigurationValue, ExecutionProfileId,
-    FrontStartupParameter, ImplementationId, ImplementationOffer, PlannedGear,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ConfigurationValue, ExecutionProfileId, ImplementationId, PlannedGear,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -18,31 +18,21 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 };
 
 fn offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::final_normalized_pattern_definition();
-    CapabilityOffer {
-        startup_parameters: vec![FrontStartupParameter {
-            name: "maximum-values".into(),
-            value_type: "Count".into(),
-            has_default: true,
-        }],
-        shorthand: None,
-        capability_id: CapabilityId::from(IMPLEMENTATION),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        conduit_semantic_catalog::final_normalized_pattern_semantic_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(
                 "browser/final-normalized-pattern-kernel@1",
             ),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-browser-runtime/final-normalized-pattern@1"),
+            host_operations: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: conduit_semantic_catalog::final_normalized_pattern_limits(),
-    }
+    )
+    .build()
 }
 
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {

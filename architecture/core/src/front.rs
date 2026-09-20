@@ -1,4 +1,4 @@
-use crate::{CapabilityOffer, PortDescriptor, PortId};
+use crate::{CapabilityOffer, KindId, PortDescriptor, PortId};
 use alloc::string::String;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct FrontStartupParameter {
     pub name: String,
-    pub value_type: String,
+    /// Canonical semantic identity, never the source alias used to author it.
+    pub value_type: KindId,
     pub has_default: bool,
 }
 

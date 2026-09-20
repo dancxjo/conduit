@@ -3,9 +3,9 @@
 use super::factory::{BrowserHostResult, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ConfigurationValue, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    PlannedGear, PortTemporal, StructuredCanonicalSelection, StructuredSelector,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, PlannedGear, PortTemporal, StructuredCanonicalSelection, StructuredSelector,
     StructuredSelectorRefusal, UnmatchedVariantDisposition, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
@@ -66,32 +66,27 @@ impl PreparedSelector {
 pub(crate) fn offer(selector: &StructuredSelector, temporal: PortTemporal) -> CapabilityOffer {
     let contract = conduit_semantic_catalog::structured_selector_contract(selector, temporal);
     let target = contract.kind_id.clone();
-    CapabilityOffer {
-        startup_parameters: contract.startup_parameters,
-        shorthand: contract.shorthand,
-        capability_id: CapabilityId::from(format!("browser/{}", target.as_str())),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(format!("browser/{}", target.as_str())),
             execution_profile_id: ExecutionProfileId::from(
                 "browser/structured-selector-kernel-hosted@1",
             ),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-core/structured-selector@1"),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(HOST_OPERATION),
+                target_kind: Some(target),
+                maximum_in_flight: 1,
+                maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+                maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(HOST_OPERATION),
-            target_kind: Some(target),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-            maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 /// Reconstruct and validate the exact contract supported by this installed generic implementation.

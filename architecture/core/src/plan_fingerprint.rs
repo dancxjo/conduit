@@ -10,6 +10,7 @@ use crate::{
     FragmentId, LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId,
     PortDescriptor, PortDirection, PortTemporal, RealizationBack, TerminalPolicy,
 };
+use alloc::string::String;
 use alloc::vec::Vec;
 
 fn push_optional_string(canonical: &mut Vec<u8>, value: Option<&str>) {
@@ -302,7 +303,7 @@ fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
     push_u32(canonical, front.startup_parameters().len() as u32);
     for parameter in front.startup_parameters() {
         push_string(canonical, &parameter.name);
-        push_string(canonical, &parameter.value_type);
+        push_string(canonical, parameter.value_type.as_str());
         canonical.push(u8::from(parameter.has_default));
     }
     push_ports(canonical, front.inputs());
@@ -315,6 +316,16 @@ fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
         }
         None => canonical.push(0),
     }
+}
+
+/// Returns the canonical semantic fingerprint of an executable Front.
+///
+/// Nominal callable names and authoring aliases are deliberately absent. The
+/// digest changes only when the exact callable contract changes.
+pub fn compute_checked_front_fingerprint(front: &CheckedFront) -> String {
+    let mut canonical = Vec::new();
+    push_checked_front(&mut canonical, front);
+    hash_bytes(&canonical)
 }
 
 fn push_bound_link(canonical: &mut Vec<u8>, binding: &BoundLink) {

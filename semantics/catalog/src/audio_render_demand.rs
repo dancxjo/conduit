@@ -6,7 +6,9 @@ use super::{
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_audio::AUDIO_RENDER_DEMAND_INFO_ID;
-use conduit_core::{kind_id, CapabilityLimits, ConfigurationValue, PortDirection};
+use conduit_core::{
+    kind_id, CapabilityLimits, ConfigurationValue, PortDirection, SemanticCapabilityContract,
+};
 
 pub const AUDIO_RENDER_DEMAND_KIND: &str = "audio/render-demand";
 pub const AUDIO_RENDER_DEMAND_REVISION: &str = "conduit.std/audio-render-demand@1";
@@ -45,6 +47,19 @@ pub fn audio_render_demand_contract() -> StandardKindContract {
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "render: audio/render-demand".to_string(),
+    }
+}
+
+pub fn audio_render_demand_semantic_contract() -> SemanticCapabilityContract {
+    let contract = audio_render_demand_contract();
+    SemanticCapabilityContract {
+        startup_parameters: super::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: AUDIO_RENDER_DEMAND_REVISION.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        limits: contract.limits,
     }
 }
 

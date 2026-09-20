@@ -14,8 +14,8 @@ use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 const KIND: &str = "time/expand-recurrence";
 
 fn civil_recurrence_type() -> StructuredInfoType {
-    let text = StructuredInfoType::leaf(KindId::from("value/text@1")).unwrap();
-    let count = StructuredInfoType::leaf(KindId::from("value/count@1")).unwrap();
+    let text = StructuredInfoType::leaf(KindId::from("value/text")).unwrap();
+    let count = StructuredInfoType::leaf(KindId::from("value/count")).unwrap();
     let local_date = StructuredInfoType::leaf(KindId::from("time/local-date@1")).unwrap();
     StructuredInfoType::record(
         KindId::from("time/civil-recurrence@1"),

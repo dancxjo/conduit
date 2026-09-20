@@ -1,7 +1,7 @@
 use conduit_audio::AUDIO_PCM_INFO_ID;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, FrontStartupParameter, KindContractRevision, KindId,
+    PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
@@ -15,7 +15,7 @@ pub const SPEECH_SYNTHESIZE_STREAM_KIND: &str = "speech/synthesize-stream";
 pub const SPEECH_SYNTHESIZE_STREAM_REVISION: &str = "conduit.speech/synthesize-stream@1";
 pub const AUDIO_PLAY_KIND: &str = "audio/play";
 pub const AUDIO_PLAY_REVISION: &str = "conduit.std/audio-play@1";
-pub const TEXT_VALUE_KIND: &str = "value/text@1";
+pub const TEXT_VALUE_KIND: &str = "value/text";
 pub const MAXIMUM_TEXT_BYTES: u32 = 256;
 /// At most about three seconds of signed 16-bit mono speech at 22.05 kHz.
 pub const MAXIMUM_PCM_BYTES: u32 = 131_072;
@@ -23,6 +23,7 @@ pub const MAXIMUM_AUDIO_FRAMES: u32 = 16_384;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SpeechContract {
+    pub startup_parameters: Vec<FrontStartupParameter>,
     pub kind_id: KindId,
     pub kind_contract_revision: KindContractRevision,
     pub inputs: Vec<PortDescriptor>,
@@ -30,8 +31,31 @@ pub struct SpeechContract {
     pub limits: CapabilityLimits,
 }
 
+impl SpeechContract {
+    pub fn into_semantic_capability_contract(self) -> SemanticCapabilityContract {
+        SemanticCapabilityContract {
+            startup_parameters: self.startup_parameters,
+            shorthand: None,
+            kind_id: self.kind_id,
+            kind_contract_revision: self.kind_contract_revision,
+            inputs: self.inputs,
+            outputs: self.outputs,
+            limits: self.limits,
+        }
+    }
+}
+
+fn synthesis_startup_parameters() -> Vec<FrontStartupParameter> {
+    vec![FrontStartupParameter {
+        name: "maximum-output-bytes".into(),
+        value_type: kind_id("value/count"),
+        has_default: true,
+    }]
+}
+
 pub fn synthesize_contract() -> SpeechContract {
     SpeechContract {
+        startup_parameters: synthesis_startup_parameters(),
         kind_id: kind_id(SPEECH_SYNTHESIZE_KIND),
         kind_contract_revision: KindContractRevision::from(SPEECH_SYNTHESIZE_REVISION),
         inputs: vec![port("text", TEXT_VALUE_KIND, PortDirection::Input)],
@@ -46,6 +70,7 @@ pub fn synthesize_contract() -> SpeechContract {
 
 pub fn streaming_synthesize_contract() -> SpeechContract {
     SpeechContract {
+        startup_parameters: synthesis_startup_parameters(),
         kind_id: kind_id(SPEECH_SYNTHESIZE_STREAM_KIND),
         kind_contract_revision: KindContractRevision::from(SPEECH_SYNTHESIZE_STREAM_REVISION),
         inputs: vec![flow_port(
@@ -64,6 +89,7 @@ pub fn streaming_synthesize_contract() -> SpeechContract {
 
 pub fn audio_play_contract() -> SpeechContract {
     SpeechContract {
+        startup_parameters: Vec::new(),
         kind_id: kind_id(AUDIO_PLAY_KIND),
         kind_contract_revision: KindContractRevision::from(AUDIO_PLAY_REVISION),
         inputs: vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Input)],
@@ -180,7 +206,17 @@ mod tests {
 
     #[test]
     fn semantic_contract_contains_no_realization_facts() {
-        let encoded = serde_json::to_string(&(synthesize_contract(), audio_play_contract()))
+        let synthesis = synthesize_contract();
+        assert_eq!(synthesis.startup_parameters.len(), 1);
+        assert_eq!(synthesis.startup_parameters[0].name, "maximum-output-bytes");
+        assert_eq!(
+            synthesis
+                .clone()
+                .into_semantic_capability_contract()
+                .startup_parameters,
+            synthesis.startup_parameters
+        );
+        let encoded = serde_json::to_string(&(synthesis, audio_play_contract()))
             .expect("contracts serialize");
         for forbidden in ["ALSA", "CPAL", "WebAudio", "WAV", "device", "model", "Base"] {
             assert!(!encoded.contains(forbidden), "found {forbidden}");

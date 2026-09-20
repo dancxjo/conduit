@@ -234,7 +234,7 @@ mod tests {
             .find(&conduit_core::KindId::from("text/upper"))
             .unwrap();
         let detail = exact_contract_line(upper);
-        assert!(detail.contains("text:value/text@1"));
+        assert!(detail.contains("text:value/text"));
         let bounds = exact_bounds_line(upper);
         assert!(bounds.contains(&format!(
             "Q{}/{}B",

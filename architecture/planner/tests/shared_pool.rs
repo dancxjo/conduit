@@ -34,6 +34,9 @@ fn peer_front() -> conduit_core::CheckedFront {
 fn startup_with_observe() -> StartupCatalog {
     let mut startup = StartupCatalog::new();
     startup
+        .insert_value_kind_alias("ChatMessage", kind_id("chat/message@1"))
+        .unwrap();
+    startup
         .insert(KindSignature {
             kind: "flow/pool-observe".into(),
             startup_parameters: vec![StartupParameterSignature {
@@ -75,7 +78,11 @@ fn offer_from_front(
             .map(|(input, output)| (input.clone(), output.clone())),
         capability_id: CapabilityId::from(capability),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("{kind}@9")),
+        kind_contract_revision: KindContractRevision::from(if kind == "flow/pool-observe" {
+            "flow/pool-observe@1".to_string()
+        } else {
+            format!("{kind}@9")
+        }),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from("browser/hosted@1"),
             implementation_id: ImplementationId::from(format!("implementation/{capability}")),
@@ -162,7 +169,7 @@ fn requirements() -> BTreeMap<SharedPoolId, SharedPoolPlanningRequirement> {
 }
 
 #[test]
-fn canonical_pool_plans_equal_front_members_and_exact_consumers_envelope_and_authority() {
+fn canonical_pool_is_explicitly_structural_and_seals_exact_members_and_authority() {
     let form = expanded();
     let host = host(&form);
     let placements = default_expanded_placements(&form, std::slice::from_ref(&host)).unwrap();

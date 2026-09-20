@@ -10,15 +10,15 @@ fn leaf(kind: &str) -> StructuredInfoType {
 }
 
 fn count(value: u64) -> StructuredInfoValue {
-    StructuredInfoValue::leaf(leaf("value/count@1"), value.to_le_bytes().to_vec()).unwrap()
+    StructuredInfoValue::leaf(leaf("value/count"), value.to_le_bytes().to_vec()).unwrap()
 }
 
 fn text(value: &str) -> StructuredInfoValue {
-    StructuredInfoValue::leaf(leaf("value/text@1"), value.as_bytes().to_vec()).unwrap()
+    StructuredInfoValue::leaf(leaf("value/text"), value.as_bytes().to_vec()).unwrap()
 }
 
 fn pitch_table_type() -> StructuredInfoType {
-    StructuredInfoType::collection(leaf("value/count@1"), Some(3)).unwrap()
+    StructuredInfoType::collection(leaf("value/count"), Some(3)).unwrap()
 }
 
 fn pitch_table() -> StructuredInfoValue {
@@ -30,8 +30,8 @@ fn note_type() -> StructuredInfoType {
     StructuredInfoType::record(
         KindId::from("music/note@1"),
         vec![
-            StructuredFieldType::new("pitch", leaf("value/count@1")).unwrap(),
-            StructuredFieldType::new("velocity", leaf("value/count@1")).unwrap(),
+            StructuredFieldType::new("pitch", leaf("value/count")).unwrap(),
+            StructuredFieldType::new("velocity", leaf("value/count")).unwrap(),
         ],
     )
     .unwrap()
@@ -52,7 +52,7 @@ fn music_event_type() -> StructuredInfoType {
     StructuredInfoType::variant(
         KindId::from("music/event@1"),
         vec![
-            StructuredVariantCase::new("control", leaf("value/count@1")).unwrap(),
+            StructuredVariantCase::new("control", leaf("value/count")).unwrap(),
             StructuredVariantCase::new("note", note_type()).unwrap(),
         ],
     )
@@ -72,7 +72,7 @@ fn button_index_selects_one_finite_pitch_without_numeric_coercion() {
     };
 
     assert_eq!(selected, count(62));
-    assert_eq!(selector.output_type(), &leaf("value/count@1"));
+    assert_eq!(selector.output_type(), &leaf("value/count"));
     assert_eq!(selector.input_type(), &pitch_table_type());
 }
 
@@ -112,8 +112,8 @@ fn feedback_field_projection_is_typed_for_presentation() {
     let feedback_type = StructuredInfoType::record(
         KindId::from("device/feedback@1"),
         vec![
-            StructuredFieldType::new("status", leaf("value/text@1")).unwrap(),
-            StructuredFieldType::new("temperature", leaf("value/count@1")).unwrap(),
+            StructuredFieldType::new("status", leaf("value/text")).unwrap(),
+            StructuredFieldType::new("temperature", leaf("value/count")).unwrap(),
         ],
     )
     .unwrap();
@@ -127,7 +127,7 @@ fn feedback_field_projection_is_typed_for_presentation() {
     .unwrap();
     let selector = StructuredSelector::field(feedback_type, "status").unwrap();
 
-    assert_eq!(selector.output_type(), &leaf("value/text@1"));
+    assert_eq!(selector.output_type(), &leaf("value/text"));
     assert_eq!(
         selector.select(&feedback).unwrap(),
         StructuredSelection::Matched(text("ready"))

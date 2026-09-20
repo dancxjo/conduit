@@ -36,7 +36,7 @@ pub fn named_pattern_template_slot_type() -> StructuredInfoType {
         vec![
             field_type(
                 "active",
-                StructuredInfoType::leaf(kind_id("value/boolean@1")).unwrap(),
+                StructuredInfoType::leaf(kind_id("value/bool")).unwrap(),
             ),
             field_type(
                 "name",
@@ -155,11 +155,9 @@ fn decode_slot(value: &StructuredInfoValue) -> Result<DecodedSlot, TemplateColle
         StructuredInfoValueShape::Record(fields) => fields,
         _ => return Err(TemplateCollectionRefusal::Malformed),
     };
-    let active = match leaf(field(fields, "active")?)? {
-        b"true" => true,
-        b"false" => false,
-        _ => return Err(TemplateCollectionRefusal::Malformed),
-    };
+    let active = conduit_core::InfoBool::decode(leaf(field(fields, "active")?)?)
+        .map_err(|_| TemplateCollectionRefusal::Malformed)?
+        .get();
     let name = core::str::from_utf8(leaf(field(fields, "name")?)?)
         .map_err(|_| TemplateCollectionRefusal::Malformed)?;
     let pattern = field(fields, "pattern")?.clone();
@@ -214,10 +212,16 @@ fn slot_value(
     StructuredInfoValue::record(
         named_pattern_template_slot_type(),
         vec![
-            leaf_field(
+            byte_leaf_field(
                 "active",
-                "value/boolean@1",
-                if active { "true" } else { "false" },
+                conduit_core::BOOL_INFO_ID,
+                if active {
+                    conduit_core::InfoBool::TRUE
+                } else {
+                    conduit_core::InfoBool::FALSE
+                }
+                .encode()
+                .to_vec(),
             )?,
             leaf_field("name", TEMPLATE_NAME_INFO_ID, name)?,
             StructuredFieldValue::new("pattern", pattern)
@@ -243,6 +247,19 @@ fn leaf_field(
             value.as_bytes().to_vec(),
         )
         .map_err(|_| TemplateCollectionRefusal::Malformed)?,
+    )
+    .map_err(|_| TemplateCollectionRefusal::Malformed)
+}
+
+fn byte_leaf_field(
+    name: &str,
+    kind: &str,
+    value: Vec<u8>,
+) -> Result<StructuredFieldValue, TemplateCollectionRefusal> {
+    StructuredFieldValue::new(
+        name,
+        StructuredInfoValue::leaf(StructuredInfoType::leaf(kind_id(kind)).unwrap(), value)
+            .map_err(|_| TemplateCollectionRefusal::Malformed)?,
     )
     .map_err(|_| TemplateCollectionRefusal::Malformed)
 }

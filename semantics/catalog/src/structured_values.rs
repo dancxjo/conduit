@@ -9,7 +9,7 @@ use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, FrontStartupParameter, KindContractRevision, KindId,
-    PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
+    PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract, StructuredInfoType,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 #[cfg(feature = "form-catalog")]
@@ -31,6 +31,20 @@ pub struct StructuredValueContract {
     pub limits: CapabilityLimits,
 }
 
+impl From<StructuredValueContract> for SemanticCapabilityContract {
+    fn from(contract: StructuredValueContract) -> Self {
+        Self {
+            startup_parameters: contract.startup_parameters,
+            shorthand: None,
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            limits: contract.limits,
+        }
+    }
+}
+
 pub fn structured_literal_contract(
     type_name: &str,
     value_type: &StructuredInfoType,
@@ -46,7 +60,7 @@ pub fn structured_presentation_contract(
 }
 
 fn contract(
-    type_name: &str,
+    _type_name: &str,
     value_type: &StructuredInfoType,
     source: bool,
 ) -> StructuredValueContract {
@@ -68,7 +82,7 @@ fn contract(
         startup_parameters: if source {
             vec![FrontStartupParameter {
                 name: "value".into(),
-                value_type: type_name.into(),
+                value_type: value_kind,
                 has_default: false,
             }]
         } else {

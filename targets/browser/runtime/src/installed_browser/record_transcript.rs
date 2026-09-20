@@ -3,9 +3,9 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer,
-    KindContractRevision, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ConfigurationValue, ExecutionProfileId, ImplementationId, PlannedGear,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
     Failure, FailureCode, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
@@ -22,42 +22,19 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 };
 
 fn offer() -> CapabilityOffer {
-    let definition = conduit_net::record_transcript_kind_definition();
-    CapabilityOffer {
-        startup_parameters: [
-            "maximum-items",
-            "maximum-events",
-            "maximum-frame-bytes",
-            "maximum-retained-bytes",
-        ]
-        .map(|name| FrontStartupParameter {
-            name: name.into(),
-            value_type: "Count".into(),
-            has_default: true,
-        })
-        .into(),
-        shorthand: None,
-        capability_id: CapabilityId::from(IMPLEMENTATION),
-        kind_id: definition.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_net::RECORD_TRANSCRIPT_CONTRACT_REVISION,
-        ),
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        conduit_net::record_transcript_semantic_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from("browser/bounded-record-transcript@1"),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-net/bounded-record-transcript@1"),
+            host_operations: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 3,
-            max_queue_bytes: conduit_net::MAXIMUM_RECORD_TRANSCRIPT_BYTES as u32,
-        },
-    }
+    )
+    .build()
 }
 
 struct TranscriptOperation {

@@ -4,7 +4,10 @@ use super::{
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
-use conduit_core::{kind_id, CapabilityLimits, ConfigurationValue};
+use conduit_core::{
+    kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
+    SemanticCapabilityContract,
+};
 
 pub fn time_every_contract() -> StandardKindContract {
     StandardKindContract {
@@ -36,6 +39,23 @@ pub fn time_every_contract() -> StandardKindContract {
     }
 }
 
+pub fn time_every_semantic_contract() -> SemanticCapabilityContract {
+    let contract = time_every_contract();
+    SemanticCapabilityContract {
+        startup_parameters: vec![FrontStartupParameter {
+            name: "freq".into(),
+            value_type: kind_id("value/duration"),
+            has_default: false,
+        }],
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: conduit_time::TIME_EVERY_CONTRACT_REVISION.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        limits: contract.limits,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -57,5 +77,11 @@ mod tests {
         assert!(!contract.pico_manifestation_honest);
         assert_eq!(contract.limits.max_queue_items, 4);
         assert_eq!(contract.limits.max_queue_bytes, 64);
+        let semantics = time_every_semantic_contract();
+        assert_eq!(
+            semantics.startup_parameters[0].value_type.as_str(),
+            "value/duration"
+        );
+        assert!(!semantics.startup_parameters[0].has_default);
     }
 }

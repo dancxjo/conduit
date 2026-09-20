@@ -87,3 +87,11 @@ pub fn deterministic_exit(success: bool) -> ! {
         unsafe { asm!("cli", "hlt", options(nostack, nomem)) };
     }
 }
+
+/// Terminal local execution stop beneath ordinary scheduling and lifecycle.
+pub fn emergency_halt() -> ! {
+    disable_interrupts();
+    loop {
+        unsafe { asm!("hlt", options(nostack, nomem)) };
+    }
+}

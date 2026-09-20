@@ -137,7 +137,7 @@ fn encode_result(
         CalendarHostedOperation::Cancel => conduit_semantic_catalog::calendar_cancel_receipt_type(),
     };
     let leaf = StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/text@1"))
+        StructuredInfoType::leaf(kind_id("value/text"))
             .map_err(|_| GoogleCalendarRefusal::ProviderResponseMalformed)?,
         realization,
     )

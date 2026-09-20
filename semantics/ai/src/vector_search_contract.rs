@@ -94,7 +94,7 @@ pub fn vector_search_startup_parameters() -> Vec<FrontStartupParameter> {
     .into_iter()
     .map(|name| FrontStartupParameter {
         name: name.into(),
-        value_type: "Count".into(),
+        value_type: conduit_core::kind_id("value/count"),
         has_default: true,
     })
     .collect()

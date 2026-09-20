@@ -121,7 +121,7 @@ fn open_back_authoring_preserves_exact_front_ports_without_claiming_a_runnable_r
     assert_eq!(graph.front_inputs[0].identity, "front/input/name");
     assert_eq!(
         graph.front_inputs[0].descriptor.value_kind.as_str(),
-        "value/text@1"
+        "value/text"
     );
     assert_eq!(graph.front_outputs.len(), 1);
     assert_eq!(graph.front_outputs[0].identity, "front/output/text");

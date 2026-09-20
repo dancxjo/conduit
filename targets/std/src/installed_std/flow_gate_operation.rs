@@ -114,7 +114,7 @@ impl FlowGateScalarOperation {
 pub(super) fn decode_bool(input: &[u8]) -> Result<bool, String> {
     InfoBool::decode(input)
         .map(InfoBool::get)
-        .map_err(|error| format!("flow/gate enable is not canonical value/bool@1: {error:?}"))
+        .map_err(|error| format!("flow/gate enable is not canonical value/bool: {error:?}"))
 }
 
 fn maximum_enable_updates(placement: &PlannedGear) -> Result<u32, String> {

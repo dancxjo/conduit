@@ -244,5 +244,20 @@ mod tests {
             text_morse_symbols_semantics().outputs[0].value_kind,
             morse_symbols_to_pattern_semantics().inputs[0].value_kind
         );
+        let timing = morse_symbols_to_pattern_semantics().into_semantic_contract();
+        assert_eq!(timing.startup_parameters.len(), 1);
+        assert_eq!(timing.startup_parameters[0].name, MORSE_UNIT_MILLIS_KEY);
+        assert!(timing.startup_parameters[0].has_default);
+        assert_eq!(
+            timing.shorthand,
+            Some((
+                timing.inputs[0].port_id.clone(),
+                timing.outputs[0].port_id.clone()
+            ))
+        );
+        assert_eq!(
+            timing.limits.max_queue_bytes,
+            MAXIMUM_MORSE_PATTERN_BYTES as u32
+        );
     }
 }

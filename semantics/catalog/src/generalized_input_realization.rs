@@ -1,6 +1,6 @@
 //! Deterministic gamepad, pointer, touch, button, and rotary fixtures.
 
-use alloc::{string::ToString, vec, vec::Vec};
+use alloc::{vec, vec::Vec};
 use conduit_core::{
     InfoBool, Quantity, QuantityDimension, QuantityUnit, StructuredFieldValue,
     StructuredInfoRefusal, StructuredInfoType, StructuredInfoValue,
@@ -349,13 +349,13 @@ fn unit_variant(
     Ok(StructuredInfoValue::variant(
         value_type,
         tag,
-        leaf_value("value/unit@1", Vec::new())?,
+        leaf_value("value/unit", Vec::new())?,
     )?)
 }
 
 fn text_value(value: &str) -> StructuredInfoValue {
     StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id("value/text@1")).unwrap(),
+        StructuredInfoType::leaf(conduit_core::kind_id("value/text")).unwrap(),
         value.as_bytes().to_vec(),
     )
     .expect("bounded deterministic input text")
@@ -363,8 +363,8 @@ fn text_value(value: &str) -> StructuredInfoValue {
 
 fn count_value(value: u64) -> StructuredInfoValue {
     StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id("value/count@1")).unwrap(),
-        value.to_string().into_bytes(),
+        StructuredInfoType::leaf(conduit_core::kind_id("value/count")).unwrap(),
+        conduit_core::encode_count(value).to_vec(),
     )
     .expect("bounded deterministic input count")
 }

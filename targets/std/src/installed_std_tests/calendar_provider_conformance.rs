@@ -249,7 +249,7 @@ fn catalogs(
 
 fn result_value(value_type: StructuredInfoType, json: &[u8]) -> Vec<u8> {
     let leaf = StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/text@1")).unwrap(),
+        StructuredInfoType::leaf(kind_id("value/text")).unwrap(),
         json.to_vec(),
     )
     .unwrap();

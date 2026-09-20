@@ -1,13 +1,12 @@
 //! A real browser pointer event entering one ordinary planned kernel Play.
 
 use conduit_core::{
-    bind_active_play, bind_sign, kind_id, port_id, resource_offer, ArtifactId,
-    BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
+    bind_active_play, bind_sign, kind_id, resource_offer, ArtifactId, BaseImplementationId, BootId,
+    CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
     DeliveryContract, ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, ImplementationOffer,
-    KindContractRevision, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES, PRESENTATION_RESOURCE_CLASS,
-    PROTOCOL_VERSION,
+    HostOperationRequirement, HostProfileId, ImplementationId, OfferGeneration,
+    ResourceRequirement, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
@@ -367,46 +366,14 @@ fn catalogs(value: &StructuredInfoValue) -> Result<(StartupCatalog, ProfileCatal
 
 pub(crate) fn advertisement() -> HostAdvertisement {
     let value_type = pointer_event_type();
-    let value_kind = value_type
-        .profile()
-        .expect("pointer profile")
-        .value_kind()
-        .clone();
-    let source = CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("browser-pointer-source@1"),
-        kind_id: kind_id(POINTER_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::GENERALIZED_INPUT_REVISION,
-        ),
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(PROFILE),
-            implementation_id: ImplementationId::from("browser/dom-pointer-source@1"),
-            artifact_id: ArtifactId::from(ARTIFACT),
-        },
-        inputs: Vec::new(),
-        outputs: vec![PortDescriptor {
-            port_id: port_id("pointer"),
-            value_kind: value_kind.clone(),
-            direction: PortDirection::Output,
-            temporal: PortTemporal::Flow { closes: false },
-        }],
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(SOURCE_OPERATION),
-            target_kind: Some(kind_id(POINTER_SOURCE_KIND)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: 0,
-            maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        },
-    };
+    let source = pointer_source_offer(
+        "browser-pointer-source@1",
+        PROFILE,
+        "browser/dom-pointer-source@1",
+        ARTIFACT,
+        MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        Vec::new(),
+    );
     let presenter = crate::structured_offers::structured_presentation_offer(
         POINTER_EVENT_TYPE,
         &value_type,
@@ -431,6 +398,41 @@ pub(crate) fn advertisement() -> HostAdvertisement {
         planner_capabilities: Vec::new(),
         capabilities: vec![source, presenter],
     }
+}
+
+pub(crate) fn pointer_source_offer(
+    capability: &str,
+    profile: &str,
+    implementation: &str,
+    artifact: &str,
+    maximum_output_bytes: u32,
+    resource_requirements: Vec<ResourceRequirement>,
+) -> CapabilityOffer {
+    CapabilityOfferBuilder::new(
+        conduit_semantic_catalog::pointer_source_semantic_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(capability),
+            execution_profile_id: ExecutionProfileId::from(profile),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from(artifact),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(SOURCE_OPERATION),
+                target_kind: Some(kind_id(POINTER_SOURCE_KIND)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: 0,
+                maximum_output_bytes,
+            }],
+            resource_requirements,
+            authority_requirements: Vec::new(),
+        },
+    )
+    .narrow_capacity(CapabilityLimits {
+        max_active_instances: 1,
+        max_queue_items: 1,
+        max_queue_bytes: maximum_output_bytes,
+    })
+    .expect("pointer realization only narrows the semantic byte bound")
+    .build()
 }
 
 fn scheduler(

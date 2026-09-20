@@ -17,7 +17,7 @@ fn checked_and_definitions() -> (
     KindDefinition,
     KindDefinition,
 ) {
-    let text = StructuredInfoType::leaf(KindId::from("value/text@1")).unwrap();
+    let text = StructuredInfoType::leaf(KindId::from("value/text")).unwrap();
     let feedback = StructuredInfoType::record(
         KindId::from("product/feedback@1"),
         vec![StructuredFieldType::new("status", text.clone()).unwrap()],
@@ -93,7 +93,7 @@ fn offer(definition: &KindDefinition) -> CapabilityOffer {
             .iter()
             .map(|field| conduit_core::FrontStartupParameter {
                 name: field.key.clone(),
-                value_type: "Text".into(),
+                value_type: conduit_core::kind_id("value/text"),
                 has_default: false,
             })
             .collect(),

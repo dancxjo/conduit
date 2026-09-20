@@ -1,8 +1,8 @@
 //! Exact finite normalized-pattern comparison offer.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 
 pub const COMPARE_PATTERN_BROWSER_PROFILE: &str =
@@ -15,43 +15,24 @@ pub const COMPARE_PATTERN_CANDIDATE_OPERATION: &str = "conduit.host/compare-patt
 pub const COMPARE_PATTERN_TEMPLATE_OPERATION: &str = "conduit.host/compare-pattern-template@1";
 
 pub fn offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::compare_normalized_pattern_definition();
-    CapabilityOffer {
-        startup_parameters: vec![
-            FrontStartupParameter {
-                name: "metric".into(),
-                value_type: "Text".into(),
-                has_default: true,
-            },
-            FrontStartupParameter {
-                name: "tolerance-millionths".into(),
-                value_type: "Count".into(),
-                has_default: true,
-            },
-        ],
-        shorthand: None,
-        capability_id: CapabilityId::from("compare-normalized-pattern"),
-        kind_id: contract.kind_id.clone(),
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
+    let contract = conduit_semantic_catalog::compare_normalized_pattern_semantic_contract();
+    let kind_id = contract.kind_id.clone();
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from("compare-normalized-pattern"),
             execution_profile_id: ExecutionProfileId::from(COMPARE_PATTERN_BROWSER_PROFILE),
             implementation_id: ImplementationId::from(COMPARE_PATTERN_BROWSER_IMPLEMENTATION),
             artifact_id: ArtifactId::from(COMPARE_PATTERN_BROWSER_ARTIFACT),
+            host_operations: vec![
+                host_operation(COMPARE_PATTERN_CANDIDATE_OPERATION, &kind_id),
+                host_operation(COMPARE_PATTERN_TEMPLATE_OPERATION, &kind_id),
+            ],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        host_operations: vec![
-            host_operation(COMPARE_PATTERN_CANDIDATE_OPERATION, &contract.kind_id),
-            host_operation(COMPARE_PATTERN_TEMPLATE_OPERATION, &contract.kind_id),
-        ],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: conduit_core::CapabilityLimits {
-            max_active_instances: 8,
-            max_queue_items: 2,
-            max_queue_bytes: (super::MAXIMUM_BROWSER_VALUE_BYTES * 3) as u32,
-        },
-    }
+    )
+    .build()
 }
 
 fn host_operation(contract: &str, kind: &conduit_core::KindId) -> HostOperationRequirement {

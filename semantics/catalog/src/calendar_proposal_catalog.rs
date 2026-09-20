@@ -7,9 +7,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
-    StructuredInfoTypeShape, StructuredInfoValue, StructuredVariantCase,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
+    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
+    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
+    StructuredInfoValue, StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -22,6 +23,41 @@ pub const CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS: u16 = 8;
 pub const CALENDAR_PROPOSAL_MAXIMUM_INTERVALS: u16 = 8;
 pub const CALENDAR_PROPOSAL_MAXIMUM_CANDIDATES: u16 = 8;
 pub const CALENDAR_PROPOSAL_MAXIMUM_RESULTS: u16 = 3;
+
+pub fn calendar_proposal_semantic_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![FrontStartupParameter {
+            name: "request".into(),
+            value_type: calendar_proposal_request_type()
+                .profile()
+                .expect("reviewed calendar proposal request is bounded")
+                .value_kind()
+                .clone(),
+            has_default: false,
+        }],
+        shorthand: None,
+        kind_id: kind_id(CALENDAR_PROPOSAL_KIND),
+        kind_contract_revision: KindContractRevision::from(CALENDAR_PROPOSAL_REVISION),
+        inputs: vec![],
+        outputs: vec![PortDescriptor {
+            port_id: port_id("proposal"),
+            value_kind: calendar_proposal_result_type()
+                .profile()
+                .expect("reviewed proposal result is bounded")
+                .value_kind()
+                .clone(),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Value,
+        }],
+        limits: CapabilityLimits {
+            max_active_instances: 4,
+            max_queue_items: CALENDAR_PROPOSAL_MAXIMUM_RESULTS,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES
+                * usize::from(CALENDAR_PROPOSAL_MAXIMUM_RESULTS))
+                as u32,
+        },
+    }
+}
 
 fn leaf(kind: &str) -> StructuredInfoType {
     StructuredInfoType::leaf(kind_id(kind)).expect("reviewed calendar leaf")
@@ -47,7 +83,7 @@ fn slots(
 ) -> StructuredInfoType {
     let slot = StructuredInfoType::variant(
         kind_id(kind),
-        vec![case(active, payload), case("unused", leaf("value/unit@1"))],
+        vec![case(active, payload), case("unused", leaf("value/unit"))],
     )
     .expect("reviewed calendar slot");
     StructuredInfoType::collection(slot, Some(maximum)).expect("finite calendar slots")
@@ -57,11 +93,11 @@ pub fn calendar_instant_type() -> StructuredInfoType {
     record(
         "time/calendar-instant@1",
         vec![
-            field("basis", leaf("value/text@1")),
-            field("resolution_ticks", leaf("value/count@1")),
+            field("basis", leaf("value/text")),
+            field("resolution_ticks", leaf("value/count")),
             field("scale", leaf("time/scale@1")),
-            field("ticks", leaf("value/count@1")),
-            field("uncertainty_ticks", leaf("value/count@1")),
+            field("ticks", leaf("value/count")),
+            field("uncertainty_ticks", leaf("value/count")),
         ],
     )
 }
@@ -80,9 +116,9 @@ pub fn calendar_candidate_type() -> StructuredInfoType {
     record(
         "calendar/meeting-candidate@1",
         vec![
-            field("identity", leaf("value/text@1")),
+            field("identity", leaf("value/text")),
             field("interval", calendar_window_type()),
-            field("rationale", leaf("value/text@1")),
+            field("rationale", leaf("value/text")),
         ],
     )
 }
@@ -91,19 +127,19 @@ pub fn calendar_availability_interval_type() -> StructuredInfoType {
     record(
         "calendar/availability-interval@1",
         vec![
-            field("end_basis", leaf("value/text@1")),
-            field("end_boundary", leaf("value/text@1")),
-            field("end_resolution_ticks", leaf("value/count@1")),
-            field("end_scale", leaf("value/text@1")),
-            field("end_ticks", leaf("value/count@1")),
-            field("end_uncertainty_ticks", leaf("value/count@1")),
-            field("participant_identity", leaf("value/text@1")),
-            field("start_basis", leaf("value/text@1")),
-            field("start_boundary", leaf("value/text@1")),
-            field("start_resolution_ticks", leaf("value/count@1")),
-            field("start_scale", leaf("value/text@1")),
-            field("start_ticks", leaf("value/count@1")),
-            field("start_uncertainty_ticks", leaf("value/count@1")),
+            field("end_basis", leaf("value/text")),
+            field("end_boundary", leaf("value/text")),
+            field("end_resolution_ticks", leaf("value/count")),
+            field("end_scale", leaf("value/text")),
+            field("end_ticks", leaf("value/count")),
+            field("end_uncertainty_ticks", leaf("value/count")),
+            field("participant_identity", leaf("value/text")),
+            field("start_basis", leaf("value/text")),
+            field("start_boundary", leaf("value/text")),
+            field("start_resolution_ticks", leaf("value/count")),
+            field("start_scale", leaf("value/text")),
+            field("start_ticks", leaf("value/count")),
+            field("start_uncertainty_ticks", leaf("value/count")),
             field("state", leaf("calendar/availability-state@1")),
         ],
     )
@@ -113,7 +149,7 @@ pub fn calendar_participant_availability_type() -> StructuredInfoType {
     record(
         "calendar/participant-availability@1",
         vec![
-            field("basis_identity", leaf("value/text@1")),
+            field("basis_identity", leaf("value/text")),
             field(
                 "intervals",
                 slots(
@@ -124,10 +160,10 @@ pub fn calendar_participant_availability_type() -> StructuredInfoType {
                 ),
             ),
             field("observed_at", calendar_instant_type()),
-            field("participant_identity", leaf("value/text@1")),
+            field("participant_identity", leaf("value/text")),
             field("usable_until", calendar_instant_type()),
-            field("zone", leaf("value/text@1")),
-            field("zone_rule_set", leaf("value/text@1")),
+            field("zone", leaf("value/text")),
+            field("zone_rule_set", leaf("value/text")),
         ],
     )
 }
@@ -154,14 +190,14 @@ pub fn calendar_proposal_request_type() -> StructuredInfoType {
                     CALENDAR_PROPOSAL_MAXIMUM_CANDIDATES,
                 ),
             ),
-            field("identity", leaf("value/text@1")),
-            field("maximum_results", leaf("value/count@1")),
+            field("identity", leaf("value/text")),
+            field("maximum_results", leaf("value/count")),
             field(
                 "participant_identities",
                 slots(
                     "calendar/participant-identity-slot@1",
                     "participant",
-                    leaf("value/text@1"),
+                    leaf("value/text"),
                     CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS,
                 ),
             ),
@@ -174,15 +210,15 @@ pub fn calendar_proposed_slot_type() -> StructuredInfoType {
     record(
         "calendar/proposed-meeting-slot@1",
         vec![
-            field("candidate_identity", leaf("value/text@1")),
+            field("candidate_identity", leaf("value/text")),
             field("interval", calendar_window_type()),
-            field("rationale", leaf("value/text@1")),
+            field("rationale", leaf("value/text")),
             field(
                 "tentative_participants",
                 slots(
                     "calendar/tentative-participant-slot@1",
                     "participant",
-                    leaf("value/text@1"),
+                    leaf("value/text"),
                     CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS,
                 ),
             ),
@@ -194,14 +230,14 @@ pub fn calendar_rejected_slot_type() -> StructuredInfoType {
     let conflict = record(
         "calendar/candidate-conflict@1",
         vec![
-            field("participant_identity", leaf("value/text@1")),
+            field("participant_identity", leaf("value/text")),
             field("state", leaf("calendar/availability-state@1")),
         ],
     );
     record(
         "calendar/rejected-meeting-slot@1",
         vec![
-            field("candidate_identity", leaf("value/text@1")),
+            field("candidate_identity", leaf("value/text")),
             field(
                 "conflicts",
                 slots(
@@ -224,7 +260,7 @@ pub fn calendar_proposal_result_type() -> StructuredInfoType {
                 slots(
                     "calendar/availability-basis-slot@1",
                     "basis",
-                    leaf("value/text@1"),
+                    leaf("value/text"),
                     CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS,
                 ),
             ),
@@ -237,7 +273,7 @@ pub fn calendar_proposal_result_type() -> StructuredInfoType {
                     CALENDAR_PROPOSAL_MAXIMUM_RESULTS,
                 ),
             ),
-            field("identity", leaf("value/text@1")),
+            field("identity", leaf("value/text")),
             field("reference_at", calendar_instant_type()),
             field(
                 "rejected",
@@ -318,8 +354,8 @@ pub fn default_calendar_proposal_request() -> Result<StructuredInfoValue, String
                 "candidates",
                 unused_collection(&request_type, "candidates")?,
             ),
-            ("identity", leaf_value("value/text@1", "proposal/default")?),
-            ("maximum_results", leaf_value("value/count@1", "1")?),
+            ("identity", leaf_value("value/text", "proposal/default")?),
+            ("maximum_results", count_value(1)?),
             (
                 "participant_identities",
                 unused_collection(&request_type, "participant_identities")?,
@@ -333,11 +369,11 @@ pub fn instant_value(ticks: u64) -> Result<StructuredInfoValue, String> {
     record_value(
         calendar_instant_type(),
         vec![
-            ("basis", leaf_value("value/text@1", "utc")?),
-            ("resolution_ticks", leaf_value("value/count@1", "1")?),
+            ("basis", leaf_value("value/text", "utc")?),
+            ("resolution_ticks", count_value(1)?),
             ("scale", leaf_value("time/scale@1", "seconds")?),
-            ("ticks", leaf_value("value/count@1", &ticks.to_string())?),
-            ("uncertainty_ticks", leaf_value("value/count@1", "0")?),
+            ("ticks", count_value(ticks)?),
+            ("uncertainty_ticks", count_value(0)?),
         ],
     )
 }
@@ -360,6 +396,14 @@ pub fn leaf_value(kind: &str, value: &str) -> Result<StructuredInfoValue, String
     StructuredInfoValue::leaf(leaf(kind), value.as_bytes().to_vec()).map_err(value_error)
 }
 
+pub fn count_value(value: u64) -> Result<StructuredInfoValue, String> {
+    StructuredInfoValue::leaf(
+        leaf(conduit_core::COUNT_INFO_ID),
+        conduit_core::encode_count(value).to_vec(),
+    )
+    .map_err(value_error)
+}
+
 pub fn unused_collection(
     record_type: &StructuredInfoType,
     name: &str,
@@ -378,7 +422,7 @@ pub fn unused_collection(
     };
     let values = (0..length)
         .map(|_| {
-            StructuredInfoValue::variant(element.clone(), "unused", leaf_value("value/unit@1", "")?)
+            StructuredInfoValue::variant(element.clone(), "unused", leaf_value("value/unit", "")?)
                 .map_err(value_error)
         })
         .collect::<Result<Vec<_>, String>>()?;

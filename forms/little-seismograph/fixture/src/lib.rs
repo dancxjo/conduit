@@ -1,13 +1,18 @@
 //! Canonical deterministic inputs for the Little Seismograph specimen.
 
+#![no_std]
+
+extern crate alloc;
+
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal, Quantity,
-    QuantityUnit, TemporalInstant, TemporalScale,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, Quantity, QuantityUnit, SemanticCapabilityContract, TemporalInstant,
+    TemporalScale,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 
-use crate::{
+use conduit_data::{
     measurement_hysteresis_profile_type, measurement_sample_type, measurement_window_profile_type,
     FullWindowPolicy, MeasurementHysteresisProfile, MeasurementRange, MeasurementSample,
     MeasurementThresholdPolicy, MeasurementThresholdState, MeasurementWindowProfile,
@@ -53,6 +58,23 @@ pub fn little_seismograph_fixture_definition() -> KindDefinition {
             ),
         ],
         configuration: vec![],
+    }
+}
+
+pub fn little_seismograph_fixture_semantic_contract() -> SemanticCapabilityContract {
+    let definition = little_seismograph_fixture_definition();
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 3,
+            max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 3) as u32,
+        },
     }
 }
 
@@ -112,6 +134,10 @@ fn output(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduit_data::{
+        summarize_measurement_window, BoundedMeasurementWindow, MeasurementHysteresis,
+        MeasurementThresholdTransition,
+    };
 
     #[test]
     fn deterministic_inputs_preserve_exact_profile_clock_and_transition() {
@@ -123,20 +149,20 @@ mod tests {
             .iter()
             .all(|sample| sample.observed_at.clock_basis.as_str() == profile.clock_basis));
 
-        let mut window = crate::BoundedMeasurementWindow::new(profile).unwrap();
+        let mut window = BoundedMeasurementWindow::new(profile).unwrap();
         for sample in samples {
             window.push(sample).unwrap();
         }
         assert_eq!(window.discarded_samples(), 0);
-        let summary = crate::summarize_measurement_window(&window).unwrap();
-        let decision = crate::MeasurementHysteresis::new(threshold.policy, threshold.initial_state)
+        let summary = summarize_measurement_window(&window).unwrap();
+        let decision = MeasurementHysteresis::new(threshold.policy, threshold.initial_state)
             .unwrap()
             .evaluate(&summary)
             .unwrap();
         assert_eq!(decision.state, MeasurementThresholdState::Above);
         assert_eq!(
             decision.transition,
-            Some(crate::MeasurementThresholdTransition::RoseAbove)
+            Some(MeasurementThresholdTransition::RoseAbove)
         );
     }
 }

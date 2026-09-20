@@ -223,11 +223,18 @@ fn provenance_tag(value: &StructuredInfoValue) -> &str {
 
 fn span_bounds(value: &StructuredInfoValue) -> (u64, u64) {
     (
-        leaf_text(record_field(value, "start")).parse().unwrap(),
-        leaf_text(record_field(value, "end")).parse().unwrap(),
+        leaf_count(record_field(value, "start")),
+        leaf_count(record_field(value, "end")),
     )
 }
 
 fn token_ordinal(value: &StructuredInfoValue) -> u64 {
-    leaf_text(record_field(value, "ordinal")).parse().unwrap()
+    leaf_count(record_field(value, "ordinal"))
+}
+
+fn leaf_count(value: &StructuredInfoValue) -> u64 {
+    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+        panic!("expected leaf")
+    };
+    conduit_core::decode_count(bytes).unwrap()
 }

@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 
 mod base_capability;
 mod base_registry;
+mod capability_offer;
 mod characteristic;
 mod completion;
 mod configuration;
@@ -28,6 +29,7 @@ mod interop;
 mod plan_realization;
 mod port;
 mod preparation;
+mod primitive_info;
 mod quantity;
 mod resource;
 mod resource_canonical;
@@ -43,8 +45,8 @@ mod route;
 mod shared_pool;
 mod state_delay;
 mod stream_sampling;
-pub use plan_fingerprint::compute_fragment_id;
 use plan_fingerprint::compute_plan_id;
+pub use plan_fingerprint::{compute_checked_front_fingerprint, compute_fragment_id};
 mod structured_info;
 mod temporal;
 mod temporal_civil_conversion;
@@ -53,6 +55,7 @@ mod temporal_quantity;
 
 pub use base_capability::*;
 pub use base_registry::*;
+pub use capability_offer::*;
 pub use characteristic::*;
 pub use completion::*;
 pub use conduit_assigned_plan::*;
@@ -73,6 +76,7 @@ pub use interop::*;
 pub use plan_realization::RealizationBack;
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use preparation::*;
+pub use primitive_info::*;
 pub use quantity::*;
 pub use resource::*;
 pub use resource_acquisition::*;
@@ -106,6 +110,9 @@ pub const PRESENT_AUTHORITY_CONTRACT: &str = "conduit.authority/present@1";
 pub const SHARED_POOL_ADMIT_AUTHORITY_CONTRACT: &str = "conduit.authority/shared-pool-admit@1";
 pub const SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/shared-pool-admit@1";
 pub const SHARED_POOL_AUTHORITY_SUBJECT_KIND: &str = "conduit/shared-pool";
+/// Explicit semantic contract used when the authored meaning is "any callable
+/// with this exact Front" rather than one particular operation.
+pub const STRUCTURAL_POLYMORPHIC_CONTRACT: &str = "conduit.semantic/structural-polymorphic@1";
 
 macro_rules! identity_type {
     ($name:ident) => {

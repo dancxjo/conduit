@@ -8,10 +8,10 @@ use alloc::vec;
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId, AuthorityGrant,
     AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision,
-    OfferGeneration, PortDescriptor, PortDirection, PortId, PortTemporal, ResourceBinding,
-    ResourceOffer, PROTOCOL_VERSION,
+    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostAdvertisement, HostId,
+    HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
+    KindContractRevision, OfferGeneration, PortDescriptor, PortDirection, PortId, PortTemporal,
+    ResourceBinding, ResourceOffer, SemanticCapabilityContract, PROTOCOL_VERSION,
 };
 
 mod external_websocket;
@@ -86,17 +86,39 @@ pub fn network_join_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: Some((PortId::from("request"), PortId::from("attachment"))),
-        capability_id,
-        kind_id: kind_id(NETWORK_JOIN_OPERATION),
-        kind_contract_revision: KindContractRevision::from(NETWORK_JOIN_CONTRACT_REVISION),
-        implementation: conduit_core::ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        network_join_contract(),
+        CapabilityRealization {
+            capability_id,
             execution_profile_id: ExecutionProfileId::from("conduit.network/join-base@1"),
             implementation_id,
             artifact_id,
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(NETWORK_JOIN_HOST_OPERATION),
+                target_kind: Some(kind_id(NETWORK_CONFIG_SUBJECT)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: MAXIMUM_JOIN_INPUT_BYTES,
+                maximum_output_bytes: MAXIMUM_JOIN_OUTPUT_BYTES,
+            }],
+            resource_requirements: vec![resource_requirement(WIFI_STATION_RESOURCE_CLASS, 1)],
+            authority_requirements: vec![AuthorityRequirement {
+                contract_id: AuthorityContractId::from(NETWORK_CONFIG_AUTHORITY),
+                host_operation_contract_id: HostOperationContractId::from(
+                    NETWORK_JOIN_HOST_OPERATION,
+                ),
+                subject_kind: kind_id(NETWORK_CONFIG_SUBJECT),
+            }],
         },
+    )
+    .build()
+}
+
+fn network_join_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: Some((PortId::from("request"), PortId::from("attachment"))),
+        kind_id: kind_id(NETWORK_JOIN_OPERATION),
+        kind_contract_revision: KindContractRevision::from(NETWORK_JOIN_CONTRACT_REVISION),
         inputs: vec![PortDescriptor {
             port_id: PortId::from("request"),
             value_kind: kind_id(NETWORK_JOIN_REQUEST_KIND),
@@ -108,19 +130,6 @@ pub fn network_join_offer(
             value_kind: kind_id(NETWORK_ATTACHMENT_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
-        }],
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(NETWORK_JOIN_HOST_OPERATION),
-            target_kind: Some(kind_id(NETWORK_CONFIG_SUBJECT)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAXIMUM_JOIN_INPUT_BYTES,
-            maximum_output_bytes: MAXIMUM_JOIN_OUTPUT_BYTES,
-        }],
-        resource_requirements: vec![resource_requirement(WIFI_STATION_RESOURCE_CLASS, 1)],
-        authority_requirements: vec![AuthorityRequirement {
-            contract_id: AuthorityContractId::from(NETWORK_CONFIG_AUTHORITY),
-            host_operation_contract_id: HostOperationContractId::from(NETWORK_JOIN_HOST_OPERATION),
-            subject_kind: kind_id(NETWORK_CONFIG_SUBJECT),
         }],
         limits: CapabilityLimits {
             max_active_instances: 1,
@@ -138,41 +147,45 @@ pub fn network_credentials_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id,
-        kind_id: kind_id(NETWORK_CREDENTIALS_OPERATION),
-        kind_contract_revision: KindContractRevision::from(NETWORK_CREDENTIALS_CONTRACT_REVISION),
-        implementation: conduit_core::ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        network_credentials_contract(),
+        CapabilityRealization {
+            capability_id,
             execution_profile_id: ExecutionProfileId::from("conduit.network/credentials-hosted@1"),
             implementation_id,
             artifact_id,
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(NETWORK_CREDENTIALS_HOST_OPERATION),
+                target_kind: Some(kind_id(NETWORK_CREDENTIALS_SUBJECT)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: 1,
+                maximum_output_bytes: MAXIMUM_JOIN_INPUT_BYTES,
+            }],
+            resource_requirements: vec![],
+            authority_requirements: vec![AuthorityRequirement {
+                contract_id: AuthorityContractId::from(NETWORK_CREDENTIALS_AUTHORITY),
+                host_operation_contract_id: HostOperationContractId::from(
+                    NETWORK_CREDENTIALS_HOST_OPERATION,
+                ),
+                subject_kind: kind_id(NETWORK_CREDENTIALS_SUBJECT),
+            }],
         },
+    )
+    .build()
+}
+
+fn network_credentials_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id(NETWORK_CREDENTIALS_OPERATION),
+        kind_contract_revision: KindContractRevision::from(NETWORK_CREDENTIALS_CONTRACT_REVISION),
         inputs: vec![],
         outputs: vec![PortDescriptor {
             port_id: PortId::from("request"),
             value_kind: kind_id(NETWORK_JOIN_REQUEST_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
-        }],
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(NETWORK_CREDENTIALS_HOST_OPERATION),
-            target_kind: Some(kind_id(NETWORK_CREDENTIALS_SUBJECT)),
-            maximum_in_flight: 1,
-            // The kernel host-operation table requires a non-zero admitted
-            // input bound even though this source invokes the operation with
-            // an exact empty value.
-            maximum_input_bytes: 1,
-            maximum_output_bytes: MAXIMUM_JOIN_INPUT_BYTES,
-        }],
-        resource_requirements: vec![],
-        authority_requirements: vec![AuthorityRequirement {
-            contract_id: AuthorityContractId::from(NETWORK_CREDENTIALS_AUTHORITY),
-            host_operation_contract_id: HostOperationContractId::from(
-                NETWORK_CREDENTIALS_HOST_OPERATION,
-            ),
-            subject_kind: kind_id(NETWORK_CREDENTIALS_SUBJECT),
         }],
         limits: CapabilityLimits {
             max_active_instances: 1,
@@ -187,19 +200,35 @@ pub fn network_attachment_sign_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    CapabilityOffer {
+    CapabilityOfferBuilder::new(
+        network_attachment_sign_contract(),
+        CapabilityRealization {
+            capability_id,
+            execution_profile_id: ExecutionProfileId::from("conduit.network/attachment-sign-usb@1"),
+            implementation_id,
+            artifact_id,
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(NETWORK_ATTACHMENT_SIGN_HOST_OPERATION),
+                target_kind: None,
+                maximum_in_flight: 1,
+                maximum_input_bytes: MAXIMUM_JOIN_OUTPUT_BYTES,
+                maximum_output_bytes: 1,
+            }],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+        },
+    )
+    .build()
+}
+
+fn network_attachment_sign_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
         startup_parameters: vec![],
         shorthand: None,
-        capability_id,
         kind_id: kind_id(NETWORK_ATTACHMENT_SIGN_OPERATION),
         kind_contract_revision: KindContractRevision::from(
             NETWORK_ATTACHMENT_SIGN_CONTRACT_REVISION,
         ),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from("conduit.network/attachment-sign-usb@1"),
-            implementation_id,
-            artifact_id,
-        },
         inputs: vec![PortDescriptor {
             port_id: PortId::from("attachment"),
             value_kind: kind_id(NETWORK_ATTACHMENT_KIND),
@@ -207,15 +236,6 @@ pub fn network_attachment_sign_offer(
             temporal: PortTemporal::Value,
         }],
         outputs: vec![],
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(NETWORK_ATTACHMENT_SIGN_HOST_OPERATION),
-            target_kind: None,
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAXIMUM_JOIN_OUTPUT_BYTES,
-            maximum_output_bytes: 1,
-        }],
-        resource_requirements: vec![],
-        authority_requirements: vec![],
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
@@ -231,33 +251,21 @@ pub fn install_network_bootstrap_catalogs(
 ) -> Result<(), String> {
     use conduit_form::{KindDefinition, KindSignature};
 
-    for offer in [
-        network_credentials_offer(
-            CapabilityId::from("catalog/network-credentials"),
-            ImplementationId::from("catalog/network-credentials"),
-            ArtifactId::from("catalog/network-credentials"),
-        ),
-        network_join_offer(
-            CapabilityId::from("catalog/network-join"),
-            ImplementationId::from("catalog/network-join"),
-            ArtifactId::from("catalog/network-join"),
-        ),
-        network_attachment_sign_offer(
-            CapabilityId::from("catalog/network-attachment-sign"),
-            ImplementationId::from("catalog/network-attachment-sign"),
-            ArtifactId::from("catalog/network-attachment-sign"),
-        ),
+    for contract in [
+        network_credentials_contract(),
+        network_join_contract(),
+        network_attachment_sign_contract(),
     ] {
         startup.insert(KindSignature {
-            kind: offer.kind_id.as_str().to_string(),
+            kind: contract.kind_id.as_str().to_string(),
             startup_parameters: vec![],
         })?;
         profile
             .insert(KindDefinition {
-                kind_id: offer.kind_id,
-                kind_contract_revision: offer.kind_contract_revision,
-                inputs: offer.inputs,
-                outputs: offer.outputs,
+                kind_id: contract.kind_id,
+                kind_contract_revision: contract.kind_contract_revision,
+                inputs: contract.inputs,
+                outputs: contract.outputs,
                 configuration: vec![],
             })
             .map_err(|error| error.to_string())?;

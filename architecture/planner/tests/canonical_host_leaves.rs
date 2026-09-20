@@ -121,14 +121,13 @@ fn offer(definition: &KindDefinition) -> CapabilityOffer {
             .iter()
             .map(|field| conduit_core::FrontStartupParameter {
                 name: field.key.clone(),
-                value_type: match field.default_value {
-                    ConfigurationValue::Bool(_) => "Boolean",
-                    ConfigurationValue::I64(_) => "Scalar",
-                    ConfigurationValue::U64(_) => "Count",
-                    ConfigurationValue::Text(_) => "Text",
+                value_type: kind_id(match field.default_value {
+                    ConfigurationValue::Bool(_) => "value/bool",
+                    ConfigurationValue::I64(_) => "value/scalar",
+                    ConfigurationValue::U64(_) => "value/count",
+                    ConfigurationValue::Text(_) => "value/text",
                     ConfigurationValue::Structured(ref value) => value.profile().as_str(),
-                }
-                .into(),
+                }),
                 has_default: true,
             })
             .collect(),
@@ -266,7 +265,7 @@ fn explicit_form_completion_reaches_the_exact_plan() {
 }
 
 #[test]
-fn equal_front_with_different_name_and_revision_is_compatible() {
+fn equal_front_and_semantics_with_a_different_name_is_compatible() {
     let expanded = expanded();
     let mut wrong_kind = host();
     let join = wrong_kind
@@ -276,7 +275,7 @@ fn equal_front_with_different_name_and_revision_is_compatible() {
         .unwrap();
     join.kind_id = kind_id("text/coincident-shape");
     let placements = default_expanded_placements(&expanded, std::slice::from_ref(&wrong_kind))
-        .expect("different nominal gear with the same front is compatible");
+        .expect("different nominal gear with the same Front and semantic contract is compatible");
     let plan = plan_expanded_canonical(
         &expanded,
         std::slice::from_ref(&wrong_kind),
@@ -296,8 +295,7 @@ fn equal_front_with_different_name_and_revision_is_compatible() {
         .find(|capability| capability.kind_id.as_str() == "text/join")
         .unwrap()
         .kind_contract_revision = KindContractRevision::from("text/join@2");
-    default_expanded_placements(&expanded, &[wrong_revision])
-        .expect("front-preserving revision is compatible");
+    assert!(default_expanded_placements(&expanded, &[wrong_revision]).is_err());
 }
 
 #[test]

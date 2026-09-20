@@ -62,6 +62,14 @@ pub(super) fn execute_proof(
     assemble_architecture_proof(arch, opts)
 }
 
+pub(super) fn execute_emergency_halt(opts: &GlobalOpts) -> Result<ImageRecord, ConduitosError> {
+    let build = build::execute_emergency_halt(opts)?;
+    build
+        .artifact_role
+        .require(ArtifactRole::ArchitectureProofAppliance)?;
+    assemble_architecture_proof(ConduitosArch::X86_64, opts)
+}
+
 pub(super) fn assemble_architecture_proof(
     arch: ConduitosArch,
     opts: &GlobalOpts,

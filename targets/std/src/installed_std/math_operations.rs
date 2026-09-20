@@ -163,7 +163,7 @@ pub(super) fn transform_bytes(
     input: &[u8],
 ) -> Result<[u8; SCALAR_ENCODED_LEN], String> {
     let input = Scalar::decode(input)
-        .map_err(|error| format!("math input is not canonical value/scalar@1: {error:?}"))?;
+        .map_err(|error| format!("math input is not canonical value/scalar: {error:?}"))?;
     transform_for(placement)?
         .apply(input)
         .map(Scalar::encode)

@@ -3,8 +3,9 @@
 use alloc::vec;
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, ResourceRequirement,
+    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostOperationRequirement,
+    ImplementationId, ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, ResourceRequirement, SemanticCapabilityContract,
 };
 
 pub const RENDERER_KIND: &str = "presentation/renderer";
@@ -18,6 +19,8 @@ pub const INTERACTION_CONTRACT_REVISION: &str = "conduit.presentation/interactio
 pub const PRESENTATION_TEE_CONTRACT_REVISION: &str = "conduit.presentation/tee@1";
 pub const PRESENTER_STAGE_CONTRACT_REVISION: &str = "conduit.presentation/presenter-stage@1";
 pub const MAX_RENDERER_VALUE_BYTES: u32 = crate::MAX_PRESENTATION_TOTAL_BYTES as u32;
+pub const MAX_PRESENTATION_ACTIVE_INSTANCES: u16 = 8;
+pub const MAX_PRESENTATION_QUEUE_ITEMS: u16 = 8;
 
 pub fn renderer_inputs() -> alloc::vec::Vec<PortDescriptor> {
     vec![PortDescriptor {
@@ -92,20 +95,14 @@ pub fn presenter_stage_offer(
     implementation: ImplementationOffer,
     limits: CapabilityLimits,
 ) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: alloc::vec::Vec::new(),
-        shorthand: None,
+    build_offer(
+        presenter_stage_contract(),
         capability_id,
-        kind_id: kind_id(PRESENTER_STAGE_KIND),
-        kind_contract_revision: KindContractRevision::from(PRESENTER_STAGE_CONTRACT_REVISION),
         implementation,
-        inputs: presenter_stage_inputs(),
-        outputs: presenter_stage_outputs(),
-        host_operations: alloc::vec::Vec::new(),
-        resource_requirements: alloc::vec::Vec::new(),
-        authority_requirements: alloc::vec::Vec::new(),
+        alloc::vec::Vec::new(),
+        alloc::vec::Vec::new(),
         limits,
-    }
+    )
 }
 
 /// Exact host-owned implementation facts beneath the one portable Front.
@@ -132,45 +129,33 @@ pub struct InteractionRealizationOffer {
 }
 
 pub fn renderer_offer(realization: RendererRealizationOffer) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: alloc::vec::Vec::new(),
-        shorthand: None,
-        capability_id: realization.capability_id,
-        kind_id: kind_id(RENDERER_KIND),
-        kind_contract_revision: KindContractRevision::from(RENDERER_CONTRACT_REVISION),
-        implementation: ImplementationOffer {
+    build_offer(
+        renderer_contract(),
+        realization.capability_id,
+        ImplementationOffer {
             execution_profile_id: realization.execution_profile_id,
             implementation_id: realization.implementation_id,
             artifact_id: realization.artifact_id,
         },
-        inputs: renderer_inputs(),
-        outputs: renderer_outputs(),
-        host_operations: vec![realization.host_operation],
-        resource_requirements: vec![realization.resource_requirement],
-        authority_requirements: alloc::vec::Vec::new(),
-        limits: realization.limits,
-    }
+        vec![realization.host_operation],
+        vec![realization.resource_requirement],
+        realization.limits,
+    )
 }
 
 pub fn interaction_offer(realization: InteractionRealizationOffer) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: alloc::vec::Vec::new(),
-        shorthand: None,
-        capability_id: realization.capability_id,
-        kind_id: kind_id(INTERACTION_KIND),
-        kind_contract_revision: KindContractRevision::from(INTERACTION_CONTRACT_REVISION),
-        implementation: ImplementationOffer {
+    build_offer(
+        interaction_contract(),
+        realization.capability_id,
+        ImplementationOffer {
             execution_profile_id: realization.execution_profile_id,
             implementation_id: realization.implementation_id,
             artifact_id: realization.artifact_id,
         },
-        inputs: interaction_inputs(),
-        outputs: interaction_outputs(),
-        host_operations: vec![realization.host_operation],
-        resource_requirements: vec![realization.resource_requirement],
-        authority_requirements: alloc::vec::Vec::new(),
-        limits: realization.limits,
-    }
+        vec![realization.host_operation],
+        vec![realization.resource_requirement],
+        realization.limits,
+    )
 }
 
 pub fn presentation_tee_offer(
@@ -178,20 +163,101 @@ pub fn presentation_tee_offer(
     implementation: ImplementationOffer,
     limits: CapabilityLimits,
 ) -> CapabilityOffer {
-    CapabilityOffer {
+    build_offer(
+        presentation_tee_contract(),
+        capability_id,
+        implementation,
+        alloc::vec::Vec::new(),
+        alloc::vec::Vec::new(),
+        limits,
+    )
+}
+
+fn semantic_contract(
+    kind: &str,
+    revision: &str,
+    inputs: alloc::vec::Vec<PortDescriptor>,
+    outputs: alloc::vec::Vec<PortDescriptor>,
+    max_queue_bytes: u32,
+) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
         startup_parameters: alloc::vec::Vec::new(),
         shorthand: None,
-        capability_id,
-        kind_id: kind_id(PRESENTATION_TEE_KIND),
-        kind_contract_revision: KindContractRevision::from(PRESENTATION_TEE_CONTRACT_REVISION),
-        implementation,
-        inputs: presentation_tee_inputs(),
-        outputs: presentation_tee_outputs(),
-        host_operations: alloc::vec::Vec::new(),
-        resource_requirements: alloc::vec::Vec::new(),
-        authority_requirements: alloc::vec::Vec::new(),
-        limits,
+        kind_id: kind_id(kind),
+        kind_contract_revision: KindContractRevision::from(revision),
+        inputs,
+        outputs,
+        limits: CapabilityLimits {
+            max_active_instances: MAX_PRESENTATION_ACTIVE_INSTANCES,
+            max_queue_items: MAX_PRESENTATION_QUEUE_ITEMS,
+            max_queue_bytes,
+        },
     }
+}
+
+fn renderer_contract() -> SemanticCapabilityContract {
+    semantic_contract(
+        RENDERER_KIND,
+        RENDERER_CONTRACT_REVISION,
+        renderer_inputs(),
+        renderer_outputs(),
+        MAX_RENDERER_VALUE_BYTES * u32::from(MAX_PRESENTATION_QUEUE_ITEMS),
+    )
+}
+
+fn interaction_contract() -> SemanticCapabilityContract {
+    semantic_contract(
+        INTERACTION_KIND,
+        INTERACTION_CONTRACT_REVISION,
+        interaction_inputs(),
+        interaction_outputs(),
+        crate::MAX_PRESENTATION_INTERACTION_BYTES as u32 * u32::from(MAX_PRESENTATION_QUEUE_ITEMS),
+    )
+}
+
+fn presentation_tee_contract() -> SemanticCapabilityContract {
+    semantic_contract(
+        PRESENTATION_TEE_KIND,
+        PRESENTATION_TEE_CONTRACT_REVISION,
+        presentation_tee_inputs(),
+        presentation_tee_outputs(),
+        MAX_RENDERER_VALUE_BYTES * u32::from(MAX_PRESENTATION_QUEUE_ITEMS),
+    )
+}
+
+fn presenter_stage_contract() -> SemanticCapabilityContract {
+    semantic_contract(
+        PRESENTER_STAGE_KIND,
+        PRESENTER_STAGE_CONTRACT_REVISION,
+        presenter_stage_inputs(),
+        presenter_stage_outputs(),
+        MAX_RENDERER_VALUE_BYTES * u32::from(MAX_PRESENTATION_QUEUE_ITEMS),
+    )
+}
+
+fn build_offer(
+    contract: SemanticCapabilityContract,
+    capability_id: CapabilityId,
+    implementation: ImplementationOffer,
+    host_operations: alloc::vec::Vec<HostOperationRequirement>,
+    resource_requirements: alloc::vec::Vec<ResourceRequirement>,
+    limits: CapabilityLimits,
+) -> CapabilityOffer {
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id,
+            execution_profile_id: implementation.execution_profile_id,
+            implementation_id: implementation.implementation_id,
+            artifact_id: implementation.artifact_id,
+            host_operations,
+            resource_requirements,
+            authority_requirements: alloc::vec::Vec::new(),
+        },
+    )
+    .narrow_capacity(limits)
+    .expect("presentation realization capacity narrows portable semantics")
+    .build()
 }
 
 #[cfg(feature = "form-catalog")]

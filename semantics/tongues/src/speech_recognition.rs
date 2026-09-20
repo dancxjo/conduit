@@ -6,7 +6,7 @@ use conduit_audio::{
 };
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal,
+    PortDirection, PortTemporal, SemanticCapabilityContract,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 use serde::{Deserialize, Serialize};
@@ -39,6 +39,20 @@ pub struct SpeechRecognitionContract {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
+}
+
+impl SpeechRecognitionContract {
+    pub fn into_semantic_capability_contract(self) -> SemanticCapabilityContract {
+        SemanticCapabilityContract {
+            startup_parameters: Vec::new(),
+            shorthand: None,
+            kind_id: self.kind_id,
+            kind_contract_revision: self.kind_contract_revision,
+            inputs: self.inputs,
+            outputs: self.outputs,
+            limits: self.limits,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -170,6 +184,8 @@ pub fn install_speech_recognition_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
+    startup.insert_value_kind_alias("PcmFrames", kind_id(conduit_audio::AUDIO_PCM_INFO_ID))?;
+    startup.insert_value_kind_alias("ChatMessage", kind_id(crate::CHAT_MESSAGE_VALUE_KIND))?;
     for contract in [
         speech_recognition_contract(),
         speech_clip_recognition_contract(),

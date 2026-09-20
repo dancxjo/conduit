@@ -5,8 +5,9 @@ use alloc::{
     vec,
 };
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
+    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -73,6 +74,40 @@ pub fn timed_button_attempt_definition() -> KindDefinition {
     }
 }
 
+pub fn timed_button_attempt_semantic_contract() -> SemanticCapabilityContract {
+    let definition = timed_button_attempt_definition();
+    SemanticCapabilityContract {
+        startup_parameters: vec![
+            FrontStartupParameter {
+                name: "maximum-transitions".into(),
+                value_type: kind_id("value/count"),
+                has_default: true,
+            },
+            FrontStartupParameter {
+                name: "maximum-presses".into(),
+                value_type: kind_id("value/count"),
+                has_default: true,
+            },
+            FrontStartupParameter {
+                name: "timeout-ms".into(),
+                value_type: kind_id("value/duration"),
+                has_default: true,
+            },
+        ],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: crate::MAXIMUM_TIMED_EVENTS as u16,
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
+                * (crate::MAXIMUM_TIMED_EVENTS as u32 + 1),
+        },
+    }
+}
+
 pub fn install_timed_button_attempt_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
@@ -121,5 +156,26 @@ mod tests {
         for forbidden in ["browser", "dom", "gpio", "socket", "address"] {
             assert!(!debug.contains(forbidden));
         }
+    }
+
+    #[test]
+    fn semantic_contract_owns_exact_startup_front_and_capacity() {
+        let contract = timed_button_attempt_semantic_contract();
+        assert_eq!(contract.startup_parameters.len(), 3);
+        assert_eq!(contract.startup_parameters[0].name, "maximum-transitions");
+        assert_eq!(contract.startup_parameters[1].name, "maximum-presses");
+        assert_eq!(
+            contract.startup_parameters[2].value_type.as_str(),
+            "value/duration"
+        );
+        assert!(contract
+            .startup_parameters
+            .iter()
+            .all(|parameter| parameter.has_default));
+        assert_eq!(contract.limits.max_active_instances, 8);
+        assert_eq!(
+            contract.limits.max_queue_items,
+            crate::MAXIMUM_TIMED_EVENTS as u16
+        );
     }
 }

@@ -10,7 +10,7 @@ const waveformValues={
   pulse:{value_kind:"music/waveform@1",canonical_bytes:[...new TextEncoder().encode("pulse")]},
 };
 const options=Object.entries(waveformValues).map(([name,value])=>({identity:`waveform/${name}`,label:name,value,availability:"available"}));
-const quantity=value=>({value_kind:"value/quantity@1",canonical_bytes:[3,...new Uint8Array(new BigInt64Array([BigInt(value)]).buffer)]});
+const quantity=value=>({value_kind:"value/quantity",canonical_bytes:[3,...new Uint8Array(new BigInt64Array([BigInt(value)]).buffer)]});
 const state={waveform:"sine",volume:50,sustain:false,name:"Conduit",revision:1,panicCount:0};
 const evidence=[];let browserAttached=true,physicalAttached=true;
 

@@ -13,7 +13,7 @@ fn fixture(
     StructuredInfoValue,
 ) {
     let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
-    let next = StructuredInfoValue::leaf(ty.clone(), b"false".to_vec()).unwrap();
+    let next = StructuredInfoValue::leaf(ty.clone(), InfoBool::FALSE.encode().to_vec()).unwrap();
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     startup.insert_structured_type("Cell", ty.clone()).unwrap();
@@ -57,7 +57,7 @@ fn fixture(
             }],
         })
         .unwrap();
-    let initial = StructuredInfoValue::leaf(ty.clone(), b"true".to_vec()).unwrap();
+    let initial = StructuredInfoValue::leaf(ty.clone(), InfoBool::TRUE.encode().to_vec()).unwrap();
     let encode = |value: &StructuredInfoValue| {
         let entry = installed_std::test_structured_selector::configuration(value)
             .pop()

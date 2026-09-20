@@ -20,7 +20,7 @@ fn view(stage: EmbodimentStage, index: usize) -> EmbodiedModelView {
             kind_id("robotics/battery-permille-millivolts@1"),
         ],
         wired_outputs: if expressive {
-            vec![kind_id("value/text@1")]
+            vec![kind_id("value/text")]
         } else {
             Vec::new()
         },
@@ -50,7 +50,7 @@ fn receipt() -> EmbodiedModelReceipt {
         body_id: "body/embodied-model".into(),
         perception_value_kind: kind_id("perception/scene-summary@1"),
         state_value_kind: kind_id("robotics/battery-permille-millivolts@1"),
-        expressive_value_kind: kind_id("value/text@1"),
+        expressive_value_kind: kind_id("value/text"),
         protected_effect_kind: kind_id("effect/indicator-set@1"),
         views: vec![
             view(EmbodimentStage::PerceptionOnly, 1),

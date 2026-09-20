@@ -3,9 +3,9 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
-    PlannedGear,
+    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ExecutionProfileId, HostOperationRequirement, ImplementationId,
+    PlannedGear, SemanticCapabilityContract,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
@@ -158,64 +158,59 @@ impl PreparedGardenStep {
 }
 
 fn minimal_offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::garden_minimal_step_definition();
+    let contract = conduit_semantic_catalog::garden_minimal_step_semantic_contract();
     offer_for(contract, MINIMAL_IMPLEMENTATION, &OPERATIONS[0..2])
 }
 
 fn observation_offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::garden_observation_combine_definition();
+    let contract = conduit_semantic_catalog::garden_observation_combine_semantic_contract();
     offer_for(contract, OBSERVATION_IMPLEMENTATION, &OPERATIONS[2..4])
 }
 
 fn enriched_offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::garden_enriched_reducer_definition();
+    let contract = conduit_semantic_catalog::garden_enriched_reducer_semantic_contract();
     offer_for(contract, ENRICHED_IMPLEMENTATION, &OPERATIONS[4..6])
 }
 
 fn offer_for(
-    contract: conduit_form::KindDefinition,
+    contract: SemanticCapabilityContract,
     implementation: &str,
     operations: &[&str],
 ) -> CapabilityOffer {
-    let kind = contract.kind_id.clone();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(implementation),
-        kind_id: kind.clone(),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::GARDEN_CONTRACT_REVISION,
-        ),
-        implementation: ImplementationOffer {
+    let target_kind = contract.kind_id.clone();
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(implementation),
+            host_operations: operations
+                .iter()
+                .enumerate()
+                .map(|(index, contract_id)| HostOperationRequirement {
+                    contract_id: (*contract_id).into(),
+                    target_kind: Some(target_kind.clone()),
+                    maximum_in_flight: 1,
+                    maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                    maximum_output_bytes: if index == 0 {
+                        0
+                    } else {
+                        MAXIMUM_BROWSER_VALUE_BYTES as u32
+                    },
+                })
+                .collect(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: operations
-            .iter()
-            .enumerate()
-            .map(|(index, contract_id)| HostOperationRequirement {
-                contract_id: (*contract_id).into(),
-                target_kind: Some(kind.clone()),
-                maximum_in_flight: 1,
-                maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-                maximum_output_bytes: if index == 0 {
-                    0
-                } else {
-                    MAXIMUM_BROWSER_VALUE_BYTES as u32
-                },
-            })
-            .collect(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 2,
-            max_queue_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        },
-    }
+    )
+    .narrow_capacity(CapabilityLimits {
+        max_active_instances: 1,
+        max_queue_items: 2,
+        max_queue_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+    })
+    .expect("browser Garden step capacity narrows its semantic contract")
+    .build()
 }
 
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
@@ -430,5 +425,35 @@ mod tests {
 
         assert_eq!(prepared.execute(OPERATIONS[1], &clock), Err(failure(3)));
         assert_eq!(prepared.execute(OPERATIONS[0], &clock), Err(failure(2)));
+    }
+}
+#[test]
+fn browser_garden_steps_preserve_each_exact_semantic_front() {
+    for (offer, semantic) in [
+        (
+            minimal_offer(),
+            conduit_semantic_catalog::garden_minimal_step_semantic_contract(),
+        ),
+        (
+            observation_offer(),
+            conduit_semantic_catalog::garden_observation_combine_semantic_contract(),
+        ),
+        (
+            enriched_offer(),
+            conduit_semantic_catalog::garden_enriched_reducer_semantic_contract(),
+        ),
+    ] {
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert_eq!(offer.limits.max_active_instances, 1);
+        assert_eq!(offer.limits.max_queue_items, 2);
+        assert!(offer.limits.max_active_instances < semantic.limits.max_active_instances);
+        assert!(offer.limits.max_queue_bytes < semantic.limits.max_queue_bytes);
     }
 }

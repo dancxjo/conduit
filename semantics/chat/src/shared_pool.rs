@@ -4,28 +4,24 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FrontStartupParameter, ImplementationId, KindContractRevision,
-    PortDescriptor, PortDirection, PortTemporal,
+    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, FrontStartupParameter,
+    ImplementationId, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    SemanticCapabilityContract,
 };
 
 pub const CHAT_PEER_KIND: &str = "chat/peer";
 pub const CHAT_ROOM_KIND: &str = "chat/room";
 pub const FLOW_FAN_KIND: &str = "flow/fan";
 pub const FLOW_MERGE_KIND: &str = "flow/merge";
-pub const CHAT_MESSAGE_KIND: &str = "ChatMessage";
+pub const CHAT_MESSAGE_KIND: &str = "chat/message@1";
 pub const POOL_WEBCHAT_MAXIMUM_PEERS: u16 = 32;
 
 pub fn pool_chat_capabilities() -> [CapabilityOffer; 4] {
     [
-        offer(
-            CHAT_PEER_KIND,
-            vec![input("recv")],
-            vec![output("send")],
-            32,
-        ),
-        offer(CHAT_ROOM_KIND, vec![input("recv")], vec![output("send")], 1),
-        offer(FLOW_FAN_KIND, vec![input("message")], Vec::new(), 1),
-        offer(FLOW_MERGE_KIND, Vec::new(), vec![output("message")], 1),
+        offer(CHAT_PEER_KIND, vec![input("recv")], vec![output("send")]),
+        offer(CHAT_ROOM_KIND, vec![input("recv")], vec![output("send")]),
+        offer(FLOW_FAN_KIND, vec![input("message")], Vec::new()),
+        offer(FLOW_MERGE_KIND, Vec::new(), vec![output("message")]),
     ]
 }
 
@@ -33,34 +29,48 @@ fn offer(
     kind: &str,
     inputs: alloc::vec::Vec<PortDescriptor>,
     outputs: alloc::vec::Vec<PortDescriptor>,
-    maximum_instances: u16,
 ) -> CapabilityOffer {
-    CapabilityOffer {
+    CapabilityOfferBuilder::new(
+        pool_chat_contract(kind, inputs, outputs),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(format!("std/pool-webchat/{kind}")),
+            execution_profile_id: ExecutionProfileId::from("conduit.chat/shared-pool-hosted@1"),
+            implementation_id: ImplementationId::from(format!("std/pool-webchat/{kind}@1")),
+            artifact_id: ArtifactId::from("conduit-std-host/pool-webchat@1"),
+            host_operations: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
+        },
+    )
+    .build()
+}
+
+fn pool_chat_contract(
+    kind: &str,
+    inputs: alloc::vec::Vec<PortDescriptor>,
+    outputs: alloc::vec::Vec<PortDescriptor>,
+) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
         startup_parameters: if kind == CHAT_PEER_KIND {
             Vec::new()
         } else {
             vec![FrontStartupParameter {
                 name: "members".to_string(),
-                value_type: "Pool".to_string(),
+                value_type: kind_id("value/pool-reference"),
                 has_default: false,
             }]
         },
         shorthand: None,
-        capability_id: CapabilityId::from(format!("std/pool-webchat/{kind}")),
         kind_id: kind_id(kind),
         kind_contract_revision: KindContractRevision::from(format!("conduit.{kind}@1")),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from("conduit.chat/shared-pool-hosted@1"),
-            implementation_id: ImplementationId::from(format!("std/pool-webchat/{kind}@1")),
-            artifact_id: ArtifactId::from("conduit-std-host/pool-webchat@1"),
-        },
         inputs,
         outputs,
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
         limits: CapabilityLimits {
-            max_active_instances: maximum_instances,
+            max_active_instances: if kind == CHAT_PEER_KIND {
+                POOL_WEBCHAT_MAXIMUM_PEERS
+            } else {
+                1
+            },
             max_queue_items: 32,
             max_queue_bytes: 8_192,
         },
@@ -90,6 +100,8 @@ pub fn install_pool_chat_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use conduit_form::{KindDefinition, KindSignature, StartupParameterSignature};
+
+    startup.insert_value_kind_alias("ChatMessage", kind_id(CHAT_MESSAGE_KIND))?;
 
     for offer in pool_chat_capabilities().into_iter().skip(1) {
         startup.insert(KindSignature {

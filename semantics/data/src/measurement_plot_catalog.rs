@@ -2,8 +2,9 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
+    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
+    StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
@@ -68,6 +69,23 @@ pub fn measurement_plot_presentation_definition() -> KindDefinition {
     }
 }
 
+pub fn measurement_plot_presentation_semantic_contract() -> SemanticCapabilityContract {
+    let definition = measurement_plot_presentation_definition();
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
+    }
+}
+
 pub fn measurement_plot_kind_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(MEASUREMENT_PLOT_KIND),
@@ -99,6 +117,34 @@ pub fn measurement_plot_kind_definition() -> KindDefinition {
                 },
             },
         ],
+    }
+}
+
+pub fn measurement_plot_semantic_contract() -> SemanticCapabilityContract {
+    let definition = measurement_plot_kind_definition();
+    SemanticCapabilityContract {
+        startup_parameters: vec![
+            FrontStartupParameter {
+                name: "points".into(),
+                value_type: kind_id("value/count"),
+                has_default: true,
+            },
+            FrontStartupParameter {
+                name: "when-full".into(),
+                value_type: kind_id("value/text"),
+                has_default: true,
+            },
+        ],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
     }
 }
 

@@ -409,8 +409,12 @@ fn typed_edit_round_trips_through_form_plan_kernel_and_binary_value_without_pack
 fn structured_configuration_is_inspectable_but_not_silently_scalar_edited() {
     let graph = count_graph();
     let value_type =
-        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/count@1")).unwrap();
-    let value = conduit_core::StructuredInfoValue::leaf(value_type.clone(), b"7".to_vec()).unwrap();
+        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/count")).unwrap();
+    let value = conduit_core::StructuredInfoValue::leaf(
+        value_type.clone(),
+        conduit_core::encode_count(7).to_vec(),
+    )
+    .unwrap();
     let structured = conduit_core::StructuredConfigurationValue::new(
         value_type.profile().unwrap().value_kind().clone(),
         value.canonical_bytes().unwrap(),

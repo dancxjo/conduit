@@ -3,9 +3,9 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    FrontStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, PlannedGear, StructuredInfoType,
+    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, PlannedGear, StructuredInfoType,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
@@ -99,51 +99,33 @@ impl PreparedHistory {
 }
 
 fn offer() -> CapabilityOffer {
-    let definition = conduit_time::historical_timeline_kind_definition();
-    CapabilityOffer {
-        startup_parameters: [
-            ("value-profile", "Text"),
-            ("clock-basis", "Text"),
-            ("time-scale", "Text"),
-            ("maximum-entries", "Count"),
-            ("maximum-referenced-bytes", "Count"),
-            ("overflow-policy", "Text"),
-            ("first-sequence", "Count"),
-        ]
-        .map(|(name, value_type)| FrontStartupParameter {
-            name: name.into(),
-            value_type: value_type.into(),
-            has_default: true,
-        })
-        .into(),
-        shorthand: None,
-        capability_id: CapabilityId::from(IMPLEMENTATION),
-        kind_id: definition.kind_id.clone(),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_time::HISTORICAL_TIMELINE_CONTRACT_REVISION,
-        ),
-        implementation: ImplementationOffer {
+    let contract = conduit_time::historical_timeline_semantic_contract();
+    let target_kind = contract.kind_id.clone();
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-time/bounded-typed-history@1"),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(HOST_OPERATION),
+                target_kind: Some(target_kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_time::MAXIMUM_HISTORICAL_TIMELINE_COMMAND_BYTES as u32,
+                maximum_output_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(HOST_OPERATION),
-            target_kind: Some(definition.kind_id),
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_time::MAXIMUM_HISTORICAL_TIMELINE_COMMAND_BYTES as u32,
-            maximum_output_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        },
-    }
+    )
+    .narrow_capacity(CapabilityLimits {
+        max_active_instances: 1,
+        max_queue_items: 1,
+        max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+    })
+    .expect("browser history capacity narrows its semantic contract")
+    .build()
 }
 
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
@@ -173,6 +155,28 @@ mod tests {
     use super::*;
     use conduit_core::{ConfigurationEntry, ConfigurationValue, OfferGeneration};
 
+    #[test]
+    fn browser_history_preserves_semantics_and_explicitly_narrows_capacity() {
+        let offer = offer();
+        let semantic = conduit_time::historical_timeline_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert_eq!(offer.limits.max_active_instances, 1);
+        assert_eq!(offer.limits.max_queue_items, 1);
+        assert_eq!(
+            offer.limits.max_queue_bytes,
+            super::super::MAXIMUM_BROWSER_VALUE_BYTES as u32
+        );
+        assert!(offer.limits.max_active_instances < semantic.limits.max_active_instances);
+        assert!(offer.limits.max_queue_bytes < semantic.limits.max_queue_bytes);
+    }
+
     fn placement(maximum_entries: u64) -> PlannedGear {
         let offer = offer();
         PlannedGear {
@@ -184,7 +188,7 @@ mod tests {
             configuration: vec![
                 entry(
                     "value-profile",
-                    ConfigurationValue::Text("value/text@1".into()),
+                    ConfigurationValue::Text("value/text".into()),
                 ),
                 entry(
                     "clock-basis",

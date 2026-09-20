@@ -1,11 +1,11 @@
 //! Exact protected-file copy realization offers owned by the hosted std Host.
 
 use conduit_core::{
-    kind_id, port_id, present_host_operation_requirement, protected_resource_requirement,
+    kind_id, present_host_operation_requirement, protected_resource_requirement,
     resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
-    PortDescriptor, PortDirection, PortTemporal, PRESENTATION_RESOURCE_CLASS,
+    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId,
+    PRESENTATION_RESOURCE_CLASS,
 };
 
 pub const COPY_FILE_EXECUTION_PROFILE: &str = "conduit.std/file-copy-kernel-hosted@1";
@@ -47,29 +47,23 @@ fn copy_file_offer_for(
     isolated: bool,
 ) -> CapabilityOffer {
     let contract = conduit_semantic_catalog::copy_file_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(COPY_FILE_CAPABILITY),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::COPY_FILE_CONTRACT_REVISION,
-        ),
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(execution_profile),
-            implementation_id: ImplementationId::from(implementation),
-            artifact_id: ArtifactId::from(artifact),
+    conduit_semantic_catalog::realization_offer(
+        contract,
+        conduit_semantic_catalog::COPY_FILE_CONTRACT_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
+            capability: COPY_FILE_CAPABILITY,
+            execution_profile,
+            implementation,
+            artifact,
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
+        vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(COPY_FILE_HOST_OPERATION_CONTRACT),
             target_kind: Some(kind_id(conduit_semantic_catalog::COPY_FILE_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: COPY_COMMAND_BYTES,
             maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         }],
-        resource_requirements: vec![
+        vec![
             protected_resource_requirement(
                 conduit_semantic_catalog::COPY_DESTINATION_ROLE,
                 conduit_semantic_catalog::PROTECTED_FILE_RESOURCE_CLASS,
@@ -81,7 +75,7 @@ fn copy_file_offer_for(
                 1,
             ),
         ],
-        authority_requirements: if isolated {
+        if isolated {
             vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(ISOLATED_COPY_FILE_AUTHORITY_CONTRACT),
                 host_operation_contract_id: HostOperationContractId::from(
@@ -92,48 +86,30 @@ fn copy_file_offer_for(
         } else {
             Vec::new()
         },
-        limits: contract.limits,
-    }
+    )
 }
 
 pub fn copy_result_presentation_offer() -> CapabilityOffer {
-    let value_kind = conduit_semantic_catalog::copy_result_type()
-        .profile()
-        .expect("checked copy result type has a finite profile")
-        .value_kind()
-        .clone();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("std-file-copy-result-presentation"),
-        kind_id: kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::STRUCTURED_PRESENTATION_REVISION,
-        ),
-        implementation: ImplementationOffer {
+    let contract = conduit_semantic_catalog::structured_presentation_contract(
+        conduit_semantic_catalog::COPY_RESULT_TYPE,
+        &conduit_semantic_catalog::copy_result_type(),
+    );
+    CapabilityOfferBuilder::new(
+        contract.into(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from("std-file-copy-result-presentation"),
             execution_profile_id: ExecutionProfileId::from(COPY_FILE_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(COPY_RESULT_PRESENTATION_IMPLEMENTATION),
             artifact_id: ArtifactId::from(COPY_FILE_ARTIFACT),
+            host_operations: vec![present_host_operation_requirement(
+                kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET),
+                conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            )],
+            resource_requirements: vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+            authority_requirements: Vec::new(),
         },
-        inputs: vec![PortDescriptor {
-            port_id: port_id("input"),
-            value_kind,
-            direction: PortDirection::Input,
-            temporal: PortTemporal::Value,
-        }],
-        outputs: Vec::new(),
-        host_operations: vec![present_host_operation_requirement(
-            kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET),
-            conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        )],
-        resource_requirements: vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 4,
-            max_queue_items: 1,
-            max_queue_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        },
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]
@@ -165,5 +141,25 @@ mod tests {
             offer.host_operations[0].maximum_output_bytes,
             conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
         );
+    }
+
+    #[test]
+    fn copy_result_presenter_preserves_the_generic_structured_contract() {
+        let offer = copy_result_presentation_offer();
+        let contract = conduit_semantic_catalog::structured_presentation_contract(
+            conduit_semantic_catalog::COPY_RESULT_TYPE,
+            &conduit_semantic_catalog::copy_result_type(),
+        );
+        assert_eq!(offer.startup_parameters, contract.startup_parameters);
+        assert_eq!(offer.kind_id, contract.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            contract.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, contract.inputs);
+        assert_eq!(offer.outputs, contract.outputs);
+        assert_eq!(offer.limits, contract.limits);
+        assert_eq!(offer.host_operations.len(), 1);
+        assert_eq!(offer.resource_requirements.len(), 1);
     }
 }

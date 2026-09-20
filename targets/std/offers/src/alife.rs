@@ -1,14 +1,12 @@
 //! Exact artificial-life realizations owned by the hosted std Host.
 
-use conduit_alife::{
-    LENIA_MAXIMUM_FIELD_BYTES, LENIA_STEP_KIND, LENIA_STEP_REVISION, ORBIUM_SEED_REVISION,
-    SCALAR_FIELD_PRESENTATION_REVISION,
-};
+use conduit_alife::{LENIA_MAXIMUM_FIELD_BYTES, LENIA_STEP_KIND};
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_requirement, CapabilityOffer,
-    HostOperationContractId, HostOperationRequirement, PRESENTATION_RESOURCE_CLASS,
+    kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, CapabilityId,
+    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, ResourceRequirement,
+    SemanticCapabilityContract, PRESENTATION_RESOURCE_CLASS,
 };
-use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity};
 
 pub const ORBIUM_SEED_EXECUTION_PROFILE: &str = "conduit.std/orbium-seed-fixed-q16.16@1";
 pub const LENIA_STEP_EXECUTION_PROFILE: &str = "conduit.std/lenia-spatial-fixed-q16.16@1";
@@ -34,8 +32,7 @@ pub fn alife_offers() -> Vec<CapabilityOffer> {
 
 pub fn orbium_seed_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::orbium_seed_contract(),
-        ORBIUM_SEED_REVISION,
+        conduit_semantic_catalog::orbium_seed_semantic_contract(),
         "std-orbium-seed-v1",
         ORBIUM_SEED_EXECUTION_PROFILE,
         ORBIUM_SEED_IMPLEMENTATION,
@@ -47,8 +44,7 @@ pub fn orbium_seed_offer() -> CapabilityOffer {
 
 pub fn lenia_step_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::lenia_step_contract(),
-        LENIA_STEP_REVISION,
+        conduit_semantic_catalog::lenia_step_semantic_contract(),
         "std-lenia-step-v1",
         LENIA_STEP_EXECUTION_PROFILE,
         LENIA_STEP_IMPLEMENTATION,
@@ -75,8 +71,7 @@ pub fn lenia_step_offer() -> CapabilityOffer {
 
 pub fn scalar_field_presentation_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::scalar_field_presentation_contract(),
-        SCALAR_FIELD_PRESENTATION_REVISION,
+        conduit_semantic_catalog::scalar_field_presentation_semantic_contract(),
         "std-scalar-field-presentation-v1",
         SCALAR_FIELD_PRESENTATION_EXECUTION_PROFILE,
         SCALAR_FIELD_PRESENTATION_IMPLEMENTATION,
@@ -89,30 +84,28 @@ pub fn scalar_field_presentation_offer() -> CapabilityOffer {
     )
 }
 
-#[allow(clippy::too_many_arguments)]
 fn offer(
-    contract: conduit_semantic_catalog::StandardKindContract,
-    revision: &str,
+    contract: SemanticCapabilityContract,
     capability: &str,
     execution_profile: &str,
     implementation: &str,
     artifact: &str,
     host_operations: Vec<HostOperationRequirement>,
-    resources: Vec<conduit_core::ResourceRequirement>,
+    resources: Vec<ResourceRequirement>,
 ) -> CapabilityOffer {
-    realization_offer(
+    CapabilityOfferBuilder::new(
         contract,
-        revision,
-        RealizationOfferIdentity {
-            capability,
-            execution_profile,
-            implementation,
-            artifact,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(capability),
+            execution_profile_id: ExecutionProfileId::from(execution_profile),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from(artifact),
+            host_operations,
+            resource_requirements: resources,
+            authority_requirements: Vec::new(),
         },
-        host_operations,
-        resources,
-        Vec::new(),
     )
+    .build()
 }
 
 #[cfg(test)]

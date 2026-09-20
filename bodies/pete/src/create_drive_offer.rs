@@ -107,7 +107,7 @@ pub fn live_create_drive_advertisement(
         capabilities: vec![CapabilityOffer {
             startup_parameters: vec![FrontStartupParameter {
                 name: "ttl-ms".into(),
-                value_type: "Count".into(),
+                value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
             }],
             shorthand: None,

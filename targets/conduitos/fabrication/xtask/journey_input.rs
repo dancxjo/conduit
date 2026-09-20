@@ -6,6 +6,11 @@ use serde_json::Value;
 
 use super::{hid_qmp, journey_records, qmp, ConduitosError};
 
+// The exhaustive x86 gate intentionally runs up to four proof VMs together.
+// Keep every observation finite, but allow a runnable guest one baseline
+// five-second window per contending VM before declaring its exact record absent.
+const RECORD_WAIT_TIMEOUT: Duration = Duration::from_secs(20);
+
 pub(super) fn key_pair(
     qmp: &mut UnixStream,
     reader: &mut qmp::Reader,
@@ -214,7 +219,7 @@ pub(super) fn wait_for_record(
     status: &str,
     mut observed: impl FnMut(&str) -> Result<bool, ConduitosError>,
 ) -> Result<(), ConduitosError> {
-    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    let deadline = std::time::Instant::now() + RECORD_WAIT_TIMEOUT;
     loop {
         let bytes = fs::read(serial).map_err(|error| {
             ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())

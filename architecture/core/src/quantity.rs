@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::semantic_digest;
 
-pub const QUANTITY_INFO_ID: &str = "value/quantity@1";
+pub const QUANTITY_INFO_ID: &str = "value/quantity";
 pub const QUANTITY_ENCODED_LEN: usize = 9;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

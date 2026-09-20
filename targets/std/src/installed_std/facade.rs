@@ -1,6 +1,8 @@
 //! Narrow installed-std offer and proof-catalog facade.
 
 pub(crate) use super::contract::text_offer;
+#[cfg(feature = "isolated-http-base")]
+pub(crate) use super::http::client_offer_for as http_client_offer_for;
 pub(crate) use super::http::{
     client_offer as http_client_offer, server_offer as http_server_offer,
 };

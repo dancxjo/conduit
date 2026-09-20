@@ -6,8 +6,9 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
+    PortDirection, PortTemporal, SemanticCapabilityContract, StructuredInfoType,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -52,6 +53,28 @@ pub fn vision_kind_contracts() -> Vec<VisionKindContract> {
     ];
     contracts.extend(vision_experience_kind_contracts());
     contracts
+}
+
+pub fn vision_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+    vision_kind_contracts()
+        .into_iter()
+        .map(|(kind_id, inputs, outputs)| {
+            let revision = vision_kind_revision(kind_id.as_str());
+            SemanticCapabilityContract {
+                startup_parameters: vec![],
+                shorthand: None,
+                kind_id,
+                kind_contract_revision: KindContractRevision::from(revision),
+                inputs,
+                outputs,
+                limits: CapabilityLimits {
+                    max_active_instances: 1,
+                    max_queue_items: 1,
+                    max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+                },
+            }
+        })
+        .collect()
 }
 
 pub fn install_vision_catalogs(

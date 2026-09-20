@@ -7,8 +7,9 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal, ResourceRequirement,
+    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, KindContractRevision, KindId, PortDescriptor,
+    PortDirection, PortTemporal, ResourceRequirement, SemanticCapabilityContract,
     INPUT_RESOURCE_CLASS,
 };
 
@@ -76,22 +77,29 @@ pub fn level_input_capability(
     implementation_id: &str,
     maximum_instances: u16,
 ) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(capability_id),
-        kind_id: level_input_kind(),
-        kind_contract_revision: level_input_contract_revision(),
-        implementation: conduit_core::ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        level_input_semantic_contract(maximum_instances),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(capability_id),
             execution_profile_id: ExecutionProfileId::from(LEVEL_INPUT_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(implementation_id),
             artifact_id: ArtifactId::from("conduit-signal/level-input-artifact-v1"),
+            host_operations: vec![await_level_host_operation_requirement()],
+            resource_requirements: level_input_resource_requirements(),
+            authority_requirements: Vec::new(),
         },
+    )
+    .build()
+}
+
+pub fn level_input_semantic_contract(maximum_instances: u16) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: level_input_kind(),
+        kind_contract_revision: level_input_contract_revision(),
         inputs: Vec::new(),
         outputs: level_input_outputs(),
-        host_operations: vec![await_level_host_operation_requirement()],
-        resource_requirements: level_input_resource_requirements(),
-        authority_requirements: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: maximum_instances,
             max_queue_items: 1,
@@ -104,22 +112,29 @@ pub fn merge_three_signal_capability(
     capability_id: &str,
     implementation_id: &str,
 ) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(capability_id),
-        kind_id: merge_three_signal_kind(),
-        kind_contract_revision: merge_three_signal_contract_revision(),
-        implementation: conduit_core::ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        merge_three_signal_semantic_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(capability_id),
             execution_profile_id: ExecutionProfileId::from(MERGE_THREE_SIGNAL_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(implementation_id),
             artifact_id: ArtifactId::from("conduit-signal/merge-three-signal-artifact-v1"),
+            host_operations: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
+    )
+    .build()
+}
+
+pub fn merge_three_signal_semantic_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: merge_three_signal_kind(),
+        kind_contract_revision: merge_three_signal_contract_revision(),
         inputs: merge_three_signal_inputs(),
         outputs: merge_three_signal_outputs(),
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 3,

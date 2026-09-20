@@ -343,7 +343,7 @@ fn host(selector_definitions: Vec<conduit_form::KindDefinition>) -> HostAdvertis
                 .into_iter()
                 .map(|field| FrontStartupParameter {
                     name: field.key,
-                    value_type: "Text".into(),
+                    value_type: conduit_core::kind_id("value/text"),
                     has_default: false,
                 })
                 .collect(),

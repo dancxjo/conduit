@@ -384,6 +384,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
     conduitos_proof!("conduitos.x86.front-door", Selection::ConduitosX86("front-door"), "ubuntu-qemu-x86_64-batch-v1", "cargo xtask conduitos prove-many --proof front-door --locked"),
     conduitos_proof!("conduitos.x86.product-journey", Selection::ConduitosX86("product-journey"), "ubuntu-qemu-x86_64-batch-v1", "cargo xtask conduitos prove-many --proof product-journey --locked"),
     conduitos_proof!("conduitos.x86.rescue", Selection::ConduitosX86("rescue"), "ubuntu-qemu-x86_64-batch-v1", "cargo xtask conduitos prove-many --proof rescue --locked"),
+    conduitos_proof!("conduitos.x86.emergency-halt", Selection::ConduitosX86("emergency-halt"), "ubuntu-qemu-x86_64-batch-v1", "cargo xtask conduitos prove-many --proof emergency-halt --locked"),
     conduitos_proof!("conduitos.architecture.aarch64", Selection::ConduitosArchitecture("aarch64"), "ubuntu-qemu-aarch64-v1", "cargo xtask conduitos prove --arch aarch64 --locked"),
     conduitos_proof!("conduitos.architecture.ia32", Selection::ConduitosArchitecture("ia32"), "ubuntu-qemu-ia32-v1", "cargo xtask conduitos architecture-matrix --locked && cargo xtask conduitos prove --arch ia32 --locked"),
     conduitos_proof!("conduitos.architecture.riscv64", Selection::ConduitosArchitecture("riscv64"), "ubuntu-qemu-riscv64-v1", "cargo xtask conduitos prove --arch riscv64 --locked"),

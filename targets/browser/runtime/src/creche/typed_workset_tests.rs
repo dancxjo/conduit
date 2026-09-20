@@ -13,7 +13,7 @@ fn bundle(profile: u8) -> String {
 }
 
 #[test]
-fn typed_inventory_refuses_unknown_profiles_and_incompatible_default_types() {
+fn typed_inventory_refuses_unknown_profiles_and_accepts_canonical_default_aliases() {
     assert!(initial_forms::reviewed_inventory(&bundle(255))
         .unwrap_err()
         .contains("unsupported presentation profile"));
@@ -40,7 +40,7 @@ fn typed_inventory_refuses_unknown_profiles_and_incompatible_default_types() {
         &[host],
         &crate::installed_browser::local_bases()
     )
-    .is_err());
+    .is_ok());
     let inventory = initial_forms::reviewed_inventory(&bundle(1)).unwrap();
     assert_eq!(inventory.forms.len(), 3);
     assert!(inventory

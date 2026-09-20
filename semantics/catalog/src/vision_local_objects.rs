@@ -1,6 +1,6 @@
 //! Exact typed object observations emitted by the bounded local-CV realization.
 
-use alloc::{string::ToString, vec, vec::Vec};
+use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
     StructuredInfoValue, StructuredVariantCase, QUANTITY_INFO_ID,
@@ -282,7 +282,7 @@ fn text_type() -> StructuredInfoType {
 }
 
 fn count_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/count@1")).expect("reviewed count")
+    StructuredInfoType::leaf(kind_id("value/count")).expect("reviewed count")
 }
 
 fn unit_type() -> StructuredInfoType {
@@ -294,7 +294,7 @@ fn text_value(value: &str) -> Result<StructuredInfoValue, StructuredInfoRefusal>
 }
 
 fn count_value(value: u64) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
-    StructuredInfoValue::leaf(count_type(), value.to_string().into_bytes())
+    StructuredInfoValue::leaf(count_type(), conduit_core::encode_count(value).to_vec())
 }
 
 fn unit_value() -> Result<StructuredInfoValue, StructuredInfoRefusal> {
@@ -374,8 +374,8 @@ mod tests {
             decoded.value_type(),
             &local_vision_object_observations_type()
         );
-        assert_eq!(leaf_text(record_field(&decoded, "emitted_count")), "1");
-        assert_eq!(leaf_text(record_field(&decoded, "observed_count")), "5");
+        assert_eq!(leaf_count(record_field(&decoded, "emitted_count")), 1);
+        assert_eq!(leaf_count(record_field(&decoded, "observed_count")), 5);
         assert_eq!(
             variant_tag(record_field(&decoded, "truncation")),
             "truncated"
@@ -434,6 +434,13 @@ mod tests {
             panic!("expected leaf")
         };
         core::str::from_utf8(value).unwrap()
+    }
+
+    fn leaf_count(value: &StructuredInfoValue) -> u64 {
+        let StructuredInfoValueShape::Leaf(value) = value.shape() else {
+            panic!("expected leaf")
+        };
+        conduit_core::decode_count(value).unwrap()
     }
 
     fn variant_tag(value: &StructuredInfoValue) -> &str {

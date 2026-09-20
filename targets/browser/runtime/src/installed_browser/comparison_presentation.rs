@@ -70,11 +70,18 @@ pub(crate) fn text(input: &[u8]) -> Result<String, String> {
         let StructuredInfoValueShape::Leaf(bytes) = field.value().shape() else {
             return Err("comparison field must be a leaf".into());
         };
-        rendered.push(format!(
-            "{}: {}",
-            field.name(),
-            core::str::from_utf8(bytes).map_err(|_| "comparison field is not UTF-8")?
-        ));
+        let text = match field.name() {
+            "matched" => conduit_core::InfoBool::decode(bytes)
+                .map(|value| if value.get() { "true" } else { "false" }.to_string())
+                .map_err(|_| "comparison bool is not canonical")?,
+            "score_millionths" | "tolerance_millionths" => conduit_core::decode_count(bytes)
+                .map(|value| value.to_string())
+                .map_err(|_| "comparison count is not canonical")?,
+            _ => core::str::from_utf8(bytes)
+                .map(str::to_string)
+                .map_err(|_| "comparison field is not UTF-8")?,
+        };
+        rendered.push(format!("{}: {text}", field.name()));
     }
     Ok(rendered.join(" · "))
 }

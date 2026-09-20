@@ -6,9 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
-    StructuredInfoValueShape,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, SemanticCapabilityContract, StructuredFieldType, StructuredFieldValue,
+    StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -62,6 +63,23 @@ pub fn normalize_relative_duration_definition() -> KindDefinition {
             PortDirection::Output,
         )],
         configuration: Vec::new(),
+    }
+}
+
+pub fn normalize_relative_duration_semantic_contract() -> SemanticCapabilityContract {
+    let definition = normalize_relative_duration_definition();
+    SemanticCapabilityContract {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 1,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
+        },
     }
 }
 

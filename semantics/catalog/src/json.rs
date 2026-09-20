@@ -3,6 +3,7 @@
 use super::{StandardKindContract, TerminalBehavior};
 use alloc::string::ToString;
 use alloc::vec::Vec;
+use conduit_core::{port_id, FrontStartupParameter, SemanticCapabilityContract};
 
 pub fn json_encode_contract() -> StandardKindContract {
     contract(
@@ -42,6 +43,44 @@ pub fn json_boolean_summary_contract() -> StandardKindContract {
         },
     });
     value
+}
+
+pub fn json_encode_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(conduit_web::json_encode_semantics(), Vec::new())
+}
+
+pub fn json_decode_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(conduit_web::json_decode_semantics(), Vec::new())
+}
+
+pub fn json_collection_step_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(conduit_web::json_collection_step_semantics(), Vec::new())
+}
+
+pub fn json_boolean_summary_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(
+        conduit_web::json_boolean_summary_semantics(),
+        alloc::vec![FrontStartupParameter {
+            name: "field".into(),
+            value_type: conduit_core::kind_id("value/text"),
+            has_default: true,
+        }],
+    )
+}
+
+fn semantic_contract(
+    contract: conduit_web::PortableKindContract,
+    startup_parameters: Vec<FrontStartupParameter>,
+) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters,
+        shorthand: Some((port_id("value"), port_id("value"))),
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        limits: contract.limits,
+    }
 }
 
 fn contract(
@@ -96,5 +135,20 @@ mod tests {
             described_encode.limits.max_queue_bytes,
             conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32
         );
+        for contract in [
+            json_encode_semantic_contract(),
+            json_decode_semantic_contract(),
+            json_collection_step_semantic_contract(),
+            json_boolean_summary_semantic_contract(),
+        ] {
+            assert_eq!(
+                contract.shorthand,
+                Some((port_id("value"), port_id("value")))
+            );
+        }
+        let summary = json_boolean_summary_semantic_contract();
+        assert_eq!(summary.startup_parameters.len(), 1);
+        assert_eq!(summary.startup_parameters[0].name, "field");
+        assert!(summary.startup_parameters[0].has_default);
     }
 }

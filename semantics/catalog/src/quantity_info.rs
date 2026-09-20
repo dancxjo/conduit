@@ -6,7 +6,8 @@ use alloc::string::String;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, PortDescriptor, PortDirection, PortTemporal, Quantity,
-    QuantityUnit, StructuredInfoType, StructuredInfoValue, QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID,
+    QuantityUnit, SemanticCapabilityContract, StructuredInfoType, StructuredInfoValue,
+    QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID,
 };
 
 pub const QUANTITY_INFO_WRAP_KIND: &str = "structured-info/wrap-quantity";
@@ -68,12 +69,36 @@ pub fn quantity_info_wrap_contract() -> StandardKindContract {
     }
 }
 
+pub fn quantity_info_wrap_semantic_contract() -> SemanticCapabilityContract {
+    let contract = quantity_info_wrap_contract();
+    SemanticCapabilityContract {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: QUANTITY_INFO_WRAP_REVISION.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        limits: contract.limits,
+    }
+}
+
 pub fn quantity_presentation_definition() -> conduit_form::KindDefinition {
+    let contract = quantity_presentation_semantic_contract();
     conduit_form::KindDefinition {
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: Vec::new(),
+    }
+}
+
+pub fn quantity_presentation_semantic_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: Vec::new(),
+        shorthand: None,
         kind_id: kind_id(QUANTITY_PRESENTATION_KIND),
-        kind_contract_revision: conduit_core::KindContractRevision::from(
-            QUANTITY_PRESENTATION_REVISION,
-        ),
+        kind_contract_revision: QUANTITY_PRESENTATION_REVISION.into(),
         inputs: vec![PortDescriptor {
             port_id: port_id("input"),
             value_kind: wrapped_quantity_type()
@@ -85,7 +110,11 @@ pub fn quantity_presentation_definition() -> conduit_form::KindDefinition {
             temporal: PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        limits: CapabilityLimits {
+            max_active_instances: 4,
+            max_queue_items: 1,
+            max_queue_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
     }
 }
 
@@ -152,5 +181,11 @@ mod tests {
             contract.inputs[0].value_kind,
             contract.outputs[0].value_kind
         );
+        let semantics = quantity_info_wrap_semantic_contract();
+        assert_eq!(
+            semantics.kind_contract_revision.as_str(),
+            QUANTITY_INFO_WRAP_REVISION
+        );
+        assert_eq!(semantics.limits, contract.limits);
     }
 }
