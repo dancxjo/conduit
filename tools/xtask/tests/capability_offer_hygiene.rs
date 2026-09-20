@@ -494,6 +494,12 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ("semantics/ai/src/local_model.rs", 0, "fully migrated"),
     ("semantics/ai/src/provider.rs", 0, "fully migrated"),
     (
+        "semantics/chat/src/interactive_catalog.rs",
+        0,
+        "fully migrated",
+    ),
+    ("semantics/chat/src/shared_pool.rs", 0, "fully migrated"),
+    (
         "semantics/presentation/src/contract.rs",
         0,
         "fully migrated",
