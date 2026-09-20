@@ -87,6 +87,7 @@ mod hosted_spoken_output_host;
 pub mod hosted_synth;
 pub mod hosted_vector_index;
 pub mod hosted_vector_search;
+pub mod hosted_vision;
 pub mod hosted_wav_artifact;
 #[cfg(test)]
 mod image_binding_tests;
