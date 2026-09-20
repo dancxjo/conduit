@@ -1,0 +1,281 @@
+//! Explicit finite image-resource provider for hosted continuous Vision.
+//!
+//! The semantic `ImageResource` carries a reference, never resident pixels.
+//! This adapter resolves only an exact installed generation and feeds its
+//! bounded grayscale bytes into the pre-admitted continuous local-CV workspace.
+
+use conduit_core::{
+    BoundedResourceRef, StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape,
+    RESOURCE_REFERENCE_INFO_ID,
+};
+use conduit_semantic_catalog::{
+    image_resource_type, ContinuousLocalVision, ContinuousLocalVisionObservation,
+    ContinuousLocalVisionRefusal, MAXIMUM_LOCAL_CV_PIXELS,
+};
+
+pub const MAXIMUM_HOSTED_VISION_RESOURCES: usize = 8;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HostedVisionFrame {
+    pub resource: BoundedResourceRef,
+    pub width: u16,
+    pub height: u16,
+    pub grayscale_pixels: Vec<u8>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HostedVisionRefusal {
+    MalformedImageResource,
+    UnavailableResourceGeneration,
+    ResourceShapeMismatch,
+    ResourceCapacity,
+    LocalCv(ContinuousLocalVisionRefusal),
+}
+
+pub trait HostedVisionProvider: Send {
+    fn resolve_exact(
+        &mut self,
+        resource: &BoundedResourceRef,
+        width: u16,
+        height: u16,
+    ) -> Result<&[u8], HostedVisionRefusal>;
+}
+
+/// A finite explicit resource residence used by the first std realization.
+/// Construction installs every available generation before Play.
+pub struct FiniteVisionProvider {
+    frames: Vec<HostedVisionFrame>,
+}
+
+impl FiniteVisionProvider {
+    pub fn new(frames: Vec<HostedVisionFrame>) -> Result<Self, HostedVisionRefusal> {
+        if frames.is_empty() || frames.len() > MAXIMUM_HOSTED_VISION_RESOURCES {
+            return Err(HostedVisionRefusal::ResourceCapacity);
+        }
+        for (index, frame) in frames.iter().enumerate() {
+            frame
+                .resource
+                .validate()
+                .map_err(|_| HostedVisionRefusal::MalformedImageResource)?;
+            let pixels = usize::from(frame.width)
+                .checked_mul(usize::from(frame.height))
+                .filter(|count| *count > 0 && *count <= MAXIMUM_LOCAL_CV_PIXELS)
+                .ok_or(HostedVisionRefusal::ResourceShapeMismatch)?;
+            if frame.grayscale_pixels.len() != pixels
+                || frames[..index]
+                    .iter()
+                    .any(|prior| prior.resource == frame.resource)
+            {
+                return Err(HostedVisionRefusal::ResourceShapeMismatch);
+            }
+        }
+        Ok(Self { frames })
+    }
+}
+
+impl HostedVisionProvider for FiniteVisionProvider {
+    fn resolve_exact(
+        &mut self,
+        resource: &BoundedResourceRef,
+        width: u16,
+        height: u16,
+    ) -> Result<&[u8], HostedVisionRefusal> {
+        let frame = self
+            .frames
+            .iter()
+            .find(|frame| &frame.resource == resource)
+            .ok_or(HostedVisionRefusal::UnavailableResourceGeneration)?;
+        if frame.width != width || frame.height != height {
+            return Err(HostedVisionRefusal::ResourceShapeMismatch);
+        }
+        Ok(&frame.grayscale_pixels)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HostedVisionObservation {
+    pub source: BoundedResourceRef,
+    pub width: u16,
+    pub height: u16,
+    pub local: ContinuousLocalVisionObservation,
+}
+
+pub struct HostedContinuousVision<P> {
+    provider: P,
+    workspace: ContinuousLocalVision,
+    width: u16,
+    height: u16,
+    last: Option<HostedVisionObservation>,
+}
+
+impl<P: HostedVisionProvider> HostedContinuousVision<P> {
+    pub fn new(
+        provider: P,
+        width: u16,
+        height: u16,
+        maximum_components: usize,
+    ) -> Result<Self, HostedVisionRefusal> {
+        Ok(Self {
+            provider,
+            workspace: ContinuousLocalVision::new(width, height, maximum_components)
+                .map_err(HostedVisionRefusal::LocalCv)?,
+            width,
+            height,
+            last: None,
+        })
+    }
+
+    pub fn observe_image_resource(
+        &mut self,
+        encoded: &[u8],
+        minimum_motion_delta: u8,
+        component_threshold: u8,
+        minimum_component_area: u32,
+    ) -> Result<&HostedVisionObservation, HostedVisionRefusal> {
+        let (source, width, height) = decode_image_resource(encoded)?;
+        if width != self.width || height != self.height {
+            return Err(HostedVisionRefusal::ResourceShapeMismatch);
+        }
+        if self.last.as_ref().is_some_and(|last| last.source == source) {
+            return Ok(self.last.as_ref().expect("checked cached observation"));
+        }
+        let pixels = self.provider.resolve_exact(&source, width, height)?;
+        let local = self
+            .workspace
+            .observe(
+                pixels,
+                minimum_motion_delta,
+                component_threshold,
+                minimum_component_area,
+            )
+            .map_err(HostedVisionRefusal::LocalCv)?;
+        self.last = Some(HostedVisionObservation {
+            source,
+            width,
+            height,
+            local,
+        });
+        Ok(self.last.as_ref().expect("observation was just installed"))
+    }
+
+    pub fn storage(&self) -> conduit_semantic_catalog::ContinuousLocalVisionStorage {
+        self.workspace.storage()
+    }
+}
+
+fn decode_image_resource(
+    encoded: &[u8],
+) -> Result<(BoundedResourceRef, u16, u16), HostedVisionRefusal> {
+    let value = StructuredInfoValue::from_canonical_bytes(encoded)
+        .map_err(|_| HostedVisionRefusal::MalformedImageResource)?;
+    if value.value_type() != &image_resource_type() {
+        return Err(HostedVisionRefusal::MalformedImageResource);
+    }
+    let content = record_field(&value, "content")?;
+    if !matches!(
+        content.value_type().shape(),
+        StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == RESOURCE_REFERENCE_INFO_ID
+    ) {
+        return Err(HostedVisionRefusal::MalformedImageResource);
+    }
+    let StructuredInfoValueShape::Leaf(reference) = content.shape() else {
+        return Err(HostedVisionRefusal::MalformedImageResource);
+    };
+    let resource = BoundedResourceRef::decode(reference)
+        .map_err(|_| HostedVisionRefusal::MalformedImageResource)?;
+    let extent = record_field(&value, "extent")?;
+    let width = count(record_field(extent, "width")?)?;
+    let height = count(record_field(extent, "height")?)?;
+    Ok((resource, width, height))
+}
+
+fn record_field<'a>(
+    value: &'a StructuredInfoValue,
+    name: &str,
+) -> Result<&'a StructuredInfoValue, HostedVisionRefusal> {
+    let StructuredInfoValueShape::Record(fields) = value.shape() else {
+        return Err(HostedVisionRefusal::MalformedImageResource);
+    };
+    fields
+        .iter()
+        .find(|field| field.name() == name)
+        .map(|field| field.value())
+        .ok_or(HostedVisionRefusal::MalformedImageResource)
+}
+
+fn count(value: &StructuredInfoValue) -> Result<u16, HostedVisionRefusal> {
+    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+        return Err(HostedVisionRefusal::MalformedImageResource);
+    };
+    core::str::from_utf8(bytes)
+        .map_err(|_| HostedVisionRefusal::MalformedImageResource)?
+        .parse()
+        .map_err(|_| HostedVisionRefusal::MalformedImageResource)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use conduit_semantic_catalog::deterministic_vision_fixture;
+
+    fn reference(encoded: &[u8]) -> BoundedResourceRef {
+        decode_image_resource(encoded).unwrap().0
+    }
+
+    #[test]
+    fn exact_generation_resolves_once_and_reuses_one_continuous_observation() {
+        let image = deterministic_vision_fixture().unwrap().image;
+        let encoded = image.canonical_bytes().unwrap();
+        let source = reference(&encoded);
+        let mut pixels = vec![0; 64 * 48];
+        pixels[65] = 255;
+        pixels[66] = 255;
+        let provider = FiniteVisionProvider::new(vec![HostedVisionFrame {
+            resource: source,
+            width: 64,
+            height: 48,
+            grayscale_pixels: pixels,
+        }])
+        .unwrap();
+        let mut vision = HostedContinuousVision::new(provider, 64, 48, 4).unwrap();
+        let admitted = vision.storage();
+        let first = vision
+            .observe_image_resource(&encoded, 32, 128, 2)
+            .unwrap()
+            .clone();
+        let second = vision
+            .observe_image_resource(&encoded, 32, 128, 2)
+            .unwrap()
+            .clone();
+        assert_eq!(first, second);
+        assert_eq!(first.local.sequence, 1);
+        assert_eq!(first.local.component_count, 1);
+        assert_eq!(vision.storage(), admitted);
+    }
+
+    #[test]
+    fn unknown_generation_and_shape_mismatch_refuse_without_fallback() {
+        let fixture = deterministic_vision_fixture().unwrap();
+        let encoded = fixture.image.canonical_bytes().unwrap();
+        let installed = reference(&encoded);
+        let mut unavailable = installed.clone();
+        unavailable.lifetime.version =
+            conduit_core::ResourceVersionIdentity::from_digest([0x33; 32]);
+        let mut provider = FiniteVisionProvider::new(vec![HostedVisionFrame {
+            resource: installed,
+            width: 64,
+            height: 48,
+            grayscale_pixels: vec![0; 64 * 48],
+        }])
+        .unwrap();
+        assert_eq!(
+            provider.resolve_exact(&unavailable, 64, 48),
+            Err(HostedVisionRefusal::UnavailableResourceGeneration)
+        );
+        let mut wrong_shape = HostedContinuousVision::new(provider, 32, 32, 4).unwrap();
+        assert_eq!(
+            wrong_shape.observe_image_resource(&encoded, 32, 128, 2),
+            Err(HostedVisionRefusal::ResourceShapeMismatch)
+        );
+    }
+}
