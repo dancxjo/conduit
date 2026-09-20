@@ -35,6 +35,18 @@ fn placements() -> Vec<conduit_core::PlannedGear> {
 
 #[test]
 fn planned_attempt_preserves_browser_bounds_and_requires_timer_admission() {
+    let offer = offer();
+    let semantic = conduit_semantic_catalog::timed_button_attempt_semantic_contract();
+    assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+    assert_eq!(offer.shorthand, semantic.shorthand);
+    assert_eq!(offer.kind_id, semantic.kind_id);
+    assert_eq!(
+        offer.kind_contract_revision,
+        semantic.kind_contract_revision
+    );
+    assert_eq!(offer.inputs, semantic.inputs);
+    assert_eq!(offer.outputs, semantic.outputs);
+    assert_eq!(offer.limits, semantic.limits);
     let placements = placements();
     let placement = placements
         .iter()
