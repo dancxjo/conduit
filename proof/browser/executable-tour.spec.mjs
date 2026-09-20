@@ -1993,7 +1993,7 @@ test("the shared physical workflow delegates final admission to its owning Body 
 test("the guided arc names each idea after the reader has met the prior one", async ({ page }) => {
   const chapterChecks = [
     { title: "One Program, Many Computers", anchor: "Patchbay projects checked form truth" },
-    { title: "Fronts, Backs, and implementation", anchor: "open the reviewed Back" },
+    { title: "Fronts, Backs, and implementation", anchor: "open the reviewed back" },
     { title: "Hosts make Forms real", anchor: "smallest case of a later Body-wide model" },
     { title: "One Form across several Hosts", anchor: "cross-Host Cord is a Line" },
     { title: "The Body: one computer, one machine or many", anchor: "same Conduit problem at different topology and cost scales" },
