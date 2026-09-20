@@ -24,6 +24,32 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
             &root,
             opts,
         )?;
+        run_step(
+            &Step::new(
+                "demo.workspace.browser-proof-helpers",
+                "Build the supported Workspace execution and membership proof helpers",
+                "cargo",
+                &[
+                    "build",
+                    "-p",
+                    "patchbay-html",
+                    "--bin",
+                    "patchbay-html",
+                    "-p",
+                    "patchbay-native",
+                    "--bin",
+                    "browser-parts-capstone",
+                    "--bin",
+                    "webchat-server",
+                    "-p",
+                    "conduit-std-host",
+                    "--bin",
+                    "browser-admission-probe",
+                ],
+            ),
+            &root,
+            opts,
+        )?;
     }
     let releases = root.join("target/workspace-release-artifacts");
     if releases.exists() && !opts.dry_run {

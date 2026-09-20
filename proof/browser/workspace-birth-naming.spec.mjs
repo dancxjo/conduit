@@ -16,6 +16,9 @@ test("Workspace Birth suggestions expose diverse structures while remaining edit
   const tradition = birth.getByLabel("Naming tradition");
   await expect(birth.locator('[data-application-component="form-field"]')).toHaveCount(4);
   await expect(birth.locator('[data-application-key="initial-forms"]')).toHaveAttribute("data-application-component", "choice-group");
+  for (const checkbox of await birth.getByRole("checkbox").all()) {
+    if (await checkbox.isChecked()) await checkbox.uncheck();
+  }
   await expect(birth.getByRole("checkbox", { name: "Morse Network" })).not.toBeChecked();
   await birth.getByRole("checkbox", { name: "Memory Lantern" }).check();
   await expect(birth.getByRole("checkbox", { name: "Memory Lantern" })).toBeChecked();

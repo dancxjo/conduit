@@ -34,7 +34,10 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   await page.getByRole("button", { name: "Back / Edit", exact: true }).click();
   await expect(page.getByRole("checkbox", { name: /browser\/dom@1/ })).toBeChecked();
   await expect(page.getByRole("checkbox", { name: /browser\/media-devices-microphone@1/ })).toBeChecked();
-  await page.getByRole("button", { name: "Review Host", exact: true }).click();
+  const reviewHost = page.getByRole("button", { name: "Review Host", exact: true });
+  await expect(reviewHost).toBeVisible();
+  await expect(reviewHost).toBeEnabled();
+  await reviewHost.click();
   await expect(page.getByRole("button", { name: "Continue with reviewed host", exact: true })).toBeVisible();
   const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
   const beforeRealization = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().realization);
