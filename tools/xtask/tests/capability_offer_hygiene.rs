@@ -269,6 +269,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "fully migrated",
     ),
     (
+        "targets/std/offers/src/speech_recognition.rs",
+        0,
+        "fully migrated",
+    ),
+    (
         "targets/std/offers/src/quantity_info.rs",
         0,
         "fully migrated",
