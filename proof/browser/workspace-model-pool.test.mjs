@@ -22,6 +22,10 @@ function joined(index, calls) {
           health: "Ready", sign_id: `sign/${hostId}/current`, resources: [],
         };
       },
+      async preparePoolMember(request) {
+        calls.push(`prepare:${request.consumerPlacementId}:${index}`);
+        return { identity: { plan_id: request.plan.plan_id, host_id: hostId } };
+      },
     },
   };
 }
@@ -42,7 +46,10 @@ test("Workspace maps kernel selection to one exact observed joined Host", async 
     plan_id: "plan/model-pool",
     fragments: [{
       host_id: "host/browser", boot_id: "boot/browser/1", offer_generation: 3,
-      shared_pools: [{ pool_id: "model/workers", realization_envelope: [realization(0), realization(1)] }],
+      shared_pools: [{
+        pool_id: "model/workers", consumers: ["placement/client"],
+        realization_envelope: [realization(0), realization(1)],
+      }],
     }],
   };
   const runtime = {
@@ -51,7 +58,12 @@ test("Workspace maps kernel selection to one exact observed joined Host", async 
       return {
         disposition: "selected",
         member: { realization: operationId.endsWith("2") ? 1 : 0 },
-        evidence: { operation_id: operationId },
+        evidence: {
+          plan_id: plan.plan_id, pool_id: "model/workers", operation_id: operationId,
+          selected_realization: operationId.endsWith("2") ? 1 : 0,
+          observation_sign_ids: ["sign/provider/current"], disposition: "Selected",
+          sign_id: `sign/selection/${operationId}`,
+        },
       };
     },
     trigger(member) { transitions.push(["trigger", member.realization]); },
@@ -79,9 +91,11 @@ test("Workspace maps kernel selection to one exact observed joined Host", async 
   });
   assert.equal(first.joined, joinedHosts[0]);
   assert.equal(second.joined, joinedHosts[1]);
+  const prepared = await pool.prepare(first, "placement/client");
+  assert.equal(prepared.identity.host_id, "host/model-0");
   assert.deepEqual(observed, [
     "host/model-0", "host/model-1", "host/model-0", "host/model-1",
-    "host/model-0", "host/model-1",
+    "host/model-0", "host/model-1", "prepare:placement/client:0",
   ]);
   pool.activate(first);
   await pool.providerLost({ admission: first, operationId: "request/1", lossSignId: "sign/lost/1" });

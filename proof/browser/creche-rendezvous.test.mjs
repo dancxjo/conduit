@@ -130,6 +130,23 @@ test("Workspace may retain the authenticated joined Line until explicit close", 
   const installed = await join.line.installBodyContext(context);
   assert.equal(installed.body_id, context.body_id);
   assert.equal(installed.basis_revision, context.basis.revision);
+  await assert.rejects(() => join.line.preparePoolMember({
+    plan: { plan_id: "plan/retained" },
+    selection: { plan_id: "plan/retained", disposition: "CapacityRefused" },
+    consumerPlacementId: "placement/client",
+  }), { code: "PoolMemberSelection" });
+  const poolPrepared = await join.line.preparePoolMember({
+    plan: { plan_id: "plan/pool" },
+    selection: {
+      plan_id: "plan/pool", pool_id: "pool/workers", operation_id: "request/1",
+      selected_realization: 0, observation_sign_ids: ["sign/provider/1"],
+      disposition: "Selected", sign_id: "sign/selection/1",
+    },
+    consumerPlacementId: "placement/client",
+  });
+  assert.equal(poolPrepared.identity.plan_id, "plan/pool");
+  assert.equal(FakeWebSocket.last.sent.at(-1).kind, "prepare-pool-member");
+  await join.line.releaseRemote();
   const remote = await join.line.prepareRemote({ plan_id: "plan/retained" });
   assert.equal(remote.identity.host_id, "host/test");
   assert.equal(remote.identity.boot_id, "boot/test");
@@ -219,7 +236,7 @@ class FakeWebSocket extends EventTarget {
           unreserved_units: 1, utilized_units: 0, sign_id: `sign/resource/${index}`,
         })),
       },
-    } : request.kind === "prepare-remote" ? {
+    } : request.kind === "prepare-remote" || request.kind === "prepare-pool-member" ? {
       kind: "remote-prepared", protocol: 1,
       identity: {
         host_id: advertisement.host_id, boot_id: advertisement.boot_id,
