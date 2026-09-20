@@ -26,6 +26,8 @@ export async function startApplication(application) {
   const lullButton = root.querySelector('[data-lull-body]');
   const fulfillButton = root.querySelector('[data-fulfill-body]');
   const tutorial = root.querySelector('[data-body-tutorial]');
+  const tutorialCore = tutorial.querySelector('[data-body-tutorial-core]');
+  const tutorialResident = tutorial.querySelector('[data-body-tutorial-resident]');
   const tutorialPresentation = application.presentationFor(tutorial);
   let tutorialRevision = 0;
   const fail = error => {
@@ -77,6 +79,8 @@ export async function startApplication(application) {
     const inventory = readReviewedFormInventory(host.runtime, source);
     const catalogSource = application.text('reviewed-form-catalog');
     const catalog = readWorkspaceCatalog(catalogSource);
+    const tutorialForm = catalog.forms.find(form => form.entry === 'tour');
+    if (!tutorialForm) throw new Error('The reviewed resident Tutorial Form is absent');
     let handoff = null, handoffFailure = null;
     try { handoff = readWorkspaceHandoff(globalThis.location, inventory); }
     catch (error) { handoffFailure = error; }
@@ -85,7 +89,8 @@ export async function startApplication(application) {
     if (retainedSelection === null) {
       const scratch = inventory.forms.find(form => form.name === 'memory_lantern');
       const chime = typeof window.AudioContext === 'function' ? inventory.forms.find(form => form.name === 'startup_chime') : null;
-      selection = { selected: [scratch, chime].filter(Boolean), refusals: [] };
+      const residentTutorial = inventory.forms.find(form => form.name === 'tour');
+      selection = { selected: [scratch, residentTutorial, chime].filter(Boolean), refusals: [] };
     }
     const restored = invitation ? null : await session.restore();
     if (handoff && !session.current()) {
@@ -98,19 +103,31 @@ export async function startApplication(application) {
     let playback = { state: 'Lulled', detail: 'Its Forms can wake here.' };
     let play = null;
     let library = null, membership = null, editing = false;
+    const tutorialInstalled = () => session.current()?.initial_forms.some(form => form.checked_form_id === tutorialForm.checked_form_id) ?? false;
+    const handleTutorialEvent = (event, resident = false) => {
+      if ((!resident && event.revision !== tutorialRevision) || event.kind !== 1 || event.value.length !== 0) {
+        fail(new Error('This tutorial action is stale'));
+      } else if (event.action === 'body.wake') play?.wake(true).catch(fail);
+      else if (event.action === 'body.inspect-lifecycle') inspect('lifecycle');
+      else if (event.action === 'body.open-library') { surface.hidden = true; inspection.hidden = true; library?.show(); }
+      else if (event.action === 'body.invite-host') membership?.show();
+      else if (event.action === 'body.use-current') { surface.hidden = false; inspection.hidden = true; library?.hide(); if (!input.disabled) input.focus(); }
+      else fail(new Error('Unknown tutorial action'));
+    };
     const renderTutorial = () => {
-      if (!session.current()) return;
+      if (!session.current() || !tutorialInstalled()) {
+        tutorial.hidden = true;
+        return;
+      }
+      tutorial.hidden = false;
+      const resident = ['Playing', 'Idle', 'Completed', 'Failed'].includes(playback.state);
+      tutorialCore.hidden = resident;
+      tutorialResident.hidden = !resident;
+      if (resident) return;
       const revision = ++tutorialRevision;
       tutorialPresentation.present('body-tutorial', session.tutorialView(revision, playback.state), { onEvent(event) {
         tutorialPresentation.nextEvent('body-tutorial');
-        if (event.revision !== tutorialRevision || event.kind !== 1 || event.value.length !== 0) {
-          fail(new Error('This tutorial action is stale'));
-        } else if (event.action === 'body.wake') play?.wake(true).catch(fail);
-        else if (event.action === 'body.inspect-lifecycle') inspect('lifecycle');
-        else if (event.action === 'body.open-library') { surface.hidden = true; inspection.hidden = true; library?.show(); }
-        else if (event.action === 'body.invite-host') membership?.show();
-        else if (event.action === 'body.use-current') { surface.hidden = false; inspection.hidden = true; library?.hide(); if (!input.disabled) input.focus(); }
-        else fail(new Error('Unknown tutorial action'));
+        handleTutorialEvent(event);
       } });
     };
     const bodyChanged = () => {
@@ -125,8 +142,10 @@ export async function startApplication(application) {
           await session.selectForm({ source_document_id: handoff.source_document_id, checked_form_id: handoff.checked_form_id });
         }
         const foreground = catalog.forms.find(form => form.checked_form_id === session.foreground()?.checked_form_id);
-        if (foreground?.required_kinds.includes('sound/startup-chime')) {
-          const visible = resident.find(form => catalog.forms.some(candidate => candidate.checked_form_id === form.checked_form_id && candidate.required_kinds.some(kind => kind.startsWith('presentation/'))));
+        if (foreground?.required_kinds.includes('sound/startup-chime') || foreground?.checked_form_id === tutorialForm.checked_form_id) {
+          const visible = resident.find(form => catalog.forms.some(candidate => candidate.checked_form_id === form.checked_form_id
+            && candidate.checked_form_id !== tutorialForm.checked_form_id
+            && candidate.required_kinds.some(kind => kind.startsWith('presentation/'))));
           if (visible) await session.selectForm(visible);
         }
         selected = session.foreground()?.checked_form_id;
@@ -174,7 +193,6 @@ export async function startApplication(application) {
     };
     function render() {
       const body = session.current();
-      tutorial.hidden = !body;
       renderTutorial();
       membership?.render();
       const arriving = !body || (!body.here_part_id && body.state !== 'FULFILLED');
@@ -231,7 +249,10 @@ export async function startApplication(application) {
         lullButton.hidden = true;
       }
       notice.textContent = `${body.initial_forms.length} Form${body.initial_forms.length === 1 ? '' : 's'} in ${body.friendly_name}.`;
-      if (!body.initial_forms.some(form => form.checked_form_id === selected)) selected = body.initial_forms[0]?.checked_form_id;
+      if (!body.initial_forms.some(form => form.checked_form_id === selected) || selected === tutorialForm.checked_form_id) {
+        selected = body.initial_forms.find(form => form.checked_form_id !== tutorialForm.checked_form_id)?.checked_form_id
+          ?? body.initial_forms[0]?.checked_form_id;
+      }
       activities.replaceChildren(...body.initial_forms.map(form => {
         const button = document.createElement('button'); button.type = 'button';
         button.textContent = catalog.forms.find(item => item.checked_form_id === form.checked_form_id)?.title ?? form.name;
@@ -254,6 +275,10 @@ export async function startApplication(application) {
       });
       if (body.state !== 'FULFILLED') activities.append(browse);
       if (!play) play = openWorkspacePlay({ host, session, source, planningLines: () => membership?.planningLines() ?? [], foregroundForm: () => selected, inputTarget: input, outputRoot: root.querySelector('[data-form-output]'),
+        presentationRootFor: ({ checkedFormId }) => checkedFormId === tutorialForm.checked_form_id ? tutorialResident : null,
+        onApplicationEvent: ({ checkedFormId, event }) => {
+          if (checkedFormId === tutorialForm.checked_form_id) handleTutorialEvent(event, true);
+        },
         async prepareExternal(proposal) {
           const distributed = proposal.plan.forms.filter(form => form.plan.fragments.length > 1);
           if (!distributed.length) return null;
