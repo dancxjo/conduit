@@ -18,7 +18,7 @@ test.afterEach(() => entrance?.child.kill());
 test("Crèche respects the live Body owner and returns a retained Body to its Forms", async ({ page, context }) => {
   await page.goto(new URL("workspace/", entrance.url).href);
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
-  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const first = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
@@ -29,7 +29,7 @@ test("Crèche respects the live Body owner and returns a retained Body to its Fo
   await page.close();
   await creche.reload();
   await expect(creche.getByRole("heading", { name: "Return to your Body", exact: true })).toBeVisible();
-  await creche.getByRole("link", { name: "Open your Body", exact: true }).click();
+  await creche.getByRole("link", { name: "Open your body", exact: true }).click();
   await expect(creche.locator("[data-play-state]")).toHaveText("Playing");
   const returned = await creche.evaluate(() => globalThis.__conduitWorkspace.current());
   expect(returned.body_id).toBe(first.body_id);
@@ -45,7 +45,7 @@ test('the actual Gallery Use link returns to the same Body with the selected For
   await page.goto(new URL('workspace/', entrance.url).href);
   await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
-  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
+  await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   const original = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
