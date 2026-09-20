@@ -1,29 +1,18 @@
 //! Portable typed contract for one exact checked structured selector.
 
 use alloc::vec;
-use alloc::vec::Vec;
 use conduit_core::{
-    port_id, CapabilityLimits, FaceStartupParameter, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortId, PortTemporal, StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    port_id, CapabilityLimits, FaceStartupParameter, KindContractRevision, PortDescriptor,
+    PortDirection, PortTemporal, SemanticCapabilityContract, StructuredSelector,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const STRUCTURED_SELECTOR_REVISION: &str = "structured-info/selector-operation@1";
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StructuredSelectorContract {
-    pub startup_parameters: Vec<FaceStartupParameter>,
-    pub shorthand: Option<(PortId, PortId)>,
-    pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
-    pub inputs: Vec<PortDescriptor>,
-    pub outputs: Vec<PortDescriptor>,
-    pub limits: CapabilityLimits,
-}
-
 pub fn structured_selector_contract(
     selector: &StructuredSelector,
     temporal: PortTemporal,
-) -> StructuredSelectorContract {
+) -> SemanticCapabilityContract {
     let kind_id = selector
         .kind_id(temporal)
         .expect("checked selector has finite semantic identity");
@@ -39,7 +28,7 @@ pub fn structured_selector_contract(
         .expect("checked selector output has finite profile")
         .value_kind()
         .clone();
-    StructuredSelectorContract {
+    SemanticCapabilityContract {
         startup_parameters: vec![FaceStartupParameter {
             name: "selector".into(),
             value_type: conduit_core::kind_id("value/text"),
