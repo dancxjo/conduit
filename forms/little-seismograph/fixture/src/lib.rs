@@ -6,8 +6,9 @@ extern crate alloc;
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal, Quantity,
-    QuantityUnit, TemporalInstant, TemporalScale,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, Quantity, QuantityUnit, SemanticCapabilityContract, TemporalInstant,
+    TemporalScale,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 
@@ -57,6 +58,23 @@ pub fn little_seismograph_fixture_definition() -> KindDefinition {
             ),
         ],
         configuration: vec![],
+    }
+}
+
+pub fn little_seismograph_fixture_semantic_contract() -> SemanticCapabilityContract {
+    let definition = little_seismograph_fixture_definition();
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 3,
+            max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 3) as u32,
+        },
     }
 }
 

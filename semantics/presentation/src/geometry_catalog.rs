@@ -83,6 +83,23 @@ pub fn capture_bounded_stroke_kind_definition() -> KindDefinition {
     }
 }
 
+pub fn capture_bounded_stroke_semantic_contract() -> conduit_core::SemanticCapabilityContract {
+    let definition = capture_bounded_stroke_kind_definition();
+    conduit_core::SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: conduit_core::CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 4,
+            max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
+        },
+    }
+}
+
 /// Install only the reviewed four-point path and capture operation into a Host
 /// profile that already owns the canonical `Point2` type.
 pub fn install_bounded_stroke_capture_catalog(
