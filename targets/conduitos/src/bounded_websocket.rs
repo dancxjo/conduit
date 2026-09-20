@@ -8,6 +8,7 @@ use rand_core::RngCore;
 
 const HANDSHAKE_BYTES: usize = 1024;
 const FRAME_BYTES: usize = 4096;
+pub(crate) const MAXIMUM_BINARY_MESSAGE_BYTES: usize = FRAME_BYTES;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WebSocketError {
