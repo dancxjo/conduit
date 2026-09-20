@@ -4,7 +4,7 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, FaceStartupParameter, ImplementationId, ImplementationOffer,
+    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer,
     KindContractRevision, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
@@ -30,7 +30,7 @@ fn offer() -> CapabilityOffer {
             "maximum-frame-bytes",
             "maximum-retained-bytes",
         ]
-        .map(|name| FaceStartupParameter {
+        .map(|name| FrontStartupParameter {
             name: name.into(),
             value_type: "Count".into(),
             has_default: true,

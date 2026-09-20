@@ -419,7 +419,7 @@ fn verify_endpoint_sign(
             ("runtime_boot_id", runtime.boot_id.as_str()),
             ("attachment_id", "r1/pico-network-attachment-1"),
             (
-                "interfront_pool_id",
+                "resource_pool_id",
                 conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
             ),
             (

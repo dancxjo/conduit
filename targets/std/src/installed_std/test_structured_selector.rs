@@ -147,7 +147,7 @@ pub(crate) fn offer_named(
         temporal: PortTemporal::Flow { closes: true },
     };
     CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
+        startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "value".into(),
             value_type: "Text".into(),
             has_default: true,

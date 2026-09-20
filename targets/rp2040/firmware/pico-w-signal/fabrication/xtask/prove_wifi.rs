@@ -531,7 +531,7 @@ fn verify_attachment_sign(
         ("boot_id", runtime.boot_id.as_str()),
         ("active_play_id", runtime.active_play_id.as_str()),
         (
-            "interfront_pool_id",
+            "resource_pool_id",
             conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
         ),
         ("sign_id", generated.terminal_sign_id.as_str()),

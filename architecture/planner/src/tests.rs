@@ -909,7 +909,7 @@ fn planning_accepts_front_preserving_revision_and_rejects_front_change() {
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")]
         ),
-        Err(PlannerError::IncompatibleCheckedFace(_))
+        Err(PlannerError::IncompatibleCheckedFront(_))
     ));
 
     let mut mismatched_ports = original_host;
@@ -928,7 +928,7 @@ fn planning_accepts_front_preserving_revision_and_rejects_front_change() {
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")]
         ),
-        Err(PlannerError::IncompatibleCheckedFace(_))
+        Err(PlannerError::IncompatibleCheckedFront(_))
     ));
 }
 

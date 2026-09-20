@@ -3,7 +3,7 @@ use crate::{
     CheckedCanonicalForm, CheckedSyntaxDocument, KindDefinition, StartupParameterSignature,
 };
 use alloc::collections::BTreeMap;
-use conduit_core::{CheckedFace, CheckedFormId, KindId, RealizationBack, SourceDocumentId};
+use conduit_core::{CheckedFormId, CheckedFront, KindId, RealizationBack, SourceDocumentId};
 
 pub const MAXIMUM_CANONICAL_BACKS: usize = 64;
 
@@ -140,11 +140,11 @@ impl CanonicalBackCatalog {
     }
 }
 
-fn definition_front(kind: &KindDefinition, startup: &[StartupParameterSignature]) -> CheckedFace {
-    CheckedFace::new(
+fn definition_front(kind: &KindDefinition, startup: &[StartupParameterSignature]) -> CheckedFront {
+    CheckedFront::new(
         startup
             .iter()
-            .map(|parameter| conduit_core::FaceStartupParameter {
+            .map(|parameter| conduit_core::FrontStartupParameter {
                 name: parameter.name.clone(),
                 value_type: parameter.value_type.clone(),
                 has_default: parameter.default.is_some(),

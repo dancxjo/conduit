@@ -2,7 +2,7 @@
 
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, FaceStartupParameter, ImplementationId, ImplementationOffer,
+    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer,
 };
 use conduit_kernel::ValueStorage;
 
@@ -25,7 +25,7 @@ fn offer() -> CapabilityOffer {
             "expected-peer-sequence",
         ]
         .into_iter()
-        .map(|name| FaceStartupParameter {
+        .map(|name| FrontStartupParameter {
             name: name.into(),
             value_type: "Count".into(),
             has_default: true,

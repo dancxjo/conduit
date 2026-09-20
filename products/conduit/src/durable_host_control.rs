@@ -1,10 +1,16 @@
 //! Authenticated local control plane into the durable installed Host owner.
 
 use conduit_body::{BodyConversationContext, SpawnInvitationClaim, SpawnInvitationSecret};
-use conduit_core::{ActivePlayIdentity, HostAdvertisement, Plan};
+use conduit_core::{
+    ActivePlayIdentity, HostAdvertisement, PlacementId, Plan, PoolMemberSessionDirection,
+    PoolRealizationEnvelope, PoolRealizationObservation, PoolSelectionEvidence, SignId,
+};
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
-use conduit_std_host::{AdmittedRemoteFragment, StdHost};
+use conduit_std_host::{
+    hosted_local_model::LocalModelAdapterTerminal, pool_member_sessions::PoolMemberSessions,
+    AdmittedLocalModelPoolMember, AdmittedRemoteFragment, StdHost,
+};
 use conduit_wire::{decode_session_frame, encode_session_frame_into, SessionMessage};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -29,7 +35,9 @@ pub(crate) struct DurableHostRuntime {
     image_content_digest: String,
     host: StdHost,
     remote_fragment: Option<AdmittedRemoteFragment>,
+    pool_member: Option<AdmittedLocalModelPoolMember>,
     cancellation_signal: Option<PathBuf>,
+    next_observation_sequence: u64,
 }
 
 impl DurableHostRuntime {
@@ -39,7 +47,9 @@ impl DurableHostRuntime {
             image_content_digest,
             host,
             remote_fragment: None,
+            pool_member: None,
             cancellation_signal: None,
+            next_observation_sequence: 0,
         }
     }
 
@@ -73,6 +83,36 @@ impl DurableHostRuntime {
             return Err("body-context-host-identity-changed".into());
         }
         Ok(after)
+    }
+
+    fn observe_local_model_pool(
+        &mut self,
+        realization: &PoolRealizationEnvelope,
+    ) -> Result<PoolRealizationObservation, String> {
+        let sequence = self.next_observation_sequence;
+        self.next_observation_sequence = sequence
+            .checked_add(1)
+            .ok_or_else(|| "local-model observation sequence exhausted".to_string())?;
+        let provider_sign_id = SignId::from(format!(
+            "sign/{}/model-pool/{sequence}/provider",
+            self.host.advertisement().boot_id.as_str()
+        ));
+        let resource_sign_ids = realization
+            .resources
+            .iter()
+            .enumerate()
+            .map(|(index, _)| {
+                SignId::from(format!(
+                    "sign/{}/model-pool/{sequence}/resource/{index}",
+                    self.host.advertisement().boot_id.as_str()
+                ))
+            })
+            .collect::<Vec<_>>();
+        self.host.observe_local_model_pool_realization(
+            realization,
+            provider_sign_id,
+            &resource_sign_ids,
+        )
     }
 
     fn prepare_remote(
@@ -115,17 +155,112 @@ impl DurableHostRuntime {
         Ok(preparation)
     }
 
+    fn prepare_pool_member(
+        &mut self,
+        expected_boot_id: &str,
+        expected_offer_generation: u64,
+        plan: &Plan,
+        selection: PoolSelectionEvidence,
+        consumer_placement_id: &PlacementId,
+    ) -> Result<DurableRemotePreparation, String> {
+        let advertisement = self.host.advertisement().clone();
+        if advertisement.boot_id.as_str() != expected_boot_id
+            || advertisement.offer_generation.0 != expected_offer_generation
+        {
+            return Err("stale-host-truth".into());
+        }
+        if self.remote_fragment.is_some() || self.pool_member.is_some() {
+            return Err("remote-play-active".into());
+        }
+        self.clear_cancellation_signal()?;
+        if !conduit_core::verify_plan(plan) {
+            return Err("invalid-plan".into());
+        }
+        selection
+            .validate(plan)
+            .map_err(|_| "invalid-pool-selection".to_string())?;
+        let realization = plan
+            .fragments
+            .first()
+            .and_then(|fragment| {
+                fragment
+                    .shared_pools
+                    .iter()
+                    .find(|pool| pool.pool_id == selection.pool_id)
+            })
+            .and_then(|pool| {
+                selection
+                    .selected_realization
+                    .and_then(|index| pool.realization_envelope.get(usize::from(index)))
+            })
+            .ok_or_else(|| "selected-pool-realization-absent".to_string())?;
+        if realization.host_id != advertisement.host_id
+            || realization.boot_id != advertisement.boot_id
+            || realization.offer_generation != advertisement.offer_generation
+        {
+            return Err("selected-pool-realization-stale".into());
+        }
+        let current = self.observe_local_model_pool(realization)?;
+        if current.health != conduit_core::PoolRealizationHealth::Ready {
+            return Err("selected-pool-realization-unavailable".into());
+        }
+        let fragment = plan
+            .fragments
+            .iter()
+            .find(|fragment| {
+                fragment.host_id == advertisement.host_id
+                    && fragment.boot_id == advertisement.boot_id
+                    && fragment.offer_generation == advertisement.offer_generation
+            })
+            .ok_or_else(|| "host-fragment-absent".to_string())?;
+        let admitted = self.host.prepare_remote_fragment(fragment)?;
+        let mut member =
+            match self
+                .host
+                .prepare_local_model_pool_member(plan, selection, consumer_placement_id)
+            {
+                Ok(member) => member,
+                Err(error) => {
+                    self.host.release_remote_fragment(admitted)?;
+                    return Err(error);
+                }
+            };
+        let hello_frames = match encode_pool_member_hello_frames(member.sessions_mut()) {
+            Ok(frames) => frames,
+            Err(error) => {
+                self.host.release_local_model_pool_member(member)?;
+                self.host.release_remote_fragment(admitted)?;
+                return Err(error);
+            }
+        };
+        let preparation = DurableRemotePreparation {
+            identity: admitted.identity().clone(),
+            hello_frames,
+        };
+        self.remote_fragment = Some(admitted);
+        self.pool_member = Some(member);
+        Ok(preparation)
+    }
+
     fn exchange_remote_frame(&mut self, bytes: &[u8]) -> Result<DurableRemoteExchange, String> {
-        let admitted = self
-            .remote_fragment
-            .as_mut()
-            .ok_or_else(|| "remote-play-absent".to_string())?;
         let frame = decode_session_frame(
             bytes,
             MAXIMUM_CONTROL_FRAME_BYTES as u32,
             MAXIMUM_CONTROL_FRAME_BYTES as u32,
         )
         .map_err(|error| format!("decode remote session frame: {error:?}"))?;
+        if self.pool_member.as_ref().is_some_and(|member| {
+            member
+                .sessions()
+                .iter()
+                .any(|session| session.binding().identity() == frame.identity)
+        }) {
+            return self.exchange_pool_member_frame(frame);
+        }
+        let admitted = self
+            .remote_fragment
+            .as_mut()
+            .ok_or_else(|| "remote-play-absent".to_string())?;
         let endpoint = admitted
             .sessions()
             .iter()
@@ -277,10 +412,26 @@ impl DurableHostRuntime {
 
     fn release_remote(&mut self) -> Result<(), String> {
         self.clear_cancellation_signal()?;
+        if let Some(member) = self.pool_member.take() {
+            self.host.release_local_model_pool_member(member)?;
+        }
         let Some(fragment) = self.remote_fragment.take() else {
             return Ok(());
         };
         self.host.release_remote_fragment(fragment)
+    }
+
+    fn exchange_pool_member_frame(
+        &mut self,
+        frame: conduit_wire::SessionFrame<'_>,
+    ) -> Result<DurableRemoteExchange, String> {
+        let mut member = self
+            .pool_member
+            .take()
+            .ok_or_else(|| "pool-member-sessions-absent".to_string())?;
+        let result = exchange_admitted_pool_member_frame(&mut self.host, &mut member, frame);
+        self.pool_member = Some(member);
+        result
     }
 
     fn clear_cancellation_signal(&self) -> Result<(), String> {
@@ -293,6 +444,182 @@ impl DurableHostRuntime {
             Err(error) => Err(format!("clear remote cancellation signal: {error}")),
         }
     }
+}
+
+fn exchange_admitted_pool_member_frame(
+    host: &mut StdHost,
+    member: &mut AdmittedLocalModelPoolMember,
+    frame: conduit_wire::SessionFrame<'_>,
+) -> Result<DurableRemoteExchange, String> {
+    let message = frame.message;
+    let direction = member
+        .sessions()
+        .iter()
+        .find(|session| session.binding().identity() == frame.identity)
+        .map(|session| session.direction)
+        .ok_or_else(|| "pool-member-session-absent".to_string())?;
+    {
+        let session = member
+            .sessions_mut()
+            .session_for_binding_mut(&frame.identity)
+            .ok_or_else(|| "pool-member-session-absent".to_string())?;
+        session
+            .machine_mut()
+            .admit_inbound(frame)
+            .map_err(|error| format!("admit pool member session frame: {error:?}"))?;
+    }
+
+    let mut responses = Vec::new();
+    match message {
+        SessionMessage::Hello(_) => {
+            let session = member
+                .sessions_mut()
+                .session_for_binding_mut(&frame.identity)
+                .ok_or_else(|| "pool-member-session-absent".to_string())?;
+            responses.push(pool_member_response(session, SessionMessage::Ready)?);
+        }
+        SessionMessage::Offered { sequence, payload }
+            if direction == PoolMemberSessionDirection::Input =>
+        {
+            {
+                let session = member
+                    .sessions_mut()
+                    .session_for_binding_mut(&frame.identity)
+                    .ok_or_else(|| "pool-member-input-session-absent".to_string())?;
+                responses.push(pool_member_response(
+                    session,
+                    SessionMessage::Accepted { sequence },
+                )?);
+            }
+            let mut output = Vec::new();
+            let terminal = host.execute_local_model_pool_member(member, payload, &mut output);
+            {
+                let session = member
+                    .sessions_mut()
+                    .session_for_binding_mut(&frame.identity)
+                    .ok_or_else(|| "pool-member-input-session-absent".to_string())?;
+                responses.push(pool_member_response(
+                    session,
+                    SessionMessage::Delivered { sequence },
+                )?);
+            }
+            match terminal {
+                LocalModelAdapterTerminal::Produced | LocalModelAdapterTerminal::Truncated => {
+                    let output_session = member
+                        .sessions_mut()
+                        .iter_mut()
+                        .find(|session| session.direction == PoolMemberSessionDirection::Output)
+                        .ok_or_else(|| "pool-member-output-session-absent".to_string())?;
+                    if output.len()
+                        > usize::try_from(output_session.binding().limits.maximum_payload_bytes)
+                            .map_err(|_| "pool-member-output-limit-invalid".to_string())?
+                    {
+                        responses.extend(fail_pool_member(member, 73)?);
+                    } else {
+                        responses.push(pool_member_response(
+                            output_session,
+                            SessionMessage::Offered {
+                                sequence: output_session.machine().next_sequence(),
+                                payload: &output,
+                            },
+                        )?);
+                    }
+                }
+                LocalModelAdapterTerminal::Refused => {
+                    responses.extend(fail_pool_member(member, 70)?);
+                }
+                LocalModelAdapterTerminal::Failed
+                | LocalModelAdapterTerminal::InvalidStructuredResult => {
+                    responses.extend(fail_pool_member(member, 71)?);
+                }
+                LocalModelAdapterTerminal::Cancelled => {
+                    responses.extend(cancel_pool_member(member, 72)?);
+                }
+                LocalModelAdapterTerminal::ProviderLost => {
+                    // Provider loss is terminal for this operation. The pool
+                    // kernel may select an alternative only for later work.
+                    responses.extend(fail_pool_member(member, 74)?);
+                }
+            }
+        }
+        SessionMessage::Offered { .. } => {
+            return Err("pool-member-output-cannot-receive-offer".into());
+        }
+        SessionMessage::Cancelled { code } => {
+            responses.extend(cancel_pool_member(member, code)?);
+        }
+        SessionMessage::Failed { code } => {
+            responses.extend(fail_pool_member(member, code)?);
+        }
+        SessionMessage::Ready
+        | SessionMessage::Pressure { .. }
+        | SessionMessage::Accepted { .. }
+        | SessionMessage::Delivered { .. }
+        | SessionMessage::InputClosed { .. }
+        | SessionMessage::Terminal { .. } => {}
+    }
+    let active = member
+        .sessions()
+        .iter()
+        .any(|session| session.machine().is_active());
+    Ok(DurableRemoteExchange { responses, active })
+}
+
+fn pool_member_response(
+    session: &mut conduit_std_host::pool_member_sessions::PoolMemberSession,
+    message: SessionMessage<'_>,
+) -> Result<Vec<u8>, String> {
+    let binding = session.binding().clone();
+    let response = binding.frame(message);
+    session
+        .machine_mut()
+        .admit_outbound(response)
+        .map_err(|error| format!("admit pool member session response: {error:?}"))?;
+    encode_remote_frame(&binding, response)
+}
+
+fn fail_pool_member(
+    member: &mut AdmittedLocalModelPoolMember,
+    code: u16,
+) -> Result<Vec<Vec<u8>>, String> {
+    terminate_pool_member(
+        member,
+        SessionMessage::Failed { code },
+        conduit_wire::SessionTerminalDisposition::Failed,
+    )
+}
+
+fn cancel_pool_member(
+    member: &mut AdmittedLocalModelPoolMember,
+    code: u16,
+) -> Result<Vec<Vec<u8>>, String> {
+    terminate_pool_member(
+        member,
+        SessionMessage::Cancelled { code },
+        conduit_wire::SessionTerminalDisposition::Cancelled,
+    )
+}
+
+fn terminate_pool_member(
+    member: &mut AdmittedLocalModelPoolMember,
+    failure: SessionMessage<'_>,
+    disposition: conduit_wire::SessionTerminalDisposition,
+) -> Result<Vec<Vec<u8>>, String> {
+    let mut responses = Vec::new();
+    for session in member.sessions_mut().iter_mut() {
+        if !session.machine().is_active() {
+            continue;
+        }
+        responses.push(pool_member_response(session, failure)?);
+        responses.push(pool_member_response(
+            session,
+            SessionMessage::Terminal {
+                disposition,
+                final_sequence: session.machine().next_sequence(),
+            },
+        )?);
+    }
+    Ok(responses)
 }
 
 fn remote_response(
@@ -446,6 +773,22 @@ fn encode_remote_hello_frames(
     Ok(hello_frames)
 }
 
+fn encode_pool_member_hello_frames(
+    sessions: &mut PoolMemberSessions,
+) -> Result<Vec<Vec<u8>>, String> {
+    let mut hello_frames = Vec::new();
+    for session in sessions.iter_mut() {
+        let binding = session.binding().clone();
+        let hello = binding.hello_frame();
+        session
+            .machine_mut()
+            .admit_outbound(hello)
+            .map_err(|error| format!("admit pool member session grant: {error:?}"))?;
+        hello_frames.push(encode_remote_frame(&binding, hello)?);
+    }
+    Ok(hello_frames)
+}
+
 fn encode_remote_frame(
     binding: &conduit_wire::SessionBinding,
     frame: conduit_wire::SessionFrame<'_>,
@@ -511,12 +854,26 @@ enum Request {
         expected_offer_generation: u64,
         context: BodyConversationContext,
     },
+    ObserveLocalModelPool {
+        protocol: u16,
+        token: Vec<u8>,
+        realization: PoolRealizationEnvelope,
+    },
     PrepareRemote {
         protocol: u16,
         token: Vec<u8>,
         expected_boot_id: String,
         expected_offer_generation: u64,
         plan: Box<Plan>,
+    },
+    PreparePoolMember {
+        protocol: u16,
+        token: Vec<u8>,
+        expected_boot_id: String,
+        expected_offer_generation: u64,
+        plan: Box<Plan>,
+        selection: PoolSelectionEvidence,
+        consumer_placement_id: PlacementId,
     },
     ExchangeRemote {
         protocol: u16,
@@ -550,6 +907,10 @@ enum Response {
     BodyContextInstalled {
         protocol: u16,
         advertisement: HostAdvertisement,
+    },
+    LocalModelPoolObserved {
+        protocol: u16,
+        observation: PoolRealizationObservation,
     },
     RemotePrepared {
         protocol: u16,
@@ -770,6 +1131,48 @@ pub(crate) fn install_body_context(
     }
 }
 
+#[cfg(unix)]
+pub(crate) fn observe_local_model_pool(
+    state_dir: &Path,
+    realization: PoolRealizationEnvelope,
+) -> Result<PoolRealizationObservation, String> {
+    use std::os::unix::net::UnixStream;
+    let mut token = read_secret(&state_dir.join("control.token"))?;
+    let mut stream = UnixStream::connect(state_dir.join("control.sock"))
+        .map_err(|error| format!("connect to durable Host service: {error}"))?;
+    let mut request = Request::ObserveLocalModelPool {
+        protocol: PROTOCOL,
+        token: token.to_vec(),
+        realization,
+    };
+    write_sensitive_frame(&mut stream, &request)?;
+    stream
+        .shutdown(std::net::Shutdown::Write)
+        .map_err(|error| format!("finish durable Host model-pool observation: {error}"))?;
+    token.fill(0);
+    if let Request::ObserveLocalModelPool { token, .. } = &mut request {
+        token.fill(0);
+    }
+    match read_frame::<_, Response>(&mut stream)? {
+        Response::LocalModelPoolObserved {
+            protocol: PROTOCOL,
+            observation,
+        } => Ok(observation),
+        Response::Refused { code, .. } => Err(format!(
+            "durable Host refused model-pool observation: {code}"
+        )),
+        _ => Err("durable Host returned the wrong model-pool observation response".into()),
+    }
+}
+
+#[cfg(not(unix))]
+pub(crate) fn observe_local_model_pool(
+    _state_dir: &Path,
+    _realization: PoolRealizationEnvelope,
+) -> Result<PoolRealizationObservation, String> {
+    Err("no reviewed local durable Host control carrier exists on this platform".into())
+}
+
 #[cfg(not(unix))]
 pub(crate) fn install_body_context(
     _state_dir: &Path,
@@ -820,11 +1223,67 @@ pub(crate) fn prepare_remote(
     }
 }
 
+#[cfg(unix)]
+pub(crate) fn prepare_pool_member(
+    state_dir: &Path,
+    expected: &HostAdvertisement,
+    plan: Plan,
+    selection: PoolSelectionEvidence,
+    consumer_placement_id: PlacementId,
+) -> Result<DurableRemotePreparation, String> {
+    use std::os::unix::net::UnixStream;
+    let mut token = read_secret(&state_dir.join("control.token"))?;
+    let mut stream = UnixStream::connect(state_dir.join("control.sock"))
+        .map_err(|error| format!("connect to durable Host service: {error}"))?;
+    let mut request = Request::PreparePoolMember {
+        protocol: PROTOCOL,
+        token: token.to_vec(),
+        expected_boot_id: expected.boot_id.as_str().into(),
+        expected_offer_generation: expected.offer_generation.0,
+        plan: Box::new(plan),
+        selection,
+        consumer_placement_id,
+    };
+    write_sensitive_frame(&mut stream, &request)?;
+    stream
+        .shutdown(std::net::Shutdown::Write)
+        .map_err(|error| format!("finish durable Host pool member preparation: {error}"))?;
+    token.fill(0);
+    if let Request::PreparePoolMember { token, .. } = &mut request {
+        token.fill(0);
+    }
+    match read_frame::<_, Response>(&mut stream)? {
+        Response::RemotePrepared {
+            protocol: PROTOCOL,
+            identity,
+            hello_frames,
+        } => Ok(DurableRemotePreparation {
+            identity,
+            hello_frames,
+        }),
+        Response::Refused { code, .. } => Err(format!(
+            "durable Host refused pool member preparation: {code}"
+        )),
+        _ => Err("durable Host returned the wrong pool member preparation response".into()),
+    }
+}
+
 #[cfg(not(unix))]
 pub(crate) fn prepare_remote(
     _state_dir: &Path,
     _expected: &HostAdvertisement,
     _plan: Plan,
+) -> Result<DurableRemotePreparation, String> {
+    Err("no reviewed local durable Host control carrier exists on this platform".into())
+}
+
+#[cfg(not(unix))]
+pub(crate) fn prepare_pool_member(
+    _state_dir: &Path,
+    _expected: &HostAdvertisement,
+    _plan: Plan,
+    _selection: PoolSelectionEvidence,
+    _consumer_placement_id: PlacementId,
 ) -> Result<DurableRemotePreparation, String> {
     Err("no reviewed local durable Host control carrier exists on this platform".into())
 }
@@ -922,7 +1381,9 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         Request::Status { token, .. }
         | Request::Join { token, .. }
         | Request::InstallBodyContext { token, .. }
+        | Request::ObserveLocalModelPool { token, .. }
         | Request::PrepareRemote { token, .. }
+        | Request::PreparePoolMember { token, .. }
         | Request::ExchangeRemote { token, .. }
         | Request::ReleaseRemote { token, .. } => token,
     };
@@ -970,6 +1431,17 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 advertisement,
             })
             .unwrap_or_else(|code| refused(&code)),
+        Request::ObserveLocalModelPool {
+            protocol,
+            realization,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .observe_local_model_pool(&realization)
+            .map(|observation| Response::LocalModelPoolObserved {
+                protocol: PROTOCOL,
+                observation,
+            })
+            .unwrap_or_else(|code| refused(&code)),
         Request::PrepareRemote {
             protocol,
             expected_boot_id,
@@ -978,6 +1450,28 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             ..
         } if protocol == PROTOCOL => runtime
             .prepare_remote(&expected_boot_id, expected_offer_generation, &plan)
+            .map(|preparation| Response::RemotePrepared {
+                protocol: PROTOCOL,
+                identity: preparation.identity,
+                hello_frames: preparation.hello_frames,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::PreparePoolMember {
+            protocol,
+            expected_boot_id,
+            expected_offer_generation,
+            plan,
+            selection,
+            consumer_placement_id,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .prepare_pool_member(
+                &expected_boot_id,
+                expected_offer_generation,
+                &plan,
+                selection,
+                &consumer_placement_id,
+            )
             .map(|preparation| Response::RemotePrepared {
                 protocol: PROTOCOL,
                 identity: preparation.identity,
@@ -1118,8 +1612,9 @@ mod tests {
         Body, BodyConversationContext, HostPresenceClock, HostPresenceClockScale, HostPresenceTable,
     };
     use conduit_core::{
-        process_owned_line_offer_with_limits, BaseImplementationId, BootId, GearId, HostId,
-        LineScope, LineSecurity, LinkLimits, OfferGeneration,
+        process_owned_line_offer_with_limits, ArtifactId, BaseImplementationId, BootId,
+        CapabilityId, GearId, HostId, ImplementationId, LineScope, LineSecurity, LinkLimits,
+        OfferGeneration, PoolRealizationEnvelope,
     };
     use conduit_planner::{PlacementChoice, PlacementChoices};
     use conduit_std_host::{StdHost, StdHostConfig};
@@ -1307,6 +1802,36 @@ mod tests {
             &mut runtime,
         );
         assert!(matches!(response, Response::Refused { ref code, .. } if code == "unauthorized"));
+    }
+
+    #[test]
+    fn durable_observation_request_cannot_invent_a_model_realization() {
+        let mut runtime = runtime();
+        let token = [23_u8; 32];
+        let response = handle(
+            Request::ObserveLocalModelPool {
+                protocol: PROTOCOL,
+                token: token.to_vec(),
+                realization: PoolRealizationEnvelope {
+                    host_id: HostId::from("host/durable-fixture"),
+                    boot_id: BootId::from("boot/durable-fixture"),
+                    offer_generation: OfferGeneration(7),
+                    capability_id: CapabilityId::from("capability/invented-model"),
+                    implementation_id: ImplementationId::from("std/local-model@1"),
+                    artifact_id: ArtifactId::from("model/invented"),
+                    member_capacity: 1,
+                    resources: Vec::new(),
+                    admitted_lines: Vec::new(),
+                },
+            },
+            &token,
+            &mut runtime,
+        );
+        assert!(matches!(
+            response,
+            Response::Refused { ref code, .. }
+                if code == "local-model realization capability is not currently offered"
+        ));
     }
 
     #[test]

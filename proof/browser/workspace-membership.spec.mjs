@@ -130,7 +130,8 @@ test("the ordinary Face binds and admits one compiler-free reviewed browser Host
     authoredForms.map(({ source_document_id, checked_form_id }) => ({ source_document_id, checked_form_id })),
   );
   const plannedFragments = replan.playback.proposal.plan.forms.flatMap(({ plan }) => plan.fragments);
-  expect(plannedFragments.map(({ host_id }) => host_id)).toEqual([added.current.host_id]);
+  expect(plannedFragments).toHaveLength(authoredForms.length);
+  expect(new Set(plannedFragments.map(({ host_id }) => host_id))).toEqual(new Set([added.current.host_id]));
   expect(plannedFragments.flatMap(({ placements }) => placements.map(({ implementation_id }) => implementation_id)))
     .toContain("browser/presentation-rhythm@1");
   const failedWake = replan.evidence.evidence.wakes.at(-1);
@@ -178,8 +179,8 @@ test("the ordinary Face binds and admits one compiler-free reviewed browser Host
   expect(repaired.current.body_id).toBe(restored.current.body_id);
   expect(repaired.evidence.realization.plan.plan_id).not.toBe(replan.playback.proposal.plan.plan_id);
   expect(repaired.evidence.evidence.wakes.at(-1).lifecycle).toBe("Playing");
-  await expect(page.locator('[data-application-key="tutorial-guidance"]')).toContainText("Tutorial · continuity");
-  await expect(page.locator('[data-application-key="tutorial-guidance"]')).not.toContainText("Tutorial · repair");
+  await expect(page.locator('[data-application-key="tutorial-guidance"]:visible')).toContainText("Tutorial · continuity");
+  await expect(page.locator('[data-application-key="tutorial-guidance"]:visible')).not.toContainText("Tutorial · repair");
 });
 
 test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context, browser }) => {

@@ -57,7 +57,7 @@ pub(crate) fn offer() -> CapabilityOffer {
         .value_kind()
         .clone();
     CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
+        startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "expected".into(),
             value_type: "Count".into(),
             has_default: false,

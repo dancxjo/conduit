@@ -4,7 +4,7 @@ use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, protected_resource_requirement, ArtifactId, AuthorityContractId,
     AuthorityRequirement, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    FaceStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    FrontStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
     ImplementationOffer, KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
@@ -79,7 +79,7 @@ pub fn source_extraction_contract() -> SourceExtractionContract {
     }
 }
 
-pub fn source_extraction_startup_parameters() -> Vec<FaceStartupParameter> {
+pub fn source_extraction_startup_parameters() -> Vec<FrontStartupParameter> {
     [
         "profile",
         "maximum-source-bytes",
@@ -90,7 +90,7 @@ pub fn source_extraction_startup_parameters() -> Vec<FaceStartupParameter> {
         "maximum-work-units",
     ]
     .into_iter()
-    .map(|name| FaceStartupParameter {
+    .map(|name| FrontStartupParameter {
         name: name.into(),
         value_type: if name == "profile" { "Text" } else { "Count" }.into(),
         has_default: true,

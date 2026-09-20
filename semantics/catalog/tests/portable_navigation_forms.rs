@@ -1,7 +1,7 @@
 use conduit_core::PortTemporal;
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FaceStartupParameter, HostAdvertisement, HostId, HostProfileId,
+    ExecutionProfileId, FrontStartupParameter, HostAdvertisement, HostId, HostProfileId,
     ImplementationId, ImplementationOffer, KindContractRevision, OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_core::{StructuredInfoValue, StructuredInfoValueShape};
@@ -341,7 +341,7 @@ fn host(selector_definitions: Vec<conduit_form::KindDefinition>) -> HostAdvertis
             definition
                 .configuration
                 .into_iter()
-                .map(|field| FaceStartupParameter {
+                .map(|field| FrontStartupParameter {
                     name: field.key,
                     value_type: "Text".into(),
                     has_default: false,
@@ -366,7 +366,7 @@ fn offer(
     inputs: Vec<conduit_core::PortDescriptor>,
     outputs: Vec<conduit_core::PortDescriptor>,
     revision: KindContractRevision,
-    startup_parameters: Vec<FaceStartupParameter>,
+    startup_parameters: Vec<FrontStartupParameter>,
 ) -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters,

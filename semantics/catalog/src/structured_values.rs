@@ -8,7 +8,7 @@ use alloc::format;
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, FaceStartupParameter, KindContractRevision, KindId,
+    kind_id, port_id, CapabilityLimits, FrontStartupParameter, KindContractRevision, KindId,
     PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
@@ -23,7 +23,7 @@ pub const STRUCTURED_PRESENTATION_TARGET: &str = "presentation/structured-info";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StructuredValueContract {
-    pub startup_parameters: Vec<FaceStartupParameter>,
+    pub startup_parameters: Vec<FrontStartupParameter>,
     pub kind_id: KindId,
     pub kind_contract_revision: KindContractRevision,
     pub inputs: Vec<PortDescriptor>,
@@ -66,7 +66,7 @@ fn contract(
     };
     StructuredValueContract {
         startup_parameters: if source {
-            vec![FaceStartupParameter {
+            vec![FrontStartupParameter {
                 name: "value".into(),
                 value_type: type_name.into(),
                 has_default: false,

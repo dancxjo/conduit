@@ -222,7 +222,7 @@ pub use gear_realization::{
 };
 pub use graphical_patchbay::{
     PatchbayComposition, PatchbayCompositionBinding, PatchbayConnectionCandidate, PatchbayCord,
-    PatchbayFacePort, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
+    PatchbayFrontPort, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
     PatchbayPort, PatchbayPortCompatibility, PatchbaySubjectKind, PatchbaySubjectRef,
     MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
 };

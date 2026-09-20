@@ -37,19 +37,19 @@ pub const SHOW_KIND: &str = "presentation/show";
 pub const SIGNAL_PORT: &str = "signal";
 
 #[cfg(feature = "host-profile")]
-pub fn pulse_front_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
+pub fn pulse_front_startup_parameters() -> Vec<conduit_core::FrontStartupParameter> {
     vec![
-        conduit_core::FaceStartupParameter {
+        conduit_core::FrontStartupParameter {
             name: "count".to_string(),
             value_type: "Count".to_string(),
             has_default: true,
         },
-        conduit_core::FaceStartupParameter {
+        conduit_core::FrontStartupParameter {
             name: "period-ms".to_string(),
             value_type: "Count".to_string(),
             has_default: true,
         },
-        conduit_core::FaceStartupParameter {
+        conduit_core::FrontStartupParameter {
             name: "initial".to_string(),
             value_type: "Boolean".to_string(),
             has_default: true,

@@ -1,6 +1,41 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { connectRendezvousHost, decodeRendezvousCode } from "../../products/creche/browser/creche-rendezvous.mjs";
+import { decodeRendezvousCoseSign1, decodeRendezvousManifestation } from "../../products/creche/browser/rendezvous-cbor.mjs";
+
+test("browser decodes the exact canonical Rust and ConduitOS rendezvous vector", () => {
+  const hex = readFileSync(new URL("../../architecture/body/schemas/running-host-rendezvous-v1.hex", import.meta.url), "utf8").trim();
+  const envelope = `conduit-rendezvous-v1:${Buffer.from(hex, "hex").toString("base64url")}`;
+  const decoded = decodeRendezvousManifestation(envelope, 1_700_000_000_000);
+  assert.equal(decoded.schema, "conduit.host/rendezvous-cbor@1");
+  assert.deepEqual(decoded.candidates.map(({ candidate_id }) => candidate_id),
+    ["candidate/direct", "candidate/relay"]);
+  assert.deepEqual([...decoded.session_secret], new Array(32).fill(0x55));
+});
+test("browser verifies the exact RFC 9052 Sign1 vector under caller-owned policy", async () => {
+  const hex = readFileSync(new URL("../../architecture/body/schemas/running-host-rendezvous-sign1-v1.hex", import.meta.url), "utf8").trim();
+  const publicKey = await crypto.subtle.importKey("raw",
+    Buffer.from("ee45ecb9aca01a0abd83ef56dd985c8c874e6e7f4aebcedf20bd8d88c2a0add7", "hex"),
+    "Ed25519", false, ["verify"]);
+  const verified = await decodeRendezvousCoseSign1(Buffer.from(hex, "hex"), async ({
+    keyId, sigStructure, signature,
+  }) => {
+    assert.equal(new TextDecoder().decode(keyId), "operator-signing-key-1");
+    return await crypto.subtle.verify("Ed25519", publicKey, signature, sigStructure)
+      ? "configured test operator" : null;
+  }, 1_700_000_000_000);
+  assert.equal(verified.schema, "conduit.host/rendezvous-cose-sign1@1");
+  assert.equal(verified.attribution, "configured test operator");
+  assert.equal(verified.descriptor.candidates[0].candidate_id, "candidate/relay");
+
+  const altered = Buffer.from(hex, "hex");
+  altered[altered.length - 1] ^= 1;
+  await assert.rejects(() => decodeRendezvousCoseSign1(altered, async ({
+    sigStructure, signature,
+  }) => await crypto.subtle.verify("Ed25519", publicKey, signature, sigStructure),
+  1_700_000_000_000), /invalid rendezvous COSE/);
+});
 
 test("running Host rendezvous code resolves one authenticated loopback WebSocket Line", () => {
   const code = `C1-WS-104D-${"AB".repeat(32)}`;
@@ -24,35 +59,69 @@ test("serial rendezvous code selects the browser-attended serial Line", () => {
 });
 
 test("finite secure LAN descriptor selects the authenticated TLS Line", () => {
-  const descriptor = JSON.stringify({
-    schema: "conduit.host/rendezvous-descriptor@1",
-    candidates: [{
-      candidate_id: "candidate/secure-lan",
-      line_family: "authenticated-tls-stream",
-      reachability: "wss://conduit-host.test:7443/conduit",
-      authentication: {
-        server_identity: "conduit-host.test",
-        transport_binding_sha256: new Array(32).fill(0xab),
-      },
-      expires_at_millis: Date.now() + 30_000,
-      maximum_attempts: 1,
-      attempt_timeout_millis: 10_000,
-    }],
-    session_secret: new Array(32).fill(0xcd),
-  });
+  const descriptor = secureDescriptor();
   const decoded = decodeRendezvousCode(descriptor);
   assert.equal(decoded.url, "wss://conduit-host.test:7443/conduit");
   assert.equal(decoded.line_id, "conduit-line/authenticated-tls-stream@1");
   assert.equal(decoded.maximum_attempts, 1);
   assert.equal(decoded.transport_binding_sha256, "ab".repeat(32));
 
-  const stale = JSON.parse(descriptor);
-  stale.candidates[0].expires_at_millis = Date.now() - 1;
-  assert.throws(() => decodeRendezvousCode(JSON.stringify(stale)), { code: "InvalidDescriptor" });
-  const relabelled = JSON.parse(descriptor);
-  relabelled.candidates[0].reachability = "ws://conduit-host.test:7443/conduit";
-  assert.throws(() => decodeRendezvousCode(JSON.stringify(relabelled)), { code: "InvalidDescriptor" });
+  assert.throws(() => decodeRendezvousCode(secureDescriptor({ expiresAt: Date.now() - 1 })),
+    { code: "InvalidDescriptor" });
+  assert.throws(() => decodeRendezvousCode(secureDescriptor({ scheme: "ws" })),
+    { code: "InvalidDescriptor" });
+  assert.throws(() => decodeRendezvousCode(`conduit-rendezvous-v1:${descriptor.split(":")[1]}A`),
+    { code: "InvalidDescriptor" });
 });
+
+function secureDescriptor({ expiresAt = Date.now() + 30_000, scheme = "wss" } = {}) {
+  const candidate = new Map([
+    [0, "candidate/secure-lan"],
+    [1, 0],
+    [2, `${scheme}://conduit-host.test:7443/conduit`],
+    [3, new Map([[0, "conduit-host.test"], [1, new Uint8Array(32).fill(0xab)]])],
+    [4, expiresAt],
+    [5, 1],
+    [6, 10_000],
+  ]);
+  const bytes = encodeCanonicalCbor(new Map([
+    [0, 1], [1, [candidate]], [2, new Uint8Array(32).fill(0xcd)],
+  ]));
+  return `conduit-rendezvous-v1:${Buffer.from(bytes).toString("base64url")}`;
+}
+
+function encodeCanonicalCbor(value) {
+  if (Number.isSafeInteger(value)) return encodeCborHead(0, value);
+  if (typeof value === "string") {
+    const bytes = new TextEncoder().encode(value);
+    return concat(encodeCborHead(3, bytes.length), bytes);
+  }
+  if (value instanceof Uint8Array) return concat(encodeCborHead(2, value.length), value);
+  if (Array.isArray(value)) return concat(encodeCborHead(4, value.length), ...value.map(encodeCanonicalCbor));
+  if (value instanceof Map) return concat(encodeCborHead(5, value.size),
+    ...[...value].flatMap(([key, item]) => [encodeCanonicalCbor(key), encodeCanonicalCbor(item)]));
+  throw new TypeError("unsupported test CBOR value");
+}
+
+function encodeCborHead(major, value) {
+  if (value < 24) return Uint8Array.of(major << 5 | value);
+  const size = value <= 0xff ? 1 : value <= 0xffff ? 2 : value <= 0xffff_ffff ? 4 : 8;
+  const result = new Uint8Array(1 + size);
+  result[0] = major << 5 | ({ 1: 24, 2: 25, 4: 26, 8: 27 })[size];
+  let remaining = value;
+  for (let index = size; index > 0; index -= 1) {
+    result[index] = remaining % 256;
+    remaining = Math.floor(remaining / 256);
+  }
+  return result;
+}
+
+function concat(...parts) {
+  const result = new Uint8Array(parts.reduce((length, part) => length + part.length, 0));
+  let offset = 0;
+  for (const part of parts) { result.set(part, offset); offset += part.length; }
+  return result;
+}
 
 test("one code carries a current advertisement and exactly one invitation proof", async () => {
   const code = `C1-WS-104D-${"AB".repeat(32)}`;
@@ -96,6 +165,22 @@ test("Workspace may retain the authenticated joined Line until explicit close", 
   assert.equal(retained.body_id, credential.body_id);
   assert.equal(retained.part_id, credential.part_id);
   await assert.rejects(() => join.line.retainMembership(credential), { code: "Replay" });
+  const realization = {
+    host_id: "host/test", boot_id: "boot/test", offer_generation: 1,
+    capability_id: "capability/model/generate", implementation_id: "std/local-model@1",
+    artifact_id: "model/sha256-fixture", member_capacity: 1,
+    resources: [{
+      pool_id: "std/local-model-inference-slots", class_id: "ai/local-model-inference-slot",
+      units: 1,
+    }],
+  };
+  const observation = await join.line.observeLocalModelPool(realization);
+  assert.equal(observation.health, "Ready");
+  assert.equal(observation.host_id, realization.host_id);
+  assert.equal(observation.resources[0].unreserved_units, 1);
+  await assert.rejects(() => join.line.observeLocalModelPool({
+    ...realization, boot_id: "boot/stale",
+  }), { code: "PoolRealization" });
   await assert.rejects(() => join.line.prepareRemote({ plan_id: "plan/too-early" }), { code: "BodyContextAbsent" });
   const context = {
     schema: "conduit.body/conversation-context-value@2",
@@ -114,6 +199,23 @@ test("Workspace may retain the authenticated joined Line until explicit close", 
   const installed = await join.line.installBodyContext(context);
   assert.equal(installed.body_id, context.body_id);
   assert.equal(installed.basis_revision, context.basis.revision);
+  await assert.rejects(() => join.line.preparePoolMember({
+    plan: { plan_id: "plan/retained" },
+    selection: { plan_id: "plan/retained", disposition: "CapacityRefused" },
+    consumerPlacementId: "placement/client",
+  }), { code: "PoolMemberSelection" });
+  const poolPrepared = await join.line.preparePoolMember({
+    plan: { plan_id: "plan/pool" },
+    selection: {
+      plan_id: "plan/pool", pool_id: "pool/workers", operation_id: "request/1",
+      selected_realization: 0, observation_sign_ids: ["sign/provider/1"],
+      disposition: "Selected", sign_id: "sign/selection/1",
+    },
+    consumerPlacementId: "placement/client",
+  });
+  assert.equal(poolPrepared.identity.plan_id, "plan/pool");
+  assert.equal(FakeWebSocket.last.sent.at(-1).kind, "prepare-pool-member");
+  await join.line.releaseRemote();
   const remote = await join.line.prepareRemote({ plan_id: "plan/retained" });
   assert.equal(remote.identity.host_id, "host/test");
   assert.equal(remote.identity.boot_id, "boot/test");
@@ -187,7 +289,23 @@ class FakeWebSocket extends EventTarget {
     } : request.kind === "body-context" ? {
       kind: "body-context-installed", protocol: 1,
       body_id: request.context.body_id, basis_revision: request.context.basis.revision,
-    } : request.kind === "prepare-remote" ? {
+    } : request.kind === "observe-local-model-pool" ? {
+      kind: "local-model-pool-observed", protocol: 1,
+      observation: {
+        host_id: request.realization.host_id, boot_id: request.realization.boot_id,
+        offer_generation: request.realization.offer_generation,
+        capability_id: request.realization.capability_id,
+        implementation_id: request.realization.implementation_id,
+        artifact_id: request.realization.artifact_id,
+        health: "Ready", sign_id: "sign/provider/current",
+        resources: request.realization.resources.map((binding, index) => ({
+          host_id: request.realization.host_id, boot_id: request.realization.boot_id,
+          offer_generation: request.realization.offer_generation,
+          pool_id: binding.pool_id, class_id: binding.class_id, health: "Ready",
+          unreserved_units: 1, utilized_units: 0, sign_id: `sign/resource/${index}`,
+        })),
+      },
+    } : request.kind === "prepare-remote" || request.kind === "prepare-pool-member" ? {
       kind: "remote-prepared", protocol: 1,
       identity: {
         host_id: advertisement.host_id, boot_id: advertisement.boot_id,

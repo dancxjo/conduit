@@ -1,8 +1,8 @@
 use crate::{CheckedCanonicalForm, CheckedGear};
 
 impl CheckedGear {
-    pub fn checked_front(&self) -> conduit_core::CheckedFace {
-        conduit_core::CheckedFace::new(
+    pub fn checked_front(&self) -> conduit_core::CheckedFront {
+        conduit_core::CheckedFront::new(
             self.startup_parameters.clone(),
             self.inputs.clone(),
             self.outputs.clone(),
@@ -12,7 +12,7 @@ impl CheckedGear {
 }
 
 impl CheckedCanonicalForm {
-    pub fn checked_front(&self) -> conduit_core::CheckedFace {
+    pub fn checked_front(&self) -> conduit_core::CheckedFront {
         self.runtime_front.clone()
     }
 }

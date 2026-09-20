@@ -265,7 +265,7 @@ fn execute_with_features(
         command.env(
             "RUSTFLAGS",
             format!(
-                "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib -C link-arg=-no-pie -C link-arg=-z -C link-arg=max-page-size=0x1000",
+                "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" --cfg chacha20_force_soft --cfg poly1305_force_soft -C linker={} -C link-arg=-T{} -C link-arg=--nostdlib -C link-arg=-no-pie -C link-arg=-z -C link-arg=max-page-size=0x1000",
                 linker.display(),
                 script.display()
             ),
@@ -285,7 +285,7 @@ fn execute_with_features(
     } else {
         command.env(
             "RUSTFLAGS",
-            "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" --cfg aes_force_soft --cfg polyval_force_soft",
+            "-C relocation-model=static -C panic=abort --cfg curve25519_dalek_backend=\"serial\" --cfg aes_force_soft --cfg polyval_force_soft --cfg chacha20_force_soft --cfg poly1305_force_soft",
         );
     }
     if let Some(fabrication) = fabrication {

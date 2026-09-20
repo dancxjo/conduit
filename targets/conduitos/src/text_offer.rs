@@ -134,7 +134,7 @@ pub(super) fn indicator(build_id: &str) -> CapabilityOffer<'_> {
 pub(super) fn characters(build_id: &str) -> CapabilityOffer<'_> {
     composition_leaf(
         build_id,
-        LeafFace {
+        LeafFront {
             kind: conduit_text::TEXT_CHARACTERS_KIND,
             input_name: "in",
             input_kind: conduit_text::TEXT_VALUE_KIND,
@@ -149,7 +149,7 @@ pub(super) fn characters(build_id: &str) -> CapabilityOffer<'_> {
 pub(super) fn morse_lookup(build_id: &str) -> CapabilityOffer<'_> {
     composition_leaf(
         build_id,
-        LeafFace {
+        LeafFront {
             kind: conduit_text::MORSE_LOOKUP_KIND,
             input_name: "in",
             input_kind: conduit_text::MORSE_CHARACTERS_VALUE_KIND,
@@ -164,7 +164,7 @@ pub(super) fn morse_lookup(build_id: &str) -> CapabilityOffer<'_> {
 pub(super) fn morse_intersperse(build_id: &str) -> CapabilityOffer<'_> {
     composition_leaf(
         build_id,
-        LeafFace {
+        LeafFront {
             kind: conduit_text::MORSE_INTERSPERSE_KIND,
             input_name: "in",
             input_kind: conduit_text::MORSE_SYMBOL_GROUPS_VALUE_KIND,
@@ -179,7 +179,7 @@ pub(super) fn morse_intersperse(build_id: &str) -> CapabilityOffer<'_> {
 pub(super) fn morse_flatten(build_id: &str) -> CapabilityOffer<'_> {
     composition_leaf(
         build_id,
-        LeafFace {
+        LeafFront {
             kind: conduit_text::MORSE_FLATTEN_KIND,
             input_name: "in",
             input_kind: conduit_text::MORSE_GAPPED_GROUPS_VALUE_KIND,
@@ -194,7 +194,7 @@ pub(super) fn morse_flatten(build_id: &str) -> CapabilityOffer<'_> {
 pub(super) fn morse_symbols_to_pattern(build_id: &str) -> CapabilityOffer<'_> {
     composition_leaf(
         build_id,
-        LeafFace {
+        LeafFront {
             kind: conduit_text::MORSE_SYMBOLS_TO_PATTERN_KIND,
             input_name: "in",
             input_kind: conduit_text::MORSE_SYMBOLS_VALUE_KIND,
@@ -206,7 +206,7 @@ pub(super) fn morse_symbols_to_pattern(build_id: &str) -> CapabilityOffer<'_> {
     )
 }
 
-struct LeafFace {
+struct LeafFront {
     kind: &'static str,
     input_name: &'static str,
     input_kind: &'static str,
@@ -217,7 +217,7 @@ struct LeafFace {
 
 fn composition_leaf<'a>(
     build_id: &'a str,
-    front: LeafFace,
+    front: LeafFront,
     implementation: &'static str,
 ) -> CapabilityOffer<'a> {
     CapabilityOffer {

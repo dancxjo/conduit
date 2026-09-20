@@ -25,12 +25,12 @@ fn offer() -> CapabilityOffer {
     let definition = conduit_net::ordered_record_queue_kind_definition();
     CapabilityOffer {
         startup_parameters: vec![
-            conduit_core::FaceStartupParameter {
+            conduit_core::FrontStartupParameter {
                 name: "maximum-items".into(),
                 value_type: "Count".into(),
                 has_default: true,
             },
-            conduit_core::FaceStartupParameter {
+            conduit_core::FrontStartupParameter {
                 name: "maximum-frame-bytes".into(),
                 value_type: "Count".into(),
                 has_default: true,

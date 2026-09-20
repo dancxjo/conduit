@@ -28,11 +28,11 @@ pub const PROVIDER_ENVELOPE_KIND: &str = "provider/openai-compatible-http-envelo
 pub const PROVIDER_RESPONSE_KIND: &str = "provider/openai-compatible-http-response";
 pub const PROVIDER_RESULT_KIND: &str = "provider/openai-compatible-result";
 pub const PROVIDER_HTTP_IMPLEMENTATION: &str = "provider/openai-compatible-http-client@1";
-pub const PROVIDER_HTTP_OPERATION: &str = "conduit.host/http-client-exchange@1";
+pub const PROVIDER_HTTP_OPERATION: &str = "conduit.host/http-client-exchange";
 pub const PROVIDER_ENDPOINT_AUTHORITY: &str = "conduit.authority/provider-endpoint@1";
 pub const PROVIDER_CREDENTIAL_CLASS: &str = "conduit.resource/protected-provider-credential@1";
 pub const PROVIDER_CREDENTIAL_ROLE: &str = "provider-credential";
-pub const PROVIDER_HTTP_RESOURCE: &str = "conduit.resource/network/http-client@1";
+pub const PROVIDER_HTTP_RESOURCE: &str = "conduit.resource/network/http-client";
 pub const MAXIMUM_PROVIDER_PROMPT_BYTES: usize = 1_024;
 pub const MAXIMUM_PROVIDER_OUTPUT_BYTES: usize = 1_024;
 

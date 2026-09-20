@@ -21,6 +21,7 @@ pub struct FiniteHostedVisionBase {
     last_frame: Option<usize>,
     last_observation: Option<ContinuousLocalVisionObservation>,
     motion_encoder: conduit_semantic_catalog::PreparedLocalVisionMotionEncoder,
+    object_encoder: conduit_semantic_catalog::PreparedLocalVisionObjectEncoder,
     minimum_motion_delta: u8,
     component_threshold: u8,
     minimum_component_area: u32,
@@ -42,18 +43,28 @@ impl FiniteHostedVisionBase {
             return Err(HostedVisionRefusal::InvalidOutput);
         }
         let provider = FiniteVisionProvider::new(frames)?;
+        let motion_encoder = conduit_semantic_catalog::PreparedLocalVisionMotionEncoder::new(
+            conduit_std_offers::LOCAL_VISION_IMPLEMENTATION,
+            provider_instance_id.clone(),
+            conduit_std_offers::LOCAL_VISION_ARTIFACT,
+        )
+        .map_err(|_| HostedVisionRefusal::InvalidOutput)?;
+        let object_encoder = conduit_semantic_catalog::PreparedLocalVisionObjectEncoder::new(
+            conduit_std_offers::LOCAL_VISION_IMPLEMENTATION,
+            provider_instance_id,
+            conduit_std_offers::LOCAL_VISION_ARTIFACT,
+            width,
+            height,
+        )
+        .map_err(|_| HostedVisionRefusal::InvalidOutput)?;
         Ok(Self {
             provider,
             workspace: ContinuousLocalVision::new(width, height, maximum_components)
                 .map_err(HostedVisionRefusal::LocalCv)?,
             last_frame: None,
             last_observation: None,
-            motion_encoder: conduit_semantic_catalog::PreparedLocalVisionMotionEncoder::new(
-                conduit_std_offers::LOCAL_VISION_IMPLEMENTATION,
-                provider_instance_id,
-                conduit_std_offers::LOCAL_VISION_ARTIFACT,
-            )
-            .map_err(|_| HostedVisionRefusal::InvalidOutput)?,
+            motion_encoder,
+            object_encoder,
             minimum_motion_delta: 32,
             component_threshold: 128,
             minimum_component_area: 2,
@@ -73,6 +84,13 @@ impl FiniteHostedVisionBase {
             .into_iter()
             .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::VISION_MOTION_KIND)
             .expect("reviewed local motion offer")
+    }
+
+    pub fn objects_offer() -> conduit_core::CapabilityOffer {
+        conduit_std_offers::local_vision_offers()
+            .into_iter()
+            .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::VISION_OBJECTS_KIND)
+            .expect("reviewed local objects offer")
     }
 
     pub(crate) fn execute_motion(
@@ -99,6 +117,34 @@ impl FiniteHostedVisionBase {
             .as_ref()
             .ok_or(HostedVisionRefusal::InvalidOutput)?;
         self.motion_encoder
+            .encode(input, observation, run_id)
+            .map_err(|_| HostedVisionRefusal::InvalidOutput)
+    }
+
+    pub(crate) fn execute_objects(
+        &mut self,
+        input: &[u8],
+        run_id: &str,
+    ) -> Result<&[u8], HostedVisionRefusal> {
+        let (frame_index, pixels) = self.provider.resolve_exact_canonical(input)?;
+        if self.last_frame != Some(frame_index) {
+            self.last_observation = Some(
+                self.workspace
+                    .observe(
+                        pixels,
+                        self.minimum_motion_delta,
+                        self.component_threshold,
+                        self.minimum_component_area,
+                    )
+                    .map_err(HostedVisionRefusal::LocalCv)?,
+            );
+            self.last_frame = Some(frame_index);
+        }
+        let observation = self
+            .last_observation
+            .as_ref()
+            .ok_or(HostedVisionRefusal::InvalidOutput)?;
+        self.object_encoder
             .encode(input, observation, run_id)
             .map_err(|_| HostedVisionRefusal::InvalidOutput)
     }
@@ -470,5 +516,46 @@ mod tests {
             &conduit_semantic_catalog::vision_motions_type()
         );
         assert_eq!(vision.storage().previous_pixels, 64 * 48);
+    }
+
+    #[test]
+    fn object_output_is_typed_and_reuses_the_exact_cached_observation() {
+        let image = deterministic_vision_fixture().unwrap().image;
+        let encoded = image.canonical_bytes().unwrap();
+        let mut pixels = vec![0; 64 * 48];
+        pixels[65] = 255;
+        pixels[66] = 255;
+        let mut vision = FiniteHostedVisionBase::new(
+            vec![HostedVisionFrame {
+                canonical_image: encoded.clone(),
+                resource: reference(&encoded),
+                width: 64,
+                height: 48,
+                grayscale_pixels: pixels,
+            }],
+            64,
+            48,
+            4,
+            "finite-image-residence/object-test",
+        )
+        .unwrap();
+        let objects = vision
+            .execute_objects(&encoded, "play/test/request-1")
+            .unwrap()
+            .to_vec();
+        let object_value = StructuredInfoValue::from_canonical_bytes(&objects).unwrap();
+        assert_eq!(
+            object_value.value_type(),
+            &conduit_semantic_catalog::local_vision_object_observations_type()
+        );
+        assert_eq!(record_field(&object_value, "source_image").unwrap(), &image);
+        assert_eq!(
+            count(record_field(&object_value, "sequence").unwrap()).unwrap(),
+            1
+        );
+        vision
+            .execute_motion(&encoded, "play/test/request-2")
+            .unwrap();
+        assert_eq!(vision.last_observation.unwrap().sequence, 1);
     }
 }

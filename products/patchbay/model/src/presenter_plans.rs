@@ -124,7 +124,7 @@ pub fn recursive_form_demonstration() -> Result<conduit_presentation::Presentati
 fn reviewed_back_front(
     back: &conduit_core::RealizationBack,
     startup: &StartupCatalog,
-) -> Result<conduit_core::CheckedFace, String> {
+) -> Result<conduit_core::CheckedFront, String> {
     for source in [
         conduit_semantic_catalog::PATCHBAY_ROOT_BACK_SOURCE,
         conduit_semantic_catalog::PATCHBAY_GEAR_FACE_BACK_SOURCE,
@@ -277,7 +277,7 @@ fn host(
 fn text_literal_fixture_offer(implementation: &str) -> conduit_core::CapabilityOffer {
     let contract = conduit_text::text_literal_semantics();
     conduit_core::CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
+        startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "value".into(),
             value_type: "Text".into(),
             has_default: false,

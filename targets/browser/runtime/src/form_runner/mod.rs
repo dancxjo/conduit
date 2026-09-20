@@ -10,12 +10,14 @@ mod gallery;
 mod host_abi;
 mod host_outcomes;
 mod multihost;
+mod pool_member_client_abi;
 mod protocol;
 mod remote_execution;
 mod session_cancellation;
 mod session_effects;
 mod session_projection;
 mod session_signs;
+mod shared_pool_abi;
 #[cfg(feature = "creche-surface")]
 pub(crate) mod workspace;
 

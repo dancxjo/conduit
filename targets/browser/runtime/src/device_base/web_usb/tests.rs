@@ -3,7 +3,7 @@ use super::*;
 fn configuration() -> UsbConfiguration {
     UsbConfiguration {
         configuration_value: 1,
-        interfront_number: 2,
+        interface_number: 2,
         alternate_setting: 0,
         in_endpoint: 3,
         out_endpoint: 4,
@@ -128,7 +128,7 @@ fn explicit_acquisition_yields_exact_resource_then_bounded_use() {
         resource.base_implementation_id.as_str(),
         USB_BASE_IMPLEMENTATION
     );
-    assert_eq!(resource.configuration.interfront_number, 2);
+    assert_eq!(resource.configuration.interface_number, 2);
     session
         .begin_transfer(UsbTransferKind::Bulk, UsbTransferDirection::Out, None)
         .unwrap();

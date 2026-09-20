@@ -3,7 +3,7 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FaceStartupParameter, ImplementationId, ImplementationOffer,
+    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer,
     KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
 };
 
@@ -66,7 +66,7 @@ pub fn hybrid_retrieval_contract() -> HybridRetrievalContract {
     }
 }
 
-pub fn hybrid_retrieval_startup_parameters() -> Vec<FaceStartupParameter> {
+pub fn hybrid_retrieval_startup_parameters() -> Vec<FrontStartupParameter> {
     [
         ("policy", "Text"),
         ("strategy", "Text"),
@@ -77,7 +77,7 @@ pub fn hybrid_retrieval_startup_parameters() -> Vec<FaceStartupParameter> {
         ("maximum-work-units", "Count"),
     ]
     .into_iter()
-    .map(|(name, value_type)| FaceStartupParameter {
+    .map(|(name, value_type)| FrontStartupParameter {
         name: name.into(),
         value_type: value_type.into(),
         has_default: true,

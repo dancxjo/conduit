@@ -49,6 +49,7 @@ pub(super) fn prepare_scheduler(
 pub(in crate::form_runner) struct ApplicationPreparation<'a> {
     pub plan: &'a conduit_body::BodyPlan,
     pub active_play_id: &'a conduit_core::ActivePlayId,
+    pub body_evidence: Option<&'a conduit_body::BodyBiographyEvidence>,
     pub source: &'a str,
     pub foreground_checked_form_id: &'a str,
 }
@@ -206,6 +207,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
                     placement,
                     context.plan,
                     context.active_play_id,
+                    context.body_evidence,
                     context.source,
                     context.foreground_checked_form_id,
                 )?

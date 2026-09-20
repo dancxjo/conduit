@@ -5,12 +5,22 @@
 
 use crate::{
     characteristic, execution_fusion, hash_bytes, plan_realization, push_resource_binding,
-    push_string, push_u32, push_u64, AdmittedLine, BoundLink, CancellationPolicy, CheckedFace,
+    push_string, push_u32, push_u64, AdmittedLine, BoundLink, CancellationPolicy, CheckedFront,
     ConfigurationValue, ExpectedSign, ExpectedTerminal, FormIdentity, FragmentCommitment,
     FragmentId, LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId,
     PortDescriptor, PortDirection, PortTemporal, RealizationBack, TerminalPolicy,
 };
 use alloc::vec::Vec;
+
+fn push_optional_string(canonical: &mut Vec<u8>, value: Option<&str>) {
+    match value {
+        Some(value) => {
+            canonical.push(1);
+            push_string(canonical, value);
+        }
+        None => canonical.push(0),
+    }
+}
 
 pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     let mut canonical = Vec::new();
@@ -174,17 +184,53 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_u32(&mut canonical, pool.member_limits.queue_byte_capacity);
         canonical.extend_from_slice(&pool.member_limits.sign_item_capacity.to_le_bytes());
         push_u32(&mut canonical, pool.member_limits.sign_byte_capacity);
+        canonical.push(u8::from(pool.member_sessions_required));
+        canonical.push(match pool.selection_policy {
+            crate::SharedPoolSelectionPolicy::MoreUnreservedThenLessUtilizedThenPlanOrder => 0,
+        });
         push_u32(&mut canonical, pool.realization_envelope.len() as u32);
         for realization in &pool.realization_envelope {
             push_string(&mut canonical, realization.host_id.as_str());
             push_string(&mut canonical, realization.boot_id.as_str());
+            canonical.extend_from_slice(&realization.offer_generation.0.to_le_bytes());
             push_string(&mut canonical, realization.capability_id.as_str());
+            push_string(&mut canonical, realization.implementation_id.as_str());
+            push_string(&mut canonical, realization.artifact_id.as_str());
             canonical.extend_from_slice(&realization.member_capacity.to_le_bytes());
             push_u32(&mut canonical, realization.resources.len() as u32);
             for resource in &realization.resources {
                 push_string(&mut canonical, resource.pool_id.as_str());
                 push_string(&mut canonical, resource.class_id.as_str());
                 push_u32(&mut canonical, resource.units);
+                match &resource.compute {
+                    None => canonical.push(0),
+                    Some(compute) => {
+                        canonical.push(1);
+                        push_u32(&mut canonical, compute.selected_lanes);
+                        canonical.push(compute.service_guarantee as u8);
+                        push_string(&mut canonical, compute.architecture_base_id.as_str());
+                        canonical.push(compute.architecture_base_kind as u8);
+                        push_optional_string(
+                            &mut canonical,
+                            compute.topology_group_id.as_ref().map(|id| id.as_str()),
+                        );
+                        push_optional_string(
+                            &mut canonical,
+                            compute.performance_class.as_ref().map(|id| id.as_str()),
+                        );
+                        match compute.nominal_clock_hz {
+                            Some(value) => {
+                                canonical.push(1);
+                                canonical.extend_from_slice(&value.to_le_bytes());
+                            }
+                            None => canonical.push(0),
+                        }
+                    }
+                }
+            }
+            push_u32(&mut canonical, realization.admitted_lines.len() as u32);
+            for line in &realization.admitted_lines {
+                push_admitted_line(&mut canonical, line);
             }
         }
         push_string(&mut canonical, pool.admission_authority.as_str());
@@ -252,7 +298,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     FragmentId::from(hash_bytes(&canonical))
 }
 
-fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFace) {
+fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
     push_u32(canonical, front.startup_parameters().len() as u32);
     for parameter in front.startup_parameters() {
         push_string(canonical, &parameter.name);

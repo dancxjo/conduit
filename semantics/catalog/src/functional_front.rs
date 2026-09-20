@@ -3,7 +3,7 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use conduit_core::{
     ArtifactId, AuthorityRequirement, CapabilityId, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, FaceStartupParameter, HostOperationRequirement, ImplementationId,
+    ExecutionProfileId, FrontStartupParameter, HostOperationRequirement, ImplementationId,
     KindContractRevision, ResourceRequirement,
 };
 
@@ -46,10 +46,10 @@ pub fn realization_offer(
     }
 }
 
-pub fn startup_front(fields: &[StandardConfigurationField]) -> Vec<FaceStartupParameter> {
+pub fn startup_front(fields: &[StandardConfigurationField]) -> Vec<FrontStartupParameter> {
     fields
         .iter()
-        .map(|field| FaceStartupParameter {
+        .map(|field| FrontStartupParameter {
             name: field.key.clone(),
             value_type: match field.default_value {
                 ConfigurationValue::Bool(_) => "Boolean",

@@ -2,7 +2,7 @@
 
 use conduit_core::{
     monotonic_timer_host_operation_requirement, monotonic_timer_resource_requirement, ArtifactId,
-    CapabilityId, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
+    CapabilityId, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
     HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
     TIMER_RESOURCE_CLASS,
 };
@@ -22,17 +22,17 @@ pub fn offer() -> CapabilityOffer {
     deadline.target_kind = Some(contract.kind_id.clone());
     CapabilityOffer {
         startup_parameters: vec![
-            FaceStartupParameter {
+            FrontStartupParameter {
                 name: "maximum-transitions".into(),
                 value_type: "Count".into(),
                 has_default: true,
             },
-            FaceStartupParameter {
+            FrontStartupParameter {
                 name: "maximum-presses".into(),
                 value_type: "Count".into(),
                 has_default: true,
             },
-            FaceStartupParameter {
+            FrontStartupParameter {
                 name: "timeout-ms".into(),
                 value_type: "Duration".into(),
                 has_default: true,

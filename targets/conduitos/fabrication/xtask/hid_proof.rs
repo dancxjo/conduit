@@ -12,7 +12,7 @@ use super::{
 };
 
 const NEGATIVE_CASES: [&str; 12] = [
-    "hid-interfront-absent-or-not-boot",
+    "hid-interface-absent-or-not-boot",
     "mouse-protocol",
     "missing-invalid-or-ambiguous-interrupt-in",
     "unsupported-packet-size",

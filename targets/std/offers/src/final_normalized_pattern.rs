@@ -1,7 +1,7 @@
 //! Allocation-free std-kernel realization of final normalized-pattern selection.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
+    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
     ImplementationId, ImplementationOffer,
 };
 
@@ -14,7 +14,7 @@ pub const FINAL_NORMALIZED_PATTERN_STD_ARTIFACT: &str =
 pub fn final_normalized_pattern_std_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::final_normalized_pattern_definition();
     CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: "maximum-values".into(),
             value_type: "Count".into(),
             has_default: true,

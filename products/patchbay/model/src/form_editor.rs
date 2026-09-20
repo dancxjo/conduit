@@ -41,7 +41,7 @@ pub struct GraphItem {
 pub struct GraphForm {
     pub name: String,
     pub checked_form_id: conduit_core::CheckedFormId,
-    pub front: conduit_core::CheckedFace,
+    pub front: conduit_core::CheckedFront,
     pub source_span: Span,
     pub items: Vec<GraphItem>,
     pub cords: Vec<GraphCord>,
@@ -292,7 +292,7 @@ impl FormEditor {
                 .inputs()
                 .iter()
                 .cloned()
-                .map(|descriptor| crate::PatchbayFacePort {
+                .map(|descriptor| crate::PatchbayFrontPort {
                     identity: format!(
                         "composition/{gear_name}/input/{}",
                         descriptor.port_id.as_str()
@@ -305,7 +305,7 @@ impl FormEditor {
                 .outputs()
                 .iter()
                 .cloned()
-                .map(|descriptor| crate::PatchbayFacePort {
+                .map(|descriptor| crate::PatchbayFrontPort {
                     identity: format!(
                         "composition/{gear_name}/output/{}",
                         descriptor.port_id.as_str()
@@ -313,7 +313,7 @@ impl FormEditor {
                     descriptor,
                 })
                 .collect::<Vec<_>>();
-            let translated_port = |binding: &conduit_form::AuthoringFaceBinding, direction| {
+            let translated_port = |binding: &conduit_form::AuthoringFrontBinding, direction| {
                 let suffix = binding
                     .gear_id
                     .as_str()

@@ -9,8 +9,8 @@ use std::path::{Component, Path, PathBuf};
 const SCHEMA: &str = "conduit.evidence/home-front@1";
 const INDEX_SCHEMA: &str = "conduit.evidence/home-cross-front-index@1";
 const VOICE_ARTIFACT_SCHEMA: &str = "conduit.home/voice-front@1";
-const MAXIMUM_FACE_ARTIFACT_BYTES: usize = 2 * 1024 * 1024;
-const REQUIRED_FACES: [&str; 6] = [
+const MAXIMUM_FRONT_ARTIFACT_BYTES: usize = 2 * 1024 * 1024;
+const REQUIRED_FRONTS: [&str; 6] = [
     "conduitos",
     "linux-native",
     "windows-native",
@@ -21,7 +21,7 @@ const REQUIRED_FACES: [&str; 6] = [
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct HomeFaceReceipt {
+struct HomeFrontReceipt {
     schema: String,
     front_id: String,
     proof_class: String,
@@ -56,11 +56,11 @@ struct VoiceJourneyArtifact {
 }
 
 #[derive(Debug, Serialize)]
-struct HomeCrossFaceIndex {
+struct HomeCrossFrontIndex {
     schema: &'static str,
     disposition: &'static str,
     shared_step_ids: Vec<&'static str>,
-    fronts: Vec<HomeFaceReceipt>,
+    fronts: Vec<HomeFrontReceipt>,
 }
 
 pub(super) fn run(
@@ -76,14 +76,14 @@ pub(super) fn run(
         verify_artifact(receipt, source)?;
     }
     receipts.sort_by_key(|receipt| {
-        REQUIRED_FACES
+        REQUIRED_FRONTS
             .iter()
             .position(|front| *front == receipt.front_id)
             .unwrap_or(usize::MAX)
     });
     let parent = output.parent().ok_or("Home index output has no parent")?;
     std::fs::create_dir_all(parent)?;
-    let bytes = serde_json::to_vec_pretty(&HomeCrossFaceIndex {
+    let bytes = serde_json::to_vec_pretty(&HomeCrossFrontIndex {
         schema: INDEX_SCHEMA,
         disposition: "complete",
         shared_step_ids: JOURNEY_STEP_IDS.to_vec(),
@@ -99,12 +99,12 @@ pub(super) fn run(
     Ok(())
 }
 
-fn read_receipt(path: &Path) -> Result<HomeFaceReceipt, String> {
+fn read_receipt(path: &Path) -> Result<HomeFrontReceipt, String> {
     let bytes = std::fs::read(path).map_err(|error| format!("read {}: {error}", path.display()))?;
     serde_json::from_slice(&bytes).map_err(|error| format!("decode {}: {error}", path.display()))
 }
 
-fn verify_artifact(receipt: &HomeFaceReceipt, source: &Path) -> Result<(), String> {
+fn verify_artifact(receipt: &HomeFrontReceipt, source: &Path) -> Result<(), String> {
     let relative = Path::new(&receipt.artifact_path);
     if relative.is_absolute()
         || relative
@@ -127,7 +127,7 @@ fn verify_artifact(receipt: &HomeFaceReceipt, source: &Path) -> Result<(), Strin
             artifact.display()
         )
     })?;
-    if bytes.is_empty() || bytes.len() > MAXIMUM_FACE_ARTIFACT_BYTES {
+    if bytes.is_empty() || bytes.len() > MAXIMUM_FRONT_ARTIFACT_BYTES {
         return Err(format!(
             "{} artifact violates its byte bound",
             receipt.front_id
@@ -165,11 +165,11 @@ fn verify_complete_voice_journey(bytes: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-fn validate(receipts: &[HomeFaceReceipt]) -> Result<(), String> {
-    if receipts.len() != REQUIRED_FACES.len() {
+fn validate(receipts: &[HomeFrontReceipt]) -> Result<(), String> {
+    if receipts.len() != REQUIRED_FRONTS.len() {
         return Err(format!(
             "Home cross-front index requires exactly {} receipts",
-            REQUIRED_FACES.len()
+            REQUIRED_FRONTS.len()
         ));
     }
     let expected_steps = JOURNEY_STEP_IDS
@@ -184,7 +184,8 @@ fn validate(receipts: &[HomeFaceReceipt]) -> Result<(), String> {
         if receipt.schema != SCHEMA {
             return Err(format!("{} has the wrong receipt schema", receipt.front_id));
         }
-        if !REQUIRED_FACES.contains(&receipt.front_id.as_str()) || !fronts.insert(&receipt.front_id)
+        if !REQUIRED_FRONTS.contains(&receipt.front_id.as_str())
+            || !fronts.insert(&receipt.front_id)
         {
             return Err(format!(
                 "unknown or duplicate Home front {}",
@@ -250,7 +251,7 @@ fn validate(receipts: &[HomeFaceReceipt]) -> Result<(), String> {
         .iter()
         .map(|front| front.as_str())
         .collect::<BTreeSet<_>>()
-        != REQUIRED_FACES.into_iter().collect()
+        != REQUIRED_FRONTS.into_iter().collect()
     {
         return Err("Home cross-front index is missing a required front".into());
     }
@@ -267,8 +268,8 @@ fn valid_sha256(value: &str) -> bool {
 mod tests {
     use super::*;
 
-    fn receipt(front_id: &str, index: usize) -> HomeFaceReceipt {
-        HomeFaceReceipt {
+    fn receipt(front_id: &str, index: usize) -> HomeFrontReceipt {
+        HomeFrontReceipt {
             schema: SCHEMA.into(),
             front_id: front_id.into(),
             proof_class: "fixture".into(),
@@ -291,8 +292,8 @@ mod tests {
         }
     }
 
-    fn complete() -> Vec<HomeFaceReceipt> {
-        REQUIRED_FACES
+    fn complete() -> Vec<HomeFrontReceipt> {
+        REQUIRED_FRONTS
             .iter()
             .enumerate()
             .map(|(index, front)| receipt(front, index))

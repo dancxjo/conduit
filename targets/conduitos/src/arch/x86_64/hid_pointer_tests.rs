@@ -11,7 +11,7 @@ fn pointer_device() -> UsbDevice {
     )
     .unwrap();
     device.dma_slot = 1;
-    device.interfront_count = 1;
+    device.interface_count = 1;
     device.interfaces[0] = UsbInterface {
         number: 0,
         alternate_setting: 0,
@@ -23,7 +23,7 @@ fn pointer_device() -> UsbDevice {
     };
     device.endpoint_count = 1;
     device.endpoints[0] = UsbEndpoint {
-        interfront_index: 0,
+        interface_index: 0,
         address: 0x81,
         direction_in: true,
         transfer_type: 3,
@@ -34,7 +34,7 @@ fn pointer_device() -> UsbDevice {
 }
 
 #[test]
-fn exact_boot_pointer_interfront_and_endpoint_match() {
+fn exact_boot_pointer_interface_and_endpoint_match() {
     let device = pointer_device();
     let (interface, endpoint) = match_pointer(&device).unwrap();
     assert_eq!(interface.protocol, 2);
@@ -177,7 +177,7 @@ fn transfer_positions_reuse_fixed_pointer_slots_across_sixteen_wraps() {
 #[test]
 fn physical_wrap_accounting_is_independent_of_portable_sequence() {
     let ready = HidPointerReady {
-        interfront_number: 0,
+        interface_number: 0,
         endpoint_address: 0x81,
         endpoint_dci: 3,
         endpoint_interval: 7,

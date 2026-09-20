@@ -103,8 +103,12 @@ pub mod pointer_offer;
 #[path = "presentation_nucleus/offers.rs"]
 mod presentation_offers;
 pub mod protected_line_support;
+#[cfg(feature = "virtio-net-proof")]
+pub mod protected_relay_support;
 pub mod protection_domain;
 pub mod rendezvous_descriptor;
+#[cfg(feature = "virtio-net-proof")]
+pub mod secure_rendezvous_support;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod usb_line_offer;
 #[cfg(any(test, target_arch = "x86_64"))]
@@ -122,6 +126,8 @@ pub mod virtio_tls;
     any(feature = "virtio-net-proof", feature = "hosted-tools")
 ))]
 pub mod virtio_tls_fixture;
+#[cfg(feature = "virtio-net-proof")]
+mod wss_candidate_support;
 // Product entrances remain out of A0-A4 proof appliances. Non-x86_64 targets
 // admit these modules only through distinct PROFILE-selected product features.
 #[cfg(any(

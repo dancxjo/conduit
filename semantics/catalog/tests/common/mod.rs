@@ -4,7 +4,7 @@
 
 use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
+    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
     HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
     KindContractRevision, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
 };
@@ -123,7 +123,7 @@ pub fn proof_domain_offer(
 pub fn recurrence_proof_offer() -> CapabilityOffer {
     let result = conduit_semantic_catalog::recurrence_result_type();
     CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: "request".into(),
             value_type: conduit_semantic_catalog::RECURRENCE_REQUEST_TYPE.into(),
             has_default: false,

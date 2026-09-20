@@ -26,16 +26,16 @@ pub use conduit_semantic_catalog::{
     STATE_TOGGLE_CONTRACT_REVISION as TOGGLE_CONTRACT_REVISION, STATE_TOGGLE_KIND as TOGGLE_KIND,
 };
 
-pub fn trigger_front_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
-    vec![conduit_core::FaceStartupParameter {
+pub fn trigger_front_startup_parameters() -> Vec<conduit_core::FrontStartupParameter> {
+    vec![conduit_core::FrontStartupParameter {
         name: "count".to_string(),
         value_type: "Count".to_string(),
         has_default: true,
     }]
 }
 
-pub fn toggle_front_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
-    vec![conduit_core::FaceStartupParameter {
+pub fn toggle_front_startup_parameters() -> Vec<conduit_core::FrontStartupParameter> {
+    vec![conduit_core::FrontStartupParameter {
         name: "initial".to_string(),
         value_type: "Boolean".to_string(),
         has_default: true,

@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::{FormCompletionPolicy, RuntimePort, Span};
 use alloc::collections::BTreeMap;
-use conduit_core::{CheckedFace, CheckedFormId, ExpandedFormId, SourceDocumentId};
+use conduit_core::{CheckedFormId, CheckedFront, ExpandedFormId, SourceDocumentId};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StartupParameterSignature {
@@ -168,7 +168,7 @@ pub struct CheckedCanonicalCord {
 pub struct CheckedPoolDeclaration {
     pub name: String,
     pub member_form: String,
-    pub member_front: CheckedFace,
+    pub member_front: CheckedFront,
     pub maximum_members: u16,
 }
 
@@ -179,7 +179,7 @@ pub struct CheckedCanonicalForm {
     pub completion: FormCompletionPolicy,
     pub startup_parameters: Vec<CheckedStartupParameter>,
     pub runtime_ports: Vec<RuntimePort>,
-    pub runtime_front: CheckedFace,
+    pub runtime_front: CheckedFront,
     pub shorthand: Option<(String, String)>,
     pub local_values: Vec<(String, CanonicalStartupValue)>,
     pub pools: Vec<CheckedPoolDeclaration>,
@@ -224,13 +224,13 @@ pub struct ExpandedCanonicalForm {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExpandedAuthoringForm {
     pub expanded: ExpandedCanonicalForm,
-    pub front: CheckedFace,
-    pub input_bindings: Vec<AuthoringFaceBinding>,
-    pub output_bindings: Vec<AuthoringFaceBinding>,
+    pub front: CheckedFront,
+    pub input_bindings: Vec<AuthoringFrontBinding>,
+    pub output_bindings: Vec<AuthoringFrontBinding>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AuthoringFaceBinding {
+pub struct AuthoringFrontBinding {
     pub front_port_id: conduit_core::PortId,
     pub gear_id: conduit_core::GearId,
     pub gear_port_id: conduit_core::PortId,
@@ -240,7 +240,7 @@ pub struct AuthoringFaceBinding {
 pub struct ExpandedSharedPool {
     pub pool_id: conduit_core::SharedPoolId,
     pub declaration_id: conduit_core::PoolDeclarationId,
-    pub member_front: CheckedFace,
+    pub member_front: CheckedFront,
     pub maximum_members: u16,
     pub consumers: Vec<conduit_core::GearId>,
 }
@@ -285,7 +285,7 @@ pub(crate) enum SyntaxCheckError {
     UnsupportedKind(String),
     DuplicateGear(String),
     UnsupportedExpression(String),
-    AmbiguousFaceName(String),
+    AmbiguousFrontName(String),
     StructuredExpression(String, Option<Span>),
 }
 
@@ -347,7 +347,7 @@ impl SyntaxCheckError {
                 format!("unsupported pure startup expression '{expression}'"),
                 None,
             ),
-            Self::AmbiguousFaceName(name) => (
+            Self::AmbiguousFrontName(name) => (
                 "CND-FRM-050",
                 format!("front name '{name}' is duplicated or ambiguously shadowed"),
                 None,

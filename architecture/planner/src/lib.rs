@@ -787,7 +787,7 @@ fn validate_operation_capability(
     capability: &conduit_core::CapabilityOffer,
 ) -> Result<(), PlannerError> {
     if capability.checked_front() != gear.checked_front() {
-        return Err(PlannerError::IncompatibleCheckedFace(format!(
+        return Err(PlannerError::IncompatibleCheckedFront(format!(
             "gear '{}' front differs from capability '{}' front",
             gear.gear_id.as_str(),
             capability.capability_id.as_str()

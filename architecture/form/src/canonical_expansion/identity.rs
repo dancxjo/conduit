@@ -9,7 +9,7 @@ impl ExpandedCanonicalForm {
             completion: self.completion,
             startup_parameters: vec![],
             runtime_ports: Vec::new(),
-            runtime_front: conduit_core::CheckedFace::new(vec![], vec![], vec![], None),
+            runtime_front: conduit_core::CheckedFront::new(vec![], vec![], vec![], None),
             shorthand: None,
             local_values: Vec::new(),
             pools: Vec::new(),

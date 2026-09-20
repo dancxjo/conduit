@@ -5,7 +5,7 @@
 //! the Body-side admission manager.
 
 use conduit_body::{BodyConversationContext, MembershipCredential, SpawnInvitationClaim};
-use conduit_core::HostAdvertisement;
+use conduit_core::{HostAdvertisement, PoolRealizationEnvelope, PoolRealizationObservation};
 use conduit_std_host::websocket::{
     NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener,
 };
@@ -19,6 +19,9 @@ use crate::cli::RendezvousCarrier;
 
 mod secure;
 pub(crate) use secure::SecureNetworkOptions;
+mod relay;
+#[cfg(test)]
+pub(crate) use relay::validate_endpoint_descriptor as validate_relay_endpoint_descriptor;
 
 const PROTOCOL: u16 = 1;
 const MAXIMUM_FRAME_BYTES: usize = 96 * 1024;
@@ -152,12 +155,22 @@ enum Ingress {
         protocol: u16,
         context: BodyConversationContext,
     },
+    ObserveLocalModelPool {
+        protocol: u16,
+        realization: PoolRealizationEnvelope,
+    },
     Close {
         protocol: u16,
     },
     PrepareRemote {
         protocol: u16,
         plan: Box<conduit_core::Plan>,
+    },
+    PreparePoolMember {
+        protocol: u16,
+        plan: Box<conduit_core::Plan>,
+        selection: conduit_core::PoolSelectionEvidence,
+        consumer_placement_id: conduit_core::PlacementId,
     },
     ReleaseRemote {
         protocol: u16,
@@ -198,6 +211,10 @@ enum Egress<'a> {
         body_id: &'a str,
         basis_revision: u64,
     },
+    LocalModelPoolObserved {
+        protocol: u16,
+        observation: &'a PoolRealizationObservation,
+    },
     RemotePrepared {
         protocol: u16,
         identity: &'a conduit_core::ActivePlayIdentity,
@@ -217,11 +234,17 @@ pub(crate) fn serve(
     carrier: RendezvousCarrier,
     timeout_seconds: u64,
     secure: SecureNetworkOptions,
+    relay_descriptor: Option<&Path>,
 ) -> Result<(), String> {
     match carrier {
         RendezvousCarrier::Websocket => serve_websocket(state_dir, timeout_seconds),
         RendezvousCarrier::SecureWebsocket => secure::serve(state_dir, timeout_seconds, secure),
         RendezvousCarrier::Serial => serve_serial(state_dir),
+        RendezvousCarrier::Relay => relay::connect(
+            state_dir,
+            relay_descriptor
+                .ok_or_else(|| "relay rendezvous requires --relay-descriptor".to_string())?,
+        ),
     }
 }
 
@@ -457,6 +480,22 @@ fn run_session_with_join(
                 )?;
                 body_context_installed = true;
             }
+            JoinedIngress::Control(Ingress::ObserveLocalModelPool {
+                protocol,
+                realization,
+            }) if protocol == PROTOCOL && membership_retained => {
+                let observation = crate::durable_host_control::observe_local_model_pool(
+                    state_dir,
+                    realization,
+                )?;
+                send(
+                    line,
+                    &Egress::LocalModelPoolObserved {
+                        protocol: PROTOCOL,
+                        observation: &observation,
+                    },
+                )?;
+            }
             JoinedIngress::Control(Ingress::PrepareRemote { protocol, plan })
                 if protocol == PROTOCOL && membership_retained && body_context_installed =>
             {
@@ -467,6 +506,32 @@ fn run_session_with_join(
                     state_dir,
                     &truth.advertisement,
                     *plan,
+                )?;
+                send(
+                    line,
+                    &Egress::RemotePrepared {
+                        protocol: PROTOCOL,
+                        identity: &preparation.identity,
+                        hello_frames: &preparation.hello_frames,
+                    },
+                )?;
+                remote_prepared = Some(preparation.identity);
+            }
+            JoinedIngress::Control(Ingress::PreparePoolMember {
+                protocol,
+                plan,
+                selection,
+                consumer_placement_id,
+            }) if protocol == PROTOCOL && membership_retained && body_context_installed => {
+                if remote_prepared.is_some() {
+                    return Err("joined Host Line already owns one remote Play".into());
+                }
+                let preparation = crate::durable_host_control::prepare_pool_member(
+                    state_dir,
+                    &truth.advertisement,
+                    *plan,
+                    selection,
+                    consumer_placement_id,
                 )?;
                 send(
                     line,
@@ -749,6 +814,35 @@ mod tests {
         assert!(matches!(
             receive_joined(&mut line).unwrap(),
             JoinedIngress::Control(Ingress::Close { protocol: PROTOCOL })
+        ));
+    }
+
+    #[test]
+    fn joined_line_decodes_one_bounded_model_pool_observation_request() {
+        let request = serde_json::json!({
+            "kind": "observe-local-model-pool",
+            "protocol": PROTOCOL,
+            "realization": {
+                "host_id": "host/model-a",
+                "boot_id": "boot/model-a/1",
+                "offer_generation": 2,
+                "capability_id": "capability/model-a/generate",
+                "implementation_id": "std/local-model@1",
+                "artifact_id": "model/sha256-a",
+                "member_capacity": 1,
+                "resources": []
+            }
+        });
+        let mut line = MemoryLine {
+            incoming: VecDeque::from([serde_json::to_vec(&request).unwrap()]),
+        };
+        assert!(matches!(
+            receive_joined(&mut line).unwrap(),
+            JoinedIngress::Control(Ingress::ObserveLocalModelPool {
+                protocol: PROTOCOL,
+                realization,
+            }) if realization.host_id.as_str() == "host/model-a"
+                && realization.boot_id.as_str() == "boot/model-a/1"
         ));
     }
 }

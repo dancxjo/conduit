@@ -83,7 +83,7 @@ pub fn completed_snapshot(
     for (id, kind, capacity) in [
         (keyboard.controller_id, "xhci", 1_u64),
         (keyboard.device_id, "usb-device", 1),
-        (keyboard.interfront_id, "usb-interface", 1),
+        (keyboard.interface_id, "usb-interface", 1),
         (
             keyboard.endpoint_id,
             "usb-interrupt-endpoint",

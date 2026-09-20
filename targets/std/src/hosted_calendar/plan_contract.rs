@@ -187,7 +187,7 @@ fn offer(
         _ => unreachable!("reviewed calendar contract input shape"),
     };
     CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
+        startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "request".into(),
             value_type: contract.request_type_name.into(),
             has_default: false,

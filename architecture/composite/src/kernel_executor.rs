@@ -24,7 +24,7 @@ pub enum KernelCompositeError {
     InvalidBoundary(String),
     ChildRefused { child: HostId, reason: String },
     Execution { child: HostId, reason: String },
-    UnknownFace(PortId),
+    UnknownFront(PortId),
     StaleChild(HostId),
     MalformedBoundary(PortId),
     InvalidLifecycle,
@@ -362,7 +362,7 @@ impl KernelCompositeHost {
         self.fronts
             .get(port_id)
             .filter(|route| route.direction == direction)
-            .ok_or_else(|| KernelCompositeError::UnknownFace(port_id.clone()))
+            .ok_or_else(|| KernelCompositeError::UnknownFront(port_id.clone()))
     }
 
     fn require_started(&self) -> Result<(), KernelCompositeError> {

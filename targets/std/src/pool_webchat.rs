@@ -99,6 +99,7 @@ fn planned_pool() -> Result<(String, conduit_plan_lowering::lowering::LoweredSha
                 sign_byte_capacity: 1_024,
             },
             admission_authority: authority.clone(),
+            member_sessions_required: false,
         },
     )]);
     let empty_bases = BTreeMap::new();

@@ -228,7 +228,7 @@ fn offer(
 ) -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: if identity.kind == SINK_KIND {
-            vec![conduit_core::FaceStartupParameter {
+            vec![conduit_core::FrontStartupParameter {
                 name: "expected".into(),
                 value_type: "Count".into(),
                 has_default: true,

@@ -4,7 +4,10 @@ use conduit_ai::{
     LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy, LocalModelIdentity,
     LocalModelKindProfile, LocalModelLifecycleState, LocalModelLimits, LocalModelOffer,
 };
-use conduit_core::{BootId, HostId, OfferGeneration};
+use conduit_core::{
+    BootId, HostId, OfferGeneration, PoolRealizationEnvelope, PoolRealizationHealth,
+    ResourceBinding, SignId,
+};
 use conduit_form::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
 use std::collections::BTreeMap;
 
@@ -19,6 +22,10 @@ impl HostedLocalModelAdapter for FakeLocalModel {
         &self.offer
     }
 
+    fn current_pool_health(&self) -> PoolRealizationHealth {
+        PoolRealizationHealth::Ready
+    }
+
     fn execute(
         &mut self,
         placement: &PlannedGear,
@@ -26,6 +33,11 @@ impl HostedLocalModelAdapter for FakeLocalModel {
         output: &mut Vec<u8>,
     ) -> LocalModelAdapterTerminal {
         output.clear();
+        if placement.kind_id.as_str() == conduit_ai::GENERATE_TEXT_KIND {
+            output.extend_from_slice(b"The upstairs temperature is 21 degrees Celsius.");
+            self.calls.push(placement.kind_id.as_str().into());
+            return self.terminal;
+        }
         let encoded = match placement.kind_id.as_str() {
             conduit_ai::LLM_GENERATE_KIND => {
                 b"The upstairs temperature is 21 degrees Celsius.".to_vec()
@@ -199,7 +211,12 @@ fn only_initialized_adapter_capabilities_enter_the_host_advertisement() {
                 == conduit_ai::LOCAL_MODEL_IMPLEMENTATION
         })
         .collect::<Vec<_>>();
-    assert_eq!(local.len(), 2);
+    assert_eq!(local.len(), 3);
+    assert!(local.iter().any(|capability| {
+        capability.kind_id.as_str() == conduit_ai::GENERATE_TEXT_KIND
+            && capability.inputs == conduit_ai::generate_text_contract().inputs
+            && capability.outputs == conduit_ai::generate_text_contract().outputs
+    }));
     assert!(host.advertisement().capabilities.iter().any(|capability| {
         capability.implementation.implementation_id.as_str()
             == conduit_std_offers::HOUSE_PROMPT_STD_IMPLEMENTATION
@@ -232,6 +249,84 @@ fn only_initialized_adapter_capabilities_enter_the_host_advertisement() {
 }
 
 #[test]
+fn local_model_pool_observation_binds_current_provider_and_resource_truth() {
+    let host = StdHost::new_with_local_model(
+        config(),
+        StdHostComposition::minimal(),
+        Box::new(FakeLocalModel {
+            offer: offer(vec![LocalModelKindProfile::Generate]),
+            terminal: LocalModelAdapterTerminal::Produced,
+            calls: Vec::new(),
+        }),
+    )
+    .unwrap();
+    let advertisement = host.advertisement();
+    let capability = advertisement
+        .capabilities
+        .iter()
+        .find(|capability| {
+            capability.implementation.implementation_id.as_str()
+                == conduit_ai::LOCAL_MODEL_IMPLEMENTATION
+        })
+        .unwrap();
+    let resources = advertisement
+        .resources
+        .iter()
+        .map(|offer| ResourceBinding {
+            pool_id: offer.pool_id.clone(),
+            class_id: offer.class_id.clone(),
+            units: 1,
+            protected: None,
+            compute: None,
+            content: None,
+        })
+        .collect::<Vec<_>>();
+    let realization = PoolRealizationEnvelope {
+        host_id: advertisement.host_id.clone(),
+        boot_id: advertisement.boot_id.clone(),
+        offer_generation: advertisement.offer_generation,
+        capability_id: capability.capability_id.clone(),
+        implementation_id: capability.implementation.implementation_id.clone(),
+        artifact_id: capability.implementation.artifact_id.clone(),
+        member_capacity: 1,
+        resources,
+        admitted_lines: vec![],
+    };
+    let resource_sign_ids = realization
+        .resources
+        .iter()
+        .enumerate()
+        .map(|(index, _)| SignId::from(format!("sign/resource/{index}")))
+        .collect::<Vec<_>>();
+    let observation = host
+        .observe_local_model_pool_realization(
+            &realization,
+            SignId::from("sign/provider/current"),
+            &resource_sign_ids,
+        )
+        .unwrap();
+    assert_eq!(observation.health, PoolRealizationHealth::Ready);
+    assert!(observation.is_current_for(&realization));
+    assert_eq!(observation.resources.len(), realization.resources.len());
+    assert!(observation.resources.iter().all(|resource| {
+        resource.unreserved_units > 0
+            && resource.utilized_units == 0
+            && resource.host_id == advertisement.host_id
+            && resource.boot_id == advertisement.boot_id
+    }));
+
+    let mut stale = realization;
+    stale.boot_id = BootId::from("boot/restarted");
+    assert!(host
+        .observe_local_model_pool_realization(
+            &stale,
+            SignId::from("sign/provider/stale"),
+            &resource_sign_ids,
+        )
+        .is_err());
+}
+
+#[test]
 fn ordinary_form_planning_selects_only_the_exact_local_model_offer() {
     let host = StdHost::new_with_local_model(
         config(),
@@ -261,6 +356,62 @@ fn ordinary_form_planning_selects_only_the_exact_local_model_offer() {
         conduit_ai::LOCAL_MODEL_IMPLEMENTATION
     );
     assert!(placement.artifact_id.as_str().contains("sha256-fixture"));
+
+    let mut admitted_adapter = FakeLocalModel {
+        offer: offer(vec![LocalModelKindProfile::Generate]),
+        terminal: LocalModelAdapterTerminal::Produced,
+        calls: Vec::new(),
+    };
+    let mut operation_started = false;
+    let mut output = Vec::new();
+    assert_eq!(
+        crate::local_model_pool_member::execute_pool_member_once(
+            Some(&mut admitted_adapter),
+            placement,
+            &mut operation_started,
+            b"Where is the temperature?",
+            &mut output,
+        ),
+        LocalModelAdapterTerminal::Produced
+    );
+    assert!(!output.is_empty());
+    assert_eq!(admitted_adapter.calls.len(), 1);
+    assert_eq!(
+        crate::local_model_pool_member::execute_pool_member_once(
+            Some(&mut admitted_adapter),
+            placement,
+            &mut operation_started,
+            b"do not replay",
+            &mut output,
+        ),
+        LocalModelAdapterTerminal::Refused
+    );
+    assert!(output.is_empty());
+    assert_eq!(admitted_adapter.calls.len(), 1);
+
+    let mut generate_startup = StartupCatalog::new();
+    let mut generate_profiles = ProfileCatalog::new();
+    conduit_ai::install_generate_text_catalog(&mut generate_startup, &mut generate_profiles)
+        .unwrap();
+    let generate_source = "form generation (\n prompt: value/text@1 > text: value/text@1\n) {\n model: ai/generate-text\n prompt > model.prompt\n model.text > text\n}\n";
+    let generate_checked =
+        check_syntax_document(&parse_syntax_document(generate_source), &generate_startup).unwrap();
+    let generate_authoring = conduit_form::expand_canonical_form_for_authoring(
+        &generate_checked,
+        "generation",
+        &generate_profiles,
+    )
+    .unwrap();
+    let generate_plan = host
+        .plan_expanded_local(&generate_authoring.expanded)
+        .unwrap();
+    let generated = &generate_plan.fragments[0].placements[0];
+    assert_eq!(generated.kind_id.as_str(), conduit_ai::GENERATE_TEXT_KIND);
+    assert_eq!(
+        generated.implementation_id.as_str(),
+        conduit_ai::LOCAL_MODEL_IMPLEMENTATION
+    );
+    assert_eq!(generated.artifact_id, placement.artifact_id);
 
     let classify = conduit_ai::llm_contract(conduit_ai::LLM_CLASSIFY_KIND).unwrap();
     let unsupported = format!(
@@ -377,7 +528,7 @@ fn all_six_l3_profiles_execute_through_ordinary_plan_and_play() {
     plan_and_play(LocalModelKindProfile::ExtractValidatedInfo);
     plan_and_play(LocalModelKindProfile::EmbedFiniteVector);
     plan_and_play(LocalModelKindProfile::InterpretSignEvidence);
-    plan_and_play(LocalModelKindProfile::PresentSemanticFace);
+    plan_and_play(LocalModelKindProfile::PresentSemanticFront);
 }
 
 #[cfg(feature = "local-model-proof")]

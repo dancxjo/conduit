@@ -3,7 +3,7 @@ use alloc::vec;
 
 use conduit_core::{
     kind_id, port_id, resource_offer, resource_requirement, ArtifactId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
     HostOperationContractId, HostOperationRequirement, ImplementationId, KindContractRevision,
     PortDescriptor, PortDirection, PortTemporal, ResourceOffer,
 };
@@ -256,8 +256,8 @@ pub fn install_external_websocket_catalogs(
     Ok(())
 }
 
-fn startup(name: &str, value_type: &str) -> FaceStartupParameter {
-    FaceStartupParameter {
+fn startup(name: &str, value_type: &str) -> FrontStartupParameter {
+    FrontStartupParameter {
         name: name.to_string(),
         value_type: value_type.to_string(),
         has_default: false,

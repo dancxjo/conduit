@@ -564,7 +564,7 @@ test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime pr
     admitted_in_transfers: 12,
     admitted_out_transfers: 8,
     use_plan_id: "rp2040-deployment-plan/one",
-    configuration: { interfront_number: 1, in_endpoint: 4, out_endpoint: 3 },
+    configuration: { interface_number: 1, in_endpoint: 4, out_endpoint: 3 },
   });
   expect(result.terminalBase).toMatchObject({ phase: "terminal", terminal: "DeviceLost" });
   expect(result.resourceEvidence).toMatchObject({

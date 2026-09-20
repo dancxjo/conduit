@@ -16,7 +16,7 @@ export class CrecheRendezvousRefusal extends Error {
 
 export function decodeRendezvousCode(value) {
   const raw = String(value ?? "").trim();
-  if (raw.startsWith("{")) return decodeRemoteDescriptor(raw);
+  if (raw.startsWith("conduit-rendezvous-v1:")) return decodeRemoteDescriptor(raw);
   const normalized = raw.toUpperCase();
   const websocket = WEBSOCKET_CODE_PATTERN.exec(normalized);
   const serial = SERIAL_CODE_PATTERN.exec(normalized);
@@ -38,50 +38,18 @@ export function decodeRendezvousCode(value) {
 
 function decodeRemoteDescriptor(raw) {
   let descriptor;
-  try { descriptor = JSON.parse(raw); }
-  catch (error) { refuse("InvalidDescriptor", "remote rendezvous descriptor is not valid JSON", error); }
-  const keys = Object.keys(descriptor ?? {}).sort().join(",");
-  const expectedKeys = ["candidates", "schema", "session_secret"].sort().join(",");
-  if (keys !== expectedKeys
-    || descriptor.schema !== "conduit.host/rendezvous-descriptor@1"
-    || !Array.isArray(descriptor.candidates) || descriptor.candidates.length < 1
-    || descriptor.candidates.length > 4
-    || !byteSequence(descriptor.session_secret, 32)
-    || descriptor.session_secret.every((byte) => byte === 0)) {
-    refuse("InvalidDescriptor", "remote rendezvous descriptor is stale, insecure, or outside its finite policy");
-  }
-  const seen = new Set();
+  try { descriptor = decodeRendezvousManifestation(raw); }
+  catch (error) { refuse("InvalidDescriptor", "remote rendezvous descriptor is not canonical bounded CBOR", error); }
   const candidates = descriptor.candidates.map((candidate) => {
-    const candidateKeys = Object.keys(candidate ?? {}).sort().join(",");
-    const expectedCandidateKeys = ["attempt_timeout_millis", "authentication", "candidate_id",
-      "expires_at_millis", "line_family", "maximum_attempts", "reachability"].sort().join(",");
-    const authenticationKeys = Object.keys(candidate?.authentication ?? {}).sort().join(",");
-    if (candidateKeys !== expectedCandidateKeys
-      || authenticationKeys !== "server_identity,transport_binding_sha256"
-      || typeof candidate.candidate_id !== "string" || candidate.candidate_id.length < 1
-      || candidate.candidate_id.length > 256 || seen.has(candidate.candidate_id)
-      || !Number.isSafeInteger(candidate.expires_at_millis) || candidate.expires_at_millis <= Date.now()
-      || !Number.isSafeInteger(candidate.maximum_attempts) || candidate.maximum_attempts < 1
-      || candidate.maximum_attempts > 3
-      || !Number.isSafeInteger(candidate.attempt_timeout_millis)
-      || candidate.attempt_timeout_millis < 1 || candidate.attempt_timeout_millis > 30_000
-      || typeof candidate.reachability !== "string" || candidate.reachability.length < 1
-      || candidate.reachability.length > 256
-      || typeof candidate.authentication.server_identity !== "string"
-      || candidate.authentication.server_identity.length < 1
-      || candidate.authentication.server_identity.length > 256
-      || !byteSequence(candidate.authentication.transport_binding_sha256, 32)
-      || candidate.authentication.transport_binding_sha256.every((byte) => byte === 0)) {
-      refuse("InvalidDescriptor", "remote rendezvous candidate is stale, duplicated, or outside its finite policy");
-    }
-    seen.add(candidate.candidate_id);
     if (candidate.line_family !== "authenticated-tls-stream") {
       return Object.freeze({ supported: false, candidate_id: candidate.candidate_id });
     }
     let endpoint;
     try { endpoint = new URL(candidate.reachability); }
     catch (error) { refuse("InvalidDescriptor", "remote rendezvous endpoint is malformed", error); }
-    if (endpoint.protocol !== "wss:" || endpoint.hostname !== candidate.authentication.server_identity) {
+    if (endpoint.protocol !== "wss:" || endpoint.hostname !== candidate.server_identity
+      || endpoint.pathname !== "/conduit" || endpoint.username || endpoint.password
+      || endpoint.search || endpoint.hash) {
       refuse("InvalidDescriptor", "remote rendezvous server identity does not match its secure endpoint");
     }
     return Object.freeze({
@@ -90,7 +58,7 @@ function decodeRemoteDescriptor(raw) {
       carrier: "websocket",
       line_id: "conduit-line/authenticated-tls-stream@1",
       url: candidate.reachability,
-      transport_binding_sha256: hexBytes(candidate.authentication.transport_binding_sha256),
+      transport_binding_sha256: hexBytes(candidate.transport_binding_sha256),
       expires_at_millis: candidate.expires_at_millis,
       maximum_attempts: candidate.maximum_attempts,
       attempt_timeout_millis: candidate.attempt_timeout_millis,
@@ -103,7 +71,7 @@ function decodeRemoteDescriptor(raw) {
   return Object.freeze({
     ...selected,
     schema: descriptor.schema,
-    session_secret: new Uint8Array(descriptor.session_secret),
+    session_secret: descriptor.session_secret,
     candidates: Object.freeze(candidates),
   });
 }
@@ -202,12 +170,48 @@ export async function connectRendezvousHost(code, {
             bodyContextInstalled = true;
             return Object.freeze(installed);
           },
+          async observeLocalModelPool(realization) {
+            if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
+            requirePoolRealization(realization, descriptor.advertisement);
+            await send(line, { kind: "observe-local-model-pool", protocol: PROTOCOL, realization });
+            const observed = await receive(line, signal);
+            requirePoolObservation(observed, realization);
+            return Object.freeze(observed.observation);
+          },
           async prepareRemote(plan) {
             if (intentional) refuse("LineClosed", "joined Host Line is already closed");
             if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
             if (!bodyContextInstalled) refuse("BodyContextAbsent", "joined Host has no current Body conversation context");
             if (remotePrepared) refuse("RemotePlayActive", "joined Host Line already owns a remote Play");
             await send(line, { kind: "prepare-remote", protocol: PROTOCOL, plan });
+            const prepared = await receive(line, signal);
+            requireRemotePrepared(prepared, descriptor.advertisement);
+            remotePrepared = true;
+            return Object.freeze(prepared);
+          },
+          async preparePoolMember({ plan, selection, consumerPlacementId }) {
+            if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
+            if (!bodyContextInstalled) refuse("BodyContextAbsent", "joined Host has no current Body conversation context");
+            if (remotePrepared) refuse("RemotePlayActive", "joined Host Line already owns a remote Play");
+            if (!plan || selection?.plan_id !== plan.plan_id
+              || selection?.disposition !== "Selected"
+              || !Number.isSafeInteger(selection?.selected_realization)
+              || selection.selected_realization < 0
+              || !boundedIdentity(selection?.pool_id)
+              || !boundedIdentity(selection?.operation_id)
+              || !boundedIdentity(selection?.sign_id)
+              || !Array.isArray(selection?.observation_sign_ids)
+              || selection.observation_sign_ids.length < 1
+              || selection.observation_sign_ids.some((identity) => !boundedIdentity(identity))
+              || !boundedIdentity(consumerPlacementId)) {
+              refuse("PoolMemberSelection", "pool member preparation lost exact bounded selection truth");
+            }
+            await send(line, {
+              kind: "prepare-pool-member", protocol: PROTOCOL, plan, selection,
+              consumer_placement_id: consumerPlacementId,
+            });
             const prepared = await receive(line, signal);
             requireRemotePrepared(prepared, descriptor.advertisement);
             remotePrepared = true;
@@ -299,6 +303,50 @@ function requireRemotePrepared(prepared, advertisement) {
       || frame[0] !== 0x43 || frame[1] !== 0x4e || frame[2] !== 0x44 || frame[3] !== 0x53
       || frame.some(byte => !Number.isInteger(byte) || byte < 0 || byte > 255))) {
     refuse("RemotePreparation", "joined Host returned malformed or stale remote Play truth");
+  }
+}
+
+function requirePoolRealization(realization, advertisement) {
+  const generation = advertisement.offer_generation?.[0] ?? advertisement.offer_generation;
+  if (!realization || realization.host_id !== advertisement.host_id
+    || realization.boot_id !== advertisement.boot_id
+    || realization.offer_generation !== generation
+    || !boundedIdentity(realization.capability_id)
+    || !boundedIdentity(realization.implementation_id)
+    || !boundedIdentity(realization.artifact_id)
+    || !Number.isSafeInteger(realization.member_capacity) || realization.member_capacity < 1
+    || !Array.isArray(realization.resources) || realization.resources.length > 32
+    || realization.resources.some((binding) => !boundedIdentity(binding?.pool_id)
+      || !boundedIdentity(binding?.class_id) || !Number.isSafeInteger(binding?.units)
+      || binding.units < 1)) {
+    refuse("PoolRealization", "model-pool realization is malformed or stale for this Host");
+  }
+}
+
+function requirePoolObservation(value, realization) {
+  const observation = value?.observation;
+  if (value?.kind !== "local-model-pool-observed" || value.protocol !== PROTOCOL
+    || !observation || observation.host_id !== realization.host_id
+    || observation.boot_id !== realization.boot_id
+    || observation.offer_generation !== realization.offer_generation
+    || observation.capability_id !== realization.capability_id
+    || observation.implementation_id !== realization.implementation_id
+    || observation.artifact_id !== realization.artifact_id
+    || !["Ready", "Unavailable"].includes(observation.health)
+    || !boundedIdentity(observation.sign_id)
+    || !Array.isArray(observation.resources)
+    || observation.resources.length !== realization.resources.length
+    || observation.resources.some((resource, index) => {
+      const binding = realization.resources[index];
+      return resource?.host_id !== realization.host_id || resource.boot_id !== realization.boot_id
+        || resource.offer_generation !== realization.offer_generation
+        || resource.pool_id !== binding.pool_id || resource.class_id !== binding.class_id
+        || !["Ready", "Unavailable"].includes(resource.health)
+        || !Number.isSafeInteger(resource.unreserved_units) || resource.unreserved_units < 0
+        || !Number.isSafeInteger(resource.utilized_units) || resource.utilized_units < 0
+        || !boundedIdentity(resource.sign_id);
+    })) {
+    refuse("PoolObservation", "joined Host returned malformed or stale model-pool truth");
   }
 }
 
@@ -520,3 +568,4 @@ export const CRECHE_RENDEZVOUS_BOUNDS = Object.freeze({
   maximumWaitMillis: MAXIMUM_WAIT_MILLIS,
   maximumSessions: 1,
 });
+import { decodeRendezvousManifestation } from "./rendezvous-cbor.mjs";

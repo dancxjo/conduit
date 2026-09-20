@@ -9,20 +9,20 @@ use conduit_kernel::{
     OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
-pub(super) const CLIENT_IMPLEMENTATION: &str = "std/kernel-http-client-http1@1";
-pub(super) const CLIENT_ARTIFACT: &str = "conduit-std-host/http-client-http1@1";
-pub(super) const CLIENT_PROFILE: &str = "std/http1-plain-bounded@1";
-pub(super) const CLIENT_OPERATION: &str = "conduit.host/http-client-exchange@1";
-pub(super) const CLIENT_RESOURCE: &str = "conduit.resource/network/http-client@1";
-pub(super) const CLIENT_AUTHORITY: &str = "conduit.authority/http-outbound@1";
+pub(super) const CLIENT_IMPLEMENTATION: &str = "std/kernel-http-client-http1";
+pub(super) const CLIENT_ARTIFACT: &str = "conduit-std-host/http-client-http1";
+pub(super) const CLIENT_PROFILE: &str = "std/http1-plain-bounded";
+pub(super) const CLIENT_OPERATION: &str = "conduit.host/http-client-exchange";
+pub(super) const CLIENT_RESOURCE: &str = "conduit.resource/network/http-client";
+pub(super) const CLIENT_AUTHORITY: &str = "conduit.authority/http-outbound";
 
-pub(super) const SERVER_IMPLEMENTATION: &str = "std/kernel-http-server-http1@1";
-pub(super) const SERVER_ARTIFACT: &str = "conduit-std-host/http-server-http1@1";
-pub(super) const SERVER_PROFILE: &str = "std/http1-listener-plain-bounded@1";
-pub(super) const SERVER_ACCEPT_OPERATION: &str = "conduit.host/http-server-accept@1";
-pub(super) const SERVER_RESPOND_OPERATION: &str = "conduit.host/http-server-respond@1";
-pub(super) const SERVER_RESOURCE: &str = "conduit.resource/network/http-listener@1";
-pub(super) const SERVER_AUTHORITY: &str = "conduit.authority/http-listener@1";
+pub(super) const SERVER_IMPLEMENTATION: &str = "std/kernel-http-server-http1";
+pub(super) const SERVER_ARTIFACT: &str = "conduit-std-host/http-server-http1";
+pub(super) const SERVER_PROFILE: &str = "std/http1-listener-plain-bounded";
+pub(super) const SERVER_ACCEPT_OPERATION: &str = "conduit.host/http-server-accept";
+pub(super) const SERVER_RESPOND_OPERATION: &str = "conduit.host/http-server-respond";
+pub(super) const SERVER_RESOURCE: &str = "conduit.resource/network/http-listener";
+pub(super) const SERVER_AUTHORITY: &str = "conduit.authority/http-listener";
 
 pub(super) static HTTP_CLIENT_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: CLIENT_IMPLEMENTATION,

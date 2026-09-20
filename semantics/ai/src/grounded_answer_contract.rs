@@ -3,7 +3,7 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FaceStartupParameter, ImplementationId, ImplementationOffer,
+    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer,
     KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
 };
 
@@ -90,7 +90,7 @@ pub fn ordinary_rag_answer_offer(
     })
 }
 
-fn startup_parameters() -> Vec<FaceStartupParameter> {
+fn startup_parameters() -> Vec<FrontStartupParameter> {
     [
         ("policy", "Text"),
         ("answer-kind", "Text"),
@@ -100,7 +100,7 @@ fn startup_parameters() -> Vec<FaceStartupParameter> {
         ("maximum-work-units", "Count"),
     ]
     .into_iter()
-    .map(|(name, value_type)| FaceStartupParameter {
+    .map(|(name, value_type)| FrontStartupParameter {
         name: name.into(),
         value_type: value_type.into(),
         has_default: true,
