@@ -11,10 +11,23 @@ Acceptance at this boundary requests effects. It does not claim they completed.
 Graceful Lull, local execution revocation, carrier isolation, propagation,
 machine halt, and machine reset remain separate outcomes. A target-specific
 machine base owns any terminal halt or reset mechanism and must report absence
-rather than substitute a generic implementation. Ctrl+Alt+Delete remains the
-proved x86_64 local reboot rescue path until a later target integration
-explicitly routes it through the shared admission seam without weakening its
-physical-input provenance or fresh-Boot proof.
+rather than substitute a generic implementation.
+
+ConduitOS Ctrl+Alt+Delete deliberately remains a dedicated boot-scoped reboot
+rescue rather than entering this Body-scoped seam. It is available before a
+Body exists, carries authority only from the validated local HID path, and
+requests exactly the architecture reboot base. Routing it through
+`EmergencyControl` would either invent a Body for the no-Form boot case or make
+Body membership a prerequisite for recovering the machine. Its receipt names
+the `conduitos/dedicated-boot-reboot@1` route and `boot` authority scope so the
+special case cannot be mistaken for general emergency-policy admission.
+
+The distinction is about admission scope, not priority: the chord remains
+below ordinary Form/Plan/Play input and therefore works both before any
+ordinary plan and while a play is active. Other keyboard rescue mechanisms may
+use `EmergencyTriggerClass::LocalKeyboardRescue` when they genuinely operate
+on an admitted Body policy; they must not acquire ConduitOS's local physical
+reboot authority merely by producing equivalent semantic key values.
 
 The acoustic key is three distinct entries from one versioned finite vocabulary.
 Birth may retain it only with the exact detector and admitted entropy-provider
