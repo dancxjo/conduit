@@ -10,6 +10,7 @@ use std::io::Write;
 use std::thread;
 use std::time::{Duration, Instant};
 
+pub mod acoustic_emergency;
 #[cfg(all(target_os = "linux", feature = "bluetooth-bluez"))]
 pub mod bluetooth_gatt;
 pub mod body_coordination;
