@@ -1,13 +1,16 @@
 //! Ollama realization of the bounded `llm/present@2` semantic contract.
 
 use conduit_ai::LocalModelIdentity;
+#[cfg(any(test, feature = "local-model-proof"))]
 use conduit_presentation::{
-    Face, FaceContext, FaceFocus, GeneratedActionAffordance, GeneratedContentRole,
-    GeneratedContentSegment, GeneratedManifestation, GeneratedManifestationDisposition,
-    GenerativeNarratorRole, GenerativePresenterBounds, GenerativePresenterPolicy,
-    GenerativePresenterRequest, Presentation, PresentationAction, PresentationActionAvailability,
-    PresentationBasis, PresentationDisclosure, PresentationDisclosureLevel, PresentationRole,
-    PresentationSubject,
+    Face, FaceContext, FaceFocus, GenerativePresenterBounds, GenerativePresenterPolicy,
+    Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
+    PresentationDisclosure, PresentationDisclosureLevel, PresentationRole, PresentationSubject,
+};
+use conduit_presentation::{
+    GeneratedActionAffordance, GeneratedContentRole, GeneratedContentSegment,
+    GeneratedManifestation, GeneratedManifestationDisposition, GenerativeNarratorRole,
+    GenerativePresenterRequest,
 };
 use serde::Deserialize;
 
@@ -114,6 +117,7 @@ pub(super) fn finish(
     serde_json::to_vec(&manifestation).map_err(|error| error.to_string())
 }
 
+#[cfg(any(test, feature = "local-model-proof"))]
 pub(crate) fn proof_request() -> Result<GenerativePresenterRequest, String> {
     let presentation = Presentation::new_with_semantics(
         7,
