@@ -1,5 +1,7 @@
-use conduit_core::CapabilityOffer;
-use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity, StandardKindContract};
+use conduit_core::{
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, ImplementationId, SemanticCapabilityContract,
+};
 
 pub const ROBOTICS_EXECUTION_PROFILE: &str = "conduit.std/robotics-prewake-sim-kernel@1";
 pub const ROBOTICS_ARTIFACT: &str = "conduit-std-host/robotics-prewake-sim@1";
@@ -18,8 +20,7 @@ pub const ROBOTICS_DRIVE_DIFFERENTIAL_IMPLEMENTATION: &str =
 
 pub fn robotics_observe_bump_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::robotics_observe_bump_contract(),
-        conduit_semantic_catalog::ROBOTICS_OBSERVE_BUMP_REVISION,
+        contract(conduit_semantic_catalog::ROBOTICS_OBSERVE_BUMP_KIND),
         "observe-bump",
         ROBOTICS_OBSERVE_BUMP_IMPLEMENTATION,
     )
@@ -27,8 +28,7 @@ pub fn robotics_observe_bump_offer() -> CapabilityOffer {
 
 pub fn robotics_observe_imu_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::robotics_observe_imu_contract(),
-        conduit_semantic_catalog::ROBOTICS_OBSERVE_IMU_REVISION,
+        contract(conduit_semantic_catalog::ROBOTICS_OBSERVE_IMU_KIND),
         "observe-imu",
         ROBOTICS_OBSERVE_IMU_IMPLEMENTATION,
     )
@@ -36,8 +36,7 @@ pub fn robotics_observe_imu_offer() -> CapabilityOffer {
 
 pub fn robotics_observe_range_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::robotics_observe_range_contract(),
-        conduit_semantic_catalog::ROBOTICS_OBSERVE_RANGE_REVISION,
+        contract(conduit_semantic_catalog::ROBOTICS_OBSERVE_RANGE_KIND),
         "observe-range",
         ROBOTICS_OBSERVE_RANGE_IMPLEMENTATION,
     )
@@ -45,8 +44,7 @@ pub fn robotics_observe_range_offer() -> CapabilityOffer {
 
 pub fn robotics_observe_odometry_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::robotics_observe_odometry_contract(),
-        conduit_semantic_catalog::ROBOTICS_OBSERVE_ODOMETRY_REVISION,
+        contract(conduit_semantic_catalog::ROBOTICS_OBSERVE_ODOMETRY_KIND),
         "observe-odometry",
         ROBOTICS_OBSERVE_ODOMETRY_IMPLEMENTATION,
     )
@@ -54,8 +52,7 @@ pub fn robotics_observe_odometry_offer() -> CapabilityOffer {
 
 pub fn robotics_observe_battery_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::robotics_observe_battery_contract(),
-        conduit_semantic_catalog::ROBOTICS_OBSERVE_BATTERY_REVISION,
+        contract(conduit_semantic_catalog::ROBOTICS_OBSERVE_BATTERY_KIND),
         "observe-battery",
         ROBOTICS_OBSERVE_BATTERY_IMPLEMENTATION,
     )
@@ -63,8 +60,7 @@ pub fn robotics_observe_battery_offer() -> CapabilityOffer {
 
 pub fn robotics_velocity_intent_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::robotics_velocity_intent_contract(),
-        conduit_semantic_catalog::ROBOTICS_VELOCITY_INTENT_REVISION,
+        contract(conduit_semantic_catalog::ROBOTICS_VELOCITY_INTENT_KIND),
         "velocity-intent",
         ROBOTICS_VELOCITY_INTENT_IMPLEMENTATION,
     )
@@ -72,32 +68,36 @@ pub fn robotics_velocity_intent_offer() -> CapabilityOffer {
 
 pub fn robotics_drive_differential_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::robotics_drive_differential_contract(),
-        conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_REVISION,
+        contract(conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND),
         "drive-differential",
         ROBOTICS_DRIVE_DIFFERENTIAL_IMPLEMENTATION,
     )
 }
 
 fn offer(
-    contract: StandardKindContract,
-    revision: &str,
+    contract: SemanticCapabilityContract,
     slug: &str,
     implementation: &str,
 ) -> CapabilityOffer {
-    realization_offer(
+    let identity = format!("robotics-prewake-sim-{slug}");
+    CapabilityOfferBuilder::new(
         contract,
-        revision,
-        RealizationOfferIdentity {
-            capability: &format!("robotics-prewake-sim-{slug}"),
-            execution_profile: ROBOTICS_EXECUTION_PROFILE,
-            implementation,
-            artifact: ROBOTICS_ARTIFACT,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(identity),
+            execution_profile_id: ExecutionProfileId::from(ROBOTICS_EXECUTION_PROFILE),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from(ROBOTICS_ARTIFACT),
+            host_operations: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
     )
+    .build()
+}
+
+fn contract(kind: &str) -> SemanticCapabilityContract {
+    conduit_semantic_catalog::robotics_semantic_contract(kind)
+        .expect("std robotics Kind is registered")
 }
 
 #[cfg(test)]
