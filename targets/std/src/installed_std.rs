@@ -42,6 +42,7 @@ mod keyboard_input_host;
 mod keyboard_input_operation;
 mod layout_operations;
 mod local_model_operation;
+mod local_vision_operation;
 mod logic_operations;
 mod math_host;
 mod math_operations;

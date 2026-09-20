@@ -26,6 +26,7 @@ use super::json_operations::JsonOperation;
 use super::keyboard_input_operation::KeyboardInputOperation;
 use super::layout_operations::LayoutOperation;
 use super::local_model_operation::LocalModelOperation;
+use super::local_vision_operation::LocalVisionOperation;
 use super::logic_operations::{
     LogicCompareScalarOperation, LogicNotOperation, LogicSelectScalarOperation,
 };
@@ -170,6 +171,7 @@ pub(super) enum InstalledOperation {
     BodyChatPrompt(BodyChatPromptOperation),
     BodyConversationContext(BodyConversationContextOperation),
     LocalModel(LocalModelOperation),
+    LocalVision(LocalVisionOperation),
     ModelText(ModelTextOperation),
     GeneratedSpeechCommit(GeneratedSpeechCommitOperation),
     Navigation(NavigationOperation),

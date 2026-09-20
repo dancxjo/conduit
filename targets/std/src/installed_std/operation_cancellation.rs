@@ -85,6 +85,7 @@ impl InstalledOperation {
             Self::BodyChatPrompt(operation) => operation.cancel(),
             Self::BodyConversationContext(operation) => operation.cancel(),
             Self::LocalModel(operation) => operation.cancel(),
+            Self::LocalVision(operation) => operation.cancel(),
             Self::ModelText(operation) => operation.cancel(),
             Self::GeneratedSpeechCommit(operation) => operation.cancel(),
             Self::Navigation(operation) => operation.cancel(),

@@ -106,6 +106,8 @@ mod conversation_commit;
 pub use conversation_commit::*;
 mod microphone;
 pub use microphone::*;
+mod vision;
+pub use vision::*;
 
 use conduit_core::{
     CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,

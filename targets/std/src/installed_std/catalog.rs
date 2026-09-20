@@ -41,6 +41,7 @@ use super::layout_operations::{
     LAYOUT_STACK_FACTORY, LAYOUT_VIEWPORT_FACTORY,
 };
 use super::local_model_operation::LOCAL_MODEL_FACTORY;
+use super::local_vision_operation::FACTORY as LOCAL_VISION_FACTORY;
 use super::logic_operations::{
     LOGIC_COMPARE_SCALAR_FACTORY, LOGIC_NOT_FACTORY, LOGIC_SELECT_SCALAR_FACTORY,
 };
@@ -235,6 +236,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &LOGIC_NOT_FACTORY,
     &LOGIC_SELECT_SCALAR_FACTORY,
     &LOCAL_MODEL_FACTORY,
+    &LOCAL_VISION_FACTORY,
     &MODEL_TEXT_FACTORY,
     &GENERATED_SPEECH_COMMIT_FACTORY,
     &NAVIGATION_ROUTE_FACTORY,
