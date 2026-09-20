@@ -1,8 +1,8 @@
 //! Hosted std realization of the provider-neutral House prompt projection.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 
 pub const HOUSE_PROMPT_STD_IMPLEMENTATION: &str = "std/kernel-house-context-to-prompt@1";
@@ -13,40 +13,36 @@ pub const HOUSE_PROMPT_CONTEXT_OPERATION: &str = "conduit.host/house-prompt-cont
 
 pub fn house_prompt_std_offer() -> CapabilityOffer {
     let contract = conduit_tongues::house_prompt_contract();
+    let target_kind = contract.kind_id.clone();
     let operation = |contract_id, maximum_input_bytes| HostOperationRequirement {
         contract_id: HostOperationContractId::from(contract_id),
-        target_kind: Some(contract.kind_id.clone()),
+        target_kind: Some(target_kind.clone()),
         maximum_in_flight: 1,
         maximum_input_bytes,
         maximum_output_bytes: conduit_tongues::MAXIMUM_HOUSE_PROMPT_BYTES as u32,
     };
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id: CapabilityId::from("house-context-to-prompt"),
-        kind_id: contract.kind_id.clone(),
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        contract.into_semantic_capability_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from("house-context-to-prompt"),
             execution_profile_id: ExecutionProfileId::from(HOUSE_PROMPT_STD_PROFILE),
             implementation_id: ImplementationId::from(HOUSE_PROMPT_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(HOUSE_PROMPT_STD_ARTIFACT),
+            host_operations: vec![
+                operation(
+                    HOUSE_PROMPT_CONTEXT_OPERATION,
+                    conduit_tongues::MAXIMUM_WIRED_HOUSE_CONTEXT_VALUE_BYTES as u32,
+                ),
+                operation(
+                    HOUSE_PROMPT_DETECTION_OPERATION,
+                    conduit_tongues::MAXIMUM_ADDRESS_DETECTION_VALUE_BYTES as u32,
+                ),
+            ],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
         },
-        host_operations: vec![
-            operation(
-                HOUSE_PROMPT_CONTEXT_OPERATION,
-                conduit_tongues::MAXIMUM_WIRED_HOUSE_CONTEXT_VALUE_BYTES as u32,
-            ),
-            operation(
-                HOUSE_PROMPT_DETECTION_OPERATION,
-                conduit_tongues::MAXIMUM_ADDRESS_DETECTION_VALUE_BYTES as u32,
-            ),
-        ],
-        resource_requirements: vec![],
-        authority_requirements: vec![],
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]
