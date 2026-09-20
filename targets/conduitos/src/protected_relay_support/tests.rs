@@ -5,6 +5,7 @@ use conduit_protected_line::{
     EndpointBinding, ProtectedHandshake, ProtectedSessionPolicy, RelayCandidateBounds,
     RelayCandidateIdentity, RelayCandidateSecrets, SessionBinding, SessionLimits,
 };
+use sha2::{Digest, Sha256};
 
 use crate::cryptographic_entropy::{EntropyProvider, EntropyRefusal};
 
