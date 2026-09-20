@@ -3,9 +3,9 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    FrontStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, PlannedGear, StructuredInfoType,
+    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, PlannedGear, StructuredInfoType,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
@@ -142,46 +142,27 @@ impl PreparedReplayControl {
 }
 
 fn offer() -> CapabilityOffer {
-    let definition = conduit_time::replay_control_kind_definition();
-    CapabilityOffer {
-        startup_parameters: [
-            ("mode", "Text"),
-            ("rate-numerator", "Count"),
-            ("rate-denominator", "Count"),
-            ("maximum-duration-seconds", "Count"),
-        ]
-        .map(|(name, value_type)| FrontStartupParameter {
-            name: name.into(),
-            value_type: conduit_core::kind_id(match value_type {
-                "Text" => "value/text",
-                "Count" => "value/count",
-                exact => exact,
-            }),
-            has_default: true,
-        })
-        .into(),
-        shorthand: None,
-        capability_id: CapabilityId::from(IMPLEMENTATION),
-        kind_id: definition.kind_id.clone(),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_time::REPLAY_CONTROL_CONTRACT_REVISION,
-        ),
-        implementation: ImplementationOffer {
+    let contract = conduit_time::replay_control_semantic_contract();
+    let target_kind = contract.kind_id.clone();
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("time/replay@1"),
+            host_operations: vec![host_operation(HOST_OPERATION, &target_kind)],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations: vec![host_operation(HOST_OPERATION, &definition.kind_id)],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: MAXIMUM_INPUTS as u16,
-            max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32 * MAXIMUM_INPUTS,
-        },
-    }
+    )
+    .narrow_capacity(CapabilityLimits {
+        max_active_instances: 1,
+        max_queue_items: MAXIMUM_INPUTS as u16,
+        max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32 * MAXIMUM_INPUTS,
+    })
+    .expect("browser replay-control capacity narrows its semantic contract")
+    .build()
 }
 
 fn host_operation(contract: &str, kind: &conduit_core::KindId) -> HostOperationRequirement {

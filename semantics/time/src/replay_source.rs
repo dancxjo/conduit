@@ -128,3 +128,21 @@ pub fn replay_source_kind_definition() -> conduit_form::KindDefinition {
         configuration: alloc::vec![],
     }
 }
+
+#[cfg(feature = "form-catalog")]
+pub fn replay_source_semantic_contract() -> conduit_core::SemanticCapabilityContract {
+    let definition = replay_source_kind_definition();
+    conduit_core::SemanticCapabilityContract {
+        startup_parameters: alloc::vec![],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: conduit_core::CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 1,
+            max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
+        },
+    }
+}
