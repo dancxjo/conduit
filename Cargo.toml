@@ -20,6 +20,7 @@ members = [
 	"semantics/catalog",
 	"semantics/chat",
 	"semantics/data",
+	"semantics/finance",
 	"semantics/human",
 	"semantics/language",
 	"semantics/net",
@@ -64,6 +65,7 @@ members = [
 	"products/patchbay/control",
 	"products/patchbay/native",
 	"bodies/pete",
+	"forms/little-seismograph/fixture",
 
 	# Exact Host, machine, board, and target-family realizations.
 	"targets/avr/fabrication",

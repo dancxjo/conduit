@@ -21,7 +21,7 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 };
 
 fn offer() -> CapabilityOffer {
-    let contract = conduit_data::little_seismograph_fixture_definition();
+    let contract = conduit_little_seismograph_fixture::little_seismograph_fixture_definition();
     CapabilityOffer {
         startup_parameters: Vec::new(),
         shorthand: None,
@@ -51,7 +51,8 @@ fn prepare(
     values: &mut HostedValueStore,
 ) -> Result<BrowserOperation, String> {
     validate_placement(placement, &offer())?;
-    let (profile, samples, threshold) = conduit_data::deterministic_little_seismograph_inputs();
+    let (profile, samples, threshold) =
+        conduit_little_seismograph_fixture::deterministic_little_seismograph_inputs();
     let mut emissions = Vec::with_capacity(3);
     emissions.push((
         PortId(0),
