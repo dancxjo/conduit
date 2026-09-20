@@ -6,8 +6,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -19,6 +19,56 @@ pub const FINANCE_COMPARE_KIND: &str = "finance/compare-money";
 pub const FINANCE_CONVERT_KIND: &str = "finance/convert-money";
 pub const FINANCE_REVISION: &str = "conduit.std/finance-exact@1";
 
+pub fn finance_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+    let money = finance_money_type();
+    vec![
+        contract(
+            FINANCE_FIXTURE_KIND,
+            vec![],
+            vec![
+                port("convertible", &money, PortDirection::Output),
+                port(
+                    "events",
+                    &finance_transaction_events_type(),
+                    PortDirection::Output,
+                ),
+                port("left", &money, PortDirection::Output),
+                port("quote", &finance_quote_type(), PortDirection::Output),
+                port("rate", &finance_rate_type(), PortDirection::Output),
+                port("right", &money, PortDirection::Output),
+            ],
+        ),
+        contract(
+            FINANCE_ADD_KIND,
+            vec![
+                port("left", &money, PortDirection::Input),
+                port("right", &money, PortDirection::Input),
+            ],
+            vec![port("sum", &money, PortDirection::Output)],
+        ),
+        contract(
+            FINANCE_COMPARE_KIND,
+            vec![
+                port("left", &money, PortDirection::Input),
+                port("right", &money, PortDirection::Input),
+            ],
+            vec![port(
+                "result",
+                &finance_money_comparison_type(),
+                PortDirection::Output,
+            )],
+        ),
+        contract(
+            FINANCE_CONVERT_KIND,
+            vec![
+                port("money", &money, PortDirection::Input),
+                port("rate", &finance_rate_type(), PortDirection::Input),
+            ],
+            vec![port("converted", &money, PortDirection::Output)],
+        ),
+    ]
+}
+
 pub fn install_finance_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
@@ -28,55 +78,24 @@ pub fn install_finance_catalogs(
             .insert_structured_type(name, value_type)
             .map_err(|error| error.to_string())?;
     }
-    let money = finance_money_type();
-    let comparison = finance_money_comparison_type();
-    let quote = finance_quote_type();
-    let rate = finance_rate_type();
-    let events = finance_transaction_events_type();
-    insert_kind(
-        startup,
-        profile,
-        FINANCE_FIXTURE_KIND,
-        vec![],
-        vec![
-            port("convertible", &money, PortDirection::Output),
-            port("events", &events, PortDirection::Output),
-            port("left", &money, PortDirection::Output),
-            port("quote", &quote, PortDirection::Output),
-            port("rate", &rate, PortDirection::Output),
-            port("right", &money, PortDirection::Output),
-        ],
-    )?;
-    insert_kind(
-        startup,
-        profile,
-        FINANCE_ADD_KIND,
-        vec![
-            port("left", &money, PortDirection::Input),
-            port("right", &money, PortDirection::Input),
-        ],
-        vec![port("sum", &money, PortDirection::Output)],
-    )?;
-    insert_kind(
-        startup,
-        profile,
-        FINANCE_COMPARE_KIND,
-        vec![
-            port("left", &money, PortDirection::Input),
-            port("right", &money, PortDirection::Input),
-        ],
-        vec![port("result", &comparison, PortDirection::Output)],
-    )?;
-    insert_kind(
-        startup,
-        profile,
-        FINANCE_CONVERT_KIND,
-        vec![
-            port("money", &money, PortDirection::Input),
-            port("rate", &rate, PortDirection::Input),
-        ],
-        vec![port("converted", &money, PortDirection::Output)],
-    )
+    for contract in finance_semantic_contracts() {
+        startup
+            .insert(KindSignature {
+                kind: contract.kind_id.as_str().to_string(),
+                startup_parameters: vec![],
+            })
+            .map_err(|error| error.to_string())?;
+        profile
+            .insert(KindDefinition {
+                kind_id: contract.kind_id,
+                kind_contract_revision: contract.kind_contract_revision,
+                inputs: contract.inputs,
+                outputs: contract.outputs,
+                configuration: vec![],
+            })
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(())
 }
 
 fn finance_types() -> Vec<(&'static str, StructuredInfoType)> {
@@ -104,28 +123,24 @@ fn finance_types() -> Vec<(&'static str, StructuredInfoType)> {
     ]
 }
 
-fn insert_kind(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+fn contract(
     kind: &str,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
-) -> Result<(), String> {
-    startup
-        .insert(KindSignature {
-            kind: kind.into(),
-            startup_parameters: vec![],
-        })
-        .map_err(|error| error.to_string())?;
-    profile
-        .insert(KindDefinition {
-            kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(FINANCE_REVISION),
-            inputs,
-            outputs,
-            configuration: vec![],
-        })
-        .map_err(|error| error.to_string())
+) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id(kind),
+        kind_contract_revision: KindContractRevision::from(FINANCE_REVISION),
+        inputs,
+        outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 4,
+            max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
+        },
+    }
 }
 
 fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -> PortDescriptor {
