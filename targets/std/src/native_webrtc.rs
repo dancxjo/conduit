@@ -22,7 +22,7 @@ use webrtc::{
 };
 
 use crate::browser_admission::{
-    MAX_WEBRTC_DESCRIPTION_BYTES, WebRtcBootstrapConfiguration, WebRtcIceTransportPolicy,
+    WebRtcBootstrapConfiguration, WebRtcIceTransportPolicy, MAX_WEBRTC_DESCRIPTION_BYTES,
 };
 
 #[path = "native_webrtc/session.rs"]
@@ -364,10 +364,10 @@ impl NativeWebRtcEndpoint {
 mod tests {
     use super::*;
     use conduit_core::{
-        BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId, HostId, KindId,
-        LineContract, LineDuplex, LineId, LineOrdering, LineReliability, LineScope, LineSecurity,
-        LineTrafficShape, LinkBindingId, LinkEndpointId, LinkLimits, PROTOCOL_VERSION, PlanId,
-        bind_active_play,
+        bind_active_play, BaseImplementationId, BaseInstanceId, BootId, ConnectionId, FragmentId,
+        HostId, KindId, LineContract, LineDuplex, LineId, LineOrdering, LineReliability, LineScope,
+        LineSecurity, LineTrafficShape, LinkBindingId, LinkEndpointId, LinkLimits, PlanId,
+        PROTOCOL_VERSION,
     };
     use conduit_wire::{
         LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionRole,
@@ -378,11 +378,11 @@ mod tests {
     };
     use tokio::net::UdpSocket;
     use turn::{
-        auth::{AuthHandler, generate_auth_key},
+        auth::{generate_auth_key, AuthHandler},
         relay::relay_static::RelayAddressGeneratorStatic,
         server::{
-            Server,
             config::{ConnConfig, ServerConfig},
+            Server,
         },
     };
     use webrtc_util::vnet::net::Net;
