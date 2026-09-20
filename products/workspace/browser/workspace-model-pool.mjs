@@ -1,4 +1,5 @@
 import { openBrowserSharedPool } from "../../../targets/browser/host/assets/browser-shared-pool.mjs";
+import { openBrowserPoolMemberClient } from "../../../targets/browser/host/assets/browser-pool-member-client.mjs";
 
 /** Bind joined Hosts to one immutable planned worker envelope.
  *
@@ -10,6 +11,7 @@ import { openBrowserSharedPool } from "../../../targets/browser/host/assets/brow
 export function prepareWorkspaceModelPool({
   api, plan, localAdvertisement, joinedHosts, poolId,
   firstMemberNode = 256, play = 1, openPool = openBrowserSharedPool,
+  openMemberClient = openBrowserPoolMemberClient,
 }) {
   const fragments = Array.isArray(plan?.fragments) ? plan.fragments : [];
   const fragmentIndex = fragments.findIndex((fragment) =>
@@ -86,6 +88,58 @@ export function prepareWorkspaceModelPool({
       } catch (error) {
         runtime.failPreparation(admission.selection.member);
         throw error;
+      }
+    },
+    async execute({ admission, preparation, consumerPlacementId, prompt }) {
+      current();
+      const evidence = admission?.selection?.evidence;
+      if (!evidence || !Array.isArray(preparation?.hello_frames)
+        || admission?.joined?.line?.schema !== "conduit.creche/joined-host-line@1") {
+        throw new Error("pool member execution requires exact preparation and joined Line");
+      }
+      const client = openMemberClient({
+        api, plan, selection: evidence, consumerPlacementId,
+        sessionHellos: preparation.hello_frames,
+      });
+      try {
+        for (const frame of client.initialFrames) {
+          await admission.joined.line.sendSessionFrame(frame);
+        }
+        const sessionCount = preparation.hello_frames.length;
+        for (let index = 0; index < sessionCount; index += 1) {
+          const ready = client.exchange(await admission.joined.line.receiveSessionFrame());
+          if (ready.message !== "ready" || ready.responses.length !== 0) {
+            throw new Error("pool member handshake returned unexpected session truth");
+          }
+        }
+        await admission.joined.line.sendSessionFrame(client.offer(prompt));
+        const maximumResponses = sessionCount * 4;
+        for (let index = 0; index < maximumResponses; index += 1) {
+          const exchanged = client.exchange(await admission.joined.line.receiveSessionFrame());
+          for (const response of exchanged.responses) {
+            await admission.joined.line.sendSessionFrame(response);
+          }
+          if (exchanged.result) {
+            return Object.freeze({
+              planId: plan.plan_id,
+              poolId,
+              operationId: evidence.operation_id,
+              realization: admission.selection.member.realization,
+              hostId: admission.realization.host_id,
+              bootId: admission.realization.boot_id,
+              capabilityId: admission.realization.capability_id,
+              selectionSignId: evidence.sign_id,
+              observationSignIds: Object.freeze([...evidence.observation_sign_ids]),
+              result: exchanged.result,
+            });
+          }
+          if (["failed", "cancelled", "terminal"].includes(exchanged.message)) {
+            throw new Error(`pool member terminated without a result: ${exchanged.message}`);
+          }
+        }
+        throw new Error("pool member exceeded its finite response bound");
+      } finally {
+        client.close();
       }
     },
     activate(admission) {
