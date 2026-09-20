@@ -181,3 +181,35 @@ pub fn replay_control_kind_definition() -> conduit_form::KindDefinition {
         ],
     }
 }
+
+#[cfg(feature = "form-catalog")]
+pub fn replay_control_semantic_contract() -> conduit_core::SemanticCapabilityContract {
+    use conduit_core::{kind_id, CapabilityLimits, FaceStartupParameter};
+
+    let definition = replay_control_kind_definition();
+    conduit_core::SemanticCapabilityContract {
+        startup_parameters: [
+            ("mode", "value/text"),
+            ("rate-numerator", "value/count"),
+            ("rate-denominator", "value/count"),
+            ("maximum-duration-seconds", "value/count"),
+        ]
+        .into_iter()
+        .map(|(name, value_type)| FaceStartupParameter {
+            name: name.into(),
+            value_type: kind_id(value_type),
+            has_default: true,
+        })
+        .collect(),
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 64,
+            max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 64) as u32,
+        },
+    }
+}
