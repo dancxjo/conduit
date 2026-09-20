@@ -82,7 +82,9 @@ mod tests {
         include_str!("../../../../architecture/body/schemas/running-host-rendezvous-v1.hex")
             .trim()
             .as_bytes()
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .map(|digits| {
                 let digit = |value| match value {
                     b'0'..=b'9' => value - b'0',
