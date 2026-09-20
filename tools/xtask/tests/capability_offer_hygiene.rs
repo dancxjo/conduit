@@ -515,6 +515,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         0,
         "fully migrated",
     ),
+    ("semantics/tongues/src/realization.rs", 0, "fully migrated"),
     (
         "semantics/presentation/src/contract.rs",
         0,
