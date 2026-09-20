@@ -47,6 +47,7 @@ fn offer() -> LocalModelOffer {
             LocalModelKindProfile::ExtractValidatedInfo,
             LocalModelKindProfile::EmbedFiniteVector,
             LocalModelKindProfile::InterpretSignEvidence,
+            LocalModelKindProfile::PresentSemanticFace,
         ],
         initialized: true,
         lifecycle: LocalModelLifecycleState::Ready,
@@ -55,9 +56,9 @@ fn offer() -> LocalModelOffer {
 }
 
 #[test]
-fn initialized_offer_exposes_seven_exact_finite_l0_capabilities() {
+fn initialized_offer_exposes_eight_exact_finite_l0_capabilities() {
     let offers = offer().capability_offers().unwrap();
-    assert_eq!(offers.len(), 7);
+    assert_eq!(offers.len(), 8);
     assert_eq!(offers[0].kind_id.as_str(), "llm/generate");
     assert_eq!(offers[1].kind_id.as_str(), "llm/generate-flow");
     assert_eq!(offers[2].kind_id.as_str(), "llm/generate-stream");
@@ -65,6 +66,7 @@ fn initialized_offer_exposes_seven_exact_finite_l0_capabilities() {
     assert_eq!(offers[4].kind_id.as_str(), "llm/extract");
     assert_eq!(offers[5].kind_id.as_str(), "llm/embed");
     assert_eq!(offers[6].kind_id.as_str(), "llm/interpret");
+    assert_eq!(offers[7].kind_id.as_str(), "llm/present");
     for capability in offers {
         assert_eq!(capability.host_operations.len(), 1);
         assert_eq!(

@@ -107,6 +107,22 @@ struct InterpretationWire {
     disposition: String,
 }
 
+#[derive(Deserialize)]
+struct ChatResponse {
+    message: ChatMessage,
+    #[serde(default)]
+    done_reason: String,
+    #[serde(default)]
+    prompt_eval_count: u64,
+    #[serde(default)]
+    eval_count: u64,
+}
+
+#[derive(Deserialize)]
+struct ChatMessage {
+    content: String,
+}
+
 impl OllamaDiscovery {
     pub fn discover(model: &str) -> Result<Self, String> {
         if model.is_empty() || model.len() > conduit_ai::MAXIMUM_LOCAL_MODEL_IDENTITY_BYTES {
@@ -264,6 +280,28 @@ impl OllamaLocalModelAdapter {
         serde_json::from_slice(&curl_json("/api/embed", Some(&body))?)
             .map_err(|error| format!("decode local Ollama embedding: {error}"))
     }
+
+    fn chat_present(
+        &self,
+        system: &str,
+        semantic_data: &str,
+        maximum_tokens: u64,
+    ) -> Result<ChatResponse, String> {
+        let body = serde_json::to_vec(&json!({
+            "model": self.model_name,
+            "messages": [
+                { "role": "system", "content": system },
+                { "role": "user", "content": semantic_data }
+            ],
+            "stream": false,
+            "format": "json",
+            "keep_alive": "5m",
+            "options": { "num_predict": maximum_tokens }
+        }))
+        .map_err(|error| error.to_string())?;
+        serde_json::from_slice(&curl_json("/api/chat", Some(&body))?)
+            .map_err(|error| format!("decode local Ollama presenter inference: {error}"))
+    }
 }
 
 impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
@@ -285,7 +323,10 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
             .unwrap_or(self.offer.limits.work.maximum_output_bytes);
         // The portable result slot carries payload plus exact provenance/accounting.
         // Reserve bounded envelope headroom instead of asking the provider to fill it.
-        let token_ceiling = if placement.kind_id.as_str() == conduit_ai::LLM_INTERPRET_KIND {
+        let token_ceiling = if matches!(
+            placement.kind_id.as_str(),
+            conduit_ai::LLM_INTERPRET_KIND | conduit_ai::LLM_PRESENT_KIND
+        ) {
             256
         } else {
             64
@@ -462,6 +503,35 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                         .prompt_eval_count
                         .saturating_add(generated.eval_count),
                 )
+            }
+            conduit_ai::LLM_PRESENT_KIND => {
+                let prepared = match super::ollama_present::prepare(input.as_bytes()) {
+                    Ok(prepared) => prepared,
+                    Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
+                };
+                let generated = match self.chat_present(
+                    super::ollama_present::SYSTEM_POLICY,
+                    &prepared.semantic_data,
+                    maximum_tokens,
+                ) {
+                    Ok(generated) => generated,
+                    Err(_) => return LocalModelAdapterTerminal::ProviderLost,
+                };
+                let truncated = generated.done_reason == "length";
+                let work_units = generated
+                    .prompt_eval_count
+                    .saturating_add(generated.eval_count);
+                let payload = match super::ollama_present::finish(
+                    prepared,
+                    &generated.message.content,
+                    &self.offer.identity,
+                    self.next_request_sequence,
+                    truncated,
+                ) {
+                    Ok(payload) => payload,
+                    Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
+                };
+                (payload, truncated, work_units)
             }
             _ => return LocalModelAdapterTerminal::Refused,
         };

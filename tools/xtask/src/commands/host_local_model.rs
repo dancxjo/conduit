@@ -50,6 +50,7 @@ pub(super) fn prove(
             LocalModelKindProfile::ClassifyFiniteLabels,
             LocalModelKindProfile::ExtractValidatedInfo,
             LocalModelKindProfile::InterpretSignEvidence,
+            LocalModelKindProfile::PresentSemanticFace,
         ],
     )?;
     let offer = adapter.offer().clone();
@@ -75,16 +76,18 @@ pub(super) fn prove(
             offer.limits.cancellation_supported
         );
         println!(
-            "Plans: generate={} classify={} extract={} interpret={} house={} completed={}/{}/{}/{}/{}",
+            "Plans: generate={} classify={} extract={} interpret={} present={} house={} completed={}/{}/{}/{}/{}/{}",
             receipt.generate_plan_id,
             receipt.classify_plan_id,
             receipt.extract_plan_id,
             receipt.interpret_plan_id,
+            receipt.present_plan_id,
             receipt.house_plan_id,
             receipt.generate_play_completed,
             receipt.classify_play_completed,
             receipt.extract_play_completed,
             receipt.interpret_play_completed,
+            receipt.present_play_completed,
             receipt.house_play_completed
         );
         println!(
