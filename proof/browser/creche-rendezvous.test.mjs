@@ -1,6 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { connectRendezvousHost, decodeRendezvousCode } from "../../products/creche/browser/creche-rendezvous.mjs";
+import { decodeRendezvousManifestation } from "../../products/creche/browser/rendezvous-cbor.mjs";
+
+test("browser decodes the exact canonical Rust and ConduitOS rendezvous vector", () => {
+  const hex = readFileSync(new URL("../../architecture/body/schemas/running-host-rendezvous-v1.hex", import.meta.url), "utf8").trim();
+  const envelope = `conduit-rendezvous-v1:${Buffer.from(hex, "hex").toString("base64url")}`;
+  const decoded = decodeRendezvousManifestation(envelope, 1_700_000_000_000);
+  assert.equal(decoded.schema, "conduit.host/rendezvous-cbor@1");
+  assert.deepEqual(decoded.candidates.map(({ candidate_id }) => candidate_id),
+    ["candidate/direct", "candidate/relay"]);
+  assert.deepEqual([...decoded.session_secret], new Array(32).fill(0x55));
+});
 
 test("running Host rendezvous code resolves one authenticated loopback WebSocket Line", () => {
   const code = `C1-WS-104D-${"AB".repeat(32)}`;
@@ -24,35 +36,69 @@ test("serial rendezvous code selects the browser-attended serial Line", () => {
 });
 
 test("finite secure LAN descriptor selects the authenticated TLS Line", () => {
-  const descriptor = JSON.stringify({
-    schema: "conduit.host/rendezvous-descriptor@1",
-    candidates: [{
-      candidate_id: "candidate/secure-lan",
-      line_family: "authenticated-tls-stream",
-      reachability: "wss://conduit-host.test:7443/conduit",
-      authentication: {
-        server_identity: "conduit-host.test",
-        transport_binding_sha256: new Array(32).fill(0xab),
-      },
-      expires_at_millis: Date.now() + 30_000,
-      maximum_attempts: 1,
-      attempt_timeout_millis: 10_000,
-    }],
-    session_secret: new Array(32).fill(0xcd),
-  });
+  const descriptor = secureDescriptor();
   const decoded = decodeRendezvousCode(descriptor);
   assert.equal(decoded.url, "wss://conduit-host.test:7443/conduit");
   assert.equal(decoded.line_id, "conduit-line/authenticated-tls-stream@1");
   assert.equal(decoded.maximum_attempts, 1);
   assert.equal(decoded.transport_binding_sha256, "ab".repeat(32));
 
-  const stale = JSON.parse(descriptor);
-  stale.candidates[0].expires_at_millis = Date.now() - 1;
-  assert.throws(() => decodeRendezvousCode(JSON.stringify(stale)), { code: "InvalidDescriptor" });
-  const relabelled = JSON.parse(descriptor);
-  relabelled.candidates[0].reachability = "ws://conduit-host.test:7443/conduit";
-  assert.throws(() => decodeRendezvousCode(JSON.stringify(relabelled)), { code: "InvalidDescriptor" });
+  assert.throws(() => decodeRendezvousCode(secureDescriptor({ expiresAt: Date.now() - 1 })),
+    { code: "InvalidDescriptor" });
+  assert.throws(() => decodeRendezvousCode(secureDescriptor({ scheme: "ws" })),
+    { code: "InvalidDescriptor" });
+  assert.throws(() => decodeRendezvousCode(`conduit-rendezvous-v1:${descriptor.split(":")[1]}A`),
+    { code: "InvalidDescriptor" });
 });
+
+function secureDescriptor({ expiresAt = Date.now() + 30_000, scheme = "wss" } = {}) {
+  const candidate = new Map([
+    [0, "candidate/secure-lan"],
+    [1, 0],
+    [2, `${scheme}://conduit-host.test:7443/conduit`],
+    [3, new Map([[0, "conduit-host.test"], [1, new Uint8Array(32).fill(0xab)]])],
+    [4, expiresAt],
+    [5, 1],
+    [6, 10_000],
+  ]);
+  const bytes = encodeCanonicalCbor(new Map([
+    [0, 1], [1, [candidate]], [2, new Uint8Array(32).fill(0xcd)],
+  ]));
+  return `conduit-rendezvous-v1:${Buffer.from(bytes).toString("base64url")}`;
+}
+
+function encodeCanonicalCbor(value) {
+  if (Number.isSafeInteger(value)) return encodeCborHead(0, value);
+  if (typeof value === "string") {
+    const bytes = new TextEncoder().encode(value);
+    return concat(encodeCborHead(3, bytes.length), bytes);
+  }
+  if (value instanceof Uint8Array) return concat(encodeCborHead(2, value.length), value);
+  if (Array.isArray(value)) return concat(encodeCborHead(4, value.length), ...value.map(encodeCanonicalCbor));
+  if (value instanceof Map) return concat(encodeCborHead(5, value.size),
+    ...[...value].flatMap(([key, item]) => [encodeCanonicalCbor(key), encodeCanonicalCbor(item)]));
+  throw new TypeError("unsupported test CBOR value");
+}
+
+function encodeCborHead(major, value) {
+  if (value < 24) return Uint8Array.of(major << 5 | value);
+  const size = value <= 0xff ? 1 : value <= 0xffff ? 2 : value <= 0xffff_ffff ? 4 : 8;
+  const result = new Uint8Array(1 + size);
+  result[0] = major << 5 | ({ 1: 24, 2: 25, 4: 26, 8: 27 })[size];
+  let remaining = value;
+  for (let index = size; index > 0; index -= 1) {
+    result[index] = remaining % 256;
+    remaining = Math.floor(remaining / 256);
+  }
+  return result;
+}
+
+function concat(...parts) {
+  const result = new Uint8Array(parts.reduce((length, part) => length + part.length, 0));
+  let offset = 0;
+  for (const part of parts) { result.set(part, offset); offset += part.length; }
+  return result;
+}
 
 test("one code carries a current advertisement and exactly one invitation proof", async () => {
   const code = `C1-WS-104D-${"AB".repeat(32)}`;
