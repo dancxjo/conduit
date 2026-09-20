@@ -2,9 +2,10 @@ use super::{as_u16, LoweringError};
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::vec::Vec;
 use conduit_core::{
-    ArtifactId, AuthorityGrantId, BootId, CapabilityId, HostId, ImplementationId, OfferGeneration,
-    PlacementId, PlanFragment, PoolMemberLimits, PoolRealizationHealth, PoolRealizationObservation,
-    ResourceBinding, ResourceHealth, SharedPoolId, SharedPoolSelectionPolicy, SignId,
+    AdmittedLine, ArtifactId, AuthorityGrantId, BootId, CapabilityId, HostId, ImplementationId,
+    OfferGeneration, PlacementId, PlanFragment, PoolMemberLimits, PoolRealizationHealth,
+    PoolRealizationObservation, ResourceBinding, ResourceHealth, SharedPoolId,
+    SharedPoolSelectionPolicy, SignId,
 };
 use conduit_kernel::{
     shared_pool::{
@@ -26,6 +27,7 @@ pub struct LoweredPoolRealization {
     pub artifact_id: ArtifactId,
     pub member_capacity: u16,
     pub resources: Vec<ResourceBinding>,
+    pub admitted_lines: Vec<AdmittedLine>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,6 +36,7 @@ pub struct LoweredSharedPool {
     pub pool_id: SharedPoolId,
     pub maximum_members: u16,
     pub member_limits: PoolMemberLimits,
+    pub member_sessions_required: bool,
     pub admission_authority: AuthorityGrantId,
     pub selection_policy: SharedPoolSelectionPolicy,
     pub realizations: Vec<LoweredPoolRealization>,
@@ -126,6 +129,7 @@ impl LoweredSharedPool {
                 artifact_id: realization.artifact_id.clone(),
                 member_capacity: realization.member_capacity,
                 resources: realization.resources.clone(),
+                admitted_lines: realization.admitted_lines.clone(),
             };
             if !observation.is_current_for(&planned) {
                 return Err(PoolObservationLoweringError::InvalidCurrentObservation);
@@ -232,6 +236,7 @@ pub(super) fn lower_shared_pools(
                     artifact_id: realization.artifact_id.clone(),
                     member_capacity: realization.member_capacity,
                     resources: realization.resources.clone(),
+                    admitted_lines: realization.admitted_lines.clone(),
                 })
             })
             .collect::<Result<Vec<_>, LoweringError>>()?;
@@ -240,6 +245,7 @@ pub(super) fn lower_shared_pools(
             pool_id: pool.pool_id.clone(),
             maximum_members: pool.maximum_members,
             member_limits: pool.member_limits,
+            member_sessions_required: pool.member_sessions_required,
             admission_authority: pool.admission_authority.clone(),
             selection_policy: pool.selection_policy,
             realizations,

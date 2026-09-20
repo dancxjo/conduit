@@ -814,6 +814,63 @@ fn verify_plan_shared_pools(plan: &Plan) -> bool {
         }) {
             return false;
         }
+        for realization in &pool.realization_envelope {
+            for line in &realization.admitted_lines {
+                let binding = &line.binding;
+                let peer = if binding.source.host_id == realization.host_id
+                    && binding.source.boot_id == realization.boot_id
+                {
+                    (&binding.sink.host_id, &binding.sink.boot_id)
+                } else if binding.sink.host_id == realization.host_id
+                    && binding.sink.boot_id == realization.boot_id
+                {
+                    (&binding.source.host_id, &binding.source.boot_id)
+                } else {
+                    return false;
+                };
+                if !pool.consumers.iter().any(|consumer| {
+                    placements.iter().any(|placement| {
+                        &placement.placement_id == consumer
+                            && &placement.host_id == peer.0
+                            && &placement.boot_id == peer.1
+                    })
+                }) {
+                    return false;
+                }
+            }
+            if pool.member_sessions_required {
+                for consumer in &pool.consumers {
+                    let Some(placement) = placements
+                        .iter()
+                        .find(|placement| &placement.placement_id == consumer)
+                    else {
+                        return false;
+                    };
+                    if placement.host_id == realization.host_id
+                        && placement.boot_id == realization.boot_id
+                    {
+                        continue;
+                    }
+                    let request = realization.admitted_lines.iter().any(|line| {
+                        line.binding.source.host_id == placement.host_id
+                            && line.binding.source.boot_id == placement.boot_id
+                            && line.binding.sink.host_id == realization.host_id
+                            && line.binding.sink.boot_id == realization.boot_id
+                    });
+                    let result = realization.admitted_lines.iter().any(|line| {
+                        line.binding.source.host_id == realization.host_id
+                            && line.binding.source.boot_id == realization.boot_id
+                            && line.binding.sink.host_id == placement.host_id
+                            && line.binding.sink.boot_id == placement.boot_id
+                    });
+                    if (!pool.member_front.inputs().is_empty() && !request)
+                        || (!pool.member_front.outputs().is_empty() && !result)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
     }
     placements.iter().all(|placement| {
         placement.pool_references.iter().all(|reference| {

@@ -62,6 +62,7 @@ fn pool() -> PlannedSharedPool {
             sign_item_capacity: 16,
             sign_byte_capacity: 2_048,
         },
+        member_sessions_required: false,
         realization_envelope: vec![PoolRealizationEnvelope {
             host_id: HostId::from("browser-host"),
             boot_id: BootId::from("browser-boot"),
@@ -71,6 +72,7 @@ fn pool() -> PlannedSharedPool {
             artifact_id: ArtifactId::from("browser/peer-artifact"),
             member_capacity: 2,
             resources: vec![],
+            admitted_lines: vec![],
         }],
         selection_policy:
             conduit_core::SharedPoolSelectionPolicy::MoreUnreservedThenLessUtilizedThenPlanOrder,

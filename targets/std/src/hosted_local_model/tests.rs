@@ -280,6 +280,7 @@ fn local_model_pool_observation_binds_current_provider_and_resource_truth() {
         artifact_id: capability.implementation.artifact_id.clone(),
         member_capacity: 1,
         resources,
+        admitted_lines: vec![],
     };
     let resource_sign_ids = realization
         .resources

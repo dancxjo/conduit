@@ -1,7 +1,7 @@
 use crate::{
-    ArtifactId, AuthorityGrantId, BootId, CapabilityId, CheckedFace, ControlLoopEvent, HostId,
-    ImplementationId, OfferGeneration, PlacementId, Plan, PlanId, PlanningRequestAuthority,
-    PlayUnsatisfiedReason, ResourceBinding, ResourceObservation, SignId,
+    AdmittedLine, ArtifactId, AuthorityGrantId, BootId, CapabilityId, CheckedFace,
+    ControlLoopEvent, HostId, ImplementationId, OfferGeneration, PlacementId, Plan, PlanId,
+    PlanningRequestAuthority, PlayUnsatisfiedReason, ResourceBinding, ResourceObservation, SignId,
 };
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -215,6 +215,9 @@ pub struct PoolRealizationEnvelope {
     pub artifact_id: ArtifactId,
     pub member_capacity: u16,
     pub resources: Vec<ResourceBinding>,
+    /// Exact directional Lines permitted for dynamic member sessions.
+    #[serde(default)]
+    pub admitted_lines: Vec<AdmittedLine>,
 }
 
 /// Runtime policy sealed by the Plan for choosing among its exact envelope.
@@ -274,6 +277,9 @@ pub struct PlannedSharedPool {
     pub member_front: CheckedFace,
     pub maximum_members: u16,
     pub member_limits: PoolMemberLimits,
+    /// Cross-Host members must have exact request/result Lines sealed below.
+    #[serde(default)]
+    pub member_sessions_required: bool,
     pub realization_envelope: Vec<PoolRealizationEnvelope>,
     pub selection_policy: SharedPoolSelectionPolicy,
     pub admission_authority: AuthorityGrantId,
@@ -289,6 +295,7 @@ pub enum PlannedSharedPoolError {
     InvalidMemberLimits,
     EmptyRealizationEnvelope,
     DuplicateRealization,
+    InvalidMemberLine,
     MissingConsumer,
     DuplicateConsumer,
 }
@@ -325,6 +332,36 @@ impl PlannedSharedPool {
                 })
             {
                 return Err(PlannedSharedPoolError::DuplicateRealization);
+            }
+            for (line_index, line) in realization.admitted_lines.iter().enumerate() {
+                let binding = &line.binding;
+                if line.line_id.as_str().is_empty()
+                    || binding.binding_id.as_str().is_empty()
+                    || binding.base.as_str().is_empty()
+                    || binding.base_instance_id.as_str().is_empty()
+                    || binding.source.endpoint_id.as_str().is_empty()
+                    || binding.sink.endpoint_id.as_str().is_empty()
+                    || binding.source == binding.sink
+                    || binding.limits.maximum_in_flight_items
+                        < self.member_limits.queue_item_capacity
+                    || binding.limits.maximum_payload_bytes < self.member_limits.queue_byte_capacity
+                    || binding.limits.maximum_buffered_bytes < binding.limits.maximum_payload_bytes
+                    || binding.limits.maximum_buffered_bytes
+                        < self.member_limits.queue_byte_capacity
+                    || binding.limits.maximum_frame_bytes < binding.limits.maximum_payload_bytes
+                    || !((binding.source.host_id == realization.host_id
+                        && binding.source.boot_id == realization.boot_id)
+                        || (binding.sink.host_id == realization.host_id
+                            && binding.sink.boot_id == realization.boot_id))
+                    || realization.admitted_lines[..line_index]
+                        .iter()
+                        .any(|prior| {
+                            prior.line_id == line.line_id
+                                || prior.binding.binding_id == binding.binding_id
+                        })
+                {
+                    return Err(PlannedSharedPoolError::InvalidMemberLine);
+                }
             }
         }
         if self

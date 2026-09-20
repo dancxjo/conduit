@@ -184,6 +184,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_u32(&mut canonical, pool.member_limits.queue_byte_capacity);
         canonical.extend_from_slice(&pool.member_limits.sign_item_capacity.to_le_bytes());
         push_u32(&mut canonical, pool.member_limits.sign_byte_capacity);
+        canonical.push(u8::from(pool.member_sessions_required));
         canonical.push(match pool.selection_policy {
             crate::SharedPoolSelectionPolicy::MoreUnreservedThenLessUtilizedThenPlanOrder => 0,
         });
@@ -226,6 +227,10 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                         }
                     }
                 }
+            }
+            push_u32(&mut canonical, realization.admitted_lines.len() as u32);
+            for line in &realization.admitted_lines {
+                push_admitted_line(&mut canonical, line);
             }
         }
         push_string(&mut canonical, pool.admission_authority.as_str());
