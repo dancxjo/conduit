@@ -3,8 +3,9 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    CapabilityOffer, ConfigurationValue, PlannedGear, PortTemporal, StructuredCanonicalSelection,
-    StructuredSelector,
+    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ConfigurationValue, ExecutionProfileId, HostOperationRequirement,
+    ImplementationId, PlannedGear, PortTemporal, StructuredCanonicalSelection, StructuredSelector,
 };
 
 pub(crate) const HOST_OPERATION: &str = "conduit.host/structured-selector@1";
@@ -56,34 +57,32 @@ fn x_offer() -> CapabilityOffer {
 fn offer(selector: &StructuredSelector, implementation: &str) -> CapabilityOffer {
     let contract =
         conduit_semantic_catalog::structured_selector_contract(selector, PortTemporal::Value);
-    CapabilityOffer {
-        capability_id: implementation.into(),
-        kind_id: contract.kind_id.clone(),
-        kind_contract_revision: contract.kind_contract_revision,
-        startup_parameters: contract.startup_parameters,
-        shorthand: contract.shorthand,
-        implementation: conduit_core::ImplementationOffer {
-            implementation_id: implementation.into(),
-            execution_profile_id: implementation.into(),
-            artifact_id: "conduit-browser-runtime/pointer-selectors@1".into(),
+    let target_kind = contract.kind_id.clone();
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(implementation),
+            implementation_id: ImplementationId::from(implementation),
+            execution_profile_id: ExecutionProfileId::from(implementation),
+            artifact_id: ArtifactId::from("conduit-browser-runtime/pointer-selectors@1"),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HOST_OPERATION.into(),
+                target_kind: Some(target_kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                maximum_output_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![conduit_core::HostOperationRequirement {
-            contract_id: HOST_OPERATION.into(),
-            target_kind: Some(contract.kind_id),
-            maximum_in_flight: 1,
-            maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-            maximum_output_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: conduit_core::CapabilityLimits {
-            max_active_instances: 8,
-            max_queue_items: 1,
-            max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        },
-    }
+    )
+    .narrow_capacity(CapabilityLimits {
+        max_active_instances: 8,
+        max_queue_items: 1,
+        max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+    })
+    .expect("browser pointer selector capacity narrows its exact dynamic contract")
+    .build()
 }
 
 fn prepare(
@@ -145,4 +144,32 @@ impl PreparedSelector {
 }
 fn debug(error: impl core::fmt::Debug) -> String {
     format!("{error:?}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pointer_selectors_preserve_their_dynamic_contracts_and_narrow_capacity() {
+        for (selector, offer) in [(position(), position_offer()), (x(), x_offer())] {
+            let semantic = conduit_semantic_catalog::structured_selector_contract(
+                &selector,
+                PortTemporal::Value,
+            );
+            assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+            assert_eq!(offer.shorthand, semantic.shorthand);
+            assert_eq!(offer.kind_id, semantic.kind_id);
+            assert_eq!(
+                offer.kind_contract_revision,
+                semantic.kind_contract_revision
+            );
+            assert_eq!(offer.inputs, semantic.inputs);
+            assert_eq!(offer.outputs, semantic.outputs);
+            assert_eq!(offer.limits.max_active_instances, 8);
+            assert_eq!(offer.limits.max_queue_items, 1);
+            assert!(offer.limits.max_queue_items < semantic.limits.max_queue_items);
+            assert!(offer.limits.max_queue_bytes < semantic.limits.max_queue_bytes);
+        }
+    }
 }
