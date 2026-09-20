@@ -1,12 +1,33 @@
-import { openCrecheStep } from "./creche-test-actions.mjs";
 import { spawn } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { startStaticProduct } from "./tour-test-server.mjs";
 import { startPresenceProbe } from "./browser-presence-support.mjs";
-import { selectBirthForm } from "./creche-test-actions.mjs";
+
+async function birthWorkspaceEvidence(page, temporary, friendlyName, titles, filename) {
+  const workspace = await startStaticProduct("target/workspace-product", "/conduit/workspace/");
+  await page.goto(workspace.url);
+  const birth = page.locator(".body-birth-runner");
+  await birth.getByLabel("Friendly Body name", { exact: true }).fill(friendlyName);
+  for (const checkbox of await birth.getByRole("checkbox").all()) {
+    if (await checkbox.isChecked()) await checkbox.uncheck();
+  }
+  for (const title of titles) {
+    await birth.getByRole("checkbox", { name: title, exact: true }).check();
+  }
+  await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
+  const result = await page.evaluate(() => ({
+    current: globalThis.__conduitWorkspace.current(),
+    evidence: globalThis.__conduitWorkspace.evidence().evidence,
+  }));
+  const evidencePath = join(temporary, filename);
+  await writeFile(evidencePath, `${JSON.stringify(result.evidence)}\n`, "utf8");
+  workspace.child.kill();
+  return { ...result, evidencePath };
+}
 
 async function startWebchatServer() {
   const process = spawn("target/debug/webchat-server", ["127.0.0.1:0"], {
@@ -28,39 +49,23 @@ async function startWebchatServer() {
   return { process, url };
 }
 
-test("a Crèche-born canonical workset continues as the same executing Body", async ({ page }) => {
-  const temporary = await mkdtemp(join(tmpdir(), "conduit-creche-execution-"));
+test("a Workspace-born canonical workset continues as the same executing Body", async ({ page }) => {
+  const temporary = await mkdtemp(join(tmpdir(), "conduit-workspace-execution-"));
   const processes = [];
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   try {
-    const creche = await startStaticProduct("target/creche-product", "/conduit/creche/");
-    processes.push(creche.child);
-    await page.goto(creche.url);
-    await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-    const birth = page.locator(".body-birth-runner");
-    for (const title of ["Button Across the Room", "Clock", "Desk Telegraph"]) {
-      await selectBirthForm(birth, title);
-    }
-    await expect(birth.getByRole("button", { name: "Birth Body", exact: true })).toBeEnabled();
-    await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
-    await expect(birth).toHaveAttribute("data-body-id", /.+/);
-    const bodyId = await birth.getAttribute("data-body-id");
-    const birthSignId = await birth.getAttribute("data-birth-sign-id");
-    await openCrecheStep(page, "2. First host");
-    await page.getByRole("button", { name: "Give this body its first host", exact: true }).click();
-    await openCrecheStep(page, "4. Graduate");
-    await page.getByRole("button", { name: "Finish without hosted Patchbay", exact: true }).click();
-    await page.getByRole("button", { name: "End the Crèche", exact: true }).click();
-    const downloading = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Save Body evidence", exact: true }).click();
-    const download = await downloading;
-    expect(download.suggestedFilename()).toBe(`conduit-body-${bodyId}.json`);
-    const evidencePath = join(temporary, "body.json");
-    await download.saveAs(evidencePath);
+    const { current, evidencePath } = await birthWorkspaceEvidence(
+      page,
+      temporary,
+      "Juniper Workbench",
+      ["Button Across the Room", "Clock", "Desk Telegraph"],
+      "body.json",
+    );
+    const bodyId = current.body_id;
     const born = JSON.parse(await readFile(evidencePath, "utf8"));
     expect(born.body_id).toBe(bodyId);
-    expect(born.records[0].sign_id).toBe(birthSignId);
+    expect(born.records[0].sign_id).toBeTruthy();
     expect(born.body.workset.forms).toHaveLength(3);
     expect(born.body.workload_revision).toBe(0);
 
@@ -92,15 +97,15 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     expect((await snapshot()).body_workbench.body_id).toBe(bodyId);
     await expect(page.locator("#body-summary")).toHaveText(/^Body: /);
     await page.locator("#body-summary").click();
-    await page.getByRole("button", { name: "Join this body", exact: true }).click();
+    await page.getByRole("button", { name: "Join this Body", exact: true }).click();
     await expect(page.locator("#body-membership-status")).toHaveText("Browser membership: admitted", { timeout: 10_000 });
     await expect.poll(
       async () => (await snapshot()).body_host_offer_evidence?.stage,
       { message: `Body Host offer evidence was not adopted: ${probe.output()}`, timeout: 10_000 },
     ).toBe("AdmittedMembership");
-    await page.getByRole("button", { name: "Request active form evidence", exact: true }).click();
+    await page.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
     await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
-    await page.getByRole("button", { name: "Plan active forms on this host", exact: true }).click();
+    await page.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
     await expect(page.locator("#body-capability-evidence-status")).toContainText("Body replanned");
     const proposal = await page.request.get(`${url}/api/body-execution-proposal`).then(response => response.json());
     await page.getByRole("button", { name: "Start proposed Body Play", exact: true }).click();
@@ -141,7 +146,7 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
     expect(signs.placements.map(binding => binding.placement_id).sort()).toEqual(
       proposal.plan.forms.flatMap(form => form.plan.fragments.flatMap(fragment => fragment.placements.map(placement => placement.placement_id))).sort(),
     );
-    await page.getByText("Inspect selected body Plan", { exact: true }).click();
+    await page.getByText("Inspect selected Body Plan", { exact: true }).click();
     const inspection = page.locator("#body-plan-inspection");
     await expect(inspection).toContainText(proposal.plan.plan_id);
     await expect(inspection).toContainText("not current availability or physical proof");
@@ -174,33 +179,19 @@ test("a Crèche-born canonical workset continues as the same executing Body", as
   }
 });
 
-test("Rosehip House runs reusable bounded measurement processing and history in one body", async ({ page }) => {
+test("Rosehip House runs reusable bounded measurement processing and history in one Body", async ({ page }) => {
   const temporary = await mkdtemp(join(tmpdir(), "conduit-rosehip-measurement-"));
   const processes = [];
   try {
-    const creche = await startStaticProduct("target/creche-product", "/conduit/creche/");
-    processes.push(creche.child);
-    await page.goto(creche.url);
-    await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-    const birth = page.locator(".body-birth-runner");
-    await birth.getByLabel("Friendly Body name", { exact: true }).fill("Rosehip House");
-    for (const checkbox of await birth.getByRole("checkbox").all()) {
-      if (await checkbox.isChecked()) await checkbox.uncheck();
-    }
-    await selectBirthForm(birth, "Button Across the Room");
-    await selectBirthForm(birth, "Little Seismograph");
-    await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
-    const bodyId = await birth.getAttribute("data-body-id");
+    const { current, evidencePath } = await birthWorkspaceEvidence(
+      page,
+      temporary,
+      "Rosehip House",
+      ["Button Across the Room", "Little Seismograph"],
+      "rosehip-measurement.json",
+    );
+    const bodyId = current.body_id;
     expect(bodyId).toMatch(/^[0-9a-f]{64}$/);
-    await openCrecheStep(page, "2. First host");
-    await page.getByRole("button", { name: "Give this body its first host", exact: true }).click();
-    await openCrecheStep(page, "4. Graduate");
-    await page.getByRole("button", { name: "Finish without hosted Patchbay", exact: true }).click();
-    await page.getByRole("button", { name: "End the Crèche", exact: true }).click();
-    const downloading = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Save Body evidence", exact: true }).click();
-    const evidencePath = join(temporary, "rosehip-measurement.json");
-    await (await downloading).saveAs(evidencePath);
     const born = JSON.parse(await readFile(evidencePath, "utf8"));
     expect(born.body_id).toBe(bodyId);
     expect(born.body.workset.forms).toHaveLength(2);
@@ -228,13 +219,13 @@ test("Rosehip House runs reusable bounded measurement processing and history in 
     await page.goto(url);
     await expect(page.locator("#body-summary")).toHaveText(/^Body: /);
     await page.locator("#body-summary").click();
-    await page.getByRole("button", { name: "Join this body", exact: true }).click();
+    await page.getByRole("button", { name: "Join this Body", exact: true }).click();
     await expect(page.locator("#body-membership-status")).toHaveText("Browser membership: admitted", { timeout: 10_000 });
     const snapshot = () => page.request.get(`${url}/api/snapshot`).then(response => response.json());
     await expect.poll(async () => (await snapshot()).body_host_offer_evidence?.stage, { timeout: 10_000 }).toBe("AdmittedMembership");
-    await page.getByRole("button", { name: "Request active form evidence", exact: true }).click();
+    await page.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
     await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
-    await page.getByRole("button", { name: "Plan active forms on this host", exact: true }).click();
+    await page.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
     await expect(page.locator("#body-capability-evidence-status")).toContainText("Body replanned");
     const proposal = await page.request.get(`${url}/api/body-execution-proposal`).then(response => response.json());
     expect(proposal.plan.body_id).toBe(bodyId);
@@ -252,33 +243,20 @@ test("Rosehip House runs reusable bounded measurement processing and history in 
   }
 });
 
-test("Rosehip House is born once in Crèche and later admits independent browser Hosts", async ({ page, browser }) => {
+test("Rosehip House is born once in Workspace and later admits independent browser Hosts", async ({ page, browser }) => {
   const temporary = await mkdtemp(join(tmpdir(), "conduit-rosehip-house-"));
   const processes = [];
   const contexts = [];
   try {
-    const creche = await startStaticProduct("target/creche-product", "/conduit/creche/");
-    processes.push(creche.child);
-    await page.goto(creche.url);
-    await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-    const birth = page.locator(".body-birth-runner");
-    await birth.getByLabel("Friendly Body name", { exact: true }).fill("Rosehip House");
-    for (const checkbox of await birth.getByRole("checkbox").all()) {
-      if (await checkbox.isChecked()) await checkbox.uncheck();
-    }
-    await selectBirthForm(birth, "Button Across the Room");
-    await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
-    const bodyId = await birth.getAttribute("data-body-id");
+    const { current, evidencePath } = await birthWorkspaceEvidence(
+      page,
+      temporary,
+      "Rosehip House",
+      ["Button Across the Room"],
+      "rosehip-house.json",
+    );
+    const bodyId = current.body_id;
     expect(bodyId).toMatch(/^[0-9a-f]{64}$/);
-    await openCrecheStep(page, "2. First host");
-    await page.getByRole("button", { name: "Give this body its first host", exact: true }).click();
-    await openCrecheStep(page, "4. Graduate");
-    await page.getByRole("button", { name: "Finish without hosted Patchbay", exact: true }).click();
-    await page.getByRole("button", { name: "End the Crèche", exact: true }).click();
-    const downloading = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Save Body evidence", exact: true }).click();
-    const evidencePath = join(temporary, "rosehip-house.json");
-    await (await downloading).saveAs(evidencePath);
 
     const capstone = spawn("target/debug/browser-parts-capstone", ["--body-evidence", evidencePath], {
       cwd: new URL("../..", import.meta.url).pathname,

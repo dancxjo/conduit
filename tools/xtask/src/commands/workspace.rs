@@ -141,6 +141,8 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
                     "--retries",
                     "0",
                     "workspace-arrival.spec.mjs",
+                    "workspace-birth-naming.spec.mjs",
+                    "workspace-body-execution.spec.mjs",
                     "workspace-membership.spec.mjs",
                     "workspace-library.spec.mjs",
                     "workspace-resident-applications.spec.mjs",
