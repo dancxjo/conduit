@@ -300,7 +300,7 @@ pub fn install_historical_timeline_catalog(
             StartupParameterSignature {
                 name: "value-profile".to_string(),
                 value_type: "Text".to_string(),
-                default: Some("\"value/text@1\"".to_string()),
+                default: Some("\"value/text\"".to_string()),
             },
             StartupParameterSignature {
                 name: "clock-basis".to_string(),

@@ -221,7 +221,7 @@ fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
 }
 
 fn unit_type() -> StructuredInfoType {
-    leaf("value/unit@1")
+    leaf("value/unit")
 }
 
 pub fn finance_fixed_decimal_type() -> StructuredInfoType {
@@ -264,11 +264,11 @@ pub fn finance_instant_type() -> StructuredInfoType {
     record(
         "finance/observed-instant@1",
         vec![
-            field("basis", leaf("value/text@1")),
-            field("resolution_ticks", leaf("value/count@1")),
+            field("basis", leaf("value/text")),
+            field("resolution_ticks", leaf("value/count")),
             field("scale", leaf("time/scale@1")),
-            field("ticks", leaf("value/count@1")),
-            field("uncertainty_ticks", leaf("value/count@1")),
+            field("ticks", leaf("value/count")),
+            field("uncertainty_ticks", leaf("value/count")),
         ],
     )
 }
@@ -303,7 +303,7 @@ pub fn finance_quote_type() -> StructuredInfoType {
             field("freshness", finance_freshness_type()),
             field("instrument", finance_instrument_type()),
             field("observed_at", finance_instant_type()),
-            field("source", leaf("value/text@1")),
+            field("source", leaf("value/text")),
         ],
     )
 }
@@ -314,9 +314,9 @@ pub fn finance_rate_type() -> StructuredInfoType {
         vec![
             field("instrument", finance_instrument_type()),
             field("observed_at", finance_instant_type()),
-            field("profile", leaf("value/text@1")),
+            field("profile", leaf("value/text")),
             field("rate", finance_fixed_decimal_type()),
-            field("source", leaf("value/text@1")),
+            field("source", leaf("value/text")),
         ],
     )
 }
@@ -327,7 +327,7 @@ pub fn finance_transaction_event_type() -> StructuredInfoType {
         vec![
             field("amount", finance_money_type()),
             field("observed_at", finance_instant_type()),
-            field("order_id", leaf("value/text@1")),
+            field("order_id", leaf("value/text")),
         ],
     );
     let filled = record(
@@ -335,7 +335,7 @@ pub fn finance_transaction_event_type() -> StructuredInfoType {
         vec![
             field("amount", finance_money_type()),
             field("observed_at", finance_instant_type()),
-            field("order_id", leaf("value/text@1")),
+            field("order_id", leaf("value/text")),
             field("price", finance_money_type()),
         ],
     );
@@ -343,8 +343,8 @@ pub fn finance_transaction_event_type() -> StructuredInfoType {
         "finance/transaction-rejected@1",
         vec![
             field("observed_at", finance_instant_type()),
-            field("order_id", leaf("value/text@1")),
-            field("reason", leaf("value/text@1")),
+            field("order_id", leaf("value/text")),
+            field("reason", leaf("value/text")),
         ],
     );
     StructuredInfoType::variant(

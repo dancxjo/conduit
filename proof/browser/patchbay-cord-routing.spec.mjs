@@ -29,7 +29,7 @@ async function renderCycleCordFixture(page,snapshot) {
     const semanticIdentity="cord/zz-cycle-proof",subjectIdentity=`cord/${semanticIdentity}`;
     presentation.subjects.push({identity:subjectIdentity,role:"Cord",label:"Cycle proof Cord",accessibility_name:"Cycle proof Cord returning to the same Gear"});
     presentation.relationships.push({source:form,target:subjectIdentity,kind:"Contains"},{source:subjectIdentity,target:output.subject.identity,kind:"Connects"},{source:subjectIdentity,target:input.subject.identity,kind:"Connects"});
-    presentation.properties.push({subject:subjectIdentity,name:"semantic-id",value:{Identity:semanticIdentity}},{subject:subjectIdentity,name:"source-port",value:{Identity:output.semantic}},{subject:subjectIdentity,name:"sink-port",value:{Identity:input.semantic}},{subject:subjectIdentity,name:"value-kind",value:{Text:"value/text@1"}});
+    presentation.properties.push({subject:subjectIdentity,name:"semantic-id",value:{Identity:semanticIdentity}},{subject:subjectIdentity,name:"source-port",value:{Identity:output.semantic}},{subject:subjectIdentity,name:"sink-port",value:{Identity:input.semantic}},{subject:subjectIdentity,name:"value-kind",value:{Text:"value/text"}});
     const {renderFlow}=await import("/assets/flow.js");renderFlow(fixture,{onSelect:()=>{},onClear:()=>{},lens:"world"});
     return fixture;
   },snapshot);

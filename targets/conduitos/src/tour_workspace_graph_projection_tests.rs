@@ -64,7 +64,7 @@ fn configured_literal_is_visible_without_claiming_an_observed_output() {
         .unwrap();
     let body = heading.payload();
     assert!(body.contains("Configured value\n\"hello\""));
-    assert!(body.contains("out text\nvalue/text@1\n= unobserved"));
+    assert!(body.contains("out text\nvalue/text\n= unobserved"));
     assert!(!body.contains("= \"hello\""));
 }
 

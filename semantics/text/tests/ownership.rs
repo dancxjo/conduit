@@ -34,7 +34,7 @@ fn exact_text_identities_fronts_configuration_and_bounds_are_stable() {
         join.kind_contract_revision.as_str(),
         "conduit.std/text-join@1"
     );
-    assert_eq!(literal.outputs[0].value_kind.as_str(), "value/text@1");
+    assert_eq!(literal.outputs[0].value_kind.as_str(), "value/text");
     assert_eq!(upper.inputs, join.inputs);
     assert_eq!(upper.outputs, join.outputs);
     assert_eq!(literal.configuration[0].key, "value");

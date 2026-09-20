@@ -8,7 +8,7 @@ use conduit_form::{
 };
 
 fn structured_catalog() -> StartupCatalog {
-    let count = StructuredInfoType::leaf(KindId::from("value/count@1")).unwrap();
+    let count = StructuredInfoType::leaf(KindId::from("value/count")).unwrap();
     let pitches = StructuredInfoType::collection(count.clone(), Some(3)).unwrap();
     let note = StructuredInfoType::record(
         KindId::from("music/note-on@1"),
@@ -207,11 +207,11 @@ fn collection_length_leaf_type_and_runtime_port_fail_distinctly() {
         ),
         (
             "note_on({ pitches: [60, \"wrong\", 64], velocity: 96 })",
-            "incompatible with exact leaf kind 'value/count@1'",
+            "incompatible with exact leaf kind 'value/count'",
         ),
         (
             "note_on({ pitches: [60, 62, 64], velocity: 18446744073709551616 })",
-            "incompatible with exact leaf kind 'value/count@1'",
+            "incompatible with exact leaf kind 'value/count'",
         ),
     ];
     for (expression, message) in cases {

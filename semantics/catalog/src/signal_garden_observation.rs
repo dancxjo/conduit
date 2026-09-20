@@ -1,6 +1,6 @@
 //! Exact structured values for reusable Signal Garden observation composition.
 
-use alloc::{string::ToString, vec, vec::Vec};
+use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
     StructuredInfoValue, StructuredInfoValueShape,
@@ -37,16 +37,16 @@ pub fn combine_garden_observations(
 pub fn garden_contact_observation_value(
     observation: GardenContactObservation,
 ) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
-    let intensity = observation.intensity.raw_microunits();
-    if !(0..=conduit_core::Scalar::SCALE).contains(&intensity) {
+    let intensity = observation.intensity;
+    if !(0..=conduit_core::Scalar::SCALE).contains(&intensity.raw_microunits()) {
         return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
     }
     StructuredInfoValue::record(
         garden_contact_observation_type(),
         vec![leaf_field(
             "intensity",
-            "value/scalar@1",
-            intensity.to_string().into_bytes(),
+            "value/scalar",
+            intensity.encode().to_vec(),
         )?],
     )
 }
@@ -123,15 +123,13 @@ fn decode_contact_value(
     if value.value_type() != &garden_contact_observation_type() {
         return Err(GardenEvolutionRefusal::MalformedContactObservation);
     }
-    let raw = record_leaf_text(value, "intensity")
-        .and_then(|text| text.parse::<i64>().map_err(|_| ()))
+    let raw = record_leaf_bytes(value, "intensity")
+        .and_then(|bytes| conduit_core::Scalar::decode(bytes).map_err(|_| ()))
         .map_err(|_| GardenEvolutionRefusal::MalformedContactObservation)?;
-    if !(0..=conduit_core::Scalar::SCALE).contains(&raw) {
+    if !(0..=conduit_core::Scalar::SCALE).contains(&raw.raw_microunits()) {
         return Err(GardenEvolutionRefusal::MalformedContactObservation);
     }
-    Ok(GardenContactObservation {
-        intensity: conduit_core::Scalar::from_raw_microunits(raw),
-    })
+    Ok(GardenContactObservation { intensity: raw })
 }
 
 fn record_value_field<'a>(
@@ -148,12 +146,12 @@ fn record_value_field<'a>(
         .ok_or(())
 }
 
-fn record_leaf_text<'a>(value: &'a StructuredInfoValue, name: &str) -> Result<&'a str, ()> {
+fn record_leaf_bytes<'a>(value: &'a StructuredInfoValue, name: &str) -> Result<&'a [u8], ()> {
     let value = record_value_field(value, name)?;
     let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
         return Err(());
     };
-    core::str::from_utf8(bytes).map_err(|_| ())
+    Ok(bytes)
 }
 
 fn leaf_field(

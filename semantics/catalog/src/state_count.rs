@@ -14,7 +14,7 @@ use conduit_core::{
 };
 
 pub const STATE_COUNT_KIND: &str = "state/count";
-pub const STATE_COUNT_VALUE_KIND: &str = "value/count@1";
+pub const STATE_COUNT_VALUE_KIND: &str = "value/count";
 pub const STATE_COUNT_CONTRACT_REVISION: &str = "conduit.std/state-count@2";
 
 pub const COUNT_PRESENTATION_KIND: &str = "presentation/count";

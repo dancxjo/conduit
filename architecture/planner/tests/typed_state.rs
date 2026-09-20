@@ -5,7 +5,7 @@ mod common;
 #[test]
 fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_capacity_changes() {
     let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
-    let seed = StructuredInfoValue::leaf(ty.clone(), b"false".to_vec()).unwrap();
+    let seed = StructuredInfoValue::leaf(ty.clone(), InfoBool::FALSE.encode().to_vec()).unwrap();
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     startup.insert_structured_type("Cell", ty.clone()).unwrap();

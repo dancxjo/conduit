@@ -1,4 +1,4 @@
-const QUANTITY_KIND="value/quantity@1";
+const QUANTITY_KIND="value/quantity";
 
 function bytesForQuantity(unitTag,value){
   const bytes=new Uint8Array(9),view=new DataView(bytes.buffer);
@@ -68,7 +68,7 @@ export class BrowserInteractionPresenter {
     if(family.kind==="activate"){
       const button=document.createElement("button");button.type="button";button.textContent=interaction.action_label;button.disabled=interaction.availability!=="available";button.onclick=()=>emit({kind:"activate"});group.append(button);
     }else if(family.kind==="boolean"){
-      const input=document.createElement("input");input.type="checkbox";input.checked=interaction.current.boolean;input.setAttribute("aria-label",interaction.accessibility_name);input.onchange=()=>emit(valuePayload({value_kind:"value/bool@1",canonical_bytes:[input.checked?1:0]}));group.append(input);
+      const input=document.createElement("input");input.type="checkbox";input.checked=interaction.current.boolean;input.setAttribute("aria-label",interaction.accessibility_name);input.onchange=()=>emit(valuePayload({value_kind:"value/bool",canonical_bytes:[input.checked?1:0]}));group.append(input);
     }else if(family.kind==="choose-one"){
       const select=document.createElement("select");select.setAttribute("aria-label",interaction.accessibility_name);
       for(const option of interaction.options){const node=document.createElement("option");node.value=option.identity;node.textContent=option.label;node.disabled=option.availability!=="available";node.selected=interaction.current.identities.includes(option.identity);select.append(node);}
@@ -82,7 +82,7 @@ export class BrowserInteractionPresenter {
     }else if(family.kind==="relative"){
       for(const [text,delta] of [["Decrease",-family.granularity],["Increase",family.granularity]]){const button=document.createElement("button");button.type="button";button.textContent=text;button.onclick=()=>emit(quantityPayload(family,delta,"relative"));group.append(button);}
     }else if(family.kind==="text"){
-      const input=document.createElement("input");input.type="text";input.maxLength=family.maximum_bytes;input.setAttribute("aria-label",interaction.accessibility_name);const submit=document.createElement("button");submit.type="button";submit.textContent=interaction.submit_label;submit.onclick=()=>{const bytes=[...new TextEncoder().encode(input.value)];if(bytes.length>family.maximum_bytes)return this.#refuse(status,"OversizeValue");if(!family.allow_empty&&bytes.length===0)return this.#refuse(status,"EmptyValue");return emit(valuePayload({value_kind:"value/text@1",canonical_bytes:bytes}));};group.append(input,submit);
+      const input=document.createElement("input");input.type="text";input.maxLength=family.maximum_bytes;input.setAttribute("aria-label",interaction.accessibility_name);const submit=document.createElement("button");submit.type="button";submit.textContent=interaction.submit_label;submit.onclick=()=>{const bytes=[...new TextEncoder().encode(input.value)];if(bytes.length>family.maximum_bytes)return this.#refuse(status,"OversizeValue");if(!family.allow_empty&&bytes.length===0)return this.#refuse(status,"EmptyValue");return emit(valuePayload({value_kind:"value/text",canonical_bytes:bytes}));};group.append(input,submit);
     }else throw new TypeError(`unsupported portable interaction family ${family.kind}`);
     group.append(status);return group;
   }

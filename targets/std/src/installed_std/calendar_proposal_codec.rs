@@ -216,9 +216,10 @@ fn text(value: &StructuredInfoValue) -> Result<String, String> {
 }
 
 fn count(value: &StructuredInfoValue) -> Result<u64, String> {
-    text(value)?
-        .parse()
-        .map_err(|_| "calendar count is malformed".into())
+    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+        return Err("calendar count is malformed".into());
+    };
+    conduit_core::decode_count(bytes).map_err(|_| "calendar count is malformed".into())
 }
 
 fn u16_value(value: &StructuredInfoValue) -> Result<u16, String> {

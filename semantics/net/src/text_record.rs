@@ -4,7 +4,7 @@ use conduit_core::{kind_id, StructuredInfoType, StructuredInfoValue};
 
 use crate::{typed_record_value, value_from_typed_record, TypedRecordFrameRefusal};
 
-pub const TEXT_INFO_ID: &str = "value/text@1";
+pub const TEXT_INFO_ID: &str = "value/text";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum TextRecordRefusal {

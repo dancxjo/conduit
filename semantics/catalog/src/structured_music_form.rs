@@ -26,7 +26,7 @@ pub const RHYTHM_COMPARE_REVISION: &str = "conduit.std/music-rhythm-compare@1";
 pub const RHYTHM_MAXIMUM_PENDING_BEATS: u16 = 16;
 
 pub fn beat_reference_type() -> StructuredInfoType {
-    let count = leaf("value/count@1");
+    let count = leaf("value/count");
     StructuredInfoType::record(
         kind_id("music/beat-reference@1"),
         vec![
@@ -38,7 +38,7 @@ pub fn beat_reference_type() -> StructuredInfoType {
 }
 
 pub fn timing_feedback_type() -> StructuredInfoType {
-    let count = leaf("value/count@1");
+    let count = leaf("value/count");
     StructuredInfoType::record(
         kind_id("music/timing-feedback@1"),
         vec![
@@ -46,7 +46,7 @@ pub fn timing_feedback_type() -> StructuredInfoType {
             field("classification", leaf("music/timing-classification@1")),
             field("delta_micros", leaf("time/signed-microseconds@1")),
             field("expected_time_micros", count.clone()),
-            field("observed", leaf("value/boolean@1")),
+            field("observed", leaf("value/bool")),
             field("observed_time_micros", count),
             field("recovery_state", leaf("music/recovery-state@1")),
         ],
@@ -55,7 +55,7 @@ pub fn timing_feedback_type() -> StructuredInfoType {
 }
 
 pub fn instrument_mapping_type() -> StructuredInfoType {
-    let count = leaf("value/count@1");
+    let count = leaf("value/count");
     StructuredInfoType::record(
         kind_id("music/instrument-mapping@1"),
         vec![
@@ -72,8 +72,8 @@ pub fn instrument_mapping_type() -> StructuredInfoType {
 }
 
 pub fn instrument_control_type() -> StructuredInfoType {
-    let count = leaf("value/count@1");
-    let boolean = leaf("value/boolean@1");
+    let count = leaf("value/count");
+    let boolean = leaf("value/bool");
     let button = StructuredInfoType::record(
         kind_id("input/button-event@1"),
         vec![
@@ -235,7 +235,7 @@ pub fn default_instrument_mapping_configuration() -> Result<StructuredConfigurat
         .map_err(|error| alloc::format!("{error:?}"))?
         .value_kind()
         .clone();
-    let count = leaf("value/count@1");
+    let count = leaf("value/count");
     let pitches_type = StructuredInfoType::collection(count.clone(), Some(8)).unwrap();
     let pitches = StructuredInfoValue::collection(
         pitches_type,
@@ -274,8 +274,11 @@ pub fn default_instrument_mapping_configuration() -> Result<StructuredConfigurat
 }
 
 fn count_value(value_type: &StructuredInfoType, value: u64) -> Result<StructuredInfoValue, String> {
-    StructuredInfoValue::leaf(value_type.clone(), value.to_string().into_bytes())
-        .map_err(|error| alloc::format!("{error:?}"))
+    StructuredInfoValue::leaf(
+        value_type.clone(),
+        conduit_core::encode_count(value).to_vec(),
+    )
+    .map_err(|error| alloc::format!("{error:?}"))
 }
 
 fn leaf(kind: &str) -> StructuredInfoType {

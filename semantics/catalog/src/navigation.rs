@@ -30,7 +30,7 @@ fn leaf(kind: &str) -> StructuredInfoType {
 }
 
 fn text_type() -> StructuredInfoType {
-    leaf("value/text@1")
+    leaf("value/text")
 }
 
 fn quantity_type() -> StructuredInfoType {
@@ -38,7 +38,7 @@ fn quantity_type() -> StructuredInfoType {
 }
 
 fn unit_type() -> StructuredInfoType {
-    leaf("value/unit@1")
+    leaf("value/unit")
 }
 
 fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {

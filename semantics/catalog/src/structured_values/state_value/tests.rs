@@ -1,14 +1,14 @@
 use super::*;
 use alloc::vec;
 use conduit_core::{
-    GearId, StateContinuation, StructuredFieldType, StructuredFieldValue, StructuredInfoValue,
-    BOOL_INFO_ID,
+    GearId, InfoBool, StateContinuation, StructuredFieldType, StructuredFieldValue,
+    StructuredInfoValue, BOOL_INFO_ID,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog};
 
 fn boolean() -> (StructuredInfoType, StructuredInfoValue) {
     let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
-    let initial = StructuredInfoValue::leaf(ty.clone(), b"false".to_vec()).unwrap();
+    let initial = StructuredInfoValue::leaf(ty.clone(), InfoBool::FALSE.encode().to_vec()).unwrap();
     (ty, initial)
 }
 
@@ -37,7 +37,7 @@ fn authored_initialization_has_an_exact_type_and_no_semantic_step_count() {
     assert_eq!(state.value_kind, *ty.profile().unwrap().value_kind());
     assert_eq!(
         state.initial_value,
-        StructuredInfoValue::leaf(ty, b"true".to_vec())
+        StructuredInfoValue::leaf(ty, InfoBool::TRUE.encode().to_vec())
             .unwrap()
             .canonical_bytes()
             .unwrap()
@@ -85,7 +85,7 @@ fn the_same_kind_specializes_to_a_distinct_finite_record_profile() {
             ty,
             vec![StructuredFieldValue::new(
                 "on",
-                StructuredInfoValue::leaf(leaf, b"true".to_vec()).unwrap()
+                StructuredInfoValue::leaf(leaf, InfoBool::TRUE.encode().to_vec()).unwrap()
             )
             .unwrap(),]
         )

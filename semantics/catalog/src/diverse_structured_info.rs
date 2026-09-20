@@ -16,11 +16,11 @@ pub const MESSAGE_ENVELOPE_TYPE: &str = "MessageEnvelope";
 pub const EDUCATION_FEEDBACK_TYPE: &str = "EducationFeedback";
 
 fn text_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/text@1")).expect("text leaf is finite")
+    StructuredInfoType::leaf(kind_id("value/text")).expect("text leaf is finite")
 }
 
 fn count_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/count@1")).expect("count leaf is finite")
+    StructuredInfoType::leaf(kind_id("value/count")).expect("count leaf is finite")
 }
 
 fn bool_type() -> StructuredInfoType {

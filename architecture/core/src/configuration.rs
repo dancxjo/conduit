@@ -55,7 +55,7 @@ impl<'de> Deserialize<'de> for StructuredConfigurationValue {
 pub enum ConfigurationValue {
     Bool(bool),
     U64(u64),
-    /// Signed fixed-point scalar microunits, matching `value/scalar@1`.
+    /// Signed fixed-point scalar microunits, matching `value/scalar`.
     I64(i64),
     Text(String),
     /// Exact finite structured semantic value used by an immutable Gear configuration.
@@ -71,13 +71,14 @@ pub struct ConfigurationEntry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{kind_id, StructuredInfoType, StructuredInfoValue};
+    use crate::{encode_count, kind_id, StructuredInfoType, StructuredInfoValue};
     use alloc::vec;
 
     #[test]
     fn structured_configuration_requires_matching_profile_and_canonical_value() {
-        let value_type = StructuredInfoType::leaf(kind_id("value/count@1")).unwrap();
-        let value = StructuredInfoValue::leaf(value_type.clone(), b"7".to_vec()).unwrap();
+        let value_type = StructuredInfoType::leaf(kind_id("value/count")).unwrap();
+        let value =
+            StructuredInfoValue::leaf(value_type.clone(), encode_count(7).to_vec()).unwrap();
         let canonical = value.canonical_bytes().unwrap();
         let profile = value_type.profile().unwrap().value_kind().clone();
 

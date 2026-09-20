@@ -1,6 +1,6 @@
 //! Deterministic reference finance fixtures and structured exact-money operations.
 
-use alloc::{string::ToString, vec, vec::Vec};
+use alloc::{vec, vec::Vec};
 use conduit_core::{
     Quantity, QuantityUnit, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
     StructuredInfoValue, StructuredInfoValueShape,
@@ -331,7 +331,7 @@ fn record_value(
 
 fn text_value(value: &str) -> StructuredInfoValue {
     StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id("value/text@1")).unwrap(),
+        StructuredInfoType::leaf(conduit_core::kind_id("value/text")).unwrap(),
         value.as_bytes().to_vec(),
     )
     .expect("bounded fixture text")
@@ -339,8 +339,8 @@ fn text_value(value: &str) -> StructuredInfoValue {
 
 fn count_value(value: u64) -> StructuredInfoValue {
     StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id("value/count@1")).unwrap(),
-        value.to_string().into_bytes(),
+        StructuredInfoType::leaf(conduit_core::kind_id("value/count")).unwrap(),
+        conduit_core::encode_count(value).to_vec(),
     )
     .expect("bounded fixture count")
 }
@@ -371,9 +371,7 @@ fn leaf_text(value: &StructuredInfoValue) -> Result<&str, FinanceRefusal> {
 }
 
 fn parse_count(value: &StructuredInfoValue) -> Result<u64, FinanceRefusal> {
-    leaf_text(value)?
-        .parse()
-        .map_err(|_| FinanceRefusal::MalformedInfo)
+    conduit_core::decode_count(leaf_bytes(value)?).map_err(|_| FinanceRefusal::MalformedInfo)
 }
 
 fn variant_tag(value: &StructuredInfoValue) -> Result<&str, FinanceRefusal> {

@@ -18,7 +18,7 @@ pub const REMINDER_REVISION: &str = "conduit.std/reminder-delivery@1";
 pub const REMINDER_DELIVERY_AUTHORITY: &str = "conduit.authority/deliver-reminder@1";
 
 pub fn reminder_occurrence_type() -> StructuredInfoType {
-    let text = StructuredInfoType::leaf(kind_id("value/text@1")).unwrap();
+    let text = StructuredInfoType::leaf(kind_id("value/text")).unwrap();
     StructuredInfoType::record(
         kind_id("notification/reminder-occurrence@1"),
         [

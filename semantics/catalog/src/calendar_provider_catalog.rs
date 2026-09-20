@@ -267,7 +267,7 @@ fn record(kind: &str, field_name: &str) -> StructuredInfoType {
         kind_id(kind),
         vec![StructuredFieldType::new(
             field_name,
-            StructuredInfoType::leaf(kind_id("value/text@1")).expect("reviewed text leaf"),
+            StructuredInfoType::leaf(kind_id("value/text")).expect("reviewed text leaf"),
         )
         .expect("reviewed calendar envelope field")],
     )
@@ -276,7 +276,7 @@ fn record(kind: &str, field_name: &str) -> StructuredInfoType {
 
 fn default_envelope(value_type: StructuredInfoType) -> Result<StructuredInfoValue, String> {
     let value = StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/text@1")).map_err(|error| format!("{error:?}"))?,
+        StructuredInfoType::leaf(kind_id("value/text")).map_err(|error| format!("{error:?}"))?,
         b"{}".to_vec(),
     )
     .map_err(|error| format!("{error:?}"))?;
