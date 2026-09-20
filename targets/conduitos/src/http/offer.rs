@@ -1,7 +1,7 @@
 use conduit_core::{
     ArtifactId, AuthorityContractId, AuthorityRequirement, CapabilityId, CapabilityOffer,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, resource_requirement,
+    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, resource_requirement,
 };
 
 pub const IMPLEMENTATION: &str = "conduitos/kernel-http-client-http1-literal@1";
@@ -21,7 +21,7 @@ pub const REQUEST_BYTES: usize = conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES
 pub const RESPONSE_BYTES: usize = conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize;
 
 pub fn offer() -> CapabilityOffer {
-    let contract = conduit_web::http_client_semantics();
+    let contract = conduit_web::http_client_semantics().into_semantic_contract();
     let request_kind = conduit_web::http_request_type()
         .profile()
         .expect("finite HTTP request profile")
@@ -34,26 +34,21 @@ pub fn offer() -> CapabilityOffer {
         maximum_input_bytes: REQUEST_BYTES as u32,
         maximum_output_bytes: RESPONSE_BYTES as u32,
     };
-    CapabilityOffer {
-        startup_parameters: alloc::vec::Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("conduitos-http-client-http1-literal"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from("conduitos-http-client-http1-literal"),
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_operations: alloc::vec![operation.clone()],
+            resource_requirements: alloc::vec![resource_requirement(RESOURCE_CLASS, 1)],
+            authority_requirements: alloc::vec![AuthorityRequirement {
+                contract_id: AuthorityContractId::from(AUTHORITY),
+                host_operation_contract_id: operation.contract_id,
+                subject_kind: request_kind,
+            }],
         },
-        host_operations: alloc::vec![operation.clone()],
-        resource_requirements: alloc::vec![resource_requirement(RESOURCE_CLASS, 1)],
-        authority_requirements: alloc::vec![AuthorityRequirement {
-            contract_id: AuthorityContractId::from(AUTHORITY),
-            host_operation_contract_id: operation.contract_id,
-            subject_kind: request_kind,
-        }],
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
