@@ -62,6 +62,30 @@ fn prepared_validation_walks_exact_record_members() {
 }
 
 #[test]
+fn prepared_validation_accepts_actual_sequence_length_up_to_capacity() {
+    let leaf = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
+    let ty = StructuredInfoType::sequence(leaf.clone(), 3).unwrap();
+    for length in 0..=3 {
+        let value = StructuredInfoValue::sequence(
+            ty.clone(),
+            (0..length)
+                .map(|_| {
+                    StructuredInfoValue::leaf(leaf.clone(), InfoBool::TRUE.encode().to_vec())
+                        .unwrap()
+                })
+                .collect(),
+        )
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+        PreparedStructuredValueValidator::new(&ty, 256)
+            .unwrap()
+            .validate(&value)
+            .unwrap();
+    }
+}
+
+#[test]
 fn prepared_validation_accepts_nested_collection_and_selected_variant_only() {
     let leaf = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
     let collection = StructuredInfoType::collection(leaf.clone(), Some(2)).unwrap();

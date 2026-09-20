@@ -70,6 +70,26 @@ fn llm_value() -> StructuredInfoValue {
 }
 
 #[test]
+fn bounded_sequence_round_trips_through_transport_with_actual_length() {
+    let element = leaf_type("value/count");
+    let ty = StructuredInfoType::sequence(element, 5).unwrap();
+    let value = StructuredInfoValue::sequence(
+        ty.clone(),
+        vec![
+            leaf("value/count", &encode_count(7)),
+            leaf("value/count", &encode_count(8)),
+        ],
+    )
+    .unwrap();
+    let encoded =
+        encode_structured_transport(&value, MAXIMUM_STRUCTURED_TRANSPORT_BYTES as u32).unwrap();
+    assert_eq!(
+        decode_structured_transport(&ty, &encoded, MAXIMUM_STRUCTURED_TRANSPORT_BYTES as u32,),
+        Ok(value)
+    );
+}
+
+#[test]
 fn music_and_llm_values_share_one_bounded_versioned_transport() {
     for value in [music_value(), llm_value()] {
         let encoded = encode_structured_transport(

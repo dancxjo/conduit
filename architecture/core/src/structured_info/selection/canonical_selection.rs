@@ -154,6 +154,16 @@ fn skip_value_node(
                 skip_value_node(element, cursor)?;
             }
         }
+        crate::StructuredInfoTypeShape::Sequence { element, capacity } => {
+            expect_byte(cursor, 1)?;
+            let length = cursor.length().map_err(malformed)?;
+            if length > usize::from(capacity) {
+                return Err(StructuredSelectorRefusal::MalformedCheckedValue);
+            }
+            for _ in 0..length {
+                skip_value_node(element, cursor)?;
+            }
+        }
         crate::StructuredInfoTypeShape::Record { fields, .. } => {
             expect_byte(cursor, 2)?;
             expect_length(cursor, fields.len())?;

@@ -79,6 +79,14 @@ fn validate_node(
                 validate_node(element, cursor, remaining)?;
             }
         }
+        Shape::Sequence { element, capacity } => {
+            expect(cursor.byte()? == 1)?;
+            let length = cursor.length()?;
+            expect(length <= usize::from(capacity))?;
+            for _ in 0..length {
+                validate_node(element, cursor, remaining)?;
+            }
+        }
         Shape::Record { fields, .. } => {
             expect(cursor.byte()? == 2)?;
             expect(cursor.length()? == fields.len())?;
