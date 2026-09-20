@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 
 mod base_capability;
 mod base_registry;
+mod capability_offer;
 mod characteristic;
 mod completion;
 mod configuration;
@@ -54,6 +55,7 @@ mod temporal_quantity;
 
 pub use base_capability::*;
 pub use base_registry::*;
+pub use capability_offer::*;
 pub use characteristic::*;
 pub use completion::*;
 pub use conduit_assigned_plan::*;
