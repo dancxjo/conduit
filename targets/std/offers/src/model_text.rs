@@ -1,8 +1,8 @@
 //! Hosted std realization of validated model-result text projection.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 
 pub const MODEL_RESULT_TO_TEXT_STD_IMPLEMENTATION: &str = "std/model-result-to-text@1";
@@ -15,6 +15,9 @@ pub fn model_result_to_text_std_offer() -> CapabilityOffer {
     model_text_offer(
         conduit_ai::model_result_to_text_contract(),
         "model-result-to-text",
+        MODEL_RESULT_TO_TEXT_OPERATION,
+        conduit_ai::MAXIMUM_MODEL_RESULT_ENVELOPE_BYTES,
+        conduit_ai::MAXIMUM_MODEL_TEXT_BYTES,
     )
 }
 
@@ -22,62 +25,49 @@ pub fn model_result_flow_to_text_std_offer() -> CapabilityOffer {
     model_text_offer(
         conduit_ai::model_result_flow_to_text_contract(),
         "model-result-flow-to-text",
+        MODEL_RESULT_TO_TEXT_OPERATION,
+        conduit_ai::MAXIMUM_MODEL_RESULT_ENVELOPE_BYTES,
+        conduit_ai::MAXIMUM_MODEL_TEXT_BYTES,
     )
 }
 
 pub fn generated_chunk_to_text_std_offer() -> CapabilityOffer {
-    let contract = conduit_ai::generated_chunk_to_text_contract();
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id: CapabilityId::from("generated-chunk-to-text"),
-        kind_id: contract.kind_id.clone(),
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(MODEL_RESULT_TO_TEXT_STD_PROFILE),
-            implementation_id: ImplementationId::from(MODEL_RESULT_TO_TEXT_STD_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(MODEL_RESULT_TO_TEXT_STD_ARTIFACT),
-        },
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(GENERATED_CHUNK_TO_TEXT_OPERATION),
-            target_kind: Some(contract.kind_id),
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_ai::MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES as u32,
-            maximum_output_bytes: conduit_ai::MAXIMUM_GENERATED_TEXT_CHUNK_BYTES as u32,
-        }],
-        resource_requirements: vec![],
-        authority_requirements: vec![],
-        limits: contract.limits,
-    }
+    model_text_offer(
+        conduit_ai::generated_chunk_to_text_contract(),
+        "generated-chunk-to-text",
+        GENERATED_CHUNK_TO_TEXT_OPERATION,
+        conduit_ai::MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES as u32,
+        conduit_ai::MAXIMUM_GENERATED_TEXT_CHUNK_BYTES as u32,
+    )
 }
 
-fn model_text_offer(contract: conduit_ai::ModelTextContract, capability: &str) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id: CapabilityId::from(capability),
-        kind_id: contract.kind_id.clone(),
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
+fn model_text_offer(
+    contract: conduit_ai::ModelTextContract,
+    capability: &str,
+    operation: &str,
+    maximum_input_bytes: u32,
+    maximum_output_bytes: u32,
+) -> CapabilityOffer {
+    let target_kind = contract.kind_id.clone();
+    CapabilityOfferBuilder::new(
+        contract.into_semantic_capability_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(MODEL_RESULT_TO_TEXT_STD_PROFILE),
             implementation_id: ImplementationId::from(MODEL_RESULT_TO_TEXT_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(MODEL_RESULT_TO_TEXT_STD_ARTIFACT),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(operation),
+                target_kind: Some(target_kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes,
+                maximum_output_bytes,
+            }],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
         },
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(MODEL_RESULT_TO_TEXT_OPERATION),
-            target_kind: Some(contract.kind_id.clone()),
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_ai::MAXIMUM_MODEL_RESULT_ENVELOPE_BYTES,
-            maximum_output_bytes: conduit_ai::MAXIMUM_MODEL_TEXT_BYTES,
-        }],
-        resource_requirements: vec![],
-        authority_requirements: vec![],
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]
@@ -86,13 +76,27 @@ mod tests {
 
     #[test]
     fn offer_preserves_the_portable_front_and_finite_projection_boundary() {
-        let offer = model_result_to_text_std_offer();
-        let contract = conduit_ai::model_result_to_text_contract();
-        assert_eq!(offer.kind_id, contract.kind_id);
-        assert_eq!(offer.inputs, contract.inputs);
-        assert_eq!(offer.outputs, contract.outputs);
-        assert_eq!(offer.host_operations.len(), 1);
-        assert!(offer.resource_requirements.is_empty());
-        assert!(offer.authority_requirements.is_empty());
+        for (offer, contract) in [
+            (
+                model_result_to_text_std_offer(),
+                conduit_ai::model_result_to_text_contract(),
+            ),
+            (
+                model_result_flow_to_text_std_offer(),
+                conduit_ai::model_result_flow_to_text_contract(),
+            ),
+            (
+                generated_chunk_to_text_std_offer(),
+                conduit_ai::generated_chunk_to_text_contract(),
+            ),
+        ] {
+            assert_eq!(offer.kind_id, contract.kind_id);
+            assert_eq!(offer.inputs, contract.inputs);
+            assert_eq!(offer.outputs, contract.outputs);
+            assert_eq!(offer.limits, contract.limits);
+            assert_eq!(offer.host_operations.len(), 1);
+            assert!(offer.resource_requirements.is_empty());
+            assert!(offer.authority_requirements.is_empty());
+        }
     }
 }
