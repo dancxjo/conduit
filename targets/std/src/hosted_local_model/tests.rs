@@ -507,7 +507,7 @@ fn plan_and_play(profile: LocalModelKindProfile) {
         conduit_planner::PlanningOptions {
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,
-            connection_item_capacity: 4,
+            connection_item_capacity: 1,
             connection_byte_capacity: 4_096,
             authority_grants: &[],
             protected_resource_grants: &[],

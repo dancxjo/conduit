@@ -141,7 +141,11 @@ pub fn calendar_provider_semantic_contract(
     SemanticCapabilityContract {
         startup_parameters: vec![FrontStartupParameter {
             name: "request".into(),
-            value_type: contract.request_type_name.into(),
+            value_type: calendar_request_type(&contract)
+                .profile()
+                .expect("reviewed calendar request profile")
+                .value_kind()
+                .clone(),
             has_default: false,
         }],
         shorthand: None,

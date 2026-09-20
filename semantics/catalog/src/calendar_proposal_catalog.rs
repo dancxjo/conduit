@@ -28,7 +28,11 @@ pub fn calendar_proposal_semantic_contract() -> SemanticCapabilityContract {
     SemanticCapabilityContract {
         startup_parameters: vec![FrontStartupParameter {
             name: "request".into(),
-            value_type: CALENDAR_PROPOSAL_REQUEST_TYPE.into(),
+            value_type: calendar_proposal_request_type()
+                .profile()
+                .expect("reviewed calendar proposal request is bounded")
+                .value_kind()
+                .clone(),
             has_default: false,
         }],
         shorthand: None,
