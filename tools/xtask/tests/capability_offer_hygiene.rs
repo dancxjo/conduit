@@ -5,6 +5,11 @@ use std::{fs, path::Path};
 /// adversarial fixtures remain outside this production-only ratchet.
 const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     (
+        "semantics/catalog/src/final_normalized_pattern.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
         "semantics/catalog/src/functional_front.rs",
         0,
         "fully migrated",
@@ -43,6 +48,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "fully migrated",
     ),
     (
+        "targets/browser/runtime/src/installed_browser/final_normalized_pattern.rs",
+        0,
+        "fully migrated",
+    ),
+    (
         "targets/browser/runtime/src/installed_browser/timing.rs",
         0,
         "fully migrated",
@@ -66,6 +76,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "targets/std/offers/src/copy_file.rs",
         1,
         "the structured copy-result presenter awaits its owning semantic contract",
+    ),
+    (
+        "targets/std/offers/src/final_normalized_pattern.rs",
+        0,
+        "fully migrated",
     ),
     (
         "targets/std/offers/src/music.rs",
