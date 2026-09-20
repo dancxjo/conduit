@@ -13,7 +13,10 @@ async function inventory(page) {
 }
 
 function selectedSource(bundled, names) {
-  return bundled.forms.filter((form) => names.includes(form.name)).map((form) => form.source.trimEnd()).join("\n\n");
+  return bundled.forms
+    .filter((form) => names.includes(form.entry ?? form.slug.replaceAll('-', '_')))
+    .map((form) => form.source.trimEnd())
+    .join("\n\n");
 }
 
 test("Birth hands off to a Lulled Body; Wake starts listening Forms and reload preserves the Body", async ({ page }, testInfo) => {
@@ -378,32 +381,31 @@ test("Workspace Birth binds naming, search, exact selection, review, and receipt
   await expect(birth.locator('[data-application-key="initial-forms"]')).toHaveText(
     'No Forms match your search. — Your selected Forms are still included.',
   );
-  await expect(memory).toBeChecked();
+  await expect(selected).toHaveText(`Selected: ${initialCount}`);
   await search.fill('');
+  await expect(memory).toBeChecked();
   await desk.check();
   await expect(selected).toHaveText(`Selected: ${initialCount + 1}`);
   await desk.uncheck();
   await expect(selected).toHaveText(`Selected: ${initialCount}`);
   await desk.check();
 
-  await birth.getByText('Details and source', { exact: true }).click();
-  const source = birth.getByLabel('Selected Conduit Form source', { exact: true });
-  const bundled = await inventory(page);
-  const expectedSource = selectedSource(bundled, ['memory_lantern', 'desk_telegraph']);
-  await expect(source).toHaveValue(expectedSource);
-  await birth.getByRole('button', { name: 'Review workload', exact: true }).click();
-  await expect(birth.locator('[data-application-key="review-basis"]')).toContainText(
-    'current Host OFFER(s); no permission or resource acquired; no Body Plan or Play created',
-  );
-  await expect(birth.locator('[data-application-key="birth-status"]')).toHaveText('Ready to birth with 2 Form(s).');
-
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
   const restored = page.locator('.body-birth-runner');
   await expect(restored.getByRole('checkbox', { name: 'Memory Lantern', exact: true })).toBeChecked();
   await expect(restored.getByRole('checkbox', { name: 'Desk Telegraph', exact: true })).toBeChecked();
+
   await restored.getByText('Details and source', { exact: true }).click();
-  await expect(restored.getByLabel('Selected Conduit Form source', { exact: true })).toHaveValue(expectedSource);
+  const source = restored.getByLabel('Selected Conduit Form source', { exact: true });
+  const bundled = await inventory(page);
+  const expectedSource = selectedSource(bundled, ['memory_lantern', 'desk_telegraph']);
+  await expect(source).toHaveValue(expectedSource);
+  await restored.getByRole('button', { name: 'Review workload', exact: true }).click();
+  await expect(restored.locator('[data-application-key="review-basis"]')).toContainText(
+    'current Host OFFER(s); no permission or resource acquired; no Body Plan or Play created',
+  );
+  await expect(restored.locator('[data-application-key="birth-status"]')).toHaveText('Ready to birth with 2 Form(s).');
 
   await restored.getByRole('button', { name: 'Birth Body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Lulled');
@@ -412,10 +414,12 @@ test("Workspace Birth binds naming, search, exact selection, review, and receipt
   expect(receipt.workload_revision).toBe(0);
   expect(receipt.active_play_id).toBeUndefined();
   expect(receipt.initial_forms).toHaveLength(2);
-  expect(receipt.initial_forms).toEqual(expect.arrayContaining([
-    expect.objectContaining({ name: 'memory_lantern', source_document_id: expect.any(String), checked_form_id: expect.any(String) }),
-    expect.objectContaining({ name: 'desk_telegraph', source_document_id: expect.any(String), checked_form_id: expect.any(String) }),
-  ]));
+  expect(receipt.initial_forms).toEqual([
+    { source_document_id: expect.any(String), checked_form_id: expect.any(String) },
+    { source_document_id: expect.any(String), checked_form_id: expect.any(String) },
+  ]);
+  expect(new Set(receipt.initial_forms.map(({ source_document_id }) => source_document_id)).size).toBe(2);
+  expect(new Set(receipt.initial_forms.map(({ checked_form_id }) => checked_form_id)).size).toBe(2);
 });
 
 test('Workspace Birth serves the canonical reviewed inventory source without edits', async ({ page }) => {
