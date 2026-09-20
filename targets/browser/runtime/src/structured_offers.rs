@@ -2,8 +2,8 @@
 
 use conduit_core::{
     kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, CapabilityId,
-    CapabilityOffer, ExecutionProfileId, ImplementationId, ImplementationOffer, StructuredInfoType,
-    PRESENTATION_RESOURCE_CLASS,
+    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId,
+    ImplementationId, StructuredInfoType, PRESENTATION_RESOURCE_CLASS,
 };
 
 pub(crate) struct BrowserOfferIdentity<'a> {
@@ -42,33 +42,28 @@ fn offer(
     identity: BrowserOfferIdentity<'_>,
     presentation: bool,
 ) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: contract.startup_parameters,
-        shorthand: None,
-        capability_id: CapabilityId::from(identity.capability),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        contract.into(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(identity.capability),
             execution_profile_id: ExecutionProfileId::from(identity.profile),
             implementation_id: ImplementationId::from(identity.implementation),
             artifact_id: ArtifactId::from(identity.artifact),
+            host_operations: if presentation {
+                vec![present_host_operation_requirement(
+                    kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET),
+                    conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+                )]
+            } else {
+                Vec::new()
+            },
+            resource_requirements: if presentation {
+                vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)]
+            } else {
+                Vec::new()
+            },
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: if presentation {
-            vec![present_host_operation_requirement(
-                kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET),
-                conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-            )]
-        } else {
-            Vec::new()
-        },
-        resource_requirements: if presentation {
-            vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)]
-        } else {
-            Vec::new()
-        },
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
