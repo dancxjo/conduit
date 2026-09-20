@@ -62,6 +62,7 @@ fn resource() -> AcquiredSerialResource {
         class_id: ResourceClassId::from(SERIAL_RESOURCE_CLASS),
         base_implementation_id: BaseImplementationId::from(SERIAL_BASE_IMPLEMENTATION),
         base_instance_id: BaseInstanceId::from("serial-base/one"),
+        provider_generation: 1,
         configuration: configuration(),
         transfer_bounds: bounds(),
         use_authority_contract: AuthorityContractId::from(SERIAL_USE_AUTHORITY),
@@ -95,6 +96,40 @@ fn acquired() -> BrowserSerialSession {
         )
         .unwrap();
     session
+}
+
+fn advertisement(generation: u64) -> HostAdvertisement {
+    HostAdvertisement {
+        protocol_version: conduit_core::PROTOCOL_VERSION,
+        host_id: offer().host_id,
+        boot_id: offer().boot_id,
+        offer_generation: OfferGeneration(generation),
+        profile: conduit_core::HostProfileId::from("browser/device-base-test@1"),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    }
+}
+
+#[test]
+fn acquired_and_lost_serial_resources_project_canonical_base_truth() {
+    let mut session = acquired();
+    let mut current = advertisement(2);
+    session.project_current_base(&mut current).unwrap();
+    assert_eq!(current.bases.len(), 1);
+    assert_eq!(
+        current.bases[0].provider_instance_id,
+        resource().base_instance_id
+    );
+    assert_eq!(current.bases[0].provider_generation, 1);
+    assert_eq!(current.resources.len(), 1);
+
+    session.device_lost().unwrap();
+    let mut after_loss = advertisement(3);
+    session.project_current_base(&mut after_loss).unwrap();
+    assert!(after_loss.bases.is_empty());
+    assert!(after_loss.resources.is_empty());
 }
 
 #[test]
@@ -137,6 +172,7 @@ fn playing() -> BrowserSerialSession {
                 class_id: resource.class_id.clone(),
                 base_implementation_id: resource.base_implementation_id.clone(),
                 base_instance_id: resource.base_instance_id.clone(),
+                provider_generation: resource.provider_generation,
                 transfer_bounds: resource.transfer_bounds,
             },
             Some(&resource.use_authority_grant),
@@ -281,6 +317,7 @@ fn use_requires_the_exact_resource_base_and_authority() {
         class_id: resource().class_id,
         base_implementation_id: resource().base_implementation_id,
         base_instance_id: BaseInstanceId::from("stale-base"),
+        provider_generation: 1,
         transfer_bounds: bounds(),
     };
     assert_eq!(
@@ -337,6 +374,9 @@ fn pressure_limits_loss_and_cancellation_remain_distinct() {
         pressure.phase(),
         &BrowserSerialPhase::Terminal(BrowserSerialTerminal::TransferTooLarge)
     );
+    let mut degraded = advertisement(3);
+    pressure.project_current_base(&mut degraded).unwrap();
+    assert!(degraded.bases.is_empty());
 
     let mut cancelled = acquiring();
     cancelled.cancel().unwrap();

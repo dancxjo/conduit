@@ -93,6 +93,7 @@ fn renderer_only_browser_cannot_invent_human_interaction() {
         boot_id: conduit_core::BootId::from("browser/output-only-boot"),
         offer_generation: conduit_core::OfferGeneration(1),
         profile: conduit_core::HostProfileId::from("browser/output-only@1"),
+        bases: vec![],
         resources,
         capabilities,
         planner_capabilities: vec![],

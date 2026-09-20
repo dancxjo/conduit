@@ -161,6 +161,7 @@ fn host() -> HostAdvertisement {
         boot_id: BootId::from("std-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test/host"),
+        bases: vec![],
         resources: vec![],
         capabilities: ["text/source", "text/join", "presentation/text"]
             .into_iter()

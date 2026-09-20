@@ -75,6 +75,7 @@ fn empty_effect_host_advertises_only_pure_work() {
     assert_eq!(advertisement.boot_id.as_str(), "boot/current");
     assert!(advertisement.resources.is_empty());
     assert_eq!(advertisement.capabilities.len(), 1);
+    assert!(advertisement.bases.is_empty());
     assert_eq!(
         advertisement.capabilities[0].capability_id.as_str(),
         "text/upper"
@@ -91,6 +92,13 @@ fn independent_bases_aggregate_and_fail_independently() {
         .register(base("base/network", 1, "http/request"))
         .unwrap();
     assert_eq!(host.advertisement().unwrap().capabilities.len(), 2);
+    let advertised = host.advertisement().unwrap();
+    assert_eq!(advertised.bases.len(), 2);
+    assert!(advertised.bases.iter().any(|provider| {
+        provider.base_id.as_str() == "base/files"
+            && provider.provider_instance_id.as_str() == "base/files/provider/1"
+            && provider.capability_ids[0].as_str() == "file/copy"
+    }));
 
     host.registry_mut()
         .set_lifecycle(
@@ -102,6 +110,7 @@ fn independent_bases_aggregate_and_fail_independently() {
         .unwrap();
     let advertisement = host.advertisement().unwrap();
     assert_eq!(advertisement.capabilities.len(), 1);
+    assert_eq!(advertisement.bases.len(), 1);
     assert_eq!(
         advertisement.capabilities[0].capability_id.as_str(),
         "http/request"

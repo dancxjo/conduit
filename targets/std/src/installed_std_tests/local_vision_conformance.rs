@@ -144,6 +144,17 @@ fn authored_local_vision_runs(
     assert_eq!(vision.resources.len(), 1);
     assert!(vision.resources[0].protected.is_some());
     assert_eq!(vision.authority.len(), 1);
+    let planned_base = vision.base.as_ref().unwrap();
+    assert_eq!(planned_base.base_id.as_str(), "std/base/finite-vision");
+    assert_eq!(
+        planned_base.provider_instance_id.as_str(),
+        "finite-image-residence/plan-play-1"
+    );
+    assert_eq!(planned_base.provider_generation, 1);
+    assert_eq!(
+        planned_base.enforcement_class,
+        conduit_core::BaseEnforcementClass::Cooperative
+    );
     assert_eq!(
         vision.host_operations[0].contract_id.as_str(),
         expected_operation

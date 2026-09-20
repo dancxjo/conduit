@@ -264,6 +264,7 @@ fn host(
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(profile),
+        bases: vec![],
         resources: vec![resource_offer(
             &format!("{host}/display"),
             PRESENTATION_RESOURCE_CLASS,

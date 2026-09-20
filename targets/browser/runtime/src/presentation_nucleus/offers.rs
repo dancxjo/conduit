@@ -67,6 +67,7 @@ pub(super) fn advertisement() -> HostAdvertisement {
         boot_id: conduit_core::BootId::from("browser-presentation-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser/presentation-nucleus@1"),
+        bases: vec![],
         resources: Vec::new(),
         planner_capabilities: Vec::new(),
         capabilities,
@@ -84,6 +85,7 @@ pub(super) fn text_advertisement() -> HostAdvertisement {
         boot_id: conduit_core::BootId::from("browser-presentation-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser/presentation-nucleus@1"),
+        bases: vec![],
         resources: vec![conduit_core::resource_offer(
             "browser-presentation-slot",
             conduit_core::PRESENTATION_RESOURCE_CLASS,

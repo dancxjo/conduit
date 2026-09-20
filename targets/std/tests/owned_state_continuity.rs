@@ -26,6 +26,7 @@ fn planned() -> (Plan, Vec<u8>) {
         boot_id: "state-boot".into(),
         offer_generation: OfferGeneration(1),
         profile: "state-test@1".into(),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: vec![conduit_std_offers::state_value_std_offer("Cell", &ty).unwrap()],

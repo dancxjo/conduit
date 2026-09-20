@@ -145,6 +145,7 @@ fn advertisement() -> HostAdvertisement {
         boot_id: BootId::from("repository-validation-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("repository-validation"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: vec![source_offer(), execute_offer()],

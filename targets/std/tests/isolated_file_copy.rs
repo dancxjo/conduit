@@ -331,6 +331,22 @@ fn unchanged_copy_form_executes_through_isolated_provider_and_kernel() {
         &authority(),
     )
     .unwrap();
+    let planned_copy = prepared
+        .fragment
+        .placements
+        .iter()
+        .find(|placement| {
+            placement.implementation_id.as_str()
+                == conduit_std_offers::ISOLATED_COPY_FILE_IMPLEMENTATION
+        })
+        .unwrap();
+    let planned_base = planned_copy.base.as_ref().unwrap();
+    assert_eq!(planned_base.provider_instance_id, provider.base_instance_id);
+    assert_eq!(
+        planned_base.provider_generation,
+        provider.provider_generation
+    );
+    assert_eq!(host.registry().entries().len(), 1);
     assert!(!format!("{:?}", prepared.form).contains(source.to_string_lossy().as_ref()));
     assert!(!format!("{:?}", prepared.plan).contains(source.to_string_lossy().as_ref()));
     let proof_play = host

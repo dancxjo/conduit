@@ -133,6 +133,10 @@ impl AlsaMicrophoneDiscovery {
 }
 
 impl AlsaMicrophoneAdapter {
+    pub fn executable_sha256(&self) -> &str {
+        &self.discovery.executable_sha256
+    }
+
     pub fn resource_pool_id(&self) -> conduit_core::ResourcePoolId {
         conduit_core::ResourcePoolId::from(format!(
             "std/audio/alsa-input/{}/card-{}/device-{}",

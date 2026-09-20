@@ -87,6 +87,7 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
         boot_id: "browser-structured-presentation-boot".into(),
         offer_generation: conduit_core::OfferGeneration(1),
         profile: "browser/structured-presentation@1".into(),
+        bases: vec![],
         resources: vec![conduit_core::resource_offer(
             "browser-structured-presentation-slot",
             conduit_core::PRESENTATION_RESOURCE_CLASS,

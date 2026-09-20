@@ -88,6 +88,7 @@ fn consumer_host(front: &conduit_core::CheckedFront) -> HostAdvertisement {
         boot_id: BootId::from("boot/consumer/1"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test/consumer@1"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![CapabilityOffer {
             startup_parameters: front.startup_parameters().to_vec(),

@@ -36,6 +36,7 @@ fn host(name: &str, capability: CapabilityOffer, capacity_units: u32) -> HostAdv
         boot_id: BootId::from(format!("boot/{name}/1")),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(format!("host/{name}@1")),
+        bases: vec![],
         resources: vec![resource_offer(
             &format!("pool/{name}/vector-index"),
             VECTOR_SEARCH_RESOURCE_CLASS,

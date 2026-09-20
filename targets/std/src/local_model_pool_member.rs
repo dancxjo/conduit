@@ -102,6 +102,7 @@ impl StdHost {
             capability_id: capability.capability_id.clone(),
             implementation_id: capability.implementation.implementation_id.clone(),
             artifact_id: capability.implementation.artifact_id.clone(),
+            base: None,
             realization_characteristics: Vec::new(),
             limits: capability.limits.clone(),
             inputs: capability.inputs.clone(),

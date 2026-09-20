@@ -146,6 +146,13 @@ fn isolated_capability(
     let operation = conduit_core::HostOperationContractId::from(
         conduit_std_offers::COPY_FILE_HOST_OPERATION_CONTRACT,
     );
+    let base = placement.base.as_ref().ok_or(CopyResult::Denied)?;
+    if base.provider_instance_id != provider.base_instance_id
+        || base.provider_generation != provider.provider_generation
+        || base.implementation_id.as_str() != conduit_std_offers::ISOLATED_COPY_FILE_IMPLEMENTATION
+    {
+        return Err(CopyResult::Denied);
+    }
     let resource_identity = format!(
         "{}+{}",
         source.grant.handle_id.as_str(),
@@ -166,8 +173,8 @@ fn isolated_capability(
     let scope = BaseCapabilityScope {
         host_id: fragment.host_id.clone(),
         boot_id: fragment.boot_id.clone(),
-        base_instance_id: provider.base_instance_id.clone(),
-        base_provider_generation: provider.provider_generation,
+        base_instance_id: base.provider_instance_id.clone(),
+        base_provider_generation: base.provider_generation,
         plan_id: fragment.plan_id.clone(),
         active_play_id: active_play.active_play_id.clone(),
         authority_grant_id: authority.grant_id.clone(),
@@ -197,8 +204,8 @@ fn isolated_capability(
     let issue = CapabilityIssueRequest {
         authority: BaseCapabilityAuthority {
             grant,
-            base_instance_id: provider.base_instance_id.clone(),
-            base_provider_generation: provider.provider_generation,
+            base_instance_id: base.provider_instance_id.clone(),
+            base_provider_generation: base.provider_generation,
             resource_pool_id: resource_pool_id.clone(),
             resource_generation_id: resource_generation_id.clone(),
             operation_contract_id: operation.clone(),

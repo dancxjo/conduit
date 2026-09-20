@@ -124,6 +124,7 @@ fn exact_resource_reference_kind_survives_checked_form_and_plan_without_locator_
         boot_id: BootId::from("boot/content/1"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("host/content@1"),
+        bases: vec![],
         resources: vec![],
         capabilities: definitions.iter().map(offer).collect(),
         planner_capabilities: vec![],

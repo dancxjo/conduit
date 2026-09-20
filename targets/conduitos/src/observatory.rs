@@ -101,10 +101,14 @@ pub fn prepare_export(
             )),
             provider_generation: base.provider_generation,
             kind_id: HostBaseKindId::from(format!("conduitos.base/{}@1", base.kind.as_str())),
+            implementation_id: None,
+            enforcement_class: None,
+            lifecycle: None,
             state: OperationalState::Available,
             capacity_units: u64::from(base.capacity),
         })
         .collect::<Vec<_>>();
+    append_advertised_bases(&mut bases, &prepared.advertisement);
     append_framebuffer_base(&mut bases, &host_id, &boot_id, framebuffer)?;
     let fragment = prepared
         .plan
@@ -273,10 +277,42 @@ pub(crate) fn append_framebuffer_base(
         )),
         provider_generation: 1,
         kind_id: HostBaseKindId::from("conduitos.base/framebuffer@1"),
+        implementation_id: None,
+        enforcement_class: None,
+        lifecycle: None,
         state: OperationalState::Available,
         capacity_units,
     });
     Ok(())
+}
+
+pub(crate) fn append_advertised_bases(
+    bases: &mut Vec<BaseReport>,
+    advertisement: &conduit_core::HostAdvertisement,
+) {
+    for advertised in &advertisement.bases {
+        let resource_capacity = advertisement
+            .resources
+            .iter()
+            .filter(|resource| advertised.resource_pool_ids.contains(&resource.pool_id))
+            .map(|resource| u64::from(resource.capacity_units))
+            .sum::<u64>();
+        bases.push(BaseReport {
+            host_id: advertisement.host_id.clone(),
+            boot_id: advertisement.boot_id.clone(),
+            base_id: advertised.base_id.clone(),
+            provider_instance_id: advertised.provider_instance_id.clone(),
+            provider_generation: advertised.provider_generation,
+            kind_id: advertised.mechanism_family.clone(),
+            implementation_id: Some(advertised.implementation_id.clone()),
+            enforcement_class: Some(advertised.enforcement_class),
+            lifecycle: Some(advertised.lifecycle),
+            state: OperationalState::Available,
+            capacity_units: resource_capacity
+                .max(advertised.capability_ids.len() as u64)
+                .max(1),
+        });
+    }
 }
 
 fn historical_signs(

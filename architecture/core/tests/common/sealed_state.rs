@@ -41,6 +41,7 @@ pub fn fragment() -> PlanFragment {
             capability_id: CapabilityId::from("state"),
             implementation_id: ImplementationId::from("state@1"),
             artifact_id: ArtifactId::from("state@1"),
+            base: None,
             realization_characteristics: vec![],
             limits: CapabilityLimits {
                 max_active_instances: 1,

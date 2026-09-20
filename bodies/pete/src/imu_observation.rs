@@ -170,6 +170,7 @@ pub fn live_mpu6050_advertisement(
         boot_id: evidence.boot_id.clone(),
         offer_generation: evidence.offer_generation,
         profile: conduit_core::HostProfileId::from(MPU6050_PROFILE),
+        bases: vec![],
         resources,
         capabilities: vec![mpu6050_offer()],
         planner_capabilities: Vec::new(),

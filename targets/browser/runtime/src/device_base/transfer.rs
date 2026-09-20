@@ -64,6 +64,9 @@ impl BrowserSerialSession {
         &mut self,
         terminal: BrowserSerialTerminal,
     ) -> Result<(), BrowserSerialRefusal> {
+        let resource = current_resource(&self.phase)
+            .ok_or(BrowserSerialRefusal::WrongPhase)?
+            .clone();
         if !matches!(self.phase, BrowserSerialPhase::UsePlaying { .. })
             || !matches!(
                 terminal,
@@ -75,6 +78,14 @@ impl BrowserSerialSession {
             return Err(BrowserSerialRefusal::WrongPhase);
         }
         self.retained_transfer = None;
+        self.registry
+            .set_lifecycle(
+                &HostBaseId::from("browser/base/web-serial"),
+                &resource.base_instance_id,
+                resource.provider_generation,
+                BaseLifecycle::Degraded,
+            )
+            .map_err(|_| BrowserSerialRefusal::WrongPhase)?;
         self.phase = BrowserSerialPhase::Terminal(terminal);
         Ok(())
     }

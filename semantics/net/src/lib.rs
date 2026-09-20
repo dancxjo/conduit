@@ -280,6 +280,7 @@ pub fn network_capable_advertisement(host_id: &str, boot_id: &str) -> HostAdvert
         boot_id: BootId::from(boot_id),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("network/fixture-base"),
+        bases: vec![],
         resources: vec![wifi_station_resource("resource/wifi-station-0")],
         capabilities: vec![network_join_offer(
             CapabilityId::from("capability/network-join"),
@@ -297,6 +298,7 @@ pub fn network_omitting_advertisement(host_id: &str, boot_id: &str) -> HostAdver
         boot_id: BootId::from(boot_id),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("network/omitting-host"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![],
         planner_capabilities: vec![],

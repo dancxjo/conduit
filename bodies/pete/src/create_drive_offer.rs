@@ -103,6 +103,7 @@ pub fn live_create_drive_advertisement(
         boot_id: observation.boot_id.clone(),
         offer_generation: observation.offer_generation,
         profile: conduit_core::HostProfileId::from(profile),
+        bases: vec![],
         resources,
         capabilities: vec![CapabilityOffer {
             startup_parameters: vec![FrontStartupParameter {

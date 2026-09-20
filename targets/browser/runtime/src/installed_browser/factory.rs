@@ -310,6 +310,7 @@ pub(crate) fn advertisement_for_machinery(
         boot_id,
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser/installed-local@1"),
+        bases: vec![],
         resources,
         planner_capabilities: vec![PlannerCapabilityOffer {
             profile_id: PlannerProfileId::from(BROWSER_PLANNER_PROFILE),

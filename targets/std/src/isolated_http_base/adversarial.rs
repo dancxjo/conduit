@@ -45,27 +45,16 @@ pub fn run_adversarial_http_proof(
         "{}/replacement",
         config.resource_generation_id.0
     ));
-    let (replacement_issue, _) = capability(fragment, placement, play.identity(), &replacement)?;
     let stale_generation_refused_after_restart =
-        single_refusal(&replacement, replacement_issue, claim, exact_request)?
-            == "capability:WrongScope";
+        capability(fragment, placement, play.identity(), &replacement).is_err();
 
     let mut wrong_request = exact_request.clone();
     wrong_request.target.authority = sibling_authority.into();
-    let mut endpoint_check = replacement.clone();
-    endpoint_check.provider_generation += 1;
-    endpoint_check.resource_generation_id = conduit_core::ResourceGenerationId(format!(
-        "{}/endpoint-check",
-        config.resource_generation_id.0
-    ));
     let (endpoint_issue, endpoint_claim) =
-        capability(fragment, placement, play.identity(), &endpoint_check)?;
-    let wrong_authority_refused_at_provider = single_refusal(
-        &endpoint_check,
-        endpoint_issue,
-        endpoint_claim,
-        &wrong_request,
-    )? == "endpoint:wrong-authority";
+        capability(fragment, placement, play.identity(), config)?;
+    let wrong_authority_refused_at_provider =
+        single_refusal(config, endpoint_issue, endpoint_claim, &wrong_request)?
+            == "endpoint:wrong-authority";
 
     Ok(AdversarialHttpReport {
         forged_scope_refused,

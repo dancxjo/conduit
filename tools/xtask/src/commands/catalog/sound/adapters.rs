@@ -208,6 +208,7 @@ fn host(catalog: &ProfileCatalog) -> Result<HostAdvertisement, CatalogError> {
         boot_id: BootId::from("sound-adapter-reference-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("conduit-conformance/sound-adapter@1"),
+        bases: vec![],
         resources: Vec::new(),
         capabilities,
         planner_capabilities: Vec::new(),

@@ -355,6 +355,7 @@ fn host(selector_definitions: Vec<conduit_form::KindDefinition>) -> HostAdvertis
         boot_id: BootId::from("boot/navigation-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/navigation-proof@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities,

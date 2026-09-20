@@ -113,6 +113,7 @@ pub fn source_advertisement() -> HostAdvertisement {
         boot_id: conduit_core::BootId::from(SOURCE_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-triple-kernel"),
+        bases: vec![],
         resources: signal_resource_offers("s4/triple-std-timer", "s4/triple-stdout", 1),
         planner_capabilities: vec![],
         capabilities: vec![
@@ -133,6 +134,7 @@ pub fn browser_advertisement() -> HostAdvertisement {
         boot_id: conduit_core::BootId::from(BROWSER_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser-wasm-triple-kernel"),
+        bases: vec![],
         resources: signal_resource_offers("s4/triple-browser-unused-timer", "s4/triple-dom", 1)
             .into_iter()
             .filter(|resource| {
@@ -155,6 +157,7 @@ pub fn pico_advertisement() -> HostAdvertisement {
         boot_id: conduit_core::BootId::from(PICO_IMAGE_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rp2040-triple-kernel"),
+        bases: vec![],
         resources: signal_resource_offers("s4/triple-pico-unused-timer", "s4/triple-cyw43-led", 1)
             .into_iter()
             .filter(|resource| {

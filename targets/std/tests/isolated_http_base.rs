@@ -45,14 +45,49 @@ fn exact_endpoint_plan_executes_without_redirect_or_sibling_authority() {
         .iter()
         .any(|gear| gear.kind_id.as_str() == conduit_web::HTTP_CLIENT_KIND));
     let fragment = &plan.fragments[0];
+    let planned_http = fragment
+        .placements
+        .iter()
+        .find(|placement| placement.implementation_id.as_str() == ISOLATED_HTTP_IMPLEMENTATION)
+        .expect("isolated HTTP placement");
+    let advertised_base = &host.host().advertisement().bases[0];
+    assert_eq!(host.registry().entries().len(), 1);
+    assert_eq!(
+        advertised_base.provider_instance_id,
+        provider.base_instance_id
+    );
+    assert_eq!(
+        advertised_base.provider_generation,
+        provider.provider_generation
+    );
+    assert_eq!(
+        planned_http
+            .base
+            .as_ref()
+            .expect("Base-backed placement retains provenance")
+            .provider_instance_id,
+        provider.base_instance_id
+    );
     assert!(fragment
         .placements
         .iter()
-        .any(|placement| { placement.implementation_id.as_str() == ISOLATED_HTTP_IMPLEMENTATION }));
+        .filter(|placement| placement.implementation_id.as_str() != ISOLATED_HTTP_IMPLEMENTATION)
+        .all(|placement| placement.base.is_none()));
+    let mut forged_plan = plan.clone();
+    forged_plan.fragments[0]
+        .placements
+        .iter_mut()
+        .find(|placement| placement.implementation_id.as_str() == ISOLATED_HTTP_IMPLEMENTATION)
+        .unwrap()
+        .base
+        .as_mut()
+        .unwrap()
+        .provider_generation += 1;
+    assert!(!conduit_core::verify_plan(&forged_plan));
 
     let server = thread::spawn(move || {
         let mut observed_requests = 0_u8;
-        for sequence in 0..4 {
+        for sequence in 0..3 {
             let (mut stream, _) = exact.accept().unwrap();
             stream
                 .set_read_timeout(Some(Duration::from_secs(2)))

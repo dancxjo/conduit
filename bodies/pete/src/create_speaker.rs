@@ -195,6 +195,7 @@ pub fn live_speaker_advertisement(
         boot_id: observation.boot_id.clone(),
         offer_generation: observation.offer_generation,
         profile: conduit_core::HostProfileId::from(SPEAKER_PROFILE),
+        bases: vec![],
         resources,
         capabilities: vec![CapabilityOffer {
             startup_parameters: Vec::new(),

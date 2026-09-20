@@ -523,6 +523,7 @@ pub fn advertisement(
         boot_id,
         offer_generation,
         profile: HostProfileId::from("conduit.std/kernel-multivalue@1"),
+        bases: vec![],
         resources: vec![
             resource_offer("std/kernel-presentation", PRESENTATION_RESOURCE_CLASS, 2),
             resource_offer("std/kernel-timer", TIMER_RESOURCE_CLASS, 1),

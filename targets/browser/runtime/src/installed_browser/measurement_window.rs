@@ -357,6 +357,7 @@ mod tests {
             capability_id: offered.capability_id,
             implementation_id: offered.implementation.implementation_id,
             artifact_id: offered.implementation.artifact_id,
+            base: None,
             realization_characteristics: Vec::new(),
             limits: offered.limits,
             inputs: offered.inputs,

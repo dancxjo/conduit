@@ -95,6 +95,7 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
         boot_id: BootId::from("boot/lenia-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/lenia-proof@1"),
+        bases: vec![],
         resources: vec![
             conduit_core::resource_offer(
                 "presentation/lenia-proof",

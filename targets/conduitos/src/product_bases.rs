@@ -1,16 +1,15 @@
-//! Narrow product-facing inspection and admission of external-effect Bases.
-//!
-//! This registry owns no devices and grants no bearer authority. It prevents
-//! the product supervisor from treating co-resident machine mechanisms as one
-//! ambient capability and records the currently explicit interim seams.
+//! Narrow product-facing adapter over the canonical registry of external-effect Bases.
 
-use alloc::{borrow::ToOwned, format, string::String};
+use alloc::{borrow::ToOwned, format, vec::Vec};
 
-use conduit_core::{BaseInstanceId, HostBaseId};
+use conduit_core::{
+    BaseEnforcementClass, BaseImplementationId, BaseInstanceId, BaseLifecycle, BaseProviderEntry,
+    BaseRegistry, BaseRegistryLimits, HostBaseId, HostBaseKindId,
+};
 
 use crate::{arch::UsbDevice, identity, offer::HostOffer};
 
-pub const EFFECT_BASE_COUNT: usize = 7;
+const MAXIMUM_EFFECT_BASES: u16 = 5;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectFamily {
@@ -24,29 +23,13 @@ pub enum EffectFamily {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum EffectBaseState {
-    Ready,
-    InterimUnavailable,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct EffectBaseSeam {
-    pub family: EffectFamily,
-    pub base_id: Option<HostBaseId>,
-    pub provider_instance_id: Option<BaseInstanceId>,
-    pub provider_generation: Option<u64>,
-    pub state: EffectBaseState,
-    pub interim: Option<&'static str>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectBaseRefusal {
     Unavailable,
     InvalidProvider,
 }
 
 pub struct NativeProductBases {
-    seams: [EffectBaseSeam; EFFECT_BASE_COUNT],
+    registry: BaseRegistry,
 }
 
 impl NativeProductBases {
@@ -55,124 +38,116 @@ impl NativeProductBases {
         framebuffer: &conduit_observatory::FramebufferBasis,
         usb_line: Option<&UsbDevice>,
     ) -> Result<Self, EffectBaseRefusal> {
-        let keyboard = offer.keyboard.map(|value| {
-            ready(
-                EffectFamily::Keyboard,
+        let mut registry = BaseRegistry::new(BaseRegistryLimits {
+            maximum_bases: MAXIMUM_EFFECT_BASES,
+            maximum_capabilities_per_base: 0,
+            maximum_resources_per_base: 0,
+            maximum_advertised_capabilities: 1,
+            maximum_advertised_resources: 1,
+        })
+        .map_err(|_| EffectBaseRefusal::InvalidProvider)?;
+        if let Some(value) = offer.keyboard {
+            register(
+                &mut registry,
                 identity::hex(&value.realization.controller_id),
                 identity::hex(&value.realization.endpoint_id),
                 offer.generation,
-            )
-        });
-        let pointer = offer.pointer.map(|value| {
-            ready(
-                EffectFamily::Pointer,
+                value.realization.mechanism.implementation(),
+                family_kind(EffectFamily::Keyboard),
+            )?;
+        }
+        if let Some(value) = offer.pointer {
+            register(
+                &mut registry,
                 identity::hex(&value.realization.controller_id),
                 identity::hex(&value.realization.endpoint_id),
                 offer.generation,
-            )
-        });
-        let audio = offer.pc_speaker.map(|value| {
+                value.realization.mechanism.implementation(),
+                family_kind(EffectFamily::Pointer),
+            )?;
+        }
+        if let Some(value) = offer.pc_speaker {
             let base = identity::hex(&value.realization.base_id);
-            ready(
-                EffectFamily::Audio,
+            register(
+                &mut registry,
                 base.clone(),
                 format!("{base}/provider/{}", offer.generation),
                 offer.generation,
-            )
-        });
+                crate::pc_speaker_offer::PC_SPEAKER_IMPLEMENTATION,
+                family_kind(EffectFamily::Audio),
+            )?;
+        }
         let framebuffer_base = framebuffer.base_id.as_str().to_owned();
-        let line = usb_line.map(|device| {
-            ready(
-                EffectFamily::Line,
+        if let Some(device) = usb_line {
+            register(
+                &mut registry,
                 crate::usb_line_offer::USB_FTDI_BASE.into(),
                 format!(
                     "conduitos/usb-line/{}/{}",
                     device.root_port, device.attachment_epoch
                 ),
                 u64::from(device.attachment_epoch),
-            )
-        });
-        let seams = [
-            keyboard
-                .unwrap_or_else(|| unavailable(EffectFamily::Keyboard, "no current input Base")),
-            pointer
-                .unwrap_or_else(|| unavailable(EffectFamily::Pointer, "no current pointer Base")),
-            audio.unwrap_or_else(|| unavailable(EffectFamily::Audio, "no current sound Base")),
-            unavailable(
-                EffectFamily::Storage,
-                "native product storage Base not installed",
-            ),
-            line.unwrap_or_else(|| {
-                unavailable(EffectFamily::Line, "no current transport Line Base")
-            }),
-            ready(
-                EffectFamily::Framebuffer,
-                framebuffer_base.clone(),
-                format!("{framebuffer_base}/provider/1"),
-                1,
-            ),
-            unavailable(
-                EffectFamily::Network,
-                "native product network Base not installed",
-            ),
-        ];
-        let bases = Self { seams };
-        for seam in &bases.seams {
-            if seam.state == EffectBaseState::Ready
-                && (seam
-                    .base_id
-                    .as_ref()
-                    .is_none_or(|id| id.as_str().is_empty())
-                    || seam
-                        .provider_instance_id
-                        .as_ref()
-                        .is_none_or(|id| id.as_str().is_empty())
-                    || seam
-                        .provider_generation
-                        .is_none_or(|generation| generation == 0))
-            {
-                return Err(EffectBaseRefusal::InvalidProvider);
-            }
+                crate::usb_line_offer::USB_FTDI_BASE,
+                family_kind(EffectFamily::Line),
+            )?;
         }
-        Ok(bases)
+        register(
+            &mut registry,
+            framebuffer_base.clone(),
+            format!("{framebuffer_base}/provider/1"),
+            1,
+            "conduitos/framebuffer@1",
+            family_kind(EffectFamily::Framebuffer),
+        )?;
+        Ok(Self { registry })
     }
 
-    pub fn seams(&self) -> &[EffectBaseSeam] {
-        &self.seams
+    pub fn entries(&self) -> &[BaseProviderEntry] {
+        self.registry.entries()
     }
 
-    pub fn require(&self, family: EffectFamily) -> Result<&EffectBaseSeam, EffectBaseRefusal> {
-        self.seams
+    pub fn require(&self, family: EffectFamily) -> Result<&BaseProviderEntry, EffectBaseRefusal> {
+        let kind = family_kind(family);
+        self.registry
+            .entries()
             .iter()
-            .find(|seam| seam.family == family && seam.state == EffectBaseState::Ready)
+            .find(|entry| entry.mechanism_family.as_str() == kind)
             .ok_or(EffectBaseRefusal::Unavailable)
     }
 }
 
-fn ready(
-    family: EffectFamily,
-    base_id: String,
-    provider_instance_id: String,
+fn register(
+    registry: &mut BaseRegistry,
+    base_id: alloc::string::String,
+    provider_instance_id: alloc::string::String,
     provider_generation: u64,
-) -> EffectBaseSeam {
-    EffectBaseSeam {
-        family,
-        base_id: Some(HostBaseId::from(base_id)),
-        provider_instance_id: Some(BaseInstanceId::from(provider_instance_id)),
-        provider_generation: Some(provider_generation),
-        state: EffectBaseState::Ready,
-        interim: None,
-    }
+    implementation_id: &'static str,
+    mechanism_family: &'static str,
+) -> Result<(), EffectBaseRefusal> {
+    registry
+        .register(BaseProviderEntry {
+            base_id: HostBaseId::from(base_id),
+            provider_instance_id: BaseInstanceId::from(provider_instance_id),
+            provider_generation,
+            implementation_id: BaseImplementationId::from(implementation_id),
+            mechanism_family: HostBaseKindId::from(mechanism_family),
+            enforcement_class: BaseEnforcementClass::ConduitOsKernelEnforced,
+            lifecycle: BaseLifecycle::Ready,
+            capabilities: Vec::new(),
+            resources: Vec::new(),
+        })
+        .map_err(|_| EffectBaseRefusal::InvalidProvider)
 }
 
-fn unavailable(family: EffectFamily, interim: &'static str) -> EffectBaseSeam {
-    EffectBaseSeam {
-        family,
-        base_id: None,
-        provider_instance_id: None,
-        provider_generation: None,
-        state: EffectBaseState::InterimUnavailable,
-        interim: Some(interim),
+const fn family_kind(family: EffectFamily) -> &'static str {
+    match family {
+        EffectFamily::Keyboard => "conduitos.base/keyboard-input@1",
+        EffectFamily::Pointer => "conduitos.base/pointer-input@1",
+        EffectFamily::Audio => "conduitos.base/audio-output@1",
+        EffectFamily::Storage => "conduitos.base/storage@1",
+        EffectFamily::Line => "conduitos.base/line@1",
+        EffectFamily::Framebuffer => "conduitos.base/framebuffer@1",
+        EffectFamily::Network => "conduitos.base/network@1",
     }
 }
 
@@ -181,36 +156,40 @@ mod tests {
     use super::*;
 
     #[test]
-    fn every_effect_family_is_explicit_and_authority_does_not_cross_seams() {
-        let bases = NativeProductBases {
-            seams: [
-                ready(
-                    EffectFamily::Keyboard,
-                    "base/key".into(),
-                    "provider/key".into(),
-                    4,
-                ),
-                unavailable(EffectFamily::Pointer, "pointer absent"),
-                unavailable(EffectFamily::Audio, "audio absent"),
-                unavailable(EffectFamily::Storage, "storage interim"),
-                unavailable(EffectFamily::Line, "line absent"),
-                ready(
-                    EffectFamily::Framebuffer,
-                    "base/frame".into(),
-                    "provider/frame".into(),
-                    2,
-                ),
-                unavailable(EffectFamily::Network, "network interim"),
-            ],
-        };
-        assert_eq!(bases.seams().len(), EFFECT_BASE_COUNT);
+    fn unavailable_families_are_absent_and_authority_does_not_cross_entries() {
+        let mut registry = BaseRegistry::new(BaseRegistryLimits {
+            maximum_bases: 2,
+            maximum_capabilities_per_base: 0,
+            maximum_resources_per_base: 0,
+            maximum_advertised_capabilities: 1,
+            maximum_advertised_resources: 1,
+        })
+        .unwrap();
+        register(
+            &mut registry,
+            "base/key".into(),
+            "provider/key".into(),
+            4,
+            "conduitos/key@1",
+            family_kind(EffectFamily::Keyboard),
+        )
+        .unwrap();
+        register(
+            &mut registry,
+            "base/frame".into(),
+            "provider/frame".into(),
+            2,
+            "conduitos/frame@1",
+            family_kind(EffectFamily::Framebuffer),
+        )
+        .unwrap();
+        let bases = NativeProductBases { registry };
+        assert_eq!(bases.entries().len(), 2);
         assert_eq!(
             bases
                 .require(EffectFamily::Framebuffer)
                 .unwrap()
                 .base_id
-                .as_ref()
-                .unwrap()
                 .as_str(),
             "base/frame"
         );
@@ -219,22 +198,15 @@ mod tests {
                 .require(EffectFamily::Keyboard)
                 .unwrap()
                 .provider_generation,
-            Some(4)
+            4
         );
         assert_eq!(
             bases.require(EffectFamily::Pointer),
             Err(EffectBaseRefusal::Unavailable)
         );
-        assert!(
-            bases
-                .seams()
-                .iter()
-                .filter(|seam| seam.interim.is_some())
-                .all(|seam| {
-                    seam.state == EffectBaseState::InterimUnavailable
-                        && seam.base_id.is_none()
-                        && seam.provider_instance_id.is_none()
-                })
+        assert_eq!(
+            bases.require(EffectFamily::Storage),
+            Err(EffectBaseRefusal::Unavailable)
         );
     }
 }

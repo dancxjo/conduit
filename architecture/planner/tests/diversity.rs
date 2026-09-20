@@ -108,6 +108,7 @@ fn host(part: &str, kinds: &[&str]) -> HostAdvertisement {
         boot_id: BootId::from(format!("boot-{part}")),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(format!("test/{part}")),
+        bases: vec![],
         resources: vec![],
         capabilities: kinds
             .iter()

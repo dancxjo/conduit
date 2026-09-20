@@ -79,6 +79,7 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
         boot_id: BootId::from("catalog-static-not-a-boot"),
         offer_generation: OfferGeneration(offer.generation),
         profile: conduit_core::HostProfileId::from(offer.profile),
+        bases: vec![],
         resources: Vec::new(),
         planner_capabilities: Vec::new(),
         capabilities: offer

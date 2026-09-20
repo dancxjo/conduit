@@ -447,6 +447,7 @@ pub struct StdHost {
     speech_synthesis: Option<hosted_speech::PiperSpeechAdapter>,
     speech_recognition: Option<hosted_speech_recognition::WhisperSpeechAdapter>,
     microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
+    base_registry: conduit_core::BaseRegistry,
     vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
     calendar: Option<Box<dyn hosted_calendar::HostedCalendarAdapter>>,
     body_conversation_context: Option<BodyConversationContextSource>,
@@ -454,6 +455,17 @@ pub struct StdHost {
     kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
+}
+
+fn empty_base_registry() -> conduit_core::BaseRegistry {
+    conduit_core::BaseRegistry::new(conduit_core::BaseRegistryLimits {
+        maximum_bases: 16,
+        maximum_capabilities_per_base: 16,
+        maximum_resources_per_base: 16,
+        maximum_advertised_capabilities: 256,
+        maximum_advertised_resources: 256,
+    })
+    .expect("std Base registry bounds are fixed and valid")
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -580,6 +592,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -597,15 +610,30 @@ impl StdHost {
     ) -> Result<Self, String> {
         let mut advertisement =
             composition::build_advertisement(config, composition, None, None, None, false);
-        advertisement
-            .resources
-            .push(hosted_vision::FiniteHostedVisionBase::resource_offer());
-        advertisement
-            .capabilities
-            .push(hosted_vision::FiniteHostedVisionBase::motion_offer());
-        advertisement
-            .capabilities
-            .push(hosted_vision::FiniteHostedVisionBase::objects_offer());
+        let mut base_registry = empty_base_registry();
+        base_registry
+            .register(conduit_core::BaseProviderEntry {
+                base_id: conduit_core::HostBaseId::from("std/base/finite-vision"),
+                provider_instance_id: conduit_core::BaseInstanceId::from(
+                    vision.provider_instance_id(),
+                ),
+                provider_generation: advertisement.offer_generation.0,
+                implementation_id: conduit_core::BaseImplementationId::from(
+                    conduit_std_offers::LOCAL_VISION_IMPLEMENTATION,
+                ),
+                mechanism_family: conduit_core::HostBaseKindId::from("std.base/finite-vision@1"),
+                enforcement_class: conduit_core::BaseEnforcementClass::Cooperative,
+                lifecycle: conduit_core::BaseLifecycle::Ready,
+                capabilities: vec![
+                    hosted_vision::FiniteHostedVisionBase::motion_offer(),
+                    hosted_vision::FiniteHostedVisionBase::objects_offer(),
+                ],
+                resources: vec![hosted_vision::FiniteHostedVisionBase::resource_offer()],
+            })
+            .map_err(|error| format!("finite vision Base registration: {error:?}"))?;
+        base_registry
+            .project_ready_into(&mut advertisement)
+            .map_err(|error| format!("finite vision Base advertisement: {error:?}"))?;
         advertisement.resources.sort();
         normalize_capability_offers(&mut advertisement.capabilities)?;
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
@@ -620,6 +648,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry,
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -705,6 +734,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -746,6 +776,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: Some(adapter),
             calendar: None,
             body_conversation_context: None,
@@ -787,6 +818,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: Some(adapter),
             body_conversation_context: None,
@@ -858,6 +890,7 @@ impl StdHost {
             speech_synthesis: Some(adapter),
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -913,6 +946,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: Some(adapter),
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -969,6 +1003,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: Some(adapter),
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -1134,6 +1169,7 @@ impl StdHost {
             speech_synthesis: Some(adapter),
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -1160,6 +1196,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -1210,6 +1247,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -1255,6 +1293,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -1289,6 +1328,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -1336,6 +1376,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,

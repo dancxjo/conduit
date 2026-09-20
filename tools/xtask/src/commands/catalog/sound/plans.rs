@@ -80,6 +80,7 @@ fn opl_plan(form: &conduit_form::CheckedForm) -> Result<conduit_core::Plan, Cata
         boot_id: BootId::from("conformance-opl2-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("conformance/opl2@1"),
+        bases: vec![],
         resources: vec![resource_offer(
             "conformance-opl2-memory",
             conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS,

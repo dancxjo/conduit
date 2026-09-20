@@ -97,6 +97,7 @@ fn host() -> HostAdvertisement {
         boot_id: BootId::from("boot/github-messaging"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/github-messaging-proof@1"),
+        bases: vec![],
         resources: vec![github_messaging_resource_offer()],
         planner_capabilities: vec![],
         capabilities: vec![message, github_messaging_offer()],

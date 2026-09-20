@@ -31,6 +31,7 @@ pub fn r1_control_source_advertisement() -> HostAdvertisement {
         boot_id: BootId::from(crate::R1_STD_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-r1-three-peer-control"),
+        bases: vec![],
         resources: vec![conduit_core::resource_offer(
             "r1/std-deliberate-inputs",
             conduit_core::INPUT_RESOURCE_CLASS,

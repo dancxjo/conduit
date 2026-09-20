@@ -37,6 +37,7 @@ pub fn esp32_wroom_build_fixture_advertisement() -> HostAdvertisement {
         boot_id: BootId::from(ESP32_WROOM_BUILD_FIXTURE_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("esp32-wroom32-signal-kernel"),
+        bases: vec![],
         resources: signal_resource_offers(
             ESP32_WROOM_BUILD_FIXTURE_TIMER_POOL_ID,
             ESP32_WROOM_BUILD_FIXTURE_PRESENTATION_POOL_ID,

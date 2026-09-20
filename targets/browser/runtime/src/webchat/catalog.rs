@@ -19,6 +19,7 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
         boot_id,
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser-wasm-webchat"),
+        bases: vec![],
         resources,
         planner_capabilities: vec![PlannerCapabilityOffer {
             profile_id: PlannerProfileId::from(BROWSER_PLANNER_PROFILE),

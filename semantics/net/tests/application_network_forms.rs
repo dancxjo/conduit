@@ -140,6 +140,7 @@ fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
         boot_id: BootId::from("boot/application-network-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/application-network-proof@1"),
+        bases: vec![],
         resources: vec![
             resource_offer("pool/dns-resolver", DNS_RESOLVER_RESOURCE, 1),
             resource_offer("pool/network-connect", NETWORK_CONNECTION_RESOURCE, 1),

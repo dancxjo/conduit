@@ -69,6 +69,7 @@ fn fixture() -> (PlannedGear, crate::hosted_midi::HostedMidiSelection) {
             capability_id: offer.capability_id,
             implementation_id: offer.implementation.implementation_id,
             artifact_id: offer.implementation.artifact_id,
+            base: None,
             realization_characteristics: advertisement.characteristics,
             limits: offer.limits,
             inputs: offer.inputs,

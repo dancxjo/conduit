@@ -190,6 +190,7 @@ fn advertisement(host: &str, boot: &str, value: InfoBool) -> HostAdvertisement {
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("conduitos/two-lane-cooperative@1"),
+        bases: vec![],
         resources: vec![resource_offer(
             &alloc::format!("{host}/display"),
             PRESENTATION_RESOURCE_CLASS,

@@ -264,6 +264,20 @@ fn authorized_microphone_clip_runs_through_whisper_in_one_plan_play() {
         microphone,
     )
     .unwrap();
+    assert_eq!(host.advertisement().offer_generation, OfferGeneration(2));
+    let microphone_base = host
+        .advertisement()
+        .bases
+        .iter()
+        .find(|base| {
+            base.implementation_id.as_str() == conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION
+        })
+        .unwrap();
+    assert_eq!(microphone_base.provider_generation, 2);
+    assert_eq!(
+        microphone_base.enforcement_class,
+        conduit_core::BaseEnforcementClass::Cooperative
+    );
     host.attach_whisper_clip_recognizer(whisper).unwrap();
 
     let mut profiles = crate::installed_std::test_catalog();
@@ -338,6 +352,22 @@ fn authorized_microphone_clip_runs_through_whisper_in_one_plan_play() {
         &connection_limits,
     )
     .unwrap();
+    let planned_microphone = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| {
+            placement.implementation_id.as_str()
+                == conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION
+        })
+        .unwrap();
+    assert_eq!(
+        planned_microphone
+            .base
+            .as_ref()
+            .unwrap()
+            .provider_generation,
+        2
+    );
     let report = host
         .run_fragment_to(
             plan.fragments.into_iter().next().unwrap(),

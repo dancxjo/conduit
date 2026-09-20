@@ -229,6 +229,7 @@ fn host() -> HostAdvertisement {
         boot_id: BootId::from("instrument-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test/instrument-host@1"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![proof_offer(
             INSTRUMENT_MAP_KIND,

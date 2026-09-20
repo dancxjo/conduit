@@ -47,6 +47,7 @@ pub fn r1_signal_source_advertisement() -> HostAdvertisement {
         boot_id: BootId::from(crate::R1_STD_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-r1-control"),
+        bases: vec![],
         resources: signal_resource_offers("r1/std-timer", "r1/std-unused-presentation", 1)
             .into_iter()
             .filter(|resource| resource.class_id.as_str() == conduit_core::TIMER_RESOURCE_CLASS)
@@ -84,6 +85,7 @@ pub fn r1_signal_pico_advertisement(boot_id: BootId) -> HostAdvertisement {
         boot_id,
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rp2040-r1-kernel"),
+        bases: vec![],
         resources: signal_resource_offers("r1/pico-unused-timer", "r1/pico-cyw43-led", 1)
             .into_iter()
             .filter(|resource| {

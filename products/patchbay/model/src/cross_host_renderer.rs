@@ -117,6 +117,7 @@ fn source_host(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
         boot_id,
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("presentation/source-host@1"),
+        bases: vec![],
         resources: Vec::new(),
         capabilities: vec![CapabilityOffer {
             startup_parameters: Vec::new(),

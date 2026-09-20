@@ -130,6 +130,7 @@ fn host(name: &str, boot: &str, generation: u64, kinds: &[&str]) -> HostAdvertis
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(generation),
         profile: HostProfileId::from(format!("test/{name}")),
+        bases: vec![],
         resources: kinds
             .contains(&SINK)
             .then(|| ResourceOffer {

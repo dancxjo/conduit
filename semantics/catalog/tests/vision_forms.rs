@@ -408,6 +408,7 @@ fn host() -> HostAdvertisement {
         boot_id: BootId::from("boot/vision-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/vision-proof@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: vision_proof_offers(),

@@ -215,6 +215,7 @@ fn host(name: &str, kinds: &[&str], profile: &ProfileCatalog) -> HostAdvertiseme
         boot_id: BootId::from(format!("boot/{name}")),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(format!("std/a2-{name}@1")),
+        bases: vec![],
         resources: vec![],
         capabilities: kinds
             .iter()

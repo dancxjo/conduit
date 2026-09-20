@@ -103,6 +103,7 @@ fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
         boot_id: BootId::from("boot/reminder-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/reminder-proof@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities,

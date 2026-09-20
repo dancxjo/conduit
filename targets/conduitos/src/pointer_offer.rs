@@ -41,7 +41,7 @@ pub enum PointerMechanism {
 }
 
 impl PointerMechanism {
-    const fn implementation(self) -> &'static str {
+    pub(crate) const fn implementation(self) -> &'static str {
         match self {
             Self::UsbHid => POINTER_IMPLEMENTATION,
             Self::Ps2 => PS2_POINTER_IMPLEMENTATION,
@@ -269,6 +269,7 @@ mod tests {
             boot_id: BootId::from("boot"),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("profile"),
+            bases: vec![],
             resources: vec![resource_offer(
                 &controller_pool,
                 crate::keyboard_offer::CONTROLLER_RESOURCE,

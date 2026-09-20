@@ -189,6 +189,7 @@ pub fn frame_resource_plan(
         boot_id,
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("host/frame@1"),
+        bases: vec![],
         resources: {
             let mut pools = vec![
                 input_resource,

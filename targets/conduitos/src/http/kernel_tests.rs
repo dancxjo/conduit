@@ -308,6 +308,7 @@ fn advertisement() -> HostAdvertisement {
         boot_id: BootId::from("conduitos-http-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(PROFILE),
+        bases: vec![],
         resources: vec![resource_offer("conduitos-http-client-0", RESOURCE_CLASS, 1)],
         capabilities: vec![
             fixture_offer(

@@ -12,6 +12,7 @@ fn host(id: &str) -> HostAdvertisement {
         boot_id: BootId::from(format!("{id}/boot")),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![],
         planner_capabilities: vec![],

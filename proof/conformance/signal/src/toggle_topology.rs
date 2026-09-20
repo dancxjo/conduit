@@ -30,6 +30,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
         boot_id: BootId::from(DISTRIBUTED_TOGGLE_STD_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-kernel"),
+        bases: vec![],
         resources: vec![resource_offer(
             "s4/toggle-std-input",
             INPUT_RESOURCE_CLASS,
@@ -84,6 +85,7 @@ pub fn distributed_toggle_browser_sink_advertisement() -> HostAdvertisement {
         boot_id: BootId::from(DISTRIBUTED_TOGGLE_BROWSER_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser-wasm-kernel"),
+        bases: vec![],
         resources: vec![resource_offer(
             "s4/toggle-browser-dom",
             PRESENTATION_RESOURCE_CLASS,

@@ -16,6 +16,7 @@ use conduit_semantic_catalog::{
 pub const MAXIMUM_HOSTED_VISION_RESOURCES: usize = 8;
 
 pub struct FiniteHostedVisionBase {
+    provider_instance_id: String,
     provider: FiniteVisionProvider,
     workspace: ContinuousLocalVision,
     last_frame: Option<usize>,
@@ -51,13 +52,14 @@ impl FiniteHostedVisionBase {
         .map_err(|_| HostedVisionRefusal::InvalidOutput)?;
         let object_encoder = conduit_semantic_catalog::PreparedLocalVisionObjectEncoder::new(
             conduit_std_offers::LOCAL_VISION_IMPLEMENTATION,
-            provider_instance_id,
+            provider_instance_id.clone(),
             conduit_std_offers::LOCAL_VISION_ARTIFACT,
             width,
             height,
         )
         .map_err(|_| HostedVisionRefusal::InvalidOutput)?;
         Ok(Self {
+            provider_instance_id,
             provider,
             workspace: ContinuousLocalVision::new(width, height, maximum_components)
                 .map_err(HostedVisionRefusal::LocalCv)?,
@@ -69,6 +71,10 @@ impl FiniteHostedVisionBase {
             component_threshold: 128,
             minimum_component_area: 2,
         })
+    }
+
+    pub fn provider_instance_id(&self) -> &str {
+        &self.provider_instance_id
     }
 
     pub fn resource_offer() -> conduit_core::ResourceOffer {

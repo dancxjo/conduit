@@ -3,8 +3,9 @@
 use alloc::{format, vec, vec::Vec};
 
 use conduit_core::{
-    ArtifactId, CapabilityId, ExecutionProfileId, HostAdvertisement, ImplementationId,
-    resource_offer,
+    ArtifactId, BaseEnforcementClass, BaseImplementationId, BaseInstanceId, BaseLifecycle,
+    BaseProviderEntry, BaseRegistry, BaseRegistryLimits, CapabilityId, ExecutionProfileId,
+    HostAdvertisement, HostBaseId, HostBaseKindId, ImplementationId, resource_offer,
 };
 
 pub const KEYBOARD_IMPLEMENTATION: &str = "conduitos/usb-hid-keyboard@1";
@@ -130,19 +131,20 @@ pub(crate) fn append_to_advertisement(
             u32::from(realization.operation_slots),
         ),
     ];
-    for (index, (identity, class, capacity)) in resources.into_iter().enumerate() {
-        advertisement.resources.push(resource_offer(
-            &format!(
-                "conduitos-device-{index}-{}",
-                crate::identity::hex(&identity)
-            ),
-            class,
-            capacity,
-        ));
-    }
-    advertisement
-        .resources
-        .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
+    let resources = resources
+        .into_iter()
+        .enumerate()
+        .map(|(index, (identity, class, capacity))| {
+            resource_offer(
+                &format!(
+                    "conduitos-device-{index}-{}",
+                    crate::identity::hex(&identity)
+                ),
+                class,
+                capacity,
+            )
+        })
+        .collect::<Vec<_>>();
     let contract = conduit_semantic_catalog::keyboard_contract();
     let mut requirements = vec![conduit_core::resource_requirement(
         "conduit.resource/runtime-memory@1",
@@ -160,36 +162,74 @@ pub(crate) fn append_to_advertisement(
         requirements.push(conduit_core::resource_requirement(class, 1));
     }
     requirements.sort();
+    let capability = conduit_core::CapabilityOffer {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        capability_id: CapabilityId::from("conduitos/input-keyboard@1"),
+        kind_id: contract.kind_id,
+        kind_contract_revision: conduit_semantic_catalog::keyboard_contract_revision(),
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from(
+                realization.mechanism.execution_profile(),
+            ),
+            implementation_id: ImplementationId::from(realization.mechanism.implementation()),
+            artifact_id: ArtifactId::from(format!("conduitos-build/{build_id}")),
+        },
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        host_operations: vec![conduit_core::HostOperationRequirement {
+            contract_id: conduit_core::HostOperationContractId::from(NEXT_KEY_EVENT_HOST_OPERATION),
+            target_kind: Some(conduit_core::kind_id(conduit_human::KEY_EVENT_INFO_ID)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: 0,
+            maximum_output_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
+        }],
+        resource_requirements: requirements,
+        authority_requirements: Vec::new(),
+        limits: contract.limits,
+    };
+    let maximum_advertised_capabilities =
+        u16::try_from(advertisement.capabilities.len().saturating_add(1))
+            .map_err(|_| KeyboardOfferError::InvalidCapacity)?;
+    let maximum_advertised_resources = u16::try_from(
+        advertisement
+            .resources
+            .len()
+            .saturating_add(resources.len()),
+    )
+    .map_err(|_| KeyboardOfferError::InvalidCapacity)?;
+    let mut registry = BaseRegistry::new(BaseRegistryLimits {
+        maximum_bases: 1,
+        maximum_capabilities_per_base: 1,
+        maximum_resources_per_base: resources.len() as u16,
+        maximum_advertised_capabilities,
+        maximum_advertised_resources,
+    })
+    .map_err(|_| KeyboardOfferError::InvalidCapacity)?;
+    registry
+        .register(BaseProviderEntry {
+            base_id: HostBaseId::from(crate::identity::hex(&realization.controller_id)),
+            provider_instance_id: BaseInstanceId::from(crate::identity::hex(
+                &realization.endpoint_id,
+            )),
+            provider_generation: advertisement.offer_generation.0,
+            implementation_id: BaseImplementationId::from(realization.mechanism.implementation()),
+            mechanism_family: HostBaseKindId::from("conduitos.base/keyboard-input@1"),
+            enforcement_class: BaseEnforcementClass::ConduitOsKernelEnforced,
+            lifecycle: BaseLifecycle::Ready,
+            capabilities: vec![capability],
+            resources,
+        })
+        .map_err(|_| KeyboardOfferError::InvalidCapacity)?;
+    registry
+        .project_ready_into(advertisement)
+        .map_err(|_| KeyboardOfferError::InvalidCapacity)?;
+    advertisement
+        .resources
+        .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     advertisement
         .capabilities
-        .push(conduit_core::CapabilityOffer {
-            startup_parameters: Vec::new(),
-            shorthand: None,
-            capability_id: CapabilityId::from("conduitos/input-keyboard@1"),
-            kind_id: contract.kind_id,
-            kind_contract_revision: conduit_semantic_catalog::keyboard_contract_revision(),
-            implementation: conduit_core::ImplementationOffer {
-                execution_profile_id: ExecutionProfileId::from(
-                    realization.mechanism.execution_profile(),
-                ),
-                implementation_id: ImplementationId::from(realization.mechanism.implementation()),
-                artifact_id: ArtifactId::from(format!("conduitos-build/{build_id}")),
-            },
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            host_operations: vec![conduit_core::HostOperationRequirement {
-                contract_id: conduit_core::HostOperationContractId::from(
-                    NEXT_KEY_EVENT_HOST_OPERATION,
-                ),
-                target_kind: Some(conduit_core::kind_id(conduit_human::KEY_EVENT_INFO_ID)),
-                maximum_in_flight: 1,
-                maximum_input_bytes: 0,
-                maximum_output_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
-            }],
-            resource_requirements: requirements,
-            authority_requirements: Vec::new(),
-            limits: contract.limits,
-        });
+        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
     Ok(())
 }
 
@@ -241,6 +281,7 @@ mod tests {
             offer_generation: conduit_core::OfferGeneration(1),
             profile: conduit_core::HostProfileId::from("profile"),
             capabilities: Vec::new(),
+            bases: vec![],
             resources: Vec::new(),
             planner_capabilities: Vec::new(),
         };
@@ -266,5 +307,12 @@ mod tests {
             capability.implementation.execution_profile_id.as_str(),
             PS2_INPUT_EXECUTION_PROFILE
         );
+        assert_eq!(advertisement.bases.len(), 1);
+        assert_eq!(
+            advertisement.bases[0].provider_instance_id.as_str(),
+            crate::identity::hex(&realization.endpoint_id)
+        );
+        assert_eq!(advertisement.bases[0].capability_ids.len(), 1);
+        assert_eq!(advertisement.bases[0].resource_pool_ids.len(), 7);
     }
 }

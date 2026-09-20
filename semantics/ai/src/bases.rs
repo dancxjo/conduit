@@ -267,6 +267,7 @@ fn base(
             boot_id: BootId::from(boot),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("conduit.host/fixture@1"),
+            bases: vec![],
             resources: resource_offers,
             capabilities: vec![CapabilityOffer {
                 startup_parameters: startup_parameters(),

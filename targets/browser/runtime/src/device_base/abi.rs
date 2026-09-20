@@ -229,6 +229,7 @@ pub extern "C" fn conduit_browser_serial_complete_acquisition(
                     class_id: ResourceClassId::from(SERIAL_RESOURCE_CLASS),
                     base_implementation_id: BaseImplementationId::from(SERIAL_BASE_IMPLEMENTATION),
                     base_instance_id: BaseInstanceId::from(base_instance.as_str()),
+                    provider_generation: 1,
                     configuration: state.configuration,
                     transfer_bounds: state.transfer_bounds,
                     use_authority_contract: AuthorityContractId::from(SERIAL_USE_AUTHORITY),
@@ -316,6 +317,7 @@ pub extern "C" fn conduit_browser_serial_start_use(plan_len: usize, use_authorit
             class_id: resource.class_id.clone(),
             base_implementation_id: resource.base_implementation_id.clone(),
             base_instance_id: resource.base_instance_id.clone(),
+            provider_generation: resource.provider_generation,
             transfer_bounds: state.transfer_bounds,
         };
         let grant = resource.use_authority_grant.clone();

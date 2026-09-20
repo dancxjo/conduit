@@ -71,6 +71,7 @@ fn headless_host_is_valid_but_cannot_invent_a_renderer_offer() {
         boot_id: BootId::from("headless-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("headless@1"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![],
         planner_capabilities: vec![],

@@ -134,6 +134,7 @@ fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
         boot_id: BootId::from("boot/job-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/job-proof@1"),
+        bases: vec![],
         resources: vec![resource_offer(
             "pool/job-executable",
             common::JOB_PROOF_RESOURCE_CLASS,

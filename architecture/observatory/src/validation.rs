@@ -75,6 +75,27 @@ fn validate_bases_and_provenance(
         {
             return Err("Base report has an empty identity/kind or zero capacity".to_string());
         }
+        let canonical_provider_fields = [
+            base.implementation_id.is_some(),
+            base.enforcement_class.is_some(),
+            base.lifecycle.is_some(),
+        ];
+        if canonical_provider_fields.iter().any(|present| *present)
+            && canonical_provider_fields.iter().any(|present| !*present)
+        {
+            return Err("Base report has incomplete canonical provider provenance".to_string());
+        }
+        if base
+            .implementation_id
+            .as_ref()
+            .is_some_and(|implementation| implementation.as_str().is_empty())
+            || base.lifecycle.is_some_and(|lifecycle| {
+                lifecycle != conduit_core::BaseLifecycle::Ready
+                    || base.state != crate::OperationalState::Available
+            })
+        {
+            return Err("Base report has invalid current provider truth".to_string());
+        }
         if !base_ids.insert((
             base.host_id.clone(),
             base.boot_id.clone(),
@@ -88,6 +109,26 @@ fn validate_bases_and_provenance(
             base.provider_instance_id.clone(),
         )) {
             return Err("duplicate Base provider report".to_string());
+        }
+    }
+    for host in &snapshot.hosts {
+        for advertised in &host.advertisement.bases {
+            if !snapshot.bases.iter().any(|reported| {
+                reported.host_id == host.advertisement.host_id
+                    && reported.boot_id == host.advertisement.boot_id
+                    && reported.base_id == advertised.base_id
+                    && reported.provider_instance_id == advertised.provider_instance_id
+                    && reported.provider_generation == advertised.provider_generation
+                    && reported.kind_id == advertised.mechanism_family
+                    && reported.implementation_id.as_ref() == Some(&advertised.implementation_id)
+                    && reported.enforcement_class == Some(advertised.enforcement_class)
+                    && reported.lifecycle == Some(advertised.lifecycle)
+            }) {
+                return Err(
+                    "advertised Base provider provenance lacks the same Observatory report"
+                        .to_string(),
+                );
+            }
         }
     }
 

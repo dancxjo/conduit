@@ -1086,6 +1086,7 @@ fn build_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
         boot_id: BootId::from(boot_id),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser-wasm-kernel"),
+        bases: vec![],
         resources: signal_resource_offers("browser/timer", "browser/dom", 16),
         planner_capabilities: vec![PlannerCapabilityOffer {
             profile_id: PlannerProfileId::from(BROWSER_PLANNER_PROFILE),

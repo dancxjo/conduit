@@ -32,6 +32,7 @@ fn hosts() -> (
         boot_id: BootId::from("text-lab/native/boot-1"),
         offer_generation: OfferGeneration(1),
         profile: conduit_core::HostProfileId::from("browser-test/native-text-lab@1"),
+        bases: vec![],
         resources: vec![
             conduit_core::resource_offer(
                 "text-lab/native-input",

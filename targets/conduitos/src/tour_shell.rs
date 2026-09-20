@@ -201,6 +201,7 @@ impl TourShellPresenter {
             boot_id: boot_id.clone(),
             offer_generation,
             profile: profile_id.into(),
+            bases: vec![],
             resources: vec![resource_offer(
                 "conduitos/shell/surfaces",
                 SURFACE_CLASS,

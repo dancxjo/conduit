@@ -33,6 +33,7 @@ fn placement(
         capability_id: CapabilityId::from(format!("capability/{id}")),
         implementation_id: ImplementationId::from(format!("implementation/{id}")),
         artifact_id: ArtifactId::from(format!("artifact/{id}")),
+        base: None,
         realization_characteristics: vec![],
         limits: CapabilityLimits {
             max_active_instances: 1,

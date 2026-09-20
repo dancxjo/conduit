@@ -210,6 +210,7 @@ impl PatchbayInteraction {
             boot_id: self.boot_id.clone(),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("patchbay-interaction"),
+            bases: vec![],
             resources: vec![],
             planner_capabilities: vec![],
             capabilities: vec![select_offer(), invoke_offer(), edit_offer(), apply_offer()],

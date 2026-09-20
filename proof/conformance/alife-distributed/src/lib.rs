@@ -211,6 +211,7 @@ fn host(host_id: &str, boot_id: &str) -> HostAdvertisement {
         boot_id: BootId::from(boot_id),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(format!("distributed-lenia/{host_id}@1")),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![],
         planner_capabilities: vec![],

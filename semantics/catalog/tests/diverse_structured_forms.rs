@@ -243,6 +243,7 @@ fn host(capabilities: Vec<CapabilityOffer>) -> HostAdvertisement {
         boot_id: conduit_core::BootId::from("boot/diverse-structured-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/diverse-structured-proof@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities,

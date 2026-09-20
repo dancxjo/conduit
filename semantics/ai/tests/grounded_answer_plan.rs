@@ -42,6 +42,7 @@ fn plan(source: &str) -> conduit_core::Plan {
         boot_id: BootId::from("boot/r4/1"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("host/r4@1"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![
             deterministic_rerank_offer("pid-rerank").unwrap(),
