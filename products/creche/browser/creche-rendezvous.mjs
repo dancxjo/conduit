@@ -202,6 +202,15 @@ export async function connectRendezvousHost(code, {
             bodyContextInstalled = true;
             return Object.freeze(installed);
           },
+          async observeLocalModelPool(realization) {
+            if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
+            requirePoolRealization(realization, descriptor.advertisement);
+            await send(line, { kind: "observe-local-model-pool", protocol: PROTOCOL, realization });
+            const observed = await receive(line, signal);
+            requirePoolObservation(observed, realization);
+            return Object.freeze(observed.observation);
+          },
           async prepareRemote(plan) {
             if (intentional) refuse("LineClosed", "joined Host Line is already closed");
             if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
@@ -299,6 +308,50 @@ function requireRemotePrepared(prepared, advertisement) {
       || frame[0] !== 0x43 || frame[1] !== 0x4e || frame[2] !== 0x44 || frame[3] !== 0x53
       || frame.some(byte => !Number.isInteger(byte) || byte < 0 || byte > 255))) {
     refuse("RemotePreparation", "joined Host returned malformed or stale remote Play truth");
+  }
+}
+
+function requirePoolRealization(realization, advertisement) {
+  const generation = advertisement.offer_generation?.[0] ?? advertisement.offer_generation;
+  if (!realization || realization.host_id !== advertisement.host_id
+    || realization.boot_id !== advertisement.boot_id
+    || realization.offer_generation !== generation
+    || !boundedIdentity(realization.capability_id)
+    || !boundedIdentity(realization.implementation_id)
+    || !boundedIdentity(realization.artifact_id)
+    || !Number.isSafeInteger(realization.member_capacity) || realization.member_capacity < 1
+    || !Array.isArray(realization.resources) || realization.resources.length > 32
+    || realization.resources.some((binding) => !boundedIdentity(binding?.pool_id)
+      || !boundedIdentity(binding?.class_id) || !Number.isSafeInteger(binding?.units)
+      || binding.units < 1)) {
+    refuse("PoolRealization", "model-pool realization is malformed or stale for this Host");
+  }
+}
+
+function requirePoolObservation(value, realization) {
+  const observation = value?.observation;
+  if (value?.kind !== "local-model-pool-observed" || value.protocol !== PROTOCOL
+    || !observation || observation.host_id !== realization.host_id
+    || observation.boot_id !== realization.boot_id
+    || observation.offer_generation !== realization.offer_generation
+    || observation.capability_id !== realization.capability_id
+    || observation.implementation_id !== realization.implementation_id
+    || observation.artifact_id !== realization.artifact_id
+    || !["Ready", "Unavailable"].includes(observation.health)
+    || !boundedIdentity(observation.sign_id)
+    || !Array.isArray(observation.resources)
+    || observation.resources.length !== realization.resources.length
+    || observation.resources.some((resource, index) => {
+      const binding = realization.resources[index];
+      return resource?.host_id !== realization.host_id || resource.boot_id !== realization.boot_id
+        || resource.offer_generation !== realization.offer_generation
+        || resource.pool_id !== binding.pool_id || resource.class_id !== binding.class_id
+        || !["Ready", "Unavailable"].includes(resource.health)
+        || !Number.isSafeInteger(resource.unreserved_units) || resource.unreserved_units < 0
+        || !Number.isSafeInteger(resource.utilized_units) || resource.utilized_units < 0
+        || !boundedIdentity(resource.sign_id);
+    })) {
+    refuse("PoolObservation", "joined Host returned malformed or stale model-pool truth");
   }
 }
 
