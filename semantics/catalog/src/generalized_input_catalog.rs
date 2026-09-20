@@ -6,8 +6,9 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -71,6 +72,33 @@ pub fn deterministic_pointer_touch_outputs() -> Vec<PortDescriptor> {
         port("pointer", &pointer_event_type(), PortDirection::Output),
         port("touch", &touch_frame_type(), PortDirection::Output),
     ]
+}
+
+pub fn deterministic_gamepad_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(DETERMINISTIC_GAMEPAD_KIND, deterministic_gamepad_outputs())
+}
+
+pub fn deterministic_pointer_touch_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(
+        DETERMINISTIC_POINTER_TOUCH_KIND,
+        deterministic_pointer_touch_outputs(),
+    )
+}
+
+fn semantic_contract(kind: &str, outputs: Vec<PortDescriptor>) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id(kind),
+        kind_contract_revision: KindContractRevision::from(GENERALIZED_INPUT_REVISION),
+        inputs: vec![],
+        outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 4,
+            max_queue_items: 8,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 8) as u32,
+        },
+    }
 }
 
 fn insert_kind(
