@@ -113,6 +113,23 @@ pub fn measurement_hysteresis_kind_definition() -> KindDefinition {
     }
 }
 
+pub fn measurement_hysteresis_semantic_contract() -> SemanticCapabilityContract {
+    let definition = measurement_hysteresis_kind_definition();
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 2,
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
+    }
+}
+
 pub fn measurement_hysteresis_profile_type() -> StructuredInfoType {
     StructuredInfoType::leaf(kind_id(MEASUREMENT_HYSTERESIS_PROFILE_INFO_ID))
         .expect("the measurement hysteresis profile leaf identity is finite")

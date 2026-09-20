@@ -3,9 +3,8 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
-    PlannedGear,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, HostOperationRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
@@ -110,47 +109,36 @@ impl PreparedWindow {
 }
 
 fn offer() -> CapabilityOffer {
-    let contract = conduit_data::measurement_window_kind_definition();
+    let contract = conduit_data::measurement_window_semantic_contract();
     let kind = contract.kind_id.clone();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(IMPLEMENTATION),
-        kind_id: kind.clone(),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_data::MEASUREMENT_WINDOW_CONTRACT_REVISION,
-        ),
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-window@2"),
+            host_operations: vec![
+                HostOperationRequirement {
+                    contract_id: OPERATIONS[0].into(),
+                    target_kind: Some(kind.clone()),
+                    maximum_in_flight: 1,
+                    maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                    maximum_output_bytes: 0,
+                },
+                HostOperationRequirement {
+                    contract_id: OPERATIONS[1].into(),
+                    target_kind: Some(kind),
+                    maximum_in_flight: 1,
+                    maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                    maximum_output_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                },
+            ],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![
-            HostOperationRequirement {
-                contract_id: OPERATIONS[0].into(),
-                target_kind: Some(kind.clone()),
-                maximum_in_flight: 1,
-                maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-                maximum_output_bytes: 0,
-            },
-            HostOperationRequirement {
-                contract_id: OPERATIONS[1].into(),
-                target_kind: Some(kind),
-                maximum_in_flight: 1,
-                maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-                maximum_output_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-            },
-        ],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: conduit_data::MAXIMUM_MEASUREMENT_WINDOW_SAMPLES as u16 + 1,
-            max_queue_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        },
-    }
+    )
+    .build()
 }
 
 fn prepare(
@@ -416,6 +404,17 @@ mod tests {
 
     #[test]
     fn prepared_window_requires_profile_then_preserves_bounded_drop_evidence() {
+        let offer = offer();
+        let semantic = conduit_data::measurement_window_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert_eq!(offer.limits, semantic.limits);
         let mut prepared = PreparedWindow::for_placement(&placement())
             .unwrap()
             .unwrap();
