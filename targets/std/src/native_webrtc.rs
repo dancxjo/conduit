@@ -372,6 +372,81 @@ mod tests {
     use conduit_wire::{
         LineAttachment, SessionBinding, SessionEndpointIdentity, SessionLimits, SessionRole,
     };
+    use std::{
+        collections::HashMap,
+        net::{IpAddr, SocketAddr},
+    };
+    use tokio::net::UdpSocket;
+    use turn::{
+        auth::{AuthHandler, generate_auth_key},
+        relay::relay_static::RelayAddressGeneratorStatic,
+        server::{
+            Server,
+            config::{ConnConfig, ServerConfig},
+        },
+    };
+    use webrtc_util::vnet::net::Net;
+
+    struct ProofTurnAuth {
+        keys: HashMap<String, Vec<u8>>,
+    }
+
+    impl AuthHandler for ProofTurnAuth {
+        fn auth_handle(
+            &self,
+            username: &str,
+            _realm: &str,
+            _source: SocketAddr,
+        ) -> Result<Vec<u8>, turn::Error> {
+            self.keys
+                .get(username)
+                .cloned()
+                .ok_or(turn::Error::ErrFakeErr)
+        }
+    }
+
+    async fn proof_turn_server() -> (Server, u16) {
+        let listener = Arc::new(UdpSocket::bind("127.0.0.1:0").await.unwrap());
+        let port = listener.local_addr().unwrap().port();
+        let username = "conduit-proof";
+        let realm = "conduit.invalid";
+        let password = "short-lived-proof-secret";
+        let keys = HashMap::from([(
+            username.to_owned(),
+            generate_auth_key(username, realm, password),
+        )]);
+        let server = Server::new(ServerConfig {
+            conn_configs: vec![ConnConfig {
+                conn: listener,
+                relay_addr_generator: Box::new(RelayAddressGeneratorStatic {
+                    relay_address: IpAddr::from([127, 0, 0, 1]),
+                    address: "127.0.0.1".to_owned(),
+                    net: Arc::new(Net::new(None)),
+                }),
+            }],
+            realm: realm.to_owned(),
+            auth_handler: Arc::new(ProofTurnAuth { keys }),
+            channel_bind_timeout: Duration::ZERO,
+            alloc_close_notify: None,
+        })
+        .await
+        .unwrap();
+        (server, port)
+    }
+
+    fn relay_bootstrap(port: u16) -> WebRtcBootstrapConfiguration {
+        WebRtcBootstrapConfiguration {
+            provider_implementation_id: "self-hosted/turn-proof@1".to_owned(),
+            issued_at_millis: 1_000,
+            expires_at_millis: 61_000,
+            transport_policy: WebRtcIceTransportPolicy::RelayOnly,
+            ice_servers: vec![crate::browser_admission::WebRtcIceServer {
+                urls: vec![format!("turn:127.0.0.1:{port}?transport=udp")],
+                username: Some("conduit-proof".to_owned()),
+                credential: Some("short-lived-proof-secret".to_owned()),
+            }],
+        }
+    }
 
     fn binding() -> SessionBinding {
         let plan_id = PlanId::from("plan/native-webrtc-proof");
@@ -471,6 +546,49 @@ mod tests {
         );
         offer.endpoint.close().await.unwrap();
         answer.endpoint.close().await.unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn native_peers_use_an_authenticated_self_hosted_relay_only_path() {
+        let (server, port) = proof_turn_server().await;
+        let bootstrap = relay_bootstrap(port);
+        let timeout = Duration::from_secs(10);
+        assert!(matches!(
+            NativeWebRtcEndpoint::offer(Some(&bootstrap), bootstrap.expires_at_millis, timeout)
+                .await,
+            Err(NativeWebRtcRefusal::Bootstrap)
+        ));
+        let mut offer = NativeWebRtcEndpoint::offer(Some(&bootstrap), 2_000, timeout)
+            .await
+            .unwrap();
+        let mut answer = NativeWebRtcEndpoint::answer(Some(&bootstrap), 2_000, timeout, offer.sdp)
+            .await
+            .unwrap();
+        offer.endpoint.accept_answer(answer.sdp).await.unwrap();
+        let (offer_open, answer_open) =
+            tokio::join!(offer.endpoint.await_open(), answer.endpoint.await_open());
+        offer_open.unwrap();
+        answer_open.unwrap();
+
+        for endpoint in [&offer.endpoint, &answer.endpoint] {
+            let inspection = endpoint.inspect().await.unwrap();
+            assert_eq!(inspection.selected_ice_path, NativeWebRtcIcePath::Relayed);
+            assert_eq!(
+                inspection.bootstrap_provider_implementation_id.as_deref(),
+                Some("self-hosted/turn-proof@1")
+            );
+            assert_eq!(
+                inspection.transport_policy,
+                WebRtcIceTransportPolicy::RelayOnly
+            );
+        }
+        offer.endpoint.send(b"relayed Cord value").await.unwrap();
+        let mut output = [0_u8; 64];
+        let length = answer.endpoint.receive(&mut output).await.unwrap();
+        assert_eq!(&output[..length], b"relayed Cord value");
+        offer.endpoint.close().await.unwrap();
+        answer.endpoint.close().await.unwrap();
+        server.close().await.unwrap();
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
