@@ -6,7 +6,7 @@ use super::{
 #[cfg(feature = "host-profile")]
 use super::{
     decode_signal, encode_signal, parse_pulse_configuration, pulse_configuration_entries,
-    PulseConfiguration,
+    pulse_semantic_contract, show_semantic_contract, PulseConfiguration,
 };
 
 #[cfg(feature = "host-profile")]
@@ -73,4 +73,19 @@ fn round_trips_pulse_configuration_entries() {
     let parsed = parse_pulse_configuration(&pulse_configuration_entries(&config))
         .expect("pulse configuration should parse");
     assert_eq!(parsed, config);
+}
+
+#[cfg(feature = "host-profile")]
+#[test]
+fn portable_contracts_own_signal_fronts_and_capacity() {
+    let pulse = pulse_semantic_contract();
+    assert_eq!(pulse.kind_id, super::pulse_kind());
+    assert_eq!(pulse.outputs, super::pulse_outputs());
+    assert_eq!(pulse.limits.max_active_instances, 16);
+    assert_eq!(pulse.limits.max_queue_bytes, 64);
+
+    let show = show_semantic_contract();
+    assert_eq!(show.kind_id, super::show_kind());
+    assert_eq!(show.inputs, super::show_inputs());
+    assert_eq!(show.limits, pulse.limits);
 }
