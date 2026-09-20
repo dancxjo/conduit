@@ -214,7 +214,7 @@ fn mapping_length_and_control_schema_refuse_before_expansion() {
     );
     let error = check_syntax_document(&parse_syntax_document(&short), &startup).unwrap_err();
     assert_eq!(error.code, "CND-FRM-051");
-    assert!(error.message.contains("exact type requires 8"));
+    assert!(error.message.contains("requires exactly 8"));
 
     let wrong = SOURCE.replace("sustain_button", "sustain_control");
     let error = check_syntax_document(&parse_syntax_document(&wrong), &startup).unwrap_err();

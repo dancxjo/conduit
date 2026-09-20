@@ -1,7 +1,8 @@
 use crate::prelude::*;
 use crate::{CanonicalStartupValue, ExpressionSyntax, Span, SpannedText, SyntaxCheckDiagnostic};
 use conduit_core::{
-    StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
+    StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeShape,
+    StructuredInfoValue,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -108,18 +109,31 @@ pub(crate) fn check_structured_expression(
             )),
         },
         ExpressionSyntax::Collection { values, span } => {
-            let StructuredInfoTypeShape::Collection { element, length } = expected.shape() else {
-                return Err(structured_diagnostic(
-                    *span,
-                    "collection literal is incompatible with the declared startup type",
-                ));
+            let (element, limit, exact) = match expected.shape() {
+                StructuredInfoTypeShape::Collection { element, length } => (element, length, true),
+                StructuredInfoTypeShape::Sequence { element, capacity } => {
+                    (element, capacity, false)
+                }
+                _ => {
+                    return Err(structured_diagnostic(
+                        *span,
+                        "collection literal is incompatible with the declared startup type",
+                    ));
+                }
             };
-            if values.len() != usize::from(length) {
+            if (exact && values.len() != usize::from(limit))
+                || (!exact && values.len() > usize::from(limit))
+            {
                 return Err(structured_diagnostic(
                     *span,
                     &format!(
-                        "collection literal has {} items but the exact type requires {length}",
-                        values.len()
+                        "collection literal has {} items but the type {} {limit}",
+                        values.len(),
+                        if exact {
+                            "requires exactly"
+                        } else {
+                            "permits at most"
+                        }
                     ),
                 ));
             }
@@ -233,11 +247,19 @@ fn concrete(value: &CanonicalStructuredStartupValue) -> Result<StructuredInfoVal
             StructuredInfoValue::leaf(value.value_type.clone(), canonical.clone()).map_err(|_| ())
         }
         CanonicalStructuredStartupNode::Parameter(_) => Err(()),
-        CanonicalStructuredStartupNode::Collection(values) => StructuredInfoValue::collection(
-            value.value_type.clone(),
-            values.iter().map(concrete).collect::<Result<Vec<_>, _>>()?,
-        )
-        .map_err(|_| ()),
+        CanonicalStructuredStartupNode::Collection(values) => {
+            let values = values.iter().map(concrete).collect::<Result<Vec<_>, _>>()?;
+            match value.value_type.shape() {
+                StructuredInfoTypeShape::Collection { .. } => {
+                    StructuredInfoValue::collection(value.value_type.clone(), values)
+                }
+                StructuredInfoTypeShape::Sequence { .. } => {
+                    StructuredInfoValue::sequence(value.value_type.clone(), values)
+                }
+                _ => Err(StructuredInfoRefusal::WrongType),
+            }
+            .map_err(|_| ())
+        }
         CanonicalStructuredStartupNode::Record(fields) => StructuredInfoValue::record(
             value.value_type.clone(),
             fields

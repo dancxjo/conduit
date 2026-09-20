@@ -185,6 +185,36 @@ fn borrowed_node_validation_checks_nested_shape_without_reconstruction() {
 }
 
 #[test]
+fn bounded_sequence_preserves_element_type_and_canonical_actual_length() {
+    let element = leaf_type("value/count");
+    let sequence_type = StructuredInfoType::sequence(element.clone(), 4).unwrap();
+    let values = vec![
+        leaf("value/count", &encode_count(1)),
+        leaf("value/count", &encode_count(2)),
+    ];
+    let sequence = StructuredInfoValue::sequence(sequence_type.clone(), values).unwrap();
+    let canonical = sequence.canonical_bytes().unwrap();
+    assert_eq!(
+        StructuredInfoValue::from_canonical_bytes(&canonical),
+        Ok(sequence)
+    );
+    assert!(validate_canonical_structured_value(&canonical).is_ok());
+    assert_eq!(
+        StructuredInfoValue::sequence(
+            sequence_type.clone(),
+            (0..5)
+                .map(|value| leaf("value/count", &encode_count(value)))
+                .collect(),
+        ),
+        Err(StructuredInfoRefusal::WrongCollectionLength)
+    );
+    assert_eq!(
+        StructuredInfoValue::sequence(sequence_type, vec![leaf("value/text", b"wrong element")],),
+        Err(StructuredInfoRefusal::WrongType)
+    );
+}
+
+#[test]
 fn validated_llm_extraction_uses_the_same_nominal_record_model() {
     let extraction_type = StructuredInfoType::record(
         KindId::from("education/lesson-extraction@1"),
