@@ -18,7 +18,7 @@ pub const STATE_VALUE_REVISION: &str = "conduit.state/value@1";
 /// next value at a time, and completes only when the next input closes. Waiting
 /// for input has no predetermined semantic transition count.
 pub fn state_value_contract(
-    type_name: &str,
+    _type_name: &str,
     value_type: &StructuredInfoType,
 ) -> Result<StructuredValueContract, StructuredInfoRefusal> {
     let profile = value_type.profile()?;
@@ -31,7 +31,7 @@ pub fn state_value_contract(
     Ok(StructuredValueContract {
         startup_parameters: vec![FaceStartupParameter {
             name: "initial".into(),
-            value_type: type_name.into(),
+            value_type: profile.value_kind().clone(),
             has_default: false,
         }],
         kind_id: kind_id(STATE_VALUE_KIND),

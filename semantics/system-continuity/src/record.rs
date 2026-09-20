@@ -98,6 +98,11 @@ impl SystemRecord {
                     requirement.role_id.as_str().into(),
                 ));
             }
+            if offer.kind_contract_revision != requirement.semantic_contract {
+                return Err(ContinuityError::SelectedRealizationMismatch(
+                    requirement.role_id.as_str().into(),
+                ));
+            }
             assignments.push(ExactAssignment {
                 role_id: requirement.role_id.clone(),
                 placement_id: placement.placement_id.clone(),
@@ -106,6 +111,7 @@ impl SystemRecord {
                 implementation_id: placement.implementation_id.clone(),
                 artifact_id: placement.artifact_id.clone(),
                 checked_front: front,
+                semantic_contract: offer.kind_contract_revision.clone(),
             });
         }
 

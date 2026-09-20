@@ -120,6 +120,9 @@ fn request(controller: &HostInstance, target: &HostInstance, id: &str) -> Reboot
         controller: controller.clone(),
         target: target.clone(),
         required_front: delegated_reboot_front(),
+        semantic_contract: conduit_core::KindContractRevision::from(
+            conduit_system_continuity::REBOOT_CONTRACT_REVISION,
+        ),
         selected_line_id: LineId::from("line/controller-to-target"),
     }
 }
@@ -300,17 +303,28 @@ fn malformed_request_is_denied_with_machine_readable_sign() {
 }
 
 #[test]
-fn equal_front_realization_is_compatible_but_does_not_bypass_exact_grant() {
+fn same_semantics_with_a_different_name_is_compatible_but_grant_stays_exact() {
     let controller = host("host/controller", "boot/controller-1");
     let target = host("host/target", "boot/target-1");
     let mut renamed = advertisement(&target, true);
     renamed.capabilities[0].kind_id = KindId::from("vendor/maintenance-cycle");
-    renamed.capabilities[0].kind_contract_revision =
-        conduit_core::KindContractRevision::from("vendor/maintenance-cycle@9");
     assert_eq!(
         renamed.capabilities[0].checked_front(),
         delegated_reboot_front()
     );
+
+    let mut different_meaning = renamed.clone();
+    different_meaning.capabilities[0].kind_contract_revision =
+        conduit_core::KindContractRevision::from("vendor/different-maintenance-meaning@1");
+    let denied = DelegatedRebootTransaction::new(grant(&controller, &target)).submit(
+        &request(&controller, &target, "request/different-meaning"),
+        &different_meaning,
+        &session(&controller, &target),
+    );
+    assert!(matches!(
+        denied,
+        RebootDecision::Denied(receipt) if receipt.reason == RebootDenial::Unsupported
+    ));
 
     let accepted = DelegatedRebootTransaction::new(grant(&controller, &target)).submit(
         &request(&controller, &target, "request/equal-front"),

@@ -136,7 +136,7 @@ pub(crate) fn select_realization_matching(
     let mut front_candidates = Vec::new();
     for host in hosts {
         for offer in &host.capabilities {
-            if offer.checked_front() == gear.checked_front() {
+            if gear.accepts_realization(offer) {
                 front_candidates.push(Candidate { host, offer });
             }
         }

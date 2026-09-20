@@ -788,7 +788,16 @@ fn validate_operation_capability(
 ) -> Result<(), PlannerError> {
     if capability.checked_front() != gear.checked_front() {
         return Err(PlannerError::IncompatibleCheckedFace(format!(
-            "gear '{}' front differs from capability '{}' front",
+            "gear '{}' Front differs from capability '{}'",
+            gear.gear_id.as_str(),
+            capability.capability_id.as_str()
+        )));
+    }
+    if gear.kind_contract_revision.as_str() != conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT
+        && capability.kind_contract_revision != gear.kind_contract_revision
+    {
+        return Err(PlannerError::WrongKindContractRevision(format!(
+            "gear '{}' semantic contract differs from capability '{}'",
             gear.gear_id.as_str(),
             capability.capability_id.as_str()
         )));

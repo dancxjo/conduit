@@ -56,7 +56,7 @@ pub fn select_realization_with_characteristics_and_signs(
     let front_candidates = hosts
         .iter()
         .flat_map(|host| host.capabilities.iter().map(move |offer| (host, offer)))
-        .filter(|(_, offer)| offer.checked_front() == gear.checked_front())
+        .filter(|(_, offer)| gear.accepts_realization(offer))
         .collect::<Vec<_>>();
     if front_candidates.is_empty() {
         return Err(PlannerError::UnknownCapability(

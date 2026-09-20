@@ -34,7 +34,11 @@ fn classification(error: &PlannerError) -> Option<(&'static str, &'static str)> 
     match error {
         PlannerError::UnknownCapability(_) => Some((
             "CND-PLN-006",
-            "no front-compatible realization is available",
+            "no semantically eligible front-compatible realization is available",
+        )),
+        PlannerError::WrongKindContractRevision(_) => Some((
+            "CND-PLN-015",
+            "selected realization has a different semantic contract",
         )),
         PlannerError::IncompatibleCheckedFace(_) => Some((
             "CND-PLN-012",
@@ -108,7 +112,21 @@ mod tests {
         assert_eq!(diagnostic.code, "CND-PLN-006");
         assert_eq!(
             diagnostic.summary,
-            "no front-compatible realization is available"
+            "no semantically eligible front-compatible realization is available"
+        );
+    }
+
+    #[test]
+    fn semantic_contract_mismatch_is_distinct_from_front_mismatch() {
+        let diagnostic = structured_planner_diagnostic(
+            &checked_form(),
+            &PlannerError::WrongKindContractRevision("private semantic identity".into()),
+        )
+        .unwrap();
+        assert_eq!(diagnostic.code, "CND-PLN-015");
+        assert_eq!(
+            diagnostic.summary,
+            "selected realization has a different semantic contract"
         );
     }
 

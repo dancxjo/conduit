@@ -130,7 +130,7 @@ pub(crate) fn validate_hard_requirements(
                 PlannerError::UnknownCapability(choice.capability_id.as_str().to_string())
             })?;
 
-        if offer.checked_front() != gear.checked_front() {
+        if !gear.accepts_realization(offer) {
             return Err(PlannerError::IncompatibleCheckedFace(format!(
                 "gear '{}' front differs from capability '{}' front",
                 gear.gear_id.as_str(),

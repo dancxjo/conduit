@@ -877,7 +877,7 @@ fn planning_verification_rejects_each_top_level_form_identity_mutation() {
 }
 
 #[test]
-fn planning_accepts_front_preserving_revision_and_rejects_front_change() {
+fn planning_rejects_same_front_with_different_semantics_and_front_changes() {
     let form = form();
     let original_host = host();
     let placements = default_placements(&form, std::slice::from_ref(&original_host))
@@ -886,19 +886,20 @@ fn planning_accepts_front_preserving_revision_and_rejects_front_change() {
     let mut mismatched_revision = original_host.clone();
     mismatched_revision.capabilities[0].kind_contract_revision =
         conduit_core::KindContractRevision::from("mutated/flow-pulse@1");
-    let revised = plan(
-        &form,
-        std::slice::from_ref(&mismatched_revision),
-        &placements,
-        &[BaseImplementationId::from("conduit.base/local@1")],
-    )
-    .expect("front-preserving revision is compatible");
-    assert_eq!(
-        revised.fragments[0].placements[0]
-            .kind_contract_revision
-            .as_str(),
-        "mutated/flow-pulse@1"
-    );
+    assert!(matches!(
+        plan(
+            &form,
+            std::slice::from_ref(&mismatched_revision),
+            &placements,
+            &[BaseImplementationId::from("conduit.base/local@1")],
+        ),
+        Err(PlannerError::WrongKindContractRevision(_))
+    ));
+
+    let mut structural_form = form.clone();
+    structural_form.gears[0].kind_contract_revision =
+        conduit_core::KindContractRevision::from(conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT);
+    assert!(structural_form.gears[0].accepts_realization(&mismatched_revision.capabilities[0]));
 
     let mut mismatched_temporal = original_host.clone();
     mismatched_temporal.capabilities[0].outputs[0].temporal = conduit_core::PortTemporal::Current;
