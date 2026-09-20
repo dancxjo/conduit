@@ -72,6 +72,22 @@ export function prepareWorkspaceModelPool({
         observations: Object.freeze(observations),
       });
     },
+    async prepare(admission, consumerPlacementId) {
+      current();
+      const evidence = admission?.selection?.evidence;
+      if (!evidence || admission?.joined?.line?.schema !== "conduit.creche/joined-host-line@1"
+        || !pool.consumers?.includes(consumerPlacementId)) {
+        throw new Error("pool member preparation requires exact selected evidence and consumer");
+      }
+      try {
+        return await admission.joined.line.preparePoolMember({
+          plan, selection: evidence, consumerPlacementId,
+        });
+      } catch (error) {
+        runtime.failPreparation(admission.selection.member);
+        throw error;
+      }
+    },
     activate(admission) {
       current();
       return runtime.trigger(admission?.selection?.member);

@@ -166,6 +166,12 @@ enum Ingress {
         protocol: u16,
         plan: Box<conduit_core::Plan>,
     },
+    PreparePoolMember {
+        protocol: u16,
+        plan: Box<conduit_core::Plan>,
+        selection: conduit_core::PoolSelectionEvidence,
+        consumer_placement_id: conduit_core::PlacementId,
+    },
     ReleaseRemote {
         protocol: u16,
     },
@@ -500,6 +506,32 @@ fn run_session_with_join(
                     state_dir,
                     &truth.advertisement,
                     *plan,
+                )?;
+                send(
+                    line,
+                    &Egress::RemotePrepared {
+                        protocol: PROTOCOL,
+                        identity: &preparation.identity,
+                        hello_frames: &preparation.hello_frames,
+                    },
+                )?;
+                remote_prepared = Some(preparation.identity);
+            }
+            JoinedIngress::Control(Ingress::PreparePoolMember {
+                protocol,
+                plan,
+                selection,
+                consumer_placement_id,
+            }) if protocol == PROTOCOL && membership_retained && body_context_installed => {
+                if remote_prepared.is_some() {
+                    return Err("joined Host Line already owns one remote Play".into());
+                }
+                let preparation = crate::durable_host_control::prepare_pool_member(
+                    state_dir,
+                    &truth.advertisement,
+                    *plan,
+                    selection,
+                    consumer_placement_id,
                 )?;
                 send(
                     line,

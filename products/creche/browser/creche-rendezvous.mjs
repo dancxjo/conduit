@@ -190,6 +190,33 @@ export async function connectRendezvousHost(code, {
             remotePrepared = true;
             return Object.freeze(prepared);
           },
+          async preparePoolMember({ plan, selection, consumerPlacementId }) {
+            if (intentional) refuse("LineClosed", "joined Host Line is already closed");
+            if (!membershipRetained) refuse("MembershipNotRetained", "joined Host has not retained its admitted Body membership");
+            if (!bodyContextInstalled) refuse("BodyContextAbsent", "joined Host has no current Body conversation context");
+            if (remotePrepared) refuse("RemotePlayActive", "joined Host Line already owns a remote Play");
+            if (!plan || selection?.plan_id !== plan.plan_id
+              || selection?.disposition !== "Selected"
+              || !Number.isSafeInteger(selection?.selected_realization)
+              || selection.selected_realization < 0
+              || !boundedIdentity(selection?.pool_id)
+              || !boundedIdentity(selection?.operation_id)
+              || !boundedIdentity(selection?.sign_id)
+              || !Array.isArray(selection?.observation_sign_ids)
+              || selection.observation_sign_ids.length < 1
+              || selection.observation_sign_ids.some((identity) => !boundedIdentity(identity))
+              || !boundedIdentity(consumerPlacementId)) {
+              refuse("PoolMemberSelection", "pool member preparation lost exact bounded selection truth");
+            }
+            await send(line, {
+              kind: "prepare-pool-member", protocol: PROTOCOL, plan, selection,
+              consumer_placement_id: consumerPlacementId,
+            });
+            const prepared = await receive(line, signal);
+            requireRemotePrepared(prepared, descriptor.advertisement);
+            remotePrepared = true;
+            return Object.freeze(prepared);
+          },
           async sendSessionFrame(frame) {
             if (intentional) refuse("LineClosed", "joined Host Line is already closed");
             const bytes = requireSessionFrame(frame);

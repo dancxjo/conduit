@@ -133,6 +133,7 @@ pub mod pico_control_source;
 pub mod pico_spawn;
 pub mod pico_usb_source;
 pub mod pico_wifi_bootstrap;
+pub mod pool_member_sessions;
 pub mod pool_webchat;
 pub mod r1_control;
 pub mod r1_control_input;
