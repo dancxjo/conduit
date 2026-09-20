@@ -1993,12 +1993,12 @@ test("the shared physical workflow delegates final admission to its owning Body 
 test("the guided arc names each idea after the reader has met the prior one", async ({ page }) => {
   const chapterChecks = [
     { title: "One Program, Many Computers", anchor: "Patchbay projects checked form truth" },
-    { title: "Fronts, Backs, and implementation", anchor: "open the reviewed Back" },
-    { title: "Hosts make Forms real", anchor: "smallest case of a later Body-wide model" },
-    { title: "One Form across several Hosts", anchor: "cross-Host Cord is a Line" },
+    { title: "Fronts, Backs, and implementation", anchor: "open the reviewed back" },
+    { title: "Hosts make Forms real", anchor: "smallest case of a later body-wide model" },
+    { title: "One Form across several Hosts", anchor: "cross-host cord is a line" },
     { title: "The Body: one computer, one machine or many", anchor: "same Conduit problem at different topology and cost scales" },
-    { title: "Many Forms, one Body-wide realization", anchor: "Program = Form" },
-    { title: "Birth, spores, and the Crèche", anchor: "selected Forms enter the same bounded workset" },
+    { title: "Many Forms, one Body-wide realization", anchor: "Program = form" },
+    { title: "Birth, spores, and the Crèche", anchor: "selected forms enter the same bounded workset" },
   ];
   await openStep(page, 0);
   for (let step = 0; step < chapterChecks.length; step += 1) {
