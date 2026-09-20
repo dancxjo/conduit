@@ -62,10 +62,15 @@ fn pool() -> PlannedSharedPool {
         realization_envelope: vec![PoolRealizationEnvelope {
             host_id: HostId::from("browser-host"),
             boot_id: BootId::from("browser-boot"),
+            offer_generation: conduit_core::OfferGeneration(1),
             capability_id: CapabilityId::from("browser/peer"),
+            implementation_id: ImplementationId::from("browser/peer-implementation"),
+            artifact_id: ArtifactId::from("browser/peer-artifact"),
             member_capacity: 2,
             resources: vec![],
         }],
+        selection_policy:
+            conduit_core::SharedPoolSelectionPolicy::MoreUnreservedThenLessUtilizedThenPlanOrder,
         admission_authority: AuthorityGrantId::from("grant/admit-room-peer"),
         consumers: vec![PlacementId::from("room"), PlacementId::from("peer-router")],
     }
@@ -141,28 +146,16 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
 #[test]
 fn member_compatibility_uses_checked_front_while_envelope_identity_stays_exact() {
     let pool = pool();
+    let admitted = pool.realization_envelope[0].clone();
     let renamed = member_offer("renamed/browser-peer", "renamed/browser-peer@9");
-    assert!(pool.permits_realization(
-        &HostId::from("browser-host"),
-        &BootId::from("browser-boot"),
-        &CapabilityId::from("browser/peer"),
-        &renamed.checked_front(),
-    ));
+    assert!(pool.permits_realization(&admitted, &renamed.checked_front()));
 
     let mut changed = renamed;
     changed.outputs[0].temporal = PortTemporal::Current;
-    assert!(!pool.permits_realization(
-        &HostId::from("browser-host"),
-        &BootId::from("browser-boot"),
-        &CapabilityId::from("browser/peer"),
-        &changed.checked_front(),
-    ));
-    assert!(!pool.permits_realization(
-        &HostId::from("other-host"),
-        &BootId::from("browser-boot"),
-        &CapabilityId::from("browser/peer"),
-        &pool.member_front,
-    ));
+    assert!(!pool.permits_realization(&admitted, &changed.checked_front()));
+    let mut other_host = admitted;
+    other_host.host_id = HostId::from("other-host");
+    assert!(!pool.permits_realization(&other_host, &pool.member_front));
 }
 
 #[test]

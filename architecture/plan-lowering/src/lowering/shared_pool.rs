@@ -2,8 +2,9 @@ use super::{as_u16, LoweringError};
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::vec::Vec;
 use conduit_core::{
-    AuthorityGrantId, BootId, CapabilityId, HostId, PlacementId, PlanFragment, PoolMemberLimits,
-    ResourceBinding, SharedPoolId,
+    ArtifactId, AuthorityGrantId, BootId, CapabilityId, HostId, ImplementationId, OfferGeneration,
+    PlacementId, PlanFragment, PoolMemberLimits, ResourceBinding, SharedPoolId,
+    SharedPoolSelectionPolicy,
 };
 use conduit_kernel::{shared_pool::PoolId, NodeId};
 
@@ -12,7 +13,10 @@ pub struct LoweredPoolRealization {
     pub realization: u16,
     pub host_id: HostId,
     pub boot_id: BootId,
+    pub offer_generation: OfferGeneration,
     pub capability_id: CapabilityId,
+    pub implementation_id: ImplementationId,
+    pub artifact_id: ArtifactId,
     pub member_capacity: u16,
     pub resources: Vec<ResourceBinding>,
 }
@@ -24,6 +28,7 @@ pub struct LoweredSharedPool {
     pub maximum_members: u16,
     pub member_limits: PoolMemberLimits,
     pub admission_authority: AuthorityGrantId,
+    pub selection_policy: SharedPoolSelectionPolicy,
     pub realizations: Vec<LoweredPoolRealization>,
     pub local_consumers: Vec<NodeId>,
 }
@@ -61,7 +66,10 @@ pub(super) fn lower_shared_pools(
                     realization: as_u16(index)?,
                     host_id: realization.host_id.clone(),
                     boot_id: realization.boot_id.clone(),
+                    offer_generation: realization.offer_generation,
                     capability_id: realization.capability_id.clone(),
+                    implementation_id: realization.implementation_id.clone(),
+                    artifact_id: realization.artifact_id.clone(),
                     member_capacity: realization.member_capacity,
                     resources: realization.resources.clone(),
                 })
@@ -73,6 +81,7 @@ pub(super) fn lower_shared_pools(
             maximum_members: pool.maximum_members,
             member_limits: pool.member_limits,
             admission_authority: pool.admission_authority.clone(),
+            selection_policy: pool.selection_policy,
             realizations,
             local_consumers,
         });

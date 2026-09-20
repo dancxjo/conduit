@@ -8,7 +8,7 @@ use alloc::collections::BTreeMap;
 use conduit_core::{
     AuthorityGrant, BaseImplementationId, FormIdentity, HostAdvertisement, Plan, PlannedSharedPool,
     PoolMemberLimits, PoolRealizationEnvelope, ResourceBinding, SharedPoolId,
-    DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
+    SharedPoolSelectionPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
     SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
     SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
@@ -315,7 +315,7 @@ pub fn plan_expanded_canonical_with_shared_pools(
                 continue;
             }
             let mut member_capacity = capability.limits.max_active_instances.min(needed);
-            let mut resources = Vec::new();
+            let mut matched_resources = Vec::new();
             for resource in &capability.resource_requirements {
                 if resource.units == 0
                     || resource.protected_role.is_some()
@@ -343,17 +343,40 @@ pub fn plan_expanded_canonical_with_shared_pools(
                     .copied()
                     .unwrap_or(0);
                 member_capacity = member_capacity.min((available / resource.units) as u16);
+                matched_resources.push((resource, offer, available));
+            }
+            if member_capacity == 0 {
+                continue;
+            }
+            let mut resources = Vec::with_capacity(matched_resources.len());
+            for (requirement, offer, available) in matched_resources {
+                let compute = requirement
+                    .compute
+                    .as_ref()
+                    .map(|_| {
+                        conduit_core::compute_reservation(
+                            requirement,
+                            offer,
+                            available / u32::from(member_capacity),
+                        )
+                        .ok_or_else(|| {
+                            PlannerError::InvalidSharedPool(format!(
+                            "dynamic member capability '{}' has an unsatisfied compute contract",
+                            capability.capability_id.as_str()
+                        ))
+                        })
+                    })
+                    .transpose()?;
                 resources.push(ResourceBinding {
                     content: None,
                     pool_id: offer.pool_id.clone(),
                     class_id: offer.class_id.clone(),
-                    units: resource.units,
+                    units: compute
+                        .as_ref()
+                        .map_or(requirement.units, |reservation| reservation.selected_lanes),
                     protected: None,
-                    compute: None,
+                    compute,
                 });
-            }
-            if member_capacity == 0 {
-                continue;
             }
             for resource in &resources {
                 let reserved = resource
@@ -372,7 +395,10 @@ pub fn plan_expanded_canonical_with_shared_pools(
             realization_envelope.push(PoolRealizationEnvelope {
                 host_id: host.host_id.clone(),
                 boot_id: host.boot_id.clone(),
+                offer_generation: host.offer_generation,
                 capability_id: capability.capability_id.clone(),
+                implementation_id: capability.implementation.implementation_id.clone(),
+                artifact_id: capability.implementation.artifact_id.clone(),
                 member_capacity,
                 resources,
             });
@@ -410,6 +436,8 @@ pub fn plan_expanded_canonical_with_shared_pools(
             maximum_members: pool.maximum_members,
             member_limits: requirement.member_limits,
             realization_envelope,
+            selection_policy:
+                SharedPoolSelectionPolicy::MoreUnreservedThenLessUtilizedThenPlanOrder,
             admission_authority: requirement.admission_authority.grant_id.clone(),
             consumers,
         };

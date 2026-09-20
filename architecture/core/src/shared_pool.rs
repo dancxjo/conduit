@@ -1,5 +1,6 @@
 use crate::{
-    AuthorityGrantId, BootId, CapabilityId, CheckedFace, HostId, PlacementId, ResourceBinding,
+    ArtifactId, AuthorityGrantId, BootId, CapabilityId, CheckedFace, HostId, ImplementationId,
+    OfferGeneration, PlacementId, ResourceBinding,
 };
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -75,9 +76,18 @@ impl PoolMemberLimits {
 pub struct PoolRealizationEnvelope {
     pub host_id: HostId,
     pub boot_id: BootId,
+    pub offer_generation: OfferGeneration,
     pub capability_id: CapabilityId,
+    pub implementation_id: ImplementationId,
+    pub artifact_id: ArtifactId,
     pub member_capacity: u16,
     pub resources: Vec<ResourceBinding>,
+}
+
+/// Runtime policy sealed by the Plan for choosing among its exact envelope.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SharedPoolSelectionPolicy {
+    MoreUnreservedThenLessUtilizedThenPlanOrder,
 }
 
 /// Immutable Plan truth for one bounded shared dynamic population.
@@ -89,6 +99,7 @@ pub struct PlannedSharedPool {
     pub maximum_members: u16,
     pub member_limits: PoolMemberLimits,
     pub realization_envelope: Vec<PoolRealizationEnvelope>,
+    pub selection_policy: SharedPoolSelectionPolicy,
     pub admission_authority: AuthorityGrantId,
     /// Explicit placements that receive this exact pool reference. Name
     /// equality alone never grants access.
@@ -127,10 +138,13 @@ impl PlannedSharedPool {
             if realization.host_id.as_str().is_empty()
                 || realization.boot_id.as_str().is_empty()
                 || realization.capability_id.as_str().is_empty()
+                || realization.implementation_id.as_str().is_empty()
+                || realization.artifact_id.as_str().is_empty()
                 || realization.member_capacity == 0
                 || self.realization_envelope[..index].iter().any(|prior| {
                     prior.host_id == realization.host_id
                         && prior.boot_id == realization.boot_id
+                        && prior.offer_generation == realization.offer_generation
                         && prior.capability_id == realization.capability_id
                 })
             {
@@ -160,16 +174,9 @@ impl PlannedSharedPool {
 
     pub fn permits_realization(
         &self,
-        host_id: &HostId,
-        boot_id: &BootId,
-        capability_id: &CapabilityId,
+        realization: &PoolRealizationEnvelope,
         front: &CheckedFace,
     ) -> bool {
-        front == &self.member_front
-            && self.realization_envelope.iter().any(|allowed| {
-                &allowed.host_id == host_id
-                    && &allowed.boot_id == boot_id
-                    && &allowed.capability_id == capability_id
-            })
+        front == &self.member_front && self.realization_envelope.contains(realization)
     }
 }
