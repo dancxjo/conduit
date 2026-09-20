@@ -610,15 +610,30 @@ impl StdHost {
     ) -> Result<Self, String> {
         let mut advertisement =
             composition::build_advertisement(config, composition, None, None, None, false);
-        advertisement
-            .resources
-            .push(hosted_vision::FiniteHostedVisionBase::resource_offer());
-        advertisement
-            .capabilities
-            .push(hosted_vision::FiniteHostedVisionBase::motion_offer());
-        advertisement
-            .capabilities
-            .push(hosted_vision::FiniteHostedVisionBase::objects_offer());
+        let mut base_registry = empty_base_registry();
+        base_registry
+            .register(conduit_core::BaseProviderEntry {
+                base_id: conduit_core::HostBaseId::from("std/base/finite-vision"),
+                provider_instance_id: conduit_core::BaseInstanceId::from(
+                    vision.provider_instance_id(),
+                ),
+                provider_generation: advertisement.offer_generation.0,
+                implementation_id: conduit_core::BaseImplementationId::from(
+                    conduit_std_offers::LOCAL_VISION_IMPLEMENTATION,
+                ),
+                mechanism_family: conduit_core::HostBaseKindId::from("std.base/finite-vision@1"),
+                enforcement_class: conduit_core::BaseEnforcementClass::Cooperative,
+                lifecycle: conduit_core::BaseLifecycle::Ready,
+                capabilities: vec![
+                    hosted_vision::FiniteHostedVisionBase::motion_offer(),
+                    hosted_vision::FiniteHostedVisionBase::objects_offer(),
+                ],
+                resources: vec![hosted_vision::FiniteHostedVisionBase::resource_offer()],
+            })
+            .map_err(|error| format!("finite vision Base registration: {error:?}"))?;
+        base_registry
+            .project_ready_into(&mut advertisement)
+            .map_err(|error| format!("finite vision Base advertisement: {error:?}"))?;
         advertisement.resources.sort();
         normalize_capability_offers(&mut advertisement.capabilities)?;
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
@@ -633,7 +648,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
-            base_registry: empty_base_registry(),
+            base_registry,
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
