@@ -2,8 +2,9 @@ use conduit_core::{
     active_play_digest, bind_active_play, ActivePlayId, AdmittedLine, BaseImplementationId,
     BaseInstanceId, BootId, ConnectionId, FragmentId, HostId, KindId, LineContinuation,
     LineContract, LineDuplex, LineId, LineOrdering, LineReliability, LineScope, LineSecurity,
-    LineTrafficShape, LinkBindingId, LinkEndpointId, LinkLimits, PlanId, PlannedConnection,
-    PROTOCOL_VERSION,
+    LineTrafficShape, LinkBindingId, LinkEndpointId, LinkLimits, PlacementId, Plan, PlanId,
+    PlannedConnection, PoolMemberSessionDirection, PoolSelectionDisposition, PoolSelectionEvidence,
+    PortId, SharedPoolId, PROTOCOL_VERSION,
 };
 
 use crate::{WireError, MAX_ID_BYTES};
@@ -96,6 +97,132 @@ impl SessionBinding {
         {
             return Err(WireError::InvalidSession);
         }
+        Self::from_exact_line(
+            plan_id,
+            source_fragment_id,
+            sink_fragment_id,
+            connection.connection_id.clone(),
+            connection.value_kind.clone(),
+            SessionLimits {
+                maximum_in_flight_items: connection.item_capacity,
+                maximum_payload_bytes: connection.byte_capacity,
+                maximum_buffered_bytes: connection.byte_capacity,
+            },
+            line,
+        )
+    }
+
+    /// Bind one selected dynamic pool operation to the exact Plan fragments,
+    /// semantic port, and directional Line admitted for that realization.
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_selected_pool_operation(
+        plan: &Plan,
+        selection: &PoolSelectionEvidence,
+        consumer_placement_id: &PlacementId,
+        direction: PoolMemberSessionDirection,
+        port_id: &PortId,
+    ) -> Result<Self, WireError> {
+        selection
+            .validate(plan)
+            .map_err(|_| WireError::InvalidSession)?;
+        if selection.disposition != PoolSelectionDisposition::Selected {
+            return Err(WireError::InvalidSession);
+        }
+        let realization_index = usize::from(
+            selection
+                .selected_realization
+                .ok_or(WireError::InvalidSession)?,
+        );
+        let pool = exact_pool(plan, &selection.pool_id)?;
+        if !pool.member_sessions_required || !pool.consumers.contains(consumer_placement_id) {
+            return Err(WireError::InvalidSession);
+        }
+        let realization = pool
+            .realization_envelope
+            .get(realization_index)
+            .ok_or(WireError::InvalidSession)?;
+        let consumer = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .find(|placement| &placement.placement_id == consumer_placement_id)
+            .ok_or(WireError::InvalidSession)?;
+        let port = match direction {
+            PoolMemberSessionDirection::Input => pool.member_front.inputs(),
+            PoolMemberSessionDirection::Output => pool.member_front.outputs(),
+        }
+        .iter()
+        .find(|port| &port.port_id == port_id)
+        .ok_or(WireError::InvalidSession)?;
+        let (source_host, source_boot, sink_host, sink_boot) = match direction {
+            PoolMemberSessionDirection::Input => (
+                &consumer.host_id,
+                &consumer.boot_id,
+                &realization.host_id,
+                &realization.boot_id,
+            ),
+            PoolMemberSessionDirection::Output => (
+                &realization.host_id,
+                &realization.boot_id,
+                &consumer.host_id,
+                &consumer.boot_id,
+            ),
+        };
+        let matching_lines = realization
+            .admitted_lines
+            .iter()
+            .filter(|line| {
+                line.binding.source.host_id == *source_host
+                    && line.binding.source.boot_id == *source_boot
+                    && line.binding.sink.host_id == *sink_host
+                    && line.binding.sink.boot_id == *sink_boot
+            })
+            .collect::<alloc::vec::Vec<_>>();
+        if matching_lines.len() != 1 {
+            return Err(WireError::InvalidSession);
+        }
+        let source_fragment = exact_fragment(plan, source_host, source_boot)?;
+        let sink_fragment = exact_fragment(plan, sink_host, sink_boot)?;
+        Self::from_exact_line(
+            plan.plan_id.clone(),
+            source_fragment.fragment_id.clone(),
+            sink_fragment.fragment_id.clone(),
+            conduit_core::pool_member_session_connection_id(
+                &plan.plan_id,
+                &selection.pool_id,
+                &selection.operation_id,
+                direction,
+                port_id,
+            ),
+            port.value_kind.clone(),
+            SessionLimits {
+                maximum_in_flight_items: pool.member_limits.queue_item_capacity,
+                maximum_payload_bytes: pool.member_limits.queue_byte_capacity,
+                maximum_buffered_bytes: pool.member_limits.queue_byte_capacity,
+            },
+            matching_lines[0],
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn from_exact_line(
+        plan_id: PlanId,
+        source_fragment_id: FragmentId,
+        sink_fragment_id: FragmentId,
+        connection_id: ConnectionId,
+        value_kind: KindId,
+        limits: SessionLimits,
+        line: &AdmittedLine,
+    ) -> Result<Self, WireError> {
+        let link = &line.binding;
+        if link.base.as_str().is_empty()
+            || !supports_session_contract(line.contract)
+            || limits.maximum_in_flight_items > link.limits.maximum_in_flight_items
+            || limits.maximum_payload_bytes > link.limits.maximum_payload_bytes
+            || limits.maximum_buffered_bytes > link.limits.maximum_buffered_bytes
+        {
+            return Err(WireError::InvalidSession);
+        }
         let source_active_play_id =
             bind_active_play(&plan_id, &link.source.host_id, &link.source.boot_id, 0)
                 .active_play_id;
@@ -108,7 +235,7 @@ impl SessionBinding {
             sink_fragment_id,
             source_active_play_id,
             sink_active_play_id,
-            connection_id: connection.connection_id.clone(),
+            connection_id,
             source: SessionEndpointIdentity {
                 host_id: link.source.host_id.clone(),
                 boot_id: link.source.boot_id.clone(),
@@ -117,12 +244,8 @@ impl SessionBinding {
                 host_id: link.sink.host_id.clone(),
                 boot_id: link.sink.boot_id.clone(),
             },
-            value_kind: connection.value_kind.clone(),
-            limits: SessionLimits {
-                maximum_in_flight_items: connection.item_capacity,
-                maximum_payload_bytes: connection.byte_capacity,
-                maximum_buffered_bytes: connection.byte_capacity,
-            },
+            value_kind,
+            limits,
             attachment: LineAttachment {
                 line_id: line.line_id.clone(),
                 link_binding_id: link.binding_id.clone(),
@@ -289,6 +412,39 @@ impl SessionBinding {
             message,
         }
     }
+}
+
+fn exact_pool<'a>(
+    plan: &'a Plan,
+    pool_id: &SharedPoolId,
+) -> Result<&'a conduit_core::PlannedSharedPool, WireError> {
+    let mut matches = plan
+        .fragments
+        .first()
+        .into_iter()
+        .flat_map(|fragment| &fragment.shared_pools)
+        .filter(|pool| &pool.pool_id == pool_id);
+    let pool = matches.next().ok_or(WireError::InvalidSession)?;
+    if matches.next().is_some() {
+        return Err(WireError::InvalidSession);
+    }
+    Ok(pool)
+}
+
+fn exact_fragment<'a>(
+    plan: &'a Plan,
+    host_id: &HostId,
+    boot_id: &BootId,
+) -> Result<&'a conduit_core::PlanFragment, WireError> {
+    let mut matches = plan
+        .fragments
+        .iter()
+        .filter(|fragment| &fragment.host_id == host_id && &fragment.boot_id == boot_id);
+    let fragment = matches.next().ok_or(WireError::InvalidSession)?;
+    if matches.next().is_some() {
+        return Err(WireError::InvalidSession);
+    }
+    Ok(fragment)
 }
 
 fn active_play_id_matches(

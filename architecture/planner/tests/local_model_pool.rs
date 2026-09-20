@@ -236,7 +236,7 @@ fn remote_pool_members_require_exact_directional_lines_sealed_by_the_plan() {
     let base = conduit_core::BaseImplementationId::from("conduit.base/test-line@1");
     let mut lines = Vec::new();
     for (index, worker) in hosts[1..].iter().enumerate() {
-        lines.push(conduit_core::process_owned_line_offer(
+        let mut request = conduit_core::process_owned_line_offer(
             &format!("line/consumer-worker-{index}"),
             &format!("binding/consumer-worker-{index}"),
             base.clone(),
@@ -244,9 +244,12 @@ fn remote_pool_members_require_exact_directional_lines_sealed_by_the_plan() {
             &consumer,
             worker,
             1,
-            1,
-        ));
-        lines.push(conduit_core::process_owned_line_offer(
+            4_096,
+        );
+        request.contract.scope = conduit_core::LineScope::LocalNetwork;
+        request.contract.security = conduit_core::LineSecurity::AuthenticatedEncrypted;
+        lines.push(request);
+        let mut result = conduit_core::process_owned_line_offer(
             &format!("line/worker-consumer-{index}"),
             &format!("binding/worker-consumer-{index}"),
             base.clone(),
@@ -254,12 +257,24 @@ fn remote_pool_members_require_exact_directional_lines_sealed_by_the_plan() {
             worker,
             &consumer,
             1,
-            1,
-        ));
+            4_096,
+        );
+        result.contract.scope = conduit_core::LineScope::LocalNetwork;
+        result.contract.security = conduit_core::LineSecurity::AuthenticatedEncrypted;
+        lines.push(result);
     }
 
     let plan = build_session_plan(&hosts, &lines).unwrap();
     assert!(conduit_core::verify_plan(&plan));
+    assert_eq!(plan.fragments.len(), 3);
+    assert!(hosts
+        .iter()
+        .all(|host| plan.fragments.iter().any(|fragment| {
+            fragment.host_id == host.host_id && fragment.boot_id == host.boot_id
+        })));
+    assert!(plan.fragments.iter().all(|fragment| {
+        conduit_plan_lowering::lowering::lower_plan_fragment(fragment).is_ok()
+    }));
     let pool = &plan.fragments[0].shared_pools[0];
     assert!(pool.member_sessions_required);
     assert!(pool
@@ -272,6 +287,50 @@ fn remote_pool_members_require_exact_directional_lines_sealed_by_the_plan() {
         .realizations
         .iter()
         .all(|realization| realization.admitted_lines.len() == 2));
+
+    let selection = PoolSelectionEvidence {
+        plan_id: plan.plan_id.clone(),
+        pool_id: pool.pool_id.clone(),
+        operation_id: PoolOperationId::from("request/session-1"),
+        selected_realization: Some(0),
+        observation_sign_ids: vec![SignId::from("sign/provider/0")],
+        disposition: PoolSelectionDisposition::Selected,
+        sign_id: SignId::from("sign/selection/session-1"),
+    };
+    let consumer = &pool.consumers[0];
+    let input = conduit_wire::SessionBinding::from_selected_pool_operation(
+        &plan,
+        &selection,
+        consumer,
+        conduit_core::PoolMemberSessionDirection::Input,
+        &conduit_core::PortId::from("prompt"),
+    )
+    .unwrap();
+    let output = conduit_wire::SessionBinding::from_selected_pool_operation(
+        &plan,
+        &selection,
+        consumer,
+        conduit_core::PoolMemberSessionDirection::Output,
+        &conduit_core::PortId::from("text"),
+    )
+    .unwrap();
+    assert_eq!(
+        input.source.host_id,
+        consumer_host(&observer.checked_front()).host_id
+    );
+    assert_eq!(input.sink.host_id, pool.realization_envelope[0].host_id);
+    assert_eq!(output.source.host_id, pool.realization_envelope[0].host_id);
+    assert_eq!(output.sink.host_id, input.source.host_id);
+    assert_ne!(input.connection_id, output.connection_id);
+    assert_ne!(input.source_fragment_id, input.sink_fragment_id);
+    assert!(conduit_wire::SessionBinding::from_selected_pool_operation(
+        &plan,
+        &selection,
+        &conduit_core::PlacementId::from("unplanned-consumer"),
+        conduit_core::PoolMemberSessionDirection::Input,
+        &conduit_core::PortId::from("prompt"),
+    )
+    .is_err());
 }
 
 fn key(value: u8) -> MemberKey {
