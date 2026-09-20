@@ -3,9 +3,9 @@
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, ConfigurationValue, ExecutionProfileId,
-    FrontStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PlannedGear,
+    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ConfigurationValue, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -105,47 +105,45 @@ fn symbols_to_text_offer() -> CapabilityOffer {
 }
 
 fn offer(contract: conduit_text::MorseKindContract, implementation: &str) -> CapabilityOffer {
-    let maximum_input_bytes = contract
-        .limits
-        .max_queue_bytes
-        .min(super::MAXIMUM_BROWSER_VALUE_BYTES as u32);
-    let mut offer = CapabilityOffer {
-        startup_parameters: contract
-            .configuration
-            .iter()
-            .map(|(name, _)| FrontStartupParameter {
-                name: (*name).into(),
-                value_type: conduit_core::kind_id("value/count"),
-                has_default: true,
-            })
-            .collect(),
-        shorthand: Some((
-            contract.inputs[0].port_id.clone(),
-            contract.outputs[0].port_id.clone(),
-        )),
-        capability_id: CapabilityId::from(implementation),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: conduit_core::ImplementationOffer {
+    let maximum_input_bytes = value_bound(contract.inputs[0].value_kind.as_str());
+    let maximum_output_bytes = value_bound(contract.outputs[0].value_kind.as_str());
+    CapabilityOfferBuilder::new(
+        contract.into_semantic_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(implementation),
+                target_kind: Some(kind_id(implementation)),
+                maximum_in_flight: 1,
+                maximum_input_bytes,
+                maximum_output_bytes,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(implementation),
-            target_kind: Some(kind_id(implementation)),
-            maximum_in_flight: 1,
-            maximum_input_bytes,
-            maximum_output_bytes: maximum_input_bytes,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    };
-    offer.limits.max_queue_bytes = conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32;
-    offer
+    )
+    .build()
+}
+
+fn value_bound(kind: &str) -> u32 {
+    match kind {
+        conduit_text::TEXT_VALUE_KIND => conduit_text::MAX_TEXT_BYTES,
+        conduit_text::MORSE_CHARACTERS_VALUE_KIND => {
+            conduit_text::MAXIMUM_MORSE_CHARACTERS_BYTES as u32
+        }
+        conduit_text::MORSE_SYMBOL_GROUPS_VALUE_KIND => {
+            conduit_text::MAXIMUM_MORSE_SYMBOL_GROUPS_BYTES as u32
+        }
+        conduit_text::MORSE_GAPPED_GROUPS_VALUE_KIND => {
+            conduit_text::MAXIMUM_MORSE_GAPPED_GROUPS_BYTES as u32
+        }
+        conduit_text::MORSE_SYMBOLS_VALUE_KIND => conduit_text::MAXIMUM_MORSE_SYMBOLS_BYTES as u32,
+        conduit_text::MORSE_PATTERN_VALUE_KIND => conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
+        _ => 0,
+    }
 }
 
 fn prepare(

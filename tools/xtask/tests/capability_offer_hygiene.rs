@@ -59,6 +59,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         0,
         "semantic contract owner",
     ),
+    ("semantics/text/src/morse.rs", 0, "semantic contract owner"),
     ("semantics/signal/src/control.rs", 0, "fully migrated"),
     ("semantics/signal/src/lib.rs", 0, "fully migrated"),
     ("semantics/tongues/src/contract.rs", 0, "fully migrated"),
@@ -99,6 +100,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     (
         "targets/browser/runtime/src/installed_browser/pulse_observation.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/browser/runtime/src/installed_browser/morse_composition.rs",
         0,
         "fully migrated",
     ),
@@ -175,6 +181,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     (
         "targets/std/offers/src/pulse_observation.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/std/offers/src/morse_composition.rs",
         0,
         "fully migrated",
     ),
