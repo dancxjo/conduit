@@ -39,8 +39,8 @@ test("Birth on the front page hands the Lulled Body to an explicit Wake", async 
   await expect(page.getByRole("button", { name: "Birth Body", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await expect(page.locator("[data-body-state]")).toHaveText("lulled");
-  await expect(page.getByRole("button", { name: "Wake Body", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await expect(page.getByRole("button", { name: "wake body", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await page.keyboard.press("h");
   await expect(page.locator("[data-form-output] output:visible")).toHaveText("h");
