@@ -26,7 +26,7 @@ test("resident Patchbay inspects and begins an exact edit in one browser Body Pl
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Patchbay", exact: true }).check();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
-  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const born = await current(page);
   await page.locator("[data-checked-form-id]").filter({ hasText: "Patchbay" }).click();

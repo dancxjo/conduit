@@ -19,7 +19,7 @@ async function birth(page) {
   await chime.uncheck();
   await page.getByLabel("Friendly Body name", { exact: true }).fill("Roseau");
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
-  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
 }
 
@@ -29,7 +29,7 @@ test("five ordinary Forms start together beyond the old aggregate placement ceil
     await page.getByRole("checkbox", { name: title, exact: true }).check();
   }
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
-  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const state = await current(page);
   expect(state.initial_forms).toHaveLength(5);
@@ -40,9 +40,9 @@ test("repeated Wake and Lull compacts retained evidence instead of exhausting li
   await birth(page);
   const identity = (await current(page)).body_id;
   for (let index = 0; index < 12; index++) {
-    await page.getByRole("button", { name: "Lull Body", exact: true }).click();
+    await page.getByRole("button", { name: "lull body", exact: true }).click();
     await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
-    await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+    await page.getByRole("button", { name: "wake body", exact: true }).click();
     await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   }
   expect((await current(page)).body_id).toBe(identity);
@@ -72,8 +72,8 @@ test("Use installs into the same Body; repeated Use preserves Play and removal s
   const tutorial = page.locator('[data-body-tutorial]');
   await expect(tutorial).toContainText("Invite another Host");
   await tutorial.getByRole("button", { name: "Invite another Host", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Parts and Hosts", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Back to the surface", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "parts and hosts", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "back to the surface", exact: true }).click();
   await page.locator("#form-input").focus();
   await page.keyboard.type("hello");
   await page.keyboard.press("Enter");
@@ -89,7 +89,7 @@ test("Use installs into the same Body; repeated Use preserves Play and removal s
   await openLibrary(page);
   await card(page, "Desk Telegraph").getByRole("button", { name: "Remove", exact: true }).click();
   await expect(card(page, "Desk Telegraph")).toContainText("Not in your Body");
-  await page.getByRole("button", { name: "Back to the surface", exact: true }).click();
+  await page.getByRole("button", { name: "back to the surface", exact: true }).click();
   await expect(page.locator("#surface-title")).toHaveText("Memory Lantern");
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await page.locator("#form-input").focus();
@@ -129,7 +129,7 @@ test("window focus loss retires the pending Play and lets the same Body wake aga
   expect((await current(page)).body_id).toBe(before.body_id);
   expect((await current(page)).active_play_id).toBeUndefined();
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
-  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   expect((await current(page)).body_id).toBe(before.body_id);
   expect((await current(page)).active_play_id).not.toBe(before.active_play_id);
@@ -154,7 +154,7 @@ test("removing the final Form retains an empty Body that can acquire Forms again
   await openLibrary(page);
   await card(page, "Memory Lantern").getByRole("button", { name: "Use", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
-  await expect(page.getByRole("button", { name: "Lull Body", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "lull body", exact: true })).toBeVisible();
   await page.keyboard.press("a");
   await expect(page.locator("[data-form-output] output:visible")).toHaveText("a");
   expect((await current(page)).body_id).toBe(initial.body_id);
@@ -188,7 +188,7 @@ test("a failed workset save stops before replacement effects and reload recovers
   await expect(page.locator("[data-form-output] output")).toHaveCount(0);
   await page.reload();
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
-  await page.getByRole("button", { name: "Wake Body", exact: true }).click();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const restored = await current(page);
   expect(restored.body_id).toBe(initial.body_id);
@@ -242,7 +242,7 @@ test('a new Gallery arrival selects the Form in the actual Crèche; a stale hand
   await expect(page.getByRole('checkbox', { name: 'Desk Telegraph', exact: true })).toBeChecked();
   await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
-  await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
+  await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   await expect(page.locator('#surface-title')).toHaveText('Desk Telegraph');
   const initial = await current(page);
@@ -261,7 +261,7 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
     await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
     await page.getByRole('checkbox', { name: title, exact: true }).check();
     await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
-    await page.getByRole('button', { name: 'Wake Body', exact: true }).click();
+    await page.getByRole('button', { name: 'wake body', exact: true }).click();
     await expect(page.locator('[data-play-state]')).toHaveText('Playing');
     const identity = await current(page);
     const surface = page.locator('#form-input');
@@ -297,7 +297,7 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
     }
     expect((await current(page)).active_play_id).toBe(identity.active_play_id);
     if (kind === 'pointer' || kind === 'button') await page.screenshot({ path: testInfo.outputPath(`workspace-${kind}-form.png`), fullPage: true });
-    await page.getByRole('button', { name: 'Lull Body', exact: true }).click();
+    await page.getByRole('button', { name: 'lull body', exact: true }).click();
     await expect(page.locator('[data-play-state]')).toHaveText('Lulled');
   });
 }
