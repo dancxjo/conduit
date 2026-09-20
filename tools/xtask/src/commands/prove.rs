@@ -9,8 +9,8 @@ use crate::{
         PROVE_BODY_MEMBERSHIP_HIL_BROWSER_STEPS, PROVE_BODY_MEMBERSHIP_STEPS,
         PROVE_BROWSER_HOST_STEPS, PROVE_DEGRADED_PROFILES_STEPS, PROVE_DIVERSITY_STEPS,
         PROVE_DORMANT_READMISSION_STEPS, PROVE_LLM_CROSS_HOST_STEPS, PROVE_LLM_EMBODIMENT_STEPS,
-        PROVE_PATCHBAY_FRONT_DOOR_STEPS, PROVE_RECURSIVE_RECOVERY_STEPS,
-        PROVE_STD_BROWSER_S4_STEPS, PROVE_STD_BROWSER_TOGGLE_STEPS,
+        PROVE_LOCAL_MODEL_POOL_STEPS, PROVE_PATCHBAY_FRONT_DOOR_STEPS,
+        PROVE_RECURSIVE_RECOVERY_STEPS, PROVE_STD_BROWSER_S4_STEPS, PROVE_STD_BROWSER_TOGGLE_STEPS,
     },
     workspace::workspace_root,
 };
@@ -106,6 +106,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             crate::commands::ollama_embodiment::run(&args, &root, opts)
         }
         ProveTarget::LlmCrossHost => run_suite(PROVE_LLM_CROSS_HOST_STEPS, &root, opts),
+        ProveTarget::LocalModelPool => run_suite(PROVE_LOCAL_MODEL_POOL_STEPS, &root, opts),
         ProveTarget::MessagingGithub => crate::commands::messaging_github::run(&args, &root, opts),
         ProveTarget::PatchbayBodyWorkbench => {
             run_suite(PROVE_PATCHBAY_BODY_WORKBENCH_STEPS, &root, opts)
