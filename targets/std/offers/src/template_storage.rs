@@ -17,7 +17,7 @@ pub fn template_storage_std_offer() -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: vec![FrontStartupParameter {
             name: "maximum-commands".into(),
-            value_type: "Count".into(),
+            value_type: conduit_core::kind_id("value/count"),
             has_default: true,
         }],
         shorthand: None,

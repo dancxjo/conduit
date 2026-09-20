@@ -59,7 +59,7 @@ pub(crate) fn offer() -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "expected".into(),
-            value_type: "Count".into(),
+            value_type: conduit_core::kind_id("value/count"),
             has_default: false,
         }],
         shorthand: None,

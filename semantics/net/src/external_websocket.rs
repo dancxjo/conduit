@@ -58,7 +58,7 @@ pub fn external_websocket_client_offer(
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
     CapabilityOffer {
-        startup_parameters: vec![startup("url", "Url")],
+        startup_parameters: vec![startup("url", URL_VALUE_KIND)],
         shorthand: None,
         capability_id,
         kind_id: kind_id(EXTERNAL_WEBSOCKET_CLIENT_KIND),
@@ -114,7 +114,7 @@ pub fn external_websocket_listener_offer(
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
     CapabilityOffer {
-        startup_parameters: vec![startup("bind", "NetAddress")],
+        startup_parameters: vec![startup("bind", NET_ADDRESS_VALUE_KIND)],
         shorthand: None,
         capability_id,
         kind_id: kind_id(EXTERNAL_WEBSOCKET_LISTENER_KIND),
@@ -230,7 +230,7 @@ pub fn install_external_websocket_catalogs(
                 .iter()
                 .map(|parameter| StartupParameterSignature {
                     name: parameter.name.clone(),
-                    value_type: parameter.value_type.clone(),
+                    value_type: parameter.value_type.as_str().to_string(),
                     default: None,
                 })
                 .collect(),
@@ -259,7 +259,7 @@ pub fn install_external_websocket_catalogs(
 fn startup(name: &str, value_type: &str) -> FrontStartupParameter {
     FrontStartupParameter {
         name: name.to_string(),
-        value_type: value_type.to_string(),
+        value_type: kind_id(value_type),
         has_default: false,
     }
 }

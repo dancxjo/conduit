@@ -605,14 +605,13 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
         .iter()
         .map(|field| conduit_core::FrontStartupParameter {
             name: field.key.clone(),
-            value_type: match field.default_value {
-                ConfigurationValue::Bool(_) => "Boolean",
-                ConfigurationValue::I64(_) => "Scalar",
-                ConfigurationValue::U64(_) => "Count",
-                ConfigurationValue::Text(_) => "Text",
+            value_type: conduit_core::kind_id(match field.default_value {
+                ConfigurationValue::Bool(_) => "value/bool",
+                ConfigurationValue::I64(_) => "value/scalar",
+                ConfigurationValue::U64(_) => "value/count",
+                ConfigurationValue::Text(_) => "value/text",
                 ConfigurationValue::Structured(ref value) => value.profile().as_str(),
-            }
-            .to_string(),
+            }),
             has_default: true,
         })
         .collect();

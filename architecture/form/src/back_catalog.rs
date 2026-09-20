@@ -1,7 +1,5 @@
 use crate::prelude::*;
-use crate::{
-    CheckedCanonicalForm, CheckedSyntaxDocument, KindDefinition, StartupParameterSignature,
-};
+use crate::{CheckedCanonicalForm, CheckedSyntaxDocument, KindDefinition};
 use alloc::collections::BTreeMap;
 use conduit_core::{CheckedFormId, CheckedFront, KindId, RealizationBack, SourceDocumentId};
 
@@ -53,7 +51,7 @@ impl CanonicalBackCatalog {
     pub fn insert_with_startup(
         &mut self,
         kind: &KindDefinition,
-        startup: &[StartupParameterSignature],
+        startup: &[conduit_core::FrontStartupParameter],
         document: &CheckedSyntaxDocument,
         form_name: &str,
     ) -> Result<(), CanonicalBackError> {
@@ -66,7 +64,7 @@ impl CanonicalBackCatalog {
     pub fn insert_exact(
         &mut self,
         kind: &KindDefinition,
-        startup: &[StartupParameterSignature],
+        startup: &[conduit_core::FrontStartupParameter],
         document: &CheckedSyntaxDocument,
         form_name: &str,
         expected_source_document_id: &SourceDocumentId,
@@ -95,7 +93,7 @@ impl CanonicalBackCatalog {
     fn insert_checked(
         &mut self,
         kind: &KindDefinition,
-        startup: &[StartupParameterSignature],
+        startup: &[conduit_core::FrontStartupParameter],
         document: &CheckedSyntaxDocument,
         form_name: &str,
     ) -> Result<(), CanonicalBackError> {
@@ -140,16 +138,12 @@ impl CanonicalBackCatalog {
     }
 }
 
-fn definition_front(kind: &KindDefinition, startup: &[StartupParameterSignature]) -> CheckedFront {
+fn definition_front(
+    kind: &KindDefinition,
+    startup: &[conduit_core::FrontStartupParameter],
+) -> CheckedFront {
     CheckedFront::new(
-        startup
-            .iter()
-            .map(|parameter| conduit_core::FrontStartupParameter {
-                name: parameter.name.clone(),
-                value_type: parameter.value_type.clone(),
-                has_default: parameter.default.is_some(),
-            })
-            .collect(),
+        startup.to_vec(),
         kind.inputs.clone(),
         kind.outputs.clone(),
         match (kind.inputs.as_slice(), kind.outputs.as_slice()) {

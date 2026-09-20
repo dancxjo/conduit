@@ -33,10 +33,10 @@ pub(super) fn expand_literal(
     let gear = CheckedCanonicalGear {
         name: None,
         kind: "text/literal".to_string(),
-        startup_parameters: vec![crate::StartupParameterSignature {
+        startup_parameters: vec![conduit_core::FaceStartupParameter {
             name: "value".to_string(),
-            value_type: "Text".to_string(),
-            default: None,
+            value_type: conduit_core::kind_id("value/text"),
+            has_default: false,
         }],
         startup_bindings: vec![crate::CheckedStartupBinding {
             name: "value".to_string(),

@@ -422,7 +422,7 @@ fn source_offer(
             .iter()
             .map(|name| FrontStartupParameter {
                 name: (*name).into(),
-                value_type: "Text".into(),
+                value_type: conduit_core::kind_id("value/text"),
                 has_default: false,
             })
             .collect(),

@@ -92,7 +92,11 @@ pub fn source_extraction_startup_parameters() -> Vec<FrontStartupParameter> {
     .into_iter()
     .map(|name| FrontStartupParameter {
         name: name.into(),
-        value_type: if name == "profile" { "Text" } else { "Count" }.into(),
+        value_type: kind_id(if name == "profile" {
+            "value/text"
+        } else {
+            "value/count"
+        }),
         has_default: true,
     })
     .collect()

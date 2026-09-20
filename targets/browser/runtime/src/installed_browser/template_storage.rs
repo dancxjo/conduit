@@ -55,7 +55,7 @@ fn offer() -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: vec![FrontStartupParameter {
             name: "maximum-commands".into(),
-            value_type: "Count".into(),
+            value_type: conduit_core::kind_id("value/count"),
             has_default: true,
         }],
         shorthand: None,
@@ -101,12 +101,12 @@ fn initializer_offer() -> CapabilityOffer {
         startup_parameters: vec![
             FrontStartupParameter {
                 name: "name".into(),
-                value_type: "Text".into(),
+                value_type: conduit_core::kind_id("value/text"),
                 has_default: true,
             },
             FrontStartupParameter {
                 name: "normalized-values".into(),
-                value_type: "Text".into(),
+                value_type: conduit_core::kind_id("value/text"),
                 has_default: true,
             },
         ],

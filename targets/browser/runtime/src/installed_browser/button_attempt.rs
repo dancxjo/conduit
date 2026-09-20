@@ -24,17 +24,17 @@ pub fn offer() -> CapabilityOffer {
         startup_parameters: vec![
             FrontStartupParameter {
                 name: "maximum-transitions".into(),
-                value_type: "Count".into(),
+                value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
             },
             FrontStartupParameter {
                 name: "maximum-presses".into(),
-                value_type: "Count".into(),
+                value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
             },
             FrontStartupParameter {
                 name: "timeout-ms".into(),
-                value_type: "Duration".into(),
+                value_type: conduit_core::kind_id("value/duration"),
                 has_default: true,
             },
         ],

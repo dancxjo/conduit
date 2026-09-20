@@ -46,7 +46,7 @@ pub fn structured_presentation_contract(
 }
 
 fn contract(
-    type_name: &str,
+    _type_name: &str,
     value_type: &StructuredInfoType,
     source: bool,
 ) -> StructuredValueContract {
@@ -68,7 +68,7 @@ fn contract(
         startup_parameters: if source {
             vec![FrontStartupParameter {
                 name: "value".into(),
-                value_type: type_name.into(),
+                value_type: value_kind,
                 has_default: false,
             }]
         } else {

@@ -1,5 +1,4 @@
 use crate::StandardConfigurationField;
-use alloc::string::ToString;
 use alloc::vec::Vec;
 use conduit_core::{
     ArtifactId, AuthorityRequirement, CapabilityId, CapabilityOffer, ConfigurationValue,
@@ -51,14 +50,13 @@ pub fn startup_front(fields: &[StandardConfigurationField]) -> Vec<FrontStartupP
         .iter()
         .map(|field| FrontStartupParameter {
             name: field.key.clone(),
-            value_type: match field.default_value {
-                ConfigurationValue::Bool(_) => "Boolean",
-                ConfigurationValue::U64(_) => "Count",
-                ConfigurationValue::I64(_) => "Scalar",
-                ConfigurationValue::Text(_) => "Text",
+            value_type: conduit_core::kind_id(match field.default_value {
+                ConfigurationValue::Bool(_) => "value/bool",
+                ConfigurationValue::U64(_) => "value/count",
+                ConfigurationValue::I64(_) => "value/scalar",
+                ConfigurationValue::Text(_) => "value/text",
                 ConfigurationValue::Structured(ref value) => value.profile().as_str(),
-            }
-            .to_string(),
+            }),
             has_default: true,
         })
         .collect()

@@ -41,7 +41,7 @@ fn offer(
         } else {
             vec![FrontStartupParameter {
                 name: "members".to_string(),
-                value_type: "Pool".to_string(),
+                value_type: kind_id("value/pool-reference"),
                 has_default: false,
             }]
         },

@@ -22,7 +22,7 @@ fn offer() -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: vec![FrontStartupParameter {
             name: "maximum-values".into(),
-            value_type: "Count".into(),
+            value_type: conduit_core::kind_id("value/count"),
             has_default: true,
         }],
         shorthand: None,

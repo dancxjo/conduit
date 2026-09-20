@@ -87,7 +87,7 @@ fn speech_offer(
     CapabilityOffer {
         startup_parameters: vec![FrontStartupParameter {
             name: "maximum-output-bytes".into(),
-            value_type: "Count".into(),
+            value_type: conduit_core::kind_id("value/count"),
             has_default: true,
         }],
         shorthand: None,

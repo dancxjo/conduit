@@ -18,12 +18,12 @@ pub fn compare_pattern_std_offer() -> CapabilityOffer {
         startup_parameters: vec![
             FrontStartupParameter {
                 name: "metric".into(),
-                value_type: "Text".into(),
+                value_type: conduit_core::kind_id("value/text"),
                 has_default: true,
             },
             FrontStartupParameter {
                 name: "tolerance-millionths".into(),
-                value_type: "Count".into(),
+                value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
             },
         ],

@@ -285,12 +285,12 @@ fn proof_rhythm_offer(profile: &ProfileCatalog) -> CapabilityOffer {
         vec![
             FrontStartupParameter {
                 name: "target-offset-micros".into(),
-                value_type: "Scalar".into(),
+                value_type: conduit_core::kind_id("value/scalar"),
                 has_default: true,
             },
             FrontStartupParameter {
                 name: "tolerance-micros".into(),
-                value_type: "Count".into(),
+                value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
             },
         ],

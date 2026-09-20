@@ -377,7 +377,13 @@ fn check_invocation(
     Ok(CheckedCanonicalGear {
         name,
         kind: signature.kind.clone(),
-        startup_parameters: signature.startup_parameters.clone(),
+        startup_parameters: catalog
+            .canonical_startup_parameters(signature)
+            .map_err(|_| SyntaxCheckDiagnostic {
+                code: "CND-FRM-053",
+                span: invocation.span,
+                message: "startup parameter profile exceeds canonical bounds".into(),
+            })?,
         startup_bindings,
         source_span: invocation.span,
     })

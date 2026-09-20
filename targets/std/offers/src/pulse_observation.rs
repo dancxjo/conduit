@@ -19,7 +19,7 @@ pub fn pulse_observe_offer() -> CapabilityOffer {
             .into_iter()
             .map(|name| FrontStartupParameter {
                 name: name.into(),
-                value_type: "Count".into(),
+                value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
             })
             .collect(),

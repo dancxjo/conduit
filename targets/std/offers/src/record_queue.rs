@@ -13,12 +13,12 @@ pub fn ordered_record_queue_std_offer() -> CapabilityOffer {
         startup_parameters: vec![
             FrontStartupParameter {
                 name: "maximum-items".into(),
-                value_type: "Count".into(),
+                value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
             },
             FrontStartupParameter {
                 name: "maximum-frame-bytes".into(),
-                value_type: "Count".into(),
+                value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
             },
         ],

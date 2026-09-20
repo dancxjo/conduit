@@ -25,7 +25,7 @@ fn direct_offer() -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: vec![FrontStartupParameter {
             name: conduit_text::MORSE_UNIT_MILLIS_KEY.into(),
-            value_type: "Count".into(),
+            value_type: conduit_core::kind_id("value/count"),
             has_default: true,
         }],
         shorthand: Some((port_id("text"), port_id("pattern"))),

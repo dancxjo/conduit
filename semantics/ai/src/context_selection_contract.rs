@@ -158,7 +158,11 @@ fn context_startup_parameters() -> Vec<FrontStartupParameter> {
 fn parameter((name, value_type): (&str, &str)) -> FrontStartupParameter {
     FrontStartupParameter {
         name: name.into(),
-        value_type: value_type.into(),
+        value_type: kind_id(match value_type {
+            "Text" => "value/text",
+            "Count" => "value/count",
+            exact => exact,
+        }),
         has_default: true,
     }
 }

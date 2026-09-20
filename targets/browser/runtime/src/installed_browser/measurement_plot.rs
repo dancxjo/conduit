@@ -24,15 +24,18 @@ fn offer() -> CapabilityOffer {
     let contract = conduit_data::measurement_plot_kind_definition();
     let kind = contract.kind_id.clone();
     CapabilityOffer {
-        startup_parameters: [("points", "Count", true), ("when-full", "Text", true)]
-            .map(
-                |(name, value_type, has_default)| conduit_core::FrontStartupParameter {
-                    name: name.into(),
-                    value_type: value_type.into(),
-                    has_default,
-                },
-            )
-            .into(),
+        startup_parameters: [
+            ("points", "value/count", true),
+            ("when-full", "value/text", true),
+        ]
+        .map(
+            |(name, value_type, has_default)| conduit_core::FrontStartupParameter {
+                name: name.into(),
+                value_type: conduit_core::kind_id(value_type),
+                has_default,
+            },
+        )
+        .into(),
         shorthand: None,
         capability_id: CapabilityId::from(IMPLEMENTATION),
         kind_id: kind.clone(),
