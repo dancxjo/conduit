@@ -4,9 +4,10 @@
 use crate::human_media_catalog::install_camera_catalogs;
 use alloc::{string::String, string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, BoundedResourceRef, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
-    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape, StructuredVariantCase,
+    kind_id, port_id, BoundedResourceRef, CapabilityLimits, KindContractRevision, KindId,
+    PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract, StructuredFieldType,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
+    StructuredInfoValueShape, StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
     RESOURCE_REFERENCE_INFO_ID,
 };
 
@@ -16,6 +17,64 @@ pub const IMAGE_TEXT_TYPED_RECORD_KIND: &str = "media/image-text-to-typed-record
 pub const IMAGE_TEXT_TYPED_RECORD_REVISION: &str = "conduit.human/image-text-typed-record@1";
 pub const IMAGE_REFERENCE_TYPE: &str = "ImageObservationReference";
 pub const IMAGE_TEXT_RECORD_TYPE: &str = "ImageTextRecord";
+
+pub fn image_text_compose_semantic_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id(IMAGE_TEXT_COMPOSE_KIND),
+        kind_contract_revision: KindContractRevision::from(IMAGE_TEXT_COMPOSE_REVISION),
+        inputs: vec![
+            structured_port(
+                "image",
+                &image_observation_reference_type(),
+                PortDirection::Input,
+            ),
+            PortDescriptor {
+                port_id: port_id("caption"),
+                value_kind: kind_id("value/text"),
+                direction: PortDirection::Input,
+                temporal: PortTemporal::Value,
+            },
+        ],
+        outputs: vec![structured_port(
+            "record",
+            &image_text_record_type(),
+            PortDirection::Output,
+        )],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 2,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES
+                + conduit_human::MAXIMUM_IMAGE_TEXT_CAPTION_BYTES)
+                as u32,
+        },
+    }
+}
+
+pub fn image_text_typed_record_semantic_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id(IMAGE_TEXT_TYPED_RECORD_KIND),
+        kind_contract_revision: KindContractRevision::from(IMAGE_TEXT_TYPED_RECORD_REVISION),
+        inputs: vec![structured_port(
+            "record",
+            &image_text_record_type(),
+            PortDirection::Input,
+        )],
+        outputs: vec![structured_port(
+            "typed",
+            &conduit_net::typed_record_type(),
+            PortDirection::Output,
+        )],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
+    }
+}
 
 #[cfg(feature = "form-catalog")]
 pub fn install_image_text_inspection_catalog(
@@ -312,54 +371,20 @@ pub fn install_human_media_catalogs(
         .insert_structured_type(IMAGE_TEXT_RECORD_TYPE, image_text_record_type())
         .map_err(|error| error.to_string())?;
 
-    for (kind, revision, inputs, outputs) in [
-        (
-            IMAGE_TEXT_COMPOSE_KIND,
-            IMAGE_TEXT_COMPOSE_REVISION,
-            vec![
-                structured_port(
-                    "image",
-                    &image_observation_reference_type(),
-                    PortDirection::Input,
-                ),
-                PortDescriptor {
-                    port_id: port_id("caption"),
-                    value_kind: kind_id("value/text"),
-                    direction: PortDirection::Input,
-                    temporal: PortTemporal::Value,
-                },
-            ],
-            vec![structured_port(
-                "record",
-                &image_text_record_type(),
-                PortDirection::Output,
-            )],
-        ),
-        (
-            IMAGE_TEXT_TYPED_RECORD_KIND,
-            IMAGE_TEXT_TYPED_RECORD_REVISION,
-            vec![structured_port(
-                "record",
-                &image_text_record_type(),
-                PortDirection::Input,
-            )],
-            vec![structured_port(
-                "typed",
-                &conduit_net::typed_record_type(),
-                PortDirection::Output,
-            )],
-        ),
+    for contract in [
+        image_text_compose_semantic_contract(),
+        image_text_typed_record_semantic_contract(),
     ] {
         startup.insert(KindSignature {
-            kind: kind.into(),
+            kind: contract.kind_id.as_str().into(),
             startup_parameters: vec![],
         })?;
         profile
             .insert(KindDefinition {
-                kind_id: kind_id(kind),
-                kind_contract_revision: KindContractRevision::from(revision),
-                inputs,
-                outputs,
+                kind_id: contract.kind_id,
+                kind_contract_revision: contract.kind_contract_revision,
+                inputs: contract.inputs,
+                outputs: contract.outputs,
                 configuration: vec![],
             })
             .map_err(|error| error.to_string())?;
