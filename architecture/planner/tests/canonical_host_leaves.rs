@@ -127,6 +127,7 @@ fn offer(definition: &KindDefinition) -> CapabilityOffer {
                     ConfigurationValue::U64(_) => "value/count",
                     ConfigurationValue::Text(_) => "value/text",
                     ConfigurationValue::Structured(ref value) => value.profile().as_str(),
+                    ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
                 }),
                 has_default: true,
             })

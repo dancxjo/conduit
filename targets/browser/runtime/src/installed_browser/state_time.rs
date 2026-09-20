@@ -156,9 +156,11 @@ fn configuration(placement: &PlannedGear, key: &str, maximum: u64) -> Result<u64
         .configuration
         .iter()
         .find_map(|entry| match (entry.key.as_str(), &entry.value) {
-            (found, ConfigurationValue::U64(value)) if found == key && *value <= maximum => {
-                Some(*value)
-            }
+            (found, ConfigurationValue::Quantity(value)) if found == key => value
+                .convert(conduit_core::QuantityUnit::Millisecond)
+                .ok()
+                .and_then(|value| u64::try_from(value.value()).ok())
+                .filter(|value| *value <= maximum),
             _ => None,
         })
         .ok_or_else(|| {

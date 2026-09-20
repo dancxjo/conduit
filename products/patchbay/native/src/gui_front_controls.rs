@@ -191,6 +191,9 @@ fn displayed_value(value: &conduit_core::ConfigurationValue) -> String {
             value.profile().as_str(),
             value.canonical_value().len()
         ),
+        conduit_core::ConfigurationValue::Quantity(value) => {
+            format!("{}{}", value.value(), value.unit().form_suffix())
+        }
     }
 }
 

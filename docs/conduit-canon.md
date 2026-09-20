@@ -262,6 +262,22 @@ Every executable input and output has a port identity, direction, and value kind
 
 Fan-out is an explicit planned property. One emission is admitted atomically to the required branches or waits under pressure. The kernel never interprets an unqualified `emit` as broadcast to whatever happens to be connected.
 
+Authored and runtime numeric meaning uses four distinct layers. `Count` is a
+nonnegative cardinality, index, or finite whole-number count. `Scalar` is a
+dimensionless signed fixed-point value. `Quantity` is an exact integer paired
+with a reviewed physical or dimensional unit; startup configuration retains
+that value and unit through checking, planning, and realization. A domain Info
+record supplies the surrounding context—such as frame, source, freshness, or
+provenance—and may contain or expose Quantities without collapsing into one.
+Targets refuse incompatible or inexact conversion rather than reconstructing a
+unit from a parameter name.
+
+`CharacteristicUnit` is narrower realization-selection vocabulary for finite
+offer characteristics and preserves the ownership and stability law of those
+offers. Count-like domains such as tokens, frames, items, and identifiers may
+remain there. It is not a second author-facing physical-unit catalog and must
+not grow new physical dimensions that belong to `QuantityUnit`.
+
 ### Bounded before play start
 
 Before a play starts, the host knows and admits the finite shape needed for execution:

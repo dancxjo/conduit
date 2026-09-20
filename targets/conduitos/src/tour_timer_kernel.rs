@@ -225,7 +225,7 @@ impl TourTimerKernel {
             presentation,
             crate::offer::COUNT_PRESENTATION_IMPLEMENTATION,
         )?;
-        let period = configured_u64(&fragment.placements[timer].configuration, "freq")?;
+        let period = configured_milliseconds(&fragment.placements[timer].configuration, "freq")?;
         let start = configured_u64(&fragment.placements[count].configuration, "start")?;
         if period != 120 || start != 0 {
             return Err(SchedulerError::InvalidPlan);
@@ -393,6 +393,22 @@ fn configured_u64(
         .iter()
         .find_map(|entry| match (&*entry.key, &entry.value) {
             (candidate, ConfigurationValue::U64(value)) if candidate == key => Some(*value),
+            _ => None,
+        })
+        .ok_or(SchedulerError::InvalidPlan)
+}
+
+fn configured_milliseconds(
+    entries: &[conduit_core::ConfigurationEntry],
+    key: &str,
+) -> Result<u64, SchedulerError> {
+    entries
+        .iter()
+        .find_map(|entry| match (&*entry.key, &entry.value) {
+            (candidate, ConfigurationValue::Quantity(value)) if candidate == key => value
+                .convert(conduit_core::QuantityUnit::Millisecond)
+                .ok()
+                .and_then(|value| u64::try_from(value.value()).ok()),
             _ => None,
         })
         .ok_or(SchedulerError::InvalidPlan)

@@ -15,6 +15,7 @@ pub(super) fn edit_signature() -> KindSignature {
                     ConfigurationValue::I64(_) => "Scalar",
                     ConfigurationValue::Text(_) => "Text",
                     ConfigurationValue::Structured(ref value) => value.profile().as_str(),
+                    ConfigurationValue::Quantity(_) => "Quantity",
                 }
                 .into(),
                 default: None,
@@ -74,6 +75,7 @@ fn edit_configuration() -> Vec<ConfigurationField> {
                     "count".into(),
                     "scalar".into(),
                     "text".into(),
+                    "quantity".into(),
                 ],
             },
         },
@@ -124,6 +126,7 @@ pub(super) fn edit_offer() -> CapabilityOffer {
                     "Count" => "value/count",
                     "Scalar" => "value/scalar",
                     "Text" => "value/text",
+                    "Quantity" => conduit_core::QUANTITY_INFO_ID,
                     exact => exact,
                 }),
                 has_default: false,
@@ -220,17 +223,24 @@ fn edit_request_source(request_id: &PatchbayInteractionRequestId, edit: &Patchba
         } => (subject_identity.as_str(), "", key.as_str(), Some(value)),
     };
     let (value_type, bool_value, count_value, scalar_value, text_value) = match value {
-        None => ("none", false, 0, 0, ""),
-        Some(ConfigurationValue::Bool(value)) => ("bool", *value, 0, 0, ""),
-        Some(ConfigurationValue::U64(value)) => ("count", false, *value, 0, ""),
-        Some(ConfigurationValue::I64(value)) => ("scalar", false, 0, *value, ""),
-        Some(ConfigurationValue::Text(value)) => ("text", false, 0, 0, value.as_str()),
+        None => ("none", false, 0, 0, String::new()),
+        Some(ConfigurationValue::Bool(value)) => ("bool", *value, 0, 0, String::new()),
+        Some(ConfigurationValue::U64(value)) => ("count", false, *value, 0, String::new()),
+        Some(ConfigurationValue::I64(value)) => ("scalar", false, 0, *value, String::new()),
+        Some(ConfigurationValue::Text(value)) => ("text", false, 0, 0, value.clone()),
         Some(ConfigurationValue::Structured(value)) => (
             "structured-read-only",
             false,
             0,
             0,
-            value.profile().as_str(),
+            value.profile().as_str().to_string(),
+        ),
+        Some(ConfigurationValue::Quantity(value)) => (
+            "quantity",
+            false,
+            0,
+            0,
+            format!("{}{}", value.value(), value.unit().form_suffix()),
         ),
     };
     format!(
@@ -247,7 +257,7 @@ fn edit_request_source(request_id: &PatchbayInteractionRequestId, edit: &Patchba
         bool_value,
         count_value,
         scalar_value,
-        escape_form_text(text_value),
+        escape_form_text(&text_value),
     )
 }
 
@@ -309,6 +319,10 @@ pub(super) fn edit_from_configuration(
                 "count" => value("count-value")?.clone(),
                 "scalar" => value("scalar-value")?.clone(),
                 "text" => value("text-value")?.clone(),
+                "quantity" => ConfigurationValue::Quantity(
+                    conduit_core::Quantity::parse_form_literal(&text("text-value")?)
+                        .map_err(|_| InteractionError::MalformedValue)?,
+                ),
                 _ => return Err(InteractionError::MalformedValue),
             };
             PatchbayEdit::ConfigureGear {

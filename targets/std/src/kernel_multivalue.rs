@@ -612,6 +612,7 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
                 ConfigurationValue::U64(_) => "value/count",
                 ConfigurationValue::Text(_) => "value/text",
                 ConfigurationValue::Structured(ref value) => value.profile().as_str(),
+                ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
             }),
             has_default: true,
         })
@@ -1279,6 +1280,7 @@ fn configuration_u64(configuration: &[ConfigurationEntry], key: &str) -> Result<
             ConfigurationValue::I64(_) => None,
             ConfigurationValue::Text(_) => None,
             ConfigurationValue::Structured(_) => None,
+            ConfigurationValue::Quantity(_) => None,
         })
         .ok_or_else(|| format!("missing u64 configuration '{key}'"))
 }

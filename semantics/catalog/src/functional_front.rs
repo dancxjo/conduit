@@ -59,6 +59,7 @@ pub fn startup_front(fields: &[StandardConfigurationField]) -> Vec<FrontStartupP
                 ConfigurationValue::U64(_) => "value/count",
                 ConfigurationValue::I64(_) => "value/scalar",
                 ConfigurationValue::Text(_) => "value/text",
+                ConfigurationValue::Quantity(_) => "value/quantity",
                 ConfigurationValue::Structured(ref value) => value.profile().as_str(),
             }),
             has_default: true,

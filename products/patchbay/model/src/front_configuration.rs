@@ -232,6 +232,9 @@ fn proposal_for_configuration(
                 Quantity::new(value, *unit).encode().to_vec(),
             )
         }
+        (InteractionFamily::Scalar { .. }, ConfigurationValue::Quantity(value)) => {
+            InteractionValue::new(KindId::from(QUANTITY_INFO_ID), value.encode().to_vec())
+        }
         (InteractionFamily::ChooseOne { value_kind, .. }, ConfigurationValue::Text(value)) => {
             InteractionValue::new(value_kind.clone(), value.into_bytes())
         }
@@ -288,6 +291,15 @@ fn configuration_from_proposal(
             })?;
             if *unit == conduit_core::QuantityUnit::Millionth {
                 Ok(ConfigurationValue::I64(decoded.value()))
+            } else if *unit != conduit_core::QuantityUnit::One {
+                decoded
+                    .convert(*unit)
+                    .map(ConfigurationValue::Quantity)
+                    .map_err(|_| {
+                        FormEditorError::InvalidConfiguration(
+                            "inexact or incompatible quantity".into(),
+                        )
+                    })
             } else {
                 decoded
                     .value()
@@ -337,6 +349,17 @@ fn accepts(rule: &StandardConfigurationRule, value: &ConfigurationValue) -> bool
         (StandardConfigurationRule::TextOneOf { values }, ConfigurationValue::Text(value)) => {
             values.contains(value)
         }
+        (
+            StandardConfigurationRule::QuantityRange {
+                minimum,
+                maximum,
+                canonical_unit,
+            },
+            ConfigurationValue::Quantity(value),
+        ) => value
+            .convert(*canonical_unit)
+            .map(|value| (*minimum..=*maximum).contains(&value.value()))
+            .unwrap_or(false),
         _ => false,
     }
 }
@@ -352,6 +375,16 @@ fn configuration_refusal(rule: &StandardConfigurationRule) -> String {
         }
         StandardConfigurationRule::DurationMillis { minimum, maximum } => {
             format!("enter milliseconds from {minimum} through {maximum}")
+        }
+        StandardConfigurationRule::QuantityRange {
+            minimum,
+            maximum,
+            canonical_unit,
+        } => {
+            format!(
+                "enter an exact {} quantity from {minimum} through {maximum}",
+                canonical_unit.semantic_id()
+            )
         }
         StandardConfigurationRule::TextBytes { maximum } => {
             format!("enter at most {maximum} bytes of text")
@@ -381,5 +414,8 @@ pub(crate) fn configuration_spelling(
             value.profile().as_str(),
             value.canonical_value().len()
         ),
+        (_, ConfigurationValue::Quantity(value)) => {
+            format!("{}{}", value.value(), value.unit().form_suffix())
+        }
     }
 }

@@ -93,6 +93,10 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                     push_u32(&mut canonical, value.canonical_value().len() as u32);
                     canonical.extend_from_slice(value.canonical_value());
                 }
+                ConfigurationValue::Quantity(value) => {
+                    canonical.push(5);
+                    canonical.extend_from_slice(&value.encode());
+                }
             }
         }
         push_string(&mut canonical, gear.host_id.as_str());

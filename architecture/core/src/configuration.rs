@@ -58,6 +58,8 @@ pub enum ConfigurationValue {
     /// Signed fixed-point scalar microunits, matching `value/scalar`.
     I64(i64),
     Text(String),
+    /// Exact dimensional startup value; the unit remains part of configuration truth.
+    Quantity(crate::Quantity),
     /// Exact finite structured semantic value used by an immutable Gear configuration.
     Structured(StructuredConfigurationValue),
 }

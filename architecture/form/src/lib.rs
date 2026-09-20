@@ -310,12 +310,32 @@ pub struct ConfigurationField {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConfigurationRule {
     Any,
-    U64Range { minimum: u64, maximum: u64 },
-    I64Range { minimum: i64, maximum: i64 },
-    DurationMillis { minimum: u64, maximum: u64 },
-    TextBytes { maximum: u32 },
-    TextOneOf { values: Vec<String> },
-    Structured { profile: KindId },
+    U64Range {
+        minimum: u64,
+        maximum: u64,
+    },
+    I64Range {
+        minimum: i64,
+        maximum: i64,
+    },
+    DurationMillis {
+        minimum: u64,
+        maximum: u64,
+    },
+    QuantityRange {
+        minimum: i64,
+        maximum: i64,
+        canonical_unit: conduit_core::QuantityUnit,
+    },
+    TextBytes {
+        maximum: u32,
+    },
+    TextOneOf {
+        values: Vec<String>,
+    },
+    Structured {
+        profile: KindId,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -370,6 +390,7 @@ impl ProfileCatalog {
                             ConfigurationValue::I64(_) => "Scalar",
                             ConfigurationValue::Text(_) => "Text",
                             ConfigurationValue::Structured(_) => "Structured",
+                            ConfigurationValue::Quantity(_) => "Quantity",
                         }
                         .into(),
                         default: Some(render_value(&field.default_value)),
@@ -871,6 +892,9 @@ fn render_value(value: &ConfigurationValue) -> String {
             value.profile().as_str(),
             value.canonical_value().len()
         ),
+        ConfigurationValue::Quantity(value) => {
+            alloc::format!("{}{}", value.value(), value.unit().form_suffix())
+        }
     }
 }
 

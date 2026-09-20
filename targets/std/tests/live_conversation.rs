@@ -107,6 +107,7 @@ fn synthetic_offer(definition: &KindDefinition, host: &str) -> CapabilityOffer {
                     ConfigurationValue::U64(_) => conduit_core::COUNT_INFO_ID,
                     ConfigurationValue::Text(_) => conduit_core::TEXT_INFO_ID,
                     ConfigurationValue::Structured(ref value) => value.profile().as_str(),
+                    ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
                 }
                 .into(),
                 has_default: true,

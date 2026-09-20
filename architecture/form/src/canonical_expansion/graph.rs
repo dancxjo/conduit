@@ -87,6 +87,16 @@ pub(super) fn configuration(
                     ConfigurationRule::DurationMillis { minimum, maximum },
                     ConfigurationValue::U64(value),
                 ) => (*minimum..=*maximum).contains(value),
+                (
+                    ConfigurationRule::QuantityRange {
+                        minimum,
+                        maximum,
+                        canonical_unit,
+                    },
+                    ConfigurationValue::Quantity(value),
+                ) => value
+                    .convert(*canonical_unit)
+                    .is_ok_and(|value| (*minimum..=*maximum).contains(&value.value())),
                 (ConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
                     value.len() <= *maximum as usize
                 }
@@ -190,7 +200,16 @@ fn parse_configuration_value(
             format!("startup value '{name}' remains unresolved"),
         ));
     };
-    if matches!(validation, ConfigurationRule::DurationMillis { .. }) {
+    if matches!(validation, ConfigurationRule::QuantityRange { .. }) {
+        conduit_core::Quantity::parse_form_literal(&literal)
+            .map(ConfigurationValue::Quantity)
+            .map_err(|_| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-041",
+                    format!("primitive startup quantity '{name}' is invalid"),
+                )
+            })
+    } else if matches!(validation, ConfigurationRule::DurationMillis { .. }) {
         parse_duration_millis(&literal)
             .map(ConfigurationValue::U64)
             .ok_or_else(|| {
