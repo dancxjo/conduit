@@ -68,6 +68,7 @@ pub enum PoolSelectionError {
     InvalidEnvelope,
     DuplicateObservation,
     EvidenceTooSmall,
+    CapacityUnavailable { examined_realizations: u16 },
     NoCurrentRealization { examined_realizations: u16 },
     Admission(PoolError),
 }
@@ -90,11 +91,14 @@ pub fn admit_selected_pool_member<const SLOTS: usize, const SIGN: usize>(
     validate_envelope(envelope, requirements)?;
     let mut selected: Option<&LoweredPoolRealization> = None;
     let mut examined = 0_u16;
+    let mut current_but_full = false;
     for candidate in envelope {
         examined = examined.saturating_add(1);
-        if pool.population_for_realization(candidate.realization) >= candidate.member_capacity
-            || !is_current(candidate, requirements, observations)?
-        {
+        if !is_current(candidate, requirements, observations)? {
+            continue;
+        }
+        if pool.population_for_realization(candidate.realization) >= candidate.member_capacity {
+            current_but_full = true;
             continue;
         }
         if selected
@@ -105,8 +109,14 @@ pub fn admit_selected_pool_member<const SLOTS: usize, const SIGN: usize>(
     }
 
     let Some(candidate) = selected else {
-        return Err(PoolSelectionError::NoCurrentRealization {
-            examined_realizations: examined,
+        return Err(if current_but_full {
+            PoolSelectionError::CapacityUnavailable {
+                examined_realizations: examined,
+            }
+        } else {
+            PoolSelectionError::NoCurrentRealization {
+                examined_realizations: examined,
+            }
         });
     };
     let candidate_requirements = requirements
