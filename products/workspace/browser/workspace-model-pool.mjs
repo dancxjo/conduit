@@ -4,9 +4,8 @@ import { openBrowserPoolMemberClient } from "../../../targets/browser/host/asset
 /** Bind joined Hosts to one immutable planned worker envelope.
  *
  * This owner gathers current Host-authored observations, delegates selection
- * and occupation to the common Rust kernel, and returns the exact joined Line
- * for the selected realization. Provider invocation remains the caller's
- * ordinary remote-fragment responsibility.
+ * and occupation to the common Rust kernel, then drives the selected member
+ * only through its Plan-derived semantic sessions.
  */
 export function prepareWorkspaceModelPool({
   api, plan, localAdvertisement, joinedHosts, poolId,
@@ -42,6 +41,7 @@ export function prepareWorkspaceModelPool({
     api, plan, fragmentIndex, poolId, firstMemberNode, play,
   });
   let closed = false;
+  const completed = [];
   const current = () => {
     if (closed) throw new Error("Workspace model pool is closed");
   };
@@ -92,6 +92,9 @@ export function prepareWorkspaceModelPool({
     },
     async execute({ admission, preparation, consumerPlacementId, prompt }) {
       current();
+      if (completed.length >= 16) {
+        throw new Error("pool operation receipt capacity is exhausted");
+      }
       const evidence = admission?.selection?.evidence;
       if (!evidence || !Array.isArray(preparation?.hello_frames)
         || admission?.joined?.line?.schema !== "conduit.creche/joined-host-line@1") {
@@ -120,7 +123,7 @@ export function prepareWorkspaceModelPool({
             await admission.joined.line.sendSessionFrame(response);
           }
           if (exchanged.result) {
-            return Object.freeze({
+            const execution = Object.freeze({
               planId: plan.plan_id,
               poolId,
               operationId: evidence.operation_id,
@@ -132,6 +135,18 @@ export function prepareWorkspaceModelPool({
               observationSignIds: Object.freeze([...evidence.observation_sign_ids]),
               result: exchanged.result,
             });
+            completed.push(Object.freeze({
+              operation_id: execution.operationId,
+              realization: execution.realization,
+              host_id: execution.hostId,
+              boot_id: execution.bootId,
+              capability_id: execution.capabilityId,
+              selection_sign_id: execution.selectionSignId,
+              observation_sign_ids: execution.observationSignIds,
+              result_bytes: execution.result.byteLength,
+              disposition: "Completed",
+            }));
+            return execution;
           }
           if (["failed", "cancelled", "terminal"].includes(exchanged.message)) {
             throw new Error(`pool member terminated without a result: ${exchanged.message}`);
@@ -141,6 +156,36 @@ export function prepareWorkspaceModelPool({
       } finally {
         client.close();
       }
+    },
+    receipt({ bodyId, wakeId, sourceDocumentId, checkedFormId, expandedFormId, playId }) {
+      current();
+      const identities = {
+        body_id: bodyId, wake_id: wakeId, source_document_id: sourceDocumentId,
+        checked_form_id: checkedFormId, expanded_form_id: expandedFormId, play_id: playId,
+      };
+      if (Object.values(identities).some((value) =>
+        typeof value !== "string" || value.length < 1 || value.length > 192 || /\s/.test(value))) {
+        throw new Error("pool receipt identity is absent or outside its finite bound");
+      }
+      return Object.freeze({
+        schema: "conduit.proof/live-local-model-pool@1",
+        ...identities,
+        plan_id: plan.plan_id,
+        pool_id: poolId,
+        realization_envelope: Object.freeze(envelope.map((realization) => Object.freeze({
+          host_id: realization.host_id,
+          boot_id: realization.boot_id,
+          offer_generation: realization.offer_generation,
+          capability_id: realization.capability_id,
+          implementation_id: realization.implementation_id,
+          artifact_id: realization.artifact_id,
+          member_capacity: realization.member_capacity,
+          resources: realization.resources,
+        }))),
+        operations: Object.freeze([...completed]),
+        prompt_content_retained: false,
+        physical_evidence: false,
+      });
     },
     activate(admission) {
       current();

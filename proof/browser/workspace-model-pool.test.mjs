@@ -131,6 +131,16 @@ test("Workspace maps kernel selection to one exact observed joined Host", async 
   });
   assert.deepEqual([...executed.result], [42]);
   assert.equal(executed.hostId, "host/model-0");
+  const receipt = pool.receipt({
+    bodyId: "body/1", wakeId: "wake/1", sourceDocumentId: "source/1",
+    checkedFormId: "checked/1", expandedFormId: "expanded/1", playId: "play/1",
+  });
+  assert.equal(receipt.schema, "conduit.proof/live-local-model-pool@1");
+  assert.equal(receipt.operations.length, 1);
+  assert.equal(receipt.operations[0].operation_id, "request/1");
+  assert.equal(receipt.operations[0].result_bytes, 1);
+  assert.equal(receipt.prompt_content_retained, false);
+  assert.equal(JSON.stringify(receipt).includes("1,2,3"), false);
   assert.deepEqual(observed.slice(-8, -1), [
     "send:0:12", "send:0:13", "send:0:14", "send:0:15", "send:0:16",
     "send:0:17", "send:0:18",
