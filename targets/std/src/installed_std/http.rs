@@ -37,6 +37,20 @@ pub(super) static HTTP_SERVER_FACTORY: InstalledFactory = InstalledFactory {
 };
 
 pub(crate) fn client_offer() -> CapabilityOffer {
+    client_offer_for(
+        "std-http-client-http1",
+        CLIENT_PROFILE,
+        CLIENT_IMPLEMENTATION,
+        CLIENT_ARTIFACT,
+    )
+}
+
+pub(crate) fn client_offer_for(
+    capability: &str,
+    profile: &str,
+    implementation: &str,
+    artifact: &str,
+) -> CapabilityOffer {
     let contract = conduit_web::http_client_semantics().into_semantic_contract();
     let request_kind = conduit_web::http_request_type()
         .profile()
@@ -52,10 +66,10 @@ pub(crate) fn client_offer() -> CapabilityOffer {
     CapabilityOfferBuilder::new(
         contract,
         CapabilityRealization {
-            capability_id: CapabilityId::from("std-http-client-http1"),
-            execution_profile_id: ExecutionProfileId::from(CLIENT_PROFILE),
-            implementation_id: ImplementationId::from(CLIENT_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(CLIENT_ARTIFACT),
+            capability_id: CapabilityId::from(capability),
+            execution_profile_id: ExecutionProfileId::from(profile),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from(artifact),
             host_operations: vec![operation.clone()],
             resource_requirements: vec![resource_requirement(CLIENT_RESOURCE, 1)],
             authority_requirements: vec![authority(
@@ -412,5 +426,21 @@ mod tests {
             assert_eq!(offer.resource_requirements.len(), 1);
             assert!(!offer.authority_requirements.is_empty());
         }
+
+        let isolated = client_offer_for(
+            "fixture/isolated-http",
+            "fixture/isolated-profile",
+            "fixture/isolated-implementation",
+            "fixture/isolated-artifact",
+        );
+        let client = conduit_web::http_client_semantics().into_semantic_contract();
+        assert_eq!(isolated.kind_id, client.kind_id);
+        assert_eq!(
+            isolated.kind_contract_revision,
+            client.kind_contract_revision
+        );
+        assert_eq!(isolated.inputs, client.inputs);
+        assert_eq!(isolated.outputs, client.outputs);
+        assert_eq!(isolated.limits, client.limits);
     }
 }

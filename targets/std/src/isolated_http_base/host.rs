@@ -4,10 +4,9 @@ use super::{
     ISOLATED_HTTP_PROFILE, MAX_FRAME_BYTES, PROTOCOL_VERSION,
 };
 use conduit_core::{
-    ActivePlayIdentity, ArtifactId, AuthorityGrant, BaseCapabilityAuthority, BaseCapabilityScope,
+    ActivePlayIdentity, AuthorityGrant, BaseCapabilityAuthority, BaseCapabilityScope,
     BaseEnforcementClass, BaseImplementationId, BaseInstanceId, BaseOperationClaim,
-    CapabilityEnvelopeId, CapabilityIssueRequest, CapabilityOffer, ExecutionProfileId,
-    ImplementationId, ResourceGenerationId,
+    CapabilityEnvelopeId, CapabilityIssueRequest, CapabilityOffer, ResourceGenerationId,
 };
 use std::io;
 use std::net::{SocketAddr, TcpStream};
@@ -64,12 +63,12 @@ pub struct IsolatedHttpBaseInspection {
 }
 
 pub fn isolated_http_client_offer() -> CapabilityOffer {
-    let mut offer = crate::installed_std::http_client_offer();
-    offer.capability_id = conduit_core::CapabilityId::from("std-isolated-http-client-http1");
-    offer.implementation.execution_profile_id = ExecutionProfileId::from(ISOLATED_HTTP_PROFILE);
-    offer.implementation.implementation_id = ImplementationId::from(ISOLATED_HTTP_IMPLEMENTATION);
-    offer.implementation.artifact_id = ArtifactId::from(ISOLATED_HTTP_ARTIFACT);
-    offer
+    crate::installed_std::http_client_offer_for(
+        "std-isolated-http-client-http1",
+        ISOLATED_HTTP_PROFILE,
+        ISOLATED_HTTP_IMPLEMENTATION,
+        ISOLATED_HTTP_ARTIFACT,
+    )
 }
 
 impl IsolatedHttpHost {
