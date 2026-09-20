@@ -202,7 +202,10 @@ test("a second distinct browser Host explicitly joins through one canonical Body
 
   await page.getByLabel("parts and hosts").getByRole("button", { name: "Invite another phone", exact: true }).click();
   await expect(page.locator('[data-application-key="invitation-status"]')).toContainText("Single-use Body invitation");
-  const link = (await page.locator('[data-application-key^="invitation-link-"]').allTextContents()).join("");
+  const invitation = page.locator('[data-application-key="invitation-presentation"]');
+  await expect(invitation.locator('[data-application-key="invitation-link"]')).toHaveCount(1);
+  await expect(invitation).toHaveCSS("row-gap", "12px");
+  const link = await invitation.locator('[data-application-key="invitation-link"]').textContent();
   const afterOffer = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
   expect(afterOffer).toEqual(before);
   expect(new URL(link).hash).toContain("body-invitation=");
