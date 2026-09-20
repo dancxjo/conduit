@@ -1,6 +1,6 @@
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, ImplementationId,
-    ImplementationOffer, KindId,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, ImplementationId, KindId,
 };
 
 pub const FLOW_BACKPRESSURE_STD_PROFILE: &str = "std/flow-backpressure-kernel@1";
@@ -49,25 +49,21 @@ fn offer(
         .or_else(|| contract.inputs.first())
         .expect("flow pressure contract has one runtime port")
         .value_kind
-        .as_str();
-    CapabilityOffer {
-        capability_id: CapabilityId::from(format!("{capability_prefix}-{value_kind}")),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        implementation: ImplementationOffer {
+        .as_str()
+        .to_string();
+    CapabilityOfferBuilder::new(
+        contract.into(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(format!("{capability_prefix}-{value_kind}")),
             execution_profile_id: ExecutionProfileId::from(execution_profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
+            host_operations: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]
