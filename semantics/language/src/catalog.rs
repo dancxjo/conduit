@@ -132,9 +132,9 @@ pub fn annotate_four_semantic_contract() -> SemanticCapabilityContract {
 
 fn linguistic_limits() -> CapabilityLimits {
     CapabilityLimits {
-        max_active_instances: 4,
-        max_queue_items: 1,
-        max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        max_active_instances: 8,
+        max_queue_items: 4,
+        max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
     }
 }
 
@@ -165,5 +165,25 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
             .clone(),
         direction,
         temporal: PortTemporal::Value,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn four_item_linguistics_contracts_own_their_required_queue_capacity() {
+        for contract in [
+            tokenize_four_semantic_contract(),
+            annotate_four_semantic_contract(),
+        ] {
+            assert_eq!(contract.limits.max_active_instances, 8);
+            assert_eq!(contract.limits.max_queue_items, 4);
+            assert_eq!(
+                contract.limits.max_queue_bytes,
+                (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32
+            );
+        }
     }
 }
