@@ -173,7 +173,7 @@ test("every Tour page and Crèche step has a direct, history-aware route", async
 
   await openStandaloneCreche(page);
   await expect(page.locator("#host-state")).toHaveAttribute("data-application-component", "success-status");
-  await page.getByText("Hosts and provisioning", { exact: true }).click();
+  await page.getByText("hosts and provisioning", { exact: true }).click();
   await expect(page.locator('.creche-steps [data-application-component="stepper"]')).toBeVisible();
   const steps = ["birth", "first-host", "physical-host", "graduate"];
   await expect(page).toHaveURL(/\/creche\/birth\/$/);
