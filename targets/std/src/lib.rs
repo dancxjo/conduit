@@ -117,6 +117,7 @@ mod kernel_preparation;
 mod kernel_signal;
 #[cfg(feature = "local-model-proof")]
 pub mod local_model_proof;
+mod local_model_observation;
 #[cfg(feature = "local-model-proof")]
 pub mod piper_plan_play_proof;
 mod run_control;
