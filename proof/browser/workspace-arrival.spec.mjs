@@ -1,9 +1,20 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
 import { startStaticProduct } from "./tour-test-server.mjs";
 
 let entrance;
 test.beforeEach(async () => { entrance = await startStaticProduct("target/workspace-product", "/conduit/workspace/"); });
 test.afterEach(() => entrance?.child.kill());
+
+async function inventory(page) {
+  const response = await page.request.get(new URL("forms/initial-body.conduit", entrance.url).href);
+  expect(response.ok()).toBe(true);
+  return response.json();
+}
+
+function selectedSource(bundled, names) {
+  return bundled.forms.filter((form) => names.includes(form.name)).map((form) => form.source.trimEnd()).join("\n\n");
+}
 
 test("Birth hands off to a Lulled Body; Wake starts listening Forms and reload preserves the Body", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 1000 });
@@ -338,4 +349,112 @@ test("a suspended real audio context reports denial while the Body keeps listeni
   await expect(page.locator('[data-form-output] output:visible')).toHaveText('b');
   const evidence = await liveEvidence(page);
   expect(evidence.host_completions.records.some(record => record.disposition === 'denied' && record.failure_code === 'host_operation_denied' && record.failure_detail === 2)).toBe(true);
+});
+
+test("Workspace Birth binds naming, search, exact selection, review, and receipt", async ({ page }) => {
+  await page.goto(entrance.url);
+  const birth = page.locator('.body-birth-runner');
+  await expect(birth.getByRole('heading', { name: 'A Body of your own', exact: true })).toBeVisible();
+
+  const name = birth.getByLabel('Friendly Body name', { exact: true });
+  const tradition = birth.getByLabel('Naming tradition', { exact: true });
+  await expect(tradition.locator('option')).toHaveCount(24);
+  await tradition.selectOption('roman');
+  await expect(tradition.locator('option:checked')).toContainText('Roman');
+  await name.fill('Juniper Signalhouse');
+  await expect(name).toHaveValue('Juniper Signalhouse');
+
+  const memory = birth.getByRole('checkbox', { name: 'Memory Lantern', exact: true });
+  const desk = birth.getByRole('checkbox', { name: 'Desk Telegraph', exact: true });
+  await memory.check();
+  await birth.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
+  await birth.getByRole('checkbox', { name: 'Tutorial', exact: true }).uncheck();
+  const selected = birth.locator('[data-application-key="selected-forms"]');
+  const initialCount = Number((await selected.textContent()).match(/\d+/u)?.[0]);
+  expect(initialCount).toBeGreaterThan(0);
+
+  const search = birth.getByLabel('Search Forms', { exact: true });
+  await search.fill('no-such-form');
+  await expect(birth.locator('[data-application-key="initial-forms"]')).toHaveText(
+    'No Forms match your search. — Your selected Forms are still included.',
+  );
+  await expect(memory).toBeChecked();
+  await search.fill('');
+  await desk.check();
+  await expect(selected).toHaveText(`Selected: ${initialCount + 1}`);
+  await desk.uncheck();
+  await expect(selected).toHaveText(`Selected: ${initialCount}`);
+  await desk.check();
+
+  await birth.getByText('Details and source', { exact: true }).click();
+  const source = birth.getByLabel('Selected Conduit Form source', { exact: true });
+  const bundled = await inventory(page);
+  const expectedSource = selectedSource(bundled, ['memory_lantern', 'desk_telegraph']);
+  await expect(source).toHaveValue(expectedSource);
+  await birth.getByRole('button', { name: 'Review workload', exact: true }).click();
+  await expect(birth.locator('[data-application-key="review-basis"]')).toContainText(
+    'current Host OFFER(s); no permission or resource acquired; no Body Plan or Play created',
+  );
+  await expect(birth.locator('[data-application-key="birth-status"]')).toHaveText('Ready to birth with 2 Form(s).');
+
+  await page.evaluate(() => globalThis.__conduitWorkspace.settled());
+  await page.reload();
+  const restored = page.locator('.body-birth-runner');
+  await expect(restored.getByRole('checkbox', { name: 'Memory Lantern', exact: true })).toBeChecked();
+  await expect(restored.getByRole('checkbox', { name: 'Desk Telegraph', exact: true })).toBeChecked();
+  await restored.getByText('Details and source', { exact: true }).click();
+  await expect(restored.getByLabel('Selected Conduit Form source', { exact: true })).toHaveValue(expectedSource);
+
+  await restored.getByRole('button', { name: 'Birth Body', exact: true }).click();
+  await expect(page.locator('[data-play-state]')).toHaveText('Lulled');
+  const receipt = await page.evaluate(() => globalThis.__conduitWorkspace.current());
+  expect(receipt.state).toBe('LULLED');
+  expect(receipt.workload_revision).toBe(0);
+  expect(receipt.active_play_id).toBeUndefined();
+  expect(receipt.initial_forms).toHaveLength(2);
+  expect(receipt.initial_forms).toEqual(expect.arrayContaining([
+    expect.objectContaining({ name: 'memory_lantern', source_document_id: expect.any(String), checked_form_id: expect.any(String) }),
+    expect.objectContaining({ name: 'desk_telegraph', source_document_id: expect.any(String), checked_form_id: expect.any(String) }),
+  ]));
+});
+
+test('Workspace Birth serves the canonical reviewed inventory source without edits', async ({ page }) => {
+  await page.goto(entrance.url);
+  const bundled = await inventory(page);
+  for (const { slug } of bundled.forms) {
+    const canonical = readFileSync(new URL(`../../forms/${slug}/main.conduit`, import.meta.url), 'utf8');
+    expect(bundled.forms.find(form => form.slug === slug)?.source).toBe(canonical);
+  }
+
+  const birth = page.locator('.body-birth-runner');
+  await birth.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
+  await birth.getByRole('checkbox', { name: 'Tutorial', exact: true }).uncheck();
+  await birth.getByRole('checkbox', { name: 'Desk Telegraph', exact: true }).check();
+  await birth.getByText('Details and source', { exact: true }).click();
+  const source = birth.getByLabel('Selected Conduit Form source', { exact: true });
+  await expect(source).toHaveValue(selectedSource(bundled, ['memory_lantern', 'desk_telegraph']));
+  await expect(source).not.toHaveValue(/conduit\.creche\/reviewed-form-bundle/u);
+});
+
+test('Workspace Birth controls remain bounded and usable at a narrow width', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(entrance.url);
+  const birth = page.locator('.body-birth-runner');
+  await expect(birth.getByRole('heading', { name: 'A Body of your own', exact: true })).toBeVisible();
+  const [forms, name, sourceDetails, editor] = await Promise.all([
+    birth.locator('[data-application-slot="birth-fields"] [data-application-key="initial-forms"]').boundingBox(),
+    birth.getByLabel('Friendly Body name', { exact: true }).boundingBox(),
+    birth.locator('.birth-presentation .birth-details').boundingBox(),
+    birth.locator('.birth-presentation').boundingBox(),
+  ]);
+  for (const box of [forms, name, sourceDetails, editor]) expect(box).not.toBeNull();
+  expect(name.y + name.height).toBeLessThanOrEqual(forms.y);
+  expect(forms.y + forms.height).toBeLessThanOrEqual(sourceDetails.y);
+  for (const box of [forms, name, sourceDetails]) {
+    expect(box.x).toBeGreaterThanOrEqual(editor.x);
+    expect(box.x + box.width).toBeLessThanOrEqual(editor.x + editor.width);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await birth.getByText('Details and source', { exact: true }).click();
+  await expect(birth.getByLabel('Selected Conduit Form source', { exact: true })).toBeVisible();
 });
