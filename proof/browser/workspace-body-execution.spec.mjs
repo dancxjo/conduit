@@ -97,15 +97,15 @@ test("a Workspace-born canonical workset continues as the same executing Body", 
     expect((await snapshot()).body_workbench.body_id).toBe(bodyId);
     await expect(page.locator("#body-summary")).toHaveText(/^Body: /);
     await page.locator("#body-summary").click();
-    await page.getByRole("button", { name: "Join this Body", exact: true }).click();
+    await page.getByRole("button", { name: "Join this body", exact: true }).click();
     await expect(page.locator("#body-membership-status")).toHaveText("Browser membership: admitted", { timeout: 10_000 });
     await expect.poll(
       async () => (await snapshot()).body_host_offer_evidence?.stage,
       { message: `Body Host offer evidence was not adopted: ${probe.output()}`, timeout: 10_000 },
     ).toBe("AdmittedMembership");
-    await page.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
+    await page.getByRole("button", { name: "Request active form evidence", exact: true }).click();
     await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
-    await page.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
+    await page.getByRole("button", { name: "Plan active forms on this host", exact: true }).click();
     await expect(page.locator("#body-capability-evidence-status")).toContainText("Body replanned");
     const proposal = await page.request.get(`${url}/api/body-execution-proposal`).then(response => response.json());
     await page.getByRole("button", { name: "Start proposed Body Play", exact: true }).click();
@@ -219,13 +219,13 @@ test("Rosehip House runs reusable bounded measurement processing and history in 
     await page.goto(url);
     await expect(page.locator("#body-summary")).toHaveText(/^Body: /);
     await page.locator("#body-summary").click();
-    await page.getByRole("button", { name: "Join this Body", exact: true }).click();
+    await page.getByRole("button", { name: "Join this body", exact: true }).click();
     await expect(page.locator("#body-membership-status")).toHaveText("Browser membership: admitted", { timeout: 10_000 });
     const snapshot = () => page.request.get(`${url}/api/snapshot`).then(response => response.json());
     await expect.poll(async () => (await snapshot()).body_host_offer_evidence?.stage, { timeout: 10_000 }).toBe("AdmittedMembership");
-    await page.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
+    await page.getByRole("button", { name: "Request active form evidence", exact: true }).click();
     await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
-    await page.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
+    await page.getByRole("button", { name: "Plan active forms on this host", exact: true }).click();
     await expect(page.locator("#body-capability-evidence-status")).toContainText("Body replanned");
     const proposal = await page.request.get(`${url}/api/body-execution-proposal`).then(response => response.json());
     expect(proposal.plan.body_id).toBe(bodyId);
