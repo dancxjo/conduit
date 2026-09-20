@@ -24,10 +24,10 @@ pub use canonical::{primary_signal_startup_catalog, signal_startup_catalog};
 #[cfg(feature = "host-profile")]
 use conduit_core::{
     kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
-    wait_host_operation_requirement, ConfigurationEntry, ConfigurationValue, ExecutionProfileId,
-    HostOperationRequirement, KindContractRevision, KindId, PortDescriptor, PortDirection,
-    ResourceOffer, ResourceRequirement, ValuePayload, PRESENTATION_RESOURCE_CLASS,
-    TIMER_RESOURCE_CLASS,
+    wait_host_operation_requirement, CapabilityLimits, ConfigurationEntry, ConfigurationValue,
+    ExecutionProfileId, HostOperationRequirement, KindContractRevision, KindId, PortDescriptor,
+    PortDirection, ResourceOffer, ResourceRequirement, SemanticCapabilityContract, ValuePayload,
+    PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
 
@@ -198,6 +198,42 @@ pub fn show_inputs() -> Vec<PortDescriptor> {
         direction: PortDirection::Input,
         temporal: conduit_core::PortTemporal::Value,
     }]
+}
+
+/// Exact portable pulse contract. Realizations must not restate these fields.
+#[cfg(feature = "host-profile")]
+pub fn pulse_semantic_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: pulse_front_startup_parameters(),
+        shorthand: None,
+        kind_id: pulse_kind(),
+        kind_contract_revision: pulse_contract_revision(),
+        inputs: Vec::new(),
+        outputs: pulse_outputs(),
+        limits: CapabilityLimits {
+            max_active_instances: 16,
+            max_queue_items: 4,
+            max_queue_bytes: 64,
+        },
+    }
+}
+
+/// Exact portable show contract. Presentation mechanics remain Host facts.
+#[cfg(feature = "host-profile")]
+pub fn show_semantic_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: show_kind(),
+        kind_contract_revision: show_contract_revision(),
+        inputs: show_inputs(),
+        outputs: Vec::new(),
+        limits: CapabilityLimits {
+            max_active_instances: 16,
+            max_queue_items: 4,
+            max_queue_bytes: 64,
+        },
+    }
 }
 
 #[cfg(feature = "host-profile")]
