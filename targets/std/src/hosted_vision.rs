@@ -29,6 +29,7 @@ pub enum HostedVisionRefusal {
     UnavailableResourceGeneration,
     ResourceShapeMismatch,
     ResourceCapacity,
+    InvalidOutput,
     LocalCv(ContinuousLocalVisionRefusal),
 }
 
@@ -95,6 +96,7 @@ impl HostedVisionProvider for FiniteVisionProvider {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HostedVisionObservation {
     pub source: BoundedResourceRef,
+    pub source_image: StructuredInfoValue,
     pub width: u16,
     pub height: u16,
     pub local: ContinuousLocalVisionObservation,
@@ -106,6 +108,7 @@ pub struct HostedContinuousVision<P> {
     width: u16,
     height: u16,
     last: Option<HostedVisionObservation>,
+    output: Vec<u8>,
 }
 
 impl<P: HostedVisionProvider> HostedContinuousVision<P> {
@@ -122,6 +125,7 @@ impl<P: HostedVisionProvider> HostedContinuousVision<P> {
             width,
             height,
             last: None,
+            output: Vec::with_capacity(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES),
         })
     }
 
@@ -132,7 +136,7 @@ impl<P: HostedVisionProvider> HostedContinuousVision<P> {
         component_threshold: u8,
         minimum_component_area: u32,
     ) -> Result<&HostedVisionObservation, HostedVisionRefusal> {
-        let (source, width, height) = decode_image_resource(encoded)?;
+        let (source_image, source, width, height) = decode_image_resource(encoded)?;
         if width != self.width || height != self.height {
             return Err(HostedVisionRefusal::ResourceShapeMismatch);
         }
@@ -151,11 +155,43 @@ impl<P: HostedVisionProvider> HostedContinuousVision<P> {
             .map_err(HostedVisionRefusal::LocalCv)?;
         self.last = Some(HostedVisionObservation {
             source,
+            source_image,
             width,
             height,
             local,
         });
         Ok(self.last.as_ref().expect("observation was just installed"))
+    }
+
+    pub fn observe_motion_encoded(
+        &mut self,
+        encoded: &[u8],
+        minimum_motion_delta: u8,
+        component_threshold: u8,
+        minimum_component_area: u32,
+        provenance: &conduit_semantic_catalog::LocalVisionProvenance,
+    ) -> Result<&[u8], HostedVisionRefusal> {
+        let observation = self
+            .observe_image_resource(
+                encoded,
+                minimum_motion_delta,
+                component_threshold,
+                minimum_component_area,
+            )?
+            .clone();
+        let output = conduit_semantic_catalog::local_vision_motion_observation_value(
+            observation.source_image,
+            &observation.local,
+            provenance,
+        )
+        .and_then(|value| value.canonical_bytes().map_err(Into::into))
+        .map_err(|_| HostedVisionRefusal::InvalidOutput)?;
+        if output.len() > self.output.capacity() {
+            return Err(HostedVisionRefusal::InvalidOutput);
+        }
+        self.output.clear();
+        self.output.extend_from_slice(&output);
+        Ok(&self.output)
     }
 
     pub fn storage(&self) -> conduit_semantic_catalog::ContinuousLocalVisionStorage {
@@ -165,7 +201,7 @@ impl<P: HostedVisionProvider> HostedContinuousVision<P> {
 
 fn decode_image_resource(
     encoded: &[u8],
-) -> Result<(BoundedResourceRef, u16, u16), HostedVisionRefusal> {
+) -> Result<(StructuredInfoValue, BoundedResourceRef, u16, u16), HostedVisionRefusal> {
     let value = StructuredInfoValue::from_canonical_bytes(encoded)
         .map_err(|_| HostedVisionRefusal::MalformedImageResource)?;
     if value.value_type() != &image_resource_type() {
@@ -186,7 +222,7 @@ fn decode_image_resource(
     let extent = record_field(&value, "extent")?;
     let width = count(record_field(extent, "width")?)?;
     let height = count(record_field(extent, "height")?)?;
-    Ok((resource, width, height))
+    Ok((value, resource, width, height))
 }
 
 fn record_field<'a>(
@@ -219,7 +255,7 @@ mod tests {
     use conduit_semantic_catalog::deterministic_vision_fixture;
 
     fn reference(encoded: &[u8]) -> BoundedResourceRef {
-        decode_image_resource(encoded).unwrap().0
+        decode_image_resource(encoded).unwrap().1
     }
 
     #[test]
@@ -277,5 +313,39 @@ mod tests {
             wrong_shape.observe_image_resource(&encoded, 32, 128, 2),
             Err(HostedVisionRefusal::ResourceShapeMismatch)
         );
+    }
+
+    #[test]
+    fn motion_output_is_canonical_typed_and_keeps_the_exact_image_generation() {
+        let image = deterministic_vision_fixture().unwrap().image;
+        let encoded = image.canonical_bytes().unwrap();
+        let provider = FiniteVisionProvider::new(vec![HostedVisionFrame {
+            resource: reference(&encoded),
+            width: 64,
+            height: 48,
+            grayscale_pixels: vec![0; 64 * 48],
+        }])
+        .unwrap();
+        let mut vision = HostedContinuousVision::new(provider, 64, 48, 4).unwrap();
+        let output = vision
+            .observe_motion_encoded(
+                &encoded,
+                32,
+                128,
+                2,
+                &conduit_semantic_catalog::LocalVisionProvenance {
+                    implementation_id: conduit_std_offers::LOCAL_VISION_IMPLEMENTATION.into(),
+                    provider_instance_id: "finite-image-residence/test-1".into(),
+                    artifact_id: conduit_std_offers::LOCAL_VISION_ARTIFACT.into(),
+                    run_id: "play/test-1/sequence-1".into(),
+                },
+            )
+            .unwrap();
+        let value = StructuredInfoValue::from_canonical_bytes(output).unwrap();
+        assert_eq!(
+            value.value_type(),
+            &conduit_semantic_catalog::vision_motions_type()
+        );
+        assert_eq!(vision.storage().previous_pixels, 64 * 48);
     }
 }

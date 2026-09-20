@@ -46,7 +46,7 @@ fn bounded_text_collection(kind: &str, maximum: u16) -> StructuredInfoType {
 }
 
 pub fn vision_motions_type() -> StructuredInfoType {
-    bounded_text_collection("vision/motions@1", 4)
+    crate::local_vision_motion_observations_type()
 }
 
 pub fn vision_texts_type() -> StructuredInfoType {
@@ -86,6 +86,10 @@ pub fn visual_experience_type() -> StructuredInfoType {
 pub fn vision_experience_registered_types() -> Vec<(&'static str, StructuredInfoType)> {
     vec![
         (VISION_MOTIONS_TYPE, vision_motions_type()),
+        (
+            crate::LOCAL_VISION_MOTION_OBSERVATION_TYPE,
+            crate::local_vision_motion_observation_type(),
+        ),
         (VISION_TEXTS_TYPE, vision_texts_type()),
         (VISION_TRACKS_TYPE, vision_tracks_type()),
         (VISUAL_IMPRESSION_TYPE, visual_impression_type()),
