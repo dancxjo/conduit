@@ -2,7 +2,11 @@
 
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
-use conduit_core::{CapabilityOffer, ConfigurationValue, HostOperationRequirement, PlannedGear};
+use conduit_core::{
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ConfigurationValue, ExecutionProfileId, HostOperationRequirement, ImplementationId,
+    PlannedGear, SemanticCapabilityContract,
+};
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 use conduit_web::JsonValue;
 
@@ -58,44 +62,40 @@ fn summary_offer() -> CapabilityOffer {
 }
 
 fn offer(index: usize) -> CapabilityOffer {
-    let (contract, revision) = match index {
-        0 => (
-            conduit_semantic_catalog::json_encode_contract(),
-            conduit_web::JSON_ENCODE_REVISION,
-        ),
-        1 => (
-            conduit_semantic_catalog::json_decode_contract(),
-            conduit_web::JSON_DECODE_REVISION,
-        ),
-        2 => (
-            conduit_semantic_catalog::json_collection_step_contract(),
-            conduit_web::JSON_COLLECTION_STEP_REVISION,
-        ),
-        _ => (
-            conduit_semantic_catalog::json_boolean_summary_contract(),
-            conduit_web::JSON_BOOLEAN_SUMMARY_REVISION,
-        ),
+    let contract = match index {
+        0 => conduit_semantic_catalog::json_encode_semantic_contract(),
+        1 => conduit_semantic_catalog::json_decode_semantic_contract(),
+        2 => conduit_semantic_catalog::json_collection_step_semantic_contract(),
+        _ => conduit_semantic_catalog::json_boolean_summary_semantic_contract(),
     };
     let kind = contract.kind_id.clone();
-    conduit_semantic_catalog::realization_offer(
+    json_realization_offer(contract, index, kind)
+}
+
+fn json_realization_offer(
+    contract: SemanticCapabilityContract,
+    index: usize,
+    kind: conduit_core::KindId,
+) -> CapabilityOffer {
+    CapabilityOfferBuilder::new(
         contract,
-        revision,
-        conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: IMPLEMENTATIONS[index],
-            execution_profile: "browser/bounded-json@1",
-            implementation: IMPLEMENTATIONS[index],
-            artifact: "conduit-browser-runtime/bounded-json@1",
+        CapabilityRealization {
+            capability_id: CapabilityId::from(IMPLEMENTATIONS[index]),
+            execution_profile_id: ExecutionProfileId::from("browser/bounded-json@1"),
+            implementation_id: ImplementationId::from(IMPLEMENTATIONS[index]),
+            artifact_id: ArtifactId::from("conduit-browser-runtime/bounded-json@1"),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: OPERATIONS[index].into(),
+                target_kind: Some(kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: MAXIMUM,
+                maximum_output_bytes: MAXIMUM,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        vec![HostOperationRequirement {
-            contract_id: OPERATIONS[index].into(),
-            target_kind: Some(kind),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAXIMUM,
-            maximum_output_bytes: MAXIMUM,
-        }],
-        Vec::new(),
-        Vec::new(),
     )
+    .build()
 }
 
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
