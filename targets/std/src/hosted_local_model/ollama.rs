@@ -354,7 +354,9 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
             .unwrap_or(1)
             .clamp(1, token_ceiling);
         let (payload, truncated, work_units) = match placement.kind_id.as_str() {
-            conduit_ai::LLM_GENERATE_KIND | conduit_ai::LLM_GENERATE_FLOW_KIND => {
+            conduit_ai::GENERATE_TEXT_KIND
+            | conduit_ai::LLM_GENERATE_KIND
+            | conduit_ai::LLM_GENERATE_FLOW_KIND => {
                 match self.generate(input, maximum_tokens, false) {
                     Ok(generated) => (
                         generated.response.into_bytes(),
@@ -554,6 +556,14 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
         };
         if payload.is_empty() || payload.len() as u64 > maximum_output_bytes {
             return LocalModelAdapterTerminal::Failed;
+        }
+        if placement.kind_id.as_str() == conduit_ai::GENERATE_TEXT_KIND {
+            output.extend_from_slice(&payload);
+            return if truncated {
+                LocalModelAdapterTerminal::Truncated
+            } else {
+                LocalModelAdapterTerminal::Produced
+            };
         }
         let sequence = self.next_request_sequence;
         self.next_request_sequence = self.next_request_sequence.saturating_add(1);
