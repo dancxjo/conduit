@@ -23,6 +23,8 @@ struct RescueRequestSign {
     proof_class: String,
     old_boot_id: String,
     authority: String,
+    authority_scope: String,
+    route: String,
     policy: String,
     operation: String,
     request_id: String,
@@ -41,6 +43,8 @@ struct RescueProofRecord {
     boot_id_changed: bool,
     request_id: String,
     authority: String,
+    authority_scope: String,
+    route: String,
     policy: String,
     operation: String,
     request_count: usize,
@@ -221,6 +225,8 @@ fn validate(
         || request.status != "accepted"
         || request.proof_class != "freestanding-emulator"
         || request.authority != "local-physical-input"
+        || request.authority_scope != "boot"
+        || request.route != conduitos::local_rescue::DEDICATED_REBOOT_ROUTE
         || request.policy != conduitos::local_rescue::LOCAL_RESCUE_POLICY
         || request.operation != conduitos::local_rescue::LOCAL_REBOOT_OPERATION
         || request.old_boot_id != xhci[0].boot_id
@@ -247,6 +253,8 @@ fn validate(
         boot_id_changed: true,
         request_id: request.request_id.clone(),
         authority: request.authority.clone(),
+        authority_scope: request.authority_scope.clone(),
+        route: request.route.clone(),
         policy: request.policy.clone(),
         operation: request.operation.clone(),
         request_count: requests.len(),
@@ -372,13 +380,13 @@ mod tests {
     fn correlation_requires_one_request_between_distinct_boots() {
         let mut serial = xhci("b1");
         serial.push_str("CONDUIT_BOOT_STAGE local-rescue-ready\n");
-        serial.push_str("CONDUIT_RESCUE_SIGN {\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"b1\",\"authority\":\"local-physical-input\",\"policy\":\"conduitos/local-physical-rescue@1\",\"operation\":\"conduitos.machine/reboot@1\",\"request_id\":\"local-rescue/b1/1\",\"ordinary_keyboard_plan\":false}\n");
+        serial.push_str("CONDUIT_RESCUE_SIGN {\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"b1\",\"authority\":\"local-physical-input\",\"authority_scope\":\"boot\",\"route\":\"conduitos/dedicated-boot-reboot@1\",\"policy\":\"conduitos/local-physical-rescue@1\",\"operation\":\"conduitos.machine/reboot@1\",\"request_id\":\"local-rescue/b1/1\",\"ordinary_keyboard_plan\":false}\n");
         serial.push_str(&xhci("b2"));
         assert!(validate(&serial, 7, true, "head".into()).is_ok());
         assert!(validate(&serial, 7, false, "head".into()).is_err());
         assert!(validate(&serial.replace("b2", "b1"), 7, true, "head".into()).is_err());
         let stale = format!(
-            "{serial}CONDUIT_RESCUE_SIGN {{\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"b1\",\"authority\":\"local-physical-input\",\"policy\":\"conduitos/local-physical-rescue@1\",\"operation\":\"conduitos.machine/reboot@1\",\"request_id\":\"local-rescue/b1/2\",\"ordinary_keyboard_plan\":false}}\n"
+            "{serial}CONDUIT_RESCUE_SIGN {{\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"b1\",\"authority\":\"local-physical-input\",\"authority_scope\":\"boot\",\"route\":\"conduitos/dedicated-boot-reboot@1\",\"policy\":\"conduitos/local-physical-rescue@1\",\"operation\":\"conduitos.machine/reboot@1\",\"request_id\":\"local-rescue/b1/2\",\"ordinary_keyboard_plan\":false}}\n"
         );
         assert!(validate(&stale, 7, true, "head".into()).is_err());
     }

@@ -21,6 +21,8 @@ struct RescueRequestSign {
     proof_class: String,
     old_boot_id: String,
     authority: String,
+    authority_scope: String,
+    route: String,
     policy: String,
     operation: String,
     request_id: String,
@@ -87,6 +89,8 @@ fn validate(serial: &str, still_running: bool) -> Result<ActivePlayProof, Condui
         || requests[0].status != "accepted"
         || requests[0].proof_class != "freestanding-emulator"
         || requests[0].authority != "local-physical-input"
+        || requests[0].authority_scope != "boot"
+        || requests[0].route != conduitos::local_rescue::DEDICATED_REBOOT_ROUTE
         || requests[0].policy != conduitos::local_rescue::LOCAL_RESCUE_POLICY
         || requests[0].operation != conduitos::local_rescue::LOCAL_REBOOT_OPERATION
         || !requests[0].ordinary_keyboard_plan
@@ -180,7 +184,7 @@ mod tests {
         let xhci = |boot| format!("CONDUIT_XHCI_SIGN {{\"boot_id\":\"{boot}\"}}\n");
         let mut serial = xhci("b1");
         serial.push_str("CONDUIT_BOOT_STAGE keyboard-text-play-started\n");
-        serial.push_str("CONDUIT_RESCUE_SIGN {\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"b1\",\"authority\":\"local-physical-input\",\"policy\":\"conduitos/local-physical-rescue@1\",\"operation\":\"conduitos.machine/reboot@1\",\"request_id\":\"local-rescue/b1/1\",\"ordinary_keyboard_plan\":true}\n");
+        serial.push_str("CONDUIT_RESCUE_SIGN {\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"b1\",\"authority\":\"local-physical-input\",\"authority_scope\":\"boot\",\"route\":\"conduitos/dedicated-boot-reboot@1\",\"policy\":\"conduitos/local-physical-rescue@1\",\"operation\":\"conduitos.machine/reboot@1\",\"request_id\":\"local-rescue/b1/1\",\"ordinary_keyboard_plan\":true}\n");
         serial.push_str(&xhci("b2"));
         assert!(validate(&serial, true).is_ok());
         assert!(validate(&serial.replace("true", "false"), true).is_err());
