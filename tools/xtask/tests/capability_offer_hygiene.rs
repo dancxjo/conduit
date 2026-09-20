@@ -523,6 +523,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     ("targets/std/src/hosted_linguistics.rs", 0, "fully migrated"),
     ("targets/std/src/hosted_data.rs", 0, "fully migrated"),
+    ("targets/std/src/hosted_geometry.rs", 0, "fully migrated"),
     (
         "semantics/presentation/src/contract.rs",
         0,
