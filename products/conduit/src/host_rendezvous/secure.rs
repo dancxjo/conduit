@@ -1,8 +1,8 @@
 //! Opt-in secure network carrier for the shared running-Host session.
 
 use conduit_body::{
-    RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily,
-    RunningHostRendezvousDescriptor,
+    MAX_RENDEZVOUS_ENVELOPE_BYTES, RendezvousAuthentication, RendezvousCandidate,
+    RendezvousLineFamily, RunningHostRendezvousDescriptor, encode_running_host_rendezvous_text,
 };
 use conduit_std_host::secure_websocket::{
     SecureWebSocketError, SecureWebSocketLine, SecureWebSocketListener,
@@ -11,7 +11,7 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use super::{debug, run_session, RendezvousLine, MAXIMUM_FRAME_BYTES};
+use super::{MAXIMUM_FRAME_BYTES, RendezvousLine, debug, run_session};
 
 pub(crate) struct SecureNetworkOptions {
     pub(crate) bind: Option<String>,
@@ -145,11 +145,16 @@ pub(crate) fn serve(
         now_millis,
     )
     .map_err(|error| format!("construct secure rendezvous descriptor: {error:?}"))?;
-    println!(
-        "Rendezvous descriptor: {}",
-        serde_json::to_string(&descriptor)
-            .map_err(|error| format!("encode secure rendezvous descriptor: {error}"))?
-    );
+    let mut descriptor_text = [0_u8; MAX_RENDEZVOUS_ENVELOPE_BYTES];
+    let descriptor_text_len =
+        encode_running_host_rendezvous_text(&descriptor, &mut descriptor_text)
+            .map_err(|error| format!("encode secure rendezvous descriptor: {error:?}"))?;
+    {
+        let descriptor_text = core::str::from_utf8(&descriptor_text[..descriptor_text_len])
+            .expect("rendezvous manifestation is ASCII");
+        println!("Rendezvous descriptor: {descriptor_text}");
+    }
+    descriptor_text.fill(0);
     println!("The remote browser must trust the configured TLS identity.");
     println!("Waiting up to {timeout_seconds} seconds for one authenticated connection…");
     let result = (|| {
