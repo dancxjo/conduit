@@ -1,6 +1,6 @@
 use crate::{
     ArtifactId, AuthorityGrantId, BootId, CapabilityId, CheckedFace, HostId, ImplementationId,
-    OfferGeneration, PlacementId, ResourceBinding, ResourceObservation, SignId,
+    OfferGeneration, PlacementId, Plan, PlanId, ResourceBinding, ResourceObservation, SignId,
 };
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -49,6 +49,95 @@ impl From<&str> for PoolDeclarationId {
 impl From<String> for PoolDeclarationId {
     fn from(value: String) -> Self {
         Self(value)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct PoolOperationId(String);
+
+impl PoolOperationId {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<&str> for PoolOperationId {
+    fn from(value: &str) -> Self {
+        Self(value.to_string())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PoolSelectionDisposition {
+    Selected,
+    CapacityRefused,
+    ObservationRefused,
+    ProviderLost,
+    EnvelopeExhausted,
+}
+
+/// Bounded evidence for one new-operation selection or one in-flight loss.
+/// The selected realization is an index into the immutable Plan envelope.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PoolSelectionEvidence {
+    pub plan_id: PlanId,
+    pub pool_id: SharedPoolId,
+    pub operation_id: PoolOperationId,
+    pub selected_realization: Option<u16>,
+    pub observation_sign_ids: Vec<SignId>,
+    pub disposition: PoolSelectionDisposition,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PoolSelectionEvidenceError {
+    EmptyIdentity,
+    InvalidPlan,
+    PoolOutsidePlan,
+    RealizationOutsideEnvelope,
+    InvalidDisposition,
+    MissingObservation,
+}
+
+impl PoolSelectionEvidence {
+    pub fn validate(&self, plan: &Plan) -> Result<(), PoolSelectionEvidenceError> {
+        if self.operation_id.as_str().is_empty()
+            || self
+                .observation_sign_ids
+                .iter()
+                .any(|id| id.as_str().is_empty())
+        {
+            return Err(PoolSelectionEvidenceError::EmptyIdentity);
+        }
+        if !crate::verify_plan(plan) || self.plan_id != plan.plan_id {
+            return Err(PoolSelectionEvidenceError::InvalidPlan);
+        }
+        let pool = plan
+            .fragments
+            .first()
+            .and_then(|fragment| {
+                fragment
+                    .shared_pools
+                    .iter()
+                    .find(|pool| pool.pool_id == self.pool_id)
+            })
+            .ok_or(PoolSelectionEvidenceError::PoolOutsidePlan)?;
+        if self
+            .selected_realization
+            .is_some_and(|index| usize::from(index) >= pool.realization_envelope.len())
+        {
+            return Err(PoolSelectionEvidenceError::RealizationOutsideEnvelope);
+        }
+        let selected_disposition = matches!(
+            self.disposition,
+            PoolSelectionDisposition::Selected | PoolSelectionDisposition::ProviderLost
+        );
+        if selected_disposition != self.selected_realization.is_some() {
+            return Err(PoolSelectionEvidenceError::InvalidDisposition);
+        }
+        if selected_disposition && self.observation_sign_ids.is_empty() {
+            return Err(PoolSelectionEvidenceError::MissingObservation);
+        }
+        Ok(())
     }
 }
 
