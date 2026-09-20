@@ -26,7 +26,7 @@ fn offer() -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: [("points", "Count", true), ("when-full", "Text", true)]
             .map(
-                |(name, value_type, has_default)| conduit_core::FaceStartupParameter {
+                |(name, value_type, has_default)| conduit_core::FrontStartupParameter {
                     name: name.into(),
                     value_type: value_type.into(),
                     has_default,

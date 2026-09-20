@@ -4,7 +4,7 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
+    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
     HostOperationContractId, HostOperationRequirement, ImplementationId, TIMER_RESOURCE_CLASS,
     kind_id, monotonic_timer_host_operation_requirement, monotonic_timer_resource_requirement,
     port_id, resource_requirement, wait_host_operation_requirement,
@@ -212,7 +212,7 @@ pub fn text_literal_offer() -> CapabilityOffer {
         conduit_text::text_literal_semantics(),
         "conduitos-text-literal-v1",
         "conduitos/kernel-text-literal@1",
-        vec![FaceStartupParameter {
+        vec![FrontStartupParameter {
             name: "value".into(),
             value_type: "Text".into(),
             has_default: false,
@@ -236,7 +236,7 @@ pub fn text_join_offer() -> CapabilityOffer {
         conduit_text::text_join_semantics(),
         "conduitos-text-join-v1",
         "conduitos/kernel-text-join@1",
-        vec![FaceStartupParameter {
+        vec![FrontStartupParameter {
             name: "prefix".into(),
             value_type: "Text".into(),
             has_default: false,
@@ -248,7 +248,7 @@ pub fn text_join_offer() -> CapabilityOffer {
 pub fn text_morse_offer() -> CapabilityOffer {
     let contract = conduit_text::text_morse_semantics();
     CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: conduit_text::MORSE_UNIT_MILLIS_KEY.into(),
             value_type: "Count".into(),
             has_default: true,
@@ -333,7 +333,7 @@ pub fn morse_composition_offers() -> Vec<CapabilityOffer> {
             startup_parameters: contract
                 .configuration
                 .iter()
-                .map(|(name, _)| FaceStartupParameter {
+                .map(|(name, _)| FrontStartupParameter {
                     name: (*name).into(),
                     value_type: "Count".into(),
                     has_default: true,
@@ -664,7 +664,7 @@ fn text_offer(
     contract: conduit_text::TextKindContract,
     capability: &str,
     implementation: &str,
-    startup_parameters: Vec<FaceStartupParameter>,
+    startup_parameters: Vec<FrontStartupParameter>,
     host_operation: Option<(&str, &str)>,
 ) -> CapabilityOffer {
     let host_operations = host_operation

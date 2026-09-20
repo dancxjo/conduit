@@ -47,7 +47,7 @@ fn offer() -> LocalModelOffer {
             LocalModelKindProfile::ExtractValidatedInfo,
             LocalModelKindProfile::EmbedFiniteVector,
             LocalModelKindProfile::InterpretSignEvidence,
-            LocalModelKindProfile::PresentSemanticFace,
+            LocalModelKindProfile::PresentSemanticFront,
         ],
         initialized: true,
         lifecycle: LocalModelLifecycleState::Ready,

@@ -5,7 +5,7 @@ use crate::{
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId,
     AuthorityRequirement, BootId, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    FaceStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
+    FrontStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
     HostOperationRequirement, HostProfileId, ImplementationId, ImplementationOffer,
     OfferGeneration, PROTOCOL_VERSION,
 };
@@ -98,7 +98,7 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
             },
             capabilities: vec![
                 CapabilityOffer {
-                    startup_parameters: vec![FaceStartupParameter {
+                    startup_parameters: vec![FrontStartupParameter {
                         name: "maximum-output-bytes".into(),
                         value_type: "Count".into(),
                         has_default: true,

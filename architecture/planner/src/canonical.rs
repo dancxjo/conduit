@@ -584,7 +584,7 @@ fn validate_pool_authority(
 
 fn pool_member_lines(
     member_host: &HostAdvertisement,
-    member_front: &conduit_core::CheckedFace,
+    member_front: &conduit_core::CheckedFront,
     consumers: &[&PlannedGear],
     bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,

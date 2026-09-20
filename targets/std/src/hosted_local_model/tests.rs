@@ -528,7 +528,7 @@ fn all_six_l3_profiles_execute_through_ordinary_plan_and_play() {
     plan_and_play(LocalModelKindProfile::ExtractValidatedInfo);
     plan_and_play(LocalModelKindProfile::EmbedFiniteVector);
     plan_and_play(LocalModelKindProfile::InterpretSignEvidence);
-    plan_and_play(LocalModelKindProfile::PresentSemanticFace);
+    plan_and_play(LocalModelKindProfile::PresentSemanticFront);
 }
 
 #[cfg(feature = "local-model-proof")]

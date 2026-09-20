@@ -1,7 +1,7 @@
 use alloc::{format, vec};
 use conduit_core::{
     kind_id, mandatory_sign_storage_requirement, seal_plan, ArtifactId, AuthorityGrantId, BootId,
-    CancellationPolicy, CapabilityId, CapabilityLimits, CheckedFace, CheckedFormId,
+    CancellationPolicy, CapabilityId, CapabilityLimits, CheckedFormId, CheckedFront,
     ExecutionProfileId, ExpandedFormId, ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId,
     GearId, HostId, ImplementationId, KindContractRevision, OfferGeneration, PlacementId,
     PlanFragment, PlanId, PlannedGear, PlannedSharedPool, PlanningRequestAuthority,
@@ -32,7 +32,7 @@ fn pool() -> PlannedSharedPool {
     PlannedSharedPool {
         pool_id: SharedPoolId::from("model/workers"),
         declaration_id: PoolDeclarationId::from("model/pool/workers"),
-        member_front: CheckedFace::new(vec![], vec![], vec![], None),
+        member_front: CheckedFront::new(vec![], vec![], vec![], None),
         maximum_members: 2,
         member_limits: PoolMemberLimits {
             queue_item_capacity: 1,

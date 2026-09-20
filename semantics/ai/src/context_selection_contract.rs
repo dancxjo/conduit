@@ -3,7 +3,7 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FaceStartupParameter, ImplementationId, ImplementationOffer,
+    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer,
     KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
 };
 
@@ -98,7 +98,7 @@ fn offer(
     capability_prefix: &str,
     implementation: &str,
     artifact: &str,
-    startup_parameters: Vec<FaceStartupParameter>,
+    startup_parameters: Vec<FrontStartupParameter>,
 ) -> Result<CapabilityOffer, R3OfferInvalidity> {
     if process_identity.is_empty() {
         return Err(R3OfferInvalidity::EmptyProcessIdentity);
@@ -128,7 +128,7 @@ fn offer(
     })
 }
 
-fn rerank_startup_parameters() -> Vec<FaceStartupParameter> {
+fn rerank_startup_parameters() -> Vec<FrontStartupParameter> {
     [
         ("policy", "Text"),
         ("maximum-candidates", "Count"),
@@ -139,7 +139,7 @@ fn rerank_startup_parameters() -> Vec<FaceStartupParameter> {
     .collect()
 }
 
-fn context_startup_parameters() -> Vec<FaceStartupParameter> {
+fn context_startup_parameters() -> Vec<FrontStartupParameter> {
     [
         ("policy", "Text"),
         ("token-accounting-profile", "Text"),
@@ -155,8 +155,8 @@ fn context_startup_parameters() -> Vec<FaceStartupParameter> {
     .collect()
 }
 
-fn parameter((name, value_type): (&str, &str)) -> FaceStartupParameter {
-    FaceStartupParameter {
+fn parameter((name, value_type): (&str, &str)) -> FrontStartupParameter {
+    FrontStartupParameter {
         name: name.into(),
         value_type: value_type.into(),
         has_default: true,

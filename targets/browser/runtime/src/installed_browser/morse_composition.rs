@@ -4,7 +4,7 @@ use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation}
 use super::BrowserOperation;
 use conduit_core::{
     kind_id, ArtifactId, CapabilityId, CapabilityOffer, ConfigurationValue, ExecutionProfileId,
-    FaceStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    FrontStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
     PlannedGear,
 };
 use conduit_kernel::HostedValueStore;
@@ -113,7 +113,7 @@ fn offer(contract: conduit_text::MorseKindContract, implementation: &str) -> Cap
         startup_parameters: contract
             .configuration
             .iter()
-            .map(|(name, _)| FaceStartupParameter {
+            .map(|(name, _)| FrontStartupParameter {
                 name: (*name).into(),
                 value_type: "Count".into(),
                 has_default: true,

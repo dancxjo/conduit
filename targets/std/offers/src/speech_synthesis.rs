@@ -2,7 +2,7 @@
 
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    FaceStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    FrontStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
     ImplementationOffer,
 };
 
@@ -85,7 +85,7 @@ fn speech_offer(
         conduit_tongues::synthesize_contract()
     };
     CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: "maximum-output-bytes".into(),
             value_type: "Count".into(),
             has_default: true,

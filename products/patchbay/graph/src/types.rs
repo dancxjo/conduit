@@ -92,7 +92,7 @@ pub struct PatchbayPort {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PatchbayFacePort {
+pub struct PatchbayFrontPort {
     pub identity: String,
     pub descriptor: PortDescriptor,
 }
@@ -109,8 +109,8 @@ pub struct PatchbayComposition {
     pub gear_name: String,
     pub back_name: String,
     pub checked_form_id: CheckedFormId,
-    pub inputs: Vec<PatchbayFacePort>,
-    pub outputs: Vec<PatchbayFacePort>,
+    pub inputs: Vec<PatchbayFrontPort>,
+    pub outputs: Vec<PatchbayFrontPort>,
     pub input_bindings: Vec<PatchbayCompositionBinding>,
     pub output_bindings: Vec<PatchbayCompositionBinding>,
 }
@@ -145,8 +145,8 @@ pub struct PatchbayGraph {
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
     pub form_name: String,
-    pub front_inputs: Vec<PatchbayFacePort>,
-    pub front_outputs: Vec<PatchbayFacePort>,
+    pub front_inputs: Vec<PatchbayFrontPort>,
+    pub front_outputs: Vec<PatchbayFrontPort>,
     pub compositions: Vec<PatchbayComposition>,
     pub gears: Vec<PatchbayGear>,
     pub cords: Vec<PatchbayCord>,

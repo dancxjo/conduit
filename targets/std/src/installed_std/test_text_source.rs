@@ -39,7 +39,7 @@ impl TestTextSourceOperation {
 
 pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
+        startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "invalid".into(),
             value_type: "Boolean".into(),
             has_default: true,

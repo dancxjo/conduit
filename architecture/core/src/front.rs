@@ -4,23 +4,23 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct FaceStartupParameter {
+pub struct FrontStartupParameter {
     pub name: String,
     pub value_type: String,
     pub has_default: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CheckedFace {
-    startup_parameters: Vec<FaceStartupParameter>,
+pub struct CheckedFront {
+    startup_parameters: Vec<FrontStartupParameter>,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
     shorthand: Option<(PortId, PortId)>,
 }
 
-impl CheckedFace {
+impl CheckedFront {
     pub fn new(
-        startup_parameters: Vec<FaceStartupParameter>,
+        startup_parameters: Vec<FrontStartupParameter>,
         mut inputs: Vec<PortDescriptor>,
         mut outputs: Vec<PortDescriptor>,
         shorthand: Option<(PortId, PortId)>,
@@ -35,7 +35,7 @@ impl CheckedFace {
         }
     }
 
-    pub fn startup_parameters(&self) -> &[FaceStartupParameter] {
+    pub fn startup_parameters(&self) -> &[FrontStartupParameter] {
         &self.startup_parameters
     }
 
@@ -55,7 +55,7 @@ impl CheckedFace {
 }
 
 impl CapabilityOffer {
-    pub fn checked_front(&self) -> CheckedFace {
+    pub fn checked_front(&self) -> CheckedFront {
         let shorthand = self.shorthand.clone().or_else(|| {
             if let ([input], [output]) = (self.inputs.as_slice(), self.outputs.as_slice()) {
                 Some((input.port_id.clone(), output.port_id.clone()))
@@ -63,7 +63,7 @@ impl CapabilityOffer {
                 None
             }
         });
-        CheckedFace::new(
+        CheckedFront::new(
             self.startup_parameters.clone(),
             self.inputs.clone(),
             self.outputs.clone(),

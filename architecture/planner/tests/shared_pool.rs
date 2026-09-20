@@ -20,7 +20,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 const SOURCE: &str = "form chat/peer (\n recv: ChatMessage...| > send: ChatMessage...|\n) {\n}\n\nform consumer (\n members: Pool\n) {\n use: flow/pool-observe(members)\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n left: consumer(peers)\n right: consumer(peers)\n}\n";
 
-fn peer_front() -> conduit_core::CheckedFace {
+fn peer_front() -> conduit_core::CheckedFront {
     let checked =
         check_syntax_document(&parse_syntax_document(SOURCE), &startup_with_observe()).unwrap();
     checked
@@ -65,7 +65,7 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
 fn offer_from_front(
     capability: &str,
     kind: &str,
-    front: &conduit_core::CheckedFace,
+    front: &conduit_core::CheckedFront,
     maximum: u16,
 ) -> CapabilityOffer {
     CapabilityOffer {

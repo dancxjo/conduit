@@ -4,7 +4,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FaceStartupParameter, ImplementationId, KindContractRevision,
+    ExecutionProfileId, FrontStartupParameter, ImplementationId, KindContractRevision,
     PortDescriptor, PortDirection, PortTemporal,
 };
 
@@ -39,7 +39,7 @@ fn offer(
         startup_parameters: if kind == CHAT_PEER_KIND {
             Vec::new()
         } else {
-            vec![FaceStartupParameter {
+            vec![FrontStartupParameter {
                 name: "members".to_string(),
                 value_type: "Pool".to_string(),
                 has_default: false,

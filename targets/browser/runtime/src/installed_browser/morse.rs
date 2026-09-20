@@ -4,7 +4,7 @@ use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation}
 use super::BrowserOperation;
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, FaceStartupParameter, HostOperationContractId, HostOperationRequirement,
+    ExecutionProfileId, FrontStartupParameter, HostOperationContractId, HostOperationRequirement,
     ImplementationId, PlannedGear,
 };
 use conduit_kernel::HostedValueStore;
@@ -23,7 +23,7 @@ pub(super) static DIRECT: BrowserInstallation = BrowserInstallation {
 fn direct_offer() -> CapabilityOffer {
     let contract = conduit_text::text_morse_semantics();
     CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: conduit_text::MORSE_UNIT_MILLIS_KEY.into(),
             value_type: "Count".into(),
             has_default: true,

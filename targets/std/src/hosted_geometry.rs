@@ -2,7 +2,7 @@
 
 use conduit_core::{
     kind_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    FaceStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    FrontStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
     ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
@@ -62,7 +62,7 @@ fn offer(
     uses_operation: bool,
 ) -> CapabilityOffer {
     CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: if kind == POINT2_LITERAL_KIND {
                 "value"
             } else {

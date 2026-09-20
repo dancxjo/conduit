@@ -1,7 +1,7 @@
 //! Exact finite normalized-pattern comparison offer.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
+    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
     HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
 };
 
@@ -18,12 +18,12 @@ pub fn offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::compare_normalized_pattern_definition();
     CapabilityOffer {
         startup_parameters: vec![
-            FaceStartupParameter {
+            FrontStartupParameter {
                 name: "metric".into(),
                 value_type: "Text".into(),
                 has_default: true,
             },
-            FaceStartupParameter {
+            FrontStartupParameter {
                 name: "tolerance-millionths".into(),
                 value_type: "Count".into(),
                 has_default: true,

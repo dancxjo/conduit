@@ -7,7 +7,7 @@ use conduit_core::{
     ArchitectureBaseId, ArchitectureBaseKind, ArtifactId, AuthorityContractId,
     AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     CharacteristicUnit, ComputePoolContract, ComputeServiceGuarantee, ExecutionProfileId,
-    FaceStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
+    FrontStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
     HostOperationRequirement, HostProfileId, ImplementationId, ImplementationOffer,
     OfferGeneration, RealizationAdvertisement, RealizationCharacteristic,
 };
@@ -305,7 +305,7 @@ fn base(
     }
 }
 
-fn startup_parameters() -> alloc::vec::Vec<FaceStartupParameter> {
+fn startup_parameters() -> alloc::vec::Vec<FrontStartupParameter> {
     [
         "maximum-input-bytes",
         "maximum-context-tokens",
@@ -313,7 +313,7 @@ fn startup_parameters() -> alloc::vec::Vec<FaceStartupParameter> {
         "temperature-milli",
     ]
     .into_iter()
-    .map(|name| FaceStartupParameter {
+    .map(|name| FrontStartupParameter {
         name: name.to_string(),
         value_type: "Count".to_string(),
         has_default: true,

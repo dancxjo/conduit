@@ -64,7 +64,7 @@ pub use delivery::*;
 pub use device::*;
 pub use execution::*;
 pub use execution_fusion::*;
-pub use front::{CheckedFace, FaceStartupParameter};
+pub use front::{CheckedFront, FrontStartupParameter};
 pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
 };
@@ -396,7 +396,7 @@ pub struct AuthorityBinding {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CapabilityOffer {
     #[serde(default)]
-    pub startup_parameters: Vec<FaceStartupParameter>,
+    pub startup_parameters: Vec<FrontStartupParameter>,
     #[serde(default)]
     pub shorthand: Option<(PortId, PortId)>,
     pub capability_id: CapabilityId,

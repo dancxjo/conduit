@@ -117,7 +117,7 @@ pub(super) fn edit_offer() -> CapabilityOffer {
         startup_parameters: edit_signature()
             .startup_parameters
             .into_iter()
-            .map(|parameter| FaceStartupParameter {
+            .map(|parameter| FrontStartupParameter {
                 name: parameter.name,
                 value_type: parameter.value_type,
                 has_default: false,

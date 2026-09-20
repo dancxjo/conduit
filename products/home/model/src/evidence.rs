@@ -34,12 +34,12 @@ pub struct HomeManifestationEvidence {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct HomeCrossFaceEvidenceIndex {
+pub struct HomeCrossFrontEvidenceIndex {
     pub schema: &'static str,
     pub manifestations: Vec<HomeManifestationEvidence>,
 }
 
-impl HomeCrossFaceEvidenceIndex {
+impl HomeCrossFrontEvidenceIndex {
     pub fn new(
         manifestations: Vec<HomeManifestationEvidence>,
     ) -> Result<Self, HomeEvidenceRefusal> {
@@ -131,7 +131,7 @@ mod tests {
             "semantic-voice",
         ];
         let index =
-            HomeCrossFaceEvidenceIndex::new(fronts.into_iter().map(evidence).collect()).unwrap();
+            HomeCrossFrontEvidenceIndex::new(fronts.into_iter().map(evidence).collect()).unwrap();
 
         assert_eq!(index.schema, HOME_EVIDENCE_INDEX_SCHEMA);
         assert_eq!(index.manifestations.len(), MAX_HOME_MANIFESTATIONS);
@@ -148,7 +148,7 @@ mod tests {
         let mut drifted = evidence("firefox");
         drifted.journey_step_ids.swap(0, 1);
         assert_eq!(
-            HomeCrossFaceEvidenceIndex::new(vec![drifted]),
+            HomeCrossFrontEvidenceIndex::new(vec![drifted]),
             Err(HomeEvidenceRefusal::JourneyMismatch)
         );
 
@@ -156,7 +156,7 @@ mod tests {
         let mut voice = evidence("voice");
         voice.receipt_id = chromium.receipt_id.clone();
         assert_eq!(
-            HomeCrossFaceEvidenceIndex::new(vec![chromium, voice]),
+            HomeCrossFrontEvidenceIndex::new(vec![chromium, voice]),
             Err(HomeEvidenceRefusal::DuplicateReceipt)
         );
     }

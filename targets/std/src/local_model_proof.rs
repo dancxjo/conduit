@@ -88,7 +88,7 @@ pub fn run(
         LocalModelKindProfile::ClassifyFiniteLabels,
         LocalModelKindProfile::ExtractValidatedInfo,
         LocalModelKindProfile::InterpretSignEvidence,
-        LocalModelKindProfile::PresentSemanticFace,
+        LocalModelKindProfile::PresentSemanticFront,
     ] {
         let contract = conduit_ai::llm_contract(profile.kind()).expect("proof profiles are L0");
         additional_capabilities.extend([
@@ -122,7 +122,7 @@ pub fn run(
     let classify = run_profile(&mut host, LocalModelKindProfile::ClassifyFiniteLabels)?;
     let extract = run_profile(&mut host, LocalModelKindProfile::ExtractValidatedInfo)?;
     let interpret = run_profile(&mut host, LocalModelKindProfile::InterpretSignEvidence)?;
-    let present = run_profile(&mut host, LocalModelKindProfile::PresentSemanticFace)?;
+    let present = run_profile(&mut host, LocalModelKindProfile::PresentSemanticFront)?;
     *generated_text
         .lock()
         .map_err(|_| "local proof response capture lock is poisoned")? = None;

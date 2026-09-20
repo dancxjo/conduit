@@ -5,7 +5,7 @@
 
 use crate::{
     characteristic, execution_fusion, hash_bytes, plan_realization, push_resource_binding,
-    push_string, push_u32, push_u64, AdmittedLine, BoundLink, CancellationPolicy, CheckedFace,
+    push_string, push_u32, push_u64, AdmittedLine, BoundLink, CancellationPolicy, CheckedFront,
     ConfigurationValue, ExpectedSign, ExpectedTerminal, FormIdentity, FragmentCommitment,
     FragmentId, LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId,
     PortDescriptor, PortDirection, PortTemporal, RealizationBack, TerminalPolicy,
@@ -298,7 +298,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     FragmentId::from(hash_bytes(&canonical))
 }
 
-fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFace) {
+fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
     push_u32(canonical, front.startup_parameters().len() as u32);
     for parameter in front.startup_parameters() {
         push_string(canonical, &parameter.name);

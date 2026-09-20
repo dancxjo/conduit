@@ -94,7 +94,7 @@ impl SystemRecord {
             }
             let front = offer.checked_front();
             if front != requirement.checked_front {
-                return Err(ContinuityError::CheckedFaceMismatch(
+                return Err(ContinuityError::CheckedFrontMismatch(
                     requirement.role_id.as_str().into(),
                 ));
             }

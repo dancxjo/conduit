@@ -4,7 +4,7 @@ use crate::{IndependentWatchdogObservation, LocalHazard, OiMode, SafetyObservati
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId,
     AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FaceStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
+    ExecutionProfileId, FrontStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
     HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
     OfferGeneration, PROTOCOL_VERSION, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
@@ -105,7 +105,7 @@ pub fn live_create_drive_advertisement(
         profile: conduit_core::HostProfileId::from(profile),
         resources,
         capabilities: vec![CapabilityOffer {
-            startup_parameters: vec![FaceStartupParameter {
+            startup_parameters: vec![FrontStartupParameter {
                 name: "ttl-ms".into(),
                 value_type: "Count".into(),
                 has_default: true,

@@ -1,7 +1,7 @@
 //! Bounded, effect-free realization of recurring nominal pulse observations.
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    FaceStartupParameter, ImplementationId, ImplementationOffer,
+    FrontStartupParameter, ImplementationId, ImplementationOffer,
 };
 pub const PULSE_OBSERVE_PROFILE: &str = "std/pulse-observe-ordered-64@1";
 pub const PULSE_OBSERVE_IMPLEMENTATION: &str = "std/kernel-pulse-observe@1";
@@ -17,7 +17,7 @@ pub fn pulse_observe_offer() -> CapabilityOffer {
         outputs: contract.outputs,
         startup_parameters: ["period-ms"]
             .into_iter()
-            .map(|name| FaceStartupParameter {
+            .map(|name| FrontStartupParameter {
                 name: name.into(),
                 value_type: "Count".into(),
                 has_default: true,

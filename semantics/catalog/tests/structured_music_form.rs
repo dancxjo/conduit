@@ -1,6 +1,6 @@
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, FaceStartupParameter, HostAdvertisement, HostId,
+    ConfigurationValue, ExecutionProfileId, FrontStartupParameter, HostAdvertisement, HostId,
     HostProfileId, ImplementationId, ImplementationOffer, KindId, OfferGeneration,
     PROTOCOL_VERSION,
 };
@@ -236,7 +236,7 @@ fn host() -> HostAdvertisement {
             &profile,
             INSTRUMENT_MAP_KIND,
             INSTRUMENT_MAP_PROOF_IMPLEMENTATION,
-            vec![FaceStartupParameter {
+            vec![FrontStartupParameter {
                 name: "mapping".into(),
                 value_type: conduit_semantic_catalog::INSTRUMENT_MAPPING_TYPE.into(),
                 has_default: false,
@@ -250,7 +250,7 @@ fn proof_offer(
     profile: &ProfileCatalog,
     kind: &str,
     implementation: &str,
-    startup_parameters: Vec<FaceStartupParameter>,
+    startup_parameters: Vec<FrontStartupParameter>,
 ) -> CapabilityOffer {
     let definition = profile.get(&KindId::from(kind)).unwrap().clone();
     CapabilityOffer {
@@ -283,12 +283,12 @@ fn proof_rhythm_offer(profile: &ProfileCatalog) -> CapabilityOffer {
         conduit_semantic_catalog::RHYTHM_COMPARE_KIND,
         RHYTHM_COMPARE_PROOF_IMPLEMENTATION,
         vec![
-            FaceStartupParameter {
+            FrontStartupParameter {
                 name: "target-offset-micros".into(),
                 value_type: "Scalar".into(),
                 has_default: true,
             },
-            FaceStartupParameter {
+            FrontStartupParameter {
                 name: "tolerance-micros".into(),
                 value_type: "Count".into(),
                 has_default: true,

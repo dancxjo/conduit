@@ -50,7 +50,7 @@ pub(super) fn prove(
             LocalModelKindProfile::ClassifyFiniteLabels,
             LocalModelKindProfile::ExtractValidatedInfo,
             LocalModelKindProfile::InterpretSignEvidence,
-            LocalModelKindProfile::PresentSemanticFace,
+            LocalModelKindProfile::PresentSemanticFront,
         ],
     )?;
     let offer = adapter.offer().clone();

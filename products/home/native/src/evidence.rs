@@ -16,7 +16,7 @@ const WIDTH: usize = 1120;
 const HEIGHT: usize = 720;
 
 #[derive(Serialize)]
-struct HomeFaceReceipt<'a> {
+struct HomeFrontReceipt<'a> {
     schema: &'static str,
     front_id: &'a str,
     proof_class: &'static str,
@@ -55,7 +55,7 @@ pub fn retain(journey: &NativeHomeJourneyReceipt, root: &Path) -> Result<PathBuf
     let digest = format!("sha256:{:x}", Sha256::digest(&artifact));
     let renderer_id = format!("presentation/renderer-native-software-{front}@1");
     let manifestation_id = format!("manifestation/home/{front}/{}", &digest[7..]);
-    let receipt = HomeFaceReceipt {
+    let receipt = HomeFrontReceipt {
         schema: "conduit.evidence/home-front@1",
         front_id: front,
         proof_class: "native-software-renderer",

@@ -91,7 +91,7 @@ fn definition(value: &StructuredInfoValue) -> KindDefinition {
 
 fn advertisement(
     definition: &KindDefinition,
-    startup_parameters: Vec<conduit_core::FaceStartupParameter>,
+    startup_parameters: Vec<conduit_core::FrontStartupParameter>,
 ) -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,

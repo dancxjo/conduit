@@ -3,7 +3,7 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, FaceStartupParameter, HostOperationContractId,
+    CapabilityOffer, ExecutionProfileId, FrontStartupParameter, HostOperationContractId,
     HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision, KindId,
     PortDescriptor, PortDirection, PortTemporal,
 };
@@ -84,7 +84,7 @@ pub fn vector_search_contract() -> VectorSearchContract {
     }
 }
 
-pub fn vector_search_startup_parameters() -> Vec<FaceStartupParameter> {
+pub fn vector_search_startup_parameters() -> Vec<FrontStartupParameter> {
     [
         "maximum-input-bytes",
         "maximum-output-bytes",
@@ -92,7 +92,7 @@ pub fn vector_search_startup_parameters() -> Vec<FaceStartupParameter> {
         "maximum-results",
     ]
     .into_iter()
-    .map(|name| FaceStartupParameter {
+    .map(|name| FrontStartupParameter {
         name: name.into(),
         value_type: "Count".into(),
         has_default: true,

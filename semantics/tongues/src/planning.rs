@@ -84,7 +84,7 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
     let mut fixture = speech_host_fixture(condition);
     let literal_contract = conduit_text::text_literal_semantics();
     let mut literal_offer = conduit_core::CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
+        startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "value".into(),
             value_type: "Text".into(),
             has_default: false,

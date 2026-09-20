@@ -2,7 +2,7 @@
 
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    FaceStartupParameter, ImplementationId, ImplementationOffer, KindContractRevision,
+    FrontStartupParameter, ImplementationId, ImplementationOffer, KindContractRevision,
 };
 
 pub const ORDERED_RECORD_QUEUE_STD_IMPLEMENTATION: &str = "std/ordered-record-queue@1";
@@ -11,12 +11,12 @@ pub fn ordered_record_queue_std_offer() -> CapabilityOffer {
     let definition = conduit_net::ordered_record_queue_kind_definition();
     CapabilityOffer {
         startup_parameters: vec![
-            FaceStartupParameter {
+            FrontStartupParameter {
                 name: "maximum-items".into(),
                 value_type: "Count".into(),
                 has_default: true,
             },
-            FaceStartupParameter {
+            FrontStartupParameter {
                 name: "maximum-frame-bytes".into(),
                 value_type: "Count".into(),
                 has_default: true,

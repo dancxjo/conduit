@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 use super::ConduitosError;
 
 #[derive(Serialize)]
-struct HomeFaceReceipt {
+struct HomeFrontReceipt {
     schema: &'static str,
     front_id: &'static str,
     proof_class: &'static str,
@@ -100,7 +100,7 @@ pub(super) fn retain(target: &Path) -> Result<(), ConduitosError> {
     let output = target.join("home-front-conduitos");
     fs::create_dir(&output).map_err(io_error)?;
     fs::write(output.join("home-conduitos.png"), &artifact).map_err(io_error)?;
-    let receipt = HomeFaceReceipt {
+    let receipt = HomeFrontReceipt {
         schema: "conduit.evidence/home-front@1",
         front_id: "conduitos",
         proof_class: "freestanding-emulator",

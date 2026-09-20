@@ -146,7 +146,7 @@ mod tests {
     use conduit_core::{
         mandatory_sign_storage_requirement, seal_plan, AdmittedLine, ArtifactId, AuthorityGrantId,
         BaseImplementationId, BaseInstanceId, BootId, BoundLink, CancellationPolicy, CapabilityId,
-        CapabilityLimits, CheckedFace, ConfigurationEntry, ExecutionProfileId, ExpandedFormId,
+        CapabilityLimits, CheckedFront, ConfigurationEntry, ExecutionProfileId, ExpandedFormId,
         ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId, GearId, ImplementationId,
         KindContractRevision, KindId, LineContinuation, LineContract, LineDuplex, LineId,
         LineOrdering, LineReliability, LineScope, LineSecurity, LineTrafficShape,
@@ -279,7 +279,7 @@ mod tests {
         let pool = PlannedSharedPool {
             pool_id: pool_id.clone(),
             declaration_id: PoolDeclarationId::from("declaration/workers"),
-            member_front: CheckedFace::new(vec![], vec![input], vec![output], None),
+            member_front: CheckedFront::new(vec![], vec![input], vec![output], None),
             maximum_members: 1,
             member_limits: PoolMemberLimits {
                 queue_item_capacity: 1,
