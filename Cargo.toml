@@ -43,6 +43,7 @@ members = [
 	"mechanisms/devices/mpu6050",
 	"mechanisms/devices/ssd1306",
 	"mechanisms/implementations/linear-framebuffer-fabrication",
+	"mechanisms/implementations/emergency-keyword-spotter",
 	"mechanisms/implementations/synth",
 	"mechanisms/protocols/bluetooth",
 	"mechanisms/protocols/midi",
