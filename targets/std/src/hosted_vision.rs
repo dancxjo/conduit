@@ -297,6 +297,13 @@ fn decode_image_resource(
     Ok((value, resource, width, height))
 }
 
+#[cfg(test)]
+pub(crate) fn decode_image_resource_for_test(
+    encoded: &[u8],
+) -> (StructuredInfoValue, BoundedResourceRef, u16, u16) {
+    decode_image_resource(encoded).expect("test image resource is canonical")
+}
+
 fn record_field<'a>(
     value: &'a StructuredInfoValue,
     name: &str,
