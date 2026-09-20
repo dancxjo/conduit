@@ -16,6 +16,9 @@ pub const LOCAL_VISION_MOTION_OBSERVATION_TYPE: &str = "VisionLocalMotionObserva
 pub const MAXIMUM_LOCAL_VISION_MOTION_OBSERVATIONS: u16 = 4;
 pub const MAXIMUM_LOCAL_VISION_IDENTITY_BYTES: usize = 256;
 
+mod prepared;
+pub use prepared::PreparedLocalVisionMotionEncoder;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LocalVisionProvenance {
     pub implementation_id: String,
@@ -317,5 +320,42 @@ mod tests {
             element.shape(),
             StructuredInfoTypeShape::Variant { .. }
         ));
+    }
+
+    #[test]
+    fn prepared_encoder_matches_reference_canonical_value() {
+        let image = deterministic_vision_fixture().unwrap().image;
+        let image_bytes = image.canonical_bytes().unwrap();
+        let observation = ContinuousLocalVisionObservation {
+            sequence: 18446744073709551615,
+            motion: Some(crate::MotionRegion {
+                region: PixelRegion {
+                    x: 3,
+                    y: 4,
+                    width: 5,
+                    height: 6,
+                },
+                changed_pixels: 17,
+            }),
+            components: [None; crate::MAXIMUM_LOCAL_COMPONENTS],
+            component_count: 0,
+            observed_component_count: 0,
+            components_truncated: false,
+        };
+        let provenance = provenance();
+        let expected = local_vision_motion_observation_value(image, &observation, &provenance)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+        let mut encoder = PreparedLocalVisionMotionEncoder::new(
+            &provenance.implementation_id,
+            &provenance.provider_instance_id,
+            &provenance.artifact_id,
+        )
+        .unwrap();
+        let actual = encoder
+            .encode(&image_bytes, &observation, &provenance.run_id)
+            .unwrap();
+        assert_eq!(actual, expected);
     }
 }
