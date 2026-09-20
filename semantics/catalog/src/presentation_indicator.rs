@@ -4,7 +4,7 @@ use super::{StandardKindContract, TerminalBehavior};
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal,
+    PortTemporal, SemanticCapabilityContract,
 };
 
 pub const INDICATOR_PRESENTATION_KIND: &str = "presentation/indicator";
@@ -32,6 +32,21 @@ pub fn indicator_presentation_contract() -> StandardKindContract {
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
         example: "light: presentation/indicator".to_string(),
+    }
+}
+
+pub fn indicator_presentation_semantic_contract() -> SemanticCapabilityContract {
+    let contract = indicator_presentation_contract();
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: KindContractRevision::from(
+            INDICATOR_PRESENTATION_CONTRACT_REVISION,
+        ),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        limits: contract.limits,
     }
 }
 

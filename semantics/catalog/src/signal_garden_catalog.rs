@@ -119,6 +119,10 @@ pub fn garden_state_presentation_definition() -> KindDefinition {
     }
 }
 
+pub fn garden_state_presentation_semantic_contract() -> SemanticCapabilityContract {
+    garden_semantic_contract(garden_state_presentation_definition(), 1)
+}
+
 pub fn install_signal_garden_backs(
     startup: &conduit_form::StartupCatalog,
     profile: &conduit_form::ProfileCatalog,

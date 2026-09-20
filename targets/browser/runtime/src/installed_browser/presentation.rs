@@ -5,9 +5,9 @@ use super::factory::{
 };
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, PlannedGear,
-    PRESENTATION_RESOURCE_CLASS,
+    kind_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, PlannedGear, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -47,38 +47,34 @@ pub(super) static GARDEN: BrowserInstallation = BrowserInstallation {
 };
 
 fn garden_offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::garden_state_presentation_definition();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(GARDEN_IMPLEMENTATION),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: conduit_core::ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        conduit_semantic_catalog::garden_state_presentation_semantic_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(GARDEN_IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(GARDEN_IMPLEMENTATION),
             implementation_id: ImplementationId::from(GARDEN_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(GARDEN_HOST_OPERATION),
+                target_kind: Some(kind_id("presentation/browser-garden-state")),
+                maximum_in_flight: 1,
+                maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                maximum_output_bytes: 0,
+            }],
+            resource_requirements: vec![conduit_core::resource_requirement(
+                PRESENTATION_RESOURCE_CLASS,
+                1,
+            )],
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(GARDEN_HOST_OPERATION),
-            target_kind: Some(kind_id("presentation/browser-garden-state")),
-            maximum_in_flight: 1,
-            maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-            maximum_output_bytes: 0,
-        }],
-        resource_requirements: vec![conduit_core::resource_requirement(
-            PRESENTATION_RESOURCE_CLASS,
-            1,
-        )],
-        authority_requirements: Vec::new(),
-        limits: conduit_core::CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        },
-    }
+    )
+    .narrow_capacity(CapabilityLimits {
+        max_active_instances: 1,
+        max_queue_items: 1,
+        max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+    })
+    .expect("browser Garden presentation capacity narrows its semantic contract")
+    .build()
 }
 
 fn prepare_garden(
@@ -207,36 +203,28 @@ fn perform_bool(_placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostRes
 }
 
 fn indicator_offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::indicator_presentation_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("browser/indicator-presentation@2"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: conduit_core::KindContractRevision::from(
-            conduit_semantic_catalog::INDICATOR_PRESENTATION_CONTRACT_REVISION,
-        ),
-        implementation: conduit_core::ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        conduit_semantic_catalog::indicator_presentation_semantic_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from("browser/indicator-presentation@2"),
             execution_profile_id: ExecutionProfileId::from("browser/presentation-indicator@2"),
             implementation_id: ImplementationId::from(INDICATOR_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(HOST_OPERATION),
+                target_kind: Some(kind_id("presentation/browser-indicator")),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
+                maximum_output_bytes: 0,
+            }],
+            resource_requirements: vec![conduit_core::resource_requirement(
+                PRESENTATION_RESOURCE_CLASS,
+                1,
+            )],
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(HOST_OPERATION),
-            target_kind: Some(kind_id("presentation/browser-indicator")),
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
-            maximum_output_bytes: 0,
-        }],
-        resource_requirements: vec![conduit_core::resource_requirement(
-            PRESENTATION_RESOURCE_CLASS,
-            1,
-        )],
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 fn prepare(
@@ -286,6 +274,17 @@ mod tests {
 
     #[test]
     fn garden_presenter_preserves_exact_state_and_refuses_malformed_input() {
+        let offer = garden_offer();
+        let semantic = conduit_semantic_catalog::garden_state_presentation_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert!(offer.limits.max_queue_bytes < semantic.limits.max_queue_bytes);
         let canonical =
             conduit_semantic_catalog::garden_state_value(conduit_semantic_catalog::GardenState {
                 vitality: Scalar::from_raw_microunits(500_000),
@@ -302,5 +301,20 @@ mod tests {
         );
         assert_eq!(manifestation.canonical_value, canonical);
         assert!(garden_manifestation(b"not Garden state").is_err());
+    }
+
+    #[test]
+    fn indicator_presenter_preserves_its_exact_semantic_contract() {
+        let offer = indicator_offer();
+        let semantic = conduit_semantic_catalog::indicator_presentation_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert_eq!(offer.limits, semantic.limits);
     }
 }
