@@ -192,7 +192,6 @@ mod tests {
             "proof/browser/workspace-arrival.spec.mjs",
             "proof/browser/workspace-birth-naming.spec.mjs",
             "proof/browser/workspace-body-execution.spec.mjs",
-            "proof/browser/creche-lifecycle-ownership.md",
             "proof/browser/workspace-library.spec.mjs",
             "proof/browser/workspace-handoff.test.mjs",
             "proof/browser/creche-workspace-continuity.spec.mjs",
@@ -207,6 +206,17 @@ mod tests {
             assert!(plan.browser_required, "{path}");
             assert!(!plan.full_fallback, "{path}");
         }
+
+        let ownership_record = "proof/browser/creche-lifecycle-ownership.md";
+        assert_eq!(
+            super::proofs_for_paths(&[ownership_record.into()]),
+            ["products.pages-carrier"]
+        );
+        let plan =
+            super::super::plan_for_paths(&root, vec![ownership_record.into()], &packages).unwrap();
+        assert!(plan.pages_products_required);
+        assert!(!plan.browser_required);
+        assert!(!plan.full_fallback);
     }
 
     #[test]
