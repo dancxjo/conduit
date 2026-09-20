@@ -58,7 +58,7 @@ test("portable presentation nucleus executes in WASM and manifests in Chromium",
       malformedRefusal: "unsupported-version",
       unchangedAfterRefusal: true,
       controlValue: "gear edited",
-      controlLabel: "Form source",
+      controlLabel: "form source",
       controlBytePressureRefusal: "queue-pressure",
       semantic: {
         panelTag: "SECTION",
@@ -88,7 +88,7 @@ test("shared forms and navigation preserve exact keyboard interaction across rev
   const help = field.locator('[data-application-key="source-help"]');
   const error = field.locator('[data-application-key="source-error"]');
   await expect(label).toHaveAttribute("for", await control.getAttribute("id"));
-  await expect(field.getByLabel("Form source")).toHaveCount(1);
+  await expect(field.getByLabel("form source")).toHaveCount(1);
   await expect(control).toHaveAttribute("aria-describedby", `${await help.getAttribute("id")} ${await error.getAttribute("id")}`);
   await expect(control).toHaveAttribute("aria-errormessage", await error.getAttribute("id"));
   await expect(control).toHaveAttribute("aria-invalid", "true");
