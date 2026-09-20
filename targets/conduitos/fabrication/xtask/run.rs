@@ -673,13 +673,19 @@ fn validate_observatory(
         conduit_semantic_catalog::TICK_PRESENTATION_CONTRACT_REVISION,
         "conduitos/kernel-serial-tick@1",
     );
-    let bases_match = snapshot.bases.len() == kernel.base_ids.len() + 1
+    let advertised_bases = host
+        .map(|host| host.advertisement.bases.as_slice())
+        .unwrap_or_default();
+    let bases_match = snapshot.bases.len() == kernel.base_ids.len() + advertised_bases.len() + 1
         && snapshot.bases.iter().all(|base| {
             base.host_id.as_str() == boot.host_id
                 && base.boot_id.as_str() == boot.boot_id
                 && base.state == OperationalState::Available
                 && (kernel.base_ids.iter().any(|id| id == base.base_id.as_str())
-                    || base.base_id.as_str() == presentation.display_base_id)
+                    || base.base_id.as_str() == presentation.display_base_id
+                    || advertised_bases
+                        .iter()
+                        .any(|advertised| advertised.base_id == base.base_id))
         });
     let exact_base = |kind: &str, capacity: u64| {
         snapshot
