@@ -3,9 +3,9 @@
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ConfigurationValue, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, PlannedGear,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    PlannedGear,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -107,9 +107,9 @@ fn symbols_to_text_offer() -> CapabilityOffer {
 fn offer(contract: conduit_text::MorseKindContract, implementation: &str) -> CapabilityOffer {
     let maximum_input_bytes = value_bound(contract.inputs[0].value_kind.as_str());
     let maximum_output_bytes = value_bound(contract.outputs[0].value_kind.as_str());
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract.into_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),

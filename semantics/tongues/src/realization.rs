@@ -4,9 +4,9 @@ use crate::{
 };
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId,
-    AuthorityRequirement, BootId, CapabilityId, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
+    AuthorityRequirement, Back, BackOfferBuilder, BootId, CapabilityId, ExecutionProfileId,
+    HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement, HostProfileId,
+    ImplementationId, OfferGeneration, PROTOCOL_VERSION,
 };
 use serde::{Deserialize, Serialize};
 
@@ -79,9 +79,9 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
         host_operation(SYNTHESIZE_OPERATION, MAXIMUM_TEXT_BYTES, MAXIMUM_PCM_BYTES);
     let mut output_operation_requirement = host_operation(output_operation, MAXIMUM_PCM_BYTES, 256);
     output_operation_requirement.target_kind = Some(kind_id(AUDIO_PLAY_KIND));
-    let synthesis = CapabilityOfferBuilder::new(
+    let synthesis = BackOfferBuilder::new(
         synth.into_semantic_capability_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!("{host}/synthesize")),
             execution_profile_id: ExecutionProfileId::from("conduit.speech/deterministic-hosted@1"),
             implementation_id: ImplementationId::from("tongues/fixture-tts-adapter@5748f20e"),
@@ -99,9 +99,9 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
         },
     )
     .build();
-    let output = CapabilityOfferBuilder::new(
+    let output = BackOfferBuilder::new(
         present.into_semantic_capability_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!("{host}/output")),
             execution_profile_id: ExecutionProfileId::from("conduit.audio/bounded-output@1"),
             implementation_id: ImplementationId::from(output_impl),

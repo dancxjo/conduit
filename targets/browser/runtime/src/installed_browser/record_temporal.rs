@@ -3,8 +3,8 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, ImplementationId, PlannedGear, SemanticCapabilityContract,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    ImplementationId, Kind, PlannedGear,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -39,10 +39,10 @@ fn exactly_one_offer() -> CapabilityOffer {
     )
 }
 
-fn offer(contract: SemanticCapabilityContract, implementation: &str) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+fn offer(contract: Kind, implementation: &str) -> CapabilityOffer {
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from("browser/record-temporal@1"),
             implementation_id: ImplementationId::from(implementation),

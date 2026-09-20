@@ -1,8 +1,8 @@
 //! Pure-kernel std offers for explicit framed-record temporal boundaries.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, ImplementationId, SemanticCapabilityContract,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    ImplementationId, Kind,
 };
 
 pub const RECORD_SINGLETON_STREAM_STD_IMPLEMENTATION: &str = "std/record-singleton-stream@1";
@@ -22,10 +22,10 @@ pub fn record_exactly_one_std_offer() -> CapabilityOffer {
     )
 }
 
-fn offer(contract: SemanticCapabilityContract, implementation: &str) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+fn offer(contract: Kind, implementation: &str) -> CapabilityOffer {
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from("std/record-temporal@1"),
             implementation_id: ImplementationId::from(implementation),

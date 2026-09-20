@@ -5,9 +5,9 @@ use super::factory::{
 };
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, CapabilityId,
-    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId,
-    ImplementationId, PlannedGear, Quantity, StructuredInfoValue, StructuredInfoValueShape,
+    kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, ImplementationId,
+    PlannedGear, Quantity, StructuredInfoValue, StructuredInfoValueShape,
     PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_semantic_catalog::{
@@ -78,9 +78,9 @@ pub(super) fn presentation_offer() -> CapabilityOffer {
 }
 
 pub(super) fn direct_presentation_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_semantic_catalog::quantity_presentation_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(DIRECT_PRESENTATION_IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(DIRECT_PRESENTATION_IMPLEMENTATION),
             implementation_id: ImplementationId::from(DIRECT_PRESENTATION_IMPLEMENTATION),

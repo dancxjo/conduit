@@ -1,9 +1,9 @@
 //! Exact structured-selector realization offers owned by the hosted std Host.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PortTemporal, StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, PortTemporal,
+    StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const STRUCTURED_SELECTOR_STD_PROFILE: &str = "std/structured-selector-kernel-hosted@1";
@@ -24,9 +24,9 @@ pub fn structured_selector_std_offer(
         .expect("structured selector kind identity is canonical")
         .to_owned();
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!(
                 "std-structured-selector-{digest}-{}",
                 temporal.as_str()

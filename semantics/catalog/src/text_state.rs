@@ -3,8 +3,8 @@
 use alloc::vec::Vec;
 use alloc::{format, string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal,
 };
 
 use super::{
@@ -150,20 +150,20 @@ pub fn text_submit_lines_contract() -> StandardKindContract {
     )
 }
 
-pub fn text_edit_semantic_contract() -> SemanticCapabilityContract {
+pub fn text_edit_semantic_contract() -> Kind {
     semantic_contract(text_edit_contract(), TEXT_EDIT_REVISION)
 }
 
-pub fn text_submit_lines_semantic_contract() -> SemanticCapabilityContract {
+pub fn text_submit_lines_semantic_contract() -> Kind {
     semantic_contract(text_submit_lines_contract(), TEXT_SUBMIT_LINES_REVISION)
 }
 
-fn semantic_contract(contract: StandardKindContract, revision: &str) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
+    Kind {
         startup_parameters: super::startup_front(&contract.configuration),
         shorthand: None,
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         inputs: contract.inputs,
         outputs: contract.outputs,
         limits: contract.limits,
@@ -194,7 +194,7 @@ pub fn install_text_state_catalogs(
         profile
             .insert(KindDefinition {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration: vec![ConfigurationField {

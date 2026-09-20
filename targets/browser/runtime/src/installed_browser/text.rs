@@ -117,7 +117,7 @@ fn presentation_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("browser/text-presentation@1"),
         kind_id: contract.kind_id,
-        kind_contract_revision: conduit_core::KindContractRevision::from(
+        kind_contract_revision: conduit_core::KindIdentity::from(
             conduit_semantic_catalog::TEXT_PRESENTATION_CONTRACT_REVISION,
         ),
         implementation: conduit_core::ImplementationOffer {

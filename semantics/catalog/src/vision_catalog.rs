@@ -6,9 +6,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal, SemanticCapabilityContract, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -55,16 +54,16 @@ pub fn vision_kind_contracts() -> Vec<VisionKindContract> {
     contracts
 }
 
-pub fn vision_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+pub fn vision_semantic_contracts() -> Vec<Kind> {
     vision_kind_contracts()
         .into_iter()
         .map(|(kind_id, inputs, outputs)| {
             let revision = vision_kind_revision(kind_id.as_str());
-            SemanticCapabilityContract {
+            Kind {
                 startup_parameters: vec![],
                 shorthand: None,
                 kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs,
                 outputs,
                 limits: CapabilityLimits {
@@ -124,7 +123,7 @@ fn insert_kind(
     profile
         .insert(KindDefinition {
             kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(vision_kind_revision(kind)),
+            kind_contract_revision: KindIdentity::from(vision_kind_revision(kind)),
             inputs,
             outputs,
             configuration: vec![],

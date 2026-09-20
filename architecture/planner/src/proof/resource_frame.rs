@@ -57,7 +57,7 @@ pub fn frame_resource_plan(
         let kind = format!("frame/{name}");
         let definition = KindDefinition {
             kind_id: kind_id(&kind),
-            kind_contract_revision: KindContractRevision::from(format!("{kind}@1")),
+            kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
             inputs: if name == "source" {
                 vec![]
             } else {

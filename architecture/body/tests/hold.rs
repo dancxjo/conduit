@@ -7,9 +7,9 @@ use conduit_core::{
     mandatory_sign_storage_requirement, seal_plan, ArtifactId, BootId, CancellationPolicy,
     CapabilityId, CapabilityLimits, CheckedFormId, ExecutionProfileId, ExpandedFormId,
     ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId, ImplementationId,
-    KindContractRevision, KindId, OfferGeneration, PlacementId, Plan, PlanFragment, PlanId,
-    PlannedGear, ResourceBinding, ResourceClassId, ResourcePoolId, SignId, SignStorageBudget,
-    SourceDocumentId, TerminalPolicy,
+    KindId, KindIdentity, OfferGeneration, PlacementId, Plan, PlanFragment, PlanId, PlannedGear,
+    ResourceBinding, ResourceClassId, ResourcePoolId, SignId, SignStorageBudget, SourceDocumentId,
+    TerminalPolicy,
 };
 
 fn body() -> Body {
@@ -42,7 +42,7 @@ fn exact_plan(label: &str, host: &str) -> Plan {
             placement_id: PlacementId::from(format!("{label}-placement")),
             gear_id: GearId::from("gear-a"),
             kind_id: KindId::from("test/kind"),
-            kind_contract_revision: KindContractRevision::from("test/kind@1"),
+            kind_contract_revision: KindIdentity::from("test/kind@1"),
             execution_profile_id: ExecutionProfileId::from("test/hosted@1"),
             configuration: vec![],
             host_id: HostId::from(host),

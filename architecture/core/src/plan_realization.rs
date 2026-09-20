@@ -1,18 +1,18 @@
-use super::{push_string, push_u32, CheckedFormId, KindContractRevision, KindId, SourceDocumentId};
+use super::{push_string, push_u32, CheckedFormId, KindId, KindIdentity, SourceDocumentId};
 use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 /// Exact reusable Form selected while expanding one high-level Kind invocation.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct RealizationBack {
+pub struct FormBack {
     pub invocation_path: String,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
 }
 
-pub(super) fn push_canonical(canonical: &mut Vec<u8>, backs: &[RealizationBack]) {
+pub(super) fn push_canonical(canonical: &mut Vec<u8>, backs: &[FormBack]) {
     push_string(canonical, "canonical-realization-backs@1");
     push_u32(canonical, backs.len() as u32);
     for back in backs {

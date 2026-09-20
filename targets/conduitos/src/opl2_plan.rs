@@ -4,8 +4,8 @@ use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
     ActivePlayIdentity, ArtifactId, BaseImplementationId, CapabilityId, CapabilityLimits,
     CapabilityOffer, CharacteristicId, ExecutionProfileId, GearId, HostAdvertisement,
-    ImplementationId, KindContractRevision, Plan, PortDescriptor, PortDirection,
-    RealizationAdvertisement, bind_active_play, kind_id, port_id,
+    ImplementationId, KindIdentity, Plan, PortDescriptor, PortDirection, RealizationAdvertisement,
+    bind_active_play, kind_id, port_id,
 };
 use conduit_planner::{
     HardRealizationRequirements, SelectedRealizationPlanning,
@@ -198,7 +198,7 @@ fn checked(source: &str) -> Result<conduit_form::CheckedForm, PreparationError> 
     catalog
         .insert(conduit_form::KindDefinition {
             kind_id: kind_id(NOTE_SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from(NOTE_SOURCE_REVISION),
+            kind_contract_revision: KindIdentity::from(NOTE_SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: note_source_offer("catalog").outputs,
             configuration: Vec::new(),
@@ -207,7 +207,7 @@ fn checked(source: &str) -> Result<conduit_form::CheckedForm, PreparationError> 
     catalog
         .insert(conduit_form::KindDefinition {
             kind_id: kind_id(EMPTY_CONTROL_SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from(EMPTY_CONTROL_SOURCE_REVISION),
+            kind_contract_revision: KindIdentity::from(EMPTY_CONTROL_SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: empty_control_source_offer("catalog").outputs,
             configuration: Vec::new(),
@@ -222,7 +222,7 @@ fn empty_control_source_offer(build_id: &str) -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-fixture-empty-control-source@1"),
         kind_id: kind_id(EMPTY_CONTROL_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(EMPTY_CONTROL_SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(EMPTY_CONTROL_SOURCE_REVISION),
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
             port_id: port_id("controls"),
@@ -253,7 +253,7 @@ fn note_source_offer(build_id: &str) -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-fixture-note-source@1"),
         kind_id: kind_id(NOTE_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(NOTE_SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(NOTE_SOURCE_REVISION),
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
             port_id: port_id("notes"),

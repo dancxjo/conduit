@@ -14,7 +14,7 @@ use conduit_audio::{
     PCM_FRAME_HEADER_ENCODED_LEN, SOUND_TONE_INFO_ID,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
     PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
@@ -396,11 +396,11 @@ fn audio_limits() -> CapabilityLimits {
     }
 }
 
-pub fn sound_contract_revision(kind: &str) -> Option<KindContractRevision> {
+pub fn sound_contract_revision(kind: &str) -> Option<KindIdentity> {
     sound_contracts_with_revisions()
         .into_iter()
         .find(|(contract, _)| contract.kind_id.as_str() == kind)
-        .map(|(_, revision)| KindContractRevision::from(revision))
+        .map(|(_, revision)| KindIdentity::from(revision))
 }
 
 #[cfg(test)]

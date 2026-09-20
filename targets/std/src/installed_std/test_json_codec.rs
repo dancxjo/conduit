@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     kind_id, port_id, present_host_operation_requirement, ArtifactId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, ImplementationId, KindContractRevision,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, ImplementationId, KindIdentity,
     PlannedGear, PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{KindDefinition, ProfileCatalog};
@@ -156,7 +156,7 @@ fn offer(
         shorthand: None,
         capability_id: CapabilityId::from(kind),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(implementation),

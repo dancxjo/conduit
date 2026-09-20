@@ -1,8 +1,8 @@
 //! Effect-free browser realization of deterministic phase following.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, ImplementationId,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    ImplementationId,
 };
 
 const PROFILE: &str = "browser/phase-synchronize-bounded@1";
@@ -10,9 +10,9 @@ const IMPLEMENTATION: &str = "browser/kernel-phase-synchronize@1";
 const ARTIFACT: &str = "conduit-browser-runtime/phase-synchronize@1";
 
 fn offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_time::phase_synchronize_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("phase-synchronize"),
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),

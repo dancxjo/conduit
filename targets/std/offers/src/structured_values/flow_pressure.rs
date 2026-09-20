@@ -1,6 +1,6 @@
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, ImplementationId, KindId,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    ImplementationId, KindId,
 };
 
 pub const FLOW_BACKPRESSURE_STD_PROFILE: &str = "std/flow-backpressure-kernel@1";
@@ -51,9 +51,9 @@ fn offer(
         .value_kind
         .as_str()
         .to_string();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract.into(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!("{capability_prefix}-{value_kind}")),
             execution_profile_id: ExecutionProfileId::from(execution_profile),
             implementation_id: ImplementationId::from(implementation),

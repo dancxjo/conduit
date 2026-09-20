@@ -1,9 +1,9 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationEntry,
-    ConfigurationValue, ExecutionProfileId, ImplementationId, ImplementationOffer,
-    KindContractRevision, KindId, PlannedGear, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType, StructuredInfoValue,
+    ConfigurationValue, ExecutionProfileId, ImplementationId, ImplementationOffer, KindId,
+    KindIdentity, PlannedGear, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
+    StructuredInfoValue,
 };
 use conduit_kernel::{
     BoundedValueRef, HostOperationDisposition, HostOperationId, HostedValueStore, OperationAction,
@@ -155,7 +155,7 @@ pub(crate) fn offer_named(
         shorthand: None,
         capability_id: CapabilityId::from(if source { source_kind } else { sink_kind }),
         kind_id: KindId::from(if source { source_kind } else { sink_kind }),
-        kind_contract_revision: KindContractRevision::from(if source {
+        kind_contract_revision: KindIdentity::from(if source {
             "conduit-test/structured-source@1"
         } else {
             "conduit-test/structured-sink@1"

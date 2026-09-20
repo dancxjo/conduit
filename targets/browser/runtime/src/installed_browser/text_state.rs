@@ -3,9 +3,8 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ConfigurationValue, ExecutionProfileId, HostOperationRequirement,
-    ImplementationId, PlannedGear, SemanticCapabilityContract,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, HostOperationRequirement, ImplementationId, Kind, PlannedGear,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
@@ -38,10 +37,10 @@ fn submit_offer() -> CapabilityOffer {
         SUBMIT_IMPLEMENTATION,
     )
 }
-fn offer(contract: SemanticCapabilityContract, implementation: &'static str) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+fn offer(contract: Kind, implementation: &'static str) -> CapabilityOffer {
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),

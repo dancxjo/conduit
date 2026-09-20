@@ -1,9 +1,9 @@
 //! Exact finite named-pattern storage offer.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ResourceRequirement, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, ResourceRequirement,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const TEMPLATE_STORAGE_STD_PROFILE: &str = "std/named-pattern-storage-kernel-hosted@1";
@@ -15,9 +15,9 @@ pub const TEMPLATE_STORAGE_RESOURCE_CLASS: &str = "conduit.resource/named-patter
 pub fn template_storage_std_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::named_pattern_template_storage_semantic_contract();
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("named-pattern-storage"),
             execution_profile_id: ExecutionProfileId::from(TEMPLATE_STORAGE_STD_PROFILE),
             implementation_id: ImplementationId::from(TEMPLATE_STORAGE_STD_IMPLEMENTATION),

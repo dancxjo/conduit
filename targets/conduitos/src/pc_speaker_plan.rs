@@ -3,8 +3,8 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 use conduit_core::{
     ActivePlayIdentity, ArtifactId, BaseImplementationId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, HostAdvertisement, ImplementationId, KindContractRevision,
-    Plan, PortDescriptor, PortDirection, bind_active_play, kind_id, port_id,
+    CapabilityOffer, ExecutionProfileId, HostAdvertisement, ImplementationId, KindIdentity, Plan,
+    PortDescriptor, PortDirection, bind_active_play, kind_id, port_id,
 };
 use conduit_planner::{
     PlanningOptions, default_expanded_placements, plan_expanded_canonical_with_options,
@@ -194,7 +194,7 @@ fn checked_expanded(
     profile
         .insert(conduit_form::KindDefinition {
             kind_id: kind_id(TONE_SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from(TONE_SOURCE_REVISION),
+            kind_contract_revision: KindIdentity::from(TONE_SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: tone_source_offer("catalog").outputs,
             configuration: Vec::new(),
@@ -212,7 +212,7 @@ fn tone_source_offer(build_id: &str) -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-fixture-tone-source@1"),
         kind_id: kind_id(TONE_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(TONE_SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(TONE_SOURCE_REVISION),
         inputs: Vec::new(),
         outputs: alloc::vec![PortDescriptor {
             port_id: port_id("tone"),

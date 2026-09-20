@@ -73,7 +73,7 @@ pub use implementation::{
 };
 pub use info::*;
 pub use interop::*;
-pub use plan_realization::RealizationBack;
+pub use plan_realization::FormBack;
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use preparation::*;
 pub use primitive_info::*;
@@ -150,7 +150,7 @@ identity_type!(DeviceId);
 identity_type!(PlannerProfileId);
 identity_type!(KindId);
 // Immutable identity of one exact semantic-kind contract revision.
-identity_type!(KindContractRevision);
+identity_type!(KindIdentity);
 // Immutable identity of one exact implementation execution profile.
 identity_type!(ExecutionProfileId);
 identity_type!(ExecutionRegionId);
@@ -408,7 +408,7 @@ pub struct CapabilityOffer {
     pub shorthand: Option<(PortId, PortId)>,
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     #[serde(flatten)]
@@ -501,7 +501,7 @@ pub struct PlannedGear {
     pub placement_id: PlacementId,
     pub gear_id: GearId,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub execution_profile_id: ExecutionProfileId,
     pub configuration: Vec<ConfigurationEntry>,
     pub host_id: HostId,
@@ -644,7 +644,7 @@ pub struct PlanFragment {
     #[serde(default)]
     pub completion_policy: PlanCompletionPolicy,
     #[serde(default)]
-    pub realization_backs: Vec<RealizationBack>,
+    pub realization_backs: Vec<FormBack>,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
@@ -680,7 +680,7 @@ pub struct Plan {
     /// Exact reusable Forms selected while expanding high-level Kinds.
     /// Empty means the checked form reached primitive implementations directly.
     #[serde(default)]
-    pub realization_backs: Vec<RealizationBack>,
+    pub realization_backs: Vec<FormBack>,
     pub fragments: Vec<PlanFragment>,
 }
 
@@ -703,7 +703,7 @@ pub fn seal_plan_with_completion(
 
 pub fn seal_plan_with_realization_backs(
     form_identity: FormIdentity,
-    realization_backs: Vec<RealizationBack>,
+    realization_backs: Vec<FormBack>,
     fragments: Vec<PlanFragment>,
 ) -> Plan {
     seal_plan_with_realization_backs_and_completion(
@@ -717,7 +717,7 @@ pub fn seal_plan_with_realization_backs(
 pub fn seal_plan_with_realization_backs_and_completion(
     form_identity: FormIdentity,
     completion_policy: PlanCompletionPolicy,
-    mut realization_backs: Vec<RealizationBack>,
+    mut realization_backs: Vec<FormBack>,
     mut fragments: Vec<PlanFragment>,
 ) -> Plan {
     realization_backs.sort();

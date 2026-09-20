@@ -4,7 +4,7 @@ use conduit_core::{
     authority_grant, kind_id, port_id, ArtifactId, AuthorityContractId, AuthorityGrant,
     AuthorityRequirement, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement,
-    HostProfileId, ImplementationId, KindContractRevision, LineId, LinkBindingId, LinkEndpointId,
+    HostProfileId, ImplementationId, KindIdentity, LineId, LinkBindingId, LinkEndpointId,
     OfferGeneration, PortDescriptor, PortDirection, PortTemporal, ResourceClassId, ResourceHealth,
     ResourceObservation, ResourceOffer, ResourcePoolId, ResourceRequirement, SignId,
     PROTOCOL_VERSION,
@@ -38,7 +38,7 @@ fn port(direction: PortDirection) -> PortDescriptor {
 fn definition(kind: &str) -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: (kind == SINK)
             .then(|| port(PortDirection::Input))
             .into_iter()
@@ -509,7 +509,7 @@ fn stale_history_resource_line_authority_and_revisions_refuse_specifically() {
 
     let mut incompatible = current.clone();
     incompatible.capabilities[0].kind_contract_revision =
-        KindContractRevision::from("test/dormant-sink@obsolete");
+        KindIdentity::from("test/dormant-sink@obsolete");
     assert_eq!(
         observe(
             &incompatible,

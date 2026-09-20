@@ -1,6 +1,6 @@
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 
 pub const BODY_CHAT_PROMPT_STD_IMPLEMENTATION: &str = "std/body-chat-prompt@3";
@@ -25,9 +25,9 @@ pub fn body_chat_prompt_std_offer() -> CapabilityOffer {
         maximum_input_bytes: input,
         maximum_output_bytes: output,
     };
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("body-chat-prompt"),
             execution_profile_id: ExecutionProfileId::from(BODY_CHAT_PROMPT_STD_PROFILE),
             implementation_id: ImplementationId::from(BODY_CHAT_PROMPT_STD_IMPLEMENTATION),
@@ -59,9 +59,9 @@ pub fn body_chat_prompt_std_offer() -> CapabilityOffer {
 pub fn body_conversation_context_std_offer() -> CapabilityOffer {
     let contract = conduit_chat::body_conversation_context_semantic_contract();
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("body-conversation-context"),
             execution_profile_id: ExecutionProfileId::from(BODY_CONVERSATION_CONTEXT_STD_PROFILE),
             implementation_id: ImplementationId::from(BODY_CONVERSATION_CONTEXT_STD_IMPLEMENTATION),

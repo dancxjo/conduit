@@ -146,7 +146,7 @@ pub(super) fn expanded_identity(
     connections: &[CheckedConnection],
     shared_pools: &[ExpandedSharedPool],
     provenance: &[ExpandedGearProvenance],
-    realization_backs: &[conduit_core::RealizationBack],
+    realization_backs: &[conduit_core::FormBack],
 ) -> ExpandedFormId {
     let mut canonical = format!("canonical-expanded:{}", form.checked_form_id.as_str());
     for gear in gears {

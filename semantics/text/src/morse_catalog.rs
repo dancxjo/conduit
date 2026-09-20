@@ -2,7 +2,7 @@
 
 use alloc::vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
     PortDirection, PortTemporal,
 };
 
@@ -125,7 +125,7 @@ fn contract_with_ports(
 ) -> MorseKindContract {
     MorseKindContract {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(MORSE_COMPOSITION_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(MORSE_COMPOSITION_CONTRACT_REVISION),
         inputs: vec![port(input_port, input_kind, PortDirection::Input)],
         outputs: vec![port(output_port, output_kind, PortDirection::Output)],
         configuration: configuration.into_iter().collect(),

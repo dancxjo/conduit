@@ -4,7 +4,7 @@ use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ExecutionProfileId, FrontStartupParameter, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision, KindId,
+    HostOperationRequirement, ImplementationId, ImplementationOffer, KindId, KindIdentity,
     PortDescriptor, PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
@@ -27,7 +27,7 @@ pub const MAXIMUM_VECTOR_SEARCH_PROCESS_IDENTITY_BYTES: usize = 256;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VectorSearchContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub maximum_input_bytes: u32,
@@ -61,7 +61,7 @@ pub struct VectorSearchValue<T> {
 pub fn vector_search_contract() -> VectorSearchContract {
     VectorSearchContract {
         kind_id: kind_id(VECTOR_SEARCH_KIND),
-        kind_contract_revision: KindContractRevision::from(VECTOR_SEARCH_REVISION),
+        kind_contract_revision: KindIdentity::from(VECTOR_SEARCH_REVISION),
         inputs: vec![port(
             "query",
             SIMILARITY_QUERY_VALUE_KIND,

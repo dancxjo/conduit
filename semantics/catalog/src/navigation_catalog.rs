@@ -6,9 +6,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal, SemanticCapabilityContract, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -77,16 +76,16 @@ pub fn navigation_kind_contracts() -> Vec<NavigationKindContract> {
     ]
 }
 
-pub fn navigation_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+pub fn navigation_semantic_contracts() -> Vec<Kind> {
     navigation_kind_contracts()
         .into_iter()
         .map(|(kind_id, inputs, outputs)| {
             let max_queue_items = inputs.len() as u16;
-            SemanticCapabilityContract {
+            Kind {
                 startup_parameters: vec![],
                 shorthand: None,
                 kind_id,
-                kind_contract_revision: KindContractRevision::from(NAVIGATION_REVISION),
+                kind_contract_revision: KindIdentity::from(NAVIGATION_REVISION),
                 inputs,
                 outputs,
                 limits: CapabilityLimits {
@@ -119,7 +118,7 @@ pub fn install_navigation_catalogs(
         profile
             .insert(KindDefinition {
                 kind_id: kind,
-                kind_contract_revision: KindContractRevision::from(NAVIGATION_REVISION),
+                kind_contract_revision: KindIdentity::from(NAVIGATION_REVISION),
                 inputs,
                 outputs,
                 configuration: vec![],

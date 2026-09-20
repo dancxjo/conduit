@@ -1,9 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
-    kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PlannedGear,
+    kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
@@ -63,9 +62,9 @@ pub(crate) fn client_offer_for(
         conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
         conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
     );
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
@@ -106,9 +105,9 @@ pub(crate) fn server_offer() -> CapabilityOffer {
         conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
         0,
     );
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("std-http-server-http1"),
             execution_profile_id: ExecutionProfileId::from(SERVER_PROFILE),
             implementation_id: ImplementationId::from(SERVER_IMPLEMENTATION),

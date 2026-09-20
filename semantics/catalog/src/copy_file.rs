@@ -4,7 +4,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
     StructuredInfoType, StructuredVariantCase,
 };
 
@@ -106,16 +106,14 @@ pub fn install_copy_file_catalog(catalog: &mut conduit_form::ProfileCatalog) -> 
     for definition in [
         conduit_form::KindDefinition {
             kind_id: kind_id(COPY_FILE_KIND),
-            kind_contract_revision: KindContractRevision::from(COPY_FILE_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(COPY_FILE_CONTRACT_REVISION),
             inputs: Vec::new(),
             outputs: vec![result_port(PortDirection::Output)],
             configuration: Vec::new(),
         },
         conduit_form::KindDefinition {
             kind_id: kind_id(crate::STRUCTURED_PRESENTATION_KIND),
-            kind_contract_revision: KindContractRevision::from(
-                crate::STRUCTURED_PRESENTATION_REVISION,
-            ),
+            kind_contract_revision: KindIdentity::from(crate::STRUCTURED_PRESENTATION_REVISION),
             inputs: vec![result_port(PortDirection::Input)],
             outputs: Vec::new(),
             configuration: Vec::new(),

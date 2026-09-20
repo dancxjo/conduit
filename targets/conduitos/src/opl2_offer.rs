@@ -5,7 +5,7 @@ use conduit_audio::NOTE_EVENT_ENCODED_LEN;
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
     HostAdvertisement, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, resource_offer,
+    ImplementationOffer, KindIdentity, resource_offer,
 };
 
 pub const OPL2_IMPLEMENTATION: &str = "conduitos/opl2-fixed-fm-music@1";
@@ -162,9 +162,7 @@ pub fn append_to_advertisement(
         shorthand: None,
         capability_id: CapabilityId::from(OPL2_CAPABILITY),
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::MUSIC_PLAY_REVISION,
-        ),
+        kind_contract_revision: KindIdentity::from(conduit_semantic_catalog::MUSIC_PLAY_REVISION),
         inputs: contract.inputs,
         outputs: contract.outputs,
         implementation: ImplementationOffer {

@@ -2,10 +2,9 @@
 
 use conduit_core::{
     monotonic_timer_host_operation_requirement, monotonic_timer_resource_requirement,
-    resource_requirement, wait_host_operation_requirement, ArtifactId, CapabilityId,
-    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId,
-    HostOperationRequirement, ImplementationId, ResourceRequirement, SemanticCapabilityContract,
-    TIMER_RESOURCE_CLASS,
+    resource_requirement, wait_host_operation_requirement, ArtifactId, Back, BackOfferBuilder,
+    CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationRequirement, ImplementationId,
+    Kind, ResourceRequirement, TIMER_RESOURCE_CLASS,
 };
 
 pub const TICK_EXECUTION_PROFILE: &str = "conduit.std/time-tick-kernel-hosted@2";
@@ -113,7 +112,7 @@ pub fn time_throttle_offer() -> CapabilityOffer {
 }
 
 fn timing_offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     capability: &str,
     profile: &str,
     implementation: &str,
@@ -130,10 +129,7 @@ fn timing_offer(
     )
 }
 
-fn monotonic_offer(
-    contract: SemanticCapabilityContract,
-    identity: Identity<'_>,
-) -> CapabilityOffer {
+fn monotonic_offer(contract: Kind, identity: Identity<'_>) -> CapabilityOffer {
     offer(
         contract,
         identity,
@@ -151,14 +147,14 @@ struct Identity<'a> {
 }
 
 fn offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     identity: Identity<'_>,
     host_operations: Vec<HostOperationRequirement>,
     resources: Vec<ResourceRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(identity.capability),
             execution_profile_id: ExecutionProfileId::from(identity.profile),
             implementation_id: ImplementationId::from(identity.implementation),

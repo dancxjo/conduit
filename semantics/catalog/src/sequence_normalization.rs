@@ -6,10 +6,9 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, StructuredFieldType, StructuredFieldValue,
-    StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
+    StructuredInfoValue, StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -51,7 +50,7 @@ pub fn normalized_duration_sequence_type() -> StructuredInfoType {
 pub fn normalize_relative_duration_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(NORMALIZE_SEQUENCE_KIND),
-        kind_contract_revision: KindContractRevision::from(NORMALIZE_SEQUENCE_REVISION),
+        kind_contract_revision: KindIdentity::from(NORMALIZE_SEQUENCE_REVISION),
         inputs: vec![value_port(
             "intervals",
             &crate::interval_sequence_type(),
@@ -66,9 +65,9 @@ pub fn normalize_relative_duration_definition() -> KindDefinition {
     }
 }
 
-pub fn normalize_relative_duration_semantic_contract() -> SemanticCapabilityContract {
+pub fn normalize_relative_duration_semantic_contract() -> Kind {
     let definition = normalize_relative_duration_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
         kind_id: definition.kind_id,

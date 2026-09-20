@@ -75,7 +75,7 @@ fn expand_instance(
     environment: &BTreeMap<String, CanonicalStartupValue>,
     path: &[String],
     stack: &mut Vec<String>,
-    realization_backs: &mut Vec<conduit_core::RealizationBack>,
+    realization_backs: &mut Vec<conduit_core::FormBack>,
     depth: usize,
 ) -> Result<Fragment, CanonicalExpansionDiagnostic> {
     if depth > MAXIMUM_FORM_NESTING_DEPTH {
@@ -117,7 +117,7 @@ fn expand_instance_inner(
     environment: &BTreeMap<String, CanonicalStartupValue>,
     path: &[String],
     stack: &mut Vec<String>,
-    realization_backs: &mut Vec<conduit_core::RealizationBack>,
+    realization_backs: &mut Vec<conduit_core::FormBack>,
     depth: usize,
 ) -> Result<Fragment, CanonicalExpansionDiagnostic> {
     let scoped_environment = bind_pool_environment(form, environment, path)?;
@@ -296,7 +296,7 @@ fn instantiate_gear(
     environment: &BTreeMap<String, CanonicalStartupValue>,
     path: &[String],
     stack: &mut Vec<String>,
-    realization_backs: &mut Vec<conduit_core::RealizationBack>,
+    realization_backs: &mut Vec<conduit_core::FormBack>,
     depth: usize,
     gears: &mut Vec<CheckedGear>,
     connections: &mut Vec<CheckedConnection>,

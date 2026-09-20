@@ -6,8 +6,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -22,7 +22,7 @@ pub const TABULAR_PROVIDER_KIND: &str = "tabular/person-query-four";
 pub const TABULAR_FILTER_KIND: &str = "tabular/filter-active-four";
 pub const TABULAR_REVISION: &str = "conduit.std/tabular-query@1";
 
-pub fn tabular_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+pub fn tabular_semantic_contracts() -> Vec<Kind> {
     let result = tabular_query_result_type();
     [
         (
@@ -37,11 +37,11 @@ pub fn tabular_semantic_contracts() -> Vec<SemanticCapabilityContract> {
         ),
     ]
     .into_iter()
-    .map(|(kind, inputs, outputs)| SemanticCapabilityContract {
+    .map(|(kind, inputs, outputs)| Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(TABULAR_REVISION),
+        kind_contract_revision: KindIdentity::from(TABULAR_REVISION),
         inputs,
         outputs,
         limits: CapabilityLimits {

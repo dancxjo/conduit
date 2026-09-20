@@ -1,8 +1,8 @@
 use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
-    kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, KindContractRevision,
-    Quantity, QuantityUnit, SemanticCapabilityContract,
+    kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, KindIdentity,
+    Quantity, QuantityUnit,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
@@ -22,7 +22,7 @@ use conduit_core::{port_id, PortDescriptor, PortDirection, PortTemporal};
 pub fn tick_kind_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(TICK_KIND),
-        kind_contract_revision: KindContractRevision::from(TICK_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(TICK_CONTRACT_REVISION),
         inputs: alloc::vec::Vec::new(),
         outputs: tick_outputs(),
         configuration: vec![
@@ -49,7 +49,7 @@ pub fn tick_kind_definition() -> KindDefinition {
 pub fn time_every_kind_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(TIME_EVERY_KIND),
-        kind_contract_revision: KindContractRevision::from(TIME_EVERY_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(TIME_EVERY_CONTRACT_REVISION),
         inputs: alloc::vec::Vec::new(),
         outputs: time_every_outputs(),
         configuration: vec![ConfigurationField {
@@ -154,7 +154,7 @@ pub fn install_rhythm_catalog(
 pub fn rhythm_state_source_kind_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(crate::RHYTHM_STATE_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(crate::RHYTHM_STATE_SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(crate::RHYTHM_STATE_SOURCE_REVISION),
         inputs: vec![],
         outputs: vec![flow_port(
             "state",
@@ -174,9 +174,9 @@ pub fn rhythm_state_source_kind_definition() -> KindDefinition {
     }
 }
 
-pub fn rhythm_state_source_semantic_contract() -> SemanticCapabilityContract {
+pub fn rhythm_state_source_semantic_contract() -> Kind {
     let definition = rhythm_state_source_kind_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: [
             "sequence",
             "next-pulse-at-ms",
@@ -217,7 +217,7 @@ fn count_field(key: &str, minimum: u64, maximum: u64) -> ConfigurationField {
 pub fn phase_synchronize_kind_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(PHASE_SYNCHRONIZE_KIND),
-        kind_contract_revision: KindContractRevision::from(PHASE_SYNCHRONIZE_REVISION),
+        kind_contract_revision: KindIdentity::from(PHASE_SYNCHRONIZE_REVISION),
         inputs: vec![
             flow_port("local", RHYTHM_STATE_VALUE_KIND, PortDirection::Input),
             flow_port("peer", PULSE_OBSERVATION_VALUE_KIND, PortDirection::Input),
@@ -231,9 +231,9 @@ pub fn phase_synchronize_kind_definition() -> KindDefinition {
     }
 }
 
-pub fn phase_synchronize_semantic_contract() -> SemanticCapabilityContract {
+pub fn phase_synchronize_semantic_contract() -> Kind {
     let definition = phase_synchronize_kind_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: definition.kind_id,
@@ -253,7 +253,7 @@ pub fn phase_synchronize_semantic_contract() -> SemanticCapabilityContract {
 pub fn pulse_observe_kind_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(PULSE_OBSERVE_KIND),
-        kind_contract_revision: KindContractRevision::from(PULSE_OBSERVE_REVISION),
+        kind_contract_revision: KindIdentity::from(PULSE_OBSERVE_REVISION),
         inputs: vec![flow_port("tick", TICK_VALUE_KIND, PortDirection::Input)],
         outputs: vec![flow_port(
             "observation",
@@ -271,9 +271,9 @@ pub fn pulse_observe_kind_definition() -> KindDefinition {
     }
 }
 
-pub fn pulse_observe_semantic_contract() -> SemanticCapabilityContract {
+pub fn pulse_observe_semantic_contract() -> Kind {
     let definition = pulse_observe_kind_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "period-ms".into(),
             value_type: kind_id("value/count"),

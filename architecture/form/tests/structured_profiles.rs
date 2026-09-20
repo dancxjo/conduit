@@ -1,5 +1,5 @@
 use conduit_core::{
-    port_id, KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
+    port_id, KindId, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
     StructuredFieldType, StructuredInfoType,
 };
 use conduit_form::{
@@ -92,7 +92,7 @@ fn canonical_expansion_checks_the_resolved_profile_not_the_alias() {
 
     let definition = |value_kind| KindDefinition {
         kind_id: KindId::from("music/source"),
-        kind_contract_revision: KindContractRevision::from("music/source@1"),
+        kind_contract_revision: KindIdentity::from("music/source@1"),
         inputs: vec![],
         outputs: vec![PortDescriptor {
             port_id: port_id("event"),

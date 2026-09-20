@@ -3,12 +3,11 @@ use conduit_core::{
     kind_id, mandatory_sign_storage_requirement, seal_plan, ArtifactId, AuthorityGrantId, BootId,
     CancellationPolicy, CapabilityId, CapabilityLimits, CheckedFormId, CheckedFront,
     ExecutionProfileId, ExpandedFormId, ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId,
-    GearId, HostId, ImplementationId, KindContractRevision, OfferGeneration, PlacementId,
-    PlanFragment, PlanId, PlannedGear, PlannedSharedPool, PlanningRequestAuthority,
-    PlayUnsatisfiedReason, PoolDeclarationId, PoolMemberLimits, PoolOperationId,
-    PoolRealizationEnvelope, PoolRealizationHealth, PoolRealizationObservation,
-    PoolSelectionDisposition, SharedPoolId, SignId, SignStorageBudget, SourceDocumentId,
-    TerminalPolicy,
+    GearId, HostId, ImplementationId, KindIdentity, OfferGeneration, PlacementId, PlanFragment,
+    PlanId, PlannedGear, PlannedSharedPool, PlanningRequestAuthority, PlayUnsatisfiedReason,
+    PoolDeclarationId, PoolMemberLimits, PoolOperationId, PoolRealizationEnvelope,
+    PoolRealizationHealth, PoolRealizationObservation, PoolSelectionDisposition, SharedPoolId,
+    SignId, SignStorageBudget, SourceDocumentId, TerminalPolicy,
 };
 use conduit_kernel::{shared_pool::MemberKey, NodeId};
 
@@ -69,7 +68,7 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
             placement_id: PlacementId::from("model-consumer"),
             gear_id: GearId::from("model-consumer"),
             kind_id: kind_id("test/model-consumer"),
-            kind_contract_revision: KindContractRevision::from("test/model-consumer@1"),
+            kind_contract_revision: KindIdentity::from("test/model-consumer@1"),
             execution_profile_id: ExecutionProfileId::from("test/hosted@1"),
             configuration: vec![],
             host_id: HostId::from("coordinator"),

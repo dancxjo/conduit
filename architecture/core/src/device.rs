@@ -210,8 +210,7 @@ mod tests {
     use super::*;
     use crate::{
         ArtifactId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostProfileId,
-        ImplementationId, ImplementationOffer, KindContractRevision, KindId,
-        PlannerCapabilityOffer,
+        ImplementationId, ImplementationOffer, KindId, KindIdentity, PlannerCapabilityOffer,
     };
 
     fn offer(id: &str) -> CapabilityOffer {
@@ -220,7 +219,7 @@ mod tests {
             shorthand: None,
             capability_id: CapabilityId::from(id),
             kind_id: KindId::from("input/example@1"),
-            kind_contract_revision: KindContractRevision::from("revision/1"),
+            kind_contract_revision: KindIdentity::from("revision/1"),
             implementation: ImplementationOffer {
                 execution_profile_id: ExecutionProfileId::from("fixture/profile@1"),
                 implementation_id: ImplementationId::from("fixture/input@1"),

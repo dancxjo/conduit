@@ -2,10 +2,10 @@
 
 use alloc::vec;
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostOperationRequirement,
-    ImplementationId, ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, ResourceRequirement, SemanticCapabilityContract,
+    kind_id, port_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ExecutionProfileId, HostOperationRequirement, ImplementationId,
+    ImplementationOffer, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    ResourceRequirement,
 };
 
 pub const RENDERER_KIND: &str = "presentation/renderer";
@@ -179,12 +179,12 @@ fn semantic_contract(
     inputs: alloc::vec::Vec<PortDescriptor>,
     outputs: alloc::vec::Vec<PortDescriptor>,
     max_queue_bytes: u32,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+) -> Kind {
+    Kind {
         startup_parameters: alloc::vec::Vec::new(),
         shorthand: None,
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         inputs,
         outputs,
         limits: CapabilityLimits {
@@ -195,7 +195,7 @@ fn semantic_contract(
     }
 }
 
-fn renderer_contract() -> SemanticCapabilityContract {
+fn renderer_contract() -> Kind {
     semantic_contract(
         RENDERER_KIND,
         RENDERER_CONTRACT_REVISION,
@@ -205,7 +205,7 @@ fn renderer_contract() -> SemanticCapabilityContract {
     )
 }
 
-fn interaction_contract() -> SemanticCapabilityContract {
+fn interaction_contract() -> Kind {
     semantic_contract(
         INTERACTION_KIND,
         INTERACTION_CONTRACT_REVISION,
@@ -215,7 +215,7 @@ fn interaction_contract() -> SemanticCapabilityContract {
     )
 }
 
-fn presentation_tee_contract() -> SemanticCapabilityContract {
+fn presentation_tee_contract() -> Kind {
     semantic_contract(
         PRESENTATION_TEE_KIND,
         PRESENTATION_TEE_CONTRACT_REVISION,
@@ -225,7 +225,7 @@ fn presentation_tee_contract() -> SemanticCapabilityContract {
     )
 }
 
-fn presenter_stage_contract() -> SemanticCapabilityContract {
+fn presenter_stage_contract() -> Kind {
     semantic_contract(
         PRESENTER_STAGE_KIND,
         PRESENTER_STAGE_CONTRACT_REVISION,
@@ -236,16 +236,16 @@ fn presenter_stage_contract() -> SemanticCapabilityContract {
 }
 
 fn build_offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     capability_id: CapabilityId,
     implementation: ImplementationOffer,
     host_operations: alloc::vec::Vec<HostOperationRequirement>,
     resource_requirements: alloc::vec::Vec<ResourceRequirement>,
     limits: CapabilityLimits,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id,
             execution_profile_id: implementation.execution_profile_id,
             implementation_id: implementation.implementation_id,
@@ -264,7 +264,7 @@ fn build_offer(
 pub fn renderer_kind_definition() -> conduit_form::KindDefinition {
     conduit_form::KindDefinition {
         kind_id: kind_id(RENDERER_KIND),
-        kind_contract_revision: KindContractRevision::from(RENDERER_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(RENDERER_CONTRACT_REVISION),
         inputs: renderer_inputs(),
         outputs: renderer_outputs(),
         configuration: alloc::vec::Vec::new(),
@@ -275,7 +275,7 @@ pub fn renderer_kind_definition() -> conduit_form::KindDefinition {
 pub fn interaction_kind_definition() -> conduit_form::KindDefinition {
     conduit_form::KindDefinition {
         kind_id: kind_id(INTERACTION_KIND),
-        kind_contract_revision: KindContractRevision::from(INTERACTION_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(INTERACTION_CONTRACT_REVISION),
         inputs: interaction_inputs(),
         outputs: interaction_outputs(),
         configuration: alloc::vec::Vec::new(),
@@ -286,7 +286,7 @@ pub fn interaction_kind_definition() -> conduit_form::KindDefinition {
 pub fn presentation_tee_kind_definition() -> conduit_form::KindDefinition {
     conduit_form::KindDefinition {
         kind_id: kind_id(PRESENTATION_TEE_KIND),
-        kind_contract_revision: KindContractRevision::from(PRESENTATION_TEE_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(PRESENTATION_TEE_CONTRACT_REVISION),
         inputs: presentation_tee_inputs(),
         outputs: presentation_tee_outputs(),
         configuration: alloc::vec::Vec::new(),
@@ -297,7 +297,7 @@ pub fn presentation_tee_kind_definition() -> conduit_form::KindDefinition {
 pub fn presenter_stage_kind_definition() -> conduit_form::KindDefinition {
     conduit_form::KindDefinition {
         kind_id: kind_id(PRESENTER_STAGE_KIND),
-        kind_contract_revision: KindContractRevision::from(PRESENTER_STAGE_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(PRESENTER_STAGE_CONTRACT_REVISION),
         inputs: presenter_stage_inputs(),
         outputs: presenter_stage_outputs(),
         configuration: alloc::vec::Vec::new(),

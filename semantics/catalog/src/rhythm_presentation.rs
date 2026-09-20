@@ -49,7 +49,7 @@ pub fn install_rhythm_presentation_catalog(
     profile
         .insert(KindDefinition {
             kind_id: contract.kind_id,
-            kind_contract_revision: conduit_core::KindContractRevision::from(
+            kind_contract_revision: conduit_core::KindIdentity::from(
                 RHYTHM_PRESENTATION_CONTRACT_REVISION,
             ),
             inputs: contract.inputs,

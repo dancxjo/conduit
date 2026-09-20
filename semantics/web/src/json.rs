@@ -5,8 +5,7 @@ use crate::PortableKindContract;
 use alloc::string::ToString;
 use alloc::vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal,
+    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const JSON_ENCODE_KIND: &str = "json/encode";
@@ -75,7 +74,7 @@ pub fn install_json_catalogs(
 fn contract(kind: &str, revision: &str, input: &str, output: &str) -> PortableKindContract {
     PortableKindContract {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         inputs: vec![port(input, PortDirection::Input)],
         outputs: vec![port(output, PortDirection::Output)],
         limits: CapabilityLimits {

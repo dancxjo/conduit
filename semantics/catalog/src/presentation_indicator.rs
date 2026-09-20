@@ -3,8 +3,8 @@
 use super::{StandardKindContract, TerminalBehavior};
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 
 pub const INDICATOR_PRESENTATION_KIND: &str = "presentation/indicator";
@@ -35,15 +35,13 @@ pub fn indicator_presentation_contract() -> StandardKindContract {
     }
 }
 
-pub fn indicator_presentation_semantic_contract() -> SemanticCapabilityContract {
+pub fn indicator_presentation_semantic_contract() -> Kind {
     let contract = indicator_presentation_contract();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            INDICATOR_PRESENTATION_CONTRACT_REVISION,
-        ),
+        kind_contract_revision: KindIdentity::from(INDICATOR_PRESENTATION_CONTRACT_REVISION),
         inputs: contract.inputs,
         outputs: contract.outputs,
         limits: contract.limits,
@@ -72,9 +70,7 @@ pub fn install_indicator_presentation_catalog(
     profile
         .insert(KindDefinition {
             kind_id: kind_id(INDICATOR_PRESENTATION_KIND),
-            kind_contract_revision: KindContractRevision::from(
-                INDICATOR_PRESENTATION_CONTRACT_REVISION,
-            ),
+            kind_contract_revision: KindIdentity::from(INDICATOR_PRESENTATION_CONTRACT_REVISION),
             inputs: indicator_presentation_inputs(),
             outputs: Vec::new(),
             configuration: Vec::new(),

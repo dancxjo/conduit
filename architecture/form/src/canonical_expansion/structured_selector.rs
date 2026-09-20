@@ -1,7 +1,7 @@
 use super::*;
 use crate::{ConfigurationField, ConfigurationRule, KindDefinition};
 use conduit_core::{
-    ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    ConfigurationValue, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
     StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
@@ -14,7 +14,7 @@ pub fn structured_selector_definition(
         .expect("checked selector has a finite semantic identity");
     KindDefinition {
         kind_id,
-        kind_contract_revision: KindContractRevision::from("structured-info/selector-operation@1"),
+        kind_contract_revision: KindIdentity::from("structured-info/selector-operation@1"),
         inputs: vec![PortDescriptor {
             port_id: conduit_core::port_id("input"),
             value_kind: selector
@@ -69,7 +69,7 @@ pub(super) fn resolve_selectors(
     environment: &BTreeMap<String, CanonicalStartupValue>,
     path: &[String],
     stack: &mut Vec<String>,
-    realization_backs: &mut Vec<conduit_core::RealizationBack>,
+    realization_backs: &mut Vec<conduit_core::FormBack>,
     depth: usize,
     gears: &mut Vec<CheckedGear>,
     connections: &mut Vec<CheckedConnection>,

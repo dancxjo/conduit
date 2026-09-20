@@ -5,9 +5,9 @@ use crate::{StandardKindContract, TerminalBehavior};
 use alloc::string::String;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, PortDescriptor, PortDirection, PortTemporal, Quantity,
-    QuantityUnit, SemanticCapabilityContract, StructuredInfoType, StructuredInfoValue,
-    QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID,
+    kind_id, port_id, CapabilityLimits, Kind, PortDescriptor, PortDirection, PortTemporal,
+    Quantity, QuantityUnit, StructuredInfoType, StructuredInfoValue, QUANTITY_ENCODED_LEN,
+    QUANTITY_INFO_ID,
 };
 
 pub const QUANTITY_INFO_WRAP_KIND: &str = "structured-info/wrap-quantity";
@@ -69,9 +69,9 @@ pub fn quantity_info_wrap_contract() -> StandardKindContract {
     }
 }
 
-pub fn quantity_info_wrap_semantic_contract() -> SemanticCapabilityContract {
+pub fn quantity_info_wrap_semantic_contract() -> Kind {
     let contract = quantity_info_wrap_contract();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
         kind_id: contract.kind_id,
@@ -93,8 +93,8 @@ pub fn quantity_presentation_definition() -> conduit_form::KindDefinition {
     }
 }
 
-pub fn quantity_presentation_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn quantity_presentation_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
         kind_id: kind_id(QUANTITY_PRESENTATION_KIND),
@@ -131,9 +131,7 @@ pub fn install_quantity_info_catalog(
     profile
         .insert(conduit_form::KindDefinition {
             kind_id: contract.kind_id,
-            kind_contract_revision: conduit_core::KindContractRevision::from(
-                QUANTITY_INFO_WRAP_REVISION,
-            ),
+            kind_contract_revision: conduit_core::KindIdentity::from(QUANTITY_INFO_WRAP_REVISION),
             inputs: contract.inputs,
             outputs: contract.outputs,
             configuration: Vec::new(),

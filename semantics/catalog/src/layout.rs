@@ -9,7 +9,7 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
     PortDirection, PortTemporal,
 };
 use conduit_presentation::{
@@ -242,7 +242,7 @@ pub fn install_layout_catalogs(
         profile
             .insert(KindDefinition {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(LAYOUT_CONTRACT_REVISION),
+                kind_contract_revision: KindIdentity::from(LAYOUT_CONTRACT_REVISION),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration,

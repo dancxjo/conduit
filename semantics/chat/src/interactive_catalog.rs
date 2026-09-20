@@ -6,11 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, resource_offer, resource_requirement, ArtifactId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, FrontStartupParameter, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, ResourceOffer, SemanticCapabilityContract,
+    kind_id, port_id, resource_offer, resource_requirement, ArtifactId, Back, BackOfferBuilder,
+    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, ResourceOffer,
 };
 use conduit_presentation::{
     interaction_offer, presentation_tee_offer, renderer_offer, InteractionRealizationOffer,
@@ -159,9 +158,9 @@ fn chat_transport_adapter_offer(
     input_temporal: PortTemporal,
     output_temporal: PortTemporal,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         chat_transport_adapter_contract(kind, input, output, input_temporal, output_temporal),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(kind),
             execution_profile_id: ExecutionProfileId::from("conduit.chat/transport-text-adapter@1"),
             implementation_id: ImplementationId::from("chat/transport-text-adapter@1"),
@@ -184,12 +183,12 @@ fn chat_transport_adapter_contract(
     output: &str,
     input_temporal: PortTemporal,
     output_temporal: PortTemporal,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+) -> Kind {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from("conduit.chat/transport-text-adapter@1"),
+        kind_contract_revision: KindIdentity::from("conduit.chat/transport-text-adapter@1"),
         inputs: vec![port("value", input, PortDirection::Input, input_temporal)],
         outputs: vec![port(
             "value",
@@ -202,9 +201,9 @@ fn chat_transport_adapter_contract(
 }
 
 pub fn chat_state_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         chat_state_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("browser/chat-state"),
             execution_profile_id: ExecutionProfileId::from("conduit.chat/state-kernel@1"),
             implementation_id: ImplementationId::from("chat/portable-state@1"),
@@ -228,8 +227,8 @@ pub fn chat_state_offer() -> CapabilityOffer {
     .build()
 }
 
-fn chat_state_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn chat_state_contract() -> Kind {
+    Kind {
         startup_parameters: CHAT_CONFIGURATION_FIELDS
             .iter()
             .map(|(name, value_type)| FrontStartupParameter {
@@ -244,7 +243,7 @@ fn chat_state_contract() -> SemanticCapabilityContract {
             .collect(),
         shorthand: None,
         kind_id: kind_id(CHAT_STATE_KIND),
-        kind_contract_revision: KindContractRevision::from(CHAT_STATE_REVISION),
+        kind_contract_revision: KindIdentity::from(CHAT_STATE_REVISION),
         inputs: chat_state_inputs(),
         outputs: vec![port(
             "presentation",
@@ -260,9 +259,9 @@ fn chat_state_contract() -> SemanticCapabilityContract {
 }
 
 pub fn chat_submit_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         chat_submit_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("browser/chat-submit"),
             execution_profile_id: ExecutionProfileId::from("conduit.chat/submit-kernel@1"),
             implementation_id: ImplementationId::from("chat/typed-submit@1"),
@@ -279,8 +278,8 @@ pub fn chat_submit_offer() -> CapabilityOffer {
     .build()
 }
 
-fn chat_submit_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn chat_submit_contract() -> Kind {
+    Kind {
         startup_parameters: vec![
             FrontStartupParameter {
                 name: "action".into(),
@@ -295,7 +294,7 @@ fn chat_submit_contract() -> SemanticCapabilityContract {
         ],
         shorthand: None,
         kind_id: kind_id(CHAT_SUBMIT_KIND),
-        kind_contract_revision: KindContractRevision::from(CHAT_SUBMIT_REVISION),
+        kind_contract_revision: KindIdentity::from(CHAT_SUBMIT_REVISION),
         inputs: vec![port(
             "interaction",
             conduit_presentation::PRESENTATION_INTERACTION_VALUE_KIND,

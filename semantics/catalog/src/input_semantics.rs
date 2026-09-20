@@ -10,10 +10,10 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 #[cfg(feature = "form-catalog")]
-use conduit_core::KindContractRevision;
+use conduit_core::KindIdentity;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use conduit_human::{
     CHORD_ENCODED_LEN, CHORD_INFO_ID, CONDUIT_INTL_LAYOUT, CORE_CHORD_MAP, KEY_EVENT_ENCODED_LEN,
@@ -138,20 +138,20 @@ pub fn chords_contract() -> StandardKindContract {
     }
 }
 
-pub fn key_event_tee_semantic_contract() -> SemanticCapabilityContract {
+pub fn key_event_tee_semantic_contract() -> Kind {
     semantic_contract(key_event_tee_contract(), KEY_EVENT_TEE_REVISION)
 }
 
-pub fn keymap_semantic_contract() -> SemanticCapabilityContract {
+pub fn keymap_semantic_contract() -> Kind {
     semantic_contract(keymap_contract(), KEYMAP_REVISION)
 }
 
-pub fn chords_semantic_contract() -> SemanticCapabilityContract {
+pub fn chords_semantic_contract() -> Kind {
     semantic_contract(chords_contract(), CHORDS_REVISION)
 }
 
-fn semantic_contract(contract: StandardKindContract, revision: &str) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
+    Kind {
         startup_parameters: super::startup_front(&contract.configuration),
         shorthand: None,
         kind_id: contract.kind_id,
@@ -233,7 +233,7 @@ pub fn install_input_semantic_catalogs(
         profile
             .insert(KindDefinition {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration,

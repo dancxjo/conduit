@@ -9,9 +9,9 @@ use conduit_core::{
     present_host_operation_requirement, resource_offer, resource_requirement,
     wait_host_operation_requirement, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostAdvertisement, HostId,
-    HostProfileId, KindContractRevision, Observation, ObservationKind, OfferGeneration,
-    PlacementId, PlanFragment, PortDescriptor, PortDirection, PresentationId, TerminalDisposition,
-    ValuePayload, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
+    HostProfileId, KindIdentity, Observation, ObservationKind, OfferGeneration, PlacementId,
+    PlanFragment, PortDescriptor, PortDirection, PresentationId, TerminalDisposition, ValuePayload,
+    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
 use conduit_form::{
     CheckedForm, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog,
@@ -654,8 +654,8 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
     }
 }
 
-fn revision(kind: &str) -> KindContractRevision {
-    KindContractRevision::from(format!("conduit.std/{kind}-tick@1"))
+fn revision(kind: &str) -> KindIdentity {
+    KindIdentity::from(format!("conduit.std/{kind}-tick@1"))
 }
 
 pub fn execute_fragment<W: Write, T: TimerAdapter>(

@@ -7,11 +7,11 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId, AuthorityGrant,
-    AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostAdvertisement, HostId,
-    HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
-    KindContractRevision, OfferGeneration, PortDescriptor, PortDirection, PortId, PortTemporal,
-    ResourceBinding, ResourceOffer, SemanticCapabilityContract, PROTOCOL_VERSION,
+    AuthorityRequirement, Back, BackOfferBuilder, BootId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
+    HostOperationRequirement, HostProfileId, ImplementationId, Kind, KindIdentity, OfferGeneration,
+    PortDescriptor, PortDirection, PortId, PortTemporal, ResourceBinding, ResourceOffer,
+    PROTOCOL_VERSION,
 };
 
 mod external_websocket;
@@ -86,9 +86,9 @@ pub fn network_join_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         network_join_contract(),
-        CapabilityRealization {
+        Back {
             capability_id,
             execution_profile_id: ExecutionProfileId::from("conduit.network/join-base@1"),
             implementation_id,
@@ -113,12 +113,12 @@ pub fn network_join_offer(
     .build()
 }
 
-fn network_join_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn network_join_contract() -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: Some((PortId::from("request"), PortId::from("attachment"))),
         kind_id: kind_id(NETWORK_JOIN_OPERATION),
-        kind_contract_revision: KindContractRevision::from(NETWORK_JOIN_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(NETWORK_JOIN_CONTRACT_REVISION),
         inputs: vec![PortDescriptor {
             port_id: PortId::from("request"),
             value_kind: kind_id(NETWORK_JOIN_REQUEST_KIND),
@@ -147,9 +147,9 @@ pub fn network_credentials_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         network_credentials_contract(),
-        CapabilityRealization {
+        Back {
             capability_id,
             execution_profile_id: ExecutionProfileId::from("conduit.network/credentials-hosted@1"),
             implementation_id,
@@ -174,12 +174,12 @@ pub fn network_credentials_offer(
     .build()
 }
 
-fn network_credentials_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn network_credentials_contract() -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(NETWORK_CREDENTIALS_OPERATION),
-        kind_contract_revision: KindContractRevision::from(NETWORK_CREDENTIALS_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(NETWORK_CREDENTIALS_CONTRACT_REVISION),
         inputs: vec![],
         outputs: vec![PortDescriptor {
             port_id: PortId::from("request"),
@@ -200,9 +200,9 @@ pub fn network_attachment_sign_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         network_attachment_sign_contract(),
-        CapabilityRealization {
+        Back {
             capability_id,
             execution_profile_id: ExecutionProfileId::from("conduit.network/attachment-sign-usb@1"),
             implementation_id,
@@ -221,14 +221,12 @@ pub fn network_attachment_sign_offer(
     .build()
 }
 
-fn network_attachment_sign_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn network_attachment_sign_contract() -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(NETWORK_ATTACHMENT_SIGN_OPERATION),
-        kind_contract_revision: KindContractRevision::from(
-            NETWORK_ATTACHMENT_SIGN_CONTRACT_REVISION,
-        ),
+        kind_contract_revision: KindIdentity::from(NETWORK_ATTACHMENT_SIGN_CONTRACT_REVISION),
         inputs: vec![PortDescriptor {
             port_id: PortId::from("attachment"),
             value_kind: kind_id(NETWORK_ATTACHMENT_KIND),

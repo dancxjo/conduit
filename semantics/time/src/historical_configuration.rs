@@ -76,7 +76,7 @@ fn find<'a>(
 pub fn historical_timeline_kind_definition() -> conduit_form::KindDefinition {
     use alloc::{string::ToString, vec};
     use conduit_core::{
-        kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+        kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
         StructuredInfoType, MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES,
         MAXIMUM_TEMPORAL_IDENTITY_BYTES,
     };
@@ -91,9 +91,7 @@ pub fn historical_timeline_kind_definition() -> conduit_form::KindDefinition {
     };
     conduit_form::KindDefinition {
         kind_id: kind_id(crate::HISTORICAL_TIMELINE_KIND),
-        kind_contract_revision: KindContractRevision::from(
-            crate::HISTORICAL_TIMELINE_CONTRACT_REVISION,
-        ),
+        kind_contract_revision: KindIdentity::from(crate::HISTORICAL_TIMELINE_CONTRACT_REVISION),
         inputs: alloc::vec![PortDescriptor {
             port_id: port_id("command"),
             value_kind: value_kind(crate::HISTORICAL_TIMELINE_COMMAND_INFO_ID),
@@ -174,11 +172,11 @@ pub fn historical_timeline_kind_definition() -> conduit_form::KindDefinition {
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn historical_timeline_semantic_contract() -> conduit_core::SemanticCapabilityContract {
+pub fn historical_timeline_semantic_contract() -> conduit_core::Kind {
     use conduit_core::{kind_id, CapabilityLimits, FrontStartupParameter};
 
     let definition = historical_timeline_kind_definition();
-    conduit_core::SemanticCapabilityContract {
+    conduit_core::Kind {
         startup_parameters: [
             ("value-profile", "value/text"),
             ("clock-basis", "value/text"),

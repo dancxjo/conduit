@@ -1,9 +1,8 @@
 //! Exact std realizations for the two irreversible conversation commit boundaries.
 
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 
 pub const RECOGNIZED_TURN_COMMIT_PROFILE: &str = "std/recognized-turn-commit-kernel@1";
@@ -19,9 +18,9 @@ pub const GENERATED_SPEECH_DRAIN_OPERATION: &str = "conduit.host/generated-speec
 pub const GENERATED_SPEECH_CLOSE_OPERATION: &str = "conduit.host/generated-speech-close@1";
 
 pub fn recognized_turn_commit_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_tongues::committed_recognition_turn_contract().into_semantic_capability_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("std-recognized-turn-commit-v1"),
             execution_profile_id: ExecutionProfileId::from(RECOGNIZED_TURN_COMMIT_PROFILE),
             implementation_id: ImplementationId::from(RECOGNIZED_TURN_COMMIT_IMPLEMENTATION),
@@ -48,9 +47,9 @@ pub fn generated_speech_commit_offer() -> CapabilityOffer {
         maximum_input_bytes: input,
         maximum_output_bytes: conduit_tongues::SPEECH_COMMIT_QUEUE_BYTES,
     };
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_tongues::speech_commit_contract().into_semantic_capability_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("std-generated-speech-commit-v1"),
             execution_profile_id: ExecutionProfileId::from(GENERATED_SPEECH_COMMIT_PROFILE),
             implementation_id: ImplementationId::from(GENERATED_SPEECH_COMMIT_IMPLEMENTATION),

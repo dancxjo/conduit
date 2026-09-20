@@ -8,8 +8,8 @@ use alloc::format;
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, FrontStartupParameter, KindContractRevision, KindId,
-    PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract, StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, FrontStartupParameter, Kind, KindId, KindIdentity,
+    PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 #[cfg(feature = "form-catalog")]
@@ -25,13 +25,13 @@ pub const STRUCTURED_PRESENTATION_TARGET: &str = "presentation/structured-info";
 pub struct StructuredValueContract {
     pub startup_parameters: Vec<FrontStartupParameter>,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
 }
 
-impl From<StructuredValueContract> for SemanticCapabilityContract {
+impl From<StructuredValueContract> for Kind {
     fn from(contract: StructuredValueContract) -> Self {
         Self {
             startup_parameters: contract.startup_parameters,
@@ -93,7 +93,7 @@ fn contract(
         } else {
             STRUCTURED_PRESENTATION_KIND
         }),
-        kind_contract_revision: KindContractRevision::from(if source {
+        kind_contract_revision: KindIdentity::from(if source {
             STRUCTURED_LITERAL_REVISION
         } else {
             STRUCTURED_PRESENTATION_REVISION

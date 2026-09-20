@@ -1,7 +1,5 @@
 //! Recursive Form proof, separate from Host execution and live synchronization.
-use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-};
+use conduit_core::{kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal};
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
     KindSignature, ProfileCatalog, StartupCatalog,
@@ -60,7 +58,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
         profile
             .insert(KindDefinition {
                 kind_id: kind_id(kind),
-                kind_contract_revision: KindContractRevision::from("proof/rhythm@1"),
+                kind_contract_revision: KindIdentity::from("proof/rhythm@1"),
                 inputs: if direction == PortDirection::Input {
                     vec![port.clone()]
                 } else {

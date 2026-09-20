@@ -2,9 +2,8 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
@@ -47,7 +46,7 @@ pub fn ordered_record_queue_kind_definition() -> KindDefinition {
     let frame = framed_typed_record_type();
     KindDefinition {
         kind_id: kind_id(ORDERED_RECORD_QUEUE_KIND),
-        kind_contract_revision: KindContractRevision::from(ORDERED_RECORD_QUEUE_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(ORDERED_RECORD_QUEUE_CONTRACT_REVISION),
         inputs: vec![port("frame", &frame, PortDirection::Input)],
         outputs: vec![port("queued", &frame, PortDirection::Output)],
         configuration: vec![
@@ -71,9 +70,9 @@ pub fn ordered_record_queue_kind_definition() -> KindDefinition {
     }
 }
 
-pub fn ordered_record_queue_semantic_contract() -> SemanticCapabilityContract {
+pub fn ordered_record_queue_semantic_contract() -> Kind {
     let definition = ordered_record_queue_kind_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![
             FrontStartupParameter {
                 name: "maximum-items".into(),

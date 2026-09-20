@@ -4,9 +4,9 @@ use super::{
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationEntry, ConfigurationValue, InfoBool,
-    PortDescriptor, PortDirection, PortTemporal, Quantity, QuantityUnit, Scalar,
-    SemanticCapabilityContract, BOOL_INFO_ID, SCALAR_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationEntry, ConfigurationValue, InfoBool, Kind,
+    PortDescriptor, PortDirection, PortTemporal, Quantity, QuantityUnit, Scalar, BOOL_INFO_ID,
+    SCALAR_INFO_ID,
 };
 use conduit_robotics::{
     BatteryObservation, OdometryObservation, OrientationObservation, RangeObservation,
@@ -328,11 +328,11 @@ pub(crate) fn robotics_contracts_with_revisions() -> Vec<(StandardKindContract, 
     ]
 }
 
-pub fn robotics_semantic_contract(kind: &str) -> Option<SemanticCapabilityContract> {
+pub fn robotics_semantic_contract(kind: &str) -> Option<Kind> {
     robotics_contracts_with_revisions()
         .into_iter()
         .find(|(contract, _)| contract.kind_id.as_str() == kind)
-        .map(|(contract, revision)| SemanticCapabilityContract {
+        .map(|(contract, revision)| Kind {
             startup_parameters: super::startup_front(&contract.configuration),
             shorthand: None,
             kind_id: contract.kind_id,

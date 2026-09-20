@@ -3,8 +3,8 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer,
-    KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
+    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer, KindId,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const RAG_ANSWER_KIND: &str = "rag/answer";
@@ -19,7 +19,7 @@ pub const MAXIMUM_RAG_ANSWER_PROCESS_IDENTITY_BYTES: usize = 256;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RagAnswerContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
@@ -34,7 +34,7 @@ pub enum RagAnswerOfferInvalidity {
 pub fn rag_answer_contract() -> RagAnswerContract {
     RagAnswerContract {
         kind_id: kind_id(RAG_ANSWER_KIND),
-        kind_contract_revision: KindContractRevision::from(RAG_ANSWER_REVISION),
+        kind_contract_revision: KindIdentity::from(RAG_ANSWER_REVISION),
         inputs: vec![
             port(
                 "query",

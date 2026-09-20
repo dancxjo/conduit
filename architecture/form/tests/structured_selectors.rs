@@ -1,5 +1,5 @@
 use conduit_core::{
-    port_id, KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
+    port_id, KindId, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
     StructuredFieldType, StructuredInfoType, StructuredVariantCase, UnmatchedVariantDisposition,
 };
 use conduit_form::{
@@ -227,7 +227,7 @@ fn primitive(
 ) -> KindDefinition {
     KindDefinition {
         kind_id: KindId::from(kind),
-        kind_contract_revision: KindContractRevision::from(format!("{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: input
             .into_iter()
             .map(|value_kind| PortDescriptor {

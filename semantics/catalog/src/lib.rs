@@ -352,7 +352,7 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
     for (contract, revision) in supported_nucleus_contracts_with_revisions() {
         catalog
             .insert(KindDefinition {
-                kind_contract_revision: conduit_core::KindContractRevision::from(revision),
+                kind_contract_revision: conduit_core::KindIdentity::from(revision),
                 kind_id: contract.kind_id,
                 inputs: contract.inputs,
                 outputs: contract.outputs,

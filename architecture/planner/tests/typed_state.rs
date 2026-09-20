@@ -13,7 +13,7 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
     // Planning-only external Flow; runtime production is outside this proof.
     let mut source = conduit_std_offers::state_value_std_offer("Cell", &ty).unwrap();
     source.kind_id = kind_id("fixture/typed-flow");
-    source.kind_contract_revision = KindContractRevision::from("fixture/typed-flow@1");
+    source.kind_contract_revision = KindIdentity::from("fixture/typed-flow@1");
     source.capability_id = CapabilityId::from("fixture/typed-flow");
     source.implementation.execution_profile_id = ExecutionProfileId::from("fixture/typed-flow@1");
     source.implementation.implementation_id = ImplementationId::from("fixture/typed-flow@1");

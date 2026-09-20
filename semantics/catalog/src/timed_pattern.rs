@@ -6,10 +6,9 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, StructuredFieldType, StructuredFieldValue,
-    StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
+    StructuredInfoValue, StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -58,7 +57,7 @@ pub fn interval_sequence_type() -> StructuredInfoType {
 pub fn ordered_event_intervals_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(ORDERED_EVENT_INTERVALS_KIND),
-        kind_contract_revision: KindContractRevision::from(ORDERED_EVENT_INTERVALS_REVISION),
+        kind_contract_revision: KindIdentity::from(ORDERED_EVENT_INTERVALS_REVISION),
         inputs: vec![value_port(
             "events",
             &timed_event_sequence_type(),
@@ -73,9 +72,9 @@ pub fn ordered_event_intervals_definition() -> KindDefinition {
     }
 }
 
-pub fn ordered_event_intervals_semantic_contract() -> SemanticCapabilityContract {
+pub fn ordered_event_intervals_semantic_contract() -> Kind {
     let definition = ordered_event_intervals_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
         kind_id: definition.kind_id,

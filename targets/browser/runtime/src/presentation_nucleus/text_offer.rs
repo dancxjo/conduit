@@ -1,7 +1,6 @@
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 
 pub const BROWSER_TEXT_UPPER_PROFILE: &str = "browser/text-upper-kernel@1";
@@ -12,9 +11,9 @@ pub const BROWSER_TEXT_UPPER_HOST_OPERATION: &str = "conduit.host/text-upper@1";
 pub const BROWSER_TEXT_UPPER_TARGET: &str = "text/uppercase-utf8";
 
 pub fn browser_text_upper_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_text::text_upper_semantics().into_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(BROWSER_TEXT_UPPER_CAPABILITY),
             execution_profile_id: ExecutionProfileId::from(BROWSER_TEXT_UPPER_PROFILE),
             implementation_id: ImplementationId::from(BROWSER_TEXT_UPPER_IMPLEMENTATION),

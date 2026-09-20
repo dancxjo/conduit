@@ -3,9 +3,8 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ConfigurationValue, ExecutionProfileId, HostOperationRequirement, ImplementationId,
-    PlannedGear, SemanticCapabilityContract,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, HostOperationRequirement, ImplementationId, Kind, PlannedGear,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 use conduit_web::JsonValue;
@@ -73,13 +72,13 @@ fn offer(index: usize) -> CapabilityOffer {
 }
 
 fn json_realization_offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     index: usize,
     kind: conduit_core::KindId,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(IMPLEMENTATIONS[index]),
             execution_profile_id: ExecutionProfileId::from("browser/bounded-json@1"),
             implementation_id: ImplementationId::from(IMPLEMENTATIONS[index]),

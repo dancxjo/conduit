@@ -5,9 +5,8 @@ use alloc::{
     vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -24,7 +23,7 @@ pub const MAXIMUM_ATTEMPT_TIMEOUT_MS: u64 = 60_000;
 pub fn timed_button_attempt_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(TIMED_BUTTON_ATTEMPT_KIND),
-        kind_contract_revision: KindContractRevision::from(TIMED_BUTTON_ATTEMPT_REVISION),
+        kind_contract_revision: KindIdentity::from(TIMED_BUTTON_ATTEMPT_REVISION),
         inputs: vec![PortDescriptor {
             port_id: port_id("transition"),
             value_kind: crate::input_button_transition_type()
@@ -74,9 +73,9 @@ pub fn timed_button_attempt_definition() -> KindDefinition {
     }
 }
 
-pub fn timed_button_attempt_semantic_contract() -> SemanticCapabilityContract {
+pub fn timed_button_attempt_semantic_contract() -> Kind {
     let definition = timed_button_attempt_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![
             FrontStartupParameter {
                 name: "maximum-transitions".into(),

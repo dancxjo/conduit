@@ -328,7 +328,7 @@ fn mutated_tick_executable_identity_fails_before_any_wait() {
         .iter_mut()
         .find(|placement| placement.kind_id.as_str() == installed_std::contract::TICK_KIND)
         .expect("tick placement exists");
-    tick.kind_contract_revision = conduit_core::KindContractRevision::from("wrong/tick@1");
+    tick.kind_contract_revision = conduit_core::KindIdentity::from("wrong/tick@1");
     let mut output = Vec::with_capacity(1_024);
     let mut timer = RecordingTimer { waits: Vec::new() };
     let error = host
@@ -552,8 +552,7 @@ fn every_text_presentation_executable_identity_mutation_fails_before_output() {
     let mutations: [fn(&mut conduit_core::PlannedGear); 14] = [
         |placement| placement.kind_id = conduit_core::KindId::from("wrong/text"),
         |placement| {
-            placement.kind_contract_revision =
-                conduit_core::KindContractRevision::from("wrong/text@1")
+            placement.kind_contract_revision = conduit_core::KindIdentity::from("wrong/text@1")
         },
         |placement| {
             placement.execution_profile_id =

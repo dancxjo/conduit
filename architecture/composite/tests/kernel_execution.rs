@@ -5,8 +5,8 @@ use conduit_composite::{
 use conduit_core::{
     kind_id, process_owned_line_offer, ArtifactId, BaseImplementationId, BootId, CapabilityId,
     CapabilityLimits, CapabilityOffer, FailureReason, GearId, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, KindContractRevision, OfferGeneration, PlannedGear,
-    PortDescriptor, PortDirection, ValuePayload, PROTOCOL_VERSION,
+    HostProfileId, ImplementationId, KindIdentity, OfferGeneration, PlannedGear, PortDescriptor,
+    PortDirection, ValuePayload, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindDefinition, ProfileCatalog};
 use conduit_kernel::{
@@ -33,7 +33,7 @@ fn catalog() -> ProfileCatalog {
     catalog
         .insert(KindDefinition {
             kind_id: kind_id(ECHO_KIND),
-            kind_contract_revision: KindContractRevision::from("test/kernel-composite-echo@1"),
+            kind_contract_revision: KindIdentity::from("test/kernel-composite-echo@1"),
             inputs: vec![descriptor("in", PortDirection::Input)],
             outputs: vec![descriptor("out", PortDirection::Output)],
             configuration: vec![],
@@ -57,7 +57,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
             shorthand: None,
             capability_id: CapabilityId::from("echo"),
             kind_id: kind_id(ECHO_KIND),
-            kind_contract_revision: KindContractRevision::from("test/kernel-composite-echo@1"),
+            kind_contract_revision: KindIdentity::from("test/kernel-composite-echo@1"),
             implementation: conduit_core::ImplementationOffer {
                 execution_profile_id: "test/kernel-composite@1".into(),
                 implementation_id: IMPLEMENTATION.into(),

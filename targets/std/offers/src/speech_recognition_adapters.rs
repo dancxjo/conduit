@@ -1,9 +1,8 @@
 //! Hosted std realizations for explicit Tongues single-shot/streaming adapters.
 
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, SemanticCapabilityContract,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
 };
 
 pub const SPEECH_WINDOW_TO_CLIP_STD_IMPLEMENTATION: &str = "std/speech-window-to-clip@1";
@@ -59,16 +58,16 @@ pub fn speech_result_to_event_stream_std_offer() -> CapabilityOffer {
 }
 
 fn offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     capability: &str,
     profile: &str,
     implementation: &str,
     artifact: &str,
     host_operations: Vec<HostOperationRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),

@@ -3,7 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, ImplementationId, ImplementationOffer, KindContractRevision, PlannedGear,
+    ExecutionProfileId, ImplementationId, ImplementationOffer, KindIdentity, PlannedGear,
     PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_kernel::{Failure, FailureCode, OperationAction, OperationInput, PortId};
@@ -65,7 +65,7 @@ pub(crate) fn offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from(KIND),
         kind_id: conduit_core::kind_id(KIND),
-        kind_contract_revision: KindContractRevision::from("conduit-test/recurrence-sink@1"),
+        kind_contract_revision: KindIdentity::from("conduit-test/recurrence-sink@1"),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from("conduit-test/recurrence-sink@1"),
             implementation_id: ImplementationId::from(IMPLEMENTATION),

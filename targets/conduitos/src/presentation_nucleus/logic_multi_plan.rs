@@ -3,9 +3,9 @@
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection,
-    PortTemporal, Scalar, kind_id, port_id,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindIdentity,
+    OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection, PortTemporal, Scalar,
+    kind_id, port_id,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
@@ -56,7 +56,7 @@ pub fn prepare_logic_multi(
         catalog
             .insert(conduit_form::KindDefinition {
                 kind_id: kind_id(kind),
-                kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+                kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
                 inputs: Vec::new(),
                 outputs: offer.outputs,
                 configuration: Vec::new(),
@@ -66,7 +66,7 @@ pub fn prepare_logic_multi(
     catalog
         .insert(conduit_form::KindDefinition {
             kind_id: kind_id(SINK_KIND),
-            kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+            kind_contract_revision: KindIdentity::from(SINK_REVISION),
             inputs: sink_offer().inputs,
             outputs: Vec::new(),
             configuration: Vec::new(),
@@ -154,7 +154,7 @@ fn source_offer(kind: &str, value: Scalar) -> CapabilityOffer {
             value.raw_microunits()
         )),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
                 crate::functional_offers::FUNCTIONAL_KERNEL_PROFILE,
@@ -179,7 +179,7 @@ fn source_offer(kind: &str, value: Scalar) -> CapabilityOffer {
 fn sink_offer() -> CapabilityOffer {
     let mut offer = source_offer(SINK_KIND, Scalar::ZERO);
     offer.capability_id = CapabilityId::from("conduitos-fixture-logic-sink@1");
-    offer.kind_contract_revision = KindContractRevision::from(SINK_REVISION);
+    offer.kind_contract_revision = KindIdentity::from(SINK_REVISION);
     offer.implementation.implementation_id =
         ImplementationId::from("conduitos.fixture/logic-sink@1");
     offer.inputs = vec![PortDescriptor {

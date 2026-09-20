@@ -1,9 +1,9 @@
 //! Finite std Host offers for the host-neutral finance and tabular contracts.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    SemanticCapabilityContract, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_data::*;
 use conduit_finance::*;
@@ -43,16 +43,11 @@ pub fn tabular_std_offers() -> Vec<CapabilityOffer> {
         .collect()
 }
 
-fn offer(
-    contract: SemanticCapabilityContract,
-    profile: &str,
-    artifact: &str,
-    operation: &str,
-) -> CapabilityOffer {
+fn offer(contract: Kind, profile: &str, artifact: &str, operation: &str) -> CapabilityOffer {
     let kind = contract.kind_id.as_str().to_owned();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!("std/{kind}@1")),
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(format!("std/{kind}@1")),

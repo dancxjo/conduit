@@ -49,7 +49,7 @@ pub struct PresentationProof {
     pub text_display: DisplayReceipt,
     pub display: DisplayReceipt,
     pub kernel_signs: u16,
-    pub realization_back: conduit_core::RealizationBack,
+    pub realization_back: conduit_core::FormBack,
     pub node_count: u8,
     pub cord_count: u8,
 }

@@ -2,8 +2,7 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, HostOperationRequirement,
-    PlannedGear,
+    Back, BackOfferBuilder, CapabilityOffer, HostOperationRequirement, PlannedGear,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 use conduit_semantic_catalog::{BoundedIntervalCodec, BoundedNormalizationCodec};
@@ -42,9 +41,9 @@ fn offer(index: usize) -> CapabilityOffer {
         conduit_semantic_catalog::normalize_relative_duration_semantic_contract()
     };
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: IMPLEMENTATIONS[index].into(),
             execution_profile_id: "browser/bounded-timing@1".into(),
             implementation_id: IMPLEMENTATIONS[index].into(),

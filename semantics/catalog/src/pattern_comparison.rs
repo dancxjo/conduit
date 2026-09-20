@@ -6,10 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
-    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
-    StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredFieldType,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -46,7 +46,7 @@ pub fn pattern_comparison_type() -> StructuredInfoType {
 pub fn compare_normalized_pattern_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(COMPARE_PATTERN_KIND),
-        kind_contract_revision: KindContractRevision::from(COMPARE_PATTERN_REVISION),
+        kind_contract_revision: KindIdentity::from(COMPARE_PATTERN_REVISION),
         inputs: vec![
             value_port("candidate", PortDirection::Input),
             value_port("template", PortDirection::Input),
@@ -81,9 +81,9 @@ pub fn compare_normalized_pattern_definition() -> KindDefinition {
     }
 }
 
-pub fn compare_normalized_pattern_semantic_contract() -> SemanticCapabilityContract {
+pub fn compare_normalized_pattern_semantic_contract() -> Kind {
     let definition = compare_normalized_pattern_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![
             FrontStartupParameter {
                 name: "metric".into(),

@@ -5,7 +5,7 @@ use conduit_core::{
     ArtifactId, AuthorityGrant, AuthorityGrantId, BaseImplementationId, BootId, CapabilityId,
     CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId,
     HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
-    ImplementationOffer, KindContractRevision, OfferGeneration, PROTOCOL_VERSION, PortDescriptor,
+    ImplementationOffer, KindIdentity, OfferGeneration, PROTOCOL_VERSION, PortDescriptor,
     PortDirection, PortTemporal, kind_id, port_id, resource_offer,
 };
 use conduit_kernel::{
@@ -240,7 +240,7 @@ fn fixture_offer(
         shorthand: None,
         capability_id: CapabilityId::from(kind),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         inputs: (direction == PortDirection::Input)
             .then_some(vec![descriptor.clone()])
             .unwrap_or_default(),

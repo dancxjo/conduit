@@ -3,13 +3,13 @@ use std::collections::BTreeMap;
 use conduit_core::{
     kind_id, ArtifactId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BootId,
     CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId,
-    HostOperationContractId, HostProfileId, ImplementationId, KindContractRevision,
-    OfferGeneration, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId,
-    PlanningRequestAuthority, PlayUnsatisfiedReason, PoolMemberLimits, PoolOperationId,
-    PoolRealizationHealth, PoolRealizationObservation, PoolSelectionDisposition,
-    PoolSelectionEvidence, ResourceHealth, ResourceObservation, SharedPoolId, SignId,
-    PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT,
-    SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT, SHARED_POOL_AUTHORITY_SUBJECT_KIND,
+    HostOperationContractId, HostProfileId, ImplementationId, KindIdentity, OfferGeneration,
+    PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PlanningRequestAuthority,
+    PlayUnsatisfiedReason, PoolMemberLimits, PoolOperationId, PoolRealizationHealth,
+    PoolRealizationObservation, PoolSelectionDisposition, PoolSelectionEvidence, ResourceHealth,
+    ResourceObservation, SharedPoolId, SignId, PROTOCOL_VERSION,
+    SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
+    SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
@@ -66,7 +66,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     profile
         .insert(KindDefinition {
             kind_id: kind_id("flow/pool-observe"),
-            kind_contract_revision: KindContractRevision::from("flow/pool-observe@1"),
+            kind_contract_revision: KindIdentity::from("flow/pool-observe@1"),
             inputs: vec![],
             outputs: vec![],
             configuration: vec![],
@@ -97,7 +97,7 @@ fn consumer_host(front: &conduit_core::CheckedFront) -> HostAdvertisement {
                 .map(|(input, output)| (input.clone(), output.clone())),
             capability_id: CapabilityId::from("consumer/pool-observe"),
             kind_id: kind_id("flow/pool-observe"),
-            kind_contract_revision: KindContractRevision::from("flow/pool-observe@1"),
+            kind_contract_revision: KindIdentity::from("flow/pool-observe@1"),
             implementation: conduit_core::ImplementationOffer {
                 execution_profile_id: ExecutionProfileId::from("test/hosted@1"),
                 implementation_id: ImplementationId::from("consumer/pool-observe@1"),

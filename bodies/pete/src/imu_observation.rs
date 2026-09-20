@@ -3,11 +3,10 @@
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    resource_offer, resource_requirement, ArtifactId, BaseImplementationId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, OfferGeneration, ResourceHealth,
-    ResourceObservation, SignId, PROTOCOL_VERSION,
+    resource_offer, resource_requirement, ArtifactId, Back, BackOfferBuilder, BaseImplementationId,
+    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement,
+    HostId, HostOperationContractId, HostOperationRequirement, ImplementationId, OfferGeneration,
+    ResourceHealth, ResourceObservation, SignId, PROTOCOL_VERSION,
 };
 use conduit_mpu6050::{
     DerivationFailure, DerivedImuObservation, GravityCalibration, ImuDeriver, ImuThresholds,
@@ -257,12 +256,12 @@ pub fn validate_mpu6050_plan(
 }
 
 fn mpu6050_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_semantic_catalog::robotics_semantic_contract(
             conduit_semantic_catalog::ROBOTICS_OBSERVE_IMU_KIND,
         )
         .expect("IMU observation is a registered robotics contract"),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(MPU6050_CAPABILITY),
             execution_profile_id: ExecutionProfileId::from(MPU6050_PROFILE),
             implementation_id: ImplementationId::from(MPU6050_IMPLEMENTATION),

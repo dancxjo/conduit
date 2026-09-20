@@ -8,8 +8,8 @@ use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId,
     AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
-    OfferGeneration, RealizationAdvertisement, PROTOCOL_VERSION,
+    HostOperationRequirement, ImplementationId, ImplementationOffer, KindIdentity, OfferGeneration,
+    RealizationAdvertisement, PROTOCOL_VERSION,
 };
 
 pub const SONG_OPCODE: u8 = 140;
@@ -202,7 +202,7 @@ pub fn live_speaker_advertisement(
             shorthand: None,
             capability_id: CapabilityId::from(SPEAKER_CAPABILITY),
             kind_id: contract.kind_id,
-            kind_contract_revision: KindContractRevision::from(
+            kind_contract_revision: KindIdentity::from(
                 conduit_semantic_catalog::MUSIC_PLAY_REVISION,
             ),
             implementation: ImplementationOffer {

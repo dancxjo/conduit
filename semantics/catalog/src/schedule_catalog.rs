@@ -6,8 +6,7 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType,
+    kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -89,7 +88,7 @@ fn insert_kind(
     profile
         .insert(KindDefinition {
             kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(SCHEDULE_REVISION),
+            kind_contract_revision: KindIdentity::from(SCHEDULE_REVISION),
             inputs,
             outputs,
             configuration: vec![],

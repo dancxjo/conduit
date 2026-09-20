@@ -2,8 +2,8 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 
@@ -40,9 +40,7 @@ pub fn delivery_status_type() -> StructuredInfoType {
 pub fn record_delivery_status_kind_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(RECORD_DELIVERY_STATUS_KIND),
-        kind_contract_revision: KindContractRevision::from(
-            RECORD_DELIVERY_STATUS_CONTRACT_REVISION,
-        ),
+        kind_contract_revision: KindIdentity::from(RECORD_DELIVERY_STATUS_CONTRACT_REVISION),
         inputs: vec![port(
             "observation",
             &delivery_observation_type(),
@@ -57,9 +55,9 @@ pub fn record_delivery_status_kind_definition() -> KindDefinition {
     }
 }
 
-pub fn record_delivery_status_semantic_contract() -> SemanticCapabilityContract {
+pub fn record_delivery_status_semantic_contract() -> Kind {
     let definition = record_delivery_status_kind_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: definition.kind_id,

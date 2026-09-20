@@ -3,8 +3,8 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, ImplementationId, PlannedGear,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
     Failure, FailureCode, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
@@ -21,9 +21,9 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 };
 
 fn offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_semantic_catalog::garden_fixture_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),

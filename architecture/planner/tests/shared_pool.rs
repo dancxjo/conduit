@@ -3,7 +3,7 @@ use conduit_core::{
     AuthorityGrant, AuthorityGrantId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ComputePoolContract, ComputeRequirement, ComputeServiceGuarantee, ExecutionProfileId,
     HostAdvertisement, HostId, HostOperationContractId, HostProfileId, ImplementationId,
-    KindContractRevision, OfferGeneration, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId,
+    KindIdentity, OfferGeneration, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId,
     PoolMemberLimits, ResourceClassId, ResourceOffer, ResourcePoolId, ResourceRequirement,
     SharedPoolId, PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT,
     SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT, SHARED_POOL_AUTHORITY_SUBJECT_KIND,
@@ -55,7 +55,7 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
     profile
         .insert(KindDefinition {
             kind_id: kind_id("flow/pool-observe"),
-            kind_contract_revision: KindContractRevision::from("flow/pool-observe@1"),
+            kind_contract_revision: KindIdentity::from("flow/pool-observe@1"),
             inputs: vec![],
             outputs: vec![],
             configuration: vec![],
@@ -78,7 +78,7 @@ fn offer_from_front(
             .map(|(input, output)| (input.clone(), output.clone())),
         capability_id: CapabilityId::from(capability),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(if kind == "flow/pool-observe" {
+        kind_contract_revision: KindIdentity::from(if kind == "flow/pool-observe" {
             "flow/pool-observe@1".to_string()
         } else {
             format!("{kind}@9")

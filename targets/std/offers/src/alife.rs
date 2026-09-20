@@ -2,10 +2,10 @@
 
 use conduit_alife::{LENIA_MAXIMUM_FIELD_BYTES, LENIA_STEP_KIND};
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, CapabilityId,
-    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ResourceRequirement,
-    SemanticCapabilityContract, PRESENTATION_RESOURCE_CLASS,
+    kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, Kind, ResourceRequirement,
+    PRESENTATION_RESOURCE_CLASS,
 };
 
 pub const ORBIUM_SEED_EXECUTION_PROFILE: &str = "conduit.std/orbium-seed-fixed-q16.16@1";
@@ -85,7 +85,7 @@ pub fn scalar_field_presentation_offer() -> CapabilityOffer {
 }
 
 fn offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     capability: &str,
     execution_profile: &str,
     implementation: &str,
@@ -93,9 +93,9 @@ fn offer(
     host_operations: Vec<HostOperationRequirement>,
     resources: Vec<ResourceRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(execution_profile),
             implementation_id: ImplementationId::from(implementation),

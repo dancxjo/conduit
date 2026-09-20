@@ -5,9 +5,9 @@ use super::factory::{
 };
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, PlannedGear, PRESENTATION_RESOURCE_CLASS,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    PlannedGear, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -47,9 +47,9 @@ pub(super) static GARDEN: BrowserInstallation = BrowserInstallation {
 };
 
 fn garden_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_semantic_catalog::garden_state_presentation_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(GARDEN_IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(GARDEN_IMPLEMENTATION),
             implementation_id: ImplementationId::from(GARDEN_IMPLEMENTATION),
@@ -203,9 +203,9 @@ fn perform_bool(_placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostRes
 }
 
 fn indicator_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_semantic_catalog::indicator_presentation_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("browser/indicator-presentation@2"),
             execution_profile_id: ExecutionProfileId::from("browser/presentation-indicator@2"),
             implementation_id: ImplementationId::from(INDICATOR_IMPLEMENTATION),

@@ -6,8 +6,8 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal, SemanticCapabilityContract, BOOL_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal, BOOL_INFO_ID,
 };
 
 pub const TIME_DEBOUNCE_KIND: &str = "time/debounce";
@@ -143,30 +143,30 @@ pub fn time_throttle_contract() -> StandardKindContract {
     }
 }
 
-pub fn time_debounce_semantic_contract() -> SemanticCapabilityContract {
+pub fn time_debounce_semantic_contract() -> Kind {
     semantic_contract(time_debounce_contract(), TIME_DEBOUNCE_CONTRACT_REVISION)
 }
 
-pub fn time_timeout_semantic_contract() -> SemanticCapabilityContract {
+pub fn time_timeout_semantic_contract() -> Kind {
     semantic_contract(time_timeout_contract(), TIME_TIMEOUT_CONTRACT_REVISION)
 }
 
-pub fn time_delay_semantic_contract() -> SemanticCapabilityContract {
+pub fn time_delay_semantic_contract() -> Kind {
     semantic_contract(time_delay_contract(), TIME_DELAY_CONTRACT_REVISION)
 }
 
-pub fn time_throttle_semantic_contract() -> SemanticCapabilityContract {
+pub fn time_throttle_semantic_contract() -> Kind {
     semantic_contract(time_throttle_contract(), TIME_THROTTLE_CONTRACT_REVISION)
 }
 
-fn semantic_contract(contract: StandardKindContract, revision: &str) -> SemanticCapabilityContract {
+fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
     let mut startup_parameters = super::startup_front(&contract.configuration);
     for parameter in &mut startup_parameters {
         if parameter.name == "duration-ms" {
             parameter.value_type = kind_id("value/duration");
         }
     }
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters,
         shorthand: None,
         kind_id: contract.kind_id,
@@ -243,7 +243,7 @@ pub fn install_timing_catalogs(
         profile
             .insert(KindDefinition {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration,

@@ -6,9 +6,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal, SemanticCapabilityContract, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -84,14 +83,14 @@ pub fn education_kind_contracts() -> Vec<EducationKindContract> {
     ]
 }
 
-pub fn education_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+pub fn education_semantic_contracts() -> Vec<Kind> {
     education_kind_contracts()
         .into_iter()
-        .map(|(kind_id, inputs, outputs)| SemanticCapabilityContract {
+        .map(|(kind_id, inputs, outputs)| Kind {
             startup_parameters: vec![],
             shorthand: None,
             kind_id,
-            kind_contract_revision: KindContractRevision::from(EDUCATION_REVISION),
+            kind_contract_revision: KindIdentity::from(EDUCATION_REVISION),
             inputs,
             outputs,
             limits: CapabilityLimits {
@@ -134,7 +133,7 @@ fn insert_kind(
     profile
         .insert(KindDefinition {
             kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(EDUCATION_REVISION),
+            kind_contract_revision: KindIdentity::from(EDUCATION_REVISION),
             inputs,
             outputs,
             configuration: vec![],

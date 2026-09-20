@@ -5,8 +5,8 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Quantity, QuantityUnit,
-    SemanticCapabilityContract,
+    kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, Quantity,
+    QuantityUnit,
 };
 
 pub fn time_every_contract() -> StandardKindContract {
@@ -40,9 +40,9 @@ pub fn time_every_contract() -> StandardKindContract {
     }
 }
 
-pub fn time_every_semantic_contract() -> SemanticCapabilityContract {
+pub fn time_every_semantic_contract() -> Kind {
     let contract = time_every_contract();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "freq".into(),
             value_type: kind_id(conduit_core::QUANTITY_INFO_ID),

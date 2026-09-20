@@ -2,9 +2,9 @@
 
 use conduit_core::{
     resource_offer, resource_requirement, ArtifactId, AuthorityContractId, AuthorityGrant,
-    AuthorityGrantId, AuthorityRequirement, BootId, CapabilityId, CapabilityOffer,
-    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ResourceOffer,
+    AuthorityGrantId, AuthorityRequirement, Back, BackOfferBuilder, BootId, CapabilityId,
+    CapabilityOffer, ExecutionProfileId, HostId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, ResourceOffer,
 };
 
 pub const GOOGLE_CALENDAR_RESOURCE_CLASS: &str = "conduit.resource/calendar/google-account@1";
@@ -146,7 +146,7 @@ pub fn google_calendar_authority_grant(
 
 fn offer(
     contract: conduit_semantic_catalog::CalendarProviderKindContract,
-    semantic_contract: conduit_core::SemanticCapabilityContract,
+    semantic_contract: conduit_core::Kind,
     operation: CalendarHostedOperation,
 ) -> CapabilityOffer {
     let request = conduit_semantic_catalog::calendar_request_type(&contract);
@@ -181,9 +181,9 @@ fn offer(
             ),
         );
     }
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         semantic_contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!(
                 "google-{}",
                 contract.kind.replace('/', "-")

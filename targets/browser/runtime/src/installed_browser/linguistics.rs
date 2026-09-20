@@ -5,10 +5,10 @@ use super::factory::{
 };
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ConfigurationValue, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, PlannedGear, SemanticCapabilityContract,
-    StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES, PRESENTATION_RESOURCE_CLASS,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    PlannedGear, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
 
@@ -79,9 +79,9 @@ fn annotate_offer() -> CapabilityOffer {
 }
 
 fn presentation_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         presentation_contract().into(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(PRESENTATION_IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(PRESENTATION_IMPLEMENTATION),
             implementation_id: ImplementationId::from(PRESENTATION_IMPLEMENTATION),
@@ -98,13 +98,13 @@ fn presentation_offer() -> CapabilityOffer {
 }
 
 fn offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     implementation: &str,
     host_operations: Vec<HostOperationRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),

@@ -5,8 +5,8 @@ use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId,
     AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, FrontStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
-    OfferGeneration, PROTOCOL_VERSION, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
+    HostOperationRequirement, ImplementationId, ImplementationOffer, KindIdentity, OfferGeneration,
+    PROTOCOL_VERSION, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
 
 pub const CREATE_DRIVE_PROFILE: &str = "pete/create1-differential-drive@1";
@@ -114,7 +114,7 @@ pub fn live_create_drive_advertisement(
             shorthand: None,
             capability_id: CapabilityId::from(CREATE_DRIVE_CAPABILITY),
             kind_id: contract.kind_id,
-            kind_contract_revision: KindContractRevision::from(
+            kind_contract_revision: KindIdentity::from(
                 conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_REVISION,
             ),
             implementation: ImplementationOffer {

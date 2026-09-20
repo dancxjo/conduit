@@ -1,8 +1,8 @@
 //! A real browser pointer event entering one ordinary planned kernel Play.
 
 use conduit_core::{
-    bind_active_play, bind_sign, kind_id, resource_offer, ArtifactId, BaseImplementationId, BootId,
-    CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    bind_active_play, bind_sign, kind_id, resource_offer, ArtifactId, Back, BackOfferBuilder,
+    BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     DeliveryContract, ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
     HostOperationRequirement, HostProfileId, ImplementationId, OfferGeneration,
     ResourceRequirement, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
@@ -409,9 +409,9 @@ pub(crate) fn pointer_source_offer(
     maximum_output_bytes: u32,
     resource_requirements: Vec<ResourceRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_semantic_catalog::pointer_source_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),

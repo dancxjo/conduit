@@ -928,9 +928,22 @@ fn planning_rejects_same_front_with_different_semantics_and_front_changes() {
     let placements = default_placements(&form, std::slice::from_ref(&original_host))
         .expect("placements must resolve");
 
+    let mut mismatched_kind = original_host.clone();
+    mismatched_kind.capabilities[0].kind_id = kind_id("mutated/flow-pulse");
+    assert!(!form.gears[0].accepts_realization(&mismatched_kind.capabilities[0]));
+    assert!(matches!(
+        plan(
+            &form,
+            std::slice::from_ref(&mismatched_kind),
+            &placements,
+            &[BaseImplementationId::from("conduit.base/local@1")],
+        ),
+        Err(PlannerError::WrongSemanticKind(_))
+    ));
+
     let mut mismatched_revision = original_host.clone();
     mismatched_revision.capabilities[0].kind_contract_revision =
-        conduit_core::KindContractRevision::from("mutated/flow-pulse@1");
+        conduit_core::KindIdentity::from("mutated/flow-pulse@1");
     assert!(matches!(
         plan(
             &form,
@@ -943,7 +956,7 @@ fn planning_rejects_same_front_with_different_semantics_and_front_changes() {
 
     let mut structural_form = form.clone();
     structural_form.gears[0].kind_contract_revision =
-        conduit_core::KindContractRevision::from(conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT);
+        conduit_core::KindIdentity::from(conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT);
     assert!(structural_form.gears[0].accepts_realization(&mismatched_revision.capabilities[0]));
 
     let mut mismatched_temporal = original_host.clone();

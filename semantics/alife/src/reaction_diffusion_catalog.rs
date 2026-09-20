@@ -2,8 +2,8 @@
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 
@@ -40,12 +40,12 @@ pub fn reaction_diffusion_definition() -> KindDefinition {
     }
 }
 
-pub fn reaction_diffusion_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn reaction_diffusion_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(REACTION_DIFFUSION_EVOLVE_KIND),
-        kind_contract_revision: KindContractRevision::from(REACTION_DIFFUSION_KIND_REVISION),
+        kind_contract_revision: KindIdentity::from(REACTION_DIFFUSION_KIND_REVISION),
         inputs: reaction_diffusion_inputs(),
         outputs: reaction_diffusion_outputs(),
         limits: CapabilityLimits {

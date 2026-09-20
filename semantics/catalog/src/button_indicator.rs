@@ -10,8 +10,8 @@ mod prepared;
 use alloc::string::String;
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, InfoBool, PortDescriptor, PortDirection, PortTemporal,
-    SemanticCapabilityContract, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, InfoBool, Kind, PortDescriptor, PortDirection,
+    PortTemporal, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
     StructuredInfoValue, StructuredInfoValueShape, BOOL_INFO_ID,
 };
 pub use prepared::PreparedButtonIndicatorMapper;
@@ -152,26 +152,26 @@ pub fn indicator_state_presentation_contract() -> StandardKindContract {
     }
 }
 
-pub fn button_source_semantic_contract() -> SemanticCapabilityContract {
+pub fn button_source_semantic_contract() -> Kind {
     semantic_contract(button_source_contract(), BUTTON_SOURCE_REVISION)
 }
 
-pub fn button_indicator_state_semantic_contract() -> SemanticCapabilityContract {
+pub fn button_indicator_state_semantic_contract() -> Kind {
     semantic_contract(
         button_indicator_state_contract(),
         BUTTON_INDICATOR_STATE_REVISION,
     )
 }
 
-pub fn indicator_state_presentation_semantic_contract() -> SemanticCapabilityContract {
+pub fn indicator_state_presentation_semantic_contract() -> Kind {
     semantic_contract(
         indicator_state_presentation_contract(),
         INDICATOR_STATE_PRESENTATION_REVISION,
     )
 }
 
-fn semantic_contract(contract: StandardKindContract, revision: &str) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
+    Kind {
         startup_parameters: super::startup_front(&contract.configuration),
         shorthand: None,
         kind_id: contract.kind_id,
@@ -266,7 +266,7 @@ pub fn install_button_indicator_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_core::KindContractRevision;
+    use conduit_core::KindIdentity;
     use conduit_form::{KindDefinition, KindSignature};
     for (contract, revision) in [
         (button_source_contract(), BUTTON_SOURCE_REVISION),
@@ -294,7 +294,7 @@ pub fn install_button_indicator_catalogs(
         profile
             .insert(KindDefinition {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration: contract

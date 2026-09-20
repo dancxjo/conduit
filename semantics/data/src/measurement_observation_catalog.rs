@@ -2,7 +2,7 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
+    kind_id, port_id, ConfigurationValue, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, QUANTITY_INFO_ID,
 };
 use conduit_form::{
@@ -32,7 +32,7 @@ pub fn install_measurement_observation_catalog(
 pub fn measurement_observation_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(MEASUREMENT_OBSERVATION_KIND),
-        kind_contract_revision: KindContractRevision::from(MEASUREMENT_OBSERVATION_REVISION),
+        kind_contract_revision: KindIdentity::from(MEASUREMENT_OBSERVATION_REVISION),
         inputs: vec![PortDescriptor {
             port_id: port_id("quantity"),
             value_kind: kind_id(QUANTITY_INFO_ID),

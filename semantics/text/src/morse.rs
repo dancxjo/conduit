@@ -4,8 +4,8 @@
 use alloc::string::ToString;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const MORSE_PATTERN_VALUE_KIND: &str = "value/morse-pattern@1";
@@ -50,7 +50,7 @@ pub enum MorseError {
 pub fn text_morse_semantics() -> MorseKindContract {
     MorseKindContract {
         kind_id: kind_id(TEXT_MORSE_KIND),
-        kind_contract_revision: KindContractRevision::from(TEXT_MORSE_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(TEXT_MORSE_CONTRACT_REVISION),
         inputs: vec![text_port(PortDirection::Input)],
         outputs: vec![morse_port(PortDirection::Output)],
         configuration: vec![(
@@ -64,7 +64,7 @@ pub fn text_morse_semantics() -> MorseKindContract {
 pub fn morse_text_semantics() -> MorseKindContract {
     MorseKindContract {
         kind_id: kind_id(MORSE_TEXT_KIND),
-        kind_contract_revision: KindContractRevision::from(MORSE_TEXT_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(MORSE_TEXT_CONTRACT_REVISION),
         inputs: vec![morse_port(PortDirection::Input)],
         outputs: vec![text_port(PortDirection::Output)],
         configuration: Vec::new(),
@@ -75,7 +75,7 @@ pub fn morse_text_semantics() -> MorseKindContract {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MorseKindContract {
     pub kind_id: conduit_core::KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub configuration: Vec<(&'static str, ConfigurationValue)>,
@@ -83,8 +83,8 @@ pub struct MorseKindContract {
 }
 
 impl MorseKindContract {
-    pub fn into_semantic_contract(self) -> SemanticCapabilityContract {
-        SemanticCapabilityContract {
+    pub fn into_semantic_contract(self) -> Kind {
+        Kind {
             startup_parameters: self
                 .configuration
                 .iter()

@@ -1,8 +1,8 @@
 //! Finite browser source for an explicitly configured portable rhythm state.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ConfigurationValue, ExecutionProfileId, ImplementationId,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, ImplementationId,
 };
 use conduit_kernel::ValueStorage;
 
@@ -11,9 +11,9 @@ const IMPLEMENTATION: &str = "browser/kernel-rhythm-state-source@1";
 const ARTIFACT: &str = "conduit-browser-runtime/rhythm-state-source@1";
 
 fn offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_time::rhythm_state_source_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("rhythm-state-source"),
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),

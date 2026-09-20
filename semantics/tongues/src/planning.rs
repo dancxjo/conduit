@@ -58,7 +58,7 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
     profile
         .insert(conduit_form::KindDefinition {
             kind_id: literal.kind_id,
-            kind_contract_revision: conduit_core::KindContractRevision::from(
+            kind_contract_revision: conduit_core::KindIdentity::from(
                 conduit_text::TEXT_LITERAL_CONTRACT_REVISION,
             ),
             inputs: literal.inputs,

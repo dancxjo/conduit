@@ -3,8 +3,8 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer,
-    KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
+    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer, KindId,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const RERANK_KIND: &str = "retrieval/rerank";
@@ -22,7 +22,7 @@ pub const MAXIMUM_R3_PROCESS_IDENTITY_BYTES: usize = 256;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct R3Contract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
@@ -81,7 +81,7 @@ pub fn deterministic_context_select_offer(
 fn contract(kind: &str, revision: &str, input: &str, output: &str) -> R3Contract {
     R3Contract {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         inputs: vec![port("candidates", input, PortDirection::Input)],
         outputs: vec![port("result", output, PortDirection::Output)],
         limits: CapabilityLimits {

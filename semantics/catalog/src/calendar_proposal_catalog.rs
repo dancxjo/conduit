@@ -7,10 +7,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
-    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
-    StructuredInfoValue, StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredFieldType,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
+    StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -24,8 +24,8 @@ pub const CALENDAR_PROPOSAL_MAXIMUM_INTERVALS: u16 = 8;
 pub const CALENDAR_PROPOSAL_MAXIMUM_CANDIDATES: u16 = 8;
 pub const CALENDAR_PROPOSAL_MAXIMUM_RESULTS: u16 = 3;
 
-pub fn calendar_proposal_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn calendar_proposal_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "request".into(),
             value_type: calendar_proposal_request_type()
@@ -37,7 +37,7 @@ pub fn calendar_proposal_semantic_contract() -> SemanticCapabilityContract {
         }],
         shorthand: None,
         kind_id: kind_id(CALENDAR_PROPOSAL_KIND),
-        kind_contract_revision: KindContractRevision::from(CALENDAR_PROPOSAL_REVISION),
+        kind_contract_revision: KindIdentity::from(CALENDAR_PROPOSAL_REVISION),
         inputs: vec![],
         outputs: vec![PortDescriptor {
             port_id: port_id("proposal"),
@@ -310,7 +310,7 @@ pub fn install_calendar_proposal_catalogs(
     profile
         .insert(KindDefinition {
             kind_id: kind_id(CALENDAR_PROPOSAL_KIND),
-            kind_contract_revision: KindContractRevision::from(CALENDAR_PROPOSAL_REVISION),
+            kind_contract_revision: KindIdentity::from(CALENDAR_PROPOSAL_REVISION),
             inputs: vec![],
             outputs: vec![PortDescriptor {
                 port_id: port_id("proposal"),

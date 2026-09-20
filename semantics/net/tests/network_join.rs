@@ -168,7 +168,7 @@ fn equal_front_is_compatible_but_resource_and_authority_stay_exact() {
     let canonical = advertisement.capabilities[0].checked_front();
     advertisement.capabilities[0].kind_id = kind_id("vendor/associate-network");
     advertisement.capabilities[0].kind_contract_revision =
-        conduit_core::KindContractRevision::from("vendor/associate-network@7");
+        conduit_core::KindIdentity::from("vendor/associate-network@7");
     assert_eq!(advertisement.capabilities[0].checked_front(), canonical);
     assert_eq!(
         canonical,

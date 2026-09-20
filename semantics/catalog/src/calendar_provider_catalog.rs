@@ -11,10 +11,9 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
-    StructuredConfigurationValue, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
-    StructuredInfoValue,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredConfigurationValue,
+    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -119,16 +118,14 @@ pub fn calendar_provider_contracts() -> [CalendarProviderKindContract; 6] {
     ]
 }
 
-pub fn calendar_provider_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+pub fn calendar_provider_semantic_contracts() -> Vec<Kind> {
     calendar_provider_contracts()
         .into_iter()
         .map(calendar_provider_semantic_contract)
         .collect()
 }
 
-pub fn calendar_provider_semantic_contract(
-    contract: CalendarProviderKindContract,
-) -> SemanticCapabilityContract {
+pub fn calendar_provider_semantic_contract(contract: CalendarProviderKindContract) -> Kind {
     let inputs = match (contract.input_type, contract.input_port) {
         (Some(value_type), Some(port_name)) => vec![semantic_port(
             port_name,
@@ -138,7 +135,7 @@ pub fn calendar_provider_semantic_contract(
         (None, None) => Vec::new(),
         _ => unreachable!("reviewed calendar provider input contract"),
     };
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "request".into(),
             value_type: calendar_request_type(&contract)
@@ -150,7 +147,7 @@ pub fn calendar_provider_semantic_contract(
         }],
         shorthand: None,
         kind_id: kind_id(contract.kind),
-        kind_contract_revision: KindContractRevision::from(contract.revision),
+        kind_contract_revision: KindIdentity::from(contract.revision),
         inputs,
         outputs: vec![semantic_port(
             contract.output_port,

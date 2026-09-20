@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, ImplementationId, KindContractRevision, PlannedGear,
+    ConfigurationValue, ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear,
     PortDescriptor, PortDirection, PortTemporal, Scalar, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
     TIMER_RESOURCE_CLASS,
 };
@@ -239,7 +239,7 @@ fn offer(
         shorthand: None,
         capability_id: CapabilityId::from(identity.implementation),
         kind_id: kind_id(identity.kind),
-        kind_contract_revision: KindContractRevision::from(identity.revision),
+        kind_contract_revision: KindIdentity::from(identity.revision),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(identity.profile),
             implementation_id: ImplementationId::from(identity.implementation),
@@ -262,21 +262,21 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     for definition in [
         KindDefinition {
             kind_id: kind_id(SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+            kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: source_offer().outputs,
             configuration: Vec::new(),
         },
         KindDefinition {
             kind_id: kind_id(LITERAL_KIND),
-            kind_contract_revision: KindContractRevision::from(LITERAL_REVISION),
+            kind_contract_revision: KindIdentity::from(LITERAL_REVISION),
             inputs: Vec::new(),
             outputs: literal_offer().outputs,
             configuration: Vec::new(),
         },
         KindDefinition {
             kind_id: kind_id(SINK_KIND),
-            kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+            kind_contract_revision: KindIdentity::from(SINK_REVISION),
             inputs: sink_offer().inputs,
             outputs: Vec::new(),
             configuration: vec![ConfigurationField {
@@ -290,7 +290,7 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
         },
         KindDefinition {
             kind_id: kind_id(conduit_semantic_catalog::LATEST_KIND),
-            kind_contract_revision: KindContractRevision::from(
+            kind_contract_revision: KindIdentity::from(
                 conduit_semantic_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION,
             ),
             inputs: conduit_semantic_catalog::state_latest_scalar_contract().inputs,
@@ -299,7 +299,7 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
         },
         KindDefinition {
             kind_id: kind_id(conduit_semantic_catalog::TEE_KIND),
-            kind_contract_revision: KindContractRevision::from(
+            kind_contract_revision: KindIdentity::from(
                 conduit_semantic_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION,
             ),
             inputs: conduit_semantic_catalog::flow_tee_scalar_contract().inputs,

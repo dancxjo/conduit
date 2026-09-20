@@ -2,9 +2,8 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
-    StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
@@ -52,7 +51,7 @@ pub fn record_transcript_kind_definition() -> KindDefinition {
     let terminal = terminal_event_type();
     KindDefinition {
         kind_id: kind_id(RECORD_TRANSCRIPT_KIND),
-        kind_contract_revision: KindContractRevision::from(RECORD_TRANSCRIPT_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(RECORD_TRANSCRIPT_CONTRACT_REVISION),
         inputs: vec![
             port("sent", &frame, PortDirection::Input),
             port("received", &frame, PortDirection::Input),
@@ -92,9 +91,9 @@ pub fn record_transcript_kind_definition() -> KindDefinition {
     }
 }
 
-pub fn record_transcript_semantic_contract() -> SemanticCapabilityContract {
+pub fn record_transcript_semantic_contract() -> Kind {
     let definition = record_transcript_kind_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: [
             "maximum-items",
             "maximum-events",

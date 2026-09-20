@@ -1,9 +1,9 @@
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, Plan,
-    PortDescriptor, PortDirection, PortTemporal, kind_id, port_id, resource_offer,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindIdentity,
+    OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, Plan, PortDescriptor,
+    PortDirection, PortTemporal, kind_id, port_id, resource_offer,
 };
 use conduit_form::{
     CanonicalBackCatalog, ProfileCatalog, StartupCatalog, check_syntax_document,
@@ -117,7 +117,7 @@ fn text_source_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-fixture-text-source@1"),
         kind_id: kind_id(TEXT_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from("conduitos/fixture-text-source@1"),
+        kind_contract_revision: KindIdentity::from("conduitos/fixture-text-source@1"),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(super::CONDUITOS_PRESENTATION_PROFILE),
             implementation_id: ImplementationId::from("conduitos.fixture/text-source@1"),
@@ -167,7 +167,7 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), PreparationError> {
     profile
         .insert(conduit_form::KindDefinition {
             kind_id: kind_id(TEXT_SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from("conduitos/fixture-text-source@1"),
+            kind_contract_revision: KindIdentity::from("conduitos/fixture-text-source@1"),
             inputs: Vec::new(),
             outputs: text_source_offer().outputs,
             configuration: Vec::new(),

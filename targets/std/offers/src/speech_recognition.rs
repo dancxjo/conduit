@@ -1,9 +1,9 @@
 //! Exact hosted projection from a recognition result to bounded text.
 
 use conduit_core::{
-    kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer,
-    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ResourceRequirement,
+    kind_id, resource_requirement, ArtifactId, Back, BackOfferBuilder, CapabilityId,
+    CapabilityOffer, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, ResourceRequirement,
 };
 
 pub const WHISPER_SPEECH_PROFILE: &str = "std/whisper-s16le-16000-mono@1";
@@ -116,9 +116,9 @@ fn offer(
     host_operation: HostOperationRequirement,
     resources: Vec<ResourceRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract.into_semantic_capability_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(identity.capability),
             execution_profile_id: ExecutionProfileId::from(identity.profile),
             implementation_id: ImplementationId::from(identity.implementation),

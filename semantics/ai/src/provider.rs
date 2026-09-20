@@ -8,10 +8,10 @@ use alloc::{
 };
 use conduit_core::{
     kind_id, port_id, protected_resource_requirement, resource_requirement, ArtifactId,
-    AuthorityContractId, AuthorityRequirement, CapabilityId, CapabilityLimits, CapabilityOffer,
-    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal, SemanticCapabilityContract,
+    AuthorityContractId, AuthorityRequirement, Back, BackOfferBuilder, CapabilityId,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use conduit_form::{
     check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindDefinition,
@@ -210,9 +210,9 @@ pub fn provider_http_offer() -> CapabilityOffer {
         maximum_input_bytes: conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
         maximum_output_bytes: conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
     };
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("provider-http-client-v1"),
             execution_profile_id: ExecutionProfileId::from("provider/http-hosted@1"),
             implementation_id: ImplementationId::from(PROVIDER_HTTP_IMPLEMENTATION),
@@ -304,7 +304,7 @@ fn definition(
 ) -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: vec![port(
             input_name,
             input_value,
@@ -337,9 +337,9 @@ fn port(
 
 fn adapter_offer(definition: KindDefinition) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         provider_adapter_semantic_contract(definition),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!("provider-{slug}")),
             execution_profile_id: ExecutionProfileId::from("provider/bounded-protocol@1"),
             implementation_id: ImplementationId::from(format!("provider/{slug}@1")),
@@ -352,8 +352,8 @@ fn adapter_offer(definition: KindDefinition) -> CapabilityOffer {
     .build()
 }
 
-fn provider_adapter_semantic_contract(definition: KindDefinition) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn provider_adapter_semantic_contract(definition: KindDefinition) -> Kind {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
         kind_id: definition.kind_id,

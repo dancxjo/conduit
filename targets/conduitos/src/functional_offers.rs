@@ -4,9 +4,9 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, TIMER_RESOURCE_CLASS, kind_id, monotonic_timer_host_operation_requirement,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    TIMER_RESOURCE_CLASS, kind_id, monotonic_timer_host_operation_requirement,
     monotonic_timer_resource_requirement, port_id, resource_requirement,
     wait_host_operation_requirement,
 };
@@ -236,9 +236,9 @@ pub fn text_join_offer() -> CapabilityOffer {
 }
 
 pub fn text_morse_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_text::text_morse_semantics().into_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("conduitos-text-morse-v1"),
             execution_profile_id: ExecutionProfileId::from(TEXT_PROFILE),
             implementation_id: ImplementationId::from(crate::offer::TEXT_MORSE_IMPLEMENTATION),
@@ -314,9 +314,9 @@ pub fn morse_composition_offers() -> Vec<CapabilityOffer> {
             max_queue_items: semantic.limits.max_queue_items,
             max_queue_bytes: semantic.limits.max_queue_bytes,
         };
-        CapabilityOfferBuilder::new(
+        BackOfferBuilder::new(
             semantic,
-            CapabilityRealization {
+            Back {
                 capability_id: CapabilityId::from(implementation),
                 execution_profile_id: ExecutionProfileId::from(TEXT_PROFILE),
                 implementation_id: ImplementationId::from(implementation),
@@ -648,9 +648,9 @@ fn text_offer(
         })
         .into_iter()
         .collect();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract.into_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(TEXT_PROFILE),
             implementation_id: ImplementationId::from(implementation),

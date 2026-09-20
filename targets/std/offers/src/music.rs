@@ -5,10 +5,9 @@ use conduit_audio::{
     NOTE_EVENT_ENCODED_LEN,
 };
 use conduit_core::{
-    kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const MUSIC_PLAY_MIDI_PROFILE: &str = "std/midi1-channel-12tet-a440-output@1";
@@ -246,9 +245,9 @@ pub fn music_input_midi_offer() -> CapabilityOffer {
 pub fn rhythm_compare_std_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::rhythm_compare_semantic_contract();
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("music-rhythm-compare"),
             execution_profile_id: ExecutionProfileId::from(RHYTHM_COMPARE_STD_PROFILE),
             implementation_id: ImplementationId::from(RHYTHM_COMPARE_STD_IMPLEMENTATION),
@@ -281,9 +280,9 @@ pub fn rhythm_compare_std_offer() -> CapabilityOffer {
 pub fn instrument_map_std_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::instrument_map_semantic_contract()
         .expect("portable instrument-map definition is finite");
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("music-instrument-map"),
             execution_profile_id: ExecutionProfileId::from(INSTRUMENT_MAP_STD_PROFILE),
             implementation_id: ImplementationId::from(INSTRUMENT_MAP_STD_IMPLEMENTATION),

@@ -1,9 +1,9 @@
 //! Explicitly initialized hosted Piper realization of portable speech synthesis.
 
 use conduit_core::{
-    kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer,
-    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId,
+    kind_id, resource_requirement, ArtifactId, Back, BackOfferBuilder, CapabilityId,
+    CapabilityOffer, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId,
 };
 
 pub const PIPER_SPEECH_PROFILE: &str = "std/piper-s16le-22050-mono-p25@1";
@@ -84,9 +84,9 @@ fn speech_offer(
     } else {
         conduit_tongues::synthesize_contract()
     };
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract.into_semantic_capability_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),

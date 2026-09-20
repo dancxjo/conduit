@@ -29,8 +29,8 @@ pub use morse_values_into::*;
 
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const TEXT_VALUE_KIND: &str = "value/text";
@@ -57,7 +57,7 @@ pub struct TextConfigurationField {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextKindContract {
     pub kind_id: conduit_core::KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub configuration: Vec<TextConfigurationField>,
@@ -65,7 +65,7 @@ pub struct TextKindContract {
 }
 
 impl TextKindContract {
-    pub fn into_semantic_contract(self) -> SemanticCapabilityContract {
+    pub fn into_semantic_contract(self) -> Kind {
         let shorthand = match self.kind_id.as_str() {
             TEXT_UPPER_KIND | TEXT_JOIN_KIND => Some((
                 self.inputs[0].port_id.clone(),
@@ -73,7 +73,7 @@ impl TextKindContract {
             )),
             _ => None,
         };
-        SemanticCapabilityContract {
+        Kind {
             startup_parameters: self
                 .configuration
                 .iter()
@@ -96,7 +96,7 @@ impl TextKindContract {
 pub fn text_literal_semantics() -> TextKindContract {
     TextKindContract {
         kind_id: kind_id(TEXT_LITERAL_KIND),
-        kind_contract_revision: KindContractRevision::from(TEXT_LITERAL_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(TEXT_LITERAL_CONTRACT_REVISION),
         inputs: Vec::new(),
         outputs: vec![text_port(PortDirection::Output)],
         configuration: vec![TextConfigurationField {
@@ -111,7 +111,7 @@ pub fn text_literal_semantics() -> TextKindContract {
 pub fn text_upper_semantics() -> TextKindContract {
     TextKindContract {
         kind_id: kind_id(TEXT_UPPER_KIND),
-        kind_contract_revision: KindContractRevision::from(TEXT_UPPER_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(TEXT_UPPER_CONTRACT_REVISION),
         inputs: vec![text_port(PortDirection::Input)],
         outputs: vec![text_port(PortDirection::Output)],
         configuration: Vec::new(),
@@ -122,7 +122,7 @@ pub fn text_upper_semantics() -> TextKindContract {
 pub fn text_join_semantics() -> TextKindContract {
     TextKindContract {
         kind_id: kind_id(TEXT_JOIN_KIND),
-        kind_contract_revision: KindContractRevision::from(TEXT_JOIN_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(TEXT_JOIN_CONTRACT_REVISION),
         inputs: vec![text_port(PortDirection::Input)],
         outputs: vec![text_port(PortDirection::Output)],
         configuration: vec![TextConfigurationField {
@@ -137,7 +137,7 @@ pub fn text_join_semantics() -> TextKindContract {
 pub fn address_detect_semantics() -> TextKindContract {
     TextKindContract {
         kind_id: kind_id(ADDRESS_DETECT_KIND),
-        kind_contract_revision: KindContractRevision::from(ADDRESS_DETECT_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(ADDRESS_DETECT_CONTRACT_REVISION),
         inputs: vec![
             named_text_port("recognized", TEXT_VALUE_KIND, PortDirection::Input),
             named_text_port("addresses", ADDRESS_SET_VALUE_KIND, PortDirection::Input),

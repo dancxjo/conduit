@@ -5,8 +5,8 @@
 use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
     CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
-    PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
+    HostOperationRequirement, ImplementationId, ImplementationOffer, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal, StructuredInfoType,
 };
 
 pub const JOB_PROOF_RUN_OPERATION: &str = "proof.host/process-job-run@1";
@@ -94,7 +94,7 @@ pub fn proof_domain_offer(
         shorthand: None,
         capability_id: CapabilityId::from(format!("proof/{}@1", kind.as_str())),
         kind_id: kind.clone(),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from("proof/deterministic-domain@1"),
             implementation_id: ImplementationId::from(format!("proof/{}@1", kind.as_str())),
@@ -127,9 +127,7 @@ pub fn recurrence_proof_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("proof/time-expand-recurrence"),
         kind_id: kind_id(conduit_semantic_catalog::RECURRENCE_KIND),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::RECURRENCE_REVISION,
-        ),
+        kind_contract_revision: KindIdentity::from(conduit_semantic_catalog::RECURRENCE_REVISION),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from("proof/recurrence-kernel@1"),
             implementation_id: ImplementationId::from("proof/kernel-expand-recurrence@1"),
@@ -236,7 +234,7 @@ fn workflow_proof_offer(
         shorthand: None,
         capability_id: CapabilityId::from(format!("proof/{kind}@1")),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from("proof/workflow@1"),
             implementation_id: ImplementationId::from(format!("proof/{kind}@1")),

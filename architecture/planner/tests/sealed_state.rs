@@ -21,9 +21,7 @@ fn checked_state_is_sealed_into_a_fresh_plan_with_exact_evidence_capacity() {
     profile
         .insert(conduit_form::KindDefinition {
             kind_id: source.kind_id.clone(),
-            kind_contract_revision: conduit_core::KindContractRevision::from(
-                "fixture/scalar-flow@1",
-            ),
+            kind_contract_revision: conduit_core::KindIdentity::from("fixture/scalar-flow@1"),
             inputs: source.inputs.clone(),
             outputs: source.outputs.clone(),
             configuration: vec![],

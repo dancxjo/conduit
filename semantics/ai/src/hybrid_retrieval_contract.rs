@@ -3,8 +3,8 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer,
-    KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
+    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer, KindId,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const HYBRID_RETRIEVAL_KIND: &str = "retrieval/hybrid-fuse";
@@ -21,7 +21,7 @@ pub const MAXIMUM_HYBRID_PROCESS_IDENTITY_BYTES: usize = 256;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HybridRetrievalContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub maximum_candidates_per_stage: u16,
@@ -39,7 +39,7 @@ pub enum HybridRetrievalOfferInvalidity {
 pub fn hybrid_retrieval_contract() -> HybridRetrievalContract {
     HybridRetrievalContract {
         kind_id: kind_id(HYBRID_RETRIEVAL_KIND),
-        kind_contract_revision: KindContractRevision::from(HYBRID_RETRIEVAL_REVISION),
+        kind_contract_revision: KindIdentity::from(HYBRID_RETRIEVAL_REVISION),
         inputs: ["vector", "lexical", "metadata", "temporal"]
             .into_iter()
             .map(|name| {

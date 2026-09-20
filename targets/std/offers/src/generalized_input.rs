@@ -2,9 +2,9 @@
 
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    SemanticCapabilityContract, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 extern crate alloc;
@@ -20,12 +20,12 @@ pub fn generalized_input_std_offers() -> Vec<CapabilityOffer> {
     ]
 }
 
-fn offer(contract: SemanticCapabilityContract) -> CapabilityOffer {
+fn offer(contract: Kind) -> CapabilityOffer {
     let identity = format!("std/{}@1", contract.kind_id.as_str());
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(identity.clone()),
             execution_profile_id: ExecutionProfileId::from(GENERALIZED_INPUT_PROFILE),
             implementation_id: ImplementationId::from(identity),

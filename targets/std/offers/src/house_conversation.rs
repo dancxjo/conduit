@@ -1,8 +1,8 @@
 //! Hosted std realization of the provider-neutral House prompt projection.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 
 pub const HOUSE_PROMPT_STD_IMPLEMENTATION: &str = "std/kernel-house-context-to-prompt@1";
@@ -21,9 +21,9 @@ pub fn house_prompt_std_offer() -> CapabilityOffer {
         maximum_input_bytes,
         maximum_output_bytes: conduit_tongues::MAXIMUM_HOUSE_PROMPT_BYTES as u32,
     };
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract.into_semantic_capability_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("house-context-to-prompt"),
             execution_profile_id: ExecutionProfileId::from(HOUSE_PROMPT_STD_PROFILE),
             implementation_id: ImplementationId::from(HOUSE_PROMPT_STD_IMPLEMENTATION),

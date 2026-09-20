@@ -6,8 +6,8 @@
 use super::StructuredValueContract;
 use alloc::vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, FrontStartupParameter, KindContractRevision,
-    PortDescriptor, PortDirection, PortTemporal, StructuredInfoRefusal, StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, FrontStartupParameter, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal, StructuredInfoRefusal, StructuredInfoType,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
@@ -35,7 +35,7 @@ pub fn state_value_contract(
             has_default: false,
         }],
         kind_id: kind_id(STATE_VALUE_KIND),
-        kind_contract_revision: KindContractRevision::from(STATE_VALUE_REVISION),
+        kind_contract_revision: KindIdentity::from(STATE_VALUE_REVISION),
         inputs: vec![port(
             "next",
             PortDirection::Input,

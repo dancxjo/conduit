@@ -7,11 +7,10 @@ use alloc::{
 };
 use conduit_audio::{MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
-    SemanticCapabilityContract, StructuredConfigurationValue, StructuredFieldType,
-    StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredVariantCase,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, KindId,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredConfigurationValue,
+    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -27,9 +26,9 @@ pub const RHYTHM_COMPARE_KIND: &str = "music/rhythm-compare";
 pub const RHYTHM_COMPARE_REVISION: &str = "conduit.std/music-rhythm-compare@1";
 pub const RHYTHM_MAXIMUM_PENDING_BEATS: u16 = 16;
 
-pub fn rhythm_compare_semantic_contract() -> SemanticCapabilityContract {
+pub fn rhythm_compare_semantic_contract() -> Kind {
     let definition = rhythm_compare_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![
             startup("target-offset-micros", kind_id("value/scalar"), true),
             startup("tolerance-micros", kind_id("value/count"), true),
@@ -49,14 +48,14 @@ pub fn rhythm_compare_semantic_contract() -> SemanticCapabilityContract {
     }
 }
 
-pub fn instrument_map_semantic_contract() -> Result<SemanticCapabilityContract, String> {
+pub fn instrument_map_semantic_contract() -> Result<Kind, String> {
     let definition = instrument_map_definition()?;
     let mapping_kind = instrument_mapping_type()
         .profile()
         .map_err(|error| alloc::format!("{error:?}"))?
         .value_kind()
         .clone();
-    Ok(SemanticCapabilityContract {
+    Ok(Kind {
         startup_parameters: vec![startup("mapping", mapping_kind, false)],
         shorthand: None,
         kind_id: definition.kind_id,
@@ -215,7 +214,7 @@ pub fn install_structured_music_form_catalogs(
 pub fn rhythm_compare_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(RHYTHM_COMPARE_KIND),
-        kind_contract_revision: KindContractRevision::from(RHYTHM_COMPARE_REVISION),
+        kind_contract_revision: KindIdentity::from(RHYTHM_COMPARE_REVISION),
         inputs: vec![
             flow_port("performance", MUSIC_NOTE_INFO_ID, PortDirection::Input),
             structured_flow_port("reference", &beat_reference_type(), PortDirection::Input),
@@ -259,7 +258,7 @@ pub fn instrument_map_definition() -> Result<KindDefinition, String> {
         .clone();
     Ok(KindDefinition {
         kind_id: kind_id(INSTRUMENT_MAP_KIND),
-        kind_contract_revision: KindContractRevision::from(INSTRUMENT_MAP_REVISION),
+        kind_contract_revision: KindIdentity::from(INSTRUMENT_MAP_REVISION),
         inputs: vec![PortDescriptor {
             port_id: port_id("input"),
             value_kind: control_kind,

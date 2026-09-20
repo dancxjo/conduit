@@ -32,7 +32,7 @@ pub fn fragment() -> PlanFragment {
             placement_id: PlacementId::from("placement"),
             gear_id: state.gear_id.clone(),
             kind_id: kind_id("fixture/state"),
-            kind_contract_revision: KindContractRevision::from("fixture/state@1"),
+            kind_contract_revision: KindIdentity::from("fixture/state@1"),
             execution_profile_id: ExecutionProfileId::from("fixture/state@1"),
             configuration: vec![],
             host_id: HostId::from("host"),

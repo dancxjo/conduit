@@ -1,8 +1,8 @@
 //! Exact finite timed-pattern realization offers owned by the hosted std Host.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
@@ -14,9 +14,9 @@ pub const ORDERED_EVENT_INTERVALS_HOST_OPERATION: &str = "conduit.host/ordered-e
 pub fn ordered_event_intervals_std_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::ordered_event_intervals_semantic_contract();
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("ordered-event-intervals"),
             execution_profile_id: ExecutionProfileId::from(ORDERED_EVENT_INTERVALS_STD_PROFILE),
             implementation_id: ImplementationId::from(ORDERED_EVENT_INTERVALS_STD_IMPLEMENTATION),

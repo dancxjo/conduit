@@ -6,9 +6,9 @@ mod flow_pressure;
 pub use flow_pressure::*;
 
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, CapabilityId,
-    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId,
-    ImplementationId, PRESENTATION_RESOURCE_CLASS,
+    kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, ImplementationId,
+    PRESENTATION_RESOURCE_CLASS,
 };
 
 pub const STRUCTURED_LITERAL_STD_PROFILE: &str = "std/structured-literal-kernel@1";
@@ -50,9 +50,9 @@ fn offer(
         .value_kind
         .as_str()
         .to_string();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract.into(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!(
                 "std-{}-{value_kind}",
                 if source {

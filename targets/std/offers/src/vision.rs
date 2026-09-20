@@ -1,10 +1,9 @@
 //! Exact hosted local-CV offers over an explicit finite image residence.
 
 use conduit_core::{
-    protected_resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    SemanticCapabilityContract,
+    protected_resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, Kind,
 };
 
 pub const LOCAL_VISION_PROFILE: &str = "conduit.std/local-vision-gray8@1";
@@ -31,16 +30,12 @@ pub fn local_vision_offers() -> [CapabilityOffer; 2] {
     ]
 }
 
-fn local_vision_offer(
-    capability: &str,
-    contract: SemanticCapabilityContract,
-    operation: &str,
-) -> CapabilityOffer {
+fn local_vision_offer(capability: &str, contract: Kind, operation: &str) -> CapabilityOffer {
     let operation = HostOperationContractId::from(operation);
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(LOCAL_VISION_PROFILE),
             implementation_id: ImplementationId::from(LOCAL_VISION_IMPLEMENTATION),
@@ -67,7 +62,7 @@ fn local_vision_offer(
     .build()
 }
 
-fn vision_contract(kind: &str) -> SemanticCapabilityContract {
+fn vision_contract(kind: &str) -> Kind {
     conduit_semantic_catalog::vision_semantic_contracts()
         .into_iter()
         .find(|contract| contract.kind_id.as_str() == kind)

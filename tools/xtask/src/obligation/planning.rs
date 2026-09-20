@@ -3,8 +3,7 @@ use conduit_core::{
     kind_id, port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ExecutionProfileId, FrontStartupParameter, HostAdvertisement, HostId,
     HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
-    KindContractRevision, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
-    PROTOCOL_VERSION,
+    KindIdentity, OfferGeneration, PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
@@ -104,7 +103,7 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     profiles
         .insert(KindDefinition {
             kind_id: kind_id(SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
             inputs: vec![],
             outputs: vec![port(PortDirection::Output)],
             configuration: FIELDS
@@ -120,7 +119,7 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     profiles
         .insert(KindDefinition {
             kind_id: kind_id(EXECUTE_KIND),
-            kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
             inputs: vec![port(PortDirection::Input)],
             outputs: vec![],
             configuration: vec![],
@@ -156,7 +155,7 @@ fn source_offer() -> CapabilityOffer {
     CapabilityOffer {
         capability_id: CapabilityId::from("repository-proof-obligation"),
         kind_id: kind_id(SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         implementation: implementation("repository/proof-obligation-source@1"),
         inputs: vec![],
         outputs: vec![port(PortDirection::Output)],
@@ -180,7 +179,7 @@ fn execute_offer() -> CapabilityOffer {
     CapabilityOffer {
         capability_id: CapabilityId::from("repository-execute-proof-catalog"),
         kind_id: kind_id(EXECUTE_KIND),
-        kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         implementation: implementation("repository/execute-proof-catalog@1"),
         inputs: vec![port(PortDirection::Input)],
         outputs: vec![],

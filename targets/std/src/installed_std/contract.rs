@@ -57,14 +57,14 @@ pub(super) fn parse_tick_configuration(
 
 #[cfg(test)]
 pub(super) fn test_tick_catalog() -> conduit_form::ProfileCatalog {
-    use conduit_core::{kind_id, KindContractRevision};
+    use conduit_core::{kind_id, KindIdentity};
     use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
 
     let mut catalog = ProfileCatalog::new();
     catalog
         .insert(KindDefinition {
             kind_id: kind_id(TICK_KIND),
-            kind_contract_revision: KindContractRevision::from(TICK_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(TICK_CONTRACT_REVISION),
             inputs: Vec::new(),
             outputs: tick_offer().outputs,
             configuration: vec![

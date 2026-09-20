@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, ImplementationId, KindContractRevision, PlannedGear, PortDescriptor,
-    PortDirection, PortTemporal, BOOL_INFO_ID,
+    ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
+    PortTemporal, BOOL_INFO_ID,
 };
 use conduit_form::{KindDefinition, ProfileCatalog};
 use conduit_kernel::{
@@ -118,7 +118,7 @@ pub(super) fn offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-timing-bool-sink-v1"),
         kind_id: kind_id(KIND),
-        kind_contract_revision: KindContractRevision::from(REVISION),
+        kind_contract_revision: KindIdentity::from(REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
@@ -148,7 +148,7 @@ pub(super) fn source_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-timing-bool-source-v1"),
         kind_id: kind_id(SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(SOURCE_PROFILE),
             implementation_id: ImplementationId::from(SOURCE_IMPLEMENTATION),

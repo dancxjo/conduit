@@ -794,6 +794,13 @@ fn validate_operation_capability(
     gear: &CheckedGear,
     capability: &conduit_core::CapabilityOffer,
 ) -> Result<(), PlannerError> {
+    if capability.kind_id != gear.kind_id {
+        return Err(PlannerError::WrongSemanticKind(format!(
+            "gear '{}' Kind differs from capability '{}' Kind",
+            gear.gear_id.as_str(),
+            capability.capability_id.as_str()
+        )));
+    }
     if capability.checked_front() != gear.checked_front() {
         return Err(PlannerError::IncompatibleCheckedFront(format!(
             "gear '{}' front differs from capability '{}' front",

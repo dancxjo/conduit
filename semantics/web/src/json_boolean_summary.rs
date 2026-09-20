@@ -2,7 +2,7 @@
 
 use crate::{JsonRefusal, JsonValue, PortableKindContract};
 use alloc::{string::ToString, vec};
-use conduit_core::{kind_id, KindContractRevision, Scalar};
+use conduit_core::{kind_id, KindIdentity, Scalar};
 
 pub const JSON_BOOLEAN_SUMMARY_KIND: &str = "json/boolean-summary";
 pub const JSON_BOOLEAN_SUMMARY_REVISION: &str = "conduit.json/boolean-summary@1";
@@ -71,7 +71,7 @@ pub fn json_boolean_summary(
 pub fn json_boolean_summary_semantics() -> PortableKindContract {
     let mut contract = crate::json_collection_step_semantics();
     contract.kind_id = kind_id(JSON_BOOLEAN_SUMMARY_KIND);
-    contract.kind_contract_revision = KindContractRevision::from(JSON_BOOLEAN_SUMMARY_REVISION);
+    contract.kind_contract_revision = KindIdentity::from(JSON_BOOLEAN_SUMMARY_REVISION);
     contract
 }
 

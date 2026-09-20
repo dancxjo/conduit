@@ -8,9 +8,9 @@
 
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    compute_resource_requirement, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ComputeServiceGuarantee,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    compute_resource_requirement, resource_requirement, ArtifactId, Back, BackOfferBuilder,
+    CapabilityId, CapabilityLimits, CapabilityOffer, ComputeServiceGuarantee, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -302,9 +302,9 @@ impl LocalModelOffer {
         ];
         resource_requirements.sort();
         let semantic_maximum_queue_items = contract.limits.max_queue_items;
-        CapabilityOfferBuilder::new(
+        BackOfferBuilder::new(
             contract.into_capability_contract(),
-            CapabilityRealization {
+            Back {
                 capability_id: CapabilityId::from(alloc::format!(
                     "{LOCAL_MODEL_CAPABILITY_PREFIX}/{}",
                     profile.kind()

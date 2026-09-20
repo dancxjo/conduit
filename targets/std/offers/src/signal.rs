@@ -1,17 +1,16 @@
 //! Exact Signal implementation offers owned by the hosted std Host.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ImplementationId,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ImplementationId,
 };
 
 pub const SIGNAL_PULSE_STD_IMPLEMENTATION: &str = "std/pulse-v1";
 pub const SIGNAL_SHOW_STD_IMPLEMENTATION: &str = "std/stdout-show-signal-v1";
 
 pub fn signal_pulse_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_signal::pulse_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("pulse-1"),
             execution_profile_id: conduit_signal::pulse_execution_profile(),
             implementation_id: ImplementationId::from(SIGNAL_PULSE_STD_IMPLEMENTATION),
@@ -25,9 +24,9 @@ pub fn signal_pulse_offer() -> CapabilityOffer {
 }
 
 pub fn signal_show_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_signal::show_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("stdout-show-1"),
             execution_profile_id: conduit_signal::show_execution_profile(),
             implementation_id: ImplementationId::from(SIGNAL_SHOW_STD_IMPLEMENTATION),

@@ -1,9 +1,8 @@
 //! Exact state and portable-input realizations owned by the hosted std Host.
 
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, SemanticCapabilityContract,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
 };
 use conduit_human::{CHORD_ENCODED_LEN, KEY_EVENT_ENCODED_LEN};
 
@@ -94,7 +93,7 @@ pub fn chords_offer() -> CapabilityOffer {
 
 #[allow(clippy::too_many_arguments)]
 fn offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     capability: &str,
     profile: &str,
     implementation: &str,
@@ -111,9 +110,9 @@ fn offer(
         })
         .into_iter()
         .collect();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),

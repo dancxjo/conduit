@@ -2,8 +2,8 @@
 
 use alloc::{string::String, string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -22,7 +22,7 @@ pub fn final_normalized_pattern_definition() -> KindDefinition {
         .clone();
     KindDefinition {
         kind_id: kind_id(FINAL_NORMALIZED_PATTERN_KIND),
-        kind_contract_revision: KindContractRevision::from(FINAL_NORMALIZED_PATTERN_REVISION),
+        kind_contract_revision: KindIdentity::from(FINAL_NORMALIZED_PATTERN_REVISION),
         inputs: vec![PortDescriptor {
             port_id: port_id("patterns"),
             value_kind: value_kind.clone(),
@@ -55,9 +55,9 @@ pub fn final_normalized_pattern_limits() -> CapabilityLimits {
     }
 }
 
-pub fn final_normalized_pattern_semantic_contract() -> SemanticCapabilityContract {
+pub fn final_normalized_pattern_semantic_contract() -> Kind {
     let definition = final_normalized_pattern_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "maximum-values".into(),
             value_type: kind_id("value/count"),

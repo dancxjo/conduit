@@ -2,8 +2,8 @@
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 
@@ -37,16 +37,16 @@ pub fn record_exactly_one_definition() -> KindDefinition {
     definitions()[1].clone()
 }
 
-pub fn record_singleton_stream_semantic_contract() -> SemanticCapabilityContract {
+pub fn record_singleton_stream_semantic_contract() -> Kind {
     semantic_contract(record_singleton_stream_definition())
 }
 
-pub fn record_exactly_one_semantic_contract() -> SemanticCapabilityContract {
+pub fn record_exactly_one_semantic_contract() -> Kind {
     semantic_contract(record_exactly_one_definition())
 }
 
-fn semantic_contract(definition: KindDefinition) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn semantic_contract(definition: KindDefinition) -> Kind {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: Some((
             definition.inputs[0].port_id.clone(),
@@ -73,7 +73,7 @@ fn definitions() -> [KindDefinition; 2] {
     [
         KindDefinition {
             kind_id: kind_id(RECORD_SINGLETON_STREAM_KIND),
-            kind_contract_revision: KindContractRevision::from(RECORD_TEMPORAL_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(RECORD_TEMPORAL_CONTRACT_REVISION),
             inputs: vec![port(
                 "record",
                 kind.clone(),
@@ -90,7 +90,7 @@ fn definitions() -> [KindDefinition; 2] {
         },
         KindDefinition {
             kind_id: kind_id(RECORD_EXACTLY_ONE_KIND),
-            kind_contract_revision: KindContractRevision::from(RECORD_TEMPORAL_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(RECORD_TEMPORAL_CONTRACT_REVISION),
             inputs: vec![port(
                 "stream",
                 kind.clone(),

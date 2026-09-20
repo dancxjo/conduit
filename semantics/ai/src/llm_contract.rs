@@ -1,7 +1,7 @@
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use serde::{Deserialize, Serialize};
 
@@ -118,7 +118,7 @@ impl LlmWorkBounds {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LlmSemanticContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub result_payload_kind: KindId,
@@ -138,8 +138,8 @@ impl LlmSemanticContract {
             && self.bounds == offered.bounds
     }
 
-    pub fn into_capability_contract(self) -> conduit_core::SemanticCapabilityContract {
-        conduit_core::SemanticCapabilityContract {
+    pub fn into_capability_contract(self) -> conduit_core::Kind {
+        conduit_core::Kind {
             startup_parameters: [
                 "maximum-input-bytes",
                 "maximum-context-items",
@@ -202,7 +202,7 @@ fn stream_contract() -> LlmSemanticContract {
         GENERATION_REQUEST_VALUE_KIND,
         GENERATED_TEXT_CHUNK_VALUE_KIND,
     );
-    contract.kind_contract_revision = KindContractRevision::from("conduit.llm/generate-stream@1");
+    contract.kind_contract_revision = KindIdentity::from("conduit.llm/generate-stream@1");
     contract.outputs[0].temporal = PortTemporal::Flow { closes: true };
     contract.limits.max_queue_items = 8;
     contract
@@ -214,7 +214,7 @@ fn present_contract() -> LlmSemanticContract {
         GENERATIVE_PRESENTER_INPUT_VALUE_KIND,
         GENERATED_MANIFESTATION_VALUE_KIND,
     );
-    contract.kind_contract_revision = KindContractRevision::from("conduit.llm/present@2");
+    contract.kind_contract_revision = KindIdentity::from("conduit.llm/present@2");
     contract
 }
 
@@ -246,7 +246,7 @@ fn contract_with_temporal(
     let bounds = LlmWorkBounds::reviewed_default();
     LlmSemanticContract {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("conduit.{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("conduit.{kind}@1")),
         inputs: vec![port_with_temporal(
             "request",
             request_kind,

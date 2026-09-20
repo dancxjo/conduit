@@ -1,9 +1,9 @@
 //! Finite std-host offers for portable linguistic contracts.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    SemanticCapabilityContract, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const LINGUISTICS_PROFILE: &str = "std/linguistics-kernel-hosted@1";
@@ -17,11 +17,11 @@ pub fn linguistics_std_offers() -> Vec<CapabilityOffer> {
     ]
 }
 
-fn offer(contract: SemanticCapabilityContract) -> CapabilityOffer {
+fn offer(contract: Kind) -> CapabilityOffer {
     let kind = contract.kind_id.as_str().to_owned();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!("std/{kind}@1")),
             execution_profile_id: ExecutionProfileId::from(LINGUISTICS_PROFILE),
             implementation_id: ImplementationId::from(format!("std/{kind}@1")),

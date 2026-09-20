@@ -6,9 +6,9 @@
 use crate::{
     characteristic, execution_fusion, hash_bytes, plan_realization, push_resource_binding,
     push_string, push_u32, push_u64, AdmittedLine, BoundLink, CancellationPolicy, CheckedFront,
-    ConfigurationValue, ExpectedSign, ExpectedTerminal, FormIdentity, FragmentCommitment,
+    ConfigurationValue, ExpectedSign, ExpectedTerminal, FormBack, FormIdentity, FragmentCommitment,
     FragmentId, LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId,
-    PortDescriptor, PortDirection, PortTemporal, RealizationBack, TerminalPolicy,
+    PortDescriptor, PortDirection, PortTemporal, TerminalPolicy,
 };
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -385,7 +385,7 @@ fn push_admitted_line(canonical: &mut Vec<u8>, line: &AdmittedLine) {
 
 pub(crate) fn compute_plan_id(
     form_identity: &FormIdentity,
-    realization_backs: &[RealizationBack],
+    realization_backs: &[FormBack],
     commitments: &[FragmentCommitment],
 ) -> PlanId {
     let mut canonical = Vec::new();

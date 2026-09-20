@@ -5,8 +5,8 @@ use super::{
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
     HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement, HostProfileId,
-    ImplementationId, KindContractRevision, OfferGeneration, PortDescriptor, PortDirection,
-    PortTemporal, PROTOCOL_VERSION,
+    ImplementationId, KindIdentity, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
+    PROTOCOL_VERSION,
 };
 use conduit_presentation::{
     MAX_GRAPHICS_SCENE_BYTES, MAX_LAYOUT_FRAME_BYTES, MAX_PRESENTATION_COMPOSITION_BYTES,
@@ -106,7 +106,7 @@ fn text_source_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: conduit_core::CapabilityId::from("browser-fixture-text-source@1"),
         kind_id: kind_id(FIXTURE_TEXT_KIND),
-        kind_contract_revision: KindContractRevision::from("browser.fixture/text-source@1"),
+        kind_contract_revision: KindIdentity::from("browser.fixture/text-source@1"),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(BROWSER_PRESENTATION_PROFILE),
             implementation_id: ImplementationId::from("browser.fixture/text-source@1"),
@@ -136,7 +136,7 @@ fn fixture_offer(kind: &str, value_kind: &str, maximum_bytes: u32) -> Capability
         shorthand: None,
         capability_id: conduit_core::CapabilityId::from(format!("{kind}-capability@1").as_str()),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from("browser.fixture/presentation-sink@1"),
+        kind_contract_revision: KindIdentity::from("browser.fixture/presentation-sink@1"),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(BROWSER_PRESENTATION_PROFILE),
             implementation_id: ImplementationId::from(format!("{kind}-implementation@1").as_str()),
@@ -178,9 +178,7 @@ pub(super) fn fixture_catalog() -> Result<conduit_form::ProfileCatalog, String> 
         catalog
             .insert(conduit_form::KindDefinition {
                 kind_id: kind_id(kind),
-                kind_contract_revision: KindContractRevision::from(
-                    "browser.fixture/presentation-sink@1",
-                ),
+                kind_contract_revision: KindIdentity::from("browser.fixture/presentation-sink@1"),
                 inputs: vec![PortDescriptor {
                     port_id: port_id("input"),
                     value_kind: kind_id(value_kind),
@@ -222,7 +220,7 @@ pub(super) fn text_fixture_catalog() -> Result<conduit_form::ProfileCatalog, Str
     catalog
         .insert(conduit_form::KindDefinition {
             kind_id: kind_id(FIXTURE_TEXT_KIND),
-            kind_contract_revision: KindContractRevision::from("browser.fixture/text-source@1"),
+            kind_contract_revision: KindIdentity::from("browser.fixture/text-source@1"),
             inputs: Vec::new(),
             outputs: text_source_offer().outputs,
             configuration: Vec::new(),

@@ -59,7 +59,7 @@ pub fn install_text_pipeline_catalogs(
     profile
         .insert(KindDefinition {
             kind_id: presentation.kind_id,
-            kind_contract_revision: conduit_core::KindContractRevision::from(
+            kind_contract_revision: conduit_core::KindIdentity::from(
                 super::TEXT_PRESENTATION_CONTRACT_REVISION,
             ),
             inputs: presentation.inputs,

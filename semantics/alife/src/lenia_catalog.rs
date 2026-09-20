@@ -2,8 +2,7 @@
 
 use alloc::{format, string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal,
+    kind_id, port_id, ConfigurationValue, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
@@ -74,7 +73,7 @@ pub fn lenia_definitions() -> Vec<KindDefinition> {
 pub fn orbium_seed_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(ORBIUM_SEED_KIND),
-        kind_contract_revision: KindContractRevision::from(ORBIUM_SEED_REVISION),
+        kind_contract_revision: KindIdentity::from(ORBIUM_SEED_REVISION),
         inputs: Vec::new(),
         outputs: vec![field_port(
             "field",
@@ -92,7 +91,7 @@ pub fn orbium_seed_definition() -> KindDefinition {
 pub fn lenia_step_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(LENIA_STEP_KIND),
-        kind_contract_revision: KindContractRevision::from(LENIA_STEP_REVISION),
+        kind_contract_revision: KindIdentity::from(LENIA_STEP_REVISION),
         inputs: vec![
             field_port("initial", PortDirection::Input, PortTemporal::Value),
             PortDescriptor {
@@ -128,7 +127,7 @@ pub fn lenia_step_definition() -> KindDefinition {
 pub fn scalar_field_presentation_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(SCALAR_FIELD_PRESENTATION_KIND),
-        kind_contract_revision: KindContractRevision::from(SCALAR_FIELD_PRESENTATION_REVISION),
+        kind_contract_revision: KindIdentity::from(SCALAR_FIELD_PRESENTATION_REVISION),
         inputs: vec![field_port(
             "field",
             PortDirection::Input,

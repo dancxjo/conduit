@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, ImplementationId, KindContractRevision, PlannedGear, PortDescriptor,
-    PortDirection, PortTemporal,
+    ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use conduit_form::{KindDefinition, ProfileCatalog};
 use conduit_kernel::{OperationAction, OperationInput, PortId};
@@ -53,7 +53,7 @@ pub(crate) fn offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("proof-speech-pcm-sink"),
         kind_id: kind_id(KIND),
-        kind_contract_revision: KindContractRevision::from(REVISION),
+        kind_contract_revision: KindIdentity::from(REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
@@ -77,7 +77,7 @@ pub(crate) fn install_catalog(catalog: &mut ProfileCatalog) {
     catalog
         .insert(KindDefinition {
             kind_id: kind_id(KIND),
-            kind_contract_revision: KindContractRevision::from(REVISION),
+            kind_contract_revision: KindIdentity::from(REVISION),
             inputs: inputs(),
             outputs: Vec::new(),
             configuration: Vec::new(),

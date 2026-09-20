@@ -2,7 +2,7 @@ use super::contract::{MAX_TEXT_BYTES, TEXT_PRESENTATION_VALUE_KIND};
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, ImplementationId, KindContractRevision, PlannedGear,
+    ConfigurationValue, ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear,
     PortDescriptor, PortDirection,
 };
 use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
@@ -47,7 +47,7 @@ pub(super) fn offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-text-source"),
         kind_id: kind_id(TEST_TEXT_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(TEST_TEXT_SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(TEST_TEXT_SOURCE_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(TEST_TEXT_SOURCE_PROFILE),
             implementation_id: ImplementationId::from(TEST_TEXT_SOURCE_IMPLEMENTATION),
@@ -70,7 +70,7 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     catalog
         .insert(KindDefinition {
             kind_id: kind_id(TEST_TEXT_SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from(TEST_TEXT_SOURCE_REVISION),
+            kind_contract_revision: KindIdentity::from(TEST_TEXT_SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: outputs(),
             configuration: vec![ConfigurationField {

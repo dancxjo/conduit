@@ -127,8 +127,7 @@ fn stale_installed_revision_is_a_drift_error() {
                 .any(|entry| entry.kind_id == capability.kind_id.as_str())
         })
         .unwrap();
-    capability.kind_contract_revision =
-        conduit_core::KindContractRevision::from("stale/revision@0");
+    capability.kind_contract_revision = conduit_core::KindIdentity::from("stale/revision@0");
     let error = validate_catalog_revisions(&profile, &inventory.entries).unwrap_err();
     assert_eq!(error.code, "installed-kind-revision-mismatch");
 }

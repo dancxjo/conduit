@@ -16,7 +16,7 @@ use conduit_core::{
     kind_id, port_id, ActivePlayId, ArtifactId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, CheckedFormId, ExecutionProfileId, ExpandedFormId, FrontStartupParameter,
     HostAdvertisement, HostOperationContractId, HostOperationRequirement, HostProfileId,
-    ImplementationId, KindContractRevision, OfferGeneration, PlanId, PortDescriptor, PortDirection,
+    ImplementationId, KindIdentity, OfferGeneration, PlanId, PortDescriptor, PortDirection,
     PortTemporal, SourceDocumentId, PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -352,7 +352,7 @@ fn source_definition(kind: &str) -> KindDefinition {
     };
     KindDefinition {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         inputs: vec![],
         outputs: vec![request_port(PortDirection::Output)],
         configuration: fields
@@ -371,7 +371,7 @@ fn source_definition(kind: &str) -> KindDefinition {
 fn apply_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(APPLY_KIND),
-        kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         inputs: vec![request_port(PortDirection::Input)],
         outputs: vec![],
         configuration: vec![],
@@ -430,7 +430,7 @@ fn source_offer(
         shorthand: None,
         capability_id: CapabilityId::from(capability),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(implementation),
@@ -451,7 +451,7 @@ fn apply_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("patchbay-apply"),
         kind_id: kind_id(APPLY_KIND),
-        kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(EXECUTION_PROFILE),
             implementation_id: ImplementationId::from("patchbay/apply@1"),

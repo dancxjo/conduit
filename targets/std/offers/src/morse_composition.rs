@@ -1,9 +1,8 @@
 //! Exact hosted implementations for the finite leaf Gears in reviewed Morse Backs.
 
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 
 pub const ARTIFACT: &str = "conduit-std-host/morse-composition@1";
@@ -41,9 +40,9 @@ pub fn morse_composition_offers() -> Vec<CapabilityOffer> {
 fn offer(contract: conduit_text::MorseKindContract, implementation: &str) -> CapabilityOffer {
     let maximum_input_bytes = value_bound(contract.inputs[0].value_kind.as_str());
     let maximum_output_bytes = value_bound(contract.outputs[0].value_kind.as_str());
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract.into_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),

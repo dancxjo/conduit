@@ -1,9 +1,9 @@
 //! Exact hosted ALSA microphone clip-source offer.
 
 use conduit_core::{
-    kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId,
 };
 
 pub const MICROPHONE_CLIP_PROFILE: &str = "std/alsa-microphone-clip-s16le-16000-mono@1";
@@ -15,9 +15,9 @@ pub const MICROPHONE_CAPTURE_AUTHORITY: &str = "conduit.authority/audio-capture@
 
 pub fn microphone_clip_offer() -> CapabilityOffer {
     let operation = HostOperationContractId::from(MICROPHONE_CLIP_OPERATION);
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_semantic_catalog::microphone_clip_source_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("audio-capture-alsa-microphone-clip"),
             execution_profile_id: ExecutionProfileId::from(MICROPHONE_CLIP_PROFILE),
             implementation_id: ImplementationId::from(MICROPHONE_CLIP_IMPLEMENTATION),

@@ -7,10 +7,10 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 #[cfg(feature = "form-catalog")]
-use conduit_core::KindContractRevision;
+use conduit_core::KindIdentity;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 
 pub const STATE_COUNT_KIND: &str = "state/count";
@@ -69,9 +69,9 @@ pub fn state_count_contract() -> StandardKindContract {
     }
 }
 
-pub fn state_count_semantic_contract() -> SemanticCapabilityContract {
+pub fn state_count_semantic_contract() -> Kind {
     let contract = state_count_contract();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: super::startup_front(&contract.configuration),
         shorthand: None,
         kind_id: contract.kind_id,
@@ -140,7 +140,7 @@ pub fn install_count_pipeline_catalogs(
         profile
             .insert(KindDefinition {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration: contract
