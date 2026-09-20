@@ -9,7 +9,7 @@ export function registerTourGalleryExecutionTests(openStep) {
   };
   const openGallery = async (page) => {
     await openStep(page, 0);
-    await page.getByRole("button", { name: "Form Gallery", exact: true }).click();
+    await page.getByRole("button", { name: "form Gallery", exact: true }).click();
   };
   const activePlay = (runner) => runner
     .locator('.run-identities [data-application-component="definition"]')
