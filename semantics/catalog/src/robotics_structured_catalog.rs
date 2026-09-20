@@ -6,8 +6,9 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
+    PortDirection, PortTemporal, SemanticCapabilityContract, StructuredInfoType,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -51,6 +52,25 @@ pub fn robotics_structured_kind_contracts() -> Vec<RoboticsStructuredKindContrac
             vec![],
         ),
     ]
+}
+
+pub fn robotics_structured_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+    robotics_structured_kind_contracts()
+        .into_iter()
+        .map(|(kind_id, inputs, outputs)| SemanticCapabilityContract {
+            startup_parameters: vec![],
+            shorthand: None,
+            kind_id,
+            kind_contract_revision: KindContractRevision::from(ROBOTICS_STRUCTURED_REVISION),
+            inputs,
+            outputs,
+            limits: CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: 1,
+                max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            },
+        })
+        .collect()
 }
 
 pub fn install_robotics_structured_catalogs(
