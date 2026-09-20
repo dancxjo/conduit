@@ -1,6 +1,9 @@
 use alloc::string::{String, ToString};
 use alloc::vec;
-use conduit_core::{kind_id, ConfigurationValue, KindContractRevision};
+use conduit_core::{
+    kind_id, CapabilityLimits, ConfigurationValue, FaceStartupParameter, KindContractRevision,
+    SemanticCapabilityContract,
+};
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
@@ -217,6 +220,27 @@ pub fn pulse_observe_kind_definition() -> KindDefinition {
     }
 }
 
+pub fn pulse_observe_semantic_contract() -> SemanticCapabilityContract {
+    let definition = pulse_observe_kind_definition();
+    SemanticCapabilityContract {
+        startup_parameters: vec![FaceStartupParameter {
+            name: "period-ms".into(),
+            value_type: kind_id("value/count"),
+            has_default: true,
+        }],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 1,
+            max_queue_bytes: crate::TICK_ENCODED_LEN,
+        },
+    }
+}
+
 fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
@@ -374,5 +398,12 @@ mod tests {
             every.kind_contract_revision.as_str(),
             TIME_EVERY_CONTRACT_REVISION
         );
+        let pulse = pulse_observe_semantic_contract();
+        assert_eq!(pulse.kind_id.as_str(), PULSE_OBSERVE_KIND);
+        assert_eq!(pulse.startup_parameters.len(), 1);
+        assert_eq!(pulse.startup_parameters[0].name, "period-ms");
+        assert!(pulse.startup_parameters[0].has_default);
+        assert_eq!(pulse.limits.max_active_instances, 8);
+        assert_eq!(pulse.limits.max_queue_bytes, crate::TICK_ENCODED_LEN);
     }
 }
