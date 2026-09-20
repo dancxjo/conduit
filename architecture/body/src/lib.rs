@@ -27,6 +27,8 @@ mod character_purpose_continuity;
 mod continuity;
 mod conversation;
 mod durable_body;
+mod emergency_control;
+mod emergency_key;
 mod events;
 #[cfg(feature = "authenticated-admission")]
 mod federation;
@@ -64,6 +66,8 @@ pub use character_purpose_continuity::*;
 pub use continuity::*;
 pub use conversation::*;
 pub use durable_body::*;
+pub use emergency_control::*;
+pub use emergency_key::*;
 pub use events::{BodyLifecycleEvent, WakeLifecycleEvent};
 #[cfg(feature = "authenticated-admission")]
 pub use federation::*;
