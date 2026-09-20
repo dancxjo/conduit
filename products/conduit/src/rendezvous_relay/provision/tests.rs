@@ -33,6 +33,11 @@ fn provisioning_creates_distinct_private_exact_descriptors_without_overwrite() {
     assert_eq!(second["candidate"]["route_id"], slot["route_id"]);
     assert_eq!(first["candidate"]["role"], "initiator");
     assert_eq!(second["candidate"]["role"], "responder");
+    assert!(first["rendezvous"]
+        .as_str()
+        .unwrap()
+        .starts_with(conduit_body::RENDEZVOUS_TEXT_PREFIX));
+    assert!(first.get("rendezvous_session_secret").is_none());
     assert_ne!(
         first["candidate"]["relay_capability"],
         second["candidate"]["relay_capability"]
@@ -52,6 +57,19 @@ fn provisioning_creates_distinct_private_exact_descriptors_without_overwrite() {
         now,
     )
     .unwrap();
+    let mut relabelled = first.clone();
+    relabelled["candidate"]["route_id"] = "route/relabelled".into();
+    fs::write(
+        output.join("endpoint-first.json"),
+        serde_json::to_vec_pretty(&relabelled).unwrap(),
+    )
+    .unwrap();
+    assert!(crate::host_rendezvous::validate_relay_endpoint_descriptor(
+        &output.join("endpoint-first.json"),
+        now,
+    )
+    .unwrap_err()
+    .contains("disagrees"));
     assert!(provision(options()).unwrap_err().contains("already exists"));
     #[cfg(unix)]
     {
