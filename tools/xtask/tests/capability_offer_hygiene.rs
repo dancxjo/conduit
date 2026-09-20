@@ -10,6 +10,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "semantic contract owner",
     ),
     (
+        "semantics/catalog/src/pattern_comparison.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
         "semantics/catalog/src/functional_front.rs",
         0,
         "fully migrated",
@@ -53,6 +58,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "fully migrated",
     ),
     (
+        "targets/browser/runtime/src/installed_browser/pattern_comparison.rs",
+        0,
+        "fully migrated",
+    ),
+    (
         "targets/browser/runtime/src/installed_browser/timing.rs",
         0,
         "fully migrated",
@@ -79,6 +89,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     (
         "targets/std/offers/src/final_normalized_pattern.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/std/offers/src/pattern_comparison.rs",
         0,
         "fully migrated",
     ),
