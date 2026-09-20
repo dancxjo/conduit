@@ -53,6 +53,16 @@ fn endpoint(response: &'static [u8]) -> LocalEndpoint {
 #[test]
 fn exact_offer_is_finite_and_requires_narrow_authority() {
     let offer = offer();
+    let semantic = conduit_web::http_client_semantics().into_semantic_contract();
+    assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+    assert_eq!(offer.kind_id, semantic.kind_id);
+    assert_eq!(
+        offer.kind_contract_revision,
+        semantic.kind_contract_revision
+    );
+    assert_eq!(offer.inputs, semantic.inputs);
+    assert_eq!(offer.outputs, semantic.outputs);
+    assert_eq!(offer.limits, semantic.limits);
     assert_eq!(offer.kind_id.as_str(), conduit_web::HTTP_CLIENT_KIND);
     assert_eq!(offer.host_operations.len(), 1);
     assert_eq!(
