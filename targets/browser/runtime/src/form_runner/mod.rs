@@ -11,6 +11,7 @@ mod host_abi;
 mod host_outcomes;
 mod multihost;
 mod protocol;
+mod pool_member_client_abi;
 mod remote_execution;
 mod session_cancellation;
 mod session_effects;
