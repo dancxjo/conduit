@@ -1,9 +1,9 @@
 //! Exact bounded image-plus-text composition offered by the hosted std Host.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision, PortDescriptor,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    SemanticCapabilityContract,
 };
 
 pub const IMAGE_TEXT_STD_PROFILE: &str = "std/image-text-kernel-hosted@1";
@@ -17,28 +17,6 @@ pub const IMAGE_TEXT_RECORD_STD_ARTIFACT: &str = "conduit-net/typed-record@1";
 pub const IMAGE_TEXT_RECORD_OPERATION: &str = "conduit.host/image-text-record@1";
 
 pub fn image_text_std_offer() -> CapabilityOffer {
-    let inputs = vec![
-        structured_port(
-            "image",
-            &conduit_semantic_catalog::image_observation_reference_type(),
-        ),
-        PortDescriptor {
-            port_id: conduit_core::port_id("caption"),
-            value_kind: conduit_core::kind_id("value/text"),
-            direction: conduit_core::PortDirection::Input,
-            temporal: conduit_core::PortTemporal::Value,
-        },
-    ];
-    let outputs = vec![PortDescriptor {
-        port_id: conduit_core::port_id("record"),
-        value_kind: conduit_semantic_catalog::image_text_record_type()
-            .profile()
-            .expect("image-text record has an exact profile")
-            .value_kind()
-            .clone(),
-        direction: conduit_core::PortDirection::Output,
-        temporal: conduit_core::PortTemporal::Value,
-    }];
     let operation = |contract, maximum_input_bytes| HostOperationRequirement {
         contract_id: HostOperationContractId::from(contract),
         target_kind: Some(conduit_core::kind_id(
@@ -48,22 +26,13 @@ pub fn image_text_std_offer() -> CapabilityOffer {
         maximum_input_bytes,
         maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
     };
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id: CapabilityId::from("std-image-text-v1"),
-        kind_id: conduit_core::kind_id(conduit_semantic_catalog::IMAGE_TEXT_COMPOSE_KIND),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::IMAGE_TEXT_COMPOSE_REVISION,
-        ),
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(IMAGE_TEXT_STD_PROFILE),
-            implementation_id: ImplementationId::from(IMAGE_TEXT_STD_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(IMAGE_TEXT_STD_ARTIFACT),
-        },
-        inputs,
-        outputs,
-        host_operations: vec![
+    offer(
+        conduit_semantic_catalog::image_text_compose_semantic_contract(),
+        "std-image-text-v1",
+        IMAGE_TEXT_STD_PROFILE,
+        IMAGE_TEXT_STD_IMPLEMENTATION,
+        IMAGE_TEXT_STD_ARTIFACT,
+        vec![
             operation(
                 IMAGE_TEXT_CAPTION_OPERATION,
                 conduit_human::MAXIMUM_IMAGE_TEXT_CAPTION_BYTES as u32,
@@ -73,42 +42,17 @@ pub fn image_text_std_offer() -> CapabilityOffer {
                 conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
             ),
         ],
-        resource_requirements: vec![],
-        authority_requirements: vec![],
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 2,
-            max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-                + conduit_human::MAXIMUM_IMAGE_TEXT_CAPTION_BYTES)
-                as u32,
-        },
-    }
+    )
 }
 
 pub fn image_text_record_std_offer() -> CapabilityOffer {
-    let input_type = conduit_semantic_catalog::image_text_record_type();
-    let output_type = conduit_net::typed_record_type();
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id: CapabilityId::from("std-image-text-record-v1"),
-        kind_id: conduit_core::kind_id(conduit_semantic_catalog::IMAGE_TEXT_TYPED_RECORD_KIND),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::IMAGE_TEXT_TYPED_RECORD_REVISION,
-        ),
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(IMAGE_TEXT_RECORD_STD_PROFILE),
-            implementation_id: ImplementationId::from(IMAGE_TEXT_RECORD_STD_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(IMAGE_TEXT_RECORD_STD_ARTIFACT),
-        },
-        inputs: vec![structured_port("record", &input_type)],
-        outputs: vec![PortDescriptor {
-            port_id: conduit_core::port_id("typed"),
-            value_kind: output_type.profile().unwrap().value_kind().clone(),
-            direction: conduit_core::PortDirection::Output,
-            temporal: conduit_core::PortTemporal::Value,
-        }],
-        host_operations: vec![HostOperationRequirement {
+    offer(
+        conduit_semantic_catalog::image_text_typed_record_semantic_contract(),
+        "std-image-text-record-v1",
+        IMAGE_TEXT_RECORD_STD_PROFILE,
+        IMAGE_TEXT_RECORD_STD_IMPLEMENTATION,
+        IMAGE_TEXT_RECORD_STD_ARTIFACT,
+        vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(IMAGE_TEXT_RECORD_OPERATION),
             target_kind: Some(conduit_core::kind_id(
                 conduit_semantic_catalog::IMAGE_TEXT_TYPED_RECORD_KIND,
@@ -117,27 +61,30 @@ pub fn image_text_record_std_offer() -> CapabilityOffer {
             maximum_input_bytes: conduit_net::MAXIMUM_TYPED_RECORD_PAYLOAD_BYTES as u32,
             maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         }],
-        resource_requirements: vec![],
-        authority_requirements: vec![],
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        },
-    }
+    )
 }
 
-fn structured_port(name: &str, value_type: &conduit_core::StructuredInfoType) -> PortDescriptor {
-    PortDescriptor {
-        port_id: conduit_core::port_id(name),
-        value_kind: value_type
-            .profile()
-            .expect("image observation has an exact profile")
-            .value_kind()
-            .clone(),
-        direction: conduit_core::PortDirection::Input,
-        temporal: conduit_core::PortTemporal::Value,
-    }
+fn offer(
+    contract: SemanticCapabilityContract,
+    capability: &str,
+    profile: &str,
+    implementation: &str,
+    artifact: &str,
+    host_operations: Vec<HostOperationRequirement>,
+) -> CapabilityOffer {
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(capability),
+            execution_profile_id: ExecutionProfileId::from(profile),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from(artifact),
+            host_operations,
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+        },
+    )
+    .build()
 }
 
 #[cfg(test)]
