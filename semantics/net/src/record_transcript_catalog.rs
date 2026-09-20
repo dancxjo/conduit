@@ -2,8 +2,9 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FaceStartupParameter,
+    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
+    StructuredInfoType,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
@@ -91,6 +92,34 @@ pub fn record_transcript_kind_definition() -> KindDefinition {
     }
 }
 
+pub fn record_transcript_semantic_contract() -> SemanticCapabilityContract {
+    let definition = record_transcript_kind_definition();
+    SemanticCapabilityContract {
+        startup_parameters: [
+            "maximum-items",
+            "maximum-events",
+            "maximum-frame-bytes",
+            "maximum-retained-bytes",
+        ]
+        .map(|name| FaceStartupParameter {
+            name: name.into(),
+            value_type: kind_id("value/count"),
+            has_default: true,
+        })
+        .into(),
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 3,
+            max_queue_bytes: MAXIMUM_RECORD_TRANSCRIPT_BYTES as u32,
+        },
+    }
+}
+
 pub fn terminal_event_type() -> StructuredInfoType {
     StructuredInfoType::leaf(kind_id("record/terminal-event@1"))
         .expect("the terminal-event identity is finite")
@@ -118,5 +147,27 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Flow { closes: true },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn semantic_contract_owns_transcript_front_and_capacity() {
+        let contract = record_transcript_semantic_contract();
+        assert_eq!(contract.kind_id.as_str(), RECORD_TRANSCRIPT_KIND);
+        assert_eq!(contract.startup_parameters.len(), 4);
+        assert!(contract
+            .startup_parameters
+            .iter()
+            .all(|parameter| parameter.has_default));
+        assert_eq!(contract.inputs.len(), 3);
+        assert_eq!(contract.outputs.len(), 3);
+        assert_eq!(
+            contract.limits.max_queue_bytes,
+            MAXIMUM_RECORD_TRANSCRIPT_BYTES as u32
+        );
     }
 }
