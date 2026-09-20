@@ -499,6 +499,17 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "fully migrated",
     ),
     ("semantics/chat/src/shared_pool.rs", 0, "fully migrated"),
+    ("semantics/net/src/lib.rs", 0, "fully migrated"),
+    (
+        "semantics/net/src/external_websocket.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "semantics/net/src/application_catalog.rs",
+        0,
+        "fully migrated",
+    ),
     (
         "semantics/presentation/src/contract.rs",
         0,

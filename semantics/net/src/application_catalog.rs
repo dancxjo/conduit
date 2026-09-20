@@ -9,10 +9,11 @@ use alloc::{
 use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
     CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
-    PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
+    HostOperationRequirement, ImplementationId, KindContractRevision, PortDescriptor,
+    PortDirection, PortTemporal, SemanticCapabilityContract, StructuredInfoType,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
+use conduit_core::{CapabilityOfferBuilder, CapabilityRealization};
 use conduit_form::{KindDefinition, KindSignature};
 
 use crate::{
@@ -154,32 +155,43 @@ fn offer(
         maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
     };
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id: CapabilityId::from(format!("std/{kind}@1")),
-        kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(APPLICATION_NETWORK_REVISION),
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        application_network_contract(kind, inputs, outputs),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(format!("std/{kind}@1")),
             execution_profile_id: ExecutionProfileId::from(APPLICATION_NETWORK_PROFILE),
             implementation_id: ImplementationId::from(format!("std/{kind}@1")),
             artifact_id: ArtifactId::from(APPLICATION_NETWORK_ARTIFACT),
+            host_operations: vec![operation.clone()],
+            resource_requirements: resource
+                .map(|class| resource_requirement(class, 1))
+                .into_iter()
+                .collect(),
+            authority_requirements: authority
+                .map(|contract| AuthorityRequirement {
+                    contract_id: AuthorityContractId::from(contract),
+                    host_operation_contract_id: operation.contract_id,
+                    subject_kind: kind_id(kind),
+                })
+                .into_iter()
+                .collect(),
         },
+    )
+    .build()
+}
+
+fn application_network_contract(
+    kind: &str,
+    inputs: Vec<PortDescriptor>,
+    outputs: Vec<PortDescriptor>,
+) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id(kind),
+        kind_contract_revision: KindContractRevision::from(APPLICATION_NETWORK_REVISION),
         inputs,
         outputs,
-        host_operations: vec![operation.clone()],
-        resource_requirements: resource
-            .map(|class| resource_requirement(class, 1))
-            .into_iter()
-            .collect(),
-        authority_requirements: authority
-            .map(|contract| AuthorityRequirement {
-                contract_id: AuthorityContractId::from(contract),
-                host_operation_contract_id: operation.contract_id,
-                subject_kind: kind_id(kind),
-            })
-            .into_iter()
-            .collect(),
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: 4,

@@ -3,9 +3,10 @@ use alloc::vec;
 
 use conduit_core::{
     kind_id, port_id, resource_offer, resource_requirement, ArtifactId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, KindContractRevision,
-    PortDescriptor, PortDirection, PortTemporal, ResourceOffer,
+    CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, FrontStartupParameter, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    ResourceOffer, SemanticCapabilityContract,
 };
 
 /// Authored external WebSocket semantics. This is not a Conduit session line.
@@ -57,17 +58,43 @@ pub fn external_websocket_client_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: vec![startup("url", URL_VALUE_KIND)],
-        shorthand: None,
-        capability_id,
-        kind_id: kind_id(EXTERNAL_WEBSOCKET_CLIENT_KIND),
-        kind_contract_revision: KindContractRevision::from(EXTERNAL_WEBSOCKET_CLIENT_REVISION),
-        implementation: conduit_core::ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        external_websocket_client_contract(),
+        CapabilityRealization {
+            capability_id,
             execution_profile_id: ExecutionProfileId::from(EXTERNAL_WEBSOCKET_CLIENT_PROFILE),
             implementation_id,
             artifact_id,
+            host_operations: vec![
+                host_operation(EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_OPERATION, 1, 0),
+                host_operation(EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_OPERATION, 256, 1),
+                host_operation(
+                    EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_OPERATION,
+                    MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
+                    MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
+                ),
+                host_operation(
+                    EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_OPERATION,
+                    MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
+                    MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
+                ),
+            ],
+            resource_requirements: vec![resource_requirement(
+                EXTERNAL_WEBSOCKET_CLIENT_RESOURCE,
+                1,
+            )],
+            authority_requirements: vec![],
         },
+    )
+    .build()
+}
+
+fn external_websocket_client_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![startup("url", URL_VALUE_KIND)],
+        shorthand: None,
+        kind_id: kind_id(EXTERNAL_WEBSOCKET_CLIENT_KIND),
+        kind_contract_revision: KindContractRevision::from(EXTERNAL_WEBSOCKET_CLIENT_REVISION),
         inputs: vec![port(
             "send",
             WEBSOCKET_MESSAGE_VALUE_KIND,
@@ -88,22 +115,6 @@ pub fn external_websocket_client_offer(
                 PortTemporal::Current,
             ),
         ],
-        host_operations: vec![
-            host_operation(EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_OPERATION, 1, 0),
-            host_operation(EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_OPERATION, 256, 1),
-            host_operation(
-                EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_OPERATION,
-                MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
-                MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
-            ),
-            host_operation(
-                EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_OPERATION,
-                MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
-                MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
-            ),
-        ],
-        resource_requirements: vec![resource_requirement(EXTERNAL_WEBSOCKET_CLIENT_RESOURCE, 1)],
-        authority_requirements: vec![],
         limits: limits(1),
     }
 }
@@ -113,17 +124,42 @@ pub fn external_websocket_listener_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: vec![startup("bind", NET_ADDRESS_VALUE_KIND)],
-        shorthand: None,
-        capability_id,
-        kind_id: kind_id(EXTERNAL_WEBSOCKET_LISTENER_KIND),
-        kind_contract_revision: KindContractRevision::from(EXTERNAL_WEBSOCKET_LISTENER_REVISION),
-        implementation: conduit_core::ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        external_websocket_listener_contract(),
+        CapabilityRealization {
+            capability_id,
             execution_profile_id: ExecutionProfileId::from(EXTERNAL_WEBSOCKET_LISTENER_PROFILE),
             implementation_id,
             artifact_id,
+            host_operations: vec![
+                host_operation(EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_OPERATION, 64, 8),
+                host_operation(
+                    EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_OPERATION,
+                    MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
+                    MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
+                ),
+                host_operation(
+                    EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_OPERATION,
+                    MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
+                    MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
+                ),
+            ],
+            resource_requirements: vec![resource_requirement(
+                EXTERNAL_WEBSOCKET_LISTENER_RESOURCE,
+                1,
+            )],
+            authority_requirements: vec![],
         },
+    )
+    .build()
+}
+
+fn external_websocket_listener_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![startup("bind", NET_ADDRESS_VALUE_KIND)],
+        shorthand: None,
+        kind_id: kind_id(EXTERNAL_WEBSOCKET_LISTENER_KIND),
+        kind_contract_revision: KindContractRevision::from(EXTERNAL_WEBSOCKET_LISTENER_REVISION),
         inputs: vec![port(
             "send",
             PEER_MESSAGE_VALUE_KIND,
@@ -150,24 +186,6 @@ pub fn external_websocket_listener_offer(
                 PortTemporal::Current,
             ),
         ],
-        host_operations: vec![
-            host_operation(EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_OPERATION, 64, 8),
-            host_operation(
-                EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_OPERATION,
-                MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
-                MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
-            ),
-            host_operation(
-                EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_OPERATION,
-                MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
-                MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
-            ),
-        ],
-        resource_requirements: vec![resource_requirement(
-            EXTERNAL_WEBSOCKET_LISTENER_RESOURCE,
-            1,
-        )],
-        authority_requirements: vec![],
         limits: limits(MAXIMUM_EXTERNAL_WEBSOCKET_PEERS),
     }
 }
@@ -219,13 +237,13 @@ pub fn install_external_websocket_catalogs(
         StartupParameterSignature,
     };
 
-    for offer in [
-        browser_external_websocket_family().capability,
-        std_external_websocket_family().capability,
+    for contract in [
+        external_websocket_client_contract(),
+        external_websocket_listener_contract(),
     ] {
         startup.insert(KindSignature {
-            kind: offer.kind_id.as_str().to_string(),
-            startup_parameters: offer
+            kind: contract.kind_id.as_str().to_string(),
+            startup_parameters: contract
                 .startup_parameters
                 .iter()
                 .map(|parameter| StartupParameterSignature {
@@ -237,11 +255,11 @@ pub fn install_external_websocket_catalogs(
         })?;
         profile
             .insert(KindDefinition {
-                kind_id: offer.kind_id,
-                kind_contract_revision: offer.kind_contract_revision,
-                inputs: offer.inputs,
-                outputs: offer.outputs,
-                configuration: offer
+                kind_id: contract.kind_id,
+                kind_contract_revision: contract.kind_contract_revision,
+                inputs: contract.inputs,
+                outputs: contract.outputs,
+                configuration: contract
                     .startup_parameters
                     .into_iter()
                     .map(|parameter| ConfigurationField {
