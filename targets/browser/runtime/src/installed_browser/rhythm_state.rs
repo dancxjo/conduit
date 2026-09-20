@@ -1,8 +1,8 @@
 //! Finite browser source for an explicitly configured portable rhythm state.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, FaceStartupParameter, ImplementationId, ImplementationOffer,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ConfigurationValue, ExecutionProfileId, ImplementationId,
 };
 use conduit_kernel::ValueStorage;
 
@@ -11,41 +11,19 @@ const IMPLEMENTATION: &str = "browser/kernel-rhythm-state-source@1";
 const ARTIFACT: &str = "conduit-browser-runtime/rhythm-state-source@1";
 
 fn offer() -> CapabilityOffer {
-    let contract = conduit_time::rhythm_state_source_kind_definition();
-    CapabilityOffer {
-        capability_id: CapabilityId::from("rhythm-state-source"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        startup_parameters: [
-            "sequence",
-            "next-pulse-at-ms",
-            "period-ms",
-            "expected-peer-sequence",
-        ]
-        .into_iter()
-        .map(|name| FaceStartupParameter {
-            name: name.into(),
-            value_type: conduit_core::kind_id("value/count"),
-            has_default: true,
-        })
-        .collect(),
-        shorthand: None,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        conduit_time::rhythm_state_source_semantic_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from("rhythm-state-source"),
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_operations: vec![],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
         },
-        host_operations: vec![],
-        resource_requirements: vec![],
-        authority_requirements: vec![],
-        limits: CapabilityLimits {
-            max_active_instances: 8,
-            max_queue_items: 1,
-            max_queue_bytes: conduit_time::RHYTHM_STATE_ENCODED_LEN as u32,
-        },
-    }
+    )
+    .build()
 }
 
 fn prepare(
@@ -90,3 +68,21 @@ pub(super) static INSTALLATION: super::factory::BrowserInstallation =
         prepare,
         perform: None,
     };
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn browser_rhythm_source_preserves_the_portable_contract() {
+        let offer = super::offer();
+        let semantic = conduit_time::rhythm_state_source_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert_eq!(offer.limits, semantic.limits);
+    }
+}

@@ -170,6 +170,35 @@ pub fn rhythm_state_source_kind_definition() -> KindDefinition {
     }
 }
 
+pub fn rhythm_state_source_semantic_contract() -> SemanticCapabilityContract {
+    let definition = rhythm_state_source_kind_definition();
+    SemanticCapabilityContract {
+        startup_parameters: [
+            "sequence",
+            "next-pulse-at-ms",
+            "period-ms",
+            "expected-peer-sequence",
+        ]
+        .into_iter()
+        .map(|name| FaceStartupParameter {
+            name: name.into(),
+            value_type: kind_id("value/count"),
+            has_default: true,
+        })
+        .collect(),
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 1,
+            max_queue_bytes: crate::RHYTHM_STATE_ENCODED_LEN as u32,
+        },
+    }
+}
+
 fn count_field(key: &str, minimum: u64, maximum: u64) -> ConfigurationField {
     ConfigurationField {
         key: key.into(),
@@ -195,6 +224,24 @@ pub fn phase_synchronize_kind_definition() -> KindDefinition {
             PortDirection::Output,
         )],
         configuration: vec![],
+    }
+}
+
+pub fn phase_synchronize_semantic_contract() -> SemanticCapabilityContract {
+    let definition = phase_synchronize_kind_definition();
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 2,
+            max_queue_bytes: (crate::RHYTHM_STATE_ENCODED_LEN
+                + crate::PULSE_OBSERVATION_ENCODED_LEN) as u32,
+        },
     }
 }
 
