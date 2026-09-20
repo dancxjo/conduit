@@ -531,6 +531,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "fully migrated",
     ),
     (
+        "targets/std/src/hosted_calendar/plan_contract.rs",
+        0,
+        "fully migrated",
+    ),
+    (
         "semantics/presentation/src/contract.rs",
         0,
         "fully migrated",
