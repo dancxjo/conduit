@@ -26,6 +26,7 @@ package_test_shard!(
         "conduit-host-orange-pi",
         "conduit-host-raspberry-pi",
         "conduit-host-rp2040",
+        "conduit-emergency-keyword-spotter",
         "conduit-linear-framebuffer-fabrication",
         "conduit-rp2040-pio-audio-extension",
         "conduit-workspace-fabrication",
