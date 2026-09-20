@@ -793,6 +793,15 @@ fn validate_operation_capability(
             capability.capability_id.as_str()
         )));
     }
+    if gear.kind_contract_revision.as_str() != conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT
+        && capability.kind_contract_revision != gear.kind_contract_revision
+    {
+        return Err(PlannerError::WrongKindContractRevision(format!(
+            "gear '{}' semantic contract differs from capability '{}'",
+            gear.gear_id.as_str(),
+            capability.capability_id.as_str()
+        )));
+    }
     if capability.host_operations.iter().any(|requirement| {
         requirement.contract_id.as_str().is_empty()
             || requirement

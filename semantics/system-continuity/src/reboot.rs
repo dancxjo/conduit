@@ -33,8 +33,8 @@ impl RebootRequestId {
     }
 }
 
-/// One optional reboot realization. Its name and revision are provenance;
-/// callable compatibility is the returned canonical checked front.
+/// One optional reboot realization. Its name is provenance; eligibility needs
+/// both the canonical checked Front and the reboot semantic contract.
 pub fn delegated_reboot_offer(
     capability_id: CapabilityId,
     implementation_id: ImplementationId,
@@ -103,6 +103,7 @@ pub struct RebootRequest {
     pub controller: HostInstance,
     pub target: HostInstance,
     pub required_front: CheckedFront,
+    pub semantic_contract: KindContractRevision,
     pub selected_line_id: LineId,
 }
 
@@ -297,16 +298,19 @@ impl DelegatedRebootTransaction {
         {
             return Some(RebootDenial::SessionMismatch);
         }
-        let compatible = target
-            .capabilities
-            .iter()
-            .any(|offer| offer.checked_front() == request.required_front);
+        let compatible = target.capabilities.iter().any(|offer| {
+            offer.checked_front() == request.required_front
+                && offer.kind_contract_revision == request.semantic_contract
+        });
         if !compatible {
             Some(RebootDenial::Unsupported)
         } else if target
             .capabilities
             .iter()
-            .filter(|offer| offer.checked_front() == request.required_front)
+            .filter(|offer| {
+                offer.checked_front() == request.required_front
+                    && offer.kind_contract_revision == request.semantic_contract
+            })
             .all(|offer| offer.capability_id != self.grant.capability_id)
         {
             Some(RebootDenial::Unauthorized)
