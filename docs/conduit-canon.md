@@ -66,6 +66,7 @@ RESOURCE bounded addressable content with explicit lifecycle and sharing obligat
 SIGNAL one particular info semantic or mechanism where explicitly named
 FRONT   stable visible semantic contract of a kind or form, including ports
 BACK   form that implements a front in Conduit terms
+FACE   the Body's semantic presentation surface, distinct from a callable front
 
 IMPL   platform-specific realization of a kind
 HOST   running software environment that makes truthful finite offers

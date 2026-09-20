@@ -86,7 +86,7 @@ pub struct CheckedGear {
     pub gear_id: GearId,
     pub kind_id: KindId,
     pub kind_contract_revision: KindContractRevision,
-    pub startup_parameters: Vec<conduit_core::FaceStartupParameter>,
+    pub startup_parameters: Vec<conduit_core::FrontStartupParameter>,
     pub shorthand: Option<(PortId, PortId)>,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
@@ -254,15 +254,15 @@ pub struct CheckedNestedForm {
 pub struct CheckedExport {
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
-    pub input_fronts: Vec<CheckedCompositeFace>,
-    pub output_fronts: Vec<CheckedCompositeFace>,
+    pub input_fronts: Vec<CheckedCompositeFront>,
+    pub output_fronts: Vec<CheckedCompositeFront>,
 }
 
 /// Terminal behavior is part of the exported front contract, independently for
 /// every front. More policies can be added without weakening the current exact
 /// `independent` contract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CompositeFaceTerminal {
+pub enum CompositeFrontTerminal {
     Independent,
     /// Reserved invalid value used to prove hosted mutation rejection. The
     /// authored grammar intentionally accepts only `independent` today.
@@ -270,11 +270,11 @@ pub enum CompositeFaceTerminal {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CheckedCompositeFace {
+pub struct CheckedCompositeFront {
     pub external_port: PortDescriptor,
     pub internal_gear_id: GearId,
     pub internal_port_id: PortId,
-    pub terminal: CompositeFaceTerminal,
+    pub terminal: CompositeFrontTerminal,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -284,8 +284,8 @@ pub struct CheckedCompositeBoundary {
     pub kind_contract_revision: KindContractRevision,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
-    pub input_fronts: Vec<CheckedCompositeFace>,
-    pub output_fronts: Vec<CheckedCompositeFace>,
+    pub input_fronts: Vec<CheckedCompositeFront>,
+    pub output_fronts: Vec<CheckedCompositeFront>,
 }
 
 impl CheckedCompositeBoundary {
@@ -471,7 +471,7 @@ pub fn parse_with_startup(
     let input_fronts = authoring
         .input_bindings
         .iter()
-        .map(|binding| CheckedCompositeFace {
+        .map(|binding| CheckedCompositeFront {
             external_port: authoring
                 .front
                 .inputs()
@@ -481,13 +481,13 @@ pub fn parse_with_startup(
                 .clone(),
             internal_gear_id: binding.gear_id.clone(),
             internal_port_id: binding.gear_port_id.clone(),
-            terminal: CompositeFaceTerminal::Independent,
+            terminal: CompositeFrontTerminal::Independent,
         })
         .collect::<Vec<_>>();
     let output_fronts = authoring
         .output_bindings
         .iter()
-        .map(|binding| CheckedCompositeFace {
+        .map(|binding| CheckedCompositeFront {
             external_port: authoring
                 .front
                 .outputs()
@@ -497,7 +497,7 @@ pub fn parse_with_startup(
                 .clone(),
             internal_gear_id: binding.gear_id.clone(),
             internal_port_id: binding.gear_port_id.clone(),
-            terminal: CompositeFaceTerminal::Independent,
+            terminal: CompositeFrontTerminal::Independent,
         })
         .collect::<Vec<_>>();
     let exports = if input_fronts.is_empty() && output_fronts.is_empty() {
@@ -713,7 +713,7 @@ fn validate_export_fronts(export: &CheckedExport, gears: &[CheckedGear]) -> Resu
                 FormError::InvalidExport("front names a missing or wrongly directed Port".into())
             })?;
             if endpoint.value_kind != front.external_port.value_kind
-                || front.terminal != CompositeFaceTerminal::Independent
+                || front.terminal != CompositeFrontTerminal::Independent
             {
                 return Err(FormError::InvalidExport(
                     "front contract differs from its internal endpoint".into(),
@@ -830,8 +830,8 @@ fn expanded_form_id(
 
 fn exported_contract_revision(
     kind_id: &KindId,
-    inputs: &[CheckedCompositeFace],
-    outputs: &[CheckedCompositeFace],
+    inputs: &[CheckedCompositeFront],
+    outputs: &[CheckedCompositeFront],
 ) -> KindContractRevision {
     let mut canonical = String::from("checked-export-contract:");
     push_identity_field(&mut canonical, kind_id.as_str());
@@ -844,8 +844,8 @@ fn exported_contract_revision(
             push_identity_field(
                 &mut canonical,
                 match front.terminal {
-                    CompositeFaceTerminal::Independent => "independent",
-                    CompositeFaceTerminal::Coupled => "coupled",
+                    CompositeFrontTerminal::Independent => "independent",
+                    CompositeFrontTerminal::Coupled => "coupled",
                 },
             );
         }

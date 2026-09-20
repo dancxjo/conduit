@@ -1,8 +1,8 @@
 use conduit_core::{
     kind_id, mandatory_sign_storage_requirement, seal_plan, ArtifactId, AuthorityGrantId, BootId,
     CancellationPolicy, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
-    ExecutionProfileId, ExpandedFormId, ExpectedSign, ExpectedTerminal, FaceStartupParameter,
-    FormIdentity, FragmentId, GearId, HostId, ImplementationId, KindContractRevision, PlacementId,
+    ExecutionProfileId, ExpandedFormId, ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId,
+    FrontStartupParameter, GearId, HostId, ImplementationId, KindContractRevision, PlacementId,
     PlanFragment, PlanId, PlannedGear, PlannedSharedPool, PlanningRequestAuthority,
     PlayUnsatisfiedReason, PoolDeclarationId, PoolMemberLimits, PoolOperationId,
     PoolRealizationEnvelope, PoolRealizationHealth, PoolRealizationObservation,
@@ -13,7 +13,7 @@ use conduit_core::{
 
 fn member_offer(kind: &str, revision: &str) -> CapabilityOffer {
     CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: "peer".into(),
             value_type: "PeerId".into(),
             has_default: false,

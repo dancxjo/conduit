@@ -91,7 +91,7 @@ fn offer(definition: &KindDefinition) -> CapabilityOffer {
         startup_parameters: definition
             .configuration
             .iter()
-            .map(|field| conduit_core::FaceStartupParameter {
+            .map(|field| conduit_core::FrontStartupParameter {
                 name: field.key.clone(),
                 value_type: "Text".into(),
                 has_default: false,

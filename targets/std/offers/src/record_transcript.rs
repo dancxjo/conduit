@@ -2,7 +2,7 @@
 
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    FaceStartupParameter, ImplementationId, ImplementationOffer, KindContractRevision,
+    FrontStartupParameter, ImplementationId, ImplementationOffer, KindContractRevision,
 };
 
 pub const RECORD_TRANSCRIPT_STD_IMPLEMENTATION: &str = "std/bounded-record-transcript@1";
@@ -40,8 +40,8 @@ pub fn record_transcript_std_offer() -> CapabilityOffer {
     }
 }
 
-fn parameter(name: &str) -> FaceStartupParameter {
-    FaceStartupParameter {
+fn parameter(name: &str) -> FrontStartupParameter {
+    FrontStartupParameter {
         name: name.into(),
         value_type: "Count".into(),
         has_default: true,

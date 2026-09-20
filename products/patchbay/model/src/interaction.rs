@@ -14,7 +14,7 @@ use edit_form::{
 use conduit_core::ConfigurationValue;
 use conduit_core::{
     kind_id, port_id, ActivePlayId, ArtifactId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, CheckedFormId, ExecutionProfileId, ExpandedFormId, FaceStartupParameter,
+    CapabilityOffer, CheckedFormId, ExecutionProfileId, ExpandedFormId, FrontStartupParameter,
     HostAdvertisement, HostOperationContractId, HostOperationRequirement, HostProfileId,
     ImplementationId, KindContractRevision, OfferGeneration, PlanId, PortDescriptor, PortDirection,
     PortTemporal, SourceDocumentId, PROTOCOL_VERSION,
@@ -420,7 +420,7 @@ fn source_offer(
     CapabilityOffer {
         startup_parameters: fields
             .iter()
-            .map(|name| FaceStartupParameter {
+            .map(|name| FrontStartupParameter {
                 name: (*name).into(),
                 value_type: "Text".into(),
                 has_default: false,

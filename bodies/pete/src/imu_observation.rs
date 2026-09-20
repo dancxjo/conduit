@@ -4,8 +4,8 @@ use std::collections::BTreeMap;
 
 use conduit_core::{
     resource_offer, resource_requirement, ArtifactId, BaseImplementationId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, FaceStartupParameter, HostAdvertisement,
-    HostId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
+    HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement, ImplementationId,
     ImplementationOffer, KindContractRevision, OfferGeneration, ResourceHealth,
     ResourceObservation, SignId, PROTOCOL_VERSION,
 };
@@ -261,7 +261,7 @@ fn mpu6050_offer() -> CapabilityOffer {
         startup_parameters: contract
             .configuration
             .iter()
-            .map(|field| FaceStartupParameter {
+            .map(|field| FrontStartupParameter {
                 name: field.key.clone(),
                 value_type: match field.default_value {
                     conduit_core::ConfigurationValue::Text(_) => "Text",

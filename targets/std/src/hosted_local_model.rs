@@ -143,7 +143,7 @@ pub(crate) fn generate_text_capability_offer(
             "temperature-milli",
         ]
         .into_iter()
-        .map(|name| conduit_core::FaceStartupParameter {
+        .map(|name| conduit_core::FrontStartupParameter {
             name: name.into(),
             value_type: "Count".into(),
             has_default: true,

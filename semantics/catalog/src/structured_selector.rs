@@ -3,7 +3,7 @@
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    port_id, CapabilityLimits, FaceStartupParameter, KindContractRevision, KindId, PortDescriptor,
+    port_id, CapabilityLimits, FrontStartupParameter, KindContractRevision, KindId, PortDescriptor,
     PortDirection, PortId, PortTemporal, StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
@@ -11,7 +11,7 @@ pub const STRUCTURED_SELECTOR_REVISION: &str = "structured-info/selector-operati
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StructuredSelectorContract {
-    pub startup_parameters: Vec<FaceStartupParameter>,
+    pub startup_parameters: Vec<FrontStartupParameter>,
     pub shorthand: Option<(PortId, PortId)>,
     pub kind_id: KindId,
     pub kind_contract_revision: KindContractRevision,
@@ -40,7 +40,7 @@ pub fn structured_selector_contract(
         .value_kind()
         .clone();
     StructuredSelectorContract {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: "selector".into(),
             value_type: "Text".into(),
             has_default: false,

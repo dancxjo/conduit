@@ -6,8 +6,8 @@
 use super::StructuredValueContract;
 use alloc::vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, FaceStartupParameter, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal, StructuredInfoRefusal, StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, FrontStartupParameter, KindContractRevision,
+    PortDescriptor, PortDirection, PortTemporal, StructuredInfoRefusal, StructuredInfoType,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
@@ -29,7 +29,7 @@ pub fn state_value_contract(
         temporal,
     };
     Ok(StructuredValueContract {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: "initial".into(),
             value_type: type_name.into(),
             has_default: false,

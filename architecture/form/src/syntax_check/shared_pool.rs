@@ -2,12 +2,12 @@ use crate::checked_syntax::{CheckedPoolDeclaration, SyntaxCheckDiagnostic, Synta
 use crate::prelude::*;
 use crate::syntax::{BackStatement, FormSyntax, PoolDeclaration};
 use alloc::collections::{BTreeMap, BTreeSet};
-use conduit_core::CheckedFace;
+use conduit_core::CheckedFront;
 
 pub(super) fn check_pool_declarations(
     form: &FormSyntax,
     front_names: &BTreeSet<String>,
-    form_fronts: &BTreeMap<String, CheckedFace>,
+    form_fronts: &BTreeMap<String, CheckedFront>,
 ) -> Result<BTreeSet<String>, SyntaxCheckDiagnostic> {
     let mut pool_names = BTreeSet::new();
     for statement in &form.back {
@@ -31,7 +31,7 @@ pub(super) fn check_pool_declarations(
 
 pub(super) fn checked_pool(
     pool: &PoolDeclaration,
-    form_fronts: &BTreeMap<String, CheckedFace>,
+    form_fronts: &BTreeMap<String, CheckedFront>,
 ) -> CheckedPoolDeclaration {
     CheckedPoolDeclaration {
         name: pool.name.text.clone(),

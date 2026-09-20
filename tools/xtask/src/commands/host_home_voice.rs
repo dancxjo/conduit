@@ -324,7 +324,7 @@ struct PhysicalAcceptance {
 }
 
 #[derive(Serialize)]
-struct HomeFaceReceipt {
+struct HomeFrontReceipt {
     schema: &'static str,
     front_id: &'static str,
     proof_class: &'static str,
@@ -351,7 +351,7 @@ fn retain_physical_evidence(
     let artifact = serde_json::to_vec_pretty(report)?;
     create_new(&root.join("voice-run.json"), &artifact)?;
     let artifact_sha256 = format!("sha256:{:x}", Sha256::digest(&artifact));
-    let receipt = HomeFaceReceipt {
+    let receipt = HomeFrontReceipt {
         schema: "conduit.evidence/home-front@1",
         front_id: "voice-physical",
         proof_class: "attended-physical-voice",

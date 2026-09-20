@@ -4,7 +4,7 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    FaceStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    FrontStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
     ImplementationOffer, KindContractRevision, PlannedGear, StructuredInfoType,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
@@ -110,7 +110,7 @@ fn offer() -> CapabilityOffer {
             ("overflow-policy", "Text"),
             ("first-sequence", "Count"),
         ]
-        .map(|(name, value_type)| FaceStartupParameter {
+        .map(|(name, value_type)| FrontStartupParameter {
             name: name.into(),
             value_type: value_type.into(),
             has_default: true,

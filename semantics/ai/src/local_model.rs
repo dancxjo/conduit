@@ -43,7 +43,7 @@ pub enum LocalModelKindProfile {
     ExtractValidatedInfo,
     EmbedFiniteVector,
     InterpretSignEvidence,
-    PresentSemanticFace,
+    PresentSemanticFront,
 }
 
 impl LocalModelKindProfile {
@@ -56,7 +56,7 @@ impl LocalModelKindProfile {
             Self::ExtractValidatedInfo => LLM_EXTRACT_KIND,
             Self::EmbedFiniteVector => LLM_EMBED_KIND,
             Self::InterpretSignEvidence => LLM_INTERPRET_KIND,
-            Self::PresentSemanticFace => LLM_PRESENT_KIND,
+            Self::PresentSemanticFront => LLM_PRESENT_KIND,
         }
     }
 }
@@ -310,7 +310,7 @@ impl LocalModelOffer {
                 "maximum-history-items",
             ]
             .into_iter()
-            .map(|name| conduit_core::FaceStartupParameter {
+            .map(|name| conduit_core::FrontStartupParameter {
                 name: name.into(),
                 value_type: "Count".into(),
                 has_default: true,

@@ -2,7 +2,7 @@
 
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    FaceStartupParameter, ImplementationId, ImplementationOffer,
+    FrontStartupParameter, ImplementationId, ImplementationOffer,
 };
 
 const PROFILE: &str = "browser/pulse-observe-ordered-64@1";
@@ -19,7 +19,7 @@ fn offer() -> CapabilityOffer {
         outputs: contract.outputs,
         startup_parameters: ["period-ms"]
             .into_iter()
-            .map(|name| FaceStartupParameter {
+            .map(|name| FrontStartupParameter {
                 name: name.into(),
                 value_type: "Count".into(),
                 has_default: true,

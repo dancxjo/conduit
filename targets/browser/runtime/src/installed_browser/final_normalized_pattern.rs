@@ -4,7 +4,7 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityOffer, ConfigurationValue, ExecutionProfileId,
-    FaceStartupParameter, ImplementationId, ImplementationOffer, PlannedGear,
+    FrontStartupParameter, ImplementationId, ImplementationOffer, PlannedGear,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -20,7 +20,7 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 fn offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::final_normalized_pattern_definition();
     CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: "maximum-values".into(),
             value_type: "Count".into(),
             has_default: true,

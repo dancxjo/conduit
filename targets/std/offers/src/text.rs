@@ -2,7 +2,7 @@
 
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    FaceStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    FrontStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 
 pub const TEXT_LITERAL_EXECUTION_PROFILE: &str = "conduit.std/text-literal-kernel-hosted@1";
@@ -41,7 +41,7 @@ pub fn text_literal_offer() -> CapabilityOffer {
         TEXT_LITERAL_EXECUTION_PROFILE,
         TEXT_LITERAL_IMPLEMENTATION,
         TEXT_LITERAL_ARTIFACT,
-        vec![FaceStartupParameter {
+        vec![FrontStartupParameter {
             name: "value".into(),
             value_type: "Text".into(),
             has_default: false,
@@ -77,7 +77,7 @@ pub fn text_join_offer() -> CapabilityOffer {
         TEXT_JOIN_EXECUTION_PROFILE,
         TEXT_JOIN_IMPLEMENTATION,
         TEXT_JOIN_ARTIFACT,
-        vec![FaceStartupParameter {
+        vec![FrontStartupParameter {
             name: "prefix".into(),
             value_type: "Text".into(),
             has_default: false,
@@ -97,7 +97,7 @@ pub fn text_join_offer() -> CapabilityOffer {
 pub fn text_morse_offer() -> CapabilityOffer {
     let contract = conduit_text::text_morse_semantics();
     let mut offer = CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: conduit_text::MORSE_UNIT_MILLIS_KEY.into(),
             value_type: "Count".into(),
             has_default: true,
@@ -165,7 +165,7 @@ fn offer(
     profile: &str,
     implementation: &str,
     artifact: &str,
-    startup_parameters: Vec<FaceStartupParameter>,
+    startup_parameters: Vec<FrontStartupParameter>,
     shorthand: Option<(conduit_core::PortId, conduit_core::PortId)>,
 ) -> CapabilityOffer {
     CapabilityOffer {

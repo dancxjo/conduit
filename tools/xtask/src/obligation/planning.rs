@@ -1,7 +1,7 @@
 use super::{ObligationBasis, ObligationRefusal, VALUE_BYTES};
 use conduit_core::{
     kind_id, port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, FaceStartupParameter, HostAdvertisement, HostId,
+    CapabilityOffer, ExecutionProfileId, FrontStartupParameter, HostAdvertisement, HostId,
     HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
     KindContractRevision, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
     PROTOCOL_VERSION,
@@ -161,7 +161,7 @@ fn source_offer() -> CapabilityOffer {
         outputs: vec![port(PortDirection::Output)],
         startup_parameters: FIELDS
             .iter()
-            .map(|name| FaceStartupParameter {
+            .map(|name| FrontStartupParameter {
                 name: (*name).into(),
                 value_type: "Text".into(),
                 has_default: false,

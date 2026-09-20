@@ -5,9 +5,9 @@ use std::collections::BTreeMap;
 use conduit_core::{
     authority_grant, kind_id, resource_offer, resource_requirement, ArtifactId,
     AuthorityContractId, AuthorityRequirement, BaseImplementationId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, FaceStartupParameter, HostAdvertisement,
-    HostId, HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
-    ImplementationOffer, KindContractRevision, OfferGeneration, ResourceHealth,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
+    HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement, HostProfileId,
+    ImplementationId, ImplementationOffer, KindContractRevision, OfferGeneration, ResourceHealth,
     ResourceObservation, SignId, BOOL_ENCODED_LEN, BOOL_INFO_ID, PROTOCOL_VERSION,
     TIMER_RESOURCE_CLASS,
 };
@@ -123,7 +123,7 @@ pub fn live_create_dock_advertisement(
         subject_kind: kind_id(BOOL_INFO_ID),
     };
     let dock = CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: "timeout-ms".into(),
             value_type: "Count".into(),
             has_default: true,

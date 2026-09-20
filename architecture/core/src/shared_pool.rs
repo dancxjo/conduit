@@ -1,5 +1,5 @@
 use crate::{
-    AdmittedLine, ArtifactId, AuthorityGrantId, BootId, CapabilityId, CheckedFace, ConnectionId,
+    AdmittedLine, ArtifactId, AuthorityGrantId, BootId, CapabilityId, CheckedFront, ConnectionId,
     ControlLoopEvent, HostId, ImplementationId, OfferGeneration, PlacementId, Plan, PlanId,
     PlanningRequestAuthority, PlayUnsatisfiedReason, PortId, ResourceBinding, ResourceObservation,
     SignId,
@@ -324,7 +324,7 @@ impl PoolRealizationObservation {
 pub struct PlannedSharedPool {
     pub pool_id: SharedPoolId,
     pub declaration_id: PoolDeclarationId,
-    pub member_front: CheckedFace,
+    pub member_front: CheckedFront,
     pub maximum_members: u16,
     pub member_limits: PoolMemberLimits,
     /// Cross-Host members must have exact request/result Lines sealed below.
@@ -438,7 +438,7 @@ impl PlannedSharedPool {
     pub fn permits_realization(
         &self,
         realization: &PoolRealizationEnvelope,
-        front: &CheckedFace,
+        front: &CheckedFront,
     ) -> bool {
         front == &self.member_front && self.realization_envelope.contains(realization)
     }

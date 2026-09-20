@@ -2,7 +2,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use conduit_core::{
     ActivePlayId, ArtifactId, AuthorityBinding, AuthorityGrantId, BootId, CapabilityId,
-    CheckedFace, CheckedFormId, GearId, HostId, ImplementationId, LineId, PlacementId, PlanId,
+    CheckedFormId, CheckedFront, GearId, HostId, ImplementationId, LineId, PlacementId, PlanId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -39,7 +39,7 @@ pub struct HostInstance {
 pub struct RoleRequirement {
     pub role_id: RoleId,
     pub gear_id: GearId,
-    pub checked_front: CheckedFace,
+    pub checked_front: CheckedFront,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -50,7 +50,7 @@ pub struct ExactAssignment {
     pub capability_id: CapabilityId,
     pub implementation_id: ImplementationId,
     pub artifact_id: ArtifactId,
-    pub checked_front: CheckedFace,
+    pub checked_front: CheckedFront,
 }
 
 /// An external authority fact consumed by continuity. This crate never issues it.
@@ -94,7 +94,7 @@ pub enum ContinuityError {
     HostUnavailable(String),
     CapabilityUnavailable(String),
     SelectedRealizationMismatch(String),
-    CheckedFaceMismatch(String),
+    CheckedFrontMismatch(String),
     MissingPlay(String),
     UnknownSubject,
     MissingTransitionGrant,

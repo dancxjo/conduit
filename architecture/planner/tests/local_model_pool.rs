@@ -81,7 +81,7 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
     expand_canonical_form(&checked, "model-service", &profile).unwrap()
 }
 
-fn consumer_host(front: &conduit_core::CheckedFace) -> HostAdvertisement {
+fn consumer_host(front: &conduit_core::CheckedFront) -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/consumer"),

@@ -227,7 +227,7 @@ mod tests {
             startup_parameters: definition
                 .configuration
                 .iter()
-                .map(|field| conduit_core::FaceStartupParameter {
+                .map(|field| conduit_core::FrontStartupParameter {
                     name: field.key.clone(),
                     value_type: match field.default_value {
                         ConfigurationValue::Bool(_) => "Boolean",

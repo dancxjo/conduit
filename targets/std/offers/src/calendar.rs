@@ -1,6 +1,6 @@
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FaceStartupParameter, ImplementationId, ImplementationOffer,
+    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer,
     KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
@@ -18,7 +18,7 @@ pub fn recurrence_std_offer() -> CapabilityOffer {
         "time-expand-recurrence",
         conduit_semantic_catalog::RECURRENCE_KIND,
         conduit_semantic_catalog::RECURRENCE_REVISION,
-        vec![FaceStartupParameter {
+        vec![FrontStartupParameter {
             name: "request".into(),
             value_type: conduit_semantic_catalog::RECURRENCE_REQUEST_TYPE.into(),
             has_default: false,
@@ -42,7 +42,7 @@ pub fn calendar_proposal_std_offer() -> CapabilityOffer {
         "calendar-propose-meeting",
         conduit_semantic_catalog::CALENDAR_PROPOSAL_KIND,
         conduit_semantic_catalog::CALENDAR_PROPOSAL_REVISION,
-        vec![FaceStartupParameter {
+        vec![FrontStartupParameter {
             name: "request".into(),
             value_type: conduit_semantic_catalog::CALENDAR_PROPOSAL_REQUEST_TYPE.into(),
             has_default: false,
@@ -65,7 +65,7 @@ fn offer(
     capability: &str,
     kind: &str,
     revision: &str,
-    startup_parameters: Vec<FaceStartupParameter>,
+    startup_parameters: Vec<FrontStartupParameter>,
     outputs: Vec<PortDescriptor>,
     maximum_results: u16,
     execution_profile: &str,

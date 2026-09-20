@@ -8,7 +8,7 @@ use conduit_core::CheckedFormId;
 pub(crate) fn checked_identity(
     meaning: (&str, FormCompletionPolicy),
     parameters: &[CheckedStartupParameter],
-    runtime_front: &conduit_core::CheckedFace,
+    runtime_front: &conduit_core::CheckedFront,
     shorthand: Option<(&str, &str)>,
     gears: &[CheckedCanonicalGear],
     cords: &[CheckedCanonicalCord],

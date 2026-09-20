@@ -7,7 +7,7 @@ use alloc::{
 };
 use conduit_core::{
     kind_id, port_id, resource_offer, resource_requirement, ArtifactId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
     HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
     KindContractRevision, PortDescriptor, PortDirection, PortTemporal, ResourceOffer,
 };
@@ -191,7 +191,7 @@ pub fn chat_state_offer() -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: CHAT_CONFIGURATION_FIELDS
             .iter()
-            .map(|(name, value_type)| FaceStartupParameter {
+            .map(|(name, value_type)| FrontStartupParameter {
                 name: (*name).into(),
                 value_type: (*value_type).into(),
                 has_default: true,
@@ -237,12 +237,12 @@ pub fn chat_state_offer() -> CapabilityOffer {
 pub fn chat_submit_offer() -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters: vec![
-            FaceStartupParameter {
+            FrontStartupParameter {
                 name: "action".into(),
                 value_type: "Text".into(),
                 has_default: true,
             },
-            FaceStartupParameter {
+            FrontStartupParameter {
                 name: "maximum-message-bytes".into(),
                 value_type: "Count".into(),
                 has_default: true,

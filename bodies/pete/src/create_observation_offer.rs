@@ -6,7 +6,7 @@ use crate::{
 };
 use conduit_core::{
     resource_offer, resource_requirement, ArtifactId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ConfigurationValue, ExecutionProfileId, FaceStartupParameter,
+    CapabilityOffer, ConfigurationValue, ExecutionProfileId, FrontStartupParameter,
     HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement, ImplementationId,
     ImplementationOffer, KindContractRevision, OfferGeneration, PROTOCOL_VERSION,
 };
@@ -173,7 +173,7 @@ pub(crate) fn observation_offer(channel: CreateObservationChannel) -> Capability
         startup_parameters: contract
             .configuration
             .iter()
-            .map(|field| FaceStartupParameter {
+            .map(|field| FrontStartupParameter {
                 name: field.key.clone(),
                 value_type: match field.default_value {
                     ConfigurationValue::Text(_) => "Text",

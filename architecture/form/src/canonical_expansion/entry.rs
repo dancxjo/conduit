@@ -86,7 +86,7 @@ pub fn expand_canonical_form_for_authoring_with_backs(
         .inputs
         .iter()
         .flat_map(|(front_port, endpoints)| {
-            endpoints.iter().map(|endpoint| AuthoringFaceBinding {
+            endpoints.iter().map(|endpoint| AuthoringFrontBinding {
                 front_port_id: conduit_core::PortId::from(front_port.as_str()),
                 gear_id: endpoint.gear_id.clone(),
                 gear_port_id: endpoint.port.port_id.clone(),
@@ -96,7 +96,7 @@ pub fn expand_canonical_form_for_authoring_with_backs(
     let output_bindings = fragment
         .outputs
         .iter()
-        .map(|(front_port, endpoint)| AuthoringFaceBinding {
+        .map(|(front_port, endpoint)| AuthoringFrontBinding {
             front_port_id: conduit_core::PortId::from(front_port.as_str()),
             gear_id: endpoint.gear_id.clone(),
             gear_port_id: endpoint.port.port_id.clone(),

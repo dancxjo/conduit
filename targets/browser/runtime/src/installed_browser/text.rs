@@ -6,7 +6,7 @@ use super::factory::{
 use super::BrowserOperation;
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, FaceStartupParameter, HostOperationContractId, HostOperationRequirement,
+    ExecutionProfileId, FrontStartupParameter, HostOperationContractId, HostOperationRequirement,
     ImplementationId, PlannedGear, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
@@ -55,7 +55,7 @@ fn literal_offer() -> CapabilityOffer {
         "browser/text-literal@1",
         "browser/kernel-text-literal@1",
         LITERAL_IMPLEMENTATION,
-        vec![FaceStartupParameter {
+        vec![FrontStartupParameter {
             name: "value".into(),
             value_type: "Text".into(),
             has_default: false,
@@ -90,7 +90,7 @@ fn join_offer() -> CapabilityOffer {
         "browser/text-join@1",
         "browser/kernel-text-join@1",
         JOIN_IMPLEMENTATION,
-        vec![FaceStartupParameter {
+        vec![FrontStartupParameter {
             name: "prefix".into(),
             value_type: "Text".into(),
             has_default: false,
@@ -109,7 +109,7 @@ fn join_offer() -> CapabilityOffer {
 fn presentation_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::text_presentation_contract();
     let mut offer = CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: "maximum-values".into(),
             value_type: "Count".into(),
             has_default: true,
@@ -149,7 +149,7 @@ fn offer(
     capability: &str,
     profile: &str,
     implementation: &str,
-    startup_parameters: Vec<FaceStartupParameter>,
+    startup_parameters: Vec<FrontStartupParameter>,
     shorthand: Option<(conduit_core::PortId, conduit_core::PortId)>,
 ) -> CapabilityOffer {
     let mut offer = CapabilityOffer {

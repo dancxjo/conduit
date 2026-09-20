@@ -382,7 +382,7 @@ mod tests {
         let definition = profile
             .get(&kind_id(STREAMING_SPEECH_RECOGNIZE_KIND))
             .unwrap();
-        let expected = conduit_core::CheckedFace::new(
+        let expected = conduit_core::CheckedFront::new(
             Vec::new(),
             definition.inputs.clone(),
             definition.outputs.clone(),

@@ -36,7 +36,7 @@ fn classification(error: &PlannerError) -> Option<(&'static str, &'static str)> 
             "CND-PLN-006",
             "no front-compatible realization is available",
         )),
-        PlannerError::IncompatibleCheckedFace(_) => Some((
+        PlannerError::IncompatibleCheckedFront(_) => Some((
             "CND-PLN-012",
             "selected realization has a different canonical checked front",
         )),
@@ -84,7 +84,7 @@ mod tests {
     fn front_mismatch_is_structured_without_nominal_or_private_detail() {
         let diagnostic = structured_planner_diagnostic(
             &checked_form(),
-            &PlannerError::IncompatibleCheckedFace(
+            &PlannerError::IncompatibleCheckedFront(
                 "gear secret front differs from host-local secret".into(),
             ),
         )

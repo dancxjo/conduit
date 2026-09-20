@@ -131,7 +131,7 @@ pub(crate) fn validate_hard_requirements(
             })?;
 
         if offer.checked_front() != gear.checked_front() {
-            return Err(PlannerError::IncompatibleCheckedFace(format!(
+            return Err(PlannerError::IncompatibleCheckedFront(format!(
                 "gear '{}' front differs from capability '{}' front",
                 gear.gear_id.as_str(),
                 offer.capability_id.as_str()

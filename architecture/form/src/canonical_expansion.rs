@@ -1,6 +1,6 @@
 use crate::prelude::*;
 use crate::{
-    hash_string, AuthoringFaceBinding, CanonicalBackCatalog, CanonicalExpansionDiagnostic,
+    hash_string, AuthoringFrontBinding, CanonicalBackCatalog, CanonicalExpansionDiagnostic,
     CanonicalStartupValue, CheckedCanonicalForm, CheckedCanonicalGear, CheckedConnection,
     CheckedCordStage, CheckedGear, CheckedSyntaxDocument, ConfigurationRule, ConfigurationValue,
     ExpandedAuthoringForm, ExpandedCanonicalForm, ExpandedGearProvenance, ExpandedSharedPool,
@@ -385,7 +385,7 @@ fn instantiate_gear(
         startup_parameters: gear
             .startup_parameters
             .iter()
-            .map(|parameter| conduit_core::FaceStartupParameter {
+            .map(|parameter| conduit_core::FrontStartupParameter {
                 name: parameter.name.clone(),
                 value_type: parameter.value_type.clone(),
                 has_default: parameter.default.is_some(),

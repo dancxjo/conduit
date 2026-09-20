@@ -2,7 +2,7 @@
 
 use conduit_core::{
     kind_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    FaceStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    FrontStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
     ImplementationOffer, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
@@ -14,7 +14,7 @@ pub fn linguistics_std_offers() -> Vec<CapabilityOffer> {
     vec![
         offer(
             conduit_language::tokenize_four_definition(),
-            vec![FaceStartupParameter {
+            vec![FrontStartupParameter {
                 name: "text".into(),
                 value_type: "Text".into(),
                 has_default: false,
@@ -26,7 +26,7 @@ pub fn linguistics_std_offers() -> Vec<CapabilityOffer> {
 
 fn offer(
     definition: conduit_form::KindDefinition,
-    startup_parameters: Vec<FaceStartupParameter>,
+    startup_parameters: Vec<FrontStartupParameter>,
 ) -> CapabilityOffer {
     let kind = definition.kind_id.as_str();
     CapabilityOffer {

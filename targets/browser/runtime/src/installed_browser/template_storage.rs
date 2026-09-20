@@ -4,7 +4,7 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityOffer, ConfigurationValue, ExecutionProfileId,
-    FaceStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    FrontStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
     ImplementationOffer, PlannedGear, ResourceRequirement, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
@@ -53,7 +53,7 @@ impl PreparedTemplateStore {
 fn offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::named_pattern_template_storage_definition();
     CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: "maximum-commands".into(),
             value_type: "Count".into(),
             has_default: true,
@@ -99,12 +99,12 @@ fn initializer_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::named_pattern_template_initializer_definition();
     CapabilityOffer {
         startup_parameters: vec![
-            FaceStartupParameter {
+            FrontStartupParameter {
                 name: "name".into(),
                 value_type: "Text".into(),
                 has_default: true,
             },
-            FaceStartupParameter {
+            FrontStartupParameter {
                 name: "normalized-values".into(),
                 value_type: "Text".into(),
                 has_default: true,

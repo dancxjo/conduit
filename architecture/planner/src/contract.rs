@@ -50,7 +50,7 @@ pub enum PlannerError {
     WrongSemanticKind(String),
     WrongKindContractRevision(String),
     IncompatiblePortContract(String),
-    IncompatibleCheckedFace(String),
+    IncompatibleCheckedFront(String),
     InvalidHardRealizationRequirement(String),
     HardRealizationRequirementUnsatisfied(String),
     InvalidRealizationPolicy(String),
@@ -106,7 +106,7 @@ impl core::fmt::Display for PlannerError {
             Self::IncompatiblePortContract(value) => {
                 write!(f, "incompatible port contract: {value}")
             }
-            Self::IncompatibleCheckedFace(value) => {
+            Self::IncompatibleCheckedFront(value) => {
                 write!(f, "incompatible checked front: {value}")
             }
             Self::InvalidHardRealizationRequirement(value) => {

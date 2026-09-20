@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use crate::{FormSyntax, RuntimePortDirection, RuntimePortTemporal, SyntaxCheckDiagnostic};
 use conduit_core::{
-    kind_id, CheckedFace, FaceStartupParameter, KindId, PortDescriptor, PortDirection,
+    kind_id, CheckedFront, FrontStartupParameter, KindId, PortDescriptor, PortDirection,
     StructuredInfoRefusal,
 };
 
@@ -37,12 +37,12 @@ pub(crate) fn checked_value_kind(
 pub(crate) fn checked_front(
     form: &FormSyntax,
     catalog: &StartupCatalog,
-) -> Result<CheckedFace, SyntaxCheckDiagnostic> {
+) -> Result<CheckedFront, SyntaxCheckDiagnostic> {
     let startup_parameters = form
         .front
         .startup_parameters
         .iter()
-        .map(|parameter| FaceStartupParameter {
+        .map(|parameter| FrontStartupParameter {
             name: parameter.name.text.clone(),
             value_type: parameter.value_type.text.clone(),
             has_default: parameter.default.is_some(),
@@ -71,7 +71,7 @@ pub(crate) fn checked_front(
             PortDirection::Output => outputs.push(descriptor),
         }
     }
-    Ok(CheckedFace::new(
+    Ok(CheckedFront::new(
         startup_parameters,
         inputs,
         outputs,

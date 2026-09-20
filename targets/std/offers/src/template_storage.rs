@@ -1,7 +1,7 @@
 //! Exact finite named-pattern storage offer.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
+    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
     HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
     ResourceRequirement, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
@@ -15,7 +15,7 @@ pub const TEMPLATE_STORAGE_RESOURCE_CLASS: &str = "conduit.resource/named-patter
 pub fn template_storage_std_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::named_pattern_template_storage_definition();
     CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: "maximum-commands".into(),
             value_type: "Count".into(),
             has_default: true,

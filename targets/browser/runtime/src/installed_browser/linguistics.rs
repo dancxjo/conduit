@@ -6,7 +6,7 @@ use super::factory::{
 use super::BrowserOperation;
 use conduit_core::{
     kind_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, FaceStartupParameter, HostOperationContractId, HostOperationRequirement,
+    ExecutionProfileId, FrontStartupParameter, HostOperationContractId, HostOperationRequirement,
     ImplementationId, PlannedGear, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
     PRESENTATION_RESOURCE_CLASS,
 };
@@ -62,7 +62,7 @@ pub(super) fn install_catalogs(
 fn tokenize_offer() -> CapabilityOffer {
     offer(
         conduit_language::tokenize_four_definition(),
-        vec![FaceStartupParameter {
+        vec![FrontStartupParameter {
             name: "text".into(),
             value_type: "Text".into(),
             has_default: false,
@@ -111,7 +111,7 @@ fn presentation_offer() -> CapabilityOffer {
 
 fn offer(
     definition: conduit_form::KindDefinition,
-    startup_parameters: Vec<FaceStartupParameter>,
+    startup_parameters: Vec<FrontStartupParameter>,
     implementation: &str,
     host_operations: Vec<HostOperationRequirement>,
 ) -> CapabilityOffer {

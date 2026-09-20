@@ -2,7 +2,7 @@ use super::*;
 
 pub(super) fn checked_front_ports<'a>(
     form: &'a CheckedCanonicalForm,
-    runtime_front: &'a conduit_core::CheckedFace,
+    runtime_front: &'a conduit_core::CheckedFront,
 ) -> BTreeMap<&'a str, (&'a crate::RuntimePort, &'a conduit_core::PortDescriptor)> {
     let descriptors = runtime_front
         .inputs()

@@ -6,7 +6,7 @@ use conduit_audio::{
 };
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
+    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
     HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
     KindContractRevision, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
@@ -381,8 +381,8 @@ fn implementation(profile: &str, implementation: &str, artifact: &str) -> Implem
     }
 }
 
-fn startup(name: &str, value_type: &str, has_default: bool) -> FaceStartupParameter {
-    FaceStartupParameter {
+fn startup(name: &str, value_type: &str, has_default: bool) -> FrontStartupParameter {
+    FrontStartupParameter {
         name: name.into(),
         value_type: value_type.into(),
         has_default,

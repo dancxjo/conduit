@@ -65,7 +65,7 @@ pub struct ConstructionSyntax {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FormSyntax {
     pub name: SpannedText,
-    pub front: FormFace,
+    pub front: FormFront,
     pub completion: FormCompletionPolicy,
     pub back: Vec<BackStatement>,
     pub span: Span,
@@ -82,7 +82,7 @@ pub enum FormCompletionPolicy {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct FormFace {
+pub struct FormFront {
     pub startup_parameters: Vec<StartupParameter>,
     pub runtime_ports: Vec<RuntimePort>,
     pub shorthand: Option<ShorthandPair>,

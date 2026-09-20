@@ -2,7 +2,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
     bind_sign, kind_id, ArtifactId, AuthorityContractId, AuthorityGrantId, AuthorityRequirement,
-    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFace, ExecutionProfileId,
+    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFront, ExecutionProfileId,
     HostAdvertisement, HostOperationContractId, HostOperationRequirement, ImplementationId,
     KindContractRevision, LineId, PortDescriptor, PortDirection, PortId, PortTemporal, SignId,
     PROTOCOL_VERSION,
@@ -84,7 +84,7 @@ pub fn delegated_reboot_offer(
     }
 }
 
-pub fn delegated_reboot_front() -> CheckedFace {
+pub fn delegated_reboot_front() -> CheckedFront {
     delegated_reboot_offer(
         CapabilityId::from("front-only/reboot"),
         ImplementationId::from("front-only/reboot"),
@@ -102,7 +102,7 @@ pub struct RebootRequest {
     pub request_id: RebootRequestId,
     pub controller: HostInstance,
     pub target: HostInstance,
-    pub required_front: CheckedFace,
+    pub required_front: CheckedFront,
     pub selected_line_id: LineId,
 }
 

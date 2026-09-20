@@ -1,7 +1,7 @@
 //! Exact hosted implementations for the finite leaf Gears in reviewed Morse Backs.
 
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
+    kind_id, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
     HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 
@@ -44,7 +44,7 @@ fn offer(contract: conduit_text::MorseKindContract, implementation: &str) -> Cap
         startup_parameters: contract
             .configuration
             .iter()
-            .map(|(name, _)| FaceStartupParameter {
+            .map(|(name, _)| FrontStartupParameter {
                 name: (*name).into(),
                 value_type: "Count".into(),
                 has_default: true,

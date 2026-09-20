@@ -123,7 +123,7 @@ fn checked_front_compatibility_is_evaluated_before_hard_requirements() {
     )]);
     assert!(matches!(
         plan_with_hard_requirements(&form, &[host], &placements, &[], &requirements),
-        Err(PlannerError::IncompatibleCheckedFace(_))
+        Err(PlannerError::IncompatibleCheckedFront(_))
     ));
 }
 

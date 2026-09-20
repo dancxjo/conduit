@@ -3,7 +3,7 @@ use conduit_core::{
     FailureReason, HostId, HostProfileId, ImplementationId, OfferGeneration, Plan, PortDescriptor,
     PortDirection,
 };
-use conduit_form::{CheckedForm, CompositeFaceTerminal};
+use conduit_form::{CheckedForm, CompositeFrontTerminal};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KernelCompositeDefinitionError {
@@ -22,17 +22,17 @@ impl std::error::Error for KernelCompositeDefinitionError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelCompositeBoundary {
-    pub input_fronts: Vec<KernelCompositeFaceBinding>,
-    pub output_fronts: Vec<KernelCompositeFaceBinding>,
+    pub input_fronts: Vec<KernelCompositeFrontBinding>,
+    pub output_fronts: Vec<KernelCompositeFrontBinding>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KernelCompositeFaceBinding {
+pub struct KernelCompositeFrontBinding {
     pub external_port: PortDescriptor,
     pub internal_child: HostId,
     pub internal_placement_id: conduit_core::PlacementId,
     pub internal_port_id: conduit_core::PortId,
-    pub terminal: CompositeFaceTerminal,
+    pub terminal: CompositeFrontTerminal,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -75,7 +75,7 @@ impl KernelCompositeDefinition {
             .map_err(|error| {
                 KernelCompositeDefinitionError::InvalidInternalPlan(error.to_string())
             })?;
-        let bind_fronts = |fronts: &[conduit_form::CheckedCompositeFace]| {
+        let bind_fronts = |fronts: &[conduit_form::CheckedCompositeFront]| {
             fronts
                 .iter()
                 .map(|front| {
@@ -113,7 +113,7 @@ impl KernelCompositeDefinition {
                             ),
                         ));
                     }
-                    Ok(KernelCompositeFaceBinding {
+                    Ok(KernelCompositeFrontBinding {
                         external_port: front.external_port.clone(),
                         internal_child: placement.host_id.clone(),
                         internal_placement_id: placement.placement_id.clone(),
@@ -128,7 +128,7 @@ impl KernelCompositeDefinition {
         if input_fronts
             .iter()
             .chain(&output_fronts)
-            .any(|front| front.terminal != CompositeFaceTerminal::Independent)
+            .any(|front| front.terminal != CompositeFrontTerminal::Independent)
         {
             return Err(KernelCompositeDefinitionError::InvalidInternalPlan(
                 "the kernel composite profile currently requires independent fronts".into(),
