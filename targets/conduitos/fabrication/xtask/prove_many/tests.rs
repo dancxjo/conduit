@@ -113,3 +113,25 @@ fn timing_sensitive_hid_and_rescue_own_the_qemu_environment() {
     assert!(!may_share_environment(X86Proof::Rescue, X86Proof::Usb));
     assert!(!may_share_environment(X86Proof::Usb, X86Proof::Rescue));
 }
+
+#[test]
+fn launch_skips_a_blocked_exclusive_proof_to_fill_safe_parallel_capacity() {
+    let pending = VecDeque::from([
+        X86Proof::Hid,
+        X86Proof::Kernel,
+        X86Proof::Keyboard,
+        X86Proof::Rescue,
+    ]);
+    assert_eq!(
+        next_launchable_index(&pending, &[X86Proof::FrontDoor]),
+        Some(1)
+    );
+}
+
+#[test]
+fn running_proofs_are_named_in_launch_order_for_progress_reports() {
+    assert_eq!(
+        proof_names([X86Proof::Kernel, X86Proof::Usb]),
+        "kernel, usb"
+    );
+}
