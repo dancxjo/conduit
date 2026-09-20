@@ -7,8 +7,9 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, Quantity, QuantityUnit, StructuredConfigurationValue, StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
+    KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal, Quantity,
+    QuantityUnit, SemanticCapabilityContract, StructuredConfigurationValue, StructuredInfoType,
     StructuredInfoValue,
 };
 use conduit_form::{
@@ -27,6 +28,44 @@ pub const TRANSFORM_PATH2_FOUR_KIND: &str = "geometry/transform-path2-four";
 pub const CAPTURE_BOUNDED_STROKE_KIND: &str = "geometry/capture-bounded-stroke";
 pub const GEOMETRY_REVISION: &str = "conduit.std/geometry-spatial@1";
 
+pub fn geometry_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+    let point = point2_type();
+    let path = path2_type(4).expect("four-point path is bounded");
+    let point_kind = point
+        .profile()
+        .expect("bounded Point2 profile")
+        .value_kind()
+        .clone();
+    let transform_kind = crate::transform2_type()
+        .profile()
+        .expect("bounded Transform2 profile")
+        .value_kind()
+        .clone();
+    vec![
+        geometry_contract(
+            POINT2_LITERAL_KIND,
+            vec![],
+            vec![geometry_port("point", &point, PortDirection::Output)],
+            "value",
+            point_kind,
+        ),
+        geometry_contract(
+            APPLY_TRANSFORM2_KIND,
+            vec![geometry_port("point", &point, PortDirection::Input)],
+            vec![geometry_port("point", &point, PortDirection::Output)],
+            "transform",
+            transform_kind.clone(),
+        ),
+        geometry_contract(
+            TRANSFORM_PATH2_FOUR_KIND,
+            vec![geometry_port("path", &path, PortDirection::Input)],
+            vec![geometry_port("path", &path, PortDirection::Output)],
+            "transform",
+            transform_kind,
+        ),
+    ]
+}
+
 pub fn install_geometry_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
@@ -36,32 +75,14 @@ pub fn install_geometry_catalogs(
             .insert_structured_type(name, value_type)
             .map_err(|error| error.to_string())?;
     }
-    let point = point2_type();
-    let path = path2_type(4).expect("four-point path is bounded");
-    insert_kind(
-        startup,
-        profile,
-        POINT2_LITERAL_KIND,
-        vec![],
-        vec![geometry_port("point", &point, PortDirection::Output)],
-        Some(("value", POINT2_TYPE, default_point2()?)),
-    )?;
-    insert_kind(
-        startup,
-        profile,
-        APPLY_TRANSFORM2_KIND,
-        vec![geometry_port("point", &point, PortDirection::Input)],
-        vec![geometry_port("point", &point, PortDirection::Output)],
-        Some(("transform", TRANSFORM2_TYPE, default_transform2()?)),
-    )?;
-    insert_kind(
-        startup,
-        profile,
-        TRANSFORM_PATH2_FOUR_KIND,
-        vec![geometry_port("path", &path, PortDirection::Input)],
-        vec![geometry_port("path", &path, PortDirection::Output)],
-        Some(("transform", TRANSFORM2_TYPE, default_transform2()?)),
-    )?;
+    let defaults = [
+        default_point2()?,
+        default_transform2()?,
+        default_transform2()?,
+    ];
+    for (contract, default) in geometry_semantic_contracts().into_iter().zip(defaults) {
+        insert_contract(startup, profile, contract, default)?;
+    }
     startup.insert(KindSignature {
         kind: CAPTURE_BOUNDED_STROKE_KIND.into(),
         startup_parameters: vec![],
@@ -138,55 +159,79 @@ pub fn geometry_types() -> Vec<(&'static str, StructuredInfoType)> {
     ]
 }
 
-fn insert_kind(
-    startup: &mut conduit_form::StartupCatalog,
-    profile: &mut conduit_form::ProfileCatalog,
+fn geometry_contract(
     kind: &str,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
-    configuration: Option<(&str, &str, StructuredInfoValue)>,
+    parameter: &str,
+    parameter_type: KindId,
+) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![FrontStartupParameter {
+            name: parameter.into(),
+            value_type: parameter_type,
+            has_default: false,
+        }],
+        shorthand: None,
+        kind_id: kind_id(kind),
+        kind_contract_revision: KindContractRevision::from(GEOMETRY_REVISION),
+        inputs,
+        outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 4,
+            max_queue_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
+    }
+}
+
+fn insert_contract(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+    contract: SemanticCapabilityContract,
+    default: StructuredInfoValue,
 ) -> Result<(), String> {
     startup
         .insert(KindSignature {
-            kind: kind.into(),
-            startup_parameters: configuration
-                .as_ref()
-                .map(|(name, type_name, _)| StartupParameterSignature {
-                    name: (*name).into(),
-                    value_type: (*type_name).into(),
+            kind: contract.kind_id.as_str().to_string(),
+            startup_parameters: contract
+                .startup_parameters
+                .iter()
+                .map(|parameter| StartupParameterSignature {
+                    name: parameter.name.clone(),
+                    value_type: if contract.kind_id.as_str() == POINT2_LITERAL_KIND {
+                        POINT2_TYPE
+                    } else {
+                        TRANSFORM2_TYPE
+                    }
+                    .to_string(),
                     default: None,
                 })
-                .into_iter()
                 .collect(),
         })
         .map_err(|error| error.to_string())?;
-    let configuration = configuration
-        .map(|(name, _, value)| {
-            let value_type = value.value_type().clone();
-            let profile = value_type.profile().map_err(|error| format!("{error:?}"))?;
-            let canonical = value
-                .canonical_bytes()
-                .map_err(|error| format!("{error:?}"))?;
-            Ok::<ConfigurationField, String>(ConfigurationField {
-                key: name.into(),
-                default_value: ConfigurationValue::Structured(
-                    StructuredConfigurationValue::new(profile.value_kind().clone(), canonical)
-                        .ok_or_else(|| "geometry default exceeds structured bound".to_string())?,
-                ),
-                validation: ConfigurationRule::Structured {
-                    profile: profile.value_kind().clone(),
-                },
-            })
-        })
-        .transpose()?
-        .into_iter()
-        .collect();
+    let parameter = &contract.startup_parameters[0];
+    let value_type = default.value_type().clone();
+    let value_profile = value_type.profile().map_err(|error| format!("{error:?}"))?;
+    let canonical = default
+        .canonical_bytes()
+        .map_err(|error| format!("{error:?}"))?;
+    let configuration = vec![ConfigurationField {
+        key: parameter.name.clone(),
+        default_value: ConfigurationValue::Structured(
+            StructuredConfigurationValue::new(value_profile.value_kind().clone(), canonical)
+                .ok_or_else(|| "geometry default exceeds structured bound".to_string())?,
+        ),
+        validation: ConfigurationRule::Structured {
+            profile: value_profile.value_kind().clone(),
+        },
+    }];
     profile
         .insert(KindDefinition {
-            kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(GEOMETRY_REVISION),
-            inputs,
-            outputs,
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
             configuration,
         })
         .map_err(|error| error.to_string())
