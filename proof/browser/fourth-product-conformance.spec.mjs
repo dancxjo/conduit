@@ -73,7 +73,6 @@ test("hosted applications cover unstyled content until admitted presentation is 
 test("one semantic ProductMasthead composition replaces product-private global chrome", async () => {
   const productSurfaces = [
     ["Tour", "products/tour/browser/tour.html", "products/tour/browser/tour.css", "products/tour/browser/tour.mjs"],
-    ["Crèche", "products/creche/browser/creche.html", "products/creche/browser/creche.css", "products/creche/browser/creche.mjs"],
     ["Patchbay", "products/patchbay/html/assets/index.html", "products/patchbay/html/assets/app.css", "products/patchbay/html/assets/app.js"],
   ];
   for (const [name, htmlPath, cssPath, modulePath] of productSurfaces) {
@@ -92,6 +91,9 @@ test("one semantic ProductMasthead composition replaces product-private global c
   const pages = await readFile(join(repository, "site/index.html"), "utf8");
   expect(pages).toContain("<!-- conduit-product-masthead -->");
   expect(pages).not.toMatch(/<nav[^>]*>[^]*?(?:Tour|Crèche|Patchbay)[^]*?<\/nav>/);
+  const creche = await readFile(join(repository, "products/creche/browser/creche.mjs"), "utf8");
+  expect(creche, "Crèche compatibility entrance must redirect to Workspace").toContain("location.replace(workspace.href)");
+  expect(creche, "Crèche compatibility entrance must not own product chrome").not.toContain("createProductMasthead");
 });
 
 test("Tour Form Gallery ordinary controls use the shared presentation vocabulary", async () => {
@@ -318,7 +320,6 @@ test("fourth application keeps every required refusal and Host failure distinct"
 test("Tour, Crèche, Patchbay, and the fourth app manifest the same shared contracts", async ({ page }) => {
   const products = [
     ["Tour", "tour", () => startStaticProduct(tourProduct, "/conduit/tour/"), ["navigation", "form-field", "status"]],
-    ["Crèche", "creche", () => startStaticProduct(crecheProduct, "/conduit/creche/"), ["stepper", "form-field", "choice-group"]],
     ["Patchbay", "patchbay", () => startStaticProduct(patchbayProduct, "/conduit/patchbay/"), ["navigation", "definition-table", "disclosure"]],
     ["Field Notes", null, () => startStaticProduct(stagedFixture), ["navigation", "artifact", "disclosure", "progress"]],
   ];
@@ -351,5 +352,12 @@ test("Tour, Crèche, Patchbay, and the fourth app manifest the same shared contr
       await page.setViewportSize({ width: 1280, height: 720 });
       expect(await page.locator("[data-application-component]").count(), name).toBeGreaterThan(0);
     } finally { entrance.child.kill(); }
+  }
+  const crecheEntrance = await startStaticProduct(crecheProduct, "/conduit/creche/");
+  try {
+    await page.goto(crecheEntrance.url);
+    await expect.poll(() => new URL(page.url()).pathname).toBe("/conduit/workspace/");
+  } finally {
+    crecheEntrance.child.kill();
   }
 });

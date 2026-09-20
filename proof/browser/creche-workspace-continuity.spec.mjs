@@ -24,8 +24,7 @@ test("Crèche respects the live Body owner and returns a retained Body to its Fo
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   const creche = await context.newPage();
   await creche.goto(new URL("creche/", entrance.url).href);
-  await expect(creche.locator("#workspace")).toContainText("This Body is open in another window");
-  await expect(creche.getByRole("button", { name: "Birth Body", exact: true })).toHaveCount(0);
+  await expect.poll(() => new URL(creche.url()).pathname).toBe(new URL("workspace/", entrance.url).pathname);
   await page.close();
   await creche.reload();
   await expect(creche.getByRole("heading", { name: "Return to your Body", exact: true })).toBeVisible();

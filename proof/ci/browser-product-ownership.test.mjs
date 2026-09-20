@@ -8,6 +8,17 @@ test("browser Host has no Tour or Creche product source", () => {
   assert.ok(existsSync("products/patchbay/html/assets/patchbay.application.template.json"));
 });
 
+test("Crèche compatibility entrance cannot run parallel product state", () => {
+  const source = readFileSync("products/creche/browser/creche.mjs", "utf8");
+  assert.match(source, /location\.replace\(workspace\.href\)/);
+  assert.doesNotMatch(source, /conduit_creche_|createBodyBirthRunner|createGraduationRunner|durable/);
+  const descriptor = JSON.parse(
+    readFileSync("products/creche/browser/creche.application.template.json", "utf8"),
+  );
+  const application = descriptor.resources.find(({ role }) => role === "application-module");
+  assert.deepEqual(application.dependencies, []);
+});
+
 for (const product of ["tour", "creche", "workspace"]) {
   test(`${product} package dependencies name real source owners`, () => {
     const root = resolve(`products/${product}/browser`);

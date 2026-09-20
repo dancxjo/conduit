@@ -448,7 +448,7 @@ jobs:
           - shard: browser-host
             specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs proof/browser/home-host.spec.mjs proof/browser/protected-line.spec.mjs
           - shard: creche-workspace
-            specs: proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
+            specs: proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
           - shard: pages
             specs: proof/browser/pages-front-door.spec.mjs proof/browser/home-cross-front.spec.mjs proof/browser/web-accessibility.spec.mjs
     name: browser-admission-${{ matrix.shard }}
