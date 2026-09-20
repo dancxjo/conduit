@@ -1,11 +1,13 @@
 use crate::{
-    AdmittedLine, ArtifactId, AuthorityGrantId, BootId, CapabilityId, CheckedFace,
+    AdmittedLine, ArtifactId, AuthorityGrantId, BootId, CapabilityId, CheckedFace, ConnectionId,
     ControlLoopEvent, HostId, ImplementationId, OfferGeneration, PlacementId, Plan, PlanId,
-    PlanningRequestAuthority, PlayUnsatisfiedReason, ResourceBinding, ResourceObservation, SignId,
+    PlanningRequestAuthority, PlayUnsatisfiedReason, PortId, ResourceBinding, ResourceObservation,
+    SignId,
 };
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct SharedPoolId(String);
@@ -66,6 +68,54 @@ impl From<&str> for PoolOperationId {
     fn from(value: &str) -> Self {
         Self(value.to_string())
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PoolMemberSessionDirection {
+    Input,
+    Output,
+}
+
+/// Bind one dynamic operation/port session to its immutable Plan-owned pool.
+/// The operation remains runtime identity; this digest does not add a Cord or
+/// authorize a Line outside the pool realization envelope.
+pub fn pool_member_session_connection_id(
+    plan_id: &PlanId,
+    pool_id: &SharedPoolId,
+    operation_id: &PoolOperationId,
+    direction: PoolMemberSessionDirection,
+    port_id: &PortId,
+) -> ConnectionId {
+    let mut hash = Sha256::new();
+    for value in [
+        "pool-member-session@1",
+        plan_id.as_str(),
+        pool_id.as_str(),
+        operation_id.as_str(),
+        match direction {
+            PoolMemberSessionDirection::Input => "input",
+            PoolMemberSessionDirection::Output => "output",
+        },
+        port_id.as_str(),
+    ] {
+        hash.update((value.len() as u32).to_le_bytes());
+        hash.update(value.as_bytes());
+    }
+    let digest: [u8; 32] = hash.finalize().into();
+    let mut encoded = String::with_capacity(64);
+    for byte in digest {
+        encoded.push(hex_digit(byte >> 4));
+        encoded.push(hex_digit(byte & 0x0f));
+    }
+    ConnectionId::from(encoded)
+}
+
+fn hex_digit(value: u8) -> char {
+    char::from(if value < 10 {
+        b'0' + value
+    } else {
+        b'a' + (value - 10)
+    })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

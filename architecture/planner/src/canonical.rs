@@ -482,6 +482,68 @@ pub fn plan_expanded_canonical_with_shared_pools(
         })?;
         planned_pools.push(planned);
     }
+    for pool in &planned_pools {
+        if !pool.member_sessions_required {
+            continue;
+        }
+        for realization in &pool.realization_envelope {
+            if plan.fragments.iter().any(|fragment| {
+                fragment.host_id == realization.host_id && fragment.boot_id == realization.boot_id
+            }) {
+                continue;
+            }
+            let host = hosts
+                .iter()
+                .find(|host| {
+                    host.host_id == realization.host_id
+                        && host.boot_id == realization.boot_id
+                        && host.offer_generation == realization.offer_generation
+                })
+                .ok_or_else(|| {
+                    PlannerError::InvalidSharedPool(
+                        "shared pool realization Host disappeared before fragment sealing".into(),
+                    )
+                })?;
+            let expected_sign = vec![
+                conduit_core::ExpectedSign::PlanFragmentReceived,
+                conduit_core::ExpectedSign::PlanTerminal,
+            ];
+            let sign_storage_budget =
+                conduit_core::mandatory_sign_storage_requirement(&expected_sign).ok_or_else(
+                    || PlannerError::SignBudgetOverflow("shared pool participant fragment".into()),
+                )?;
+            plan.fragments.push(conduit_core::PlanFragment {
+                plan_id: conduit_core::PlanId::from(""),
+                fragment_id: conduit_core::FragmentId::from(""),
+                source_document_id: form.source_document_id.clone(),
+                checked_form_id: form.checked_form_id.clone(),
+                expanded_form_id: form.expanded_form_id.clone(),
+                completion_policy: crate::plan_completion_policy(form.completion),
+                realization_backs: form.realization_backs.clone(),
+                host_id: host.host_id.clone(),
+                boot_id: host.boot_id.clone(),
+                offer_generation: host.offer_generation,
+                placements: Vec::new(),
+                execution_regions: Vec::new(),
+                execution_fusions: Vec::new(),
+                states: Vec::new(),
+                connections: Vec::new(),
+                shared_pools: Vec::new(),
+                startup_dependencies: Vec::new(),
+                startup_order: Vec::new(),
+                cancellation_policy:
+                    conduit_core::CancellationPolicy::CancelAllAndRejectLateCompletion,
+                terminal_policy: conduit_core::TerminalPolicy::RequireAllPlacementsAndConnections,
+                expected_terminals: vec![conduit_core::ExpectedTerminal::PlanCompleted],
+                expected_sign,
+                sign_storage_budget,
+                plan_fragments: Vec::new(),
+            });
+        }
+    }
+    plan.fragments.sort_by(|left, right| {
+        (&left.host_id, &left.boot_id).cmp(&(&right.host_id, &right.boot_id))
+    });
     for fragment in &mut plan.fragments {
         fragment.shared_pools = planned_pools.clone();
     }
