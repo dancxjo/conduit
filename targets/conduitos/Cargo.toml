@@ -175,6 +175,7 @@ scripted-keyboard-proof = []
 native-compositor = ["dep:fontdue"]
 native-http-client = []
 conduitos-isolation-proof = []
+emergency-halt-proof = []
 virtio-net-proof = ["dep:embedded-io", "dep:embedded-tls", "dep:embedded-websocket", "dep:rand_chacha", "dep:rand_core", "dep:smoltcp"]
 ps2-input = []
 # Proof-appliance selectors. Every selected entrypoint lives under the explicit
