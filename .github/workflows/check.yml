@@ -67,7 +67,7 @@ jobs:
       conduitos_required: ${{ inputs.full_suite && 'true' || inputs.development_admission && steps.development.outputs.conduitos_required || steps.execution.outputs.conduitos_required || steps.impact.outputs.conduitos_required }}
       conduitos_limine_required: ${{ inputs.full_suite && 'true' || inputs.development_admission && steps.development.outputs.conduitos_required || steps.execution.outputs.conduitos_limine_required || steps.impact.outputs.conduitos_required }}
       conduitos_tools_required: ${{ inputs.full_suite && 'true' || inputs.development_admission && steps.development.outputs.conduitos_required || steps.execution.outputs.conduitos_tools_required || steps.impact.outputs.conduitos_required }}
-      conduitos_x86_matrix: ${{ inputs.development_admission && steps.development.outputs.conduitos_x86_matrix || inputs.full_suite && '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' || steps.execution.outputs.conduitos_x86_matrix || steps.impact.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
+      conduitos_x86_matrix: ${{ inputs.development_admission && steps.development.outputs.conduitos_x86_matrix || inputs.full_suite && '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue","emergency-halt"]' || steps.execution.outputs.conduitos_x86_matrix || steps.impact.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue","emergency-halt"]' }}
       conduitos_architecture_matrix: ${{ inputs.development_admission && steps.development.outputs.conduitos_architecture_matrix || inputs.full_suite && '["aarch64","ia32","riscv64","loongarch64"]' || steps.execution.outputs.conduitos_architecture_matrix || steps.impact.outputs.conduitos_architecture_matrix || '["aarch64","ia32","riscv64","loongarch64"]' }}
       conduitos_aarch64_product_required: ${{ inputs.full_suite && 'true' || inputs.development_admission && steps.development.outputs.conduitos_aarch64_product_required || steps.execution.outputs.conduitos_aarch64_product_required || steps.impact.outputs.conduitos_aarch64_product_required || 'true' }}
       impact_reason: ${{ steps.execution.outputs.impact_reason || steps.impact.outputs.impact_reason }}
@@ -920,7 +920,7 @@ jobs:
         id: x86-proofs
         continue-on-error: true
         env:
-          SELECTED_PROOFS: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
+          SELECTED_PROOFS: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue","emergency-halt"]' }}
           CONDUIT_X86_BATCH_ROOT: ${{ runner.temp }}/conduitos-prove-many
         run: |
           mapfile -t proofs < <(jq -r '.[]' <<<"$SELECTED_PROOFS")
@@ -932,7 +932,7 @@ jobs:
         if: always()
         continue-on-error: true
         env:
-          SELECTED_PROOFS: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue"]' }}
+          SELECTED_PROOFS: ${{ (github.event_name == 'pull_request' || inputs.candidate_sha != '') && needs.classify.outputs.conduitos_x86_matrix || '["kernel","xhci","usb","hid","keyboard","front-door","product-journey","rescue","emergency-halt"]' }}
           CONDUIT_X86_BATCH_ROOT: ${{ runner.temp }}/conduitos-prove-many
         run: |
           jq -e --argjson expected "$SELECTED_PROOFS" '
