@@ -11,6 +11,7 @@ use crate::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PlayUnsatisfiedReason {
     NoAdmittedRouteReady,
+    NoAdmittedPoolRealizationReady,
     RequiredHostUnavailable,
     RequiredResourceUnavailable,
     RequiredAuthorityUnavailable,

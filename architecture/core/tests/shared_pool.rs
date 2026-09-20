@@ -4,7 +4,8 @@ use conduit_core::{
     ExecutionProfileId, ExpandedFormId, ExpectedSign, ExpectedTerminal, FaceStartupParameter,
     FormIdentity, FragmentId, GearId, HostId, ImplementationId, KindContractRevision, PlacementId,
     PlanFragment, PlanId, PlannedGear, PlannedSharedPool, PoolDeclarationId, PoolMemberLimits,
-    PoolRealizationEnvelope, PoolRealizationHealth, PoolRealizationObservation, PortDescriptor,
+    PoolOperationId, PoolRealizationEnvelope, PoolRealizationHealth, PoolRealizationObservation,
+    PoolSelectionDisposition, PoolSelectionEvidence, PoolSelectionEvidenceError, PortDescriptor,
     PortDirection, PortTemporal, SharedPoolId, SignId, SignStorageBudget, SourceDocumentId,
     TerminalPolicy,
 };
@@ -197,4 +198,37 @@ fn pool_observation_is_current_only_for_the_exact_sealed_provider_identity() {
     assert!(observation.is_current_for(&realization));
     observation.offer_generation = conduit_core::OfferGeneration(2);
     assert!(!observation.is_current_for(&realization));
+}
+
+#[test]
+fn selection_evidence_names_only_one_realization_from_the_immutable_plan() {
+    let identity = FormIdentity {
+        source_document_id: SourceDocumentId::from("source"),
+        checked_form_id: CheckedFormId::from("checked"),
+        expanded_form_id: ExpandedFormId::from("expanded"),
+    };
+    let plan = seal_plan(identity, vec![fragment(pool())]);
+    let selected = PoolSelectionEvidence {
+        plan_id: plan.plan_id.clone(),
+        pool_id: SharedPoolId::from("room/peers"),
+        operation_id: PoolOperationId::from("request/1"),
+        selected_realization: Some(0),
+        observation_sign_ids: vec![SignId::from("sign/resource/1")],
+        disposition: PoolSelectionDisposition::Selected,
+    };
+    assert_eq!(selected.validate(&plan), Ok(()));
+
+    let mut outside = selected.clone();
+    outside.selected_realization = Some(1);
+    assert_eq!(
+        outside.validate(&plan),
+        Err(PoolSelectionEvidenceError::RealizationOutsideEnvelope)
+    );
+    let exhausted = PoolSelectionEvidence {
+        selected_realization: None,
+        observation_sign_ids: vec![SignId::from("sign/resource/exhausted")],
+        disposition: PoolSelectionDisposition::EnvelopeExhausted,
+        ..selected
+    };
+    assert_eq!(exhausted.validate(&plan), Ok(()));
 }
