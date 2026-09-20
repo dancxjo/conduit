@@ -9,7 +9,15 @@ function joined(index, calls) {
   return {
     host_id: hostId,
     boot_id: bootId,
-    advertisement: { host_id: hostId, boot_id: bootId, offer_generation: 1 },
+    advertisement: {
+      host_id: hostId, boot_id: bootId, offer_generation: 1,
+      capabilities: [{
+        capability_id: `capability/model-${index}/generate`,
+        kind_id: "ai/generate-text",
+        kind_contract_revision: "conduit.ai/generate-text@1",
+        implementation_id: "std/local-model@1", artifact_id: "model/shared-digest",
+      }],
+    },
     line: {
       schema: "conduit.creche/joined-host-line@1",
       async observeLocalModelPool(realization) {
@@ -62,7 +70,13 @@ test("Workspace maps kernel selection to one exact observed joined Host", async 
       assert.equal(observations.length, 2);
       return {
         disposition: "selected",
-        member: { realization: operationId.endsWith("2") ? 1 : 0 },
+        member: {
+          realization: operationId.endsWith("2") ? 1 : 0,
+          key: [...new Uint8Array(32).fill(operationId.endsWith("2") ? 2 : 1)],
+          slot: operationId.endsWith("2") ? 1 : 0, epoch: 1,
+          node: operationId.endsWith("2") ? 257 : 256, play: 1,
+        },
+        population: operationId.endsWith("1") ? 1 : 2,
         evidence: {
           plan_id: plan.plan_id, pool_id: "model/workers", operation_id: operationId,
           selected_realization: operationId.endsWith("2") ? 1 : 0,
@@ -139,6 +153,9 @@ test("Workspace maps kernel selection to one exact observed joined Host", async 
   assert.equal(receipt.operations.length, 1);
   assert.equal(receipt.operations[0].operation_id, "request/1");
   assert.equal(receipt.operations[0].result_bytes, 1);
+  assert.equal(receipt.member_kind_id, "ai/generate-text");
+  assert.equal(receipt.operations[0].member_epoch, 1);
+  assert.equal(receipt.operations[0].population_at_admission, 1);
   assert.equal(receipt.prompt_content_retained, false);
   assert.equal(JSON.stringify(receipt).includes("1,2,3"), false);
   assert.deepEqual(observed.slice(-8, -1), [
