@@ -1,8 +1,9 @@
 //! Outbound ordinary Host rendezvous above one protected relay Line.
 
 use conduit_body::{
-    RendezvousAttemptDecision, RendezvousAttemptJournal, RendezvousAttemptOutcome,
-    RendezvousAttemptSchedule, RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily,
+    decode_running_host_rendezvous_text, RendezvousAttemptDecision, RendezvousAttemptJournal,
+    RendezvousAttemptOutcome, RendezvousAttemptSchedule, RendezvousAuthentication,
+    RendezvousCandidate, RendezvousLineFamily, MAX_RENDEZVOUS_CBOR_BYTES,
 };
 use conduit_protected_line::{
     establish_protected_session, EndpointBinding, ProtectedCarrier, ProtectedFrameCarrier,
@@ -27,7 +28,9 @@ const MAXIMUM_DESCRIPTOR_BYTES: u64 = 16 * 1024;
 struct HostRelayDescriptor {
     schema: String,
     address: SocketAddr,
+    rendezvous: String,
     candidate: SerializedRelayCandidate,
+    #[serde(skip)]
     rendezvous_session_secret: [u8; 32],
 }
 
@@ -36,6 +39,8 @@ impl Drop for HostRelayDescriptor {
         self.candidate.relay_capability.fill(0);
         self.candidate.protected_session_psk.fill(0);
         self.rendezvous_session_secret.fill(0);
+        // SAFETY: replacing initialized UTF-8 bytes with zero preserves UTF-8.
+        unsafe { self.rendezvous.as_mut_vec() }.fill(0);
     }
 }
 
@@ -186,6 +191,34 @@ fn load_endpoint_descriptor(
     if descriptor.schema != DESCRIPTOR_SCHEMA {
         return Err("relay endpoint descriptor used the wrong protocol".into());
     }
+    let mut rendezvous_storage = [0_u8; MAX_RENDEZVOUS_CBOR_BYTES];
+    let rendezvous = decode_running_host_rendezvous_text(
+        &descriptor.rendezvous,
+        now_millis,
+        &mut rendezvous_storage,
+    )
+    .map_err(|error| format!("decode shared relay rendezvous descriptor: {error:?}"))?;
+    let mut rendezvous_candidates = rendezvous.candidates();
+    let shared_candidate = rendezvous_candidates
+        .next()
+        .ok_or_else(|| "shared relay rendezvous descriptor omitted its candidate".to_string())?;
+    if rendezvous_candidates.next().is_some()
+        || shared_candidate.candidate_id != descriptor.candidate.route_id
+        || shared_candidate.line_family != RendezvousLineFamily::AuthenticatedConduitLine
+        || shared_candidate.reachability != descriptor.candidate.relay_locator
+        || shared_candidate.server_identity != descriptor.candidate.relay_server_identity
+        || shared_candidate.transport_binding_sha256
+            != descriptor.candidate.certificate_binding_sha256
+        || shared_candidate.expires_at_millis != descriptor.candidate.expires_at_millis
+        || shared_candidate.maximum_attempts != descriptor.candidate.bounds.maximum_attempts
+        || shared_candidate.attempt_timeout_millis
+            != descriptor.candidate.bounds.attempt_timeout_millis
+    {
+        return Err(
+            "relay protection metadata disagrees with the shared rendezvous descriptor".into(),
+        );
+    }
+    descriptor.rendezvous_session_secret = rendezvous.copy_session_secret_for_attempt();
     let policy = ProtectedSessionPolicy {
         traffic: SessionLimits {
             maximum_payload_bytes: descriptor.candidate.bounds.maximum_payload_bytes,

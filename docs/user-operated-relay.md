@@ -36,6 +36,12 @@ candidate expires after ten minutes and allows one attempt; those finite bounds
 may be reduced or changed within the command's admitted ranges. Provision again
 for a new attempt rather than editing or recycling expired credentials.
 
+The endpoint file is a private deployment wrapper, not a second rendezvous
+protocol. Its `rendezvous` value is the same bounded, versioned base64url
+manifestation of the canonical CBOR/CDDL descriptor consumed by browser, std,
+and ConduitOS. Relay attachment and protected-session metadata remain separate;
+the Host refuses the file if either relabels the shared candidate.
+
 Give `endpoint-first.json` only to the first intended Host and
 `endpoint-second.json` only to the second. Transfer them over an already trusted
 private channel. The files contain bearer capabilities and end-to-end session
