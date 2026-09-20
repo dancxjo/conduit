@@ -243,7 +243,7 @@ fn remote_execution_session_frames_cross_two_outbound_protected_relay_clients() 
     .unwrap();
     second_line.send(&response[..response_length]).unwrap();
     first.join().unwrap();
-    drop(second_line);
+    second_line.close().unwrap();
     assert_eq!(server.join().unwrap(), Ok(()));
     fs::remove_dir_all(directory).unwrap();
 }
