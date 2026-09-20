@@ -46,6 +46,13 @@ impl BodyBiographyEvidence {
         if let Some(graduation) = &self.graduation {
             validate_graduation(graduation)?;
         }
+        if self
+            .emergency
+            .as_ref()
+            .is_some_and(|configuration| configuration.validate().is_err())
+        {
+            return Err(BodyBiographyError::InvalidMetadata);
+        }
         self.validate_records()?;
         self.validate_wake_history()
     }
@@ -213,6 +220,11 @@ impl BodyBiographyEvidence {
                         return Err(BodyBiographyError::InvalidEvidence);
                     }
                 }
+                BodyBiographyRecordKind::EmergencyConfigured { configuration } => {
+                    configuration
+                        .validate()
+                        .map_err(|_| BodyBiographyError::InvalidEvidence)?;
+                }
                 BodyBiographyRecordKind::Born { .. } => {
                     return Err(BodyBiographyError::DuplicateEvidence)
                 }
@@ -256,6 +268,16 @@ impl BodyBiographyEvidence {
                 )
             })
             .count();
+        let emergency_records: Vec<_> = self
+            .records
+            .iter()
+            .filter_map(|record| match &record.kind {
+                BodyBiographyRecordKind::EmergencyConfigured { configuration } => {
+                    Some(configuration)
+                }
+                _ => None,
+            })
+            .collect();
         if membership_records != self.membership.events.len()
             || workload_records != workload_events
             || self.graduation.is_some()
@@ -263,6 +285,12 @@ impl BodyBiographyEvidence {
                     .records
                     .iter()
                     .any(|record| matches!(record.kind, BodyBiographyRecordKind::Graduated { .. }))
+            || emergency_records.len() > crate::MAX_EMERGENCY_CONFIGURATION_REVISIONS
+            || emergency_records
+                .iter()
+                .enumerate()
+                .any(|(index, configuration)| configuration.revision != index as u64 + 1)
+            || emergency_records.last().copied() != self.emergency.as_ref()
         {
             return Err(BodyBiographyError::InvalidEvidence);
         }
