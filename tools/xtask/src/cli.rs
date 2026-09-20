@@ -284,6 +284,7 @@ pub enum ProveTarget {
     RecursiveRecovery,
     LlmEmbodiment,
     LlmCrossHost,
+    LocalModelPool,
     LlmPlanningAdvice,
     MessagingGithub,
     PatchbayBodyWorkbench,
@@ -616,6 +617,13 @@ mod tests {
         assert!(matches!(
             cross_host.command,
             Command::Prove(args) if args.proof == ProveTarget::LlmCrossHost
+        ));
+
+        let local_model_pool = Cli::try_parse_from(["xtask", "prove", "local-model-pool"])
+            .expect("local-model pool proof command parses");
+        assert!(matches!(
+            local_model_pool.command,
+            Command::Prove(args) if args.proof == ProveTarget::LocalModelPool
         ));
 
         let degraded = Cli::try_parse_from(["xtask", "prove", "degraded-profiles"])

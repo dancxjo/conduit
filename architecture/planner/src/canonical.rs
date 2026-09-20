@@ -286,11 +286,6 @@ pub fn plan_expanded_canonical_with_shared_pools(
         }
         let mut candidates = hosts
             .iter()
-            .filter(|host| {
-                plan.fragments.iter().any(|fragment| {
-                    fragment.host_id == host.host_id && fragment.boot_id == host.boot_id
-                })
-            })
             .flat_map(|host| {
                 host.capabilities
                     .iter()

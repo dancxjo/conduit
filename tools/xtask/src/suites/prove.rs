@@ -157,6 +157,29 @@ pub const PROVE_LLM_CROSS_HOST_STEPS: &[Step] = &[
     ),
 ];
 
+pub const PROVE_LOCAL_MODEL_POOL_STEPS: &[Step] = &[
+    Step::typed(
+        "prove.local-model-pool.plan-play",
+        "Prove two exact ai/generate-text Hosts use bounded in-Plan selection, refusal, and fresh replanning truth",
+        "cargo",
+        &["test", "-p", "conduit-planner", "--test", "local_model_pool"],
+        None,
+        None,
+        Some(ProofClass::HostedIntegration),
+        &[],
+    ),
+    Step::typed(
+        "prove.local-model-pool.selection",
+        "Prove finite capacity, current multi-resource observations, provider loss, stale truth, and sealed-envelope refusal",
+        "cargo",
+        &["test", "-p", "conduit-kernel", "--test", "shared_pool_selection"],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+];
+
 pub const PROVE_LLM_EMBODIMENT_STEPS: &[Step] = &[
     Step::typed(
         "prove.llm-embodiment.plan",
