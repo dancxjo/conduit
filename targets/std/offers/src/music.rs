@@ -8,7 +8,7 @@ use conduit_core::{
     kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
     CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
     HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const MUSIC_PLAY_MIDI_PROFILE: &str = "std/midi1-channel-12tet-a440-output@1";
@@ -84,22 +84,16 @@ pub fn music_play_midi_offer() -> CapabilityOffer {
             NOTE_EVENT_ENCODED_LEN,
         ),
     ];
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("music-play-midi1"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::MUSIC_PLAY_REVISION,
-        ),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: implementation(
+    conduit_semantic_catalog::realization_offer(
+        contract,
+        conduit_semantic_catalog::MUSIC_PLAY_REVISION,
+        identity(
+            "music-play-midi1",
             MUSIC_PLAY_MIDI_PROFILE,
             MUSIC_PLAY_MIDI_IMPLEMENTATION,
             MUSIC_PLAY_MIDI_ARTIFACT,
         ),
-        host_operations: operations
+        operations
             .iter()
             .map(|(id, kind, bytes)| HostOperationRequirement {
                 contract_id: HostOperationContractId::from(*id),
@@ -109,8 +103,8 @@ pub fn music_play_midi_offer() -> CapabilityOffer {
                 maximum_output_bytes: 0,
             })
             .collect(),
-        resource_requirements: vec![resource_requirement(MIDI_OUTPUT_RESOURCE_CLASS, 1)],
-        authority_requirements: operations
+        vec![resource_requirement(MIDI_OUTPUT_RESOURCE_CLASS, 1)],
+        operations
             .iter()
             .map(|(id, kind, _)| AuthorityRequirement {
                 contract_id: AuthorityContractId::from(MIDI_OUTPUT_AUTHORITY_CONTRACT),
@@ -118,144 +112,107 @@ pub fn music_play_midi_offer() -> CapabilityOffer {
                 subject_kind: kind_id(kind),
             })
             .collect(),
-        limits: contract.limits,
-    }
+    )
 }
 
 pub fn music_synth_reference_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::music_synth_contract();
-    CapabilityOffer {
-        startup_parameters: conduit_semantic_catalog::startup_front(&contract.configuration),
-        shorthand: None,
-        capability_id: CapabilityId::from("music-synth-fixed-q16"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::MUSIC_SYNTH_REVISION,
-        ),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: implementation(
+    conduit_semantic_catalog::realization_offer(
+        contract,
+        conduit_semantic_catalog::MUSIC_SYNTH_REVISION,
+        identity(
+            "music-synth-fixed-q16",
             MUSIC_SYNTH_REFERENCE_PROFILE,
             MUSIC_SYNTH_REFERENCE_IMPLEMENTATION,
             MUSIC_SYNTH_REFERENCE_ARTIFACT,
         ),
-        host_operations: vec![HostOperationRequirement {
+        vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(MUSIC_SYNTH_HOST_OPERATION),
             target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: NOTE_EVENT_ENCODED_LEN.max(CONTROL_EVENT_ENCODED_LEN) as u32,
             maximum_output_bytes: conduit_semantic_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES,
         }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+        Vec::new(),
+        Vec::new(),
+    )
 }
 
 pub fn audio_play_alsa_hw_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::audio_play_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("audio-play-alsa-hw"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::AUDIO_PLAY_REVISION,
-        ),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: implementation(
+    conduit_semantic_catalog::realization_offer(
+        contract,
+        conduit_semantic_catalog::AUDIO_PLAY_REVISION,
+        identity(
+            "audio-play-alsa-hw",
             AUDIO_PLAY_ALSA_HW_PROFILE,
             AUDIO_PLAY_ALSA_HW_IMPLEMENTATION,
             AUDIO_PLAY_ALSA_HW_ARTIFACT,
         ),
-        host_operations: vec![HostOperationRequirement {
+        vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(AUDIO_PLAY_ALSA_HW_OPERATION),
             target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
             maximum_output_bytes: 0,
         }],
-        resource_requirements: vec![resource_requirement(AUDIO_PLAYBACK_RESOURCE_CLASS, 1)],
-        authority_requirements: vec![AuthorityRequirement {
+        vec![resource_requirement(AUDIO_PLAYBACK_RESOURCE_CLASS, 1)],
+        vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(AUDIO_PLAYBACK_AUTHORITY_CONTRACT),
             host_operation_contract_id: HostOperationContractId::from(AUDIO_PLAY_ALSA_HW_OPERATION),
             subject_kind: kind_id(AUDIO_PCM_INFO_ID),
         }],
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: conduit_semantic_catalog::MAXIMUM_AUDIO_QUEUE_ITEMS,
-            max_queue_bytes: conduit_semantic_catalog::MAXIMUM_AUDIO_QUEUE_BYTES,
-        },
-    }
+    )
 }
 
 pub fn audio_write_wav_artifact_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::audio_play_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("audio-write-wav-artifact"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::AUDIO_PLAY_REVISION,
-        ),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: implementation(
+    conduit_semantic_catalog::realization_offer(
+        contract,
+        conduit_semantic_catalog::AUDIO_PLAY_REVISION,
+        identity(
+            "audio-write-wav-artifact",
             AUDIO_WAV_ARTIFACT_PROFILE,
             AUDIO_WAV_ARTIFACT_IMPLEMENTATION,
             AUDIO_WAV_ARTIFACT_ARTIFACT,
         ),
-        host_operations: vec![HostOperationRequirement {
+        vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(AUDIO_WAV_ARTIFACT_OPERATION),
             target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
             maximum_output_bytes: 0,
         }],
-        resource_requirements: vec![resource_requirement(AUDIO_WAV_ARTIFACT_RESOURCE_CLASS, 1)],
-        authority_requirements: vec![AuthorityRequirement {
+        vec![resource_requirement(AUDIO_WAV_ARTIFACT_RESOURCE_CLASS, 1)],
+        vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(AUDIO_WAV_ARTIFACT_AUTHORITY_CONTRACT),
             host_operation_contract_id: HostOperationContractId::from(AUDIO_WAV_ARTIFACT_OPERATION),
             subject_kind: kind_id(AUDIO_PCM_INFO_ID),
         }],
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: conduit_semantic_catalog::MAXIMUM_AUDIO_QUEUE_ITEMS,
-            max_queue_bytes: conduit_semantic_catalog::MAXIMUM_AUDIO_QUEUE_BYTES,
-        },
-    }
+    )
 }
 
 pub fn audio_convert_pcm_profile_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::audio_convert_pcm_profile_contract();
-    CapabilityOffer {
-        startup_parameters: conduit_semantic_catalog::startup_front(&contract.configuration),
-        shorthand: None,
-        capability_id: CapabilityId::from("audio-convert-pcm-profile"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::AUDIO_CONVERT_PCM_PROFILE_REVISION,
-        ),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: implementation(
+    conduit_semantic_catalog::realization_offer(
+        contract,
+        conduit_semantic_catalog::AUDIO_CONVERT_PCM_PROFILE_REVISION,
+        identity(
+            "audio-convert-pcm-profile",
             AUDIO_CONVERT_PCM_PROFILE,
             AUDIO_CONVERT_PCM_IMPLEMENTATION,
             AUDIO_CONVERT_PCM_ARTIFACT,
         ),
-        host_operations: vec![HostOperationRequirement {
+        vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(AUDIO_CONVERT_PCM_OPERATION),
             target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: AUDIO_CONVERT_PCM_MAXIMUM_INPUT_BYTES,
             maximum_output_bytes: AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
         }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+        Vec::new(),
+        Vec::new(),
+    )
 }
 
 pub fn music_input_midi_offer() -> CapabilityOffer {
@@ -267,30 +224,23 @@ pub fn music_input_midi_offer() -> CapabilityOffer {
         maximum_input_bytes: 0,
         maximum_output_bytes: conduit_midi::MIDI_INPUT_OBSERVATION_ENCODED_LEN as u32,
     };
-    CapabilityOffer {
-        startup_parameters: conduit_semantic_catalog::startup_front(&contract.configuration),
-        shorthand: None,
-        capability_id: CapabilityId::from("music-input-midi1"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::MUSIC_INPUT_REVISION,
-        ),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: implementation(
+    conduit_semantic_catalog::realization_offer(
+        contract,
+        conduit_semantic_catalog::MUSIC_INPUT_REVISION,
+        identity(
+            "music-input-midi1",
             MUSIC_INPUT_MIDI_PROFILE,
             MUSIC_INPUT_MIDI_IMPLEMENTATION,
             MUSIC_INPUT_MIDI_ARTIFACT,
         ),
-        host_operations: vec![operation.clone()],
-        resource_requirements: vec![resource_requirement(MIDI_INPUT_RESOURCE_CLASS, 1)],
-        authority_requirements: vec![AuthorityRequirement {
+        vec![operation.clone()],
+        vec![resource_requirement(MIDI_INPUT_RESOURCE_CLASS, 1)],
+        vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(MIDI_INPUT_AUTHORITY_CONTRACT),
             host_operation_contract_id: operation.contract_id,
             subject_kind: kind_id(conduit_midi::MIDI_INPUT_OBSERVATION_INFO_ID),
         }],
-        limits: contract.limits,
-    }
+    )
 }
 
 pub fn rhythm_compare_std_offer() -> CapabilityOffer {
@@ -378,6 +328,20 @@ fn implementation(profile: &str, implementation: &str, artifact: &str) -> Implem
         execution_profile_id: ExecutionProfileId::from(profile),
         implementation_id: ImplementationId::from(implementation),
         artifact_id: ArtifactId::from(artifact),
+    }
+}
+
+fn identity<'a>(
+    capability: &'a str,
+    profile: &'a str,
+    implementation: &'a str,
+    artifact: &'a str,
+) -> conduit_semantic_catalog::RealizationOfferIdentity<'a> {
+    conduit_semantic_catalog::RealizationOfferIdentity {
+        capability,
+        execution_profile: profile,
+        implementation,
+        artifact,
     }
 }
 
