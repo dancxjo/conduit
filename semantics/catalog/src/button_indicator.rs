@@ -11,8 +11,8 @@ use alloc::string::String;
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, InfoBool, PortDescriptor, PortDirection, PortTemporal,
-    StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType, StructuredInfoValue,
-    StructuredInfoValueShape, BOOL_INFO_ID,
+    SemanticCapabilityContract, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
+    StructuredInfoValue, StructuredInfoValueShape, BOOL_INFO_ID,
 };
 pub use prepared::PreparedButtonIndicatorMapper;
 
@@ -149,6 +149,36 @@ pub fn indicator_state_presentation_contract() -> StandardKindContract {
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
         example: "indicator: presentation/indicator-state".to_string(),
+    }
+}
+
+pub fn button_source_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(button_source_contract(), BUTTON_SOURCE_REVISION)
+}
+
+pub fn button_indicator_state_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(
+        button_indicator_state_contract(),
+        BUTTON_INDICATOR_STATE_REVISION,
+    )
+}
+
+pub fn indicator_state_presentation_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(
+        indicator_state_presentation_contract(),
+        INDICATOR_STATE_PRESENTATION_REVISION,
+    )
+}
+
+fn semantic_contract(contract: StandardKindContract, revision: &str) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: super::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: revision.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        limits: contract.limits,
     }
 }
 
@@ -343,6 +373,20 @@ mod tests {
                 .max_queue_items,
             1
         );
+        for (contract, revision) in [
+            (button_source_semantic_contract(), BUTTON_SOURCE_REVISION),
+            (
+                button_indicator_state_semantic_contract(),
+                BUTTON_INDICATOR_STATE_REVISION,
+            ),
+            (
+                indicator_state_presentation_semantic_contract(),
+                INDICATOR_STATE_PRESENTATION_REVISION,
+            ),
+        ] {
+            assert_eq!(contract.kind_contract_revision.as_str(), revision);
+            assert!(contract.startup_parameters.is_empty());
+        }
     }
 
     #[test]
