@@ -155,7 +155,7 @@ pub fn install_emergency_observation_catalogs(
 #[cfg(feature = "form-catalog")]
 fn configuration_type(field: &StandardConfigurationField) -> &'static str {
     match &field.default_value {
-        ConfigurationValue::U64(_) => "U64",
+        ConfigurationValue::U64(_) => "Count",
         _ => unreachable!("emergency gears use finite u64 configuration"),
     }
 }

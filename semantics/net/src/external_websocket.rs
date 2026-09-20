@@ -40,7 +40,7 @@ pub const NET_ADDRESS_VALUE_KIND: &str = "value/net-address@1";
 /// One complete RFC 6455 binary message. Bases must reject text frames,
 /// fragmented values beyond the admitted message bound, and malformed frames.
 pub const WEBSOCKET_MESSAGE_VALUE_KIND: &str = "value/websocket-message@1";
-pub const BOOLEAN_VALUE_KIND: &str = "Boolean";
+pub const BOOLEAN_VALUE_KIND: &str = "value/bool";
 pub const PEER_EVENT_VALUE_KIND: &str = "value/net-peer-event@1";
 pub const PEER_MESSAGE_VALUE_KIND: &str = "value/net-peer-message@1";
 

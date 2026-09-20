@@ -28,7 +28,11 @@ pub fn recurrence_semantic_contract() -> SemanticCapabilityContract {
     SemanticCapabilityContract {
         startup_parameters: vec![FrontStartupParameter {
             name: "request".into(),
-            value_type: RECURRENCE_REQUEST_TYPE.into(),
+            value_type: recurrence_request_type()
+                .profile()
+                .expect("reviewed recurrence request is bounded")
+                .value_kind()
+                .clone(),
             has_default: false,
         }],
         shorthand: None,
