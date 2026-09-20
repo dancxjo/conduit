@@ -30,6 +30,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "semantic contract owner",
     ),
     (
+        "semantics/catalog/src/template_storage.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
         "semantics/net/src/ordered_record_queue_catalog.rs",
         0,
         "semantic contract owner",
@@ -64,6 +69,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     (
         "targets/browser/runtime/src/installed_browser/timing.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/browser/runtime/src/installed_browser/template_storage.rs",
         0,
         "fully migrated",
     ),
@@ -130,6 +140,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     (
         "targets/std/offers/src/timed_pattern.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/std/offers/src/template_storage.rs",
         0,
         "fully migrated",
     ),
