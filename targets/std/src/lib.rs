@@ -615,6 +615,14 @@ impl StdHost {
                 .capability_offers()
                 .map_err(|error| format!("local-model capabilities: {error:?}"))?,
         );
+        if offer
+            .supported_profiles
+            .contains(&conduit_ai::LocalModelKindProfile::Generate)
+        {
+            advertisement
+                .capabilities
+                .push(hosted_local_model::generate_text_capability_offer(offer)?);
+        }
         advertisement
             .capabilities
             .push(conduit_std_offers::house_prompt_std_offer());
