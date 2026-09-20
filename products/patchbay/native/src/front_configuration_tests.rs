@@ -1,4 +1,4 @@
-use super::{Arguments, PatchbayApplication, gui::GuiAction};
+use super::{gui::GuiAction, Arguments, PatchbayApplication};
 use conduit_core::{ConfigurationValue, Quantity, QuantityUnit};
 
 #[test]
@@ -51,29 +51,25 @@ fn native_front_control_uses_interaction_execution_and_persists_canonical_source
         graph.gears[0].controls[0].value,
         ConfigurationValue::Quantity(Quantity::new(26, QuantityUnit::Millisecond))
     );
-    assert!(
-        application
-            .form_editor
-            .as_ref()
-            .unwrap()
-            .view()
-            .source
-            .contains("freq = 26ms")
-    );
-    assert!(
-        application
-            .interaction
-            .as_ref()
-            .unwrap()
-            .history()
-            .any(|receipt| matches!(
-                &receipt.request,
-                patchbay_model::PatchbayInteractionRequest::Edit {
-                    edit: patchbay_model::PatchbayEdit::ConfigureGear { .. },
-                    ..
-                }
-            ))
-    );
+    assert!(application
+        .form_editor
+        .as_ref()
+        .unwrap()
+        .view()
+        .source
+        .contains("freq = 26ms"));
+    assert!(application
+        .interaction
+        .as_ref()
+        .unwrap()
+        .history()
+        .any(|receipt| matches!(
+            &receipt.request,
+            patchbay_model::PatchbayInteractionRequest::Edit {
+                edit: patchbay_model::PatchbayEdit::ConfigureGear { .. },
+                ..
+            }
+        )));
     assert_eq!(
         application.control.plan().unwrap().plan_id,
         immutable_plan_id
@@ -147,14 +143,12 @@ fn native_front_control_refuses_invalid_value_without_changing_source() {
             value: ConfigurationValue::U64(conduit_semantic_catalog::TIME_MAXIMUM_VALUES + 1),
         })
         .unwrap();
-    assert!(
-        application
-            .interaction_status
-            .current()
-            .unwrap()
-            .text
-            .contains("does not fit")
-    );
+    assert!(application
+        .interaction_status
+        .current()
+        .unwrap()
+        .text
+        .contains("does not fit"));
     assert_eq!(
         application.form_editor.as_ref().unwrap().view().source,
         source
@@ -250,22 +244,20 @@ fn pointer_hit_prefers_front_control_over_containing_gear_rectangle() {
         application.graphical_form.as_ref().unwrap().gears[0].controls[0].value,
         ConfigurationValue::Quantity(Quantity::new(24, QuantityUnit::Millisecond))
     );
-    assert!(
-        application
-            .interaction
-            .as_ref()
-            .unwrap()
-            .history()
-            .any(|receipt| {
-                matches!(
-                    &receipt.request,
-                    patchbay_model::PatchbayInteractionRequest::Edit {
-                        edit: patchbay_model::PatchbayEdit::ConfigureGear { .. },
-                        ..
-                    }
-                )
-            })
-    );
+    assert!(application
+        .interaction
+        .as_ref()
+        .unwrap()
+        .history()
+        .any(|receipt| {
+            matches!(
+                &receipt.request,
+                patchbay_model::PatchbayInteractionRequest::Edit {
+                    edit: patchbay_model::PatchbayEdit::ConfigureGear { .. },
+                    ..
+                }
+            )
+        }));
     let subject = application
         .graphical_form
         .as_ref()

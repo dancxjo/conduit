@@ -2,7 +2,7 @@
 
 use crate::{
     gui_hit::{GuiAction, HitShape, HitTarget},
-    gui_primitives::{PixelRect, frame_rect, text},
+    gui_primitives::{frame_rect, text, PixelRect},
 };
 use embedded_graphics::{
     pixelcolor::Rgb888,

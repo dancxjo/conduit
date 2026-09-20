@@ -1,10 +1,11 @@
 //! Hosted std realizations of portable timing and render-cadence contracts.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationRequirement, ImplementationId, ResourceRequirement,
-    SemanticCapabilityContract, TIMER_RESOURCE_CLASS, monotonic_timer_host_operation_requirement,
-    monotonic_timer_resource_requirement, resource_requirement, wait_host_operation_requirement,
+    monotonic_timer_host_operation_requirement, monotonic_timer_resource_requirement,
+    resource_requirement, wait_host_operation_requirement, ArtifactId, CapabilityId,
+    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId,
+    HostOperationRequirement, ImplementationId, ResourceRequirement, SemanticCapabilityContract,
+    TIMER_RESOURCE_CLASS,
 };
 
 pub const TICK_EXECUTION_PROFILE: &str = "conduit.std/time-tick-kernel-hosted@2";

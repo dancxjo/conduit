@@ -1,9 +1,9 @@
 //! Exact source edits initiated by compact controls on a gear Front.
 
 use conduit_core::{
-    BOOL_INFO_ID, ConfigurationValue, InfoBool, KindId, QUANTITY_INFO_ID, Quantity,
+    ConfigurationValue, InfoBool, KindId, Quantity, BOOL_INFO_ID, QUANTITY_INFO_ID,
 };
-use conduit_form::{Argument, BackStatement, parse_syntax_document};
+use conduit_form::{parse_syntax_document, Argument, BackStatement};
 use conduit_human::{
     HumanInteractionProposal, InteractionFamily, InteractionProposalPayload, InteractionValue,
     TEXT_INFO_ID,

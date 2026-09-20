@@ -96,12 +96,10 @@ fn instrument_synth_exposes_every_control_and_an_edit_requires_a_new_plan() {
     let graph = PatchbayGraph::from_expanded(&before).unwrap();
     let synth = &graph.gears[0];
     assert_eq!(synth.controls.len(), 14);
-    assert!(
-        synth
-            .controls
-            .iter()
-            .all(|control| control.interaction.is_some())
-    );
+    assert!(synth
+        .controls
+        .iter()
+        .all(|control| control.interaction.is_some()));
     for required in [
         conduit_semantic_catalog::SYNTH_MAXIMUM_VOICES_KEY,
         conduit_semantic_catalog::SYNTH_OSCILLATOR_KEY,
@@ -169,13 +167,11 @@ fn instrument_configuration_uses_common_typed_proposals_and_replans() {
         &interaction.contract,
         &interaction.state,
         1,
-        InteractionProposalPayload::Values(vec![
-            InteractionValue::new(
-                KindId::from("configuration/text-choice@1"),
-                b"triangle".to_vec(),
-            )
-            .unwrap(),
-        ]),
+        InteractionProposalPayload::Values(vec![InteractionValue::new(
+            KindId::from("configuration/text-choice@1"),
+            b"triangle".to_vec(),
+        )
+        .unwrap()]),
     )
     .unwrap();
     editor
@@ -317,12 +313,10 @@ fn default_value_becomes_an_authored_named_argument() {
             ConfigurationValue::U64(3),
         )
         .unwrap();
-    assert!(
-        editor
-            .view()
-            .source
-            .contains("stable: time/debounce(duration-ms = 3ms)")
-    );
+    assert!(editor
+        .view()
+        .source
+        .contains("stable: time/debounce(duration-ms = 3ms)"));
 }
 
 #[test]
