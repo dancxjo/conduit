@@ -273,6 +273,14 @@ pub extern "C" fn conduit_browser_shared_pool_trigger(length: u32) -> i32 {
 }
 
 #[no_mangle]
+pub extern "C" fn conduit_browser_shared_pool_fail_preparation(length: u32) -> i32 {
+    member_action(length, |pool, member| {
+        pool.fail_preparation(member)
+            .map_err(|error| format!("fail shared-pool member preparation: {error:?}"))
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn conduit_browser_shared_pool_release(length: u32) -> i32 {
     member_action(length, |pool, member| {
         pool.release(member)
