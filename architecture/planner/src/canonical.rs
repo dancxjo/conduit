@@ -594,6 +594,7 @@ fn pool_member_lines(
         return Ok(Vec::new());
     }
 
+    let line_policy = crate::contract::LineMechanismPolicy::new(bases);
     let mut admitted = Vec::new();
     let mut identities = BTreeSet::new();
     for consumer in consumers {
@@ -628,7 +629,7 @@ fn pool_member_lines(
                         && offer.binding.source.boot_id == *source_boot
                         && offer.binding.sink.host_id == *sink_host
                         && offer.binding.sink.boot_id == *sink_boot
-                        && bases.contains(&offer.binding.base)
+                        && line_policy.permits_remote(&offer.binding.base)
                         && offer.validate_sign_identity()
                         && offer.availability.availability == LineAvailability::Ready
                         && offer.binding.limits.maximum_in_flight_items

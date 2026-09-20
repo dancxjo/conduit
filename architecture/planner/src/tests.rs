@@ -226,6 +226,50 @@ fn planning_binds_exact_contract_profile_and_every_port() {
 }
 
 #[test]
+fn line_mechanism_policy_neither_selects_nor_authorizes_capability_base_providers() {
+    let form = form();
+    let mut host = host();
+    host.bases.push(conduit_core::BaseProviderAdvertisement {
+        base_id: conduit_core::HostBaseId::from("base/pulse-clock"),
+        provider_instance_id: conduit_core::BaseInstanceId::from("provider/pulse-clock/7"),
+        provider_generation: 7,
+        implementation_id: BaseImplementationId::from("std/base/pulse-clock@1"),
+        mechanism_family: conduit_core::HostBaseKindId::from("std.base/clock@1"),
+        enforcement_class: conduit_core::BaseEnforcementClass::Cooperative,
+        lifecycle: conduit_core::BaseLifecycle::Ready,
+        capability_ids: vec![conduit_core::CapabilityId::from("pulse-1")],
+        resource_pool_ids: vec![],
+    });
+    let placements = default_placements(&form, std::slice::from_ref(&host)).unwrap();
+    let plan = plan(
+        &form,
+        std::slice::from_ref(&host),
+        &placements,
+        &[BaseImplementationId::from(
+            conduit_core::LOCAL_BASE_IMPLEMENTATION_ID,
+        )],
+    )
+    .unwrap();
+    let fragment = &plan.fragments[0];
+    let pulse = fragment
+        .placements
+        .iter()
+        .find(|placement| placement.capability_id.as_str() == "pulse-1")
+        .unwrap();
+    assert_eq!(
+        pulse.base.as_ref().unwrap().implementation_id.as_str(),
+        "std/base/pulse-clock@1"
+    );
+    assert!(fragment.connections[0].selected_line.is_none());
+    let show = fragment
+        .placements
+        .iter()
+        .find(|placement| placement.capability_id.as_str() == "stdout-show-1")
+        .unwrap();
+    assert!(show.base.is_none());
+}
+
+#[test]
 fn unchanged_signal_form_plans_entirely_onto_pico_local_advertisement() {
     let form = parse_with_startup(
         include_str!("../../../proof/fixtures/forms/signal-demo.conduit"),
