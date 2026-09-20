@@ -4,11 +4,11 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, monotonic_timer_host_operation_requirement, monotonic_timer_resource_requirement,
-    port_id, resource_requirement, wait_host_operation_requirement, ArtifactId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    TIMER_RESOURCE_CLASS,
+    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, TIMER_RESOURCE_CLASS, kind_id, monotonic_timer_host_operation_requirement,
+    monotonic_timer_resource_requirement, port_id, resource_requirement,
+    wait_host_operation_requirement,
 };
 
 pub const FUNCTIONAL_KERNEL_PROFILE: &str = "conduitos/functional-kernel@1";
