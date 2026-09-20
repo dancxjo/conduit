@@ -41,7 +41,7 @@ pub enum PointerMechanism {
 }
 
 impl PointerMechanism {
-    const fn implementation(self) -> &'static str {
+    pub(crate) const fn implementation(self) -> &'static str {
         match self {
             Self::UsbHid => POINTER_IMPLEMENTATION,
             Self::Ps2 => PS2_POINTER_IMPLEMENTATION,
