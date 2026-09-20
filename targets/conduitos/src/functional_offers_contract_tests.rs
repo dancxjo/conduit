@@ -295,7 +295,7 @@ fn portable_every_offer(
     revision: &str,
 ) -> conduit_core::CapabilityOffer {
     let mut offer = portable_offer(contract, revision);
-    offer.startup_parameters[0].value_type = conduit_core::kind_id("value/duration");
+    offer.startup_parameters[0].value_type = conduit_core::kind_id(conduit_core::QUANTITY_INFO_ID);
     offer.startup_parameters[0].has_default = false;
     offer.resource_requirements = vec![conduit_core::resource_requirement(
         conduit_core::TIMER_RESOURCE_CLASS,

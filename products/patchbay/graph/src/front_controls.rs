@@ -125,6 +125,20 @@ pub fn project_controls(gear: &CheckedGear) -> Result<Vec<FaceControl>, Patchbay
                     unit: Some("ms"),
                 },
                 (
+                    ConfigurationValue::Quantity(_),
+                    StandardConfigurationRule::QuantityRange {
+                        minimum,
+                        maximum,
+                        canonical_unit,
+                    },
+                ) => FaceControlKind::Number {
+                    minimum: u64::try_from(*minimum)
+                        .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)?,
+                    maximum: u64::try_from(*maximum)
+                        .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)?,
+                    unit: Some(canonical_unit.form_suffix()),
+                },
+                (
                     ConfigurationValue::I64(_),
                     StandardConfigurationRule::I64Range { minimum, maximum },
                 ) => FaceControlKind::ScalarNumber {
@@ -224,6 +238,33 @@ fn project_interaction(
             None,
             quantity_value(*value, QuantityUnit::Millionth)?,
         ),
+        (
+            ConfigurationValue::Quantity(value),
+            StandardConfigurationRule::QuantityRange {
+                minimum,
+                maximum,
+                canonical_unit,
+            },
+        ) => {
+            let value = value
+                .convert(*canonical_unit)
+                .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)?;
+            if value.value() < *minimum || value.value() > *maximum {
+                return Ok(None);
+            }
+            (
+                InteractionFamily::Scalar {
+                    unit: *canonical_unit,
+                    minimum: *minimum,
+                    minimum_bound: BoundKind::Inclusive,
+                    maximum: *maximum,
+                    maximum_bound: BoundKind::Inclusive,
+                    granularity: 1,
+                },
+                None,
+                quantity_value(value.value(), *canonical_unit)?,
+            )
+        }
         (ConfigurationValue::Text(value), StandardConfigurationRule::TextBytes { maximum }) => (
             InteractionFamily::Text {
                 maximum_bytes: *maximum,

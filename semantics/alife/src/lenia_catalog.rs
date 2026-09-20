@@ -189,6 +189,7 @@ fn value_type(value: &ConfigurationValue) -> &'static str {
         ConfigurationValue::Text(_) => "Text",
         ConfigurationValue::Bool(_) => "Boolean",
         ConfigurationValue::Structured(_) => "Structured",
+        ConfigurationValue::Quantity(_) => "Quantity",
     }
 }
 
@@ -199,6 +200,9 @@ fn render_default(value: &ConfigurationValue) -> alloc::string::String {
         ConfigurationValue::Text(value) => format!("\"{value}\""),
         ConfigurationValue::Bool(value) => value.to_string(),
         ConfigurationValue::Structured(_) => "structured".to_string(),
+        ConfigurationValue::Quantity(value) => {
+            format!("{}{}", value.value(), value.unit().form_suffix())
+        }
     }
 }
 

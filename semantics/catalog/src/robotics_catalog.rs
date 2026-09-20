@@ -55,6 +55,15 @@ pub fn install_robotics_catalogs(
                             values: values.clone(),
                         }
                     }
+                    StandardConfigurationRule::QuantityRange {
+                        minimum,
+                        maximum,
+                        canonical_unit,
+                    } => ConfigurationRule::QuantityRange {
+                        minimum: *minimum,
+                        maximum: *maximum,
+                        canonical_unit: *canonical_unit,
+                    },
                     _ => unreachable!("robotics uses only finite numeric/text rules"),
                 },
             })
@@ -77,6 +86,9 @@ fn configuration_source(field: &StandardConfigurationField) -> String {
         ConfigurationValue::Text(value) => format!("\"{value}\""),
         ConfigurationValue::U64(value) => value.to_string(),
         ConfigurationValue::I64(value) => value.to_string(),
+        ConfigurationValue::Quantity(value) => {
+            format!("{}{}", value.value(), value.unit().form_suffix())
+        }
         _ => unreachable!("robotics configuration is finite text/integer"),
     }
 }

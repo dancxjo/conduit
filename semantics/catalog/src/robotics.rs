@@ -5,8 +5,8 @@ use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationEntry, ConfigurationValue, InfoBool,
-    PortDescriptor, PortDirection, PortTemporal, Scalar, SemanticCapabilityContract, BOOL_INFO_ID,
-    SCALAR_INFO_ID,
+    PortDescriptor, PortDirection, PortTemporal, Quantity, QuantityUnit, Scalar,
+    SemanticCapabilityContract, BOOL_INFO_ID, SCALAR_INFO_ID,
 };
 use conduit_robotics::{
     BatteryObservation, OdometryObservation, OrientationObservation, RangeObservation,
@@ -83,7 +83,12 @@ pub fn robotics_simulation_values(
         .encode()
         .to_vec()),
         ROBOTICS_OBSERVE_RANGE_KIND => one(RangeObservation::new(
-            u32_value(entries, "distance-mm", 1_000)?,
+            quantity_u32(
+                entries,
+                "distance",
+                Quantity::new(1_000, QuantityUnit::Millimeter),
+                QuantityUnit::Millimeter,
+            )?,
             u32_value(entries, "age-ms", 0)?,
         )
         .map_err(|_| "invalid range observation")?
@@ -173,10 +178,16 @@ pub fn robotics_observe_range_contract() -> StandardKindContract {
         vec![current_output("range", ROBOTICS_RANGE_INFO_ID)],
         vec![
             availability_field(),
-            u64_field("distance-mm", 1_000, 0, u64::from(MAXIMUM_RANGE_MM)),
+            quantity_field(
+                "distance",
+                Quantity::new(1_000, QuantityUnit::Millimeter),
+                0,
+                i64::from(MAXIMUM_RANGE_MM),
+                QuantityUnit::Millimeter,
+            ),
             u64_field("age-ms", 0, 0, u64::from(MAXIMUM_OBSERVATION_AGE_MS)),
         ],
-        "range: robotics/observe-range(distance-mm = 500)",
+        "range: robotics/observe-range(distance = 500mm)",
     )
 }
 
@@ -425,6 +436,24 @@ fn u32_value(entries: &[ConfigurationEntry], key: &str, default: u32) -> Result<
         .map_err(|_| "robotics unsigned configuration exceeds u32")
 }
 
+fn quantity_u32(
+    entries: &[ConfigurationEntry],
+    key: &str,
+    default: Quantity,
+    canonical_unit: QuantityUnit,
+) -> Result<u32, &'static str> {
+    let value = entries
+        .iter()
+        .find_map(|entry| match (&*entry.key, &entry.value) {
+            (found, ConfigurationValue::Quantity(value)) if found == key => Some(*value),
+            _ => None,
+        })
+        .unwrap_or(default)
+        .convert(canonical_unit)
+        .map_err(|_| "robotics quantity configuration is incompatible or inexact")?;
+    u32::try_from(value.value()).map_err(|_| "robotics quantity configuration exceeds u32")
+}
+
 fn u16_value(entries: &[ConfigurationEntry], key: &str, default: u16) -> Result<u16, &'static str> {
     u16::try_from(u64_value(entries, key, u64::from(default))?)
         .map_err(|_| "robotics unsigned configuration exceeds u16")
@@ -468,12 +497,31 @@ fn i64_field(key: &str, default: i64, minimum: i64, maximum: i64) -> StandardCon
     }
 }
 
+fn quantity_field(
+    key: &str,
+    default: Quantity,
+    minimum: i64,
+    maximum: i64,
+    canonical_unit: QuantityUnit,
+) -> StandardConfigurationField {
+    StandardConfigurationField {
+        key: key.to_string(),
+        default_value: ConfigurationValue::Quantity(default),
+        rule: StandardConfigurationRule::QuantityRange {
+            minimum,
+            maximum,
+            canonical_unit,
+        },
+    }
+}
+
 pub(crate) fn configuration_type(field: &StandardConfigurationField) -> &'static str {
     match &field.default_value {
         ConfigurationValue::Text(_) => "Text",
         ConfigurationValue::U64(_) => "Count",
         ConfigurationValue::I64(_) => "Scalar",
-        _ => unreachable!("robotics configuration is finite text/integer"),
+        ConfigurationValue::Quantity(_) => "Quantity",
+        _ => unreachable!("robotics configuration is finite text/integer/quantity"),
     }
 }
 

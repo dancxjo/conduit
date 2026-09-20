@@ -52,6 +52,7 @@ pub enum UnsupportedPlanFeature {
     WiderKernelPortTable,
     TextConfiguration,
     StructuredConfiguration,
+    QuantityConfiguration,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

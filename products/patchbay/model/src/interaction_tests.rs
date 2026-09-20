@@ -406,6 +406,41 @@ fn typed_edit_round_trips_through_form_plan_kernel_and_binary_value_without_pack
 }
 
 #[test]
+fn quantity_edit_round_trips_without_erasing_its_unit() {
+    let graph = count_graph();
+    let edit = PatchbayEdit::ConfigureGear {
+        basis: PatchbayEditBasis::new(
+            graph.source_document_id.clone(),
+            7,
+            graph.expanded_form_id.clone(),
+        )
+        .unwrap(),
+        subject_identity: "gear/count-demo/clock".into(),
+        key: "freq".into(),
+        value: ConfigurationValue::Quantity(conduit_core::Quantity::new(
+            250,
+            conduit_core::QuantityUnit::Millisecond,
+        )),
+    };
+    let mut interaction = interaction();
+    let request = PatchbayInteractionRequest::edit(
+        interaction.next_request_id("quantity").unwrap(),
+        edit.clone(),
+    )
+    .unwrap();
+    let receipt = interaction
+        .execute(Some(&graph), request.clone(), |_| {
+            PatchbayInvocationOutcome::Succeeded
+        })
+        .unwrap();
+    assert_eq!(receipt.request, request);
+    assert!(matches!(
+        receipt.request,
+        PatchbayInteractionRequest::Edit { edit: decoded, .. } if decoded == edit
+    ));
+}
+
+#[test]
 fn structured_configuration_is_inspectable_but_not_silently_scalar_edited() {
     let graph = count_graph();
     let value_type =

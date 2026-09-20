@@ -1,4 +1,4 @@
-use conduit_core::ConfigurationValue;
+use conduit_core::{ConfigurationValue, Quantity, QuantityUnit};
 
 use crate::{FaceControlKind, FormEditor, FormEditorError, PatchbayGraph};
 
@@ -12,7 +12,10 @@ fn front_controls_project_actual_values_and_visible_contracts() {
     let graph = PatchbayGraph::from_expanded(&editor.expand_form("controls").unwrap()).unwrap();
     let controls = &graph.gears[0].controls;
     assert_eq!(controls.len(), 1);
-    assert_eq!(controls[0].value, ConfigurationValue::U64(25));
+    assert_eq!(
+        controls[0].value,
+        ConfigurationValue::Quantity(Quantity::new(25, QuantityUnit::Millisecond))
+    );
     assert!(matches!(
         controls[0].kind,
         FaceControlKind::Number {
@@ -266,7 +269,7 @@ fn front_edit_preserves_gear_identity_and_reseals_all_form_identities() {
             &before.expanded_form_id,
             "clock",
             "freq",
-            ConfigurationValue::U64(26),
+            ConfigurationValue::Quantity(Quantity::new(26, QuantityUnit::Millisecond)),
         )
         .unwrap();
     let after = editor.expand_form("controls").unwrap();

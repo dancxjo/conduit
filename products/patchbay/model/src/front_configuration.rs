@@ -45,6 +45,17 @@ impl FormEditor {
                 "configuration is not representable by the common interaction contract".into(),
             )
         })?;
+        let rule = conduit_semantic_catalog::supported_nucleus_contracts()
+            .into_iter()
+            .find(|contract| contract.kind_id == gear.kind_id)
+            .and_then(|contract| {
+                contract
+                    .configuration
+                    .into_iter()
+                    .find(|field| field.key == key)
+            })
+            .ok_or_else(|| FormEditorError::UnknownConfiguration(key.into()))?
+            .rule;
         proposal
             .validate_against(&interaction.contract, &interaction.state)
             .map_err(|refusal| {
@@ -52,7 +63,7 @@ impl FormEditor {
                     "common interaction refused: {refusal:?}"
                 ))
             })?;
-        let value = configuration_from_proposal(&interaction.contract.family, proposal)?;
+        let value = configuration_from_proposal(&interaction.contract.family, &rule, proposal)?;
         self.set_gear_configuration_exact(
             offered_revision,
             offered_expanded_form_id,
@@ -232,6 +243,9 @@ fn proposal_for_configuration(
                 Quantity::new(value, *unit).encode().to_vec(),
             )
         }
+        (InteractionFamily::Scalar { .. }, ConfigurationValue::Quantity(value)) => {
+            InteractionValue::new(KindId::from(QUANTITY_INFO_ID), value.encode().to_vec())
+        }
         (InteractionFamily::ChooseOne { value_kind, .. }, ConfigurationValue::Text(value)) => {
             InteractionValue::new(value_kind.clone(), value.into_bytes())
         }
@@ -241,7 +255,7 @@ fn proposal_for_configuration(
         _ => {
             return Err(FormEditorError::InvalidConfiguration(
                 "value does not fit the common interaction family".into(),
-            ))
+            ));
         }
     }
     .map_err(|refusal| {
@@ -264,6 +278,7 @@ fn proposal_for_configuration(
 
 fn configuration_from_proposal(
     family: &InteractionFamily,
+    rule: &StandardConfigurationRule,
     proposal: &HumanInteractionProposal,
 ) -> Result<ConfigurationValue, FormEditorError> {
     let InteractionProposalPayload::Values(values) = &proposal.payload else {
@@ -288,6 +303,28 @@ fn configuration_from_proposal(
             })?;
             if *unit == conduit_core::QuantityUnit::Millionth {
                 Ok(ConfigurationValue::I64(decoded.value()))
+            } else if matches!(rule, StandardConfigurationRule::DurationMillis { .. }) {
+                decoded
+                    .convert(*unit)
+                    .and_then(|value| {
+                        u64::try_from(value.value())
+                            .map_err(|_| conduit_core::QuantityConversionRefusal::Overflow)
+                    })
+                    .map(ConfigurationValue::U64)
+                    .map_err(|_| {
+                        FormEditorError::InvalidConfiguration(
+                            "inexact, incompatible, or negative quantity".into(),
+                        )
+                    })
+            } else if *unit != conduit_core::QuantityUnit::One {
+                decoded
+                    .convert(*unit)
+                    .map(ConfigurationValue::Quantity)
+                    .map_err(|_| {
+                        FormEditorError::InvalidConfiguration(
+                            "inexact or incompatible quantity".into(),
+                        )
+                    })
             } else {
                 decoded
                     .value()
@@ -337,6 +374,17 @@ fn accepts(rule: &StandardConfigurationRule, value: &ConfigurationValue) -> bool
         (StandardConfigurationRule::TextOneOf { values }, ConfigurationValue::Text(value)) => {
             values.contains(value)
         }
+        (
+            StandardConfigurationRule::QuantityRange {
+                minimum,
+                maximum,
+                canonical_unit,
+            },
+            ConfigurationValue::Quantity(value),
+        ) => value
+            .convert(*canonical_unit)
+            .map(|value| (*minimum..=*maximum).contains(&value.value()))
+            .unwrap_or(false),
         _ => false,
     }
 }
@@ -352,6 +400,16 @@ fn configuration_refusal(rule: &StandardConfigurationRule) -> String {
         }
         StandardConfigurationRule::DurationMillis { minimum, maximum } => {
             format!("enter milliseconds from {minimum} through {maximum}")
+        }
+        StandardConfigurationRule::QuantityRange {
+            minimum,
+            maximum,
+            canonical_unit,
+        } => {
+            format!(
+                "enter an exact {} quantity from {minimum} through {maximum}",
+                canonical_unit.semantic_id()
+            )
         }
         StandardConfigurationRule::TextBytes { maximum } => {
             format!("enter at most {maximum} bytes of text")
@@ -381,5 +439,8 @@ pub(crate) fn configuration_spelling(
             value.profile().as_str(),
             value.canonical_value().len()
         ),
+        (_, ConfigurationValue::Quantity(value)) => {
+            format!("{}{}", value.value(), value.unit().form_suffix())
+        }
     }
 }

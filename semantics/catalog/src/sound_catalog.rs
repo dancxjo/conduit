@@ -66,6 +66,15 @@ fn install_contract(
                         maximum: *maximum,
                     }
                 }
+                StandardConfigurationRule::QuantityRange {
+                    minimum,
+                    maximum,
+                    canonical_unit,
+                } => ConfigurationRule::QuantityRange {
+                    minimum: *minimum,
+                    maximum: *maximum,
+                    canonical_unit: *canonical_unit,
+                },
                 StandardConfigurationRule::TextBytes { maximum } => {
                     ConfigurationRule::TextBytes { maximum: *maximum }
                 }
@@ -109,5 +118,8 @@ fn configuration_source(value: &ConfigurationValue) -> String {
             value.profile().as_str(),
             value.canonical_value().len()
         ),
+        ConfigurationValue::Quantity(value) => {
+            format!("{}{}", value.value(), value.unit().form_suffix())
+        }
     }
 }

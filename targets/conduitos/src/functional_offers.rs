@@ -382,7 +382,7 @@ pub fn time_every_offer() -> CapabilityOffer {
         vec![wait_host_operation_requirement()],
         vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
     );
-    offer.startup_parameters[0].value_type = conduit_core::kind_id("value/duration");
+    offer.startup_parameters[0].value_type = conduit_core::kind_id(conduit_core::QUANTITY_INFO_ID);
     offer.startup_parameters[0].has_default = false;
     offer
 }

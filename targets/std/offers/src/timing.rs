@@ -192,7 +192,7 @@ mod tests {
         }
         assert_eq!(
             time_every_offer().startup_parameters[0].value_type.as_str(),
-            "value/duration"
+            conduit_core::QUANTITY_INFO_ID
         );
         assert!(!time_every_offer().startup_parameters[0].has_default);
         assert_eq!(tick_capability_offer().host_operations.len(), 1);

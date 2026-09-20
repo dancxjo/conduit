@@ -373,6 +373,15 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
                             StandardConfigurationRule::DurationMillis { minimum, maximum } => {
                                 ConfigurationRule::DurationMillis { minimum, maximum }
                             }
+                            StandardConfigurationRule::QuantityRange {
+                                minimum,
+                                maximum,
+                                canonical_unit,
+                            } => ConfigurationRule::QuantityRange {
+                                minimum,
+                                maximum,
+                                canonical_unit,
+                            },
                             StandardConfigurationRule::TextBytes { maximum } => {
                                 ConfigurationRule::TextBytes { maximum }
                             }

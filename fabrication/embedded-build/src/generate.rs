@@ -194,6 +194,11 @@ fn generate_configuration(
                         UnsupportedPlanFeature::StructuredConfiguration,
                     ));
                 }
+                ConfigurationValue::Quantity(_) => {
+                    return Err(GenerationError::Unsupported(
+                        UnsupportedPlanFeature::QuantityConfiguration,
+                    ));
+                }
             };
             generated.push(GeneratedConfigurationEntry {
                 node,

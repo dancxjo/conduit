@@ -130,6 +130,15 @@ fn standard_configuration(
                 conduit_form::ConfigurationRule::DurationMillis { minimum, maximum } => {
                     StandardConfigurationRule::DurationMillis { minimum, maximum }
                 }
+                conduit_form::ConfigurationRule::QuantityRange {
+                    minimum,
+                    maximum,
+                    canonical_unit,
+                } => StandardConfigurationRule::QuantityRange {
+                    minimum,
+                    maximum,
+                    canonical_unit,
+                },
                 conduit_form::ConfigurationRule::TextBytes { maximum } => {
                     StandardConfigurationRule::TextBytes { maximum }
                 }

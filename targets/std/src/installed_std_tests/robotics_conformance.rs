@@ -125,7 +125,7 @@ fn missing_stale_invalid_cancelled_pressure_and_unavailable_remain_distinct() {
     assert!(stale.contains("OperationFailed(Failure { code: InvalidInput, detail: 41 })"));
 
     for source in [
-        "form invalid {\n range: robotics/observe-range(distance-mm = 1000001)\n}\n",
+        "form invalid {\n range: robotics/observe-range(distance = 1000001mm)\n}\n",
         "form invalid {\n battery: robotics/observe-battery(charge-permille = 1001)\n}\n",
         "form invalid {\n odometry: robotics/observe-odometry(yaw-microradians = 3141594)\n}\n",
         "form invalid {\n drive: robotics/drive-differential(minimum-clearance-mm = 250)\n}\n",

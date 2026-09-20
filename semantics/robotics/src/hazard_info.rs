@@ -5,7 +5,7 @@
 //! producing Host/Boot, clock, and Sign provenance remain in the enclosing
 //! observation/Port evidence rather than being invented inside the value.
 
-use conduit_core::{semantic_digest, InfoDecodeError};
+use conduit_core::{semantic_digest, InfoDecodeError, Quantity, QuantityUnit};
 
 pub const ROBOTICS_CONTACT_INFO_ID: &str = "robotics/contact-body-sectors@1";
 pub const ROBOTICS_CLIFF_INFO_ID: &str = "robotics/cliff-body-sectors@1";
@@ -259,6 +259,26 @@ impl ChargingObservation {
         ]
     }
 
+    pub const fn voltage(self) -> Quantity {
+        Quantity::new(self.millivolts as i64, QuantityUnit::Millivolt)
+    }
+
+    pub const fn current(self) -> Quantity {
+        Quantity::new(self.milliamps as i64, QuantityUnit::Milliampere)
+    }
+
+    pub const fn temperature(self) -> Quantity {
+        Quantity::new(self.temperature_celsius as i64, QuantityUnit::Celsius)
+    }
+
+    pub const fn charge(self) -> Quantity {
+        Quantity::new(self.charge_mah as i64, QuantityUnit::MilliampereHour)
+    }
+
+    pub const fn capacity(self) -> Quantity {
+        Quantity::new(self.capacity_mah as i64, QuantityUnit::MilliampereHour)
+    }
+
     pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
         exact_len(encoded, ROBOTICS_CHARGING_ENCODED_LEN)?;
         if encoded[7] != 0 {
@@ -354,6 +374,26 @@ mod tests {
         assert_eq!(
             ChargingObservation::decode(&observed.encode()),
             Ok(observed)
+        );
+        assert_eq!(
+            observed.voltage(),
+            Quantity::new(14_200, QuantityUnit::Millivolt)
+        );
+        assert_eq!(
+            observed.current(),
+            Quantity::new(240, QuantityUnit::Milliampere)
+        );
+        assert_eq!(
+            observed.temperature(),
+            Quantity::new(31, QuantityUnit::Celsius)
+        );
+        assert_eq!(
+            observed.charge(),
+            Quantity::new(1_200, QuantityUnit::MilliampereHour)
+        );
+        assert_eq!(
+            observed.capacity(),
+            Quantity::new(2_400, QuantityUnit::MilliampereHour)
         );
         assert!(ChargingObservation {
             charge_mah: 2,

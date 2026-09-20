@@ -5,7 +5,7 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
+    kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Quantity, QuantityUnit,
     SemanticCapabilityContract,
 };
 
@@ -20,10 +20,11 @@ pub fn time_every_contract() -> StandardKindContract {
         outputs: conduit_time::time_every_outputs(),
         configuration: vec![StandardConfigurationField {
             key: "freq".to_string(),
-            default_value: ConfigurationValue::U64(1_000),
-            rule: StandardConfigurationRule::DurationMillis {
+            default_value: ConfigurationValue::Quantity(Quantity::new(1_000, QuantityUnit::Millisecond)),
+            rule: StandardConfigurationRule::QuantityRange {
                 minimum: 0,
-                maximum: u64::MAX,
+                maximum: i64::MAX,
+                canonical_unit: QuantityUnit::Millisecond,
             },
         }],
         limits: CapabilityLimits {
@@ -44,7 +45,7 @@ pub fn time_every_semantic_contract() -> SemanticCapabilityContract {
     SemanticCapabilityContract {
         startup_parameters: vec![FrontStartupParameter {
             name: "freq".into(),
-            value_type: kind_id("value/duration"),
+            value_type: kind_id(conduit_core::QUANTITY_INFO_ID),
             has_default: false,
         }],
         shorthand: None,
@@ -80,7 +81,7 @@ mod tests {
         let semantics = time_every_semantic_contract();
         assert_eq!(
             semantics.startup_parameters[0].value_type.as_str(),
-            "value/duration"
+            conduit_core::QUANTITY_INFO_ID
         );
         assert!(!semantics.startup_parameters[0].has_default);
     }

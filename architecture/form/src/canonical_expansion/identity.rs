@@ -205,6 +205,10 @@ pub(super) fn expanded_identity(
                     push(&mut canonical, value.profile().as_str());
                     push(&mut canonical, &hex(value.canonical_value()));
                 }
+                conduit_core::ConfigurationValue::Quantity(value) => {
+                    push(&mut canonical, "quantity");
+                    push(&mut canonical, &hex(&value.encode()));
+                }
             }
         }
         for pool in &gear.pool_references {

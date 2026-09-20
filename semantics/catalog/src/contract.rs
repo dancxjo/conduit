@@ -43,11 +43,29 @@ pub struct StandardConfigurationField {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StandardConfigurationRule {
     Any,
-    U64Range { minimum: u64, maximum: u64 },
-    I64Range { minimum: i64, maximum: i64 },
-    DurationMillis { minimum: u64, maximum: u64 },
-    TextBytes { maximum: u32 },
-    TextOneOf { values: Vec<String> },
+    U64Range {
+        minimum: u64,
+        maximum: u64,
+    },
+    I64Range {
+        minimum: i64,
+        maximum: i64,
+    },
+    DurationMillis {
+        minimum: u64,
+        maximum: u64,
+    },
+    QuantityRange {
+        minimum: i64,
+        maximum: i64,
+        canonical_unit: conduit_core::QuantityUnit,
+    },
+    TextBytes {
+        maximum: u32,
+    },
+    TextOneOf {
+        values: Vec<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

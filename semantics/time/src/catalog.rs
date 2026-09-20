@@ -2,7 +2,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
     kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, KindContractRevision,
-    SemanticCapabilityContract,
+    Quantity, QuantityUnit, SemanticCapabilityContract,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
@@ -54,10 +54,14 @@ pub fn time_every_kind_definition() -> KindDefinition {
         outputs: time_every_outputs(),
         configuration: vec![ConfigurationField {
             key: "freq".to_string(),
-            default_value: ConfigurationValue::U64(1_000),
-            validation: ConfigurationRule::DurationMillis {
+            default_value: ConfigurationValue::Quantity(Quantity::new(
+                1_000,
+                QuantityUnit::Millisecond,
+            )),
+            validation: ConfigurationRule::QuantityRange {
                 minimum: 0,
-                maximum: u64::MAX,
+                maximum: i64::MAX,
+                canonical_unit: QuantityUnit::Millisecond,
             },
         }],
     }
@@ -95,7 +99,7 @@ pub fn install_time_every_catalog(
         kind: TIME_EVERY_KIND.to_string(),
         startup_parameters: vec![StartupParameterSignature {
             name: "freq".to_string(),
-            value_type: "Duration".to_string(),
+            value_type: "Quantity".to_string(),
             default: None,
         }],
     })?;

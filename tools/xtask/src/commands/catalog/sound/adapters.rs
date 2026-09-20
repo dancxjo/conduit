@@ -231,6 +231,7 @@ fn capability(catalog: &ProfileCatalog, kind: &str) -> Result<CapabilityOffer, C
                     ConfigurationValue::I64(_) => "value/scalar",
                     ConfigurationValue::Text(_) => "value/text",
                     ConfigurationValue::Structured(ref value) => value.profile().as_str(),
+                    ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
                 }
                 .into(),
                 has_default: true,

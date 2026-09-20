@@ -50,7 +50,6 @@ fn time_every_offer() -> conduit_core::CapabilityOffer {
         vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
         Vec::new(),
     );
-    offer.startup_parameters[0].value_type = conduit_core::kind_id("value/duration");
     offer.startup_parameters[0].has_default = false;
     offer
 }
@@ -99,7 +98,8 @@ fn prepare_time_every(
     values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<BrowserOperation, String> {
     validate_placement(placement, &time_every_offer())?;
-    let period_millis = configuration(placement, "freq", BROWSER_TIMER_MAXIMUM_MILLIS)?;
+    let period_millis =
+        quantity_millis_configuration(placement, "freq", BROWSER_TIMER_MAXIMUM_MILLIS)?;
     let wait = values
         .store(&period_millis.to_le_bytes())
         .map_err(debug_error)?;
@@ -116,7 +116,7 @@ fn prepare_state_count(
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<BrowserOperation, String> {
     validate_placement(placement, &state_count_offer())?;
-    let start = configuration(placement, "start", u64::MAX)?;
+    let start = u64_configuration(placement, "start", u64::MAX)?;
     Ok(BrowserOperation::installed(StateCountOperation {
         current: start,
         initial_emitted: false,
@@ -151,7 +151,31 @@ fn perform_count_presentation(
     })
 }
 
-fn configuration(placement: &PlannedGear, key: &str, maximum: u64) -> Result<u64, String> {
+fn quantity_millis_configuration(
+    placement: &PlannedGear,
+    key: &str,
+    maximum: u64,
+) -> Result<u64, String> {
+    placement
+        .configuration
+        .iter()
+        .find_map(|entry| match (entry.key.as_str(), &entry.value) {
+            (found, ConfigurationValue::Quantity(value)) if found == key => value
+                .convert(conduit_core::QuantityUnit::Millisecond)
+                .ok()
+                .and_then(|value| u64::try_from(value.value()).ok())
+                .filter(|value| *value <= maximum),
+            _ => None,
+        })
+        .ok_or_else(|| {
+            format!(
+                "{} configuration '{key}' is missing or exceeds the browser bound",
+                placement.kind_id.as_str()
+            )
+        })
+}
+
+fn u64_configuration(placement: &PlannedGear, key: &str, maximum: u64) -> Result<u64, String> {
     placement
         .configuration
         .iter()
@@ -299,6 +323,17 @@ fn debug_error(error: impl core::fmt::Debug) -> String {
 mod tests {
     use super::*;
     use conduit_kernel::HostOperationOutcome;
+
+    #[test]
+    fn time_every_offer_keeps_the_canonical_quantity_startup_contract() {
+        let offer = time_every_offer();
+        assert_eq!(offer.startup_parameters.len(), 1);
+        assert_eq!(
+            offer.startup_parameters[0].value_type.as_str(),
+            conduit_core::QUANTITY_INFO_ID
+        );
+        assert!(!offer.startup_parameters[0].has_default);
+    }
 
     #[test]
     fn every_rearms_one_wait_and_emits_tick_five_and_later() {

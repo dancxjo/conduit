@@ -112,7 +112,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "semantic contract owner",
     ),
     (
-        "semantics/catalog/src/robotics_structured_catalog.rs",
+        "semantics/robotics/src/structured.rs",
         0,
         "semantic contract owner",
     ),
