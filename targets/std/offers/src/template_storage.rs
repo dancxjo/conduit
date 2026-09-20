@@ -1,8 +1,8 @@
 //! Exact finite named-pattern storage offer.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
     ResourceRequirement, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
@@ -13,46 +13,33 @@ pub const TEMPLATE_STORAGE_HOST_OPERATION: &str = "conduit.host/named-pattern-st
 pub const TEMPLATE_STORAGE_RESOURCE_CLASS: &str = "conduit.resource/named-pattern-storage-slot@1";
 
 pub fn template_storage_std_offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::named_pattern_template_storage_definition();
-    CapabilityOffer {
-        startup_parameters: vec![FrontStartupParameter {
-            name: "maximum-commands".into(),
-            value_type: conduit_core::kind_id("value/count"),
-            has_default: true,
-        }],
-        shorthand: None,
-        capability_id: CapabilityId::from("named-pattern-storage"),
-        kind_id: contract.kind_id.clone(),
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
+    let contract = conduit_semantic_catalog::named_pattern_template_storage_semantic_contract();
+    let target_kind = contract.kind_id.clone();
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from("named-pattern-storage"),
             execution_profile_id: ExecutionProfileId::from(TEMPLATE_STORAGE_STD_PROFILE),
             implementation_id: ImplementationId::from(TEMPLATE_STORAGE_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(TEMPLATE_STORAGE_STD_ARTIFACT),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(TEMPLATE_STORAGE_HOST_OPERATION),
+                target_kind: Some(target_kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+                maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            }],
+            resource_requirements: vec![ResourceRequirement {
+                content: None,
+                class_id: conduit_core::ResourceClassId::from(TEMPLATE_STORAGE_RESOURCE_CLASS),
+                units: 1,
+                protected_role: None,
+                compute: None,
+            }],
+            authority_requirements: Vec::new(),
         },
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(TEMPLATE_STORAGE_HOST_OPERATION),
-            target_kind: Some(contract.kind_id),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-            maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        }],
-        resource_requirements: vec![ResourceRequirement {
-            content: None,
-            class_id: conduit_core::ResourceClassId::from(TEMPLATE_STORAGE_RESOURCE_CLASS),
-            units: 1,
-            protected_role: None,
-            compute: None,
-        }],
-        authority_requirements: Vec::new(),
-        limits: conduit_core::CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: conduit_semantic_catalog::MAXIMUM_TEMPLATE_STORAGE_COMMANDS as u16,
-            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
-                * (conduit_semantic_catalog::MAXIMUM_TEMPLATE_STORAGE_COMMANDS as u32 + 1),
-        },
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]
