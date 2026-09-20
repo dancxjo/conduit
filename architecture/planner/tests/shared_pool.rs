@@ -1,8 +1,10 @@
 use conduit_core::{
-    kind_id, ArtifactId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BootId,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId,
-    HostOperationContractId, HostProfileId, ImplementationId, KindContractRevision,
-    OfferGeneration, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PoolMemberLimits,
+    kind_id, ArchitectureBaseId, ArchitectureBaseKind, ArtifactId, AuthorityContractId,
+    AuthorityGrant, AuthorityGrantId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ComputePoolContract, ComputeRequirement, ComputeServiceGuarantee, ExecutionProfileId,
+    HostAdvertisement, HostId, HostOperationContractId, HostProfileId, ImplementationId,
+    KindContractRevision, OfferGeneration, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId,
+    PoolMemberLimits, ResourceClassId, ResourceOffer, ResourcePoolId, ResourceRequirement,
     SharedPoolId, PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT,
     SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT, SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
@@ -188,8 +190,20 @@ fn canonical_pool_plans_equal_front_members_and_exact_consumers_envelope_and_aut
     assert_eq!(pool.admission_authority.as_str(), "grant/room-admission");
     assert_eq!(pool.realization_envelope[0].member_capacity, 2);
     assert_eq!(
+        pool.realization_envelope[0].offer_generation,
+        OfferGeneration(1)
+    );
+    assert_eq!(
         pool.realization_envelope[0].capability_id.as_str(),
         "browser/renamed-peer"
+    );
+    assert_eq!(
+        pool.realization_envelope[0].implementation_id.as_str(),
+        "implementation/browser/renamed-peer"
+    );
+    assert_eq!(
+        pool.selection_policy,
+        conduit_core::SharedPoolSelectionPolicy::MoreUnreservedThenLessUtilizedThenPlanOrder
     );
     assert_eq!(pool.consumers.len(), 2);
     assert_eq!(
@@ -206,6 +220,67 @@ fn canonical_pool_plans_equal_front_members_and_exact_consumers_envelope_and_aut
     assert_eq!(lowered.shared_pools[0].maximum_members, 2);
     assert_eq!(lowered.shared_pools[0].local_consumers.len(), 2);
     assert_eq!(lowered.shared_pools[0].realizations[0].member_capacity, 2);
+    assert_eq!(
+        lowered.shared_pools[0].realizations[0].offer_generation,
+        OfferGeneration(1)
+    );
+}
+
+#[test]
+fn shared_pool_preserves_each_workers_selected_compute_entitlement() {
+    let form = expanded();
+    let mut host = host(&form);
+    host.capabilities[1].resource_requirements = vec![ResourceRequirement {
+        class_id: ResourceClassId::from("resource/compute"),
+        units: 2,
+        protected_role: None,
+        compute: Some(ComputeRequirement {
+            minimum_lanes: 2,
+            preferred_lanes: 3,
+            maximum_lanes: 4,
+            minimum_service_guarantee: ComputeServiceGuarantee::Reserved,
+            topology: None,
+        }),
+        content: None,
+    }];
+    host.resources = vec![ResourceOffer {
+        pool_id: ResourcePoolId::from("pool/compute"),
+        class_id: ResourceClassId::from("resource/compute"),
+        capacity_units: 8,
+        compute: Some(ComputePoolContract {
+            service_guarantee: ComputeServiceGuarantee::Reserved,
+            architecture_base_id: ArchitectureBaseId::from("hosted/cpu"),
+            architecture_base_kind: ArchitectureBaseKind::HostedOs,
+            topology_groups: vec![],
+        }),
+        content: None,
+    }];
+    let placements = default_expanded_placements(&form, std::slice::from_ref(&host)).unwrap();
+    let plan = plan_expanded_canonical_with_shared_pools(
+        &form,
+        std::slice::from_ref(&host),
+        &placements,
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 4,
+            connection_byte_capacity: 1_024,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &requirements(),
+    )
+    .unwrap();
+    let binding = &plan.fragments[0].shared_pools[0].realization_envelope[0].resources[0];
+    assert_eq!(binding.units, 3);
+    let compute = binding.compute.as_ref().unwrap();
+    assert_eq!(compute.selected_lanes, 3);
+    assert_eq!(compute.service_guarantee, ComputeServiceGuarantee::Reserved);
+    assert_eq!(compute.architecture_base_id.as_str(), "hosted/cpu");
 }
 
 #[test]
