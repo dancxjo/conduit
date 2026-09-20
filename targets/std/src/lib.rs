@@ -118,6 +118,7 @@ mod kernel_signal;
 #[cfg(feature = "local-model-proof")]
 pub mod local_model_proof;
 mod local_model_observation;
+mod local_model_pool_member;
 #[cfg(feature = "local-model-proof")]
 pub mod piper_plan_play_proof;
 mod run_control;
@@ -134,6 +135,7 @@ pub mod pico_spawn;
 pub mod pico_usb_source;
 pub mod pico_wifi_bootstrap;
 pub mod pool_member_sessions;
+pub use local_model_pool_member::AdmittedLocalModelPoolMember;
 pub mod pool_webchat;
 pub mod r1_control;
 pub mod r1_control_input;

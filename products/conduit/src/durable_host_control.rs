@@ -7,7 +7,10 @@ use conduit_core::{
 };
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
-use conduit_std_host::{pool_member_sessions::PoolMemberSessions, AdmittedRemoteFragment, StdHost};
+use conduit_std_host::{
+    pool_member_sessions::PoolMemberSessions,
+    AdmittedLocalModelPoolMember, AdmittedRemoteFragment, StdHost,
+};
 use conduit_wire::{decode_session_frame, encode_session_frame_into, SessionMessage};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -32,7 +35,7 @@ pub(crate) struct DurableHostRuntime {
     image_content_digest: String,
     host: StdHost,
     remote_fragment: Option<AdmittedRemoteFragment>,
-    pool_member_sessions: Option<PoolMemberSessions>,
+    pool_member: Option<AdmittedLocalModelPoolMember>,
     cancellation_signal: Option<PathBuf>,
     next_observation_sequence: u64,
 }
@@ -44,7 +47,7 @@ impl DurableHostRuntime {
             image_content_digest,
             host,
             remote_fragment: None,
-            pool_member_sessions: None,
+            pool_member: None,
             cancellation_signal: None,
             next_observation_sequence: 0,
         }
@@ -166,7 +169,7 @@ impl DurableHostRuntime {
         {
             return Err("stale-host-truth".into());
         }
-        if self.remote_fragment.is_some() || self.pool_member_sessions.is_some() {
+        if self.remote_fragment.is_some() || self.pool_member.is_some() {
             return Err("remote-play-active".into());
         }
         self.clear_cancellation_signal()?;
@@ -211,21 +214,21 @@ impl DurableHostRuntime {
             })
             .ok_or_else(|| "host-fragment-absent".to_string())?;
         let admitted = self.host.prepare_remote_fragment(fragment)?;
-        let mut sessions = match PoolMemberSessions::prepare(
-            plan,
-            selection,
-            consumer_placement_id,
-            &advertisement.host_id,
-        ) {
-            Ok(sessions) => sessions,
-            Err(error) => {
-                self.host.release_remote_fragment(admitted)?;
-                return Err(error);
-            }
-        };
-        let hello_frames = match encode_pool_member_hello_frames(&mut sessions) {
+        let mut member =
+            match self
+                .host
+                .prepare_local_model_pool_member(plan, selection, consumer_placement_id)
+            {
+                Ok(member) => member,
+                Err(error) => {
+                    self.host.release_remote_fragment(admitted)?;
+                    return Err(error);
+                }
+            };
+        let hello_frames = match encode_pool_member_hello_frames(member.sessions_mut()) {
             Ok(frames) => frames,
             Err(error) => {
+                self.host.release_local_model_pool_member(member)?;
                 self.host.release_remote_fragment(admitted)?;
                 return Err(error);
             }
@@ -235,7 +238,7 @@ impl DurableHostRuntime {
             hello_frames,
         };
         self.remote_fragment = Some(admitted);
-        self.pool_member_sessions = Some(sessions);
+        self.pool_member = Some(member);
         Ok(preparation)
     }
 
@@ -246,8 +249,9 @@ impl DurableHostRuntime {
             MAXIMUM_CONTROL_FRAME_BYTES as u32,
         )
         .map_err(|error| format!("decode remote session frame: {error:?}"))?;
-        if self.pool_member_sessions.as_ref().is_some_and(|sessions| {
-            sessions
+        if self.pool_member.as_ref().is_some_and(|member| {
+            member
+                .sessions()
                 .iter()
                 .any(|session| session.binding().identity() == frame.identity)
         }) {
@@ -408,7 +412,9 @@ impl DurableHostRuntime {
 
     fn release_remote(&mut self) -> Result<(), String> {
         self.clear_cancellation_signal()?;
-        self.pool_member_sessions = None;
+        if let Some(member) = self.pool_member.take() {
+            self.host.release_local_model_pool_member(member)?;
+        }
         let Some(fragment) = self.remote_fragment.take() else {
             return Ok(());
         };
@@ -420,9 +426,10 @@ impl DurableHostRuntime {
         frame: conduit_wire::SessionFrame<'_>,
     ) -> Result<DurableRemoteExchange, String> {
         let sessions = self
-            .pool_member_sessions
+            .pool_member
             .as_mut()
-            .ok_or_else(|| "pool-member-sessions-absent".to_string())?;
+            .ok_or_else(|| "pool-member-sessions-absent".to_string())?
+            .sessions_mut();
         let message = frame.message;
         if !matches!(
             message,
