@@ -22,7 +22,7 @@ pub(crate) const MAXIMUM_USB_TRANSFERS: u16 = 2_048;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct UsbConfiguration {
     pub(crate) configuration_value: u8,
-    pub(crate) interfront_number: u8,
+    pub(crate) interface_number: u8,
     pub(crate) alternate_setting: u8,
     pub(crate) in_endpoint: u8,
     pub(crate) out_endpoint: u8,

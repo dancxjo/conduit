@@ -36,11 +36,11 @@ pub(super) fn validate(
         || sign.controller_base_id != xhci.base_id
         || sign.boot_id != boot.boot_id
         || !exact_id(&sign.device_instance_id)
-        || !exact_id(&sign.first_interfront_id)
+        || !exact_id(&sign.first_interface_id)
         || !exact_id(&sign.first_endpoint_id)
         || sign.device_instance_id == sign.controller_base_id
-        || sign.first_interfront_id == sign.device_instance_id
-        || sign.first_endpoint_id == sign.first_interfront_id
+        || sign.first_interface_id == sign.device_instance_id
+        || sign.first_endpoint_id == sign.first_interface_id
         || sign.root_port != 1
         || sign.slot == 0
         || sign.address == 0
@@ -49,11 +49,11 @@ pub(super) fn validate(
         || sign.configuration_value == 0
         || sign.configuration_bytes < 9
         || sign.descriptor_records < 3
-        || sign.interfront_count == 0
+        || sign.interface_count == 0
         || sign.endpoint_count == 0
         || sign.first_endpoint_address & 0x0f == 0
         || sign.configuration_limit_bytes != 256
-        || sign.interfront_limit != 4
+        || sign.interface_limit != 4
         || sign.endpoint_limit != 8
         || sign.descriptor_record_limit != 16
         || sign.outstanding_control_transfer_limit != 1

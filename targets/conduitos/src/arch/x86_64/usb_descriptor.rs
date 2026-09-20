@@ -9,7 +9,7 @@ pub(super) const MAX_DESCRIPTOR_RECORDS: usize = 16;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct UsbEndpoint {
-    pub interfront_index: u8,
+    pub interface_index: u8,
     pub address: u8,
     pub direction_in: bool,
     pub transfer_type: u8,
@@ -46,7 +46,7 @@ pub struct UsbDevice {
     pub configuration_value: u8,
     pub configuration_bytes: u16,
     pub descriptor_records: u8,
-    pub interfront_count: u8,
+    pub interface_count: u8,
     pub endpoint_count: u8,
     pub interfaces: [UsbInterface; MAX_INTERFACES],
     pub endpoints: [UsbEndpoint; MAX_ENDPOINTS],
@@ -56,7 +56,7 @@ pub struct UsbDevice {
     pub enumeration_retries: u8,
     pub sign_slots: u8,
     pub configuration_limit_bytes: u16,
-    pub interfront_limit: u8,
+    pub interface_limit: u8,
     pub endpoint_limit: u8,
     pub descriptor_record_limit: u8,
     pub transfer_trbs: u8,
@@ -97,7 +97,7 @@ pub(crate) fn device_from_descriptor(
         configuration_value: 0,
         configuration_bytes: 0,
         descriptor_records: 0,
-        interfront_count: 0,
+        interface_count: 0,
         endpoint_count: 0,
         interfaces: [UsbInterface::default(); MAX_INTERFACES],
         endpoints: [UsbEndpoint::default(); MAX_ENDPOINTS],
@@ -107,7 +107,7 @@ pub(crate) fn device_from_descriptor(
         enumeration_retries: 0,
         sign_slots: 0,
         configuration_limit_bytes: MAX_CONFIGURATION_BYTES as u16,
-        interfront_limit: MAX_INTERFACES as u8,
+        interface_limit: MAX_INTERFACES as u8,
         endpoint_limit: MAX_ENDPOINTS as u8,
         descriptor_record_limit: MAX_DESCRIPTOR_RECORDS as u8,
         transfer_trbs: 0,
@@ -151,7 +151,7 @@ pub(super) fn parse_configuration(bytes: &[u8], device: &mut UsbDevice) -> Resul
                 if length < 9 {
                     return Err(UsbError::MalformedDescriptor);
                 }
-                let index = usize::from(device.interfront_count);
+                let index = usize::from(device.interface_count);
                 if index == MAX_INTERFACES {
                     return Err(UsbError::TooManyInterfaces);
                 }
@@ -164,7 +164,7 @@ pub(super) fn parse_configuration(bytes: &[u8], device: &mut UsbDevice) -> Resul
                     first_endpoint: device.endpoint_count,
                     endpoint_count: 0,
                 };
-                device.interfront_count += 1;
+                device.interface_count += 1;
                 current_interface = Some(index);
             }
             5 => {
@@ -178,7 +178,7 @@ pub(super) fn parse_configuration(bytes: &[u8], device: &mut UsbDevice) -> Resul
                 }
                 let address = bytes[offset + 2];
                 device.endpoints[endpoint] = UsbEndpoint {
-                    interfront_index: interface as u8,
+                    interface_index: interface as u8,
                     address,
                     direction_in: address & 0x80 != 0,
                     transfer_type: bytes[offset + 3] & 3,
@@ -193,7 +193,7 @@ pub(super) fn parse_configuration(bytes: &[u8], device: &mut UsbDevice) -> Resul
         }
         offset += length;
     }
-    if usize::from(device.interfront_count) != usize::from(bytes[4]) || device.endpoint_count == 0 {
+    if usize::from(device.interface_count) != usize::from(bytes[4]) || device.endpoint_count == 0 {
         return Err(UsbError::UnsupportedTopology);
     }
     Ok(())

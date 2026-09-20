@@ -46,9 +46,9 @@ pub enum HidPointerError {
 impl HidPointerError {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::InterfaceAbsent => "hid-pointer-interfront-absent",
-            Self::AmbiguousInterface => "hid-pointer-interfront-ambiguous",
-            Self::NonBootInterface => "hid-pointer-interfront-not-boot",
+            Self::InterfaceAbsent => "hid-pointer-interface-absent",
+            Self::AmbiguousInterface => "hid-pointer-interface-ambiguous",
+            Self::NonBootInterface => "hid-pointer-interface-not-boot",
             Self::EndpointAbsent => "hid-pointer-interrupt-in-absent",
             Self::AmbiguousEndpoint => "hid-pointer-interrupt-in-ambiguous",
             Self::InvalidEndpoint => "hid-pointer-interrupt-in-invalid",
@@ -72,7 +72,7 @@ impl HidPointerError {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HidPointerReady {
-    pub interfront_number: u8,
+    pub interface_number: u8,
     pub endpoint_address: u8,
     pub endpoint_dci: u8,
     pub endpoint_interval: u8,
@@ -133,7 +133,7 @@ pub fn prepare_boot_pointer(
     let dci = endpoint_dci(endpoint.address)?;
     configure_endpoint(controller, device, endpoint, dci, dma_physical)?;
     Ok(HidPointerReady {
-        interfront_number: interface.number,
+        interface_number: interface.number,
         endpoint_address: endpoint.address,
         endpoint_dci: dci,
         endpoint_interval: endpoint.interval,
@@ -207,7 +207,7 @@ fn match_pointer(
 > {
     let mut matched = None;
     let mut saw_hid = false;
-    for interface in device.interfaces[..usize::from(device.interfront_count)]
+    for interface in device.interfaces[..usize::from(device.interface_count)]
         .iter()
         .copied()
     {
@@ -227,7 +227,7 @@ fn match_pointer(
     } else {
         HidPointerError::InterfaceAbsent
     })?;
-    let interfront_index = device.interfaces[..usize::from(device.interfront_count)]
+    let interface_index = device.interfaces[..usize::from(device.interface_count)]
         .iter()
         .position(|candidate| *candidate == interface)
         .ok_or(HidPointerError::InterfaceAbsent)? as u8;
@@ -235,7 +235,7 @@ fn match_pointer(
     for candidate in device.endpoints[..usize::from(device.endpoint_count)]
         .iter()
         .copied()
-        .filter(|candidate| candidate.interfront_index == interfront_index)
+        .filter(|candidate| candidate.interface_index == interface_index)
     {
         if !candidate.direction_in || candidate.transfer_type != 3 {
             continue;

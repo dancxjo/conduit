@@ -13,7 +13,7 @@ pub const PS2_KEYBOARD_IMPLEMENTATION: &str = "conduitos/ps2-keyboard@1";
 pub const PS2_INPUT_EXECUTION_PROFILE: &str = "conduitos/ps2-input-cooperative@1";
 pub const CONTROLLER_RESOURCE: &str = "conduitos.resource/device-controller-instance@1";
 pub const DEVICE_RESOURCE: &str = "conduitos.resource/device-instance@1";
-pub const INTERFACE_RESOURCE: &str = "conduitos.resource/device-interfront-instance@1";
+pub const INTERFACE_RESOURCE: &str = "conduitos.resource/device-interface-instance@1";
 pub const ENDPOINT_RESOURCE: &str = "conduitos.resource/device-endpoint-instance@1";
 pub const REPORT_RESOURCE: &str = "conduitos.resource/input-report-buffer@1";
 pub const TRANSITION_RESOURCE: &str = "conduitos.resource/input-transition-slot@1";
@@ -25,7 +25,7 @@ pub struct KeyboardRealization {
     pub mechanism: KeyboardMechanism,
     pub controller_id: [u8; 32],
     pub device_id: [u8; 32],
-    pub interfront_id: [u8; 32],
+    pub interface_id: [u8; 32],
     pub endpoint_id: [u8; 32],
     pub report_buffers: u16,
     pub transition_slots: u16,
@@ -73,7 +73,7 @@ impl KeyboardRealization {
         let identities = [
             self.controller_id,
             self.device_id,
-            self.interfront_id,
+            self.interface_id,
             self.endpoint_id,
         ];
         if identities.contains(&[0; 32]) {
@@ -112,7 +112,7 @@ pub(crate) fn append_to_advertisement(
     let resources = [
         (realization.controller_id, CONTROLLER_RESOURCE, 1_u32),
         (realization.device_id, DEVICE_RESOURCE, 1),
-        (realization.interfront_id, INTERFACE_RESOURCE, 1),
+        (realization.interface_id, INTERFACE_RESOURCE, 1),
         (realization.endpoint_id, ENDPOINT_RESOURCE, 1),
         (
             realization.endpoint_id,
@@ -202,7 +202,7 @@ mod tests {
             mechanism: KeyboardMechanism::UsbHid,
             controller_id: [1; 32],
             device_id: [2; 32],
-            interfront_id: [3; 32],
+            interface_id: [3; 32],
             endpoint_id: [4; 32],
             report_buffers: 2,
             transition_slots: 8,
@@ -217,7 +217,7 @@ mod tests {
         empty.endpoint_id = [0; 32];
         assert_eq!(empty.validate(), Err(KeyboardOfferError::EmptyIdentity));
         let mut duplicate = realization();
-        duplicate.endpoint_id = duplicate.interfront_id;
+        duplicate.endpoint_id = duplicate.interface_id;
         assert_eq!(
             duplicate.validate(),
             Err(KeyboardOfferError::DuplicateIdentity)

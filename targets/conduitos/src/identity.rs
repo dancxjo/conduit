@@ -52,17 +52,17 @@ pub fn derive_usb_device(
 
 pub fn derive_usb_interface(device_id: &[u8; 32], number: u8, alternate: u8) -> [u8; 32] {
     subject_digest(
-        b"conduit-usb-interfront/v1",
+        b"conduit-usb-interface/v1",
         device_id,
         &[0; 32],
         &[number, alternate],
     )
 }
 
-pub fn derive_usb_endpoint(interfront_id: &[u8; 32], address: u8) -> [u8; 32] {
+pub fn derive_usb_endpoint(interface_id: &[u8; 32], address: u8) -> [u8; 32] {
     subject_digest(
         b"conduit-usb-endpoint/v1",
-        interfront_id,
+        interface_id,
         &[0; 32],
         &[address],
     )

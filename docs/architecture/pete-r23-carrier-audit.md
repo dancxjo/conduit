@@ -210,7 +210,7 @@ another physical run by this note.
 
 ## Component references
 
-- [iRobot Create Open Interface v2 specification](https://ptolemy.berkeley.edu/projects/chess/eecs124/iRobotDocs/CreateOpenInterfront_v2.pdf)
+- [iRobot Create Open Interface v2 specification](https://ptolemy.berkeley.edu/projects/chess/eecs124/iRobotDocs/CreateOpenInterface_v2.pdf)
 - [AutonomyLab libcreate Create 1 model](https://github.com/AutonomyLab/libcreate/blob/116be443e7970de1574b5dc5f91e414828854c08/src/types.cpp)
 - [AutonomyLab libcreate LED masks](https://github.com/AutonomyLab/libcreate/blob/116be443e7970de1574b5dc5f91e414828854c08/include/create/create.h)
 - [AutonomyLab libcreate LED encoder](https://github.com/AutonomyLab/libcreate/blob/116be443e7970de1574b5dc5f91e414828854c08/src/create.cpp)

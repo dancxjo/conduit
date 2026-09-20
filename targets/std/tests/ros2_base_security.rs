@@ -26,7 +26,7 @@ pub(crate) fn topic(id: &str, name: &str, direction: InteropDirection) -> RosTop
     RosTopicConfiguration {
         mapping: mapping(id, name, direction),
         topic_name: name.into(),
-        interfront_type: ROS_STRING_TYPE.into(),
+        interface_type: ROS_STRING_TYPE.into(),
         qos: RosQos {
             reliability: RosReliability::Reliable,
             durability: RosDurability::Volatile,
@@ -129,12 +129,12 @@ impl NativeRosTopicProvider for Provider {
     fn publish(
         &mut self,
         topic_name: &str,
-        interfront_type: &str,
+        interface_type: &str,
         _qos: RosQos,
         encoded: &[u8],
         origin: &str,
     ) -> Result<(), RosBaseRefusal> {
-        assert_eq!(interfront_type, ROS_STRING_TYPE);
+        assert_eq!(interface_type, ROS_STRING_TYPE);
         self.messages
             .push((topic_name.into(), encoded.into(), origin.into()));
         Ok(())
