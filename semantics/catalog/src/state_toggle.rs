@@ -9,7 +9,7 @@ use alloc::vec;
 use conduit_core::KindContractRevision;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
-    PortTemporal, BOOL_INFO_ID,
+    PortTemporal, SemanticCapabilityContract, BOOL_INFO_ID,
 };
 
 pub const STATE_TOGGLE_KIND: &str = "state/toggle";
@@ -64,6 +64,19 @@ pub fn state_toggle_contract() -> StandardKindContract {
     }
 }
 
+pub fn state_toggle_semantic_contract() -> SemanticCapabilityContract {
+    let contract = state_toggle_contract();
+    SemanticCapabilityContract {
+        startup_parameters: super::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: STATE_TOGGLE_CONTRACT_REVISION.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        limits: contract.limits,
+    }
+}
+
 #[cfg(feature = "form-catalog")]
 pub fn install_state_toggle_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -115,5 +128,9 @@ mod tests {
             contract.configuration[0].default_value,
             ConfigurationValue::Bool(false)
         );
+        let semantics = state_toggle_semantic_contract();
+        assert_eq!(semantics.startup_parameters.len(), 1);
+        assert_eq!(semantics.startup_parameters[0].name, "initial");
+        assert!(semantics.startup_parameters[0].has_default);
     }
 }

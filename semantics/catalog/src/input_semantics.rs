@@ -13,7 +13,7 @@ use alloc::vec::Vec;
 use conduit_core::KindContractRevision;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
-    PortTemporal,
+    PortTemporal, SemanticCapabilityContract,
 };
 use conduit_human::{
     CHORD_ENCODED_LEN, CHORD_INFO_ID, CONDUIT_INTL_LAYOUT, CORE_CHORD_MAP, KEY_EVENT_ENCODED_LEN,
@@ -138,6 +138,30 @@ pub fn chords_contract() -> StandardKindContract {
     }
 }
 
+pub fn key_event_tee_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(key_event_tee_contract(), KEY_EVENT_TEE_REVISION)
+}
+
+pub fn keymap_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(keymap_contract(), KEYMAP_REVISION)
+}
+
+pub fn chords_semantic_contract() -> SemanticCapabilityContract {
+    semantic_contract(chords_contract(), CHORDS_REVISION)
+}
+
+fn semantic_contract(contract: StandardKindContract, revision: &str) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: super::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: revision.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        limits: contract.limits,
+    }
+}
+
 fn limits(maximum_value_bytes: u32) -> CapabilityLimits {
     CapabilityLimits {
         max_active_instances: 4,
@@ -249,5 +273,17 @@ mod tests {
         assert!(key_event_tee_contract().configuration.is_empty());
         assert_eq!(keymap_contract().configuration.len(), 1);
         assert_eq!(chords_contract().configuration.len(), 1);
+        for (contract, revision, startup_count) in [
+            (key_event_tee_semantic_contract(), KEY_EVENT_TEE_REVISION, 0),
+            (keymap_semantic_contract(), KEYMAP_REVISION, 1),
+            (chords_semantic_contract(), CHORDS_REVISION, 1),
+        ] {
+            assert_eq!(contract.kind_contract_revision.as_str(), revision);
+            assert_eq!(contract.startup_parameters.len(), startup_count);
+            assert!(contract
+                .startup_parameters
+                .iter()
+                .all(|parameter| parameter.has_default));
+        }
     }
 }
