@@ -154,6 +154,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ("semantics/signal/src/lib.rs", 0, "fully migrated"),
     ("semantics/tongues/src/contract.rs", 0, "fully migrated"),
     (
+        "semantics/tongues/src/speech_recognition.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
         "targets/browser/runtime/src/installed_browser/audio_io.rs",
         0,
         "fully migrated",
@@ -255,6 +260,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ("targets/std/offers/src/navigation.rs", 0, "fully migrated"),
     (
         "targets/std/offers/src/timed_button_attempt.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/std/offers/src/conversation_commit.rs",
         0,
         "fully migrated",
     ),

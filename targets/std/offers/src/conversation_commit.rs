@@ -1,8 +1,9 @@
 //! Exact std realizations for the two irreversible conversation commit boundaries.
 
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
+    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId,
 };
 
 pub const RECOGNIZED_TURN_COMMIT_PROFILE: &str = "std/recognized-turn-commit-kernel@1";
@@ -18,35 +19,28 @@ pub const GENERATED_SPEECH_DRAIN_OPERATION: &str = "conduit.host/generated-speec
 pub const GENERATED_SPEECH_CLOSE_OPERATION: &str = "conduit.host/generated-speech-close@1";
 
 pub fn recognized_turn_commit_offer() -> CapabilityOffer {
-    let contract = conduit_tongues::committed_recognition_turn_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("std-recognized-turn-commit-v1"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        conduit_tongues::committed_recognition_turn_contract().into_semantic_capability_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from("std-recognized-turn-commit-v1"),
             execution_profile_id: ExecutionProfileId::from(RECOGNIZED_TURN_COMMIT_PROFILE),
             implementation_id: ImplementationId::from(RECOGNIZED_TURN_COMMIT_IMPLEMENTATION),
             artifact_id: ArtifactId::from(RECOGNIZED_TURN_COMMIT_ARTIFACT),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(RECOGNIZED_TURN_COMMIT_OPERATION),
+                target_kind: Some(kind_id(conduit_tongues::CHAT_MESSAGE_VALUE_KIND)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_tongues::MAXIMUM_RECOGNITION_EVENT_BYTES as u32,
+                maximum_output_bytes: conduit_tongues::MAXIMUM_COMMITTED_USER_MESSAGE_BYTES as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(RECOGNIZED_TURN_COMMIT_OPERATION),
-            target_kind: Some(kind_id(conduit_tongues::CHAT_MESSAGE_VALUE_KIND)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_tongues::MAXIMUM_RECOGNITION_EVENT_BYTES as u32,
-            maximum_output_bytes: conduit_tongues::MAXIMUM_COMMITTED_USER_MESSAGE_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 pub fn generated_speech_commit_offer() -> CapabilityOffer {
-    let contract = conduit_tongues::speech_commit_contract();
     let operation = |id, input| HostOperationRequirement {
         contract_id: HostOperationContractId::from(id),
         target_kind: Some(kind_id(conduit_tongues::SPEAKABLE_TEXT_VALUE_KIND)),
@@ -54,37 +48,32 @@ pub fn generated_speech_commit_offer() -> CapabilityOffer {
         maximum_input_bytes: input,
         maximum_output_bytes: conduit_tongues::SPEECH_COMMIT_QUEUE_BYTES,
     };
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("std-generated-speech-commit-v1"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        conduit_tongues::speech_commit_contract().into_semantic_capability_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from("std-generated-speech-commit-v1"),
             execution_profile_id: ExecutionProfileId::from(GENERATED_SPEECH_COMMIT_PROFILE),
             implementation_id: ImplementationId::from(GENERATED_SPEECH_COMMIT_IMPLEMENTATION),
             artifact_id: ArtifactId::from(GENERATED_SPEECH_COMMIT_ARTIFACT),
+            host_operations: vec![
+                operation(
+                    GENERATED_SPEECH_PUSH_OPERATION,
+                    conduit_tongues::MAXIMUM_TEXT_BYTES,
+                ),
+                operation(
+                    GENERATED_SPEECH_DRAIN_OPERATION,
+                    conduit_tongues::MAXIMUM_TEXT_BYTES,
+                ),
+                operation(
+                    GENERATED_SPEECH_CLOSE_OPERATION,
+                    conduit_tongues::MAXIMUM_TEXT_BYTES,
+                ),
+            ],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![
-            operation(
-                GENERATED_SPEECH_PUSH_OPERATION,
-                conduit_tongues::MAXIMUM_TEXT_BYTES,
-            ),
-            operation(
-                GENERATED_SPEECH_DRAIN_OPERATION,
-                conduit_tongues::MAXIMUM_TEXT_BYTES,
-            ),
-            operation(
-                GENERATED_SPEECH_CLOSE_OPERATION,
-                conduit_tongues::MAXIMUM_TEXT_BYTES,
-            ),
-        ],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]
