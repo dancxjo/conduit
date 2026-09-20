@@ -6,8 +6,8 @@ use conduit_audio::{
 };
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
+    CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
@@ -244,91 +244,56 @@ pub fn music_input_midi_offer() -> CapabilityOffer {
 }
 
 pub fn rhythm_compare_std_offer() -> CapabilityOffer {
-    let definition = conduit_semantic_catalog::rhythm_compare_definition();
-    let target_kind = definition.kind_id.clone();
-    CapabilityOffer {
-        startup_parameters: vec![
-            startup("target-offset-micros", "Scalar", true),
-            startup("tolerance-micros", "Count", true),
-        ],
-        shorthand: None,
-        capability_id: CapabilityId::from("music-rhythm-compare"),
-        kind_id: definition.kind_id,
-        kind_contract_revision: definition.kind_contract_revision,
-        implementation: implementation(
-            RHYTHM_COMPARE_STD_PROFILE,
-            RHYTHM_COMPARE_STD_IMPLEMENTATION,
-            RHYTHM_COMPARE_STD_ARTIFACT,
-        ),
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations: [
-            RHYTHM_DRAIN_HOST_OPERATION,
-            RHYTHM_PERFORMANCE_HOST_OPERATION,
-            RHYTHM_REFERENCE_HOST_OPERATION,
-        ]
-        .into_iter()
-        .map(|id| HostOperationRequirement {
-            contract_id: HostOperationContractId::from(id),
-            target_kind: Some(target_kind.clone()),
-            maximum_in_flight: 1,
-            maximum_input_bytes: if id == RHYTHM_DRAIN_HOST_OPERATION {
-                0
-            } else {
-                MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
-            },
-            maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        })
-        .collect(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 8,
-            max_queue_items: conduit_semantic_catalog::RHYTHM_MAXIMUM_PENDING_BEATS,
-            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES
-                * usize::from(conduit_semantic_catalog::RHYTHM_MAXIMUM_PENDING_BEATS)
-                * 3) as u32,
+    let contract = conduit_semantic_catalog::rhythm_compare_semantic_contract();
+    let target_kind = contract.kind_id.clone();
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from("music-rhythm-compare"),
+            execution_profile_id: ExecutionProfileId::from(RHYTHM_COMPARE_STD_PROFILE),
+            implementation_id: ImplementationId::from(RHYTHM_COMPARE_STD_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(RHYTHM_COMPARE_STD_ARTIFACT),
+            host_operations: [
+                RHYTHM_DRAIN_HOST_OPERATION,
+                RHYTHM_PERFORMANCE_HOST_OPERATION,
+                RHYTHM_REFERENCE_HOST_OPERATION,
+            ]
+            .into_iter()
+            .map(|id| HostOperationRequirement {
+                contract_id: HostOperationContractId::from(id),
+                target_kind: Some(target_kind.clone()),
+                maximum_in_flight: 1,
+                maximum_input_bytes: if id == RHYTHM_DRAIN_HOST_OPERATION {
+                    0
+                } else {
+                    MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
+                },
+                maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            })
+            .collect(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-    }
+    )
+    .build()
 }
 
 pub fn instrument_map_std_offer() -> CapabilityOffer {
-    let definition = conduit_semantic_catalog::instrument_map_definition()
+    let contract = conduit_semantic_catalog::instrument_map_semantic_contract()
         .expect("portable instrument-map definition is finite");
-    CapabilityOffer {
-        startup_parameters: vec![startup(
-            "mapping",
-            conduit_semantic_catalog::INSTRUMENT_MAPPING_TYPE,
-            false,
-        )],
-        shorthand: None,
-        capability_id: CapabilityId::from("music-instrument-map"),
-        kind_id: definition.kind_id,
-        kind_contract_revision: definition.kind_contract_revision,
-        implementation: implementation(
-            INSTRUMENT_MAP_STD_PROFILE,
-            INSTRUMENT_MAP_STD_IMPLEMENTATION,
-            INSTRUMENT_MAP_STD_ARTIFACT,
-        ),
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 8,
-            max_queue_items: 16,
-            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from("music-instrument-map"),
+            execution_profile_id: ExecutionProfileId::from(INSTRUMENT_MAP_STD_PROFILE),
+            implementation_id: ImplementationId::from(INSTRUMENT_MAP_STD_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(INSTRUMENT_MAP_STD_ARTIFACT),
+            host_operations: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-    }
-}
-
-fn implementation(profile: &str, implementation: &str, artifact: &str) -> ImplementationOffer {
-    ImplementationOffer {
-        execution_profile_id: ExecutionProfileId::from(profile),
-        implementation_id: ImplementationId::from(implementation),
-        artifact_id: ArtifactId::from(artifact),
-    }
+    )
+    .build()
 }
 
 fn identity<'a>(
@@ -342,14 +307,6 @@ fn identity<'a>(
         execution_profile: profile,
         implementation,
         artifact,
-    }
-}
-
-fn startup(name: &str, value_type: &str, has_default: bool) -> FrontStartupParameter {
-    FrontStartupParameter {
-        name: name.into(),
-        value_type: value_type.into(),
-        has_default,
     }
 }
 
@@ -391,5 +348,27 @@ mod tests {
             conduit_semantic_catalog::audio_convert_pcm_profile_contract().inputs
         );
         assert_eq!(conversion.host_operations.len(), 1);
+
+        for (offer, contract) in [
+            (
+                rhythm_compare_std_offer(),
+                conduit_semantic_catalog::rhythm_compare_semantic_contract(),
+            ),
+            (
+                instrument_map_std_offer(),
+                conduit_semantic_catalog::instrument_map_semantic_contract().unwrap(),
+            ),
+        ] {
+            assert_eq!(offer.startup_parameters, contract.startup_parameters);
+            assert_eq!(offer.shorthand, contract.shorthand);
+            assert_eq!(offer.kind_id, contract.kind_id);
+            assert_eq!(
+                offer.kind_contract_revision,
+                contract.kind_contract_revision
+            );
+            assert_eq!(offer.inputs, contract.inputs);
+            assert_eq!(offer.outputs, contract.outputs);
+            assert_eq!(offer.limits, contract.limits);
+        }
     }
 }
