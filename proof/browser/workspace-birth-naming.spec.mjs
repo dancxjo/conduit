@@ -1,25 +1,24 @@
-import { openCrecheStep } from "./creche-test-actions.mjs";
-import { spawn } from "node:child_process";
 import { expect, test } from "@playwright/test";
-import { reviewAndBirth } from "./creche-test-actions.mjs";
+import { startStaticProduct } from "./tour-test-server.mjs";
 
 let entrance;
 
-test.beforeEach(async () => { entrance = await startCreche(); });
+test.beforeEach(async () => {
+  entrance = await startStaticProduct("target/workspace-product", "/conduit/workspace/");
+});
 test.afterEach(() => entrance?.child.kill());
 
-test("Crèche suggestions expose diverse structures while remaining editable metadata", async ({ page }) => {
+test("Workspace Birth suggestions expose diverse structures while remaining editable metadata", async ({ page }) => {
   await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  await expect(page).toHaveURL(/\/creche\/birth\/$/);
-  await expect(page.locator('[data-application-key="workflow"]')).toHaveAttribute("data-application-component", "stepper");
-  await expect(page.locator('[data-application-key="workflow"]')).toHaveAttribute("data-application-current", "1");
 
   const birth = page.locator(".body-birth-runner");
   const name = birth.getByLabel("Friendly Body name");
   const tradition = birth.getByLabel("Naming tradition");
   await expect(birth.locator('[data-application-component="form-field"]')).toHaveCount(4);
   await expect(birth.locator('[data-application-key="initial-forms"]')).toHaveAttribute("data-application-component", "choice-group");
+  for (const checkbox of await birth.getByRole("checkbox").all()) {
+    if (await checkbox.isChecked()) await checkbox.uncheck();
+  }
   await expect(birth.getByRole("checkbox", { name: "Morse Network" })).not.toBeChecked();
   await birth.getByRole("checkbox", { name: "Memory Lantern" }).check();
   await expect(birth.getByRole("checkbox", { name: "Memory Lantern" })).toBeChecked();
@@ -112,37 +111,12 @@ test("Crèche suggestions expose diverse structures while remaining editable met
   expect(Number(await slot.getAttribute("data-application-revision"))).toBeGreaterThan(revision);
 
   await name.fill("Juniper Signalhouse");
-  await reviewAndBirth(page, birth);
-  await expect(birth.locator('[data-application-key="body-identities"]')).toContainText("Juniper Signalhouse");
-  await expect(birth.locator('[data-application-key="body-evidence"]')).toHaveAttribute("data-application-evidence", "succeeded");
-  const bodyId = await birth.getAttribute("data-body-id");
-  await openCrecheStep(page, "2. First host");
-  await expect(page).toHaveURL(/\/creche\/first-host\/$/);
-  await expect(page.locator('[data-application-key="workflow"]')).toHaveAttribute("data-application-current", "2");
-  await page.goBack();
-  await expect(page).toHaveURL(/\/creche\/birth\/$/);
-  const retained = page.locator(".body-birth-runner");
-  await expect(retained.locator('[data-application-key="body-identities"]')).toContainText("Juniper Signalhouse");
-  await expect(retained).toHaveAttribute("data-body-id", bodyId);
-  expect(bodyId).not.toBe("Juniper Signalhouse");
+  await birth.getByRole("button", { name: "Review workload", exact: true }).click();
+  await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await expect(page.locator("[data-body-name]")).toHaveText("Juniper Signalhouse");
+  await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
+  const current = await page.evaluate(() => globalThis.__conduitWorkspace.current());
+  expect(current.friendly_name).toBe("Juniper Signalhouse");
+  expect(current.body_id).toMatch(/^[0-9a-f]{64}$/u);
+  expect(current.body_id).not.toBe("Juniper Signalhouse");
 });
-
-function startCreche() {
-  const child = spawn("target/debug/conduit-browser-host", ["--application", "target/creche-product", "--mount", "/creche/", "--no-open"], {
-    cwd: new URL("../..", import.meta.url).pathname,
-    env: process.env,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let output = "";
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Crèche was not ready\n${output}`)), 10_000);
-    const inspect = (chunk) => {
-      output += chunk.toString();
-      const match = output.match(/CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/creche\/)/);
-      if (match) { clearTimeout(timeout); resolve({ child, url: match[1] }); }
-    };
-    child.stdout.on("data", inspect);
-    child.stderr.on("data", inspect);
-    child.once("exit", (code) => { clearTimeout(timeout); reject(new Error(`Crèche exited (${code})\n${output}`)); });
-  });
-}
