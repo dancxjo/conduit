@@ -10,3 +10,4 @@ extern crate alloc;
 
 pub mod fragment_set;
 pub mod lowering;
+pub mod shared_pool_runtime;
