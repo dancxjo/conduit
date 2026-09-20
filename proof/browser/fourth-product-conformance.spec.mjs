@@ -328,7 +328,7 @@ test("Tour, Crèche, Patchbay, and the fourth app manifest the same shared contr
     const entrance = await start();
     try {
       await page.goto(entrance.url);
-      if (name === "Crèche") await page.getByText("Hosts and provisioning", { exact: true }).click();
+      if (name === "Crèche") await page.getByText("hosts and provisioning", { exact: true }).click();
       if (name === "Patchbay") {
         await page.locator("#toggle-inspector").click();
         await page.getByText("Advanced evidence and linear presentation", { exact: true }).click();
