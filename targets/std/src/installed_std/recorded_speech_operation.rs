@@ -2,9 +2,9 @@
 
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    PlannedGear,
+    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
@@ -87,31 +87,25 @@ impl RecordedSpeechOperation {
 }
 
 pub(crate) fn offer() -> CapabilityOffer {
-    let contract = conduit_tongues::speech_recognition_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("proof-recorded-speech-recognizer"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        conduit_tongues::speech_recognition_contract().into_semantic_capability_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from("proof-recorded-speech-recognizer"),
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(HOST_OPERATION),
+                target_kind: Some(kind_id(conduit_tongues::SPEECH_RECOGNIZE_KIND)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_tongues::MAXIMUM_RECOGNITION_AUDIO_BYTES as u32,
+                maximum_output_bytes: conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(HOST_OPERATION),
-            target_kind: Some(kind_id(conduit_tongues::SPEECH_RECOGNIZE_KIND)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_tongues::MAXIMUM_RECOGNITION_AUDIO_BYTES as u32,
-            maximum_output_bytes: conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 pub(super) struct RecordedSpeechHost {
@@ -208,4 +202,27 @@ fn prepare(
 
 fn fail(code: FailureCode, detail: u16) -> OperationAction {
     OperationAction::Fail(Failure { code, detail })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn recorded_fixture_realization_preserves_owner_issued_front() {
+        let contract =
+            conduit_tongues::speech_recognition_contract().into_semantic_capability_contract();
+        let offer = offer();
+        assert_eq!(offer.startup_parameters, contract.startup_parameters);
+        assert_eq!(offer.shorthand, contract.shorthand);
+        assert_eq!(offer.kind_id, contract.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            contract.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, contract.inputs);
+        assert_eq!(offer.outputs, contract.outputs);
+        assert_eq!(offer.limits, contract.limits);
+        assert_eq!(offer.host_operations.len(), 1);
+    }
 }
