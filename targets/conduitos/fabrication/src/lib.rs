@@ -50,15 +50,15 @@ impl ConduitOsProductArtifact {
 fn package_catalog() -> PackageCatalogContribution {
     PackageCatalogContribution {
         implementations: BTreeMap::from([(
-            "conduitos/kernel-http-client-http1-literal@1".into(),
+            "conduitos/kernel-http-client-http1-literal".into(),
             ImplementationMetadata {
                 kind: "http/client".into(),
                 contract_revision: "conduit.http/client@1".into(),
                 targets: vec!["conduitos/x86_64/pc".into()],
                 prerequisites: vec![
-                    PrerequisiteNode::HostOperation("conduit.host/http-client-exchange@1".into()),
-                    PrerequisiteNode::Resource("conduit.resource/network/http-client@1".into()),
-                    PrerequisiteNode::Facility("network/http1-literal-client@1".into()),
+                    PrerequisiteNode::HostOperation("conduit.host/http-client-exchange".into()),
+                    PrerequisiteNode::Resource("conduit.resource/network/http-client".into()),
+                    PrerequisiteNode::Facility("network/http1-literal-client".into()),
                 ],
             },
         )]),
@@ -110,7 +110,7 @@ fn package_catalog() -> PackageCatalogContribution {
                 vec![PrerequisiteNode::Driver("conduitos/pl011@1".into())],
             ),
             (
-                PrerequisiteNode::Facility("network/http1-literal-client@1".into()),
+                PrerequisiteNode::Facility("network/http1-literal-client".into()),
                 vec![
                     PrerequisiteNode::Resource("network/packet-buffer@1".into()),
                     PrerequisiteNode::Resource("network/tcp-socket@1".into()),
@@ -125,7 +125,7 @@ fn package_catalog() -> PackageCatalogContribution {
                 )],
             ),
         ]),
-        facilities: vec!["network/http1-literal-client@1".into()],
+        facilities: vec!["network/http1-literal-client".into()],
         profile_fragments: vec![
             "profile-fragment/conduitos-scripted-keyboard-proof@1".into(),
             "profile-fragment/conduitos-hotplug-proof@1".into(),

@@ -4,15 +4,15 @@ use conduit_core::{
     ImplementationOffer, resource_requirement,
 };
 
-pub const IMPLEMENTATION: &str = "conduitos/kernel-http-client-http1-literal@1";
-pub const PROFILE: &str = "conduitos/http1-literal-plain-fixed@1";
-pub const ARTIFACT: &str = "conduitos/native-http1-fixed@1";
-pub const HOST_OPERATION: &str = "conduit.host/http-client-exchange@1";
-pub const RESOURCE_CLASS: &str = "conduit.resource/network/http-client@1";
-pub const AUTHORITY: &str = "conduit.authority/http-outbound@1";
+pub const IMPLEMENTATION: &str = "conduitos/kernel-http-client-http1-literal";
+pub const PROFILE: &str = "conduitos/http1-literal-plain-fixed";
+pub const ARTIFACT: &str = "conduitos/native-http1-fixed";
+pub const HOST_OPERATION: &str = "conduit.host/http-client-exchange";
+pub const RESOURCE_CLASS: &str = "conduit.resource/network/http-client";
+pub const AUTHORITY: &str = "conduit.authority/http-outbound";
 pub const NETWORK_BASE: &str = "network/ipv4-tcp";
 pub const NETWORK_DRIVER: &str = "conduitos/deterministic-ipv4-tcp@1";
-pub const FACILITY: &str = "network/http1-literal-client@1";
+pub const FACILITY: &str = "network/http1-literal-client";
 pub const PACKET_BUFFERS: u16 = 4;
 pub const SOCKET_SLOTS: u16 = 1;
 pub const TIMER_SLOTS: u16 = 2;

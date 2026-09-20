@@ -18,11 +18,11 @@ pub use host::{
 };
 pub use provider::provider_main;
 
-pub const ISOLATED_HTTP_IMPLEMENTATION: &str = "std/isolated-http-client-http1@1";
-pub const ISOLATED_HTTP_PROFILE: &str = "std/http1-exact-endpoint-process-isolated@1";
-pub const ISOLATED_HTTP_ARTIFACT: &str = "conduit-base-http/exact-endpoint-http1@1";
-pub const HTTP_CLIENT_OPERATION: &str = "conduit.host/http-client-exchange@1";
-pub const HTTP_CLIENT_RESOURCE: &str = "conduit.resource/network/http-client@1";
+pub const ISOLATED_HTTP_IMPLEMENTATION: &str = "std/isolated-http-client-http1";
+pub const ISOLATED_HTTP_PROFILE: &str = "std/http1-exact-endpoint-process-isolated";
+pub const ISOLATED_HTTP_ARTIFACT: &str = "conduit-base-http/exact-endpoint-http1";
+pub const HTTP_CLIENT_OPERATION: &str = "conduit.host/http-client-exchange";
+pub const HTTP_CLIENT_RESOURCE: &str = "conduit.resource/network/http-client";
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const MAX_FRAME_BYTES: usize = 65_536;
 pub const CONNECTED_SOCKET_FD: i32 = 3;
