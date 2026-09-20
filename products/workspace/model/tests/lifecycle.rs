@@ -12,6 +12,147 @@ use conduit_workspace_model::{
 };
 
 #[test]
+fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
+    let body = born();
+    let request = conduit_workspace_model::tutorial::generative_request(
+        &body,
+        "request/orifina/initial".into(),
+        11,
+        conduit_workspace_model::tutorial::TutorialPlayback::Lulled,
+    )
+    .unwrap();
+    assert_eq!(
+        request.policy.template_contract_revision,
+        conduit_presentation::ORIFINA_COMPLETION_POLICY_REVISION
+    );
+    assert_eq!(request.semantic_data.presentation.revision, 11);
+    assert_eq!(
+        request.semantic_data.presentation.basis.body_id.as_ref(),
+        Some(&body.evidence().body.body_id)
+    );
+    assert!(
+        request
+            .semantic_data
+            .presentation
+            .properties
+            .iter()
+            .any(|property| {
+                property.name == "readiness"
+                    && property.value
+                        == conduit_presentation::PresentationPropertyValue::Text("not-ready".into())
+            })
+    );
+    assert!(
+        request
+            .semantic_data
+            .presentation
+            .actions
+            .iter()
+            .any(|action| action.identity == "body.wake")
+    );
+    assert!(
+        !request
+            .semantic_data
+            .presentation
+            .actions
+            .iter()
+            .any(|action| action.identity == "body.fulfill")
+    );
+}
+
+#[test]
+fn exact_tutorial_completion_only_presents_fulfillment_as_an_operator_choice() {
+    let mut body = born();
+    let proposal = body
+        .propose(plans(&body), &host(), &boot())
+        .unwrap()
+        .clone();
+    body.fail(
+        &host(),
+        &boot(),
+        vec![conduit_body::WakeRejectionEvidence {
+            reason_code: "execution.line-unavailable".into(),
+            category: "Connectivity".into(),
+            stage: "Body execution".into(),
+            resource: "execution-line".into(),
+            required: 1,
+            available: 0,
+            host_id: host(),
+            boot_id: boot(),
+            plan_id: Some(proposal.plan.plan_id.clone()),
+            checked_form_ids: proposal
+                .plan
+                .forms
+                .iter()
+                .map(|form| form.form.checked_form_id.clone())
+                .collect(),
+        }],
+    )
+    .unwrap();
+    let play = start(&mut body);
+    body.lull(&host(), &boot(), Some(&play)).unwrap();
+
+    let mut evidence = body.evidence().clone();
+    let mut membership = evidence.membership.clone();
+    let other_part = PartId::bind(&evidence.body_id, "other", 1).unwrap();
+    let other_proof = MembershipProofId::bind("proof/other").unwrap();
+    let admitted = membership
+        .admit(
+            &evidence.body_id,
+            membership.revision,
+            other_part.clone(),
+            other_proof.clone(),
+            "sign/admit-other".into(),
+        )
+        .unwrap();
+    let joined = membership
+        .observe_present(
+            &evidence.body_id,
+            membership.revision,
+            &other_part,
+            AuthenticatedHostObservation {
+                host_id: "host/other".into(),
+                boot_id: "boot/other".into(),
+                offer_generation: OfferGeneration(1),
+                proof_id: other_proof,
+                sequence: 1,
+            },
+            "sign/join-other".into(),
+        )
+        .unwrap();
+    let next = evidence.records.last().unwrap().sequence + 1;
+    evidence
+        .append_membership_events(membership, &[(admitted, next), (joined, next + 1)])
+        .unwrap();
+    let body = WorkspaceBody::open(evidence).unwrap();
+    let request = conduit_workspace_model::tutorial::generative_request(
+        &body,
+        "request/orifina/ready".into(),
+        12,
+        conduit_workspace_model::tutorial::TutorialPlayback::Completed,
+    )
+    .unwrap();
+    assert!(
+        request
+            .semantic_data
+            .presentation
+            .properties
+            .iter()
+            .any(|property| {
+                property.name == "readiness"
+                    && property.value
+                        == conduit_presentation::PresentationPropertyValue::Text("ready".into())
+            })
+    );
+    assert_eq!(request.semantic_data.presentation.actions.len(), 1);
+    assert_eq!(
+        request.semantic_data.presentation.actions[0].identity,
+        "body.fulfill"
+    );
+    assert!(matches!(body.evidence().body.state, BodyState::Lulled));
+}
+
+#[test]
 fn tutorial_guidance_is_a_renderer_neutral_revision_bound_application_view() {
     let body = born();
     let view = conduit_workspace_model::tutorial::presentation(
