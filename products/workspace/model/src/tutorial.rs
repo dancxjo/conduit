@@ -2,9 +2,9 @@
 use crate::WorkspaceBody;
 use alloc::{format, vec, vec::Vec};
 use conduit_body::{
-    BodyBiographyRecordKind, BodyState, FulfillmentReadiness, PurposeCompletionPolicy,
-    PurposeObligation, PurposeObligationState, PurposeRefusal, PurposeState, WakeLifecycleEvent,
-    derive_fulfillment_readiness,
+    BodyBiographyEvidence, BodyBiographyRecordKind, BodyState, FulfillmentReadiness,
+    PurposeCompletionPolicy, PurposeObligation, PurposeObligationState, PurposeRefusal,
+    PurposeState, WakeLifecycleEvent, derive_fulfillment_readiness,
 };
 use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, PresentationMechanism, SemanticAction,
@@ -39,8 +39,20 @@ pub fn presentation(
     revision: u32,
     playback: TutorialPlayback,
 ) -> Result<SemanticApplicationView, conduit_presentation::SemanticPresentationRefusal> {
-    let purpose = purpose_state(body).expect("validated Body evidence must project valid purpose");
-    let guidance = guidance(body, playback, &purpose);
+    presentation_from_evidence(body.evidence(), revision, playback)
+}
+
+/// Project tutorial guidance from an exact retained Body biography at a Host
+/// boundary. This lets the ordinary resident Tutorial Form consume the same
+/// semantic truth without reaching through a product-owned `WorkspaceBody`.
+pub fn presentation_from_evidence(
+    evidence: &BodyBiographyEvidence,
+    revision: u32,
+    playback: TutorialPlayback,
+) -> Result<SemanticApplicationView, conduit_presentation::SemanticPresentationRefusal> {
+    let purpose = purpose_state_from_evidence(evidence)
+        .expect("validated Body evidence must project valid purpose");
+    let guidance = guidance(evidence, playback, &purpose);
     let readiness = derive_fulfillment_readiness(&purpose)
         .expect("validated tutorial purpose must derive readiness");
     let readiness_text = match &readiness {
@@ -101,7 +113,12 @@ pub fn presentation(
 /// No chapter counter, Presenter output, or browser-local interaction can mark
 /// an obligation complete.
 pub fn purpose_state(body: &WorkspaceBody) -> Result<PurposeState, PurposeRefusal> {
-    let evidence = body.evidence();
+    purpose_state_from_evidence(body.evidence())
+}
+
+pub fn purpose_state_from_evidence(
+    evidence: &BodyBiographyEvidence,
+) -> Result<PurposeState, PurposeRefusal> {
     let born = evidence.records.iter().find_map(|record| {
         matches!(record.kind, BodyBiographyRecordKind::Born { .. }).then(|| record.sign_id.clone())
     });
@@ -183,8 +200,11 @@ fn exact_obligation(
     }
 }
 
-fn guidance(body: &WorkspaceBody, playback: TutorialPlayback, purpose: &PurposeState) -> Guidance {
-    let evidence = body.evidence();
+fn guidance(
+    evidence: &BodyBiographyEvidence,
+    playback: TutorialPlayback,
+    purpose: &PurposeState,
+) -> Guidance {
     if matches!(evidence.body.state, BodyState::Fulfilled { .. }) {
         return Guidance {
             phase: "fulfilled",

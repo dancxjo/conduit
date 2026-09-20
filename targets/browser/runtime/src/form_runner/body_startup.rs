@@ -2,12 +2,25 @@
 use conduit_body::{BodyBiographyEvidence, BodyPlan, BodyPlayIdentity, BodyStartup, Wake};
 
 pub(super) fn prepare(
+    projected: Option<&BodyBiographyEvidence>,
+    plan: &BodyPlan,
+    play: &BodyPlayIdentity,
+) -> Result<Option<BodyStartup>, String> {
+    let Some(projected) = projected else {
+        return Ok(None);
+    };
+    projected
+        .startup_for_play(plan, play)
+        .map(Some)
+        .map_err(|error| format!("startup lifecycle: {error:?}"))
+}
+
+pub(super) fn project_started_evidence(
     evidence: Option<&BodyBiographyEvidence>,
     wake: &Wake,
     plan: &BodyPlan,
-    play: &BodyPlayIdentity,
     started: &Wake,
-) -> Result<Option<BodyStartup>, String> {
+) -> Result<Option<BodyBiographyEvidence>, String> {
     let Some(evidence) = evidence else {
         return Ok(None);
     };
@@ -25,8 +38,5 @@ pub(super) fn prepare(
     projected
         .append_wake(projected.body.clone(), started.clone(), sequence)
         .map_err(|error| format!("startup history projection: {error:?}"))?;
-    projected
-        .startup_for_play(plan, play)
-        .map(Some)
-        .map_err(|error| format!("startup lifecycle: {error:?}"))
+    Ok(Some(projected))
 }
