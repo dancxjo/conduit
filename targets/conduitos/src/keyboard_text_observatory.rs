@@ -72,38 +72,14 @@ pub fn completed_snapshot(
             )),
             provider_generation: base.provider_generation,
             kind_id: HostBaseKindId::from(format!("conduitos.base/{}@1", base.kind.as_str())),
+            implementation_id: None,
+            enforcement_class: None,
+            lifecycle: None,
             state: OperationalState::Available,
             capacity_units: u64::from(base.capacity),
         })
         .collect::<Vec<_>>();
-    let keyboard = offer
-        .keyboard
-        .ok_or(ExportError::InvalidSnapshot)?
-        .realization;
-    for (id, kind, capacity) in [
-        (keyboard.controller_id, "xhci", 1_u64),
-        (keyboard.device_id, "usb-device", 1),
-        (keyboard.interface_id, "usb-interface", 1),
-        (
-            keyboard.endpoint_id,
-            "usb-interrupt-endpoint",
-            u64::from(keyboard.report_buffers),
-        ),
-    ] {
-        bases.push(BaseReport {
-            host_id: host_id.clone(),
-            boot_id: boot_id.clone(),
-            base_id: HostBaseId::from(crate::identity::hex(&id)),
-            provider_instance_id: conduit_core::BaseInstanceId::from(format!(
-                "{}/provider/1",
-                crate::identity::hex(&id)
-            )),
-            provider_generation: 1,
-            kind_id: HostBaseKindId::from(format!("conduitos.base/{kind}@1")),
-            state: OperationalState::Available,
-            capacity_units: capacity,
-        });
-    }
+    crate::observatory::append_advertised_bases(&mut bases, &prepared.advertisement);
     crate::observatory::append_framebuffer_base(&mut bases, &host_id, &boot_id, framebuffer)?;
     let play = PlayReport {
         active_play_id: prepared.active_play.active_play_id.clone(),
@@ -239,5 +215,96 @@ fn observation(
         placement_id,
         connection_id: None,
         kind,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        identity::BootIdentities,
+        keyboard_offer::{KeyboardMechanism, KeyboardRealization},
+        offer::{CpuFeatures, HostOffer},
+    };
+
+    #[test]
+    fn snapshot_reports_the_exact_keyboard_base_that_drove_planning() {
+        let identities = BootIdentities {
+            host: [1; 32],
+            boot: [2; 32],
+        };
+        let offer = HostOffer::new(
+            &identities,
+            "build",
+            CpuFeatures {
+                sse2: true,
+                rdrand: true,
+                invariant_tsc: true,
+            },
+            1_048_576,
+        )
+        .with_keyboard(
+            KeyboardRealization {
+                mechanism: KeyboardMechanism::UsbHid,
+                controller_id: [3; 32],
+                device_id: [4; 32],
+                interface_id: [5; 32],
+                endpoint_id: [6; 32],
+                report_buffers: 2,
+                transition_slots: 8,
+                operation_slots: 2,
+            },
+            "build",
+        )
+        .unwrap();
+        let prepared = crate::keyboard_text_plan::prepare(&identities, &offer, "build").unwrap();
+        let record = BootRecord {
+            firmware: crate::boot::Firmware::X86Bios,
+            timestamp: 1,
+            hhdm_offset: 2,
+            rsdp_address: None,
+            image_physical_start: 3,
+            image_length: 4,
+            memory_region_count: 5,
+            artifact_count: 0,
+            framebuffer_count: 0,
+            command_line_bytes: 0,
+            runtime_arena: crate::boot::RuntimeArena {
+                physical_start: 6,
+                length: 1_048_576,
+            },
+        };
+        let encoded = completed_snapshot(
+            &record,
+            &identities,
+            &offer,
+            &prepared,
+            "build",
+            "image",
+            None,
+        )
+        .unwrap();
+        let snapshot: ObservatorySnapshot = serde_json::from_str(&encoded).unwrap();
+        validate_snapshot(&snapshot).unwrap();
+        let advertised = &prepared.advertisement.bases[0];
+        let reported = snapshot
+            .bases
+            .iter()
+            .find(|base| base.base_id == advertised.base_id)
+            .unwrap();
+        assert_eq!(
+            reported.provider_instance_id,
+            advertised.provider_instance_id
+        );
+        assert_eq!(reported.provider_generation, advertised.provider_generation);
+        assert_eq!(
+            reported.implementation_id.as_ref(),
+            Some(&advertised.implementation_id)
+        );
+        assert_eq!(
+            reported.enforcement_class,
+            Some(advertised.enforcement_class)
+        );
+        assert_eq!(reported.lifecycle, Some(advertised.lifecycle));
     }
 }

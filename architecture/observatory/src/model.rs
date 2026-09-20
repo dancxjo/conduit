@@ -90,6 +90,12 @@ pub struct BaseReport {
     pub provider_instance_id: conduit_core::BaseInstanceId,
     pub provider_generation: u64,
     pub kind_id: HostBaseKindId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub implementation_id: Option<conduit_core::BaseImplementationId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enforcement_class: Option<conduit_core::BaseEnforcementClass>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lifecycle: Option<conduit_core::BaseLifecycle>,
     pub state: OperationalState,
     pub capacity_units: u64,
 }
