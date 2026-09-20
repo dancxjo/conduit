@@ -81,6 +81,21 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "semantic contract owner",
     ),
     (
+        "semantics/catalog/src/quantity_info.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
+        "semantics/catalog/src/quantity_mapping.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
+        "semantics/catalog/src/normalized_quantity.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
         "semantics/catalog/src/text_state.rs",
         0,
         "semantic contract owner",
@@ -144,6 +159,11 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "fully migrated",
     ),
     (
+        "targets/browser/runtime/src/installed_browser/normalized_quantity.rs",
+        0,
+        "fully migrated",
+    ),
+    (
         "targets/browser/runtime/src/installed_browser/structured_selector.rs",
         0,
         "fully migrated",
@@ -175,6 +195,16 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     ("targets/std/offers/src/json.rs", 0, "fully migrated"),
     ("targets/std/offers/src/flow_state.rs", 0, "fully migrated"),
+    (
+        "targets/std/offers/src/quantity_info.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/std/offers/src/quantity_mapping.rs",
+        0,
+        "fully migrated",
+    ),
     (
         "targets/std/offers/src/pattern_comparison.rs",
         0,
