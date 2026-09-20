@@ -862,7 +862,7 @@ fn workflow_keeps_focused_candidates_and_exhaustive_promotions_distinct() {
     ));
     assert!(workflow.contains("name: esp32-firmware-${{ matrix.target }}"));
     assert!(workflow.contains(
-        "inputs.full_suite && '[\"kernel\",\"xhci\",\"usb\",\"hid\",\"keyboard\",\"front-door\",\"product-journey\",\"rescue\"]'"
+        "inputs.full_suite && '[\"kernel\",\"xhci\",\"usb\",\"hid\",\"keyboard\",\"front-door\",\"product-journey\",\"rescue\",\"emergency-halt\"]'"
     ));
     assert!(workflow
         .contains("inputs.full_suite && '[\"aarch64\",\"ia32\",\"riscv64\",\"loongarch64\"]'"));
