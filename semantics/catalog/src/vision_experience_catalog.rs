@@ -6,7 +6,7 @@ use conduit_core::{
     StructuredInfoType,
 };
 
-use crate::{image_resource_type, vision_detections_type};
+use crate::{image_resource_type, local_vision_object_observations_type};
 
 pub const VISION_NORMALIZE_KIND: &str = "vision/normalize";
 pub const VISION_MOTION_KIND: &str = "vision/local-motion";
@@ -17,6 +17,7 @@ pub const VISION_DESCRIBE_KIND: &str = "vision/model-describe";
 pub const VISION_EXPERIENCE_KIND: &str = "vision/relate-experience";
 
 pub const VISION_MOTIONS_TYPE: &str = "VisionMotionsFour";
+pub const VISION_OBJECTS_TYPE: &str = "VisionLocalObjectObservationsFour";
 pub const VISION_TEXTS_TYPE: &str = "VisionTextsEight";
 pub const VISION_TRACKS_TYPE: &str = "VisionTracksFour";
 pub const VISUAL_IMPRESSION_TYPE: &str = "VisualImpression";
@@ -90,6 +91,7 @@ pub fn vision_experience_registered_types() -> Vec<(&'static str, StructuredInfo
             crate::LOCAL_VISION_MOTION_OBSERVATION_TYPE,
             crate::local_vision_motion_observation_type(),
         ),
+        (VISION_OBJECTS_TYPE, local_vision_object_observations_type()),
         (VISION_TEXTS_TYPE, vision_texts_type()),
         (VISION_TRACKS_TYPE, vision_tracks_type()),
         (VISUAL_IMPRESSION_TYPE, visual_impression_type()),
@@ -100,7 +102,7 @@ pub fn vision_experience_registered_types() -> Vec<(&'static str, StructuredInfo
 pub fn vision_experience_kind_contracts() -> Vec<(KindId, Vec<PortDescriptor>, Vec<PortDescriptor>)>
 {
     let image = image_resource_type();
-    let detections = vision_detections_type();
+    let detections = local_vision_object_observations_type();
     let motions = vision_motions_type();
     let texts = vision_texts_type();
     let tracks = vision_tracks_type();

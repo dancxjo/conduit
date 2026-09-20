@@ -16,7 +16,7 @@ export class CrecheRendezvousRefusal extends Error {
 
 export function decodeRendezvousCode(value) {
   const raw = String(value ?? "").trim();
-  if (raw.startsWith("{")) return decodeRemoteDescriptor(raw);
+  if (raw.startsWith("conduit-rendezvous-v1:")) return decodeRemoteDescriptor(raw);
   const normalized = raw.toUpperCase();
   const websocket = WEBSOCKET_CODE_PATTERN.exec(normalized);
   const serial = SERIAL_CODE_PATTERN.exec(normalized);
@@ -38,50 +38,18 @@ export function decodeRendezvousCode(value) {
 
 function decodeRemoteDescriptor(raw) {
   let descriptor;
-  try { descriptor = JSON.parse(raw); }
-  catch (error) { refuse("InvalidDescriptor", "remote rendezvous descriptor is not valid JSON", error); }
-  const keys = Object.keys(descriptor ?? {}).sort().join(",");
-  const expectedKeys = ["candidates", "schema", "session_secret"].sort().join(",");
-  if (keys !== expectedKeys
-    || descriptor.schema !== "conduit.host/rendezvous-descriptor@1"
-    || !Array.isArray(descriptor.candidates) || descriptor.candidates.length < 1
-    || descriptor.candidates.length > 4
-    || !byteSequence(descriptor.session_secret, 32)
-    || descriptor.session_secret.every((byte) => byte === 0)) {
-    refuse("InvalidDescriptor", "remote rendezvous descriptor is stale, insecure, or outside its finite policy");
-  }
-  const seen = new Set();
+  try { descriptor = decodeRendezvousManifestation(raw); }
+  catch (error) { refuse("InvalidDescriptor", "remote rendezvous descriptor is not canonical bounded CBOR", error); }
   const candidates = descriptor.candidates.map((candidate) => {
-    const candidateKeys = Object.keys(candidate ?? {}).sort().join(",");
-    const expectedCandidateKeys = ["attempt_timeout_millis", "authentication", "candidate_id",
-      "expires_at_millis", "line_family", "maximum_attempts", "reachability"].sort().join(",");
-    const authenticationKeys = Object.keys(candidate?.authentication ?? {}).sort().join(",");
-    if (candidateKeys !== expectedCandidateKeys
-      || authenticationKeys !== "server_identity,transport_binding_sha256"
-      || typeof candidate.candidate_id !== "string" || candidate.candidate_id.length < 1
-      || candidate.candidate_id.length > 256 || seen.has(candidate.candidate_id)
-      || !Number.isSafeInteger(candidate.expires_at_millis) || candidate.expires_at_millis <= Date.now()
-      || !Number.isSafeInteger(candidate.maximum_attempts) || candidate.maximum_attempts < 1
-      || candidate.maximum_attempts > 3
-      || !Number.isSafeInteger(candidate.attempt_timeout_millis)
-      || candidate.attempt_timeout_millis < 1 || candidate.attempt_timeout_millis > 30_000
-      || typeof candidate.reachability !== "string" || candidate.reachability.length < 1
-      || candidate.reachability.length > 256
-      || typeof candidate.authentication.server_identity !== "string"
-      || candidate.authentication.server_identity.length < 1
-      || candidate.authentication.server_identity.length > 256
-      || !byteSequence(candidate.authentication.transport_binding_sha256, 32)
-      || candidate.authentication.transport_binding_sha256.every((byte) => byte === 0)) {
-      refuse("InvalidDescriptor", "remote rendezvous candidate is stale, duplicated, or outside its finite policy");
-    }
-    seen.add(candidate.candidate_id);
     if (candidate.line_family !== "authenticated-tls-stream") {
       return Object.freeze({ supported: false, candidate_id: candidate.candidate_id });
     }
     let endpoint;
     try { endpoint = new URL(candidate.reachability); }
     catch (error) { refuse("InvalidDescriptor", "remote rendezvous endpoint is malformed", error); }
-    if (endpoint.protocol !== "wss:" || endpoint.hostname !== candidate.authentication.server_identity) {
+    if (endpoint.protocol !== "wss:" || endpoint.hostname !== candidate.server_identity
+      || endpoint.pathname !== "/conduit" || endpoint.username || endpoint.password
+      || endpoint.search || endpoint.hash) {
       refuse("InvalidDescriptor", "remote rendezvous server identity does not match its secure endpoint");
     }
     return Object.freeze({
@@ -90,7 +58,7 @@ function decodeRemoteDescriptor(raw) {
       carrier: "websocket",
       line_id: "conduit-line/authenticated-tls-stream@1",
       url: candidate.reachability,
-      transport_binding_sha256: hexBytes(candidate.authentication.transport_binding_sha256),
+      transport_binding_sha256: hexBytes(candidate.transport_binding_sha256),
       expires_at_millis: candidate.expires_at_millis,
       maximum_attempts: candidate.maximum_attempts,
       attempt_timeout_millis: candidate.attempt_timeout_millis,
@@ -103,7 +71,7 @@ function decodeRemoteDescriptor(raw) {
   return Object.freeze({
     ...selected,
     schema: descriptor.schema,
-    session_secret: new Uint8Array(descriptor.session_secret),
+    session_secret: descriptor.session_secret,
     candidates: Object.freeze(candidates),
   });
 }
@@ -600,3 +568,4 @@ export const CRECHE_RENDEZVOUS_BOUNDS = Object.freeze({
   maximumWaitMillis: MAXIMUM_WAIT_MILLIS,
   maximumSessions: 1,
 });
+import { decodeRendezvousManifestation } from "./rendezvous-cbor.mjs";

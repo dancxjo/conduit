@@ -24,7 +24,7 @@ test("Birth hands off to a Lulled Body; Wake starts listening Forms and reload p
   await expect(page.locator("[data-wake-body]")).toBeHidden();
   const identity = () => page.evaluate(() => globalThis.__conduitWorkspace.current());
   const first = await identity();
-  await expect(page.getByRole("navigation", { name: "Your forms" }).locator("[data-checked-form-id]")).toHaveCount(3);
+  await expect(page.getByRole("navigation", { name: "Your forms" }).locator("[data-checked-form-id]")).toHaveCount(4);
   await page.getByRole("navigation", { name: "Your forms" }).getByRole("button", { name: "Memory Lantern", exact: true }).click();
   const output = page.locator("[data-form-output] output:visible");
   await page.keyboard.press("h");
@@ -136,6 +136,7 @@ test("an intentionally empty Body remains lulled without inventing a Play", asyn
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
+  await page.getByRole("checkbox", { name: "Tutorial", exact: true }).uncheck();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
   await expect(page.getByRole("heading", { name: "No Forms installed", exact: true })).toBeVisible();
@@ -221,6 +222,7 @@ test("a sound-only Body renders the original cue through real browser audio and 
   await page.goto(entrance.url);
   await page.getByLabel('Friendly Body name', { exact: true }).fill('Chime');
   await page.getByRole('checkbox', { name: 'Memory Lantern', exact: true }).uncheck();
+  await page.getByRole('checkbox', { name: 'Tutorial', exact: true }).uncheck();
   await expect(page.getByRole('checkbox', { name: 'Startup Chime', exact: true })).toBeChecked();
   await page.screenshot({ path: testInfo.outputPath('chime-birth.png'), fullPage: true });
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
@@ -247,6 +249,7 @@ test("first-wake audio stays silent after reload of the same Body with a fresh B
   await page.goto(entrance.url);
   await page.getByRole('checkbox', { name: 'Memory Lantern', exact: true }).uncheck();
   await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
+  await page.getByRole('checkbox', { name: 'Tutorial', exact: true }).uncheck();
   await page.getByRole('checkbox', { name: 'First Wake Chime', exact: true }).check();
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
   await page.getByRole('button', { name: 'wake body', exact: true }).click();
@@ -267,6 +270,7 @@ test("first-wake audio stays silent after reload of the same Body with a fresh B
 test("removing the default cue survives reload and a later first-wake installation stays silent", async ({ page }) => {
   await observeRealAudio(page);
   await page.goto(entrance.url);
+  await page.getByRole('checkbox', { name: 'Tutorial', exact: true }).uncheck();
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
   await page.getByRole('button', { name: 'wake body', exact: true }).click();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');

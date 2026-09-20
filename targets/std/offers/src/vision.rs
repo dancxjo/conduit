@@ -42,7 +42,7 @@ fn local_vision_offer(capability: &str, kind: &str, operation: &str) -> Capabili
         capability_id: CapabilityId::from(capability),
         kind_id: kind_id(kind),
         kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::VISION_REVISION,
+            conduit_semantic_catalog::vision_kind_revision(kind),
         ),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(LOCAL_VISION_PROFILE),
@@ -91,6 +91,22 @@ mod tests {
         assert_eq!(
             offers[1].kind_id.as_str(),
             conduit_semantic_catalog::VISION_OBJECTS_KIND
+        );
+        assert_eq!(
+            offers[1].kind_contract_revision.as_str(),
+            conduit_semantic_catalog::VISION_LOCAL_OBJECTS_REVISION
+        );
+        assert_ne!(
+            offers[0].kind_contract_revision,
+            offers[1].kind_contract_revision
+        );
+        assert_eq!(
+            offers[1].outputs[0].value_kind,
+            conduit_semantic_catalog::local_vision_object_observations_type()
+                .profile()
+                .unwrap()
+                .value_kind()
+                .clone()
         );
         for offer in offers {
             assert_eq!(offer.inputs.len(), 1);

@@ -105,6 +105,8 @@ pub mod isolated_base;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub mod isolated_copy_base;
 pub mod microphone_whisper_proof;
+#[cfg(feature = "native-webrtc")]
+pub mod native_webrtc;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub use isolated_copy_base::provider_main as isolated_copy_provider_main;
 #[cfg(all(target_os = "linux", feature = "isolated-http-base"))]
@@ -601,6 +603,9 @@ impl StdHost {
         advertisement
             .capabilities
             .push(hosted_vision::FiniteHostedVisionBase::motion_offer());
+        advertisement
+            .capabilities
+            .push(hosted_vision::FiniteHostedVisionBase::objects_offer());
         advertisement.resources.sort();
         normalize_capability_offers(&mut advertisement.capabilities)?;
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;

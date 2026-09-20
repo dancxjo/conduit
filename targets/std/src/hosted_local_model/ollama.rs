@@ -529,7 +529,7 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                     Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
                 };
                 let generated = match self.chat_present(
-                    super::ollama_present::SYSTEM_POLICY,
+                    prepared.system_policy(),
                     &prepared.semantic_data,
                     maximum_tokens,
                 ) {

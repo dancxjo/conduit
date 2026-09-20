@@ -1,0 +1,41 @@
+; conduit.host/rendezvous-cose-sign1@1
+; A deliberately narrow RFC 9052 COSE_Sign1 profile. The protected header
+; fixes EdDSA and carries the application-selected key identifier. The payload
+; is the canonical conduit.host/rendezvous-cbor@1 item. Verification establishes
+; only the attribution returned by the caller's independent verifier policy.
+
+running-host-rendezvous-sign1 = #6.18([
+  protected: bytes .cbor protected-headers,
+  unprotected: {},
+  payload: bytes .cbor running-host-rendezvous,
+  signature: bytes .size 64
+])
+
+protected-headers = {
+  1: -8,                       ; EdDSA
+  4: bytes .size (1..32)       ; policy-owned key identifier
+}
+
+; Imported verbatim in meaning from running-host-rendezvous-v1.cddl.
+running-host-rendezvous = {
+  0: 1,
+  1: [1*4 rendezvous-candidate],
+  2: bytes .size 32,
+  ? 128: extension,
+  ? 129: extension,
+  ? 130: extension,
+  ? 131: extension
+}
+
+rendezvous-candidate = {
+  0: bounded-text,
+  1: 0 / 1 / 2 / 3,
+  2: bounded-text,
+  3: { 0: bounded-text, 1: bytes .size 32 },
+  4: uint,
+  5: 1..3,
+  6: 1..30000
+}
+
+bounded-text = text .size (1..256)
+extension = bytes .size (0..64)

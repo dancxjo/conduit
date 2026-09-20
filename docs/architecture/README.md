@@ -39,6 +39,7 @@ proposals do not override the current canon.
 - [Bounded addressable resources](resources.md)
 - [Protected resource bindings](protected-resource-bindings.md)
 - [Bounded Copy-a-file execution](bounded-copy-task.md)
+- [Emergency authority reduction](emergency-control.md)
 
 ## lines and observation
 

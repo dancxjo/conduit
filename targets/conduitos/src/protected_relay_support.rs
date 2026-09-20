@@ -11,7 +11,6 @@ use conduit_protected_line::{
     decode_relay_envelope,
 };
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 use crate::{
     arch::VirtioNetReady,
@@ -22,6 +21,7 @@ use crate::{
     },
     virtio_tcp::VirtioTcpEndpoint,
     virtio_tls::{self, VirtioTlsError, VirtioWebSocketRunError},
+    wss_candidate_support::{certificate_matches, locator_matches},
 };
 
 const ATTACH_SCHEMA: &str = "conduit.relay/attach@1";
@@ -139,8 +139,10 @@ fn validate_transport_binding<E>(
     ) {
         return Err(ConduitOsRelayRefusal::EndpointBinding);
     }
-    let digest: [u8; 32] = Sha256::digest(pinned_certificate_der).into();
-    if digest != candidate.identity.certificate_binding_sha256 {
+    if !certificate_matches(
+        candidate.identity.certificate_binding_sha256,
+        pinned_certificate_der,
+    ) {
         return Err(ConduitOsRelayRefusal::CertificateBinding);
     }
     let outer_bytes = RELAY_ENVELOPE_OVERHEAD_BYTES
@@ -155,26 +157,6 @@ fn validate_transport_binding<E>(
         ));
     }
     Ok(())
-}
-
-fn locator_matches(locator: &str, server_identity: &str, port: u16) -> bool {
-    let Some(rest) = locator.strip_prefix("wss://") else {
-        return false;
-    };
-    let Some((authority, path)) = rest.split_once('/') else {
-        return false;
-    };
-    if path != "conduit" {
-        return false;
-    }
-    if port == 443 && authority == server_identity {
-        return true;
-    }
-    authority
-        .strip_prefix(server_identity)
-        .and_then(|suffix| suffix.strip_prefix(':'))
-        .and_then(|value| value.parse::<u16>().ok())
-        == Some(port)
 }
 
 enum RelayOperationRefusal<E> {

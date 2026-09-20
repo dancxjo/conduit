@@ -2,13 +2,17 @@
 use crate::WorkspaceBody;
 use alloc::{format, vec, vec::Vec};
 use conduit_body::{
-    BodyBiographyRecordKind, BodyState, FulfillmentReadiness, PurposeCompletionPolicy,
-    PurposeObligation, PurposeObligationState, PurposeRefusal, PurposeState, WakeLifecycleEvent,
-    derive_fulfillment_readiness,
+    BodyBiographyEvidence, BodyBiographyRecordKind, BodyState, FulfillmentReadiness,
+    PurposeCompletionPolicy, PurposeObligation, PurposeObligationState, PurposeRefusal,
+    PurposeState, WakeLifecycleEvent, derive_fulfillment_readiness,
 };
 use conduit_presentation::{
-    ActionAvailability, ApplicationEventKind, PresentationMechanism, SemanticAction,
+    ActionAvailability, ApplicationEventKind, Face, FaceContext, FaceFocus,
+    GenerativePresenterBounds, GenerativePresenterRefusal, GenerativePresenterRequest,
+    OrifinaPresentationRefusal, Presentation, PresentationAction, PresentationActionAvailability,
+    PresentationDisclosureLevel, PresentationError, PresentationMechanism, SemanticAction,
     SemanticApplicationView, SemanticPresentationNode, StatusKind,
+    orifina_completion_presenter_policy, project_orifina_purpose_presentation,
 };
 use serde::{Deserialize, Serialize};
 
@@ -34,13 +38,105 @@ struct Guidance {
     label: &'static str,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TutorialPresenterRefusal {
+    InvalidPurpose(PurposeRefusal),
+    InvalidPurposePresentation(OrifinaPresentationRefusal),
+    InvalidActionPresentation(PresentationError),
+    InvalidRequest(GenerativePresenterRefusal),
+}
+
+/// Build the exact bounded request used to voice the current tutorial state.
+///
+/// Purpose and readiness come from retained Body evidence. The reviewed policy
+/// remains separate implementation input, and the returned action is only a
+/// description: an operator must still select and authorize Fulfillment.
+pub fn generative_request(
+    body: &WorkspaceBody,
+    request_identity: alloc::string::String,
+    presentation_revision: u64,
+    playback: TutorialPlayback,
+) -> Result<GenerativePresenterRequest, TutorialPresenterRefusal> {
+    let purpose = purpose_state(body).map_err(TutorialPresenterRefusal::InvalidPurpose)?;
+    let readiness =
+        derive_fulfillment_readiness(&purpose).map_err(TutorialPresenterRefusal::InvalidPurpose)?;
+    let guidance = guidance(body.evidence(), playback, &purpose);
+    let projection = project_orifina_purpose_presentation(
+        body.evidence().body.body_id.clone(),
+        purpose.revision,
+        &purpose,
+        presentation_revision,
+    )
+    .map_err(TutorialPresenterRefusal::InvalidPurposePresentation)?;
+    let body_subject = format!("body/{}", body.evidence().body.body_id.as_str());
+    let (identity, intent, label) = if matches!(readiness, FulfillmentReadiness::Ready { .. })
+        && !matches!(body.evidence().body.state, BodyState::Fulfilled { .. })
+    {
+        (
+            "body.fulfill",
+            "conduit.intent/fulfill@1",
+            "Fulfill this Body",
+        )
+    } else {
+        (
+            guidance.action,
+            "conduit.intent/tutorial-next@1",
+            guidance.label,
+        )
+    };
+    let presentation = Presentation::new_with_semantics(
+        projection.revision,
+        projection.basis,
+        projection.subjects,
+        projection.relationships,
+        projection.properties,
+        projection.text,
+        vec![PresentationAction {
+            identity: identity.into(),
+            intent: intent.into(),
+            target: body_subject,
+            label: label.into(),
+            disclosure: PresentationDisclosureLevel::CurrentAction,
+            availability: PresentationActionAvailability::Available,
+        }],
+        projection.disclosures,
+    )
+    .map_err(TutorialPresenterRefusal::InvalidActionPresentation)?;
+    GenerativePresenterRequest::from_face(
+        request_identity,
+        orifina_completion_presenter_policy(),
+        &Face {
+            context: FaceContext::Overview,
+            focus: FaceFocus::Body,
+            presentation,
+            application_actions: vec![],
+            operator_actions: vec![],
+        },
+        None,
+        GenerativePresenterBounds::reviewed_default(),
+    )
+    .map_err(TutorialPresenterRefusal::InvalidRequest)
+}
+
 pub fn presentation(
     body: &WorkspaceBody,
     revision: u32,
     playback: TutorialPlayback,
 ) -> Result<SemanticApplicationView, conduit_presentation::SemanticPresentationRefusal> {
-    let purpose = purpose_state(body).expect("validated Body evidence must project valid purpose");
-    let guidance = guidance(body, playback, &purpose);
+    presentation_from_evidence(body.evidence(), revision, playback)
+}
+
+/// Project tutorial guidance from an exact retained Body biography at a Host
+/// boundary. This lets the ordinary resident Tutorial Form consume the same
+/// semantic truth without reaching through a product-owned `WorkspaceBody`.
+pub fn presentation_from_evidence(
+    evidence: &BodyBiographyEvidence,
+    revision: u32,
+    playback: TutorialPlayback,
+) -> Result<SemanticApplicationView, conduit_presentation::SemanticPresentationRefusal> {
+    let purpose = purpose_state_from_evidence(evidence)
+        .expect("validated Body evidence must project valid purpose");
+    let guidance = guidance(evidence, playback, &purpose);
     let readiness = derive_fulfillment_readiness(&purpose)
         .expect("validated tutorial purpose must derive readiness");
     let readiness_text = match &readiness {
@@ -101,7 +197,12 @@ pub fn presentation(
 /// No chapter counter, Presenter output, or browser-local interaction can mark
 /// an obligation complete.
 pub fn purpose_state(body: &WorkspaceBody) -> Result<PurposeState, PurposeRefusal> {
-    let evidence = body.evidence();
+    purpose_state_from_evidence(body.evidence())
+}
+
+pub fn purpose_state_from_evidence(
+    evidence: &BodyBiographyEvidence,
+) -> Result<PurposeState, PurposeRefusal> {
     let born = evidence.records.iter().find_map(|record| {
         matches!(record.kind, BodyBiographyRecordKind::Born { .. }).then(|| record.sign_id.clone())
     });
@@ -183,8 +284,11 @@ fn exact_obligation(
     }
 }
 
-fn guidance(body: &WorkspaceBody, playback: TutorialPlayback, purpose: &PurposeState) -> Guidance {
-    let evidence = body.evidence();
+fn guidance(
+    evidence: &BodyBiographyEvidence,
+    playback: TutorialPlayback,
+    purpose: &PurposeState,
+) -> Guidance {
     if matches!(evidence.body.state, BodyState::Fulfilled { .. }) {
         return Guidance {
             phase: "fulfilled",
