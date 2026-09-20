@@ -137,6 +137,31 @@ impl LlmSemanticContract {
             && self.result_payload_kind == offered.result_payload_kind
             && self.bounds == offered.bounds
     }
+
+    pub fn into_capability_contract(self) -> conduit_core::SemanticCapabilityContract {
+        conduit_core::SemanticCapabilityContract {
+            startup_parameters: [
+                "maximum-input-bytes",
+                "maximum-context-items",
+                "maximum-output-bytes",
+                "maximum-work-units",
+                "maximum-history-items",
+            ]
+            .into_iter()
+            .map(|name| conduit_core::FaceStartupParameter {
+                name: name.into(),
+                value_type: conduit_core::kind_id("value/count"),
+                has_default: true,
+            })
+            .collect(),
+            shorthand: None,
+            kind_id: self.kind_id,
+            kind_contract_revision: self.kind_contract_revision,
+            inputs: self.inputs,
+            outputs: self.outputs,
+            limits: self.limits,
+        }
+    }
 }
 
 pub fn llm_semantic_catalog() -> [LlmSemanticContract; MAXIMUM_LLM_CATALOG_KINDS] {

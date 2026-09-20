@@ -9,8 +9,8 @@
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
     compute_resource_requirement, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ComputeServiceGuarantee, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer,
+    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ComputeServiceGuarantee,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -301,47 +301,31 @@ impl LocalModelOffer {
             ),
         ];
         resource_requirements.sort();
-        CapabilityOffer {
-            startup_parameters: [
-                "maximum-input-bytes",
-                "maximum-context-items",
-                "maximum-output-bytes",
-                "maximum-work-units",
-                "maximum-history-items",
-            ]
-            .into_iter()
-            .map(|name| conduit_core::FaceStartupParameter {
-                name: name.into(),
-                value_type: conduit_core::kind_id("value/count"),
-                has_default: true,
-            })
-            .collect(),
-            shorthand: None,
-            capability_id: CapabilityId::from(alloc::format!(
-                "{LOCAL_MODEL_CAPABILITY_PREFIX}/{}",
-                profile.kind()
-            )),
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            implementation: ImplementationOffer {
+        CapabilityOfferBuilder::new(
+            contract.into_capability_contract(),
+            CapabilityRealization {
+                capability_id: CapabilityId::from(alloc::format!(
+                    "{LOCAL_MODEL_CAPABILITY_PREFIX}/{}",
+                    profile.kind()
+                )),
                 execution_profile_id: ExecutionProfileId::from(LOCAL_MODEL_EXECUTION_PROFILE),
                 implementation_id: ImplementationId::from(LOCAL_MODEL_IMPLEMENTATION),
                 artifact_id: ArtifactId::from(alloc::format!(
                     "{LOCAL_MODEL_ARTIFACT}/{}",
                     self.identity.model_content_identity
                 )),
+                host_operations: vec![operation],
+                resource_requirements,
+                authority_requirements: Vec::new(),
             },
-            host_operations: vec![operation],
-            resource_requirements,
-            authority_requirements: Vec::new(),
-            limits: CapabilityLimits {
-                max_active_instances: self.limits.maximum_in_flight,
-                max_queue_items: self.limits.maximum_queue_items,
-                max_queue_bytes: self.limits.maximum_queue_bytes,
-            },
-        }
+        )
+        .narrow_capacity(CapabilityLimits {
+            max_active_instances: self.limits.maximum_in_flight,
+            max_queue_items: self.limits.maximum_queue_items,
+            max_queue_bytes: self.limits.maximum_queue_bytes,
+        })
+        .expect("validated local-model capacity narrows portable LLM semantics")
+        .build()
     }
 }
 
