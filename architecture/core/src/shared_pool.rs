@@ -1,6 +1,7 @@
 use crate::{
-    ArtifactId, AuthorityGrantId, BootId, CapabilityId, CheckedFace, HostId, ImplementationId,
-    OfferGeneration, PlacementId, Plan, PlanId, ResourceBinding, ResourceObservation, SignId,
+    ArtifactId, AuthorityGrantId, BootId, CapabilityId, CheckedFace, ControlLoopEvent, HostId,
+    ImplementationId, OfferGeneration, PlacementId, Plan, PlanId, PlanningRequestAuthority,
+    PlayUnsatisfiedReason, ResourceBinding, ResourceObservation, SignId,
 };
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -86,6 +87,7 @@ pub struct PoolSelectionEvidence {
     pub selected_realization: Option<u16>,
     pub observation_sign_ids: Vec<SignId>,
     pub disposition: PoolSelectionDisposition,
+    pub sign_id: SignId,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -96,11 +98,13 @@ pub enum PoolSelectionEvidenceError {
     RealizationOutsideEnvelope,
     InvalidDisposition,
     MissingObservation,
+    RequesterOutsidePlan,
 }
 
 impl PoolSelectionEvidence {
     pub fn validate(&self, plan: &Plan) -> Result<(), PoolSelectionEvidenceError> {
         if self.operation_id.as_str().is_empty()
+            || self.sign_id.as_str().is_empty()
             || self
                 .observation_sign_ids
                 .iter()
@@ -138,6 +142,46 @@ impl PoolSelectionEvidence {
             return Err(PoolSelectionEvidenceError::MissingObservation);
         }
         Ok(())
+    }
+
+    /// Convert one terminal finite-envelope search into the ordinary control
+    /// loop transition that requests a replacement Plan. Capacity pressure and
+    /// provider loss cannot silently replan or replay an operation.
+    pub fn exhaustion_replan_events(
+        &self,
+        plan: &Plan,
+        requester_host_id: HostId,
+        requester_boot_id: BootId,
+        authority: PlanningRequestAuthority,
+        request_sign_id: SignId,
+    ) -> Result<[ControlLoopEvent; 2], PoolSelectionEvidenceError> {
+        self.validate(plan)?;
+        if self.disposition != PoolSelectionDisposition::EnvelopeExhausted
+            || self.selected_realization.is_some()
+        {
+            return Err(PoolSelectionEvidenceError::InvalidDisposition);
+        }
+        if !plan.fragments.iter().any(|fragment| {
+            fragment.host_id == requester_host_id && fragment.boot_id == requester_boot_id
+        }) {
+            return Err(PoolSelectionEvidenceError::RequesterOutsidePlan);
+        }
+        let events = [
+            ControlLoopEvent::PlayBecameUnsatisfied {
+                plan_id: plan.plan_id.clone(),
+                reason: PlayUnsatisfiedReason::NoAdmittedPoolRealizationReady,
+                sign_id: self.sign_id.clone(),
+            },
+            ControlLoopEvent::PlanningRequested {
+                prior_plan_id: plan.plan_id.clone(),
+                requester_host_id,
+                requester_boot_id,
+                authority,
+                request_sign_id,
+            },
+        ];
+        debug_assert!(events.iter().all(|event| event.validate().is_ok()));
+        Ok(events)
     }
 }
 

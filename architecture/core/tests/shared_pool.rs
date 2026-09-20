@@ -3,8 +3,9 @@ use conduit_core::{
     CancellationPolicy, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
     ExecutionProfileId, ExpandedFormId, ExpectedSign, ExpectedTerminal, FaceStartupParameter,
     FormIdentity, FragmentId, GearId, HostId, ImplementationId, KindContractRevision, PlacementId,
-    PlanFragment, PlanId, PlannedGear, PlannedSharedPool, PoolDeclarationId, PoolMemberLimits,
-    PoolOperationId, PoolRealizationEnvelope, PoolRealizationHealth, PoolRealizationObservation,
+    PlanFragment, PlanId, PlannedGear, PlannedSharedPool, PlanningRequestAuthority,
+    PlayUnsatisfiedReason, PoolDeclarationId, PoolMemberLimits, PoolOperationId,
+    PoolRealizationEnvelope, PoolRealizationHealth, PoolRealizationObservation,
     PoolSelectionDisposition, PoolSelectionEvidence, PoolSelectionEvidenceError, PortDescriptor,
     PortDirection, PortTemporal, SharedPoolId, SignId, SignStorageBudget, SourceDocumentId,
     TerminalPolicy,
@@ -215,6 +216,7 @@ fn selection_evidence_names_only_one_realization_from_the_immutable_plan() {
         selected_realization: Some(0),
         observation_sign_ids: vec![SignId::from("sign/resource/1")],
         disposition: PoolSelectionDisposition::Selected,
+        sign_id: SignId::from("sign/selection/1"),
     };
     assert_eq!(selected.validate(&plan), Ok(()));
 
@@ -228,7 +230,38 @@ fn selection_evidence_names_only_one_realization_from_the_immutable_plan() {
         selected_realization: None,
         observation_sign_ids: vec![SignId::from("sign/resource/exhausted")],
         disposition: PoolSelectionDisposition::EnvelopeExhausted,
+        sign_id: SignId::from("sign/exhausted"),
         ..selected
     };
     assert_eq!(exhausted.validate(&plan), Ok(()));
+    let events = exhausted
+        .exhaustion_replan_events(
+            &plan,
+            HostId::from("browser-host"),
+            BootId::from("browser-boot"),
+            PlanningRequestAuthority::HostLocal,
+            SignId::from("sign/replan-request"),
+        )
+        .unwrap();
+    assert!(matches!(
+        events[0],
+        conduit_core::ControlLoopEvent::PlayBecameUnsatisfied {
+            reason: PlayUnsatisfiedReason::NoAdmittedPoolRealizationReady,
+            ..
+        }
+    ));
+
+    let mut provider_loss = exhausted;
+    provider_loss.disposition = PoolSelectionDisposition::ProviderLost;
+    provider_loss.selected_realization = Some(0);
+    assert_eq!(
+        provider_loss.exhaustion_replan_events(
+            &plan,
+            HostId::from("browser-host"),
+            BootId::from("browser-boot"),
+            PlanningRequestAuthority::HostLocal,
+            SignId::from("sign/must-not-request")
+        ),
+        Err(PoolSelectionEvidenceError::InvalidDisposition)
+    );
 }
