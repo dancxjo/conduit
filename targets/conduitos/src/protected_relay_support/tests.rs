@@ -188,6 +188,30 @@ fn candidate_binds_exact_wss_endpoint_and_certificate_before_network_work() {
 }
 
 #[test]
+fn provider_instance_names_the_exact_virtio_device() {
+    let identity = crate::arch::VirtioNetIdentity {
+        bus: 0,
+        device: 2,
+        function: 0,
+        mac: [0x52, 0x54, 0, 0x12, 0x34, 0x56],
+        provider_generation: 4,
+        boot_id: [7; 32],
+    };
+    assert!(provider_instance_matches_device(
+        "pci/00:02.0/virtio-net",
+        identity
+    ));
+    assert!(!provider_instance_matches_device(
+        "pci/00:03.0/virtio-net",
+        identity
+    ));
+    assert!(!provider_instance_matches_device(
+        "pci/00:02.0/other",
+        identity
+    ));
+}
+
+#[test]
 fn shared_candidate_attaches_and_carries_the_real_protected_handshake() {
     let descriptor = candidate([1; 32]);
     let binding = binding();

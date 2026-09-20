@@ -105,6 +105,7 @@ mod presentation_offers;
 pub mod protected_line_support;
 #[cfg(feature = "virtio-net-proof")]
 pub mod protected_relay_support;
+pub mod protected_wire_session;
 pub mod protection_domain;
 pub mod rendezvous_descriptor;
 #[cfg(feature = "virtio-net-proof")]
