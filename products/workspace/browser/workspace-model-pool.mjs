@@ -25,6 +25,7 @@ export function prepareWorkspaceModelPool({
     || !Array.isArray(joinedHosts) || joinedHosts.length < envelope.length) {
     throw new Error("Workspace model pool is absent or outside its finite Host bound");
   }
+  const capabilities = [];
   const lines = envelope.map((realization) => {
     const matches = joinedHosts.filter((joined) => joined?.host_id === realization.host_id
       && joined.boot_id === realization.boot_id
@@ -35,6 +36,15 @@ export function prepareWorkspaceModelPool({
     if (matches.length !== 1) {
       throw new Error("planned model realization has no unique exact joined Host Line");
     }
+    const offered = matches[0].advertisement?.capabilities?.filter((capability) =>
+      capability?.capability_id === realization.capability_id
+        && capability.implementation_id === realization.implementation_id
+        && capability.artifact_id === realization.artifact_id) ?? [];
+    if (offered.length !== 1 || offered[0].kind_id !== "ai/generate-text"
+      || offered[0].kind_contract_revision !== "conduit.ai/generate-text@1") {
+      throw new Error("planned model realization lacks one exact ai/generate-text front/back");
+    }
+    capabilities.push(offered[0]);
     return matches[0];
   });
   const runtime = openPool({
@@ -131,6 +141,8 @@ export function prepareWorkspaceModelPool({
               hostId: admission.realization.host_id,
               bootId: admission.realization.boot_id,
               capabilityId: admission.realization.capability_id,
+              member: admission.selection.member,
+              populationAtAdmission: admission.selection.population,
               selectionSignId: evidence.sign_id,
               observationSignIds: Object.freeze([...evidence.observation_sign_ids]),
               result: exchanged.result,
@@ -141,6 +153,12 @@ export function prepareWorkspaceModelPool({
               host_id: execution.hostId,
               boot_id: execution.bootId,
               capability_id: execution.capabilityId,
+              member_key: execution.member.key,
+              member_slot: execution.member.slot,
+              member_epoch: execution.member.epoch,
+              member_node: execution.member.node,
+              member_play: execution.member.play,
+              population_at_admission: execution.populationAtAdmission,
               selection_sign_id: execution.selectionSignId,
               observation_sign_ids: execution.observationSignIds,
               result_bytes: execution.result.byteLength,
@@ -172,6 +190,8 @@ export function prepareWorkspaceModelPool({
         ...identities,
         plan_id: plan.plan_id,
         pool_id: poolId,
+        member_kind_id: capabilities[0].kind_id,
+        member_kind_contract_revision: capabilities[0].kind_contract_revision,
         realization_envelope: Object.freeze(envelope.map((realization) => Object.freeze({
           host_id: realization.host_id,
           boot_id: realization.boot_id,

@@ -17,6 +17,12 @@ use crate::{
 
 pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
     let root = workspace_root().map_err(|error| StepError::prereq("workspace-root", error))?;
+    if args.live_receipt.is_some() && args.proof != ProveTarget::LocalModelPool {
+        return Err(StepError::prereq(
+            "prove.live-receipt",
+            "--live-receipt is valid only for prove local-model-pool",
+        ));
+    }
 
     match args.proof {
         ProveTarget::BluetoothLine => crate::commands::bluetooth::run(&args, &root, opts),
@@ -257,6 +263,12 @@ fn run_local_model_pool(
     if opts.dry_run {
         return run_suite(PROVE_LOCAL_MODEL_POOL_STEPS, root, opts);
     }
+    let live_receipt = args
+        .live_receipt
+        .as_deref()
+        .map(crate::commands::local_model_pool_receipt::read)
+        .transpose()
+        .map_err(|error| StepError::prereq("prove.local-model-pool.live-receipt", error))?;
     let evidence_root = args
         .evidence_root
         .clone()
@@ -336,6 +348,37 @@ fn run_local_model_pool(
             },
         })
         .map_err(|error| StepError::prereq("prove.local-model-pool.evidence", error))?;
+    if let Some((live, bytes)) = live_receipt {
+        let path = evidence.root().join("live-receipt.json");
+        std::fs::write(&path, bytes).map_err(|error| {
+            StepError::prereq(
+                "prove.local-model-pool.live-receipt",
+                format!("cannot retain {}: {error}", path.display()),
+            )
+        })?;
+        evidence
+            .declare(EvidenceOutput {
+                id: "local-model-pool.live-receipt".into(),
+                kind: EvidenceKind::MachineReadableManifest,
+                path: "live-receipt.json".into(),
+                media_type: "application/json".into(),
+                required: true,
+                provenance: EvidenceProvenance {
+                    scenario_id: "local-model-pool.live-two-host@1".into(),
+                    step_id: Some("prove.local-model-pool.live-receipt".into()),
+                    plan_id: Some(live.plan_id().into()),
+                    active_play_id: Some(live.play_id().into()),
+                    asserted_semantic_disposition: Some(format!(
+                        "{} completed operations selected across two exact planned Hosts",
+                        live.operation_count()
+                    )),
+                    proof_class: Some("live-hosted-integration".into()),
+                    physical_evidence: Some(false),
+                    ..Default::default()
+                },
+            })
+            .map_err(|error| StepError::prereq("prove.local-model-pool.evidence", error))?;
+    }
     evidence
         .finish(EvidenceResult::Complete)
         .map_err(|error| StepError::prereq("prove.local-model-pool.evidence", error))

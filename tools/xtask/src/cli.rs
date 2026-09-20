@@ -124,6 +124,11 @@ pub struct ProveArgs {
     #[arg(long)]
     pub evidence_root: Option<std::path::PathBuf>,
 
+    /// Import one bounded live Workspace worker-pool receipt. Valid only for
+    /// `prove local-model-pool`; deterministic proof still runs separately.
+    #[arg(long)]
+    pub live_receipt: Option<std::path::PathBuf>,
+
     /// Explicit USB CDC link port (CDC 0).
     #[arg(long)]
     pub link_port: Option<String>,
@@ -619,11 +624,18 @@ mod tests {
             Command::Prove(args) if args.proof == ProveTarget::LlmCrossHost
         ));
 
-        let local_model_pool = Cli::try_parse_from(["xtask", "prove", "local-model-pool"])
-            .expect("local-model pool proof command parses");
+        let local_model_pool = Cli::try_parse_from([
+            "xtask",
+            "prove",
+            "local-model-pool",
+            "--live-receipt",
+            "live.json",
+        ])
+        .expect("local-model pool proof command parses");
         assert!(matches!(
             local_model_pool.command,
             Command::Prove(args) if args.proof == ProveTarget::LocalModelPool
+                && args.live_receipt.as_deref() == Some(std::path::Path::new("live.json"))
         ));
 
         let degraded = Cli::try_parse_from(["xtask", "prove", "degraded-profiles"])
