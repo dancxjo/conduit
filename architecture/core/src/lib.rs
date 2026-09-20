@@ -111,7 +111,7 @@ pub const SHARED_POOL_ADMIT_AUTHORITY_CONTRACT: &str = "conduit.authority/shared
 pub const SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/shared-pool-admit@1";
 pub const SHARED_POOL_AUTHORITY_SUBJECT_KIND: &str = "conduit/shared-pool";
 /// Explicit semantic contract used when the authored meaning is "any callable
-/// with this exact Front" rather than one particular operation.
+/// with this exact front" rather than one particular operation.
 pub const STRUCTURAL_POLYMORPHIC_CONTRACT: &str = "conduit.semantic/structural-polymorphic@1";
 
 macro_rules! identity_type {

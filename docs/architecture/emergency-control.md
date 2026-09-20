@@ -14,19 +14,19 @@ machine base owns any terminal halt or reset mechanism and must report absence
 rather than substitute a generic implementation.
 
 ConduitOS Ctrl+Alt+Delete deliberately remains a dedicated boot-scoped reboot
-rescue rather than entering this Body-scoped seam. It is available before a
+rescue rather than entering this body-scoped seam. It is available before a
 Body exists, carries authority only from the validated local HID path, and
 requests exactly the architecture reboot base. Routing it through
-`EmergencyControl` would either invent a Body for the no-Form boot case or make
+`EmergencyControl` would either invent a body for the no-form boot case or make
 Body membership a prerequisite for recovering the machine. Its receipt names
 the `conduitos/dedicated-boot-reboot@1` route and `boot` authority scope so the
 special case cannot be mistaken for general emergency-policy admission.
 
 The distinction is about admission scope, not priority: the chord remains
-below ordinary Form/Plan/Play input and therefore works both before any
+below ordinary form/plan/play input and therefore works both before any
 ordinary plan and while a play is active. Other keyboard rescue mechanisms may
 use `EmergencyTriggerClass::LocalKeyboardRescue` when they genuinely operate
-on an admitted Body policy; they must not acquire ConduitOS's local physical
+on an admitted body policy; they must not acquire ConduitOS's local physical
 reboot authority merely by producing equivalent semantic key values.
 
 The acoustic key is three distinct entries from one versioned finite vocabulary.
@@ -58,16 +58,16 @@ sequence matcher, and Body-scoped `EmergencyControl` before accepting PCM. A
 detector match is still
 inert until the complete configured phrase is observed. The complete phrase can
 only request the reductions admitted by `EmergencyPolicy`; it cannot Wake,
-authenticate, grant authority, resume work, or consult a Form, Plan, Play, model,
+authenticate, grant authority, resume work, or consult a form, plan, play, model,
 or transcript. Physical mute, provider loss, replacement generation, sequence
 failure, and input overflow make the adapter unavailable and clear partial
 progress. Recovery requires a fresh adapter admitted against current provider
 truth; it is never an implicit retry.
 
 Remote emergency admission consumes only frames opened by an exact current
-protected Line session. The local adapter additionally pins one current Body
+protected line session. The local adapter additionally pins one current body
 membership credential, peer Host/Boot, and session binding; encrypted reachability
-alone is not authority. Each bounded request carries the exact Body and credential
+alone is not authority. Each bounded request carries the exact body and credential
 identity plus a monotonic session freshness value. The emergency phrase is absent
 from this protocol and knowledge of it grants no remote authority.
 

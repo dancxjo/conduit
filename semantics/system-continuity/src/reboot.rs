@@ -35,7 +35,7 @@ impl RebootRequestId {
 }
 
 /// One optional reboot realization. Its name is provenance; eligibility needs
-/// both the canonical checked Front and the reboot semantic contract.
+/// both the canonical checked front and the reboot semantic contract.
 pub fn delegated_reboot_offer(
     capability_id: CapabilityId,
     implementation_id: ImplementationId,

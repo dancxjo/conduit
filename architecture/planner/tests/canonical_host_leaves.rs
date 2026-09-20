@@ -342,7 +342,7 @@ fn equal_front_and_semantics_with_a_different_name_is_compatible() {
         .unwrap();
     join.kind_id = kind_id("text/coincident-shape");
     let placements = default_expanded_placements(&expanded, std::slice::from_ref(&wrong_kind))
-        .expect("different nominal gear with the same Front and semantic contract is compatible");
+        .expect("different nominal gear with the same front and semantic contract is compatible");
     let plan = plan_expanded_canonical(
         &expanded,
         std::slice::from_ref(&wrong_kind),

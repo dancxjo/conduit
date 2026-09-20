@@ -1,7 +1,7 @@
-//! Canonical ordinary Host session frames over one protected ConduitOS Line.
+//! Canonical ordinary host session frames over one protected ConduitOS line.
 //!
 //! This adapter owns fixed wire storage and the shared `SessionMachine`. It
-//! receives current provider truth from the Host supervisor before every
+//! receives current provider truth from the host supervisor before every
 //! operation; replacement terminally loses this Line and never reconnects.
 
 use conduit_protected_line::ProtectedLineError;

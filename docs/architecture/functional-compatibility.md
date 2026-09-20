@@ -8,10 +8,10 @@
 
 Conduit keeps callable fit separate from semantic substitutability.
 
-> **Equal canonical checked Fronts mean two things can be called the same way. They do not, by themselves, mean the things do the same work.**
+> **Equal canonical checked fronts mean two things can be called the same way. They do not, by themselves, mean the things do the same work.**
 
-Interface compatibility is exact `CheckedFace` equality. Semantic realization
-eligibility additionally requires the candidate to claim the authored Gear's
+Interface compatibility is exact `CheckedFront` equality. Semantic realization
+eligibility additionally requires the candidate to claim the authored gear's
 exact semantic contract identity.
 
 Names remain valuable for authorship, discovery, catalog organization, provenance, diagnostics, sign, and exact realization records. They are not hidden nominal types.
@@ -19,8 +19,8 @@ Names remain valuable for authorship, discovery, catalog organization, provenanc
 Ordinary realization therefore uses both gates:
 
 ```text
-same canonical checked Front + same semantic contract -> eligible
-same Front + different semantic contract               -> ineligible
+same canonical checked front + same semantic contract -> eligible
+same front + different semantic contract               -> ineligible
 different Front                                         -> ineligible
 ```
 
@@ -74,7 +74,7 @@ form loud (
 }
 ```
 
-If another callable thing has the same checked Front as `loud`, it fits that
+If another callable thing has the same checked front as `loud`, it fits that
 boundary. It realizes `loud` only when it also declares the same semantic
 contract. It may still be:
 
@@ -95,7 +95,7 @@ Planning separates **compatibility** from **exact realization**.
 Candidate admission begins with both compatibility relations:
 
 ```text
-gear's required checked Front + semantic contract
+gear's required checked front + semantic contract
         ↓
 Front-compatible realizations of that semantic contract
         ↓
@@ -128,12 +128,12 @@ must eventually be derived from the reviewed semantic contract under #3712.
 Therefore:
 
 ```text
-same Front + same contract + different name/back -> eligible
-same Front + different contract                  -> ineligible
+same front + same contract + different name/back -> eligible
+same front + different contract                  -> ineligible
 different Front + same contract                  -> ineligible
 ```
 
-A semantic-contract change remains incompatible even when the Front does not
+A semantic-contract change remains incompatible even when the front does not
 change. Implementations and artifacts remain exact selected realization facts;
 they are deliberately absent from semantic identity.
 
@@ -145,7 +145,7 @@ Keep these identities separate:
 
 ```text
 source/form/catalog identity
-checked Front identity
+checked front identity
 semantic contract identity
 expanded form identity
 selected implementation/artifact identity
@@ -176,8 +176,8 @@ A host compiled with an opt-in family still advertises only the exact realizatio
 
 A shared pool declaration is the canonical structural higher-order case in the
 current language: it explicitly declares a member Front and bounded membership,
-so its authored meaning is to accept any exact Front-compatible member. This is
-not the default rule for ordinary Gears. A future pool syntax that promises one
+so its authored meaning is to accept any exact front-compatible member. This is
+not the default rule for ordinary gears. A future pool syntax that promises one
 particular worker behavior must additionally carry that semantic contract.
 
 Pool identity, member identity, membership epochs, authority, and finite capacity remain exact runtime/plan facts. front compatibility does not make pools ambient or unbounded.
@@ -244,4 +244,4 @@ This rule does not introduce:
 
 ## Canonical sentence
 
-> **The Front says how to call it. The semantic contract says what it means. The Plan records exactly what was chosen.**
+> **The front says how to call it. The semantic contract says what it means. The plan records exactly what was chosen.**

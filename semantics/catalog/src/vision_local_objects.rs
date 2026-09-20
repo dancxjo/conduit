@@ -278,7 +278,7 @@ fn case(name: &str, value_type: StructuredInfoType) -> StructuredVariantCase {
 }
 
 fn text_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/text@1")).expect("reviewed text")
+    StructuredInfoType::leaf(kind_id("value/text")).expect("reviewed text")
 }
 
 fn count_type() -> StructuredInfoType {
@@ -286,7 +286,7 @@ fn count_type() -> StructuredInfoType {
 }
 
 fn unit_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/unit@1")).expect("reviewed unit")
+    StructuredInfoType::leaf(kind_id("value/unit")).expect("reviewed unit")
 }
 
 fn text_value(value: &str) -> Result<StructuredInfoValue, StructuredInfoRefusal> {

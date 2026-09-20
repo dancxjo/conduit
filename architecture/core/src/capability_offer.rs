@@ -5,7 +5,7 @@ use crate::{
 };
 use alloc::vec::Vec;
 
-/// Portable semantic truth from which a Host may offer one realization.
+/// Portable semantic truth from which a host may offer one realization.
 ///
 /// This deliberately contains no implementation, artifact, Host operation,
 /// resource, or authority identity. Those belong to the realization.
@@ -41,7 +41,7 @@ pub enum CapabilityCapacityError {
     QueueBytes,
 }
 
-/// Canonical constructor for a Host capability offer.
+/// Canonical constructor for a host capability offer.
 ///
 /// Semantic fields are supplied once by the checked contract. A realization
 /// may keep those limits or explicitly narrow them, but cannot broaden them.
