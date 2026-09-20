@@ -117,6 +117,7 @@ fn one_checked_experiencer_moves_between_compatible_hosts_without_changing_meani
         boot_id: BootId::from(format!("experience/{name}/boot")),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(format!("experience/{name}@1")),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![CapabilityOffer {
             startup_parameters: vec![],

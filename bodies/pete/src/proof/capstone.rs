@@ -201,6 +201,7 @@ pub fn capstone_advertisement(
         boot_id: observation.boot_id,
         offer_generation: observation.offer_generation,
         profile: profile.into(),
+        bases: vec![],
         resources,
         capabilities: vec![bump, velocity, select, drive_offer],
         planner_capabilities: Vec::new(),

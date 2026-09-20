@@ -41,6 +41,7 @@ fn host() -> HostAdvertisement {
         boot_id: conduit_core::BootId::from("boot-1"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std"),
+        bases: vec![],
         resources: signal_resource_offers("test/timer", "test/presentation", 4),
         planner_capabilities: vec![],
         capabilities: vec![

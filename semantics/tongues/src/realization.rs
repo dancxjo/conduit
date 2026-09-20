@@ -87,6 +87,7 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
             boot_id: BootId::from(boot),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("conduit.host/tongues-brownfield@1"),
+            bases: vec![],
             resources: {
                 let mut resources = vec![
                     resource_offer(&format!("{host}/cpu-0"), CPU_RESOURCE, 1),

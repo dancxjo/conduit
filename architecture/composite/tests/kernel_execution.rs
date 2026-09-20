@@ -49,6 +49,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test/kernel-composite"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {

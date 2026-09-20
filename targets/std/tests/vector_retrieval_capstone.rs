@@ -219,6 +219,7 @@ fn plan(
         boot_id: BootId::from(BOOT),
         offer_generation: OfferGeneration(state.contract.generation),
         profile: HostProfileId::from("host/vector-capstone@1"),
+        bases: vec![],
         resources: vec![state.contract.planning_offer().unwrap()],
         capabilities: vec![
             hosted_hnsw_vector_search_offer(backend.provider(), backend.profile()).unwrap(),

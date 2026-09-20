@@ -246,6 +246,7 @@ mod tests {
             boot_id: BootId::from("boot/current"),
             offer_generation: OfferGeneration(7),
             profile: HostProfileId::from("fixture/profile@1"),
+            bases: vec![],
             resources: Vec::new(),
             capabilities: vec![offer("button"), offer("haptic")],
             planner_capabilities: Vec::<PlannerCapabilityOffer>::new(),

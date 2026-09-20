@@ -100,6 +100,15 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_string(&mut canonical, gear.capability_id.as_str());
         push_string(&mut canonical, gear.implementation_id.as_str());
         push_string(&mut canonical, gear.artifact_id.as_str());
+        if let Some(base) = &gear.base {
+            push_string(&mut canonical, "base-provider-binding@1");
+            push_string(&mut canonical, base.base_id.as_str());
+            push_string(&mut canonical, base.provider_instance_id.as_str());
+            push_u64(&mut canonical, base.provider_generation);
+            push_string(&mut canonical, base.implementation_id.as_str());
+            push_string(&mut canonical, base.mechanism_family.as_str());
+            canonical.push(base.enforcement_class as u8);
+        }
         push_u32(
             &mut canonical,
             gear.realization_characteristics.len() as u32,

@@ -32,6 +32,7 @@ fn advertisement(id: &str, generation: u64, capacity: u32) -> HostAdvertisement 
         boot_id: BootId::from(format!("{id}/boot/1")),
         offer_generation: OfferGeneration(generation),
         profile: HostProfileId::from(format!("profile/{id}")),
+        bases: vec![],
         resources: vec![resource_offer("execution", "host/execution", capacity)],
         capabilities: vec![],
         planner_capabilities: vec![],

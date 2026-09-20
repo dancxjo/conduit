@@ -19,6 +19,7 @@ fn browser_advertisement(identity: &BrowserAdmissionIdentity) -> HostAdvertiseme
         boot_id: identity.boot_id().clone(),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser/host"),
+        bases: vec![],
         resources: Vec::new(),
         capabilities: Vec::new(),
         planner_capabilities: Vec::new(),

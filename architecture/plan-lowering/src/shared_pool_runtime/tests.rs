@@ -78,6 +78,7 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
             capability_id: CapabilityId::from("coordinator/model-consumer"),
             implementation_id: ImplementationId::from("coordinator/model-consumer@1"),
             artifact_id: ArtifactId::from("coordinator/image@1"),
+            base: None,
             realization_characteristics: vec![],
             limits: CapabilityLimits {
                 max_active_instances: 1,

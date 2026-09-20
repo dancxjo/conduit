@@ -99,6 +99,7 @@ fn advertisement(
         boot_id: BootId::from("boot/time-test"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test/time-host"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![CapabilityOffer {
             startup_parameters,

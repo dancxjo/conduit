@@ -299,6 +299,7 @@ mod tests {
             boot_id: BootId::from("boot/orifinia-voice"),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("voice-host/profile@1"),
+            bases: vec![],
             resources: vec![],
             capabilities: expanded
                 .gears

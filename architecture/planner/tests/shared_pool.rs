@@ -102,6 +102,7 @@ fn host(form: &conduit_form::ExpandedCanonicalForm) -> HostAdvertisement {
         boot_id: BootId::from("browser-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser-profile"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![
             offer_from_front(

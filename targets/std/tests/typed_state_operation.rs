@@ -22,6 +22,7 @@ fn malformed_input_preserves_committed_state_and_is_not_completion() {
         boot_id: BootId::from("state-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("state-test@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: vec![conduit_std_offers::state_value_std_offer("Cell", &ty).unwrap()],

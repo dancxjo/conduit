@@ -90,6 +90,23 @@ fn validate_bases_and_provenance(
             return Err("duplicate Base provider report".to_string());
         }
     }
+    for host in &snapshot.hosts {
+        for advertised in &host.advertisement.bases {
+            if !snapshot.bases.iter().any(|reported| {
+                reported.host_id == host.advertisement.host_id
+                    && reported.boot_id == host.advertisement.boot_id
+                    && reported.base_id == advertised.base_id
+                    && reported.provider_instance_id == advertised.provider_instance_id
+                    && reported.provider_generation == advertised.provider_generation
+                    && reported.kind_id == advertised.mechanism_family
+            }) {
+                return Err(
+                    "advertised Base provider provenance lacks the same Observatory report"
+                        .to_string(),
+                );
+            }
+        }
+    }
 
     let mut provenance_boots = BTreeSet::new();
     for provenance in &snapshot.sealed_boot_provenance {

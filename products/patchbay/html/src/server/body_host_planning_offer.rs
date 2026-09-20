@@ -178,6 +178,7 @@ fn advertisement(evidence: &HostOfferProjection) -> Result<HostAdvertisement, Se
             .profile
             .clone()
             .ok_or_else(|| ServerError::Interaction("planning offer profile is absent".into()))?,
+        bases: vec![],
         resources: evidence.resources.clone(),
         planner_capabilities: Vec::new(),
         capabilities: evidence.capabilities.clone(),

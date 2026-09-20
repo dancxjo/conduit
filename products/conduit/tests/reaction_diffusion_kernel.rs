@@ -181,6 +181,7 @@ fn assert_canonical_example_checks_and_plans() {
         boot_id: BootId::from("boot/reaction-diffusion-kernel"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/reaction-diffusion-kernel@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: vec![reaction_diffusion_std_offer()],

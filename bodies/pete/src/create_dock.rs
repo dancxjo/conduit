@@ -166,6 +166,7 @@ pub fn live_create_dock_advertisement(
         boot_id: observation.boot_id.clone(),
         offer_generation: observation.offer_generation,
         profile: HostProfileId::from(profile),
+        bases: vec![],
         resources,
         capabilities,
         planner_capabilities: Vec::new(),

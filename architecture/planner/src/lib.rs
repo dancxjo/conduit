@@ -481,6 +481,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
                 protected_handles: &mut consumed_protected_handles,
             },
         )?;
+        let base = selected_base_provider(host, capability, &resource_bindings)?;
 
         let mut authority_bindings = Vec::with_capacity(capability.authority_requirements.len());
         for requirement in &capability.authority_requirements {
@@ -542,6 +543,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             capability_id: capability.capability_id.clone(),
             implementation_id: capability.implementation.implementation_id.clone(),
             artifact_id: capability.implementation.artifact_id.clone(),
+            base,
             realization_characteristics: Vec::new(),
             limits: capability.limits.clone(),
             inputs: capability.inputs.clone(),
@@ -897,7 +899,54 @@ fn validate_host_resources(host: &HostAdvertisement) -> Result<(), PlannerError>
             host.host_id.as_str()
         )));
     }
+    for base in &host.bases {
+        if base.lifecycle != conduit_core::BaseLifecycle::Ready
+            || base.base_id.as_str().is_empty()
+            || base.provider_instance_id.as_str().is_empty()
+            || base.provider_generation == 0
+            || base.implementation_id.as_str().is_empty()
+            || base.mechanism_family.as_str().is_empty()
+            || base.capability_ids.is_empty() && base.resource_pool_ids.is_empty()
+            || base.capability_ids.iter().any(|id| {
+                !host
+                    .capabilities
+                    .iter()
+                    .any(|offer| offer.capability_id == *id)
+            })
+            || base
+                .resource_pool_ids
+                .iter()
+                .any(|id| !host.resources.iter().any(|offer| offer.pool_id == *id))
+        {
+            return Err(PlannerError::InvalidResourceContract(format!(
+                "host '{}' has invalid current Base provenance",
+                host.host_id.as_str()
+            )));
+        }
+    }
     Ok(())
+}
+
+fn selected_base_provider(
+    host: &HostAdvertisement,
+    capability: &conduit_core::CapabilityOffer,
+    _resources: &[conduit_core::ResourceBinding],
+) -> Result<Option<conduit_core::BaseProviderBinding>, PlannerError> {
+    let mut owners = host
+        .bases
+        .iter()
+        .filter(|base| base.capability_ids.contains(&capability.capability_id));
+    let Some(owner) = owners.next() else {
+        return Ok(None);
+    };
+    if owners.next().is_some() {
+        return Err(PlannerError::InvalidResourceContract(format!(
+            "capability '{}' has ambiguous Base provenance on host '{}'",
+            capability.capability_id.as_str(),
+            host.host_id.as_str()
+        )));
+    }
+    Ok(Some(owner.binding()))
 }
 
 fn find_capability<'a>(

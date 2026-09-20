@@ -111,6 +111,7 @@ pub fn bind_runtime_offer(
         boot_id: inputs.boot_id.clone(),
         offer_generation: inputs.offer_generation,
         profile: inputs.host_profile,
+        bases: vec![],
         resources,
         capabilities,
         planner_capabilities: inputs.planner_capabilities,

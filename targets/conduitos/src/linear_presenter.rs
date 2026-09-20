@@ -92,6 +92,7 @@ impl LinearPresenter {
             boot_id: boot_id.clone(),
             offer_generation: generation,
             profile: HostProfileId::from(profile_id),
+            bases: vec![],
             resources: vec![resource_offer(RESOURCE_ID, RESOURCE_CLASS, 1)],
             capabilities: vec![renderer_offer(RendererRealizationOffer {
                 capability_id: CapabilityId::from(capability),

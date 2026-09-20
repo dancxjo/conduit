@@ -112,6 +112,7 @@ fn advertisement(host: &str, boot: &str, fixtures: Vec<CapabilityOffer>) -> Host
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(crate::functional_offers::PORTABLE_STATE_INPUT_PROFILE),
+        bases: vec![],
         resources: Vec::new(),
         planner_capabilities: Vec::new(),
         capabilities,

@@ -44,6 +44,7 @@ fn observation() -> CandidateObservation {
             boot_id: BootId::from("boot/browser-a/1"),
             offer_generation: OfferGeneration(4),
             profile: HostProfileId::from("profile/friendly-browser"),
+            bases: vec![],
             resources: vec![
                 ResourceOffer {
                     content: None,

@@ -258,6 +258,7 @@ pub(crate) fn renderer_host(
         boot_id: identity.boot_id.clone(),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("presentation/host@1"),
+        bases: vec![],
         resources: vec![resource_offer(
             &format!("{}/presentation", identity.host_id.as_str()),
             resource_class,

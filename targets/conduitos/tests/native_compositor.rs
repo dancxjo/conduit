@@ -457,6 +457,7 @@ fn native_host() -> HostAdvertisement {
         boot_id: BootId::from("conduitos/boot/1"),
         offer_generation: OfferGeneration(3),
         profile: HostProfileId::from("conduitos/native@1"),
+        bases: vec![],
         resources: vec![resource_offer("surface/main", SURFACE_CLASS, 1)],
         capabilities: vec![renderer_offer(RendererRealizationOffer {
             capability_id: CapabilityId::from("presenter/native"),

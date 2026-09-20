@@ -183,6 +183,7 @@ fn documentary_placement(contract: &conduit_ai::LlmSemanticContract) -> PlannedG
         capability_id: CapabilityId::from("local-model/llm/interpret"),
         implementation_id: ImplementationId::from("std/local-open-weight-model@1"),
         artifact_id: ArtifactId::from("ollama/gpt-oss/20b/q4"),
+        base: None,
         realization_characteristics: vec![],
         limits: CapabilityLimits {
             max_active_instances: 1,

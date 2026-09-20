@@ -147,6 +147,7 @@ pub fn live_indicator_advertisement(
         boot_id: observation.boot_id.clone(),
         offer_generation: observation.offer_generation,
         profile: HostProfileId::from(INDICATOR_PROFILE),
+        bases: vec![],
         resources,
         planner_capabilities: Vec::new(),
         capabilities,

@@ -14,6 +14,7 @@ pub fn standard_planning_fixture(
         boot_id: boot_id.into(),
         offer_generation: conduit_core::OfferGeneration(1),
         profile: conduit_core::HostProfileId::from("planner-test/standard-fixture@1"),
+        bases: vec![],
         resources: vec![
             conduit_core::resource_offer(
                 "planner-test/presentation",

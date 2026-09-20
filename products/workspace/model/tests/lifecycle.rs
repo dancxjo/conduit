@@ -493,6 +493,7 @@ fn advertisement(host_id: HostId, boot_id: BootId, generation: u64) -> HostAdver
         boot_id,
         offer_generation: OfferGeneration(generation),
         profile: HostProfileId::from("test/current-offers@1"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![],
         planner_capabilities: vec![],

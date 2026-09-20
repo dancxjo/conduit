@@ -51,6 +51,7 @@ fn exact_plan(label: &str, host: &str) -> Plan {
             capability_id: CapabilityId::from(format!("{host}/capability")),
             implementation_id: ImplementationId::from(format!("{host}/implementation")),
             artifact_id: ArtifactId::from(format!("{host}/artifact")),
+            base: None,
             realization_characteristics: vec![],
             limits: CapabilityLimits {
                 max_active_instances: 1,

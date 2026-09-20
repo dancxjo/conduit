@@ -149,6 +149,7 @@ fn unchanged_form_selects_direct_front_or_distributed_provider_back_exactly() {
         boot_id: BootId::from("tiny-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("fixture/tiny"),
+        bases: vec![],
         resources: vec![],
         capabilities: offers
             .iter()
@@ -188,6 +189,7 @@ fn unchanged_form_selects_direct_front_or_distributed_provider_back_exactly() {
         boot_id: BootId::from("provider-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("fixture/provider"),
+        bases: vec![],
         resources: vec![
             resource_offer("provider/credential", PROVIDER_CREDENTIAL_CLASS, 1),
             resource_offer("provider/http", PROVIDER_HTTP_RESOURCE, 1),

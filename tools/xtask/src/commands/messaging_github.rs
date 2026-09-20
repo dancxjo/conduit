@@ -247,6 +247,7 @@ fn host(config: &MessagingConfig) -> HostAdvertisement {
         boot_id: BootId::from("github/messaging-live/current"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/messaging-github-live@1"),
+        bases: vec![],
         resources: vec![github_messaging_resource_offer()],
         planner_capabilities: vec![],
         capabilities: vec![message, github_messaging_offer()],

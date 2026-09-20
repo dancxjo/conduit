@@ -26,6 +26,7 @@ fn advertisement(instance: &HostInstance, supports_reboot: bool) -> HostAdvertis
         boot_id: instance.boot_id.clone(),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("fixture/lifecycle"),
+        bases: vec![],
         resources: vec![],
         capabilities: if supports_reboot {
             vec![delegated_reboot_offer(

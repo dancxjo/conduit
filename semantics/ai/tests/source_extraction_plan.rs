@@ -39,6 +39,7 @@ fn host() -> HostAdvertisement {
         boot_id: BootId::from("boot/extraction/1"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("host/extraction@1"),
+        bases: vec![],
         resources: vec![resource_offer(
             "pool/source-reader",
             SOURCE_READER_RESOURCE_CLASS,

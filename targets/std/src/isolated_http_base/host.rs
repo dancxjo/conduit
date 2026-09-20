@@ -5,8 +5,9 @@ use super::{
 };
 use conduit_core::{
     ActivePlayIdentity, ArtifactId, AuthorityGrant, BaseCapabilityAuthority, BaseCapabilityScope,
-    BaseEnforcementClass, BaseImplementationId, BaseInstanceId, BaseOperationClaim,
-    CapabilityEnvelopeId, CapabilityIssueRequest, CapabilityOffer, ExecutionProfileId,
+    BaseEnforcementClass, BaseImplementationId, BaseInstanceId, BaseLifecycle, BaseOperationClaim,
+    BaseProviderEntry, BaseRegistry, BaseRegistryLimits, CapabilityEnvelopeId,
+    CapabilityIssueRequest, CapabilityOffer, ExecutionProfileId, HostBaseId, HostBaseKindId,
     ImplementationId, ResourceGenerationId,
 };
 use std::io;
@@ -42,6 +43,7 @@ impl IsolatedHttpBaseConfig {
 
 pub struct IsolatedHttpHost {
     host: crate::StdHost,
+    registry: BaseRegistry,
     provider: IsolatedHttpBaseConfig,
 }
 
@@ -84,18 +86,59 @@ impl IsolatedHttpHost {
         host.advertisement
             .capabilities
             .retain(|offer| offer.kind_id.as_str() != conduit_web::HTTP_CLIENT_KIND);
-        host.advertisement
-            .capabilities
-            .push(isolated_http_client_offer());
+        let resource_index = host
+            .advertisement
+            .resources
+            .iter()
+            .position(|offer| offer.class_id.as_str() == HTTP_CLIENT_RESOURCE)
+            .ok_or("std Host has no HTTP client resource for the isolated Base")?;
+        let resource = host.advertisement.resources.remove(resource_index);
+        let maximum_advertised_capabilities =
+            u16::try_from(host.advertisement.capabilities.len().saturating_add(1))
+                .map_err(|_| "std Host capability inventory exceeds Base registry bounds")?;
+        let maximum_advertised_resources =
+            u16::try_from(host.advertisement.resources.len().saturating_add(1))
+                .map_err(|_| "std Host resource inventory exceeds Base registry bounds")?;
+        let mut registry = BaseRegistry::new(BaseRegistryLimits {
+            maximum_bases: 1,
+            maximum_capabilities_per_base: 1,
+            maximum_resources_per_base: 1,
+            maximum_advertised_capabilities,
+            maximum_advertised_resources,
+        })
+        .map_err(|error| format!("isolated HTTP Base registry: {error:?}"))?;
+        registry
+            .register(BaseProviderEntry {
+                base_id: HostBaseId::from("std/base/isolated-http"),
+                provider_instance_id: provider.base_instance_id.clone(),
+                provider_generation: provider.provider_generation,
+                implementation_id: BaseImplementationId::from(ISOLATED_HTTP_IMPLEMENTATION),
+                mechanism_family: HostBaseKindId::from("conduit.base/http-client@1"),
+                enforcement_class: BaseEnforcementClass::OsCapabilityMediated,
+                lifecycle: BaseLifecycle::Ready,
+                capabilities: vec![isolated_http_client_offer()],
+                resources: vec![resource],
+            })
+            .map_err(|error| format!("isolated HTTP Base registration: {error:?}"))?;
+        registry
+            .project_ready_into(&mut host.advertisement)
+            .map_err(|error| format!("isolated HTTP Base advertisement: {error:?}"))?;
         host.advertisement.capabilities.sort_by(|left, right| {
             left.capability_id
                 .as_str()
                 .cmp(right.capability_id.as_str())
         });
+        host.advertisement
+            .resources
+            .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
         host.kernel_resources =
             crate::kernel_preparation::KernelResourceLedger::new(&host.advertisement)
                 .map_err(|error| format!("isolated HTTP Base resources: {error}"))?;
-        Ok(Self { host, provider })
+        Ok(Self {
+            host,
+            registry,
+            provider,
+        })
     }
 
     pub fn host(&self) -> &crate::StdHost {
@@ -104,6 +147,10 @@ impl IsolatedHttpHost {
 
     pub fn host_mut(&mut self) -> &mut crate::StdHost {
         &mut self.host
+    }
+
+    pub fn registry(&self) -> &BaseRegistry {
+        &self.registry
     }
 
     pub fn exchange(
@@ -189,6 +236,16 @@ pub(super) fn capability(
     let authority = &placement.authority[0];
     let resource = &placement.resources[0];
     let operation = placement.host_operations[0].clone();
+    let base = placement
+        .base
+        .as_ref()
+        .ok_or("planned HTTP realization has no Base provider provenance")?;
+    if base.provider_instance_id != provider.base_instance_id
+        || base.provider_generation != provider.provider_generation
+        || base.implementation_id.as_str() != ISOLATED_HTTP_IMPLEMENTATION
+    {
+        return Err("planned HTTP Base provider is stale or does not match the executor".into());
+    }
     let envelope_id = CapabilityEnvelopeId::from(format!(
         "http/exact-endpoint/{}/max-{}/{}",
         provider.resource_generation_id.0,
@@ -198,8 +255,8 @@ pub(super) fn capability(
     let scope = BaseCapabilityScope {
         host_id: fragment.host_id.clone(),
         boot_id: fragment.boot_id.clone(),
-        base_instance_id: provider.base_instance_id.clone(),
-        base_provider_generation: provider.provider_generation,
+        base_instance_id: base.provider_instance_id.clone(),
+        base_provider_generation: base.provider_generation,
         plan_id: fragment.plan_id.clone(),
         active_play_id: play.active_play_id.clone(),
         authority_grant_id: authority.grant_id.clone(),

@@ -28,6 +28,7 @@ fn fixture(
         boot_id: BootId::from("workstation/boot"),
         offer_generation: OfferGeneration(generation),
         profile: HostProfileId::from("workstation"),
+        bases: vec![],
         resources: vec![resource_offer(
             "execution",
             "test/execution",

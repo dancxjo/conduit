@@ -30,6 +30,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser/body-camera-realization@1"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![],
         planner_capabilities: vec![],

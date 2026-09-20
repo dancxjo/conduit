@@ -154,6 +154,7 @@ fn advertisement() -> HostAdvertisement {
         boot_id: BootId::from("std-pool-webchat-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std-pool-webchat-profile"),
+        bases: vec![],
         resources: Vec::new(),
         capabilities: conduit_chat::pool_chat_capabilities().into(),
         planner_capabilities: vec![PlannerCapabilityOffer {

@@ -283,6 +283,7 @@ fn advertisement(evidence: &Ssd1306PresenterEvidence) -> HostAdvertisement {
         boot_id: evidence.boot_id.clone(),
         offer_generation: evidence.offer_generation,
         profile: HostProfileId::from(SSD1306_PRESENTER_PROFILE),
+        bases: vec![],
         resources,
         capabilities: vec![capability],
         planner_capabilities: Vec::new(),

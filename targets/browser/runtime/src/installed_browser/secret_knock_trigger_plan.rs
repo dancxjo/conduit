@@ -163,6 +163,7 @@ fn timing_host() -> HostAdvertisement {
         boot_id: BootId::from("std/secret-knock-timing-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/secret-knock-timing@1"),
+        bases: vec![],
         resources: vec![
             resource_offer("std/clock", conduit_core::TIMER_RESOURCE_CLASS, 2),
             resource_offer(

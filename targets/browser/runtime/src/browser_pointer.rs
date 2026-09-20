@@ -423,6 +423,7 @@ pub(crate) fn advertisement() -> HostAdvertisement {
         boot_id: BootId::from("browser-pointer-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(PROFILE),
+        bases: vec![],
         resources: vec![resource_offer(
             "browser-pointer-presentation-slot",
             PRESENTATION_RESOURCE_CLASS,

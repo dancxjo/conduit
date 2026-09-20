@@ -317,6 +317,7 @@ mod tests {
             capability_id: CapabilityId::from("capability/client"),
             implementation_id: ImplementationId::from("implementation/client"),
             artifact_id: ArtifactId::from("artifact/client"),
+            base: None,
             realization_characteristics: vec![],
             limits: CapabilityLimits {
                 max_active_instances: 1,

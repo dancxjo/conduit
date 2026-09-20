@@ -141,6 +141,7 @@ fn proof_host(name: &str, definitions: &[&KindDefinition]) -> HostAdvertisement 
         boot_id: BootId::from(format!("boot/live-{name}")),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("proof/live-conversation-host@1"),
+        bases: vec![],
         resources: vec![],
         capabilities: definitions
             .iter()

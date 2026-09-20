@@ -227,6 +227,7 @@ fn host() -> HostAdvertisement {
         boot_id: BootId::from("boot/geometry-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/geometry-proof@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: geometry_std_offers(),

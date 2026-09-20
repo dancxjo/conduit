@@ -162,6 +162,7 @@ fn advertisement(
         boot_id: BootId::from(hex_identity(&identities.boot)),
         offer_generation: OfferGeneration(fixed.generation),
         profile: HostProfileId::from(fixed.profile),
+        bases: vec![],
         resources: fixed
             .resources
             .iter()

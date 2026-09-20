@@ -173,6 +173,7 @@ fn exercise_ordinary_session(
         boot_id: BootId::from("boot/durable-fixture"),
         offer_generation: OfferGeneration(7),
         profile: HostProfileId::from("profile/durable-fixture"),
+        bases: vec![],
         resources: Vec::new(),
         capabilities: Vec::new(),
         planner_capabilities: Vec::new(),

@@ -215,6 +215,7 @@ fn coordination_host(id: &str, boot_id: BootId) -> HostAdvertisement {
         boot_id,
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("body-coordination/fixture@1"),
+        bases: vec![],
         resources: vec![resource_offer(
             "body-coordination/presentation",
             PRESENTATION_RESOURCE_CLASS,

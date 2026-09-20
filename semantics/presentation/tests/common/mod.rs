@@ -49,6 +49,7 @@ pub fn host(
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("presentation/host@1"),
+        bases: vec![],
         resources: vec![resource_offer(&pool_id, resource_class, 1)],
         capabilities: vec![renderer_offer(RendererRealizationOffer {
             capability_id: CapabilityId::from(capability),

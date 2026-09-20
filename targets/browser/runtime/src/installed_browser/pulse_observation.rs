@@ -90,6 +90,7 @@ mod tests {
             capability_id: offer.capability_id,
             implementation_id: offer.implementation.implementation_id,
             artifact_id: offer.implementation.artifact_id,
+            base: None,
             realization_characteristics: vec![],
             limits: offer.limits,
             inputs: offer.inputs,

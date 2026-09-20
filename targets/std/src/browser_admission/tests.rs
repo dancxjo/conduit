@@ -21,6 +21,7 @@ fn advertisement() -> BrowserAdmissionIngress {
             boot_id: BootId::from("browser/frame-boot"),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("browser/frame-profile"),
+            bases: vec![],
             resources: Vec::new(),
             capabilities: Vec::new(),
             planner_capabilities: Vec::new(),

@@ -92,6 +92,7 @@ pub fn pico_appliance_advertisement(
             boot_id: BootId::from(boot_id),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from(PICO_MINIMAL_PROFILE),
+            bases: vec![],
             resources: vec![],
             capabilities: vec![],
             planner_capabilities: vec![],
@@ -105,6 +106,7 @@ pub fn pico_appliance_advertisement(
         boot_id: BootId::from(boot_id),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(PICO_APPLIANCE_PROFILE),
+        bases: vec![],
         resources: appliance_resources(),
         capabilities: vec![
             appliance_offer(ApplianceOfferSpec {

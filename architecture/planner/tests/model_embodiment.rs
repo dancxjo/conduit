@@ -264,6 +264,7 @@ fn gear(id: &str, kind: &str) -> PlannedGear {
         capability_id: CapabilityId::from(format!("capability/{id}")),
         implementation_id: ImplementationId::from("ollama/gpt-oss:20b/exact-digest"),
         artifact_id: ArtifactId::from("artifact/gpt-oss:20b"),
+        base: None,
         realization_characteristics: vec![],
         limits: CapabilityLimits {
             max_active_instances: 1,

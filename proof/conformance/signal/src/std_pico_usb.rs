@@ -44,6 +44,7 @@ pub fn std_pico_usb_source_advertisement() -> HostAdvertisement {
         boot_id: conduit_core::BootId::from(STD_PICO_USB_SOURCE_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-kernel"),
+        bases: vec![],
         resources: signal_resource_offers("s4/std-pico-timer", "s4/std-unused-presentation", 1)
             .into_iter()
             .filter(|resource| resource.class_id.as_str() == conduit_core::TIMER_RESOURCE_CLASS)
@@ -81,6 +82,7 @@ pub fn std_pico_usb_sink_advertisement() -> HostAdvertisement {
         boot_id: conduit_core::BootId::from(STD_PICO_USB_SINK_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rp2040-kernel"),
+        bases: vec![],
         resources: signal_resource_offers("s4/pico-unused-timer", "s4/pico-cyw43-led", 1)
             .into_iter()
             .filter(|resource| {

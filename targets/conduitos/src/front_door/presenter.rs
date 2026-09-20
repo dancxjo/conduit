@@ -94,6 +94,7 @@ impl FrontDoorPresenter {
             boot_id: boot_id.clone(),
             offer_generation,
             profile: HostProfileId::from(profile_id),
+            bases: vec![],
             resources: vec![resource_offer(SURFACE_ID, SURFACE_CLASS, surface_slots)],
             capabilities: vec![renderer_offer(RendererRealizationOffer {
                 capability_id: CapabilityId::from("conduitos/presenter/native-front-door@1"),

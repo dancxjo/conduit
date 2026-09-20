@@ -131,6 +131,7 @@ fn exact_text_lab_split_plan_with_loss(
         boot_id: BootId::from(TEXT_LAB_NATIVE_BOOT),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("text-lab/native-fixture@1"),
+        bases: vec![],
         resources: vec![
             resource_offer("text-lab/native-input", INPUT_RESOURCE_CLASS, 1),
             resource_offer(
@@ -164,6 +165,7 @@ fn exact_text_lab_split_plan_with_loss(
         boot_id: BootId::from(TEXT_LAB_BROWSER_BOOT),
         offer_generation: OfferGeneration(1),
         profile: conduit_core::HostProfileId::from("browser/text-lab@1"),
+        bases: vec![],
         resources: Vec::new(),
         planner_capabilities: Vec::new(),
         capabilities: vec![browser_text_upper.clone()],

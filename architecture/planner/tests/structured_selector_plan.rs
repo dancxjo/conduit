@@ -126,6 +126,7 @@ fn host(definitions: &[KindDefinition]) -> HostAdvertisement {
         boot_id: BootId::from("std-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test/host"),
+        bases: vec![],
         resources: vec![],
         capabilities: definitions.iter().map(offer).collect(),
         planner_capabilities: vec![],

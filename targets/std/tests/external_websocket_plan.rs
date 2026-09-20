@@ -24,6 +24,7 @@ fn browser() -> HostAdvertisement {
         boot_id: BootId::from("browser-chat-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser"),
+        bases: vec![],
         resources: vec![family.resource],
         planner_capabilities: vec![PlannerCapabilityOffer {
             profile_id: PlannerProfileId::from(conduit_planner::FULL_PLANNER_PROFILE),

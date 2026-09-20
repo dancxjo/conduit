@@ -150,6 +150,7 @@ pub fn live_create_observation_advertisement(
         boot_id: evidence.boot_id.clone(),
         offer_generation: evidence.offer_generation,
         profile: conduit_core::HostProfileId::from(CREATE_OBSERVATION_PROFILE),
+        bases: vec![],
         resources: vec![
             resource_offer(&evidence.serial_base_id, CREATE_UART_BASE_RESOURCE, 1),
             resource_offer(&evidence.robot_identity, CREATE_DEVICE_RESOURCE, 1),

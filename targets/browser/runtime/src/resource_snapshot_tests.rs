@@ -56,6 +56,7 @@ pub(crate) fn placement(
             capability_id: capability,
             implementation_id: "browser/resource-snapshot@1".into(),
             artifact_id: "browser/resource-snapshot@1".into(),
+            base: None,
             realization_characteristics: Vec::new(),
             limits: CapabilityLimits {
                 max_active_instances: 1,

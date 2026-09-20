@@ -256,6 +256,7 @@ fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
         boot_id: BootId::from("boot/schedule-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test/schedule-contract-fixture@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities,

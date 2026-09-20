@@ -445,6 +445,10 @@ pub struct HostAdvertisement {
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
     pub profile: HostProfileId,
+    /// Current Base providers and their ownership of ordinary offers.
+    /// Empty means every advertised capability/resource is Base-free.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub bases: Vec<BaseProviderAdvertisement>,
     pub resources: Vec<ResourceOffer>,
     pub capabilities: Vec<CapabilityOffer>,
     #[serde(default)]
@@ -499,6 +503,9 @@ pub struct PlannedGear {
     pub capability_id: CapabilityId,
     pub implementation_id: ImplementationId,
     pub artifact_id: ArtifactId,
+    /// Exact current provider for Base-backed work. Pure work remains `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base: Option<BaseProviderBinding>,
     #[serde(default)]
     pub realization_characteristics: Vec<RealizationCharacteristic>,
     pub limits: CapabilityLimits,

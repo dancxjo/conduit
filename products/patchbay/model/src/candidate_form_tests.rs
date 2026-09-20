@@ -151,6 +151,7 @@ fn generated_source_grants_no_authority_and_planning_tracks_current_offers() {
         boot_id: BootId::from("boot/vision"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("profile/vision"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: conduit_std_offers::vision_std_offers(),

@@ -364,6 +364,7 @@ pub(super) fn build_advertisement(
         boot_id: config.boot_id,
         offer_generation: config.offer_generation,
         profile: HostProfileId::from("rust-std"),
+        bases: vec![],
         resources,
         planner_capabilities: vec![PlannerCapabilityOffer {
             profile_id: PlannerProfileId::from(conduit_planner::FULL_PLANNER_PROFILE),

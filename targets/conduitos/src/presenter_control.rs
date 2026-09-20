@@ -331,6 +331,7 @@ fn renderer_host(
         boot_id: boot_id.clone(),
         offer_generation: OfferGeneration(generation),
         profile: HostProfileId::from("conduitos/presenter-host@1"),
+        bases: vec![],
         resources: vec![resource_offer(
             &format!("{}/{capability}", host_id.as_str()),
             resource_class,
