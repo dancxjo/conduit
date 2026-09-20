@@ -4,8 +4,7 @@
 //! Front, bounded segment envelope, and content-private execution evidence.
 
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal,
+    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -206,7 +205,7 @@ impl StreamingSpeechCommitter {
 pub fn speech_commit_contract() -> SpeechRecognitionContract {
     SpeechRecognitionContract {
         kind_id: kind_id(SPEECH_COMMIT_KIND),
-        kind_contract_revision: KindContractRevision::from(SPEECH_COMMIT_REVISION),
+        kind_contract_revision: KindIdentity::from(SPEECH_COMMIT_REVISION),
         inputs: vec![flow_port(
             "generated",
             conduit_text::TEXT_VALUE_KIND,

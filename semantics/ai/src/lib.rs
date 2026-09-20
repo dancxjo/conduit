@@ -98,8 +98,8 @@ pub use provider::*;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use serde::{Deserialize, Serialize};
 
@@ -132,7 +132,7 @@ pub enum GenerateTextFailure {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GenerateTextContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub maximum_input_bytes: u64,
@@ -146,7 +146,7 @@ pub struct GenerateTextContract {
 pub fn generate_text_contract() -> GenerateTextContract {
     GenerateTextContract {
         kind_id: kind_id(GENERATE_TEXT_KIND),
-        kind_contract_revision: KindContractRevision::from(GENERATE_TEXT_REVISION),
+        kind_contract_revision: KindIdentity::from(GENERATE_TEXT_REVISION),
         inputs: vec![text_port("prompt", PortDirection::Input)],
         outputs: vec![text_port("text", PortDirection::Output)],
         maximum_input_bytes: MAXIMUM_INPUT_BYTES,

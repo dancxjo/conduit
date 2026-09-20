@@ -1,7 +1,7 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_audio::{Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId};
 use conduit_core::{
-    BaseImplementationId, KindContractRevision, KindId, PortDirection, StructuredFieldValue,
+    BaseImplementationId, KindId, KindIdentity, PortDirection, StructuredFieldValue,
     StructuredInfoType, StructuredInfoValue,
 };
 use conduit_form::{
@@ -164,7 +164,7 @@ fn install_fixture(
     profile
         .insert(KindDefinition {
             kind_id: KindId::from(kind),
-            kind_contract_revision: KindContractRevision::from(
+            kind_contract_revision: KindIdentity::from(
                 offer.kind_contract_revision.as_str().to_string(),
             ),
             inputs: offer.inputs.clone(),
@@ -206,7 +206,7 @@ fn install_raw_fixture(
     profile
         .insert(KindDefinition {
             kind_id: KindId::from(kind),
-            kind_contract_revision: KindContractRevision::from(
+            kind_contract_revision: KindIdentity::from(
                 offer.kind_contract_revision.as_str().to_string(),
             ),
             inputs: Vec::new(),

@@ -10,8 +10,8 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     await_trigger_host_operation_requirement, kind_id, port_id, resource_requirement,
-    ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostOperationRequirement,
-    KindContractRevision, KindId, PortDescriptor, PortDirection, ResourceRequirement, ValuePayload,
+    ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostOperationRequirement, KindId,
+    KindIdentity, PortDescriptor, PortDirection, ResourceRequirement, ValuePayload,
     INPUT_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
@@ -73,12 +73,12 @@ pub fn trigger_value_kind() -> KindId {
     kind_id(TRIGGER_VALUE_KIND)
 }
 
-pub fn trigger_contract_revision() -> KindContractRevision {
-    KindContractRevision::from(TRIGGER_CONTRACT_REVISION)
+pub fn trigger_contract_revision() -> KindIdentity {
+    KindIdentity::from(TRIGGER_CONTRACT_REVISION)
 }
 
-pub fn toggle_contract_revision() -> KindContractRevision {
-    KindContractRevision::from(TOGGLE_CONTRACT_REVISION)
+pub fn toggle_contract_revision() -> KindIdentity {
+    KindIdentity::from(TOGGLE_CONTRACT_REVISION)
 }
 
 pub fn trigger_execution_profile() -> ExecutionProfileId {

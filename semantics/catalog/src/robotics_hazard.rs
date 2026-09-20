@@ -181,7 +181,7 @@ fn limits(maximum_value_bytes: u32) -> CapabilityLimits {
 mod tests {
     use super::*;
     use alloc::collections::BTreeSet;
-    use conduit_core::KindContractRevision;
+    use conduit_core::KindIdentity;
 
     #[test]
     fn portable_contracts_are_exact_distinct_bounded_and_mechanism_free() {
@@ -244,7 +244,7 @@ mod tests {
     fn revisions_are_exact_and_unique() {
         let revisions = robotics_hazard_contracts_with_revisions()
             .into_iter()
-            .map(|(_, revision)| KindContractRevision::from(revision))
+            .map(|(_, revision)| KindIdentity::from(revision))
             .collect::<BTreeSet<_>>();
         assert_eq!(revisions.len(), 5);
     }

@@ -1,8 +1,8 @@
 //! Exact finite normalized-pattern comparison offer.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 
 pub const COMPARE_PATTERN_BROWSER_PROFILE: &str =
@@ -17,9 +17,9 @@ pub const COMPARE_PATTERN_TEMPLATE_OPERATION: &str = "conduit.host/compare-patte
 pub fn offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::compare_normalized_pattern_semantic_contract();
     let kind_id = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("compare-normalized-pattern"),
             execution_profile_id: ExecutionProfileId::from(COMPARE_PATTERN_BROWSER_PROFILE),
             implementation_id: ImplementationId::from(COMPARE_PATTERN_BROWSER_IMPLEMENTATION),

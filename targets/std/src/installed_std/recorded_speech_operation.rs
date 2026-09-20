@@ -2,9 +2,8 @@
 
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, PlannedGear,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
@@ -87,9 +86,9 @@ impl RecordedSpeechOperation {
 }
 
 pub(crate) fn offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_tongues::speech_recognition_contract().into_semantic_capability_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("proof-recorded-speech-recognizer"),
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),

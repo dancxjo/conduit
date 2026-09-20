@@ -5,7 +5,7 @@ use super::{
 };
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_alife::{LENIA_MAXIMUM_FIELD_BYTES, MAXIMUM_PRESENTED_FIELDS};
-use conduit_core::{CapabilityLimits, SemanticCapabilityContract};
+use conduit_core::{CapabilityLimits, Kind};
 
 pub fn alife_contracts() -> Vec<StandardKindContract> {
     vec![
@@ -84,23 +84,23 @@ pub fn scalar_field_presentation_contract() -> StandardKindContract {
     }
 }
 
-pub fn orbium_seed_semantic_contract() -> SemanticCapabilityContract {
+pub fn orbium_seed_semantic_contract() -> Kind {
     semantic_contract(orbium_seed_contract(), conduit_alife::ORBIUM_SEED_REVISION)
 }
 
-pub fn lenia_step_semantic_contract() -> SemanticCapabilityContract {
+pub fn lenia_step_semantic_contract() -> Kind {
     semantic_contract(lenia_step_contract(), conduit_alife::LENIA_STEP_REVISION)
 }
 
-pub fn scalar_field_presentation_semantic_contract() -> SemanticCapabilityContract {
+pub fn scalar_field_presentation_semantic_contract() -> Kind {
     semantic_contract(
         scalar_field_presentation_contract(),
         conduit_alife::SCALAR_FIELD_PRESENTATION_REVISION,
     )
 }
 
-fn semantic_contract(contract: StandardKindContract, revision: &str) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
+    Kind {
         startup_parameters: super::startup_front(&contract.configuration),
         shorthand: None,
         kind_id: contract.kind_id,

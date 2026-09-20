@@ -1,7 +1,7 @@
 use conduit_core::{
     kind_id, port_id, BaseImplementationId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, ImplementationId, ImplementationOffer, KindContractRevision,
-    PortDescriptor, PortDirection, PortTemporal,
+    ExecutionProfileId, ImplementationId, ImplementationOffer, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
@@ -17,7 +17,7 @@ fn tick_current_sink_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("fixture-tick-current-sink"),
         kind_id: kind_id("fixture/tick-current-sink"),
-        kind_contract_revision: KindContractRevision::from("fixture/tick-current-sink@1"),
+        kind_contract_revision: KindIdentity::from("fixture/tick-current-sink@1"),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from("fixture/tick-current-sink@1"),
             implementation_id: ImplementationId::from("fixture/tick-current-sink@1"),

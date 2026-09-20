@@ -1,7 +1,7 @@
 //! One semantic control surface shared by materially different Presenters.
 
 use conduit_core::{
-    CheckedFormId, ExpandedFormId, InfoBool, KindContractRevision, KindId, Quantity, QuantityUnit,
+    CheckedFormId, ExpandedFormId, InfoBool, KindId, KindIdentity, Quantity, QuantityUnit,
     SourceDocumentId, BOOL_INFO_ID, QUANTITY_INFO_ID,
 };
 use conduit_form::{parse, ConfigurationField, KindDefinition, ProfileCatalog};
@@ -107,7 +107,7 @@ impl InteractionConvergenceApplication {
         catalog
             .insert(KindDefinition {
                 kind_id: KindId::from(CONTROL_SURFACE_KIND),
-                kind_contract_revision: KindContractRevision::from(CONTROL_SURFACE_KIND_REVISION),
+                kind_contract_revision: KindIdentity::from(CONTROL_SURFACE_KIND_REVISION),
                 inputs: vec![],
                 outputs: vec![],
                 configuration: Vec::<ConfigurationField>::new(),

@@ -15,7 +15,7 @@ use crate::prelude::*;
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     CapabilityId, CheckedFormId, ConfigurationEntry, ConfigurationValue, ExpandedFormId,
-    FormIdentity, GearId, KindContractRevision, KindId, PortDescriptor, PortDirection, PortId,
+    FormIdentity, GearId, KindId, KindIdentity, PortDescriptor, PortDirection, PortId,
     SourceDocumentId,
 };
 use sha2::{Digest, Sha256};
@@ -85,7 +85,7 @@ pub struct FormDiagnostic {
 pub struct CheckedGear {
     pub gear_id: GearId,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub startup_parameters: Vec<conduit_core::FrontStartupParameter>,
     pub shorthand: Option<(PortId, PortId)>,
     pub inputs: Vec<PortDescriptor>,
@@ -281,7 +281,7 @@ pub struct CheckedCompositeFront {
 pub struct CheckedCompositeBoundary {
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub input_fronts: Vec<CheckedCompositeFront>,
@@ -341,7 +341,7 @@ pub enum ConfigurationRule {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KindDefinition {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub configuration: Vec<ConfigurationField>,
@@ -853,7 +853,7 @@ fn exported_contract_revision(
     kind_id: &KindId,
     inputs: &[CheckedCompositeFront],
     outputs: &[CheckedCompositeFront],
-) -> KindContractRevision {
+) -> KindIdentity {
     let mut canonical = String::from("checked-export-contract:");
     push_identity_field(&mut canonical, kind_id.as_str());
     for (direction, fronts) in [("input", inputs), ("output", outputs)] {
@@ -871,7 +871,7 @@ fn exported_contract_revision(
             );
         }
     }
-    KindContractRevision::from(format!("checked-export:{}", hash_string(&canonical)))
+    KindIdentity::from(format!("checked-export:{}", hash_string(&canonical)))
 }
 
 fn push_identity_field(canonical: &mut String, value: &str) {

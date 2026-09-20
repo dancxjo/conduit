@@ -1,8 +1,6 @@
 //! Portable kind contracts and their finite configuration/terminal behavior.
 use alloc::{string::String, vec::Vec};
-use conduit_core::{
-    CapabilityLimits, ConfigurationValue, KindId, PortDescriptor, SemanticCapabilityContract,
-};
+use conduit_core::{CapabilityLimits, ConfigurationValue, Kind, KindId, PortDescriptor};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -85,8 +83,8 @@ pub struct StandardKindContract {
 }
 
 impl StandardKindContract {
-    pub fn into_semantic_contract(self, revision: &str) -> SemanticCapabilityContract {
-        SemanticCapabilityContract {
+    pub fn into_semantic_contract(self, revision: &str) -> Kind {
+        Kind {
             startup_parameters: crate::startup_front(&self.configuration),
             shorthand: None,
             kind_id: self.kind_id,

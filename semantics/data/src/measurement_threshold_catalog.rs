@@ -2,9 +2,8 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 
@@ -60,9 +59,7 @@ pub fn install_measurement_threshold_catalog(
 pub fn measurement_threshold_presentation_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(MEASUREMENT_THRESHOLD_PRESENTATION_KIND),
-        kind_contract_revision: KindContractRevision::from(
-            MEASUREMENT_THRESHOLD_PRESENTATION_REVISION,
-        ),
+        kind_contract_revision: KindIdentity::from(MEASUREMENT_THRESHOLD_PRESENTATION_REVISION),
         inputs: vec![port(
             "decision",
             &measurement_threshold_decision_type(),
@@ -73,9 +70,9 @@ pub fn measurement_threshold_presentation_definition() -> KindDefinition {
     }
 }
 
-pub fn measurement_threshold_presentation_semantic_contract() -> SemanticCapabilityContract {
+pub fn measurement_threshold_presentation_semantic_contract() -> Kind {
     let definition = measurement_threshold_presentation_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: definition.kind_id,
@@ -93,9 +90,7 @@ pub fn measurement_threshold_presentation_semantic_contract() -> SemanticCapabil
 pub fn measurement_hysteresis_kind_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(MEASUREMENT_HYSTERESIS_KIND),
-        kind_contract_revision: KindContractRevision::from(
-            MEASUREMENT_HYSTERESIS_CONTRACT_REVISION,
-        ),
+        kind_contract_revision: KindIdentity::from(MEASUREMENT_HYSTERESIS_CONTRACT_REVISION),
         inputs: vec![
             port(
                 "profile",
@@ -113,9 +108,9 @@ pub fn measurement_hysteresis_kind_definition() -> KindDefinition {
     }
 }
 
-pub fn measurement_hysteresis_semantic_contract() -> SemanticCapabilityContract {
+pub fn measurement_hysteresis_semantic_contract() -> Kind {
     let definition = measurement_hysteresis_kind_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: definition.kind_id,

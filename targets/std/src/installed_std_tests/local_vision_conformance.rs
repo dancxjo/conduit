@@ -2,7 +2,7 @@ use super::RecordingTimer;
 use crate::hosted_vision::{FiniteHostedVisionBase, HostedVisionFrame};
 use crate::{StdHost, StdHostComposition, StdHostConfig};
 use conduit_core::{
-    authority_grant, BaseImplementationId, BootId, CapabilityId, HostId, KindContractRevision,
+    authority_grant, BaseImplementationId, BootId, CapabilityId, HostId, KindIdentity,
     OfferGeneration, PortTemporal, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
     ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId, ResourceHandleId,
     TerminalDisposition,
@@ -219,7 +219,7 @@ fn catalogs(
     profile
         .insert(KindDefinition {
             kind_id: conduit_core::kind_id(kind),
-            kind_contract_revision: KindContractRevision::from("conduit-test/structured-source@1"),
+            kind_contract_revision: KindIdentity::from("conduit-test/structured-source@1"),
             inputs: Vec::new(),
             outputs: offer.outputs.clone(),
             configuration: vec![ConfigurationField {

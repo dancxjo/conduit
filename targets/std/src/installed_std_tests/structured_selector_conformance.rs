@@ -1,7 +1,7 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{
-    BaseImplementationId, KindContractRevision, KindId, PortDirection, PortTemporal,
-    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    BaseImplementationId, KindId, KindIdentity, PortDirection, PortTemporal, StructuredFieldType,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document,
@@ -216,7 +216,7 @@ fn fixture_definition(
         .unwrap();
     KindDefinition {
         kind_id: offer.kind_id.clone(),
-        kind_contract_revision: KindContractRevision::from(
+        kind_contract_revision: KindIdentity::from(
             offer.kind_contract_revision.as_str().to_string(),
         ),
         inputs: offer.inputs.clone(),

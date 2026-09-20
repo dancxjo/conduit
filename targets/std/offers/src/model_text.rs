@@ -1,8 +1,8 @@
 //! Hosted std realization of validated model-result text projection.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 
 pub const MODEL_RESULT_TO_TEXT_STD_IMPLEMENTATION: &str = "std/model-result-to-text@1";
@@ -49,9 +49,9 @@ fn model_text_offer(
     maximum_output_bytes: u32,
 ) -> CapabilityOffer {
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract.into_semantic_capability_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(MODEL_RESULT_TO_TEXT_STD_PROFILE),
             implementation_id: ImplementationId::from(MODEL_RESULT_TO_TEXT_STD_IMPLEMENTATION),

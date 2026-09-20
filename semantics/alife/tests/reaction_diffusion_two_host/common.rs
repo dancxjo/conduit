@@ -8,7 +8,7 @@ use conduit_alife::{
 use conduit_core::{
     kind_id, port_id, process_owned_line_offer_with_limits, ArtifactId, BaseImplementationId,
     BootId, CapabilityId, CapabilityLimits, CapabilityOffer, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, ImplementationOffer, KindContractRevision, LinkLimits,
+    HostProfileId, ImplementationId, ImplementationOffer, KindIdentity, LinkLimits,
     OfferGeneration, PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -161,7 +161,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog, KindDefinition) {
 fn definition(kind: &str, inputs: &[&str], outputs: &[&str]) -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: inputs
             .iter()
             .enumerate()

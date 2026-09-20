@@ -5,8 +5,8 @@
 //! realization truth below these portable fronts.
 
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use conduit_form::{
     check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindDefinition,
@@ -137,7 +137,7 @@ impl AcousticWindow {
 pub fn speech_window_to_clip_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(SPEECH_WINDOW_TO_CLIP_KIND),
-        kind_contract_revision: KindContractRevision::from(SPEECH_WINDOW_TO_CLIP_REVISION),
+        kind_contract_revision: KindIdentity::from(SPEECH_WINDOW_TO_CLIP_REVISION),
         inputs: vec![port(
             "frames",
             conduit_audio::AUDIO_PCM_INFO_ID,
@@ -157,7 +157,7 @@ pub fn speech_window_to_clip_definition() -> KindDefinition {
 pub fn speech_result_to_event_stream_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(SPEECH_RESULT_TO_EVENT_STREAM_KIND),
-        kind_contract_revision: KindContractRevision::from(SPEECH_RESULT_TO_EVENT_STREAM_REVISION),
+        kind_contract_revision: KindIdentity::from(SPEECH_RESULT_TO_EVENT_STREAM_REVISION),
         inputs: vec![port(
             "result",
             crate::SPEECH_RECOGNITION_RESULT_KIND,
@@ -191,25 +191,22 @@ pub fn speech_result_to_event_stream_limits() -> CapabilityLimits {
     }
 }
 
-pub fn speech_window_to_clip_semantic_contract() -> SemanticCapabilityContract {
+pub fn speech_window_to_clip_semantic_contract() -> Kind {
     semantic_contract(
         speech_window_to_clip_definition(),
         speech_window_to_clip_limits(),
     )
 }
 
-pub fn speech_result_to_event_stream_semantic_contract() -> SemanticCapabilityContract {
+pub fn speech_result_to_event_stream_semantic_contract() -> Kind {
     semantic_contract(
         speech_result_to_event_stream_definition(),
         speech_result_to_event_stream_limits(),
     )
 }
 
-fn semantic_contract(
-    definition: KindDefinition,
-    limits: CapabilityLimits,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn semantic_contract(definition: KindDefinition, limits: CapabilityLimits) -> Kind {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
         kind_id: definition.kind_id,

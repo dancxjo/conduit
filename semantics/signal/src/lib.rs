@@ -25,9 +25,9 @@ pub use canonical::{primary_signal_startup_catalog, signal_startup_catalog};
 use conduit_core::{
     kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
     wait_host_operation_requirement, CapabilityLimits, ConfigurationEntry, ConfigurationValue,
-    ExecutionProfileId, HostOperationRequirement, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, ResourceOffer, ResourceRequirement, SemanticCapabilityContract, ValuePayload,
-    PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
+    ExecutionProfileId, HostOperationRequirement, Kind, KindId, KindIdentity, PortDescriptor,
+    PortDirection, ResourceOffer, ResourceRequirement, ValuePayload, PRESENTATION_RESOURCE_CLASS,
+    TIMER_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
 
@@ -120,13 +120,13 @@ pub fn signal_value_kind() -> KindId {
 }
 
 #[cfg(feature = "host-profile")]
-pub fn pulse_contract_revision() -> KindContractRevision {
-    KindContractRevision::from(PULSE_CONTRACT_REVISION)
+pub fn pulse_contract_revision() -> KindIdentity {
+    KindIdentity::from(PULSE_CONTRACT_REVISION)
 }
 
 #[cfg(feature = "host-profile")]
-pub fn show_contract_revision() -> KindContractRevision {
-    KindContractRevision::from(SHOW_CONTRACT_REVISION)
+pub fn show_contract_revision() -> KindIdentity {
+    KindIdentity::from(SHOW_CONTRACT_REVISION)
 }
 
 #[cfg(feature = "host-profile")]
@@ -202,8 +202,8 @@ pub fn show_inputs() -> Vec<PortDescriptor> {
 
 /// Exact portable pulse contract. Realizations must not restate these fields.
 #[cfg(feature = "host-profile")]
-pub fn pulse_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn pulse_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: pulse_front_startup_parameters(),
         shorthand: None,
         kind_id: pulse_kind(),
@@ -220,8 +220,8 @@ pub fn pulse_semantic_contract() -> SemanticCapabilityContract {
 
 /// Exact portable show contract. Presentation mechanics remain Host facts.
 #[cfg(feature = "host-profile")]
-pub fn show_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn show_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
         kind_id: show_kind(),

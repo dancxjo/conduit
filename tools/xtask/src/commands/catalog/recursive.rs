@@ -66,7 +66,7 @@ fn coverage(host_profile: &str, plan: &conduit_core::Plan) -> Vec<Coverage> {
         .collect()
 }
 
-fn identity(back: &conduit_core::RealizationBack) -> String {
+fn identity(back: &conduit_core::FormBack) -> String {
     format!(
         "canonical-back:{}:{}",
         back.source_document_id.as_str(),

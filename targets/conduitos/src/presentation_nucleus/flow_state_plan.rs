@@ -3,9 +3,9 @@
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection,
-    PortTemporal, Scalar, kind_id, port_id,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindIdentity,
+    OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection, PortTemporal, Scalar,
+    kind_id, port_id,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
@@ -112,7 +112,7 @@ fn source_offer(value: Scalar) -> CapabilityOffer {
             value.raw_microunits()
         )),
         kind_id: kind_id(SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
         implementation: fixture_implementation("conduitos.fixture/flow-source@1"),
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
@@ -134,7 +134,7 @@ fn sink_offer(kind: &str) -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from(format!("{}-capability@1", kind.replace('/', "-"))),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+        kind_contract_revision: KindIdentity::from(SINK_REVISION),
         implementation: fixture_implementation("conduitos.fixture/flow-sink@1"),
         inputs: vec![scalar_port("value", PortDirection::Input)],
         outputs: Vec::new(),

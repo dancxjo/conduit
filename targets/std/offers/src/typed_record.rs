@@ -1,8 +1,8 @@
 //! Hosted std realizations of the transport-neutral typed-record codecs.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 
 pub const TYPED_RECORD_FRAME_STD_IMPLEMENTATION: &str = "std/typed-record-frame@1";
@@ -69,9 +69,9 @@ fn codec_offer(
     let contract = conduit_net::typed_record_semantic_contract(kind)
         .expect("typed-record codec semantic contract exists");
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from("std/typed-record-codec-hosted@1"),
             implementation_id: ImplementationId::from(implementation),

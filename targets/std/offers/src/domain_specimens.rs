@@ -1,9 +1,9 @@
 //! Hosted std realization offers for deterministic education, vision, and robotics specimens.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    SemanticCapabilityContract, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const EDUCATION_PROFILE: &str = "std/education-assessment-hosted@1";
@@ -63,12 +63,7 @@ pub fn robotics_structured_deterministic_offers() -> Vec<CapabilityOffer> {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn offer(
-    contract: SemanticCapabilityContract,
-    profile: &str,
-    artifact: &str,
-    host_operation: &str,
-) -> CapabilityOffer {
+fn offer(contract: Kind, profile: &str, artifact: &str, host_operation: &str) -> CapabilityOffer {
     let maximum_input_bytes = if contract.inputs.is_empty() {
         0
     } else {
@@ -80,9 +75,9 @@ fn offer(
         MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
     };
     let kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!("{profile}/{}", kind.as_str())),
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(format!("{profile}/{}", kind.as_str())),
@@ -105,10 +100,7 @@ fn offer(
 mod tests {
     use super::*;
 
-    fn assert_exact_semantics(
-        offers: &[CapabilityOffer],
-        contracts: &[SemanticCapabilityContract],
-    ) {
+    fn assert_exact_semantics(offers: &[CapabilityOffer], contracts: &[Kind]) {
         for offer in offers {
             let contract = contracts
                 .iter()

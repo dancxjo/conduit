@@ -2,11 +2,10 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
     bind_sign, kind_id, ArtifactId, AuthorityContractId, AuthorityGrantId, AuthorityRequirement,
-    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, CheckedFront, ExecutionProfileId, HostAdvertisement,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, KindContractRevision,
-    LineId, PortDescriptor, PortDirection, PortId, PortTemporal, SemanticCapabilityContract,
-    SignId, PROTOCOL_VERSION,
+    Back, BackOfferBuilder, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFront,
+    ExecutionProfileId, HostAdvertisement, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, Kind, KindIdentity, LineId, PortDescriptor, PortDirection, PortId,
+    PortTemporal, SignId, PROTOCOL_VERSION,
 };
 use conduit_observatory::{HostReport, OperationalState};
 use conduit_wire::SessionBinding;
@@ -41,9 +40,9 @@ pub fn delegated_reboot_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         delegated_reboot_contract(),
-        CapabilityRealization {
+        Back {
             capability_id,
             execution_profile_id: ExecutionProfileId::from("lifecycle/reboot-bounded@1"),
             implementation_id,
@@ -66,12 +65,12 @@ pub fn delegated_reboot_offer(
     .build()
 }
 
-fn delegated_reboot_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn delegated_reboot_contract() -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: Some((PortId::from("request"), PortId::from("receipt"))),
         kind_id: kind_id(REBOOT_OPERATION),
-        kind_contract_revision: KindContractRevision::from(REBOOT_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(REBOOT_CONTRACT_REVISION),
         inputs: vec![PortDescriptor {
             port_id: PortId::from("request"),
             value_kind: kind_id("lifecycle/reboot-request"),
@@ -111,7 +110,7 @@ pub struct RebootRequest {
     pub controller: HostInstance,
     pub target: HostInstance,
     pub required_front: CheckedFront,
-    pub semantic_contract: KindContractRevision,
+    pub semantic_contract: KindIdentity,
     pub selected_line_id: LineId,
 }
 

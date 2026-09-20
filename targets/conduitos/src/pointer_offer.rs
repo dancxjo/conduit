@@ -3,7 +3,7 @@
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, KindContractRevision,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, KindIdentity,
     PortDescriptor, PortDirection, PortTemporal, kind_id, port_id, resource_offer,
 };
 
@@ -190,7 +190,7 @@ pub(crate) fn append_to_advertisement(
             shorthand: None,
             capability_id: CapabilityId::from("conduitos/input-pointer@1"),
             kind_id: kind_id(conduit_semantic_catalog::POINTER_SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from(
+            kind_contract_revision: KindIdentity::from(
                 conduit_semantic_catalog::GENERALIZED_INPUT_REVISION,
             ),
             implementation: conduit_core::ImplementationOffer {

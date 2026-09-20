@@ -16,7 +16,7 @@ use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_audio::{AUDIO_PCM_INFO_ID, MAXIMUM_PCM_FRAME_BYTES, PCM_FRAME_HEADER_ENCODED_LEN};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
     PortDirection, PortTemporal,
 };
 #[cfg(feature = "form-catalog")]
@@ -129,7 +129,7 @@ pub fn install_emergency_observation_catalogs(
         profile
             .insert(KindDefinition {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration: contract

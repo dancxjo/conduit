@@ -1,6 +1,6 @@
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, ImplementationId, SemanticCapabilityContract,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    ImplementationId, Kind,
 };
 
 pub const RECURRENCE_STD_PROFILE: &str = "std/recurrence-kernel@1";
@@ -31,15 +31,15 @@ pub fn calendar_proposal_std_offer() -> CapabilityOffer {
 }
 
 fn offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     capability: &str,
     execution_profile: &str,
     implementation: &str,
     artifact: &str,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(execution_profile),
             implementation_id: ImplementationId::from(implementation),

@@ -5,8 +5,8 @@ use conduit_audio::{
     AUDIO_PCM_INFO_ID, MAXIMUM_PCM_CLIP_BYTES,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 use serde::{Deserialize, Serialize};
@@ -35,15 +35,15 @@ pub const MAXIMUM_RECOGNITION_AUDIO_BYTES: usize = 32_768;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SpeechRecognitionContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
 }
 
 impl SpeechRecognitionContract {
-    pub fn into_semantic_capability_contract(self) -> SemanticCapabilityContract {
-        SemanticCapabilityContract {
+    pub fn into_semantic_capability_contract(self) -> Kind {
+        Kind {
             startup_parameters: Vec::new(),
             shorthand: None,
             kind_id: self.kind_id,
@@ -125,7 +125,7 @@ pub struct RecordedSpeechRecognizer {
 pub fn speech_recognition_contract() -> SpeechRecognitionContract {
     SpeechRecognitionContract {
         kind_id: kind_id(SPEECH_RECOGNIZE_KIND),
-        kind_contract_revision: KindContractRevision::from(SPEECH_RECOGNIZE_REVISION),
+        kind_contract_revision: KindIdentity::from(SPEECH_RECOGNIZE_REVISION),
         inputs: vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Input)],
         outputs: vec![port(
             "result",
@@ -143,7 +143,7 @@ pub fn speech_recognition_contract() -> SpeechRecognitionContract {
 pub fn speech_clip_recognition_contract() -> SpeechRecognitionContract {
     SpeechRecognitionContract {
         kind_id: kind_id(SPEECH_RECOGNIZE_CLIP_KIND),
-        kind_contract_revision: KindContractRevision::from(SPEECH_RECOGNIZE_CLIP_REVISION),
+        kind_contract_revision: KindIdentity::from(SPEECH_RECOGNIZE_CLIP_REVISION),
         inputs: vec![port("clip", AUDIO_PCM_CLIP_INFO_ID, PortDirection::Input)],
         outputs: vec![port(
             "result",
@@ -161,7 +161,7 @@ pub fn speech_clip_recognition_contract() -> SpeechRecognitionContract {
 pub fn speech_recognition_to_text_contract() -> SpeechRecognitionContract {
     SpeechRecognitionContract {
         kind_id: kind_id(SPEECH_RECOGNITION_TO_TEXT_KIND),
-        kind_contract_revision: KindContractRevision::from(SPEECH_RECOGNITION_TO_TEXT_REVISION),
+        kind_contract_revision: KindIdentity::from(SPEECH_RECOGNITION_TO_TEXT_REVISION),
         inputs: vec![port(
             "result",
             SPEECH_RECOGNITION_RESULT_KIND,

@@ -15,8 +15,12 @@ impl CheckedGear {
     /// Ordinary gears require the same semantic contract identity. A semantic
     /// owner may deliberately request structural polymorphism with the
     /// reviewed marker; that is an authored meaning, not a planner fallback.
+    /// Structural polymorphism relaxes exact Kind identity, never the Kind ID:
+    /// a merely front-compatible offer for another Kind is not a Back for this
+    /// Gear.
     pub fn accepts_realization(&self, offer: &conduit_core::CapabilityOffer) -> bool {
-        self.checked_front() == offer.checked_front()
+        self.kind_id == offer.kind_id
+            && self.checked_front() == offer.checked_front()
             && (self.kind_contract_revision == offer.kind_contract_revision
                 || self.kind_contract_revision.as_str()
                     == conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT)

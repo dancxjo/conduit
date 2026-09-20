@@ -6,7 +6,7 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
     StructuredFieldType, StructuredInfoType, StructuredVariantCase,
 };
 use conduit_form::{KindDefinition, KindSignature};
@@ -144,7 +144,7 @@ pub fn install_experience_catalogs(
     profile
         .insert(KindDefinition {
             kind_id: kind_id(EXPERIENCE_RELATE_KIND),
-            kind_contract_revision: KindContractRevision::from(EXPERIENCE_RELATE_REVISION),
+            kind_contract_revision: KindIdentity::from(EXPERIENCE_RELATE_REVISION),
             inputs: vec![
                 flow_port("body", &experience_body_input_type()),
                 flow_port("human", &experience_human_input_type()),

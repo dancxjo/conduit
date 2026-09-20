@@ -2,10 +2,9 @@
 
 use conduit_core::{
     kind_id, present_host_operation_requirement, protected_resource_requirement,
-    resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, CapabilityId,
-    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PRESENTATION_RESOURCE_CLASS,
+    resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, PRESENTATION_RESOURCE_CLASS,
 };
 
 pub const COPY_FILE_EXECUTION_PROFILE: &str = "conduit.std/file-copy-kernel-hosted@1";
@@ -94,9 +93,9 @@ pub fn copy_result_presentation_offer() -> CapabilityOffer {
         conduit_semantic_catalog::COPY_RESULT_TYPE,
         &conduit_semantic_catalog::copy_result_type(),
     );
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract.into(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("std-file-copy-result-presentation"),
             execution_profile_id: ExecutionProfileId::from(COPY_FILE_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(COPY_RESULT_PRESENTATION_IMPLEMENTATION),

@@ -9,7 +9,7 @@ use super::test_text_source;
 use super::tick_operations::{TEST_OBSERVER_IMPLEMENTATION, TEST_OBSERVER_KIND};
 use conduit_core::{
     kind_id, present_host_operation_requirement, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, KindContractRevision, PortDescriptor, PortDirection,
+    CapabilityOffer, ExecutionProfileId, KindIdentity, PortDescriptor, PortDirection,
 };
 use conduit_form::KindDefinition;
 
@@ -23,7 +23,7 @@ pub(crate) fn test_observer_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-tick-observer"),
         kind_id: kind_id(TEST_OBSERVER_KIND),
-        kind_contract_revision: KindContractRevision::from(TEST_OBSERVER_REVISION),
+        kind_contract_revision: KindIdentity::from(TEST_OBSERVER_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(TEST_OBSERVER_PROFILE),
             implementation_id: conduit_core::ImplementationId::from(TEST_OBSERVER_IMPLEMENTATION),
@@ -58,7 +58,7 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
     catalog
         .insert(KindDefinition {
             kind_id: kind_id(TEST_OBSERVER_KIND),
-            kind_contract_revision: KindContractRevision::from(TEST_OBSERVER_REVISION),
+            kind_contract_revision: KindIdentity::from(TEST_OBSERVER_REVISION),
             inputs: test_observer_offer().inputs,
             outputs: Vec::new(),
             configuration: Vec::new(),
@@ -108,7 +108,7 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
     catalog
         .insert(KindDefinition {
             kind_id: kind_id("conduit-test/presentation-sink"),
-            kind_contract_revision: KindContractRevision::from("conduit-test/presentation-sink@1"),
+            kind_contract_revision: KindIdentity::from("conduit-test/presentation-sink@1"),
             inputs: test_presentation_sink_offer().inputs,
             outputs: Vec::new(),
             configuration: Vec::new(),
@@ -117,7 +117,7 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
     catalog
         .insert(KindDefinition {
             kind_id: kind_id("conduit-test/graphics-sink"),
-            kind_contract_revision: KindContractRevision::from("conduit-test/graphics-sink@1"),
+            kind_contract_revision: KindIdentity::from("conduit-test/graphics-sink@1"),
             inputs: test_graphics_sink_offer().inputs,
             outputs: Vec::new(),
             configuration: Vec::new(),
@@ -126,7 +126,7 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
     catalog
         .insert(KindDefinition {
             kind_id: kind_id("conduit-test/layout-sink"),
-            kind_contract_revision: KindContractRevision::from("conduit-test/layout-sink@1"),
+            kind_contract_revision: KindIdentity::from("conduit-test/layout-sink@1"),
             inputs: vec![PortDescriptor {
                 port_id: conduit_core::port_id("in"),
                 value_kind: kind_id(conduit_presentation::LAYOUT_FRAME_KIND),
@@ -148,7 +148,7 @@ pub(crate) fn test_layout_sink_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-layout-sink"),
         kind_id: kind_id("conduit-test/layout-sink"),
-        kind_contract_revision: KindContractRevision::from("conduit-test/layout-sink@1"),
+        kind_contract_revision: KindIdentity::from("conduit-test/layout-sink@1"),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from("conduit-test/layout-sink-kernel@1"),
             implementation_id: conduit_core::ImplementationId::from(
@@ -180,7 +180,7 @@ pub(crate) fn test_presentation_sink_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-presentation-sink"),
         kind_id: kind_id("conduit-test/presentation-sink"),
-        kind_contract_revision: KindContractRevision::from("conduit-test/presentation-sink@1"),
+        kind_contract_revision: KindIdentity::from("conduit-test/presentation-sink@1"),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
                 "conduit-test/presentation-sink-kernel@1",
@@ -214,7 +214,7 @@ pub(crate) fn test_graphics_sink_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-graphics-sink"),
         kind_id: kind_id("conduit-test/graphics-sink"),
-        kind_contract_revision: KindContractRevision::from("conduit-test/graphics-sink@1"),
+        kind_contract_revision: KindIdentity::from("conduit-test/graphics-sink@1"),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from("conduit-test/graphics-sink-kernel@1"),
             implementation_id: conduit_core::ImplementationId::from(

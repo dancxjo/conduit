@@ -1,16 +1,16 @@
 //! Pure-kernel std offer for bounded ordered framed-record queueing.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, ImplementationId,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    ImplementationId,
 };
 
 pub const ORDERED_RECORD_QUEUE_STD_IMPLEMENTATION: &str = "std/ordered-record-queue@1";
 
 pub fn ordered_record_queue_std_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_net::ordered_record_queue_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(ORDERED_RECORD_QUEUE_STD_IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from("std/ordered-record-queue@1"),
             implementation_id: ImplementationId::from(ORDERED_RECORD_QUEUE_STD_IMPLEMENTATION),

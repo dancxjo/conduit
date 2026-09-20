@@ -7,10 +7,9 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal, Quantity,
-    QuantityUnit, SemanticCapabilityContract, StructuredConfigurationValue, StructuredInfoType,
-    StructuredInfoValue,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, KindId,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, Quantity, QuantityUnit,
+    StructuredConfigurationValue, StructuredInfoType, StructuredInfoValue,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -28,7 +27,7 @@ pub const TRANSFORM_PATH2_FOUR_KIND: &str = "geometry/transform-path2-four";
 pub const CAPTURE_BOUNDED_STROKE_KIND: &str = "geometry/capture-bounded-stroke";
 pub const GEOMETRY_REVISION: &str = "conduit.std/geometry-spatial@1";
 
-pub fn geometry_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+pub fn geometry_semantic_contracts() -> Vec<Kind> {
     let point = point2_type();
     let path = path2_type(4).expect("four-point path is bounded");
     let point_kind = point
@@ -97,16 +96,16 @@ pub fn capture_bounded_stroke_kind_definition() -> KindDefinition {
     let stroke = path2_type(4).expect("four-point stroke bound is reviewed");
     KindDefinition {
         kind_id: kind_id(CAPTURE_BOUNDED_STROKE_KIND),
-        kind_contract_revision: KindContractRevision::from(GEOMETRY_REVISION),
+        kind_contract_revision: KindIdentity::from(GEOMETRY_REVISION),
         inputs: vec![flow_geometry_port("point", &point, PortDirection::Input)],
         outputs: vec![geometry_port("stroke", &stroke, PortDirection::Output)],
         configuration: vec![],
     }
 }
 
-pub fn capture_bounded_stroke_semantic_contract() -> conduit_core::SemanticCapabilityContract {
+pub fn capture_bounded_stroke_semantic_contract() -> conduit_core::Kind {
     let definition = capture_bounded_stroke_kind_definition();
-    conduit_core::SemanticCapabilityContract {
+    conduit_core::Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: definition.kind_id,
@@ -165,8 +164,8 @@ fn geometry_contract(
     outputs: Vec<PortDescriptor>,
     parameter: &str,
     parameter_type: KindId,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+) -> Kind {
+    Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: parameter.into(),
             value_type: parameter_type,
@@ -174,7 +173,7 @@ fn geometry_contract(
         }],
         shorthand: None,
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(GEOMETRY_REVISION),
+        kind_contract_revision: KindIdentity::from(GEOMETRY_REVISION),
         inputs,
         outputs,
         limits: CapabilityLimits {
@@ -188,7 +187,7 @@ fn geometry_contract(
 fn insert_contract(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     default: StructuredInfoValue,
 ) -> Result<(), String> {
     startup

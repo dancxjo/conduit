@@ -3,9 +3,9 @@
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection,
-    PortTemporal, kind_id, port_id,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindIdentity,
+    OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection, PortTemporal, kind_id,
+    port_id,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
@@ -39,7 +39,7 @@ pub fn prepare_robotics(
         catalog
             .insert(conduit_form::KindDefinition {
                 kind_id: kind_id(kind),
-                kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+                kind_contract_revision: KindIdentity::from(SINK_REVISION),
                 inputs: discard_offer(kind, value_kind).inputs,
                 outputs: Vec::new(),
                 configuration: Vec::new(),
@@ -127,7 +127,7 @@ fn discard_offer(kind: &str, value_kind: &str) -> CapabilityOffer {
             kind.rsplit('/').next().unwrap_or("robotics-sink")
         )),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+        kind_contract_revision: KindIdentity::from(SINK_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
                 crate::functional_offers::ROBOTICS_PROFILE,

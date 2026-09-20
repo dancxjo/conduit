@@ -4,11 +4,10 @@
 use crate::human_media_catalog::install_camera_catalogs;
 use alloc::{string::String, string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, BoundedResourceRef, CapabilityLimits, KindContractRevision, KindId,
-    PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract, StructuredFieldType,
-    StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
-    StructuredInfoValueShape, StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
-    RESOURCE_REFERENCE_INFO_ID,
+    kind_id, port_id, BoundedResourceRef, CapabilityLimits, Kind, KindId, KindIdentity,
+    PortDescriptor, PortDirection, PortTemporal, StructuredFieldType, StructuredFieldValue,
+    StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape,
+    StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES, RESOURCE_REFERENCE_INFO_ID,
 };
 
 pub const IMAGE_TEXT_COMPOSE_KIND: &str = "media/compose-image-text";
@@ -18,12 +17,12 @@ pub const IMAGE_TEXT_TYPED_RECORD_REVISION: &str = "conduit.human/image-text-typ
 pub const IMAGE_REFERENCE_TYPE: &str = "ImageObservationReference";
 pub const IMAGE_TEXT_RECORD_TYPE: &str = "ImageTextRecord";
 
-pub fn image_text_compose_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn image_text_compose_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(IMAGE_TEXT_COMPOSE_KIND),
-        kind_contract_revision: KindContractRevision::from(IMAGE_TEXT_COMPOSE_REVISION),
+        kind_contract_revision: KindIdentity::from(IMAGE_TEXT_COMPOSE_REVISION),
         inputs: vec![
             structured_port(
                 "image",
@@ -52,12 +51,12 @@ pub fn image_text_compose_semantic_contract() -> SemanticCapabilityContract {
     }
 }
 
-pub fn image_text_typed_record_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn image_text_typed_record_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(IMAGE_TEXT_TYPED_RECORD_KIND),
-        kind_contract_revision: KindContractRevision::from(IMAGE_TEXT_TYPED_RECORD_REVISION),
+        kind_contract_revision: KindIdentity::from(IMAGE_TEXT_TYPED_RECORD_REVISION),
         inputs: vec![structured_port(
             "record",
             &image_text_record_type(),

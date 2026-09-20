@@ -9,11 +9,10 @@ use alloc::{
 use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
     CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal, SemanticCapabilityContract, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    HostOperationRequirement, ImplementationId, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_core::{CapabilityOfferBuilder, CapabilityRealization};
+use conduit_core::{Back, BackOfferBuilder};
 use conduit_form::{KindDefinition, KindSignature};
 
 use crate::{
@@ -56,7 +55,7 @@ pub fn install_application_network_catalogs(
         profile
             .insert(KindDefinition {
                 kind_id: kind_id(kind),
-                kind_contract_revision: KindContractRevision::from(APPLICATION_NETWORK_REVISION),
+                kind_contract_revision: KindIdentity::from(APPLICATION_NETWORK_REVISION),
                 inputs,
                 outputs,
                 configuration: vec![],
@@ -155,9 +154,9 @@ fn offer(
         maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
     };
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         application_network_contract(kind, inputs, outputs),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!("std/{kind}@1")),
             execution_profile_id: ExecutionProfileId::from(APPLICATION_NETWORK_PROFILE),
             implementation_id: ImplementationId::from(format!("std/{kind}@1")),
@@ -184,12 +183,12 @@ fn application_network_contract(
     kind: &str,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+) -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(APPLICATION_NETWORK_REVISION),
+        kind_contract_revision: KindIdentity::from(APPLICATION_NETWORK_REVISION),
         inputs,
         outputs,
         limits: CapabilityLimits {

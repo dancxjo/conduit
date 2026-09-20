@@ -12,7 +12,7 @@ commitments into the S1 fixed stores remains separate integration work.
 
 A `CapabilityOffer` now advertises:
 
-- one immutable `KindContractRevision`;
+- one immutable `KindIdentity`;
 - one immutable `ExecutionProfileId` implemented by the installed operation;
 - the complete ordered input and output `PortDescriptor` contracts; and
 - independent active-instance, queue-item, and queue-byte limits.

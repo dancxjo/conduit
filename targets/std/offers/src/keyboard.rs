@@ -2,9 +2,9 @@
 pub mod button;
 
 use conduit_core::{
-    kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer,
-    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, INPUT_RESOURCE_CLASS,
+    kind_id, resource_requirement, ArtifactId, Back, BackOfferBuilder, CapabilityId,
+    CapabilityOffer, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, INPUT_RESOURCE_CLASS,
 };
 use conduit_human::{KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID};
 
@@ -23,9 +23,9 @@ pub fn next_key_event_host_operation_requirement() -> HostOperationRequirement {
 }
 
 pub fn hosted_keyboard_offer(capability: &str, artifact: &str) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_semantic_catalog::keyboard_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(HOSTED_KEYBOARD_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(HOSTED_KEYBOARD_IMPLEMENTATION),

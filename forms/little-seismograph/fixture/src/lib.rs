@@ -6,9 +6,8 @@ extern crate alloc;
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, Quantity, QuantityUnit, SemanticCapabilityContract, TemporalInstant,
-    TemporalScale,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, Quantity, QuantityUnit, TemporalInstant, TemporalScale,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 
@@ -38,7 +37,7 @@ pub fn install_little_seismograph_fixture_catalog(
 pub fn little_seismograph_fixture_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(LITTLE_SEISMOGRAPH_FIXTURE_KIND),
-        kind_contract_revision: KindContractRevision::from(LITTLE_SEISMOGRAPH_FIXTURE_REVISION),
+        kind_contract_revision: KindIdentity::from(LITTLE_SEISMOGRAPH_FIXTURE_REVISION),
         inputs: vec![],
         outputs: vec![
             output(
@@ -61,9 +60,9 @@ pub fn little_seismograph_fixture_definition() -> KindDefinition {
     }
 }
 
-pub fn little_seismograph_fixture_semantic_contract() -> SemanticCapabilityContract {
+pub fn little_seismograph_fixture_semantic_contract() -> Kind {
     let definition = little_seismograph_fixture_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: definition.kind_id,

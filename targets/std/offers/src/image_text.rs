@@ -1,9 +1,8 @@
 //! Exact bounded image-plus-text composition offered by the hosted std Host.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    SemanticCapabilityContract,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
 };
 
 pub const IMAGE_TEXT_STD_PROFILE: &str = "std/image-text-kernel-hosted@1";
@@ -65,16 +64,16 @@ pub fn image_text_record_std_offer() -> CapabilityOffer {
 }
 
 fn offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     capability: &str,
     profile: &str,
     implementation: &str,
     artifact: &str,
     host_operations: Vec<HostOperationRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),

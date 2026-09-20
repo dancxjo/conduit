@@ -63,6 +63,14 @@ to the canon; changing an invariant requires an explicit architecture issue.
 12. Compilation, simulation, browser execution, firmware execution, live
     transport, physical/HIL evidence, and human enactment prove different things.
 
+Canonical implementation vocabulary uses one noun at each altitude: a gear
+invokes a kind through its front; a host offers a back; a plan selects exact
+backs; a play advances in bounded steps; and a step may cross the host boundary
+with a host call. Host backs and Form backs share eligibility laws but retain
+their distinct realization and provenance facts. Reserve capability vocabulary
+for actual possession/authority, especially Base capabilities, rather than as a
+generic synonym for an implementation.
+
 ## Use the supported entrances
 
 Public workflows enter through `conduit`. Repository development, validation,

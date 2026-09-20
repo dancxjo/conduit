@@ -9,8 +9,8 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal, SemanticCapabilityContract, BOOL_INFO_ID, SCALAR_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
 };
 
 pub const STATE_LATEST_SCALAR_CONTRACT_REVISION: &str = "conduit.std/state-latest-scalar@2";
@@ -152,40 +152,40 @@ pub fn state_select_scalar_contract() -> StandardKindContract {
     }
 }
 
-pub fn state_latest_scalar_semantic_contract() -> SemanticCapabilityContract {
+pub fn state_latest_scalar_semantic_contract() -> Kind {
     semantic_contract(
         state_latest_scalar_contract(),
         STATE_LATEST_SCALAR_CONTRACT_REVISION,
     )
 }
 
-pub fn flow_tee_scalar_semantic_contract() -> SemanticCapabilityContract {
+pub fn flow_tee_scalar_semantic_contract() -> Kind {
     semantic_contract(
         flow_tee_scalar_contract(),
         FLOW_TEE_SCALAR_CONTRACT_REVISION,
     )
 }
 
-pub fn flow_gate_scalar_semantic_contract() -> SemanticCapabilityContract {
+pub fn flow_gate_scalar_semantic_contract() -> Kind {
     semantic_contract(
         flow_gate_scalar_contract(),
         FLOW_GATE_SCALAR_CONTRACT_REVISION,
     )
 }
 
-pub fn state_select_scalar_semantic_contract() -> SemanticCapabilityContract {
+pub fn state_select_scalar_semantic_contract() -> Kind {
     semantic_contract(
         state_select_scalar_contract(),
         STATE_SELECT_SCALAR_CONTRACT_REVISION,
     )
 }
 
-fn semantic_contract(contract: StandardKindContract, revision: &str) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
+    Kind {
         startup_parameters: super::startup_front(&contract.configuration),
         shorthand: None,
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         inputs: contract.inputs,
         outputs: contract.outputs,
         limits: contract.limits,
@@ -277,7 +277,7 @@ pub fn install_flow_state_catalogs(
         profile
             .insert(KindDefinition {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration,

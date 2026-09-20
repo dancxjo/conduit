@@ -7,8 +7,8 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, BOOL_INFO_ID,
+    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    BOOL_INFO_ID,
 };
 
 pub const BOOL_PRESENTATION_KIND: &str = "presentation/bool";
@@ -49,7 +49,7 @@ pub fn install_bool_presentation_catalog(
     profile
         .insert(KindDefinition {
             kind_id: contract.kind_id,
-            kind_contract_revision: KindContractRevision::from(BOOL_PRESENTATION_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(BOOL_PRESENTATION_CONTRACT_REVISION),
             inputs: contract.inputs,
             outputs: contract.outputs,
             configuration: Vec::<ConfigurationField>::new(),

@@ -24,7 +24,7 @@ fn placement(
         placement_id: PlacementId::from(id),
         gear_id: GearId::from(id),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("conduit.{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("conduit.{kind}@1")),
         execution_profile_id: ExecutionProfileId::from("test/hosted@1"),
         configuration: vec![],
         host_id: HostId::from("host/a"),

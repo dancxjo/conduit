@@ -3,9 +3,8 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationRequirement, ImplementationId,
-    PlannedGear, SemanticCapabilityContract,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, HostOperationRequirement, ImplementationId, Kind, PlannedGear,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
@@ -172,15 +171,11 @@ fn enriched_offer() -> CapabilityOffer {
     offer_for(contract, ENRICHED_IMPLEMENTATION, &OPERATIONS[4..6])
 }
 
-fn offer_for(
-    contract: SemanticCapabilityContract,
-    implementation: &str,
-    operations: &[&str],
-) -> CapabilityOffer {
+fn offer_for(contract: Kind, implementation: &str, operations: &[&str]) -> CapabilityOffer {
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),

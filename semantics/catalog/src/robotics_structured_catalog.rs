@@ -5,7 +5,7 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use conduit_core::{kind_id, KindContractRevision, PortDescriptor};
+use conduit_core::{kind_id, KindIdentity, PortDescriptor};
 use conduit_form::{KindDefinition, KindSignature};
 
 use conduit_robotics::{
@@ -44,7 +44,7 @@ fn insert_kind(
     profile
         .insert(KindDefinition {
             kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(ROBOTICS_STRUCTURED_REVISION),
+            kind_contract_revision: KindIdentity::from(ROBOTICS_STRUCTURED_REVISION),
             inputs,
             outputs,
             configuration: vec![],

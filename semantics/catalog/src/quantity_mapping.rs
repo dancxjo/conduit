@@ -2,9 +2,9 @@
 
 use alloc::{format, string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal, Quantity, QuantityUnit, Scalar, SemanticCapabilityContract,
-    QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID, SCALAR_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal, Quantity, QuantityUnit, Scalar, QUANTITY_ENCODED_LEN,
+    QUANTITY_INFO_ID, SCALAR_INFO_ID,
 };
 
 use crate::{
@@ -132,9 +132,9 @@ pub fn quantity_map_contract() -> StandardKindContract {
     }
 }
 
-pub fn quantity_map_semantic_contract() -> SemanticCapabilityContract {
+pub fn quantity_map_semantic_contract() -> Kind {
     let contract = quantity_map_contract();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: crate::startup_front(&contract.configuration),
         shorthand: None,
         kind_id: contract.kind_id,
@@ -179,7 +179,7 @@ pub fn install_quantity_mapping_catalog(
     profile
         .insert(KindDefinition {
             kind_id: contract.kind_id,
-            kind_contract_revision: KindContractRevision::from(QUANTITY_MAP_REVISION),
+            kind_contract_revision: KindIdentity::from(QUANTITY_MAP_REVISION),
             inputs: contract.inputs,
             outputs: contract.outputs,
             configuration: contract

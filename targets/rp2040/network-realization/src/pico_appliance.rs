@@ -11,7 +11,7 @@ use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, BootId, CapabilityId,
     CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId,
     HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
-    ImplementationOffer, KindContractRevision, OfferGeneration, ResourceOffer, PROTOCOL_VERSION,
+    ImplementationOffer, KindIdentity, OfferGeneration, ResourceOffer, PROTOCOL_VERSION,
 };
 
 pub const PICO_APPLIANCE_PROFILE: &str = "pico/appliance-hello@1";
@@ -205,7 +205,7 @@ fn appliance_offer(spec: ApplianceOfferSpec<'_>) -> CapabilityOffer {
     CapabilityOffer {
         capability_id: CapabilityId::from(spec.capability),
         kind_id: kind_id(spec.kind),
-        kind_contract_revision: KindContractRevision::from(spec.revision),
+        kind_contract_revision: KindIdentity::from(spec.revision),
         implementation: ImplementationOffer {
             implementation_id: ImplementationId::from(spec.capability),
             artifact_id: ArtifactId::from(spec.artifact),

@@ -1,9 +1,7 @@
 //! Reviewed high-level Front and canonical Back for bounded measurement plotting.
 
 use alloc::{format, string::ToString, vec};
-use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-};
+use conduit_core::{kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal};
 use conduit_form::{
     check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindDefinition,
     KindSignature, ProfileCatalog, StartupCatalog,
@@ -28,7 +26,7 @@ pub fn install_measurement_plot_form_catalog(
 pub fn measurement_plot_form_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(MEASUREMENT_PLOT_FORM_KIND),
-        kind_contract_revision: KindContractRevision::from(MEASUREMENT_PLOT_FORM_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(MEASUREMENT_PLOT_FORM_CONTRACT_REVISION),
         inputs: vec![port(
             "window",
             crate::measurement_window_type()

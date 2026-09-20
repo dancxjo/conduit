@@ -236,7 +236,7 @@ pub struct ExpandedCanonicalForm {
     pub shared_pools: Vec<ExpandedSharedPool>,
     pub provenance: Vec<ExpandedGearProvenance>,
     pub provenance_digest: String,
-    pub realization_backs: Vec<conduit_core::RealizationBack>,
+    pub realization_backs: Vec<conduit_core::FormBack>,
 }
 
 /// Canonical graph expansion for authoring an open Back.

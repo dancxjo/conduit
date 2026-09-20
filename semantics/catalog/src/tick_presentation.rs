@@ -3,7 +3,7 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection,
 };
 
 pub const TICK_PRESENTATION_KIND: &str = "presentation/tick";
@@ -41,7 +41,7 @@ pub fn tick_presentation_kind_definition() -> conduit_form::KindDefinition {
     let contract = tick_presentation_contract();
     KindDefinition {
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(TICK_PRESENTATION_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(TICK_PRESENTATION_CONTRACT_REVISION),
         inputs: contract.inputs,
         outputs: contract.outputs,
         configuration: Vec::new(),

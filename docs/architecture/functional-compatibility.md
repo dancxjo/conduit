@@ -121,7 +121,7 @@ Functional compatibility therefore does **not** mean runtime improvisation. A co
 ## Names and revisions
 
 Friendly names are provenance and catalog facts, not compatibility gates. The
-current `KindContractRevision` value is the immutable semantic-kind contract
+current `KindIdentity` value is the immutable semantic-kind contract
 identity: despite its historical name, it is not merely a display version and
 must eventually be derived from the reviewed semantic contract under #3712.
 

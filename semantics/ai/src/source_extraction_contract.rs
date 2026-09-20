@@ -5,7 +5,7 @@ use conduit_core::{
     kind_id, port_id, protected_resource_requirement, ArtifactId, AuthorityContractId,
     AuthorityRequirement, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
     FrontStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
+    ImplementationOffer, KindId, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
 
@@ -33,7 +33,7 @@ pub const MAXIMUM_EXTRACTION_PROCESS_IDENTITY_BYTES: usize = 256;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SourceExtractionContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub maximum_source_bytes: u32,
@@ -54,7 +54,7 @@ pub enum SourceExtractionOfferInvalidity {
 pub fn source_extraction_contract() -> SourceExtractionContract {
     SourceExtractionContract {
         kind_id: kind_id(SOURCE_EXTRACTION_KIND),
-        kind_contract_revision: KindContractRevision::from(SOURCE_EXTRACTION_REVISION),
+        kind_contract_revision: KindIdentity::from(SOURCE_EXTRACTION_REVISION),
         inputs: vec![port(
             "source",
             SOURCE_REFERENCE_VALUE_KIND,

@@ -2,8 +2,8 @@
 
 use conduit_core::{
     monotonic_timer_host_operation_requirement, monotonic_timer_resource_requirement, ArtifactId,
-    CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES, TIMER_RESOURCE_CLASS,
 };
 
@@ -18,9 +18,9 @@ pub fn timed_button_attempt_std_offer() -> CapabilityOffer {
     let mut deadline = monotonic_timer_host_operation_requirement();
     deadline.target_kind = Some(contract.kind_id.clone());
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("pressed-button-attempt"),
             execution_profile_id: ExecutionProfileId::from(TIMED_BUTTON_ATTEMPT_STD_PROFILE),
             implementation_id: ImplementationId::from(TIMED_BUTTON_ATTEMPT_STD_IMPLEMENTATION),

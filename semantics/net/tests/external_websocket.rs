@@ -108,7 +108,7 @@ fn external_websocket_compatibility_is_the_checked_front_not_the_nominal_kind() 
     let mut renamed = client.clone();
     renamed.kind_id = conduit_core::kind_id("example/renamed-websocket-client");
     renamed.kind_contract_revision =
-        conduit_core::KindContractRevision::from("example/renamed-websocket-client@9");
+        conduit_core::KindIdentity::from("example/renamed-websocket-client@9");
     assert_eq!(renamed.checked_front(), client.checked_front());
 
     let mut generic_duplex_bytes = client.clone();

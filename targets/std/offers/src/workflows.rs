@@ -1,8 +1,7 @@
 use conduit_core::{
-    resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, CapabilityId,
-    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId,
-    SemanticCapabilityContract, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, Kind, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const JOB_PROFILE: &str = "std/process-job-hosted@1";
@@ -61,7 +60,7 @@ pub fn reminder_std_offers() -> Vec<CapabilityOffer> {
 
 #[allow(clippy::too_many_arguments)]
 fn workflow_offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     profile: &str,
     artifact: &str,
     operation: &str,
@@ -76,9 +75,9 @@ fn workflow_offer(
         maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
     };
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!("std/{}@1", kind.as_str())),
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(format!("std/{}@1", kind.as_str())),
@@ -105,10 +104,7 @@ fn workflow_offer(
 mod tests {
     use super::*;
 
-    fn assert_exact_semantics(
-        offers: &[CapabilityOffer],
-        contracts: &[SemanticCapabilityContract],
-    ) {
+    fn assert_exact_semantics(offers: &[CapabilityOffer], contracts: &[Kind]) {
         for offer in offers {
             let contract = contracts
                 .iter()

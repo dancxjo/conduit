@@ -6,8 +6,8 @@ use conduit_ai::{
     TemporalRetrievalIntent, TemporalSource, TemporalValidity,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 use serde::{Deserialize, Serialize};
@@ -92,7 +92,7 @@ pub enum MemoryQueryRefusal {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PeteMemoryContract {
     pub kind_id: KindId,
-    pub revision: KindContractRevision,
+    pub revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
@@ -283,7 +283,7 @@ pub fn pete_memory_contract() -> PeteMemoryContract {
     };
     PeteMemoryContract {
         kind_id: kind_id(PETE_MEMORY_RETAIN_KIND),
-        revision: KindContractRevision::from(PETE_MEMORY_REVISION),
+        revision: KindIdentity::from(PETE_MEMORY_REVISION),
         inputs: vec![port(
             "candidate",
             PETE_EXPERIENCE_CANDIDATE_KIND,

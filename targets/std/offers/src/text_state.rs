@@ -1,9 +1,8 @@
 //! Hosted std realizations of bounded retained text state.
 
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationRequirement, ImplementationId,
-    SemanticCapabilityContract,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationRequirement, ImplementationId, Kind,
 };
 
 pub const TEXT_STATE_HOST_OPERATION: &str = "conduit.host/text-state@1";
@@ -24,10 +23,10 @@ pub fn text_submit_lines_std_offer() -> CapabilityOffer {
     )
 }
 
-fn offer(contract: SemanticCapabilityContract, implementation: &'static str) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+fn offer(contract: Kind, implementation: &'static str) -> CapabilityOffer {
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),

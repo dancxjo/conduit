@@ -1,9 +1,8 @@
 //! Bounded installed realization of generated-text speech commitment.
 
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, SemanticCapabilityContract,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
 };
 
 pub const SPEECH_COMMIT_STD_PROFILE: &str = "std/speech-commit@1";
@@ -22,8 +21,8 @@ pub fn speech_commit_std_offer() -> CapabilityOffer {
         maximum_input_bytes: conduit_tongues::MAXIMUM_PENDING_SPEECH_BYTES as u32,
         maximum_output_bytes: conduit_tongues::MAXIMUM_ENCODED_SPEAKABLE_SEGMENT_BYTES as u32,
     };
-    CapabilityOfferBuilder::new(
-        SemanticCapabilityContract {
+    BackOfferBuilder::new(
+        Kind {
             startup_parameters: Vec::new(),
             shorthand: None,
             kind_id: contract.kind_id,
@@ -32,7 +31,7 @@ pub fn speech_commit_std_offer() -> CapabilityOffer {
             outputs: contract.outputs,
             limits: contract.limits,
         },
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("std-speech-commit-v1"),
             execution_profile_id: ExecutionProfileId::from(SPEECH_COMMIT_STD_PROFILE),
             implementation_id: ImplementationId::from(SPEECH_COMMIT_STD_IMPLEMENTATION),

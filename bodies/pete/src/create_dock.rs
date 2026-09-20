@@ -7,7 +7,7 @@ use conduit_core::{
     AuthorityContractId, AuthorityRequirement, BaseImplementationId, BootId, CapabilityId,
     CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
     HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement, HostProfileId,
-    ImplementationId, ImplementationOffer, KindContractRevision, OfferGeneration, ResourceHealth,
+    ImplementationId, ImplementationOffer, KindIdentity, OfferGeneration, ResourceHealth,
     ResourceObservation, SignId, BOOL_ENCODED_LEN, BOOL_INFO_ID, PROTOCOL_VERSION,
     TIMER_RESOURCE_CLASS,
 };
@@ -131,7 +131,7 @@ pub fn live_create_dock_advertisement(
         shorthand: None,
         capability_id: CapabilityId::from(CREATE_DOCK_CAPABILITY),
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
+        kind_contract_revision: KindIdentity::from(
             conduit_semantic_catalog::ROBOTICS_DOCK_REVISION,
         ),
         implementation: ImplementationOffer {

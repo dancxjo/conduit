@@ -7,7 +7,7 @@ use conduit_audio::{
 use conduit_core::{
     kind_id, port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ConfigurationValue, ExecutionProfileId, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, ImplementationOffer, KindContractRevision, OfferGeneration,
+    HostProfileId, ImplementationId, ImplementationOffer, KindIdentity, OfferGeneration,
     PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
@@ -154,7 +154,7 @@ fn definition(
 ) -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs,
         outputs,
         configuration,

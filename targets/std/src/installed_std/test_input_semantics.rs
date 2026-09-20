@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, ImplementationId, KindContractRevision, PlannedGear, PortDescriptor,
-    PortDirection, PortTemporal, TIMER_RESOURCE_CLASS,
+    ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
+    PortTemporal, TIMER_RESOURCE_CLASS,
 };
 use conduit_form::{KindDefinition, ProfileCatalog};
 use conduit_human::{
@@ -169,7 +169,7 @@ fn offer(
         shorthand: None,
         capability_id: CapabilityId::from(capability),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
@@ -209,7 +209,7 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
         catalog
             .insert(KindDefinition {
                 kind_id: kind_id(kind),
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs,
                 outputs,
                 configuration: Vec::new(),

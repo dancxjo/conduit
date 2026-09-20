@@ -27,7 +27,7 @@ pub(super) fn edit_signature() -> KindSignature {
 pub(super) fn edit_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(EDIT_KIND),
-        kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         inputs: vec![],
         outputs: vec![request_port(PortDirection::Output)],
         configuration: edit_configuration(),
@@ -135,7 +135,7 @@ pub(super) fn edit_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("patchbay-edit"),
         kind_id: kind_id(EDIT_KIND),
-        kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(EXECUTION_PROFILE),
             implementation_id: ImplementationId::from("patchbay/edit@1"),

@@ -1,9 +1,7 @@
 //! Exact selected Millionth Quantity leaf to normalized Scalar conversion.
 
 use alloc::vec::Vec;
-use conduit_core::{
-    Quantity, QuantityUnit, Scalar, SemanticCapabilityContract, QUANTITY_ENCODED_LEN,
-};
+use conduit_core::{Kind, Quantity, QuantityUnit, Scalar, QUANTITY_ENCODED_LEN};
 
 pub const NORMALIZED_QUANTITY_KIND: &str = "math/normalized-quantity-scalar";
 pub const NORMALIZED_QUANTITY_REVISION: &str = "conduit.std/normalized-quantity-scalar@1";
@@ -23,9 +21,9 @@ pub fn normalized_quantity_contract() -> crate::StandardKindContract {
     contract
 }
 
-pub fn normalized_quantity_semantic_contract() -> SemanticCapabilityContract {
+pub fn normalized_quantity_semantic_contract() -> Kind {
     let contract = normalized_quantity_contract();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
         kind_id: contract.kind_id,

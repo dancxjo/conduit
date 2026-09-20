@@ -4,7 +4,7 @@ use super::{
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
-use conduit_core::{CapabilityLimits, ConfigurationValue, SemanticCapabilityContract};
+use conduit_core::{CapabilityLimits, ConfigurationValue, Kind};
 
 pub fn tick_contract() -> StandardKindContract {
     StandardKindContract {
@@ -44,9 +44,9 @@ pub fn tick_contract() -> StandardKindContract {
     }
 }
 
-pub fn tick_semantic_contract() -> SemanticCapabilityContract {
+pub fn tick_semantic_contract() -> Kind {
     let contract = tick_contract();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: super::startup_front(&contract.configuration),
         shorthand: None,
         kind_id: contract.kind_id,

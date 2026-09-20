@@ -5,7 +5,7 @@ use conduit_audio::TONE_INTENT_ENCODED_LEN;
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
     HostAdvertisement, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, resource_offer,
+    ImplementationOffer, KindIdentity, resource_offer,
 };
 
 pub const PC_SPEAKER_IMPLEMENTATION: &str = "conduitos/pc-speaker-tone@1";
@@ -141,7 +141,7 @@ pub(crate) fn append_to_advertisement(
         shorthand: None,
         capability_id: CapabilityId::from(PC_SPEAKER_CAPABILITY),
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
+        kind_contract_revision: KindIdentity::from(
             conduit_semantic_catalog::SOUND_TONE_PLAY_REVISION,
         ),
         inputs: contract.inputs,

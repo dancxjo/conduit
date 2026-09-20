@@ -5,8 +5,8 @@ use conduit_ai::{
     WiredHouseContextItem, GENERATION_REQUEST_VALUE_KIND,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_text::{AddressDetection, ADDRESS_DETECTION_VALUE_KIND};
@@ -121,15 +121,15 @@ fn require_canonical<T: Serialize>(
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HousePromptContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
 }
 
 impl HousePromptContract {
-    pub fn into_semantic_capability_contract(self) -> SemanticCapabilityContract {
-        SemanticCapabilityContract {
+    pub fn into_semantic_capability_contract(self) -> Kind {
+        Kind {
             startup_parameters: Vec::new(),
             shorthand: None,
             kind_id: self.kind_id,
@@ -179,7 +179,7 @@ struct PromptContextItem<'a> {
 pub fn house_prompt_contract() -> HousePromptContract {
     HousePromptContract {
         kind_id: kind_id(HOUSE_CONTEXT_TO_PROMPT_KIND),
-        kind_contract_revision: KindContractRevision::from(HOUSE_CONTEXT_TO_PROMPT_REVISION),
+        kind_contract_revision: KindIdentity::from(HOUSE_CONTEXT_TO_PROMPT_REVISION),
         inputs: vec![
             port(
                 "detection",
@@ -281,7 +281,7 @@ pub fn install_house_conversation_form_catalog(
     profile
         .insert(KindDefinition {
             kind_id: kind_id(HOUSE_CONVERSATION_FORM_KIND),
-            kind_contract_revision: KindContractRevision::from(HOUSE_CONVERSATION_FORM_REVISION),
+            kind_contract_revision: KindIdentity::from(HOUSE_CONVERSATION_FORM_REVISION),
             inputs: vec![
                 port(
                     "detection",

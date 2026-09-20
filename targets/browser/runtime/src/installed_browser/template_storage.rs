@@ -3,9 +3,9 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, PlannedGear, ResourceRequirement, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    PlannedGear, ResourceRequirement, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
     Failure, FailureCode, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
@@ -53,9 +53,9 @@ impl PreparedTemplateStore {
 fn offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::named_pattern_template_storage_semantic_contract();
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(
                 "browser/named-pattern-storage-kernel-hosted@1",
@@ -83,9 +83,9 @@ fn offer() -> CapabilityOffer {
 }
 
 fn initializer_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_semantic_catalog::named_pattern_template_initializer_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(INITIALIZER_IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(
                 "browser/named-pattern-template-initializer@1",

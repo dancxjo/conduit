@@ -72,7 +72,7 @@ fn primitive(kind: &str, direction: PortDirection, value_kind: KindId) -> KindDe
     };
     KindDefinition {
         kind_id: KindId::from(kind),
-        kind_contract_revision: conduit_core::KindContractRevision::from(format!("{kind}@1")),
+        kind_contract_revision: conduit_core::KindIdentity::from(format!("{kind}@1")),
         inputs: (direction == PortDirection::Input)
             .then_some(port.clone())
             .into_iter()

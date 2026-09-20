@@ -3,7 +3,7 @@
 use super::{StandardKindContract, TerminalBehavior};
 use alloc::string::ToString;
 use alloc::vec::Vec;
-use conduit_core::{port_id, FrontStartupParameter, SemanticCapabilityContract};
+use conduit_core::{port_id, FrontStartupParameter, Kind};
 
 pub fn json_encode_contract() -> StandardKindContract {
     contract(
@@ -45,19 +45,19 @@ pub fn json_boolean_summary_contract() -> StandardKindContract {
     value
 }
 
-pub fn json_encode_semantic_contract() -> SemanticCapabilityContract {
+pub fn json_encode_semantic_contract() -> Kind {
     semantic_contract(conduit_web::json_encode_semantics(), Vec::new())
 }
 
-pub fn json_decode_semantic_contract() -> SemanticCapabilityContract {
+pub fn json_decode_semantic_contract() -> Kind {
     semantic_contract(conduit_web::json_decode_semantics(), Vec::new())
 }
 
-pub fn json_collection_step_semantic_contract() -> SemanticCapabilityContract {
+pub fn json_collection_step_semantic_contract() -> Kind {
     semantic_contract(conduit_web::json_collection_step_semantics(), Vec::new())
 }
 
-pub fn json_boolean_summary_semantic_contract() -> SemanticCapabilityContract {
+pub fn json_boolean_summary_semantic_contract() -> Kind {
     semantic_contract(
         conduit_web::json_boolean_summary_semantics(),
         alloc::vec![FrontStartupParameter {
@@ -71,8 +71,8 @@ pub fn json_boolean_summary_semantic_contract() -> SemanticCapabilityContract {
 fn semantic_contract(
     contract: conduit_web::PortableKindContract,
     startup_parameters: Vec<FrontStartupParameter>,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+) -> Kind {
+    Kind {
         startup_parameters,
         shorthand: Some((port_id("value"), port_id("value"))),
         kind_id: contract.kind_id,

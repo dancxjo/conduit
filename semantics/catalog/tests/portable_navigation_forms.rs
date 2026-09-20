@@ -2,7 +2,7 @@ use conduit_core::PortTemporal;
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, FrontStartupParameter, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, ImplementationOffer, KindContractRevision, OfferGeneration, PROTOCOL_VERSION,
+    ImplementationId, ImplementationOffer, KindIdentity, OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_core::{StructuredInfoValue, StructuredInfoValueShape};
 use conduit_form::{
@@ -327,7 +327,7 @@ fn host(selector_definitions: Vec<conduit_form::KindDefinition>) -> HostAdvertis
                 kind,
                 inputs,
                 outputs,
-                KindContractRevision::from(NAVIGATION_REVISION),
+                KindIdentity::from(NAVIGATION_REVISION),
                 vec![],
             )
         })
@@ -366,7 +366,7 @@ fn offer(
     kind: conduit_core::KindId,
     inputs: Vec<conduit_core::PortDescriptor>,
     outputs: Vec<conduit_core::PortDescriptor>,
-    revision: KindContractRevision,
+    revision: KindIdentity,
     startup_parameters: Vec<FrontStartupParameter>,
 ) -> CapabilityOffer {
     CapabilityOffer {

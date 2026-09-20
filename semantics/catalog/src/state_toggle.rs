@@ -6,10 +6,10 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 #[cfg(feature = "form-catalog")]
-use conduit_core::KindContractRevision;
+use conduit_core::KindIdentity;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, BOOL_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
+    PortTemporal, BOOL_INFO_ID,
 };
 
 pub const STATE_TOGGLE_KIND: &str = "state/toggle";
@@ -64,9 +64,9 @@ pub fn state_toggle_contract() -> StandardKindContract {
     }
 }
 
-pub fn state_toggle_semantic_contract() -> SemanticCapabilityContract {
+pub fn state_toggle_semantic_contract() -> Kind {
     let contract = state_toggle_contract();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: super::startup_front(&contract.configuration),
         shorthand: None,
         kind_id: contract.kind_id,
@@ -95,7 +95,7 @@ pub fn install_state_toggle_catalogs(
     profile
         .insert(KindDefinition {
             kind_id: contract.kind_id,
-            kind_contract_revision: KindContractRevision::from(STATE_TOGGLE_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(STATE_TOGGLE_CONTRACT_REVISION),
             inputs: contract.inputs,
             outputs: contract.outputs,
             configuration: vec![ConfigurationField {

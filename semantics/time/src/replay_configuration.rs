@@ -90,7 +90,7 @@ pub fn replay_policy_from_configuration(
 pub fn replay_control_kind_definition() -> conduit_form::KindDefinition {
     use alloc::string::ToString;
     use conduit_core::{
-        kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+        kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
         StructuredInfoType,
     };
     use conduit_form::{ConfigurationField, ConfigurationRule};
@@ -107,7 +107,7 @@ pub fn replay_control_kind_definition() -> conduit_form::KindDefinition {
     };
     conduit_form::KindDefinition {
         kind_id: kind_id(crate::REPLAY_CONTROL_KIND),
-        kind_contract_revision: KindContractRevision::from(crate::REPLAY_CONTROL_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(crate::REPLAY_CONTROL_CONTRACT_REVISION),
         inputs: alloc::vec![
             port(
                 "timeline",
@@ -183,11 +183,11 @@ pub fn replay_control_kind_definition() -> conduit_form::KindDefinition {
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn replay_control_semantic_contract() -> conduit_core::SemanticCapabilityContract {
+pub fn replay_control_semantic_contract() -> conduit_core::Kind {
     use conduit_core::{kind_id, CapabilityLimits, FrontStartupParameter};
 
     let definition = replay_control_kind_definition();
-    conduit_core::SemanticCapabilityContract {
+    conduit_core::Kind {
         startup_parameters: [
             ("mode", "value/text"),
             ("rate-numerator", "value/count"),

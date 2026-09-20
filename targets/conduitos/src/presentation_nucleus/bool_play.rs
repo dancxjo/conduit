@@ -2,7 +2,7 @@ use alloc::{collections::BTreeMap, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, InfoBool,
-    KindContractRevision, OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, Plan,
+    KindIdentity, OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, Plan,
     PortDescriptor, PortDirection, PortTemporal, kind_id, port_id, resource_offer,
 };
 use conduit_form::{ProfileCatalog, parse};
@@ -87,7 +87,7 @@ pub fn prepare_bool(
     catalog
         .insert(conduit_form::KindDefinition {
             kind_id: kind_id(SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+            kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: source_offer(value).outputs,
             configuration: Vec::new(),
@@ -211,7 +211,7 @@ fn source_offer(value: InfoBool) -> CapabilityOffer {
             "conduitos-fixture-bool-false@1"
         }),
         kind_id: kind_id(SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(super::CONDUITOS_PRESENTATION_PROFILE),
             implementation_id: ImplementationId::from(SOURCE_IMPLEMENTATION),

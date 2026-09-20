@@ -1,7 +1,7 @@
 use conduit_core::{
-    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityOffer,
-    CapabilityOfferBuilder, CapabilityRealization, ConfigurationValue, ExecutionProfileId,
-    HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
+    ArtifactId, Back, BackOfferBuilder, BaseImplementationId, BootId, CapabilityId,
+    CapabilityOffer, ConfigurationValue, ExecutionProfileId, HostAdvertisement, HostId,
+    HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
@@ -249,9 +249,9 @@ fn proof_offer(kind: &str, implementation: &str) -> CapabilityOffer {
         }
         _ => panic!("unreviewed music proof Kind {kind}"),
     };
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from("proof/music@1"),
             implementation_id: ImplementationId::from(implementation),

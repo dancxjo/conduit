@@ -5,7 +5,7 @@ use super::{
 };
 use alloc::format;
 use alloc::string::{String, ToString};
-use conduit_core::{ConfigurationValue, KindContractRevision};
+use conduit_core::{ConfigurationValue, KindIdentity};
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
 };
@@ -71,7 +71,7 @@ pub fn install_robotics_catalogs(
         profile
             .insert(KindDefinition {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration,

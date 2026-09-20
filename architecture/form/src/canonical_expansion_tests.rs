@@ -5,7 +5,7 @@ use crate::{
     ConfigurationRule, ConfigurationValue, KindDefinition, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
-use conduit_core::{kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection};
+use conduit_core::{kind_id, port_id, KindIdentity, PortDescriptor, PortDirection};
 
 fn port(name: &str, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
@@ -53,21 +53,21 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     for definition in [
         KindDefinition {
             kind_id: kind_id("test/source"),
-            kind_contract_revision: KindContractRevision::from("test/source@1"),
+            kind_contract_revision: KindIdentity::from("test/source@1"),
             inputs: vec![],
             outputs: vec![port("out", PortDirection::Output)],
             configuration: vec![],
         },
         KindDefinition {
             kind_id: kind_id("test/use-pool"),
-            kind_contract_revision: KindContractRevision::from("test/use-pool@1"),
+            kind_contract_revision: KindIdentity::from("test/use-pool@1"),
             inputs: vec![],
             outputs: vec![],
             configuration: vec![],
         },
         KindDefinition {
             kind_id: kind_id("test/pass"),
-            kind_contract_revision: KindContractRevision::from("test/pass@1"),
+            kind_contract_revision: KindIdentity::from("test/pass@1"),
             inputs: vec![port("in", PortDirection::Input)],
             outputs: vec![port("out", PortDirection::Output)],
             configuration: vec![ConfigurationField {
@@ -81,7 +81,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
         },
         KindDefinition {
             kind_id: kind_id("test/sink"),
-            kind_contract_revision: KindContractRevision::from("test/sink@1"),
+            kind_contract_revision: KindIdentity::from("test/sink@1"),
             inputs: vec![port("in", PortDirection::Input)],
             outputs: vec![],
             configuration: vec![],
@@ -103,7 +103,7 @@ fn selected_canonical_back_changes_only_expansion_identity_and_records_exact_pro
         .unwrap();
     let high = KindDefinition {
         kind_id: kind_id("test/high"),
-        kind_contract_revision: KindContractRevision::from("test/high@1"),
+        kind_contract_revision: KindIdentity::from("test/high@1"),
         inputs: vec![port("in", PortDirection::Input)],
         outputs: vec![port("out", PortDirection::Output)],
         configuration: vec![],
@@ -414,7 +414,7 @@ fn expanded_identity_rejects_graph_contract_and_provenance_mutation() {
     let baseline = expand(source, "main");
 
     let mut gear = baseline.clone();
-    gear.gears[0].kind_contract_revision = KindContractRevision::from("mutated@1");
+    gear.gears[0].kind_contract_revision = KindIdentity::from("mutated@1");
     assert_eq!(gear.validate_expansion().unwrap_err().code, "CND-FRM-049");
 
     let mut cord = baseline.clone();
@@ -460,7 +460,7 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
     profile
         .insert(KindDefinition {
             kind_id: kind_id("state/count"),
-            kind_contract_revision: KindContractRevision::from("state/count@1"),
+            kind_contract_revision: KindIdentity::from("state/count@1"),
             inputs: vec![PortDescriptor {
                 port_id: port_id("bump"),
                 value_kind: kind_id("value/tick@1"),
@@ -479,7 +479,7 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
     profile
         .insert(KindDefinition {
             kind_id: kind_id("test/ticks"),
-            kind_contract_revision: KindContractRevision::from("test/ticks@1"),
+            kind_contract_revision: KindIdentity::from("test/ticks@1"),
             inputs: vec![],
             outputs: vec![PortDescriptor {
                 port_id: port_id("tick"),
@@ -493,7 +493,7 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
     profile
         .insert(KindDefinition {
             kind_id: kind_id("test/current"),
-            kind_contract_revision: KindContractRevision::from("test/current@1"),
+            kind_contract_revision: KindIdentity::from("test/current@1"),
             inputs: vec![PortDescriptor {
                 port_id: port_id("value"),
                 value_kind: kind_id("value/count"),

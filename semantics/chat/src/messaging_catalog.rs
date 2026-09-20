@@ -6,9 +6,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -39,7 +38,7 @@ pub fn install_messaging_catalogs(
 fn insert_kind(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
-    contract: SemanticCapabilityContract,
+    contract: Kind,
 ) -> Result<(), String> {
     startup
         .insert(KindSignature {
@@ -58,7 +57,7 @@ fn insert_kind(
         .map_err(|error| error.to_string())
 }
 
-pub fn messaging_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+pub fn messaging_semantic_contracts() -> Vec<Kind> {
     vec![
         messaging_semantic_contract(
             MESSAGING_MESSAGE_KIND,
@@ -91,12 +90,12 @@ fn messaging_semantic_contract(
     kind: &str,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+) -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(MESSAGING_REVISION),
+        kind_contract_revision: KindIdentity::from(MESSAGING_REVISION),
         inputs,
         outputs,
         limits: CapabilityLimits {

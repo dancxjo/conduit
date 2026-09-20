@@ -5,10 +5,10 @@ use alloc::{
     vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
-    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
-    StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredFieldType,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredVariantCase,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -70,7 +70,7 @@ pub fn template_storage_result_type() -> StructuredInfoType {
 pub fn named_pattern_template_storage_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(TEMPLATE_STORAGE_KIND),
-        kind_contract_revision: KindContractRevision::from(TEMPLATE_STORAGE_REVISION),
+        kind_contract_revision: KindIdentity::from(TEMPLATE_STORAGE_REVISION),
         inputs: vec![port(
             "command",
             &template_storage_command_type(),
@@ -95,7 +95,7 @@ pub fn named_pattern_template_storage_definition() -> KindDefinition {
 pub fn named_pattern_template_initializer_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(TEMPLATE_INITIALIZER_KIND),
-        kind_contract_revision: KindContractRevision::from(TEMPLATE_INITIALIZER_REVISION),
+        kind_contract_revision: KindIdentity::from(TEMPLATE_INITIALIZER_REVISION),
         inputs: vec![],
         outputs: vec![port(
             "commands",
@@ -119,9 +119,9 @@ pub fn named_pattern_template_initializer_definition() -> KindDefinition {
     }
 }
 
-pub fn named_pattern_template_storage_semantic_contract() -> SemanticCapabilityContract {
+pub fn named_pattern_template_storage_semantic_contract() -> Kind {
     let definition = named_pattern_template_storage_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "maximum-commands".into(),
             value_type: kind_id("value/count"),
@@ -141,9 +141,9 @@ pub fn named_pattern_template_storage_semantic_contract() -> SemanticCapabilityC
     }
 }
 
-pub fn named_pattern_template_initializer_semantic_contract() -> SemanticCapabilityContract {
+pub fn named_pattern_template_initializer_semantic_contract() -> Kind {
     let definition = named_pattern_template_initializer_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![
             FrontStartupParameter {
                 name: "name".into(),

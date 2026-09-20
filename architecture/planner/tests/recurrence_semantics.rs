@@ -1,8 +1,8 @@
 use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, KindId, OfferGeneration, StructuredConfigurationValue,
-    StructuredFieldType, StructuredInfoType, StructuredInfoValue, PROTOCOL_VERSION,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindId,
+    KindIdentity, OfferGeneration, StructuredConfigurationValue, StructuredFieldType,
+    StructuredInfoType, StructuredInfoValue, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, CanonicalStartupValue,
@@ -78,7 +78,7 @@ fn definition(value: &StructuredInfoValue) -> KindDefinition {
             .unwrap();
     KindDefinition {
         kind_id: KindId::from(KIND),
-        kind_contract_revision: KindContractRevision::from("time/expand-recurrence@1"),
+        kind_contract_revision: KindIdentity::from("time/expand-recurrence@1"),
         inputs: vec![],
         outputs: vec![],
         configuration: vec![ConfigurationField {

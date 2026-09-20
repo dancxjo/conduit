@@ -2,10 +2,10 @@ use conduit_core::{
     mandatory_sign_storage_requirement, seal_plan, ArtifactId, BaseImplementationId, BootId,
     CancellationPolicy, CapabilityId, CapabilityLimits, CheckedFormId, ConfigurationEntry,
     ConfigurationValue, ConnectionId, ExecutionProfileId, ExpandedFormId, ExpectedSign,
-    ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId, ImplementationId,
-    KindContractRevision, KindId, OfferGeneration, PlacementId, PlanFragment, PlanId,
-    PlannedConnection, PlannedGear, PortDescriptor, PortDirection, PortId, SignStorageBudget,
-    SourceDocumentId, StartupDependency, TerminalPolicy,
+    ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId, ImplementationId, KindId,
+    KindIdentity, OfferGeneration, PlacementId, PlanFragment, PlanId, PlannedConnection,
+    PlannedGear, PortDescriptor, PortDirection, PortId, SignStorageBudget, SourceDocumentId,
+    StartupDependency, TerminalPolicy,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_signal::{signal_profile_catalog, SIGNAL_ENCODED_LEN};
@@ -355,7 +355,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 placement_id: source.clone(),
                 gear_id: GearId::from("source"),
                 kind_id: KindId::from("test/source"),
-                kind_contract_revision: KindContractRevision::from("test/source@1"),
+                kind_contract_revision: KindIdentity::from("test/source@1"),
                 execution_profile_id: ExecutionProfileId::from("test/source-fixed@1"),
                 configuration: vec![ConfigurationEntry {
                     key: "count".to_owned(),
@@ -385,7 +385,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 placement_id: sink.clone(),
                 gear_id: GearId::from("sink"),
                 kind_id: KindId::from("test/sink"),
-                kind_contract_revision: KindContractRevision::from("test/sink@1"),
+                kind_contract_revision: KindIdentity::from("test/sink@1"),
                 execution_profile_id: ExecutionProfileId::from("test/sink-fixed@1"),
                 configuration: Vec::new(),
                 host_id: host_id.clone(),

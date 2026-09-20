@@ -1,9 +1,8 @@
 //! Exact bounded JSON realization offers owned by the hosted std Host.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    SemanticCapabilityContract,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
 };
 
 pub const JSON_ENCODE_STD_IMPLEMENTATION: &str = "std/kernel-json-encode@1";
@@ -52,15 +51,15 @@ pub fn json_decode_std_offer() -> CapabilityOffer {
 }
 
 fn json_offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     capability: &str,
     implementation: &str,
     operation: &str,
 ) -> CapabilityOffer {
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from("std/no-std-bounded-json@1"),
             implementation_id: ImplementationId::from(implementation),

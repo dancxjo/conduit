@@ -6,11 +6,10 @@
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal, ResourceRequirement, SemanticCapabilityContract,
-    INPUT_RESOURCE_CLASS,
+    kind_id, port_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, Kind, KindId, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    ResourceRequirement, INPUT_RESOURCE_CLASS,
 };
 
 use crate::{signal_value_kind, SIGNAL_ENCODED_LEN, SIGNAL_PORT};
@@ -34,12 +33,12 @@ pub fn merge_three_signal_kind() -> KindId {
     kind_id(MERGE_THREE_SIGNAL_KIND)
 }
 
-pub fn level_input_contract_revision() -> KindContractRevision {
-    KindContractRevision::from(LEVEL_INPUT_CONTRACT_REVISION)
+pub fn level_input_contract_revision() -> KindIdentity {
+    KindIdentity::from(LEVEL_INPUT_CONTRACT_REVISION)
 }
 
-pub fn merge_three_signal_contract_revision() -> KindContractRevision {
-    KindContractRevision::from(MERGE_THREE_SIGNAL_CONTRACT_REVISION)
+pub fn merge_three_signal_contract_revision() -> KindIdentity {
+    KindIdentity::from(MERGE_THREE_SIGNAL_CONTRACT_REVISION)
 }
 
 pub fn level_input_outputs() -> Vec<PortDescriptor> {
@@ -77,9 +76,9 @@ pub fn level_input_capability(
     implementation_id: &str,
     maximum_instances: u16,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         level_input_semantic_contract(maximum_instances),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability_id),
             execution_profile_id: ExecutionProfileId::from(LEVEL_INPUT_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(implementation_id),
@@ -92,8 +91,8 @@ pub fn level_input_capability(
     .build()
 }
 
-pub fn level_input_semantic_contract(maximum_instances: u16) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn level_input_semantic_contract(maximum_instances: u16) -> Kind {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
         kind_id: level_input_kind(),
@@ -112,9 +111,9 @@ pub fn merge_three_signal_capability(
     capability_id: &str,
     implementation_id: &str,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         merge_three_signal_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability_id),
             execution_profile_id: ExecutionProfileId::from(MERGE_THREE_SIGNAL_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(implementation_id),
@@ -127,8 +126,8 @@ pub fn merge_three_signal_capability(
     .build()
 }
 
-pub fn merge_three_signal_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn merge_three_signal_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
         kind_id: merge_three_signal_kind(),

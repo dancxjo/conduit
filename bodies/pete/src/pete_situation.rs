@@ -1,8 +1,8 @@
 //! Finite Pete-specific selection over reusable typed observation families.
 
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal, SignId, TemporalInstant, TemporalRelation,
+    kind_id, port_id, CapabilityLimits, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, SignId, TemporalInstant, TemporalRelation,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_robotics::{BatteryObservation, ROBOTICS_BATTERY_INFO_ID};
@@ -104,7 +104,7 @@ pub enum PeteSituationRefusal {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PeteSituationContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
@@ -279,7 +279,7 @@ fn validate_utterance(
 pub fn pete_situation_contract() -> PeteSituationContract {
     PeteSituationContract {
         kind_id: kind_id(PETE_SITUATION_SELECT_KIND),
-        kind_contract_revision: KindContractRevision::from(PETE_SITUATION_REVISION),
+        kind_contract_revision: KindIdentity::from(PETE_SITUATION_REVISION),
         inputs: vec![
             port("battery", ROBOTICS_BATTERY_INFO_ID, PortDirection::Input),
             port("utterance", PETE_UTTERANCE_INFO_KIND, PortDirection::Input),

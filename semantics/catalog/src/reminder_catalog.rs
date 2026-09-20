@@ -6,9 +6,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, StructuredFieldType, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredFieldType, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -18,7 +17,7 @@ pub const REMINDER_DELIVER_KIND: &str = "notification/deliver-reminder";
 pub const REMINDER_REVISION: &str = "conduit.std/reminder-delivery@1";
 pub const REMINDER_DELIVERY_AUTHORITY: &str = "conduit.authority/deliver-reminder@1";
 
-pub fn reminder_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+pub fn reminder_semantic_contracts() -> Vec<Kind> {
     vec![
         contract(
             REMINDER_FIXTURE_KIND,
@@ -66,7 +65,7 @@ pub fn install_reminder_catalogs(
 fn insert_kind(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
-    contract: SemanticCapabilityContract,
+    contract: Kind,
 ) -> Result<(), String> {
     startup
         .insert(KindSignature {
@@ -85,16 +84,12 @@ fn insert_kind(
         .map_err(|error| error.to_string())
 }
 
-fn contract(
-    kind: &str,
-    inputs: Vec<PortDescriptor>,
-    outputs: Vec<PortDescriptor>,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn contract(kind: &str, inputs: Vec<PortDescriptor>, outputs: Vec<PortDescriptor>) -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(REMINDER_REVISION),
+        kind_contract_revision: KindIdentity::from(REMINDER_REVISION),
         inputs,
         outputs,
         limits: CapabilityLimits {

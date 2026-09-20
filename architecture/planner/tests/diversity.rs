@@ -3,8 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     kind_id, port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    ImplementationOffer, KindContractRevision, LineId, LinkBindingId, LinkEndpointId,
-    OfferGeneration, PortDescriptor, PortDirection, PortTemporal, SignId, PROTOCOL_VERSION,
+    ImplementationOffer, KindIdentity, LineId, LinkBindingId, LinkEndpointId, OfferGeneration,
+    PortDescriptor, PortDirection, PortTemporal, SignId, PROTOCOL_VERSION,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_planner::{
@@ -34,7 +34,7 @@ fn port(direction: PortDirection) -> PortDescriptor {
 fn definition(kind: &str) -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: (kind != SOURCE)
             .then(|| port(PortDirection::Input))
             .into_iter()

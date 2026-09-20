@@ -2,11 +2,10 @@ use alloc::string::ToString;
 use alloc::vec;
 
 use conduit_core::{
-    kind_id, port_id, resource_offer, resource_requirement, ArtifactId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, FrontStartupParameter, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    ResourceOffer, SemanticCapabilityContract,
+    kind_id, port_id, resource_offer, resource_requirement, ArtifactId, Back, BackOfferBuilder,
+    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind, KindIdentity,
+    PortDescriptor, PortDirection, PortTemporal, ResourceOffer,
 };
 
 /// Authored external WebSocket semantics. This is not a Conduit session line.
@@ -58,9 +57,9 @@ pub fn external_websocket_client_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         external_websocket_client_contract(),
-        CapabilityRealization {
+        Back {
             capability_id,
             execution_profile_id: ExecutionProfileId::from(EXTERNAL_WEBSOCKET_CLIENT_PROFILE),
             implementation_id,
@@ -89,12 +88,12 @@ pub fn external_websocket_client_offer(
     .build()
 }
 
-fn external_websocket_client_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn external_websocket_client_contract() -> Kind {
+    Kind {
         startup_parameters: vec![startup("url", URL_VALUE_KIND)],
         shorthand: None,
         kind_id: kind_id(EXTERNAL_WEBSOCKET_CLIENT_KIND),
-        kind_contract_revision: KindContractRevision::from(EXTERNAL_WEBSOCKET_CLIENT_REVISION),
+        kind_contract_revision: KindIdentity::from(EXTERNAL_WEBSOCKET_CLIENT_REVISION),
         inputs: vec![port(
             "send",
             WEBSOCKET_MESSAGE_VALUE_KIND,
@@ -124,9 +123,9 @@ pub fn external_websocket_listener_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         external_websocket_listener_contract(),
-        CapabilityRealization {
+        Back {
             capability_id,
             execution_profile_id: ExecutionProfileId::from(EXTERNAL_WEBSOCKET_LISTENER_PROFILE),
             implementation_id,
@@ -154,12 +153,12 @@ pub fn external_websocket_listener_offer(
     .build()
 }
 
-fn external_websocket_listener_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn external_websocket_listener_contract() -> Kind {
+    Kind {
         startup_parameters: vec![startup("bind", NET_ADDRESS_VALUE_KIND)],
         shorthand: None,
         kind_id: kind_id(EXTERNAL_WEBSOCKET_LISTENER_KIND),
-        kind_contract_revision: KindContractRevision::from(EXTERNAL_WEBSOCKET_LISTENER_REVISION),
+        kind_contract_revision: KindIdentity::from(EXTERNAL_WEBSOCKET_LISTENER_REVISION),
         inputs: vec![port(
             "send",
             PEER_MESSAGE_VALUE_KIND,

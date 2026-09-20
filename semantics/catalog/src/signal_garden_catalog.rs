@@ -7,8 +7,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType,
 };
 use conduit_form::{
     check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindDefinition,
@@ -86,7 +86,7 @@ pub fn install_signal_garden_catalog(
 pub fn garden_fixture_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(GARDEN_FIXTURE_KIND),
-        kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(GARDEN_CONTRACT_REVISION),
         inputs: vec![],
         outputs: vec![
             port("prior", &garden_state_type(), PortDirection::Output),
@@ -105,21 +105,21 @@ pub fn garden_fixture_definition() -> KindDefinition {
     }
 }
 
-pub fn garden_fixture_semantic_contract() -> SemanticCapabilityContract {
+pub fn garden_fixture_semantic_contract() -> Kind {
     garden_semantic_contract(garden_fixture_definition(), 3)
 }
 
 pub fn garden_state_presentation_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(GARDEN_STATE_PRESENTATION_KIND),
-        kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(GARDEN_CONTRACT_REVISION),
         inputs: vec![port("state", &garden_state_type(), PortDirection::Input)],
         outputs: vec![],
         configuration: vec![],
     }
 }
 
-pub fn garden_state_presentation_semantic_contract() -> SemanticCapabilityContract {
+pub fn garden_state_presentation_semantic_contract() -> Kind {
     garden_semantic_contract(garden_state_presentation_definition(), 1)
 }
 
@@ -144,21 +144,21 @@ pub fn install_signal_garden_backs(
 pub fn garden_minimal_step_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(GARDEN_MINIMAL_STEP_KIND),
-        kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(GARDEN_CONTRACT_REVISION),
         inputs: reducer_inputs(false),
         outputs: vec![port("next", &garden_state_type(), PortDirection::Output)],
         configuration: vec![],
     }
 }
 
-pub fn garden_minimal_step_semantic_contract() -> SemanticCapabilityContract {
+pub fn garden_minimal_step_semantic_contract() -> Kind {
     garden_semantic_contract(garden_minimal_step_definition(), 2)
 }
 
 pub fn garden_observation_combine_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(GARDEN_OBSERVATION_COMBINE_KIND),
-        kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(GARDEN_CONTRACT_REVISION),
         inputs: vec![
             port(
                 "clock",
@@ -180,14 +180,14 @@ pub fn garden_observation_combine_definition() -> KindDefinition {
     }
 }
 
-pub fn garden_observation_combine_semantic_contract() -> SemanticCapabilityContract {
+pub fn garden_observation_combine_semantic_contract() -> Kind {
     garden_semantic_contract(garden_observation_combine_definition(), 2)
 }
 
 pub fn garden_enriched_reducer_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(GARDEN_ENRICHED_REDUCER_KIND),
-        kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(GARDEN_CONTRACT_REVISION),
         inputs: vec![
             port("prior", &garden_state_type(), PortDirection::Input),
             port(
@@ -201,15 +201,12 @@ pub fn garden_enriched_reducer_definition() -> KindDefinition {
     }
 }
 
-pub fn garden_enriched_reducer_semantic_contract() -> SemanticCapabilityContract {
+pub fn garden_enriched_reducer_semantic_contract() -> Kind {
     garden_semantic_contract(garden_enriched_reducer_definition(), 2)
 }
 
-fn garden_semantic_contract(
-    definition: KindDefinition,
-    maximum_queue_items: u16,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn garden_semantic_contract(definition: KindDefinition, maximum_queue_items: u16) -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: definition.kind_id,
@@ -258,7 +255,7 @@ fn insert_kind(
     profile
         .insert(KindDefinition {
             kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(GARDEN_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(GARDEN_CONTRACT_REVISION),
             inputs,
             outputs,
             configuration: vec![],

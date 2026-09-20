@@ -5,7 +5,7 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection,
 };
 
 pub const TEXT_PRESENTATION_KIND: &str = "presentation/text";
@@ -61,7 +61,7 @@ pub fn text_presentation_profile_catalog() -> conduit_form::ProfileCatalog {
     catalog
         .insert(KindDefinition {
             kind_id: kind_id(TEXT_PRESENTATION_KIND),
-            kind_contract_revision: KindContractRevision::from(TEXT_PRESENTATION_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(TEXT_PRESENTATION_CONTRACT_REVISION),
             inputs: text_presentation_inputs(),
             outputs: Vec::new(),
             configuration: vec![ConfigurationField {

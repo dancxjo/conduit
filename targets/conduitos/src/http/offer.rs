@@ -1,7 +1,7 @@
 use conduit_core::{
-    ArtifactId, AuthorityContractId, AuthorityRequirement, CapabilityId, CapabilityOffer,
-    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, resource_requirement,
+    ArtifactId, AuthorityContractId, AuthorityRequirement, Back, BackOfferBuilder, CapabilityId,
+    CapabilityOffer, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, resource_requirement,
 };
 
 pub const IMPLEMENTATION: &str = "conduitos/kernel-http-client-http1-literal";
@@ -34,9 +34,9 @@ pub fn offer() -> CapabilityOffer {
         maximum_input_bytes: REQUEST_BYTES as u32,
         maximum_output_bytes: RESPONSE_BYTES as u32,
     };
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("conduitos-http-client-http1-literal"),
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),

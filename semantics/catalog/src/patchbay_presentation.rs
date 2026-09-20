@@ -3,8 +3,7 @@
 use super::{StandardKindContract, TerminalBehavior};
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal,
+    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const PATCHBAY_PRESENTATION_KIND: &str = "presentation/patchbay";
@@ -85,7 +84,7 @@ pub fn install_patchbay_presentation_catalogs(
         profile
             .insert(KindDefinition {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(PATCHBAY_PRESENTATION_REVISION),
+                kind_contract_revision: KindIdentity::from(PATCHBAY_PRESENTATION_REVISION),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration: Vec::new(),

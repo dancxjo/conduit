@@ -5,10 +5,9 @@ use super::factory::{
 };
 use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PlannedGear, SemanticCapabilityContract, StructuredInfoValue, StructuredInfoValueShape,
-    PRESENTATION_RESOURCE_CLASS,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind, PlannedGear,
+    StructuredInfoValue, StructuredInfoValueShape, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -46,15 +45,11 @@ fn threshold_offer() -> CapabilityOffer {
     )
 }
 
-fn offer(
-    contract: SemanticCapabilityContract,
-    implementation: &str,
-    operation: &str,
-) -> CapabilityOffer {
+fn offer(contract: Kind, implementation: &str, operation: &str) -> CapabilityOffer {
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),

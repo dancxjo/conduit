@@ -1,9 +1,8 @@
 //! Exact text realization offers owned by the hosted std Host.
 
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, SemanticCapabilityContract,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
 };
 
 pub const TEXT_LITERAL_EXECUTION_PROFILE: &str = "conduit.std/text-literal-kernel-hosted@1";
@@ -143,16 +142,16 @@ fn offer(
 }
 
 fn offer_semantic(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     capability: &str,
     profile: &str,
     implementation: &str,
     artifact: &str,
     host_operations: Vec<HostOperationRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),

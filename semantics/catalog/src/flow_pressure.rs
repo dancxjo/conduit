@@ -5,8 +5,8 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, DeliveryPressurePolicy, KindContractRevision, KindId,
-    PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, DeliveryPressurePolicy, Kind, KindId, KindIdentity,
+    PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const FLOW_BACKPRESSURE_KIND: &str = "flow/backpressure";
@@ -17,13 +17,13 @@ pub const FLOW_COALESCE_LATEST_REVISION: &str = "conduit.flow/coalesce-latest@1"
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FlowPressureContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
 }
 
-impl From<FlowPressureContract> for SemanticCapabilityContract {
+impl From<FlowPressureContract> for Kind {
     fn from(contract: FlowPressureContract) -> Self {
         Self {
             startup_parameters: Vec::new(),
@@ -43,7 +43,7 @@ pub fn flow_backpressure_contract(
 ) -> FlowPressureContract {
     FlowPressureContract {
         kind_id: kind_id(FLOW_BACKPRESSURE_KIND),
-        kind_contract_revision: KindContractRevision::from(FLOW_BACKPRESSURE_REVISION),
+        kind_contract_revision: KindIdentity::from(FLOW_BACKPRESSURE_REVISION),
         inputs: vec![port(
             value_kind,
             "in",
@@ -66,7 +66,7 @@ pub fn flow_coalesce_latest_contract(
 ) -> FlowPressureContract {
     FlowPressureContract {
         kind_id: kind_id(FLOW_COALESCE_LATEST_KIND),
-        kind_contract_revision: KindContractRevision::from(FLOW_COALESCE_LATEST_REVISION),
+        kind_contract_revision: KindIdentity::from(FLOW_COALESCE_LATEST_REVISION),
         inputs: vec![port(
             value_kind,
             "in",

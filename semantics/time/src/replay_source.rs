@@ -98,7 +98,7 @@ pub fn project_replay_source(timeline: &BoundedHistoricalTimeline) -> ReplaySour
 #[cfg(feature = "form-catalog")]
 pub fn replay_source_kind_definition() -> conduit_form::KindDefinition {
     use conduit_core::{
-        kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+        kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
         StructuredInfoType,
     };
 
@@ -115,7 +115,7 @@ pub fn replay_source_kind_definition() -> conduit_form::KindDefinition {
     };
     conduit_form::KindDefinition {
         kind_id: kind_id(REPLAY_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(REPLAY_SOURCE_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(REPLAY_SOURCE_CONTRACT_REVISION),
         inputs: alloc::vec![port(
             "timeline",
             "history/typed-timeline@1",
@@ -130,9 +130,9 @@ pub fn replay_source_kind_definition() -> conduit_form::KindDefinition {
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn replay_source_semantic_contract() -> conduit_core::SemanticCapabilityContract {
+pub fn replay_source_semantic_contract() -> conduit_core::Kind {
     let definition = replay_source_kind_definition();
-    conduit_core::SemanticCapabilityContract {
+    conduit_core::Kind {
         startup_parameters: alloc::vec![],
         shorthand: None,
         kind_id: definition.kind_id,

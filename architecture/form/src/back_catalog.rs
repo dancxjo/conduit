@@ -1,13 +1,13 @@
 use crate::prelude::*;
 use crate::{CheckedCanonicalForm, CheckedSyntaxDocument, KindDefinition};
 use alloc::collections::BTreeMap;
-use conduit_core::{CheckedFormId, CheckedFront, KindId, RealizationBack, SourceDocumentId};
+use conduit_core::{CheckedFormId, CheckedFront, FormBack, KindId, SourceDocumentId};
 
 pub const MAXIMUM_CANONICAL_BACKS: usize = 64;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CanonicalBackDefinition {
-    pub realization: RealizationBack,
+    pub realization: FormBack,
     pub form: CheckedCanonicalForm,
 }
 
@@ -111,7 +111,7 @@ impl CanonicalBackCatalog {
                 kind.kind_id.as_str().into(),
             ));
         }
-        let realization = RealizationBack {
+        let realization = FormBack {
             invocation_path: String::new(),
             kind_id: kind.kind_id.clone(),
             kind_contract_revision: kind.kind_contract_revision.clone(),

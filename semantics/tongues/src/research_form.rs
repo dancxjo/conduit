@@ -1,8 +1,6 @@
 //! Portable form contracts for the bounded paired-latent run.
 
-use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-};
+use conduit_core::{kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal};
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
     KindSignature, ProfileCatalog, StartupCatalog,
@@ -147,7 +145,7 @@ fn kind(
 ) -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(identity),
-        kind_contract_revision: KindContractRevision::from(format!("conduit.{identity}@1")),
+        kind_contract_revision: KindIdentity::from(format!("conduit.{identity}@1")),
         inputs,
         outputs,
         configuration: vec![],

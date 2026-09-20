@@ -11,8 +11,7 @@ use alloc::{
 use conduit_core::CapabilityLimits;
 #[cfg(feature = "form-catalog")]
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    SemanticCapabilityContract,
+    kind_id, port_id, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 #[cfg(feature = "form-catalog")]
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
@@ -366,7 +365,7 @@ fn decode_message(bytes: &[u8]) -> Result<&str, BodyChatRefusal> {
 pub fn body_chat_prompt_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(BODY_CHAT_PROMPT_KIND),
-        kind_contract_revision: KindContractRevision::from(BODY_CHAT_PROMPT_REVISION),
+        kind_contract_revision: KindIdentity::from(BODY_CHAT_PROMPT_REVISION),
         inputs: vec![
             port(
                 "message",
@@ -397,7 +396,7 @@ pub fn body_chat_prompt_definition() -> KindDefinition {
 pub fn body_conversation_context_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(BODY_CONVERSATION_CONTEXT_KIND),
-        kind_contract_revision: KindContractRevision::from(BODY_CONVERSATION_CONTEXT_REVISION),
+        kind_contract_revision: KindIdentity::from(BODY_CONVERSATION_CONTEXT_REVISION),
         inputs: vec![],
         outputs: vec![PortDescriptor {
             port_id: port_id("context"),
@@ -458,7 +457,7 @@ pub fn install_body_chat_catalog(
     profile
         .insert(KindDefinition {
             kind_id: kind_id(BODY_CHAT_FORM_KIND),
-            kind_contract_revision: KindContractRevision::from(BODY_CHAT_FORM_REVISION),
+            kind_contract_revision: KindIdentity::from(BODY_CHAT_FORM_REVISION),
             inputs: vec![],
             outputs: vec![],
             configuration: vec![],
@@ -475,12 +474,12 @@ pub fn body_chat_prompt_limits() -> CapabilityLimits {
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn body_chat_prompt_semantic_contract() -> SemanticCapabilityContract {
+pub fn body_chat_prompt_semantic_contract() -> Kind {
     semantic_contract(body_chat_prompt_definition(), body_chat_prompt_limits())
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn body_conversation_context_semantic_contract() -> SemanticCapabilityContract {
+pub fn body_conversation_context_semantic_contract() -> Kind {
     semantic_contract(
         body_conversation_context_definition(),
         CapabilityLimits {
@@ -492,11 +491,8 @@ pub fn body_conversation_context_semantic_contract() -> SemanticCapabilityContra
 }
 
 #[cfg(feature = "form-catalog")]
-fn semantic_contract(
-    definition: KindDefinition,
-    limits: CapabilityLimits,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn semantic_contract(definition: KindDefinition, limits: CapabilityLimits) -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: definition.kind_id,

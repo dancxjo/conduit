@@ -6,9 +6,8 @@ use conduit_body::{
 };
 use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, KindId, LinkBindingId, OfferGeneration, SignId, SourceDocumentId,
-    PROTOCOL_VERSION,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindId,
+    KindIdentity, LinkBindingId, OfferGeneration, SignId, SourceDocumentId, PROTOCOL_VERSION,
 };
 
 fn body() -> Body {
@@ -41,7 +40,7 @@ fn capability(index: usize) -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from(format!("claimed/capability/{index}")),
         kind_id: KindId::from(format!("claimed/kind/{index}")),
-        kind_contract_revision: KindContractRevision::from("claimed/revision"),
+        kind_contract_revision: KindIdentity::from("claimed/revision"),
         inputs: Vec::new(),
         outputs: Vec::new(),
         implementation: conduit_core::ImplementationOffer {

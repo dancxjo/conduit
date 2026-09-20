@@ -3,8 +3,7 @@
 use super::{StandardKindContract, TerminalBehavior};
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal,
+    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const GRAPHICS_PRESENTATION_KIND: &str = "presentation/graphics";
@@ -74,7 +73,7 @@ pub fn install_graphics_presentation_catalog(
     profile
         .insert(KindDefinition {
             kind_id: contract.kind_id,
-            kind_contract_revision: KindContractRevision::from(GRAPHICS_PRESENTATION_REVISION),
+            kind_contract_revision: KindIdentity::from(GRAPHICS_PRESENTATION_REVISION),
             inputs: contract.inputs,
             outputs: contract.outputs,
             configuration: Vec::new(),

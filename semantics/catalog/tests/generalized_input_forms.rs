@@ -197,7 +197,7 @@ fn proof_offers() -> Vec<conduit_core::CapabilityOffer> {
         shorthand: None,
         capability_id: conduit_core::CapabilityId::from(format!("proof/{kind}@1")),
         kind_id: conduit_core::kind_id(kind),
-        kind_contract_revision: conduit_core::KindContractRevision::from(
+        kind_contract_revision: conduit_core::KindIdentity::from(
             conduit_semantic_catalog::GENERALIZED_INPUT_REVISION,
         ),
         implementation: conduit_core::ImplementationOffer {

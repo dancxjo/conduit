@@ -4,9 +4,8 @@ use alloc::{collections::BTreeMap, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision,
-    OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection, PortTemporal, Scalar,
-    kind_id, port_id,
+    HostOperationRequirement, HostProfileId, ImplementationId, KindIdentity, OfferGeneration,
+    PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection, PortTemporal, Scalar, kind_id, port_id,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_kernel::scheduler::{
@@ -93,7 +92,7 @@ pub fn prepare_clamp(
     catalog
         .insert(conduit_form::KindDefinition {
             kind_id: kind_id(SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+            kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: source_offer(input).outputs,
             configuration: Vec::new(),
@@ -102,7 +101,7 @@ pub fn prepare_clamp(
     catalog
         .insert(conduit_form::KindDefinition {
             kind_id: kind_id(SINK_KIND),
-            kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+            kind_contract_revision: KindIdentity::from(SINK_REVISION),
             inputs: sink_offer().inputs,
             outputs: Vec::new(),
             configuration: Vec::new(),
@@ -237,7 +236,7 @@ fn source_offer(input: Scalar) -> CapabilityOffer {
             input.raw_microunits()
         )),
         kind_id: kind_id(SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
                 crate::functional_offers::FUNCTIONAL_KERNEL_PROFILE,
@@ -269,7 +268,7 @@ fn sink_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-fixture-clamp-sink@1"),
         kind_id: kind_id(SINK_KIND),
-        kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+        kind_contract_revision: KindIdentity::from(SINK_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
                 crate::functional_offers::FUNCTIONAL_KERNEL_PROFILE,

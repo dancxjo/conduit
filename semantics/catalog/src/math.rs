@@ -8,7 +8,7 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
     PortDirection, PortTemporal, Scalar, ScalarArithmeticError, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
 
@@ -203,7 +203,7 @@ pub fn install_math_catalogs(
         profile
             .insert(KindDefinition {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration,

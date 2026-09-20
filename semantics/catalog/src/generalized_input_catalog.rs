@@ -6,9 +6,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -65,23 +64,23 @@ pub fn deterministic_pointer_touch_outputs() -> Vec<PortDescriptor> {
     ]
 }
 
-pub fn deterministic_gamepad_semantic_contract() -> SemanticCapabilityContract {
+pub fn deterministic_gamepad_semantic_contract() -> Kind {
     semantic_contract(DETERMINISTIC_GAMEPAD_KIND, deterministic_gamepad_outputs())
 }
 
-pub fn deterministic_pointer_touch_semantic_contract() -> SemanticCapabilityContract {
+pub fn deterministic_pointer_touch_semantic_contract() -> Kind {
     semantic_contract(
         DETERMINISTIC_POINTER_TOUCH_KIND,
         deterministic_pointer_touch_outputs(),
     )
 }
 
-pub fn pointer_source_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn pointer_source_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(POINTER_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(GENERALIZED_INPUT_REVISION),
+        kind_contract_revision: KindIdentity::from(GENERALIZED_INPUT_REVISION),
         inputs: vec![],
         outputs: vec![source_port(
             "pointer",
@@ -96,12 +95,12 @@ pub fn pointer_source_semantic_contract() -> SemanticCapabilityContract {
     }
 }
 
-fn semantic_contract(kind: &str, outputs: Vec<PortDescriptor>) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn semantic_contract(kind: &str, outputs: Vec<PortDescriptor>) -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(GENERALIZED_INPUT_REVISION),
+        kind_contract_revision: KindIdentity::from(GENERALIZED_INPUT_REVISION),
         inputs: vec![],
         outputs,
         limits: CapabilityLimits {
@@ -124,7 +123,7 @@ fn insert_kind(
 fn insert_semantic_kind(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
-    contract: SemanticCapabilityContract,
+    contract: Kind,
 ) -> Result<(), String> {
     startup
         .insert(KindSignature {

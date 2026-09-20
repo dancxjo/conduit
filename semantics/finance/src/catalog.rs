@@ -6,8 +6,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType,
 };
 use conduit_form::{KindDefinition, KindSignature};
 
@@ -19,7 +19,7 @@ pub const FINANCE_COMPARE_KIND: &str = "finance/compare-money";
 pub const FINANCE_CONVERT_KIND: &str = "finance/convert-money";
 pub const FINANCE_REVISION: &str = "conduit.std/finance-exact@1";
 
-pub fn finance_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+pub fn finance_semantic_contracts() -> Vec<Kind> {
     let money = finance_money_type();
     vec![
         contract(
@@ -123,16 +123,12 @@ fn finance_types() -> Vec<(&'static str, StructuredInfoType)> {
     ]
 }
 
-fn contract(
-    kind: &str,
-    inputs: Vec<PortDescriptor>,
-    outputs: Vec<PortDescriptor>,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn contract(kind: &str, inputs: Vec<PortDescriptor>, outputs: Vec<PortDescriptor>) -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(FINANCE_REVISION),
+        kind_contract_revision: KindIdentity::from(FINANCE_REVISION),
         inputs,
         outputs,
         limits: CapabilityLimits {

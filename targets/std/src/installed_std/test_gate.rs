@@ -1,9 +1,9 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, ImplementationId, InfoBool, KindContractRevision,
-    PlannedGear, PortDescriptor, PortDirection, PortTemporal, Scalar, BOOL_INFO_ID,
-    SCALAR_ENCODED_LEN, SCALAR_INFO_ID, TIMER_RESOURCE_CLASS,
+    CapabilityOffer, ExecutionProfileId, ImplementationId, InfoBool, KindIdentity, PlannedGear,
+    PortDescriptor, PortDirection, PortTemporal, Scalar, BOOL_INFO_ID, SCALAR_ENCODED_LEN,
+    SCALAR_INFO_ID, TIMER_RESOURCE_CLASS,
 };
 use conduit_form::{KindDefinition, ProfileCatalog};
 use conduit_kernel::{
@@ -198,7 +198,7 @@ fn offer(
         shorthand: None,
         capability_id: CapabilityId::from(implementation),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),

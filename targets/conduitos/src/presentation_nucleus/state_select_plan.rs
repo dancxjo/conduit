@@ -10,7 +10,7 @@ use alloc::{
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, InfoBool,
-    KindContractRevision, OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection,
+    KindIdentity, OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection,
     PortTemporal, Scalar, kind_id, port_id,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog, parse};
@@ -176,7 +176,7 @@ fn source_offer(kind: &str, value_kind: &str, identity: String) -> CapabilityOff
         shorthand: None,
         capability_id: CapabilityId::from(format!("{}-{identity}@1", kind.replace('/', "-"))),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
         implementation: fixture_implementation("conduitos.fixture/state-select-source@1"),
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
@@ -204,7 +204,7 @@ fn sink_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-state-select-sink@1"),
         kind_id: kind_id(SINK_KIND),
-        kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+        kind_contract_revision: KindIdentity::from(SINK_REVISION),
         implementation: fixture_implementation("conduitos.fixture/state-select-sink@1"),
         inputs: vec![PortDescriptor {
             port_id: port_id("value"),

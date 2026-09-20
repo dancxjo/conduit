@@ -3,8 +3,8 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use conduit_human::KEY_EVENT_INFO_ID;
 
@@ -35,13 +35,13 @@ pub fn keyboard_contract() -> StandardKindContract {
     }
 }
 
-pub fn keyboard_contract_revision() -> KindContractRevision {
-    KindContractRevision::from(KEYBOARD_CONTRACT_REVISION)
+pub fn keyboard_contract_revision() -> KindIdentity {
+    KindIdentity::from(KEYBOARD_CONTRACT_REVISION)
 }
 
-pub fn keyboard_semantic_contract() -> SemanticCapabilityContract {
+pub fn keyboard_semantic_contract() -> Kind {
     let contract = keyboard_contract();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
         kind_id: contract.kind_id,

@@ -2,7 +2,7 @@
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection,
 };
 
 use super::{StandardKindContract, TerminalBehavior};
@@ -54,7 +54,7 @@ pub fn pulse_presentation_kind_definition() -> conduit_form::KindDefinition {
     let contract = pulse_presentation_contract();
     KindDefinition {
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(PULSE_PRESENTATION_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(PULSE_PRESENTATION_CONTRACT_REVISION),
         inputs: contract.inputs,
         outputs: contract.outputs,
         configuration: vec![],
@@ -66,7 +66,7 @@ pub fn pulse_tone_presentation_kind_definition() -> conduit_form::KindDefinition
     let mut definition = pulse_presentation_kind_definition();
     definition.kind_id = kind_id(PULSE_TONE_PRESENTATION_KIND);
     definition.kind_contract_revision =
-        KindContractRevision::from(PULSE_TONE_PRESENTATION_CONTRACT_REVISION);
+        KindIdentity::from(PULSE_TONE_PRESENTATION_CONTRACT_REVISION);
     definition
 }
 

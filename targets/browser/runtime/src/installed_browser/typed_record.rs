@@ -3,9 +3,9 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PlannedGear, StructuredInfoValue, StructuredInfoValueShape,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, PlannedGear,
+    StructuredInfoValue, StructuredInfoValueShape,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
@@ -60,9 +60,9 @@ fn offer(index: usize) -> CapabilityOffer {
     let contract = conduit_net::typed_record_semantic_contract(kind)
         .expect("typed-record codec semantic contract exists");
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(IMPLEMENTATIONS[index]),
             execution_profile_id: ExecutionProfileId::from("browser/typed-record-codec@1"),
             implementation_id: ImplementationId::from(IMPLEMENTATIONS[index]),

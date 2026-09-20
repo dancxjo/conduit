@@ -540,7 +540,7 @@ A capability offer is conceptually:
 struct CapabilityOffer {
     capability_id: CapabilityId,
     kind_id: KindId,
-    kind_contract_revision: KindContractRevision,
+    kind_contract_revision: KindIdentity,
     execution_profile_id: ExecutionProfileId,
     implementation_id: ImplementationId,
     inputs: BoundedList<PortDescription>,

@@ -6,9 +6,8 @@ use conduit_alife::{
     REACTION_DIFFUSION_MAXIMUM_STATE_BYTES, REACTION_DIFFUSION_REQUEST_BYTES,
 };
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId,
 };
 
 pub const REACTION_DIFFUSION_HOSTED_PROFILE: &str = "std/field-gray-scott-hosted@1";
@@ -29,9 +28,9 @@ pub const HOSTED_REACTION_DIFFUSION_LIMITS: HostedReactionDiffusionLimits =
     };
 
 pub fn reaction_diffusion_std_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         reaction_diffusion_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("std/field-evolve@1"),
             execution_profile_id: ExecutionProfileId::from(REACTION_DIFFUSION_HOSTED_PROFILE),
             implementation_id: ImplementationId::from("std/field-gray-scott@1"),

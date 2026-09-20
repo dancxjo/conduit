@@ -3,7 +3,7 @@
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, GearId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    ImplementationOffer, KindContractRevision, LineOffer, LineScope, LineSecurity, LinkLimits,
+    ImplementationOffer, KindIdentity, LineOffer, LineScope, LineSecurity, LinkLimits,
     OfferGeneration, Plan, PortDirection, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindDefinition, ProfileCatalog};
@@ -101,7 +101,7 @@ fn project_kind_definition() -> KindDefinition {
     output.direction = PortDirection::Output;
     KindDefinition {
         kind_id: PRESENTATION_PROJECT_KIND.into(),
-        kind_contract_revision: KindContractRevision::from(RENDERER_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(RENDERER_CONTRACT_REVISION),
         inputs: Vec::new(),
         outputs: vec![output],
         configuration: Vec::new(),
@@ -124,7 +124,7 @@ fn source_host(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
             shorthand: None,
             capability_id: CapabilityId::from(PRESENTATION_PROJECT_CAPABILITY),
             kind_id: PRESENTATION_PROJECT_KIND.into(),
-            kind_contract_revision: KindContractRevision::from(RENDERER_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(RENDERER_CONTRACT_REVISION),
             implementation: ImplementationOffer {
                 execution_profile_id: ExecutionProfileId::from("presentation/project-hosted@1"),
                 implementation_id: ImplementationId::from("patchbay/project-presentation@1"),

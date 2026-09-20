@@ -6,7 +6,7 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
     StructuredFieldType, StructuredInfoType, StructuredVariantCase,
 };
 use conduit_form::{KindDefinition, KindSignature};
@@ -128,9 +128,7 @@ pub fn install_purpose_catalogs(
     profile
         .insert(KindDefinition {
             kind_id: kind_id(PURPOSE_READINESS_KIND),
-            kind_contract_revision: KindContractRevision::from(
-                "conduit.purpose/fulfillment-readiness@1",
-            ),
+            kind_contract_revision: KindIdentity::from("conduit.purpose/fulfillment-readiness@1"),
             inputs: vec![port("purpose", &purpose_state_type(), PortDirection::Input)],
             outputs: vec![port(
                 "readiness",

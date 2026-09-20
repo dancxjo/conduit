@@ -1,9 +1,8 @@
 //! An explicitly selected Space-key realization of ordinary button meaning.
 use conduit_core::{
-    resource_requirement, ArtifactId, AuthorityRequirement, CapabilityId, CapabilityOffer,
-    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ResourceRequirement, SemanticCapabilityContract,
-    INPUT_RESOURCE_CLASS,
+    resource_requirement, ArtifactId, AuthorityRequirement, Back, BackOfferBuilder, CapabilityId,
+    CapabilityOffer, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId, Kind, ResourceRequirement, INPUT_RESOURCE_CLASS,
 };
 
 pub const IMPLEMENTATION: &str = "std/kernel-space-button@1";
@@ -58,15 +57,15 @@ pub fn offer() -> CapabilityOffer {
 }
 
 fn button_offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     implementation: &'static str,
     host_operations: Vec<HostOperationRequirement>,
     resource_requirements: Vec<ResourceRequirement>,
     authority_requirements: Vec<AuthorityRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),

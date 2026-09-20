@@ -2,9 +2,8 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 
@@ -32,7 +31,7 @@ pub fn install_measurement_summary_catalog(
 pub fn measurement_summary_kind_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(MEASUREMENT_SUMMARY_KIND),
-        kind_contract_revision: KindContractRevision::from(MEASUREMENT_SUMMARY_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(MEASUREMENT_SUMMARY_CONTRACT_REVISION),
         inputs: vec![port(
             "window",
             &measurement_window_type(),
@@ -47,9 +46,9 @@ pub fn measurement_summary_kind_definition() -> KindDefinition {
     }
 }
 
-pub fn measurement_summary_semantic_contract() -> SemanticCapabilityContract {
+pub fn measurement_summary_semantic_contract() -> Kind {
     let definition = measurement_summary_kind_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: definition.kind_id,

@@ -2,9 +2,8 @@ use conduit_core::{
     authority_grant, kind_id, port_id, ArtifactId, AuthorityContractId, AuthorityRequirement,
     BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, KindContractRevision,
-    OfferGeneration, PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
-    RESOURCE_REFERENCE_INFO_ID,
+    HostOperationRequirement, HostProfileId, ImplementationId, KindIdentity, OfferGeneration,
+    PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION, RESOURCE_REFERENCE_INFO_ID,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
@@ -40,7 +39,7 @@ fn definition(kind: &str, direction: PortDirection) -> KindDefinition {
     );
     KindDefinition {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: (direction == PortDirection::Input)
             .then_some(descriptor.clone())
             .into_iter()

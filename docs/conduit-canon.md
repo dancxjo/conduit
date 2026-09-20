@@ -22,6 +22,28 @@ such as `BodyId`, `CheckedFront`, and `Form`.
 
 > **forms describe meaning. hosts offer implementations. plans make realization exact.**
 
+The canonical execution vocabulary keeps one noun at each altitude:
+
+```text
+a gear invokes a kind through its front
+a host offers a back for that kind
+a plan chooses exact backs
+a play advances the plan in bounded steps
+a step may cross into host machinery with a host call
+```
+
+A `Kind` is the exact semantic contract, including its `KindIdentity`; an
+identity is not merely a human version label. A `Back` is realization truth,
+not another semantic contract. Host backs carry implementation, artifact,
+resource, authority, and host-boundary requirements. Form backs carry the exact
+source and checked form selected during expansion. They share the law “same
+kind and same front,” but remain distinct representations because their
+provenance and admission facts differ.
+
+“Capability” is reserved for possession/authority where that security meaning
+is real, such as `BaseCapability`. A Host advertisement may still serialize a
+capability offer for compatibility, but the offered realization is a Back.
+
 Conduit is a portable execution substrate for finite, typed flows of work.
 
 An author should be able to describe what must happen without deciding which operating system, browser, microcontroller, process, transport, device, or service will realize it. hosts report what they can currently do. A planner combines the authored meaning with exact current offers, resources, authority, and links. The resulting plan is immutable and complete enough to execute without ambient guesses.

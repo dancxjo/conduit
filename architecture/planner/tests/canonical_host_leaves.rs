@@ -1,8 +1,8 @@
 use conduit_core::{
     kind_id, port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ConfigurationValue, ExecutionProfileId, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, KindContractRevision, OfferGeneration, PortDescriptor,
-    PortDirection, PROTOCOL_VERSION,
+    HostProfileId, ImplementationId, KindIdentity, OfferGeneration, PortDescriptor, PortDirection,
+    PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
@@ -57,7 +57,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     profile
         .insert(KindDefinition {
             kind_id: kind_id("text/source"),
-            kind_contract_revision: KindContractRevision::from("text/source@1"),
+            kind_contract_revision: KindIdentity::from("text/source@1"),
             inputs: vec![],
             outputs: vec![port("text", PortDirection::Output)],
             configuration: vec![],
@@ -66,7 +66,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     profile
         .insert(KindDefinition {
             kind_id: kind_id("text/join"),
-            kind_contract_revision: KindContractRevision::from("text/join@1"),
+            kind_contract_revision: KindIdentity::from("text/join@1"),
             inputs: vec![port("text", PortDirection::Input)],
             outputs: vec![port("text", PortDirection::Output)],
             configuration: vec![ConfigurationField {
@@ -82,7 +82,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     profile
         .insert(KindDefinition {
             kind_id: kind_id("presentation/text"),
-            kind_contract_revision: KindContractRevision::from("presentation/text@1"),
+            kind_contract_revision: KindIdentity::from("presentation/text@1"),
             inputs: vec![port("text", PortDirection::Input)],
             outputs: vec![],
             configuration: vec![],
@@ -333,7 +333,7 @@ fn default_queues_refuse_zero_capacity_as_insufficient_host_limits() {
 }
 
 #[test]
-fn equal_front_and_semantics_with_a_different_name_is_compatible() {
+fn equal_front_and_identity_cannot_substitute_a_different_kind() {
     let expanded = expanded();
     let mut wrong_kind = host();
     let join = wrong_kind
@@ -342,19 +342,10 @@ fn equal_front_and_semantics_with_a_different_name_is_compatible() {
         .find(|capability| capability.kind_id.as_str() == "text/join")
         .unwrap();
     join.kind_id = kind_id("text/coincident-shape");
-    let placements = default_expanded_placements(&expanded, std::slice::from_ref(&wrong_kind))
-        .expect("different nominal gear with the same front and semantic contract is compatible");
-    let plan = plan_expanded_canonical(
-        &expanded,
-        std::slice::from_ref(&wrong_kind),
-        &placements,
-        &[BaseImplementationId::from("conduit.base/local@1")],
-    )
-    .unwrap();
-    assert!(plan.fragments[0].placements.iter().any(|placement| {
-        placement.kind_id.as_str() == "text/coincident-shape"
-            && placement.implementation_id.as_str() == "std/text-join"
-    }));
+    assert!(matches!(
+        default_expanded_placements(&expanded, std::slice::from_ref(&wrong_kind)),
+        Err(PlannerError::UnknownCapability(kind)) if kind == "text/join"
+    ));
 
     let mut wrong_revision = host();
     wrong_revision
@@ -362,7 +353,7 @@ fn equal_front_and_semantics_with_a_different_name_is_compatible() {
         .iter_mut()
         .find(|capability| capability.kind_id.as_str() == "text/join")
         .unwrap()
-        .kind_contract_revision = KindContractRevision::from("text/join@2");
+        .kind_contract_revision = KindIdentity::from("text/join@2");
     assert!(default_expanded_placements(&expanded, &[wrong_revision]).is_err());
 }
 

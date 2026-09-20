@@ -737,9 +737,9 @@ fn migrated_production_offers_cannot_restate_capability_truth() {
                 "{relative}: expected {expected_raw_literals} reviewed raw literal(s) ({reason}), found {raw_literals}; update the ratchet when migrating debt"
             ));
         }
-        if !source.contains("CapabilityOfferBuilder")
+        if !source.contains("BackOfferBuilder")
             && !source.contains("realization_offer")
-            && !source.contains("SemanticCapabilityContract")
+            && !source.contains("Kind")
         {
             violations.push(format!(
                 "{relative}: lost the canonical capability-offer construction path"

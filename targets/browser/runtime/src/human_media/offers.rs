@@ -1,8 +1,7 @@
 use conduit_core::{
-    kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    SemanticCapabilityContract,
+    kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, Kind,
 };
 use conduit_semantic_catalog::{
     CAMERA_ACQUIRE_KIND, CAMERA_FRAME_KIND, CAMERA_RESOURCE_CLASS, MAXIMUM_MEDIA_REQUEST_BYTES,
@@ -44,9 +43,9 @@ pub fn acquired_camera_source_offer() -> CapabilityOffer {
 }
 
 pub fn browser_camera_frame_sink_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_semantic_catalog::camera_frame_sink_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("browser/camera-frame-sink@1"),
             execution_profile_id: ExecutionProfileId::from(
                 "conduit.std/camera-frame-sink-kernel@1",
@@ -85,16 +84,16 @@ fn acquisition_offer(kind: &str) -> CapabilityOffer {
 }
 
 fn realization_offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     capability: &str,
     implementation: &str,
     host_operations: Vec<HostOperationRequirement>,
     resource_requirements: Vec<conduit_core::ResourceRequirement>,
     authority_requirements: Vec<AuthorityRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(BROWSER_MEDIA_PROFILE),
             implementation_id: ImplementationId::from(implementation),
@@ -111,7 +110,7 @@ fn realization_offer(
 mod tests {
     use super::*;
 
-    fn assert_exact_semantics(offer: &CapabilityOffer, contract: &SemanticCapabilityContract) {
+    fn assert_exact_semantics(offer: &CapabilityOffer, contract: &Kind) {
         assert_eq!(offer.startup_parameters, contract.startup_parameters);
         assert_eq!(offer.shorthand, contract.shorthand);
         assert_eq!(offer.kind_id, contract.kind_id);

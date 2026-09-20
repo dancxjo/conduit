@@ -8,8 +8,8 @@ use conduit_ai::{
 use conduit_body::Body;
 use conduit_core::{
     ActivePlayId, ArtifactId, BootId, CapabilityId, CapabilityLimits, CheckedFormId,
-    ExecutionProfileId, ExpandedFormId, GearId, HostId, ImplementationId, KindContractRevision,
-    KindId, OfferGeneration, PlacementId, PlanId, SignId, SourceDocumentId,
+    ExecutionProfileId, ExpandedFormId, GearId, HostId, ImplementationId, KindId, KindIdentity,
+    OfferGeneration, PlacementId, PlanId, SignId, SourceDocumentId,
 };
 use conduit_presentation::PresentationPropertyValue;
 
@@ -264,7 +264,7 @@ fn shared_presentation_keeps_semantics_realization_provenance_and_effect_stages_
 fn stale_contract_invalid_offer_and_unbounded_stage_history_refuse() {
     let contract = llm_contract(LLM_INTERPRET_KIND).unwrap();
     let mut stale_placement = placement(&contract);
-    stale_placement.kind_contract_revision = KindContractRevision::from("stale");
+    stale_placement.kind_contract_revision = KindIdentity::from("stale");
     let truth = LlmPatchbayTruth {
         gear_identity: "gear/interpreter".into(),
         contract: &contract,

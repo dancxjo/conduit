@@ -3,9 +3,9 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ConfigurationValue, ExecutionProfileId, HostOperationRequirement,
-    ImplementationId, PlannedGear, PortTemporal, StructuredCanonicalSelection, StructuredSelector,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ConfigurationValue, ExecutionProfileId, HostOperationRequirement, ImplementationId,
+    PlannedGear, PortTemporal, StructuredCanonicalSelection, StructuredSelector,
 };
 
 pub(crate) const HOST_OPERATION: &str = "conduit.host/structured-selector@1";
@@ -58,9 +58,9 @@ fn offer(selector: &StructuredSelector, implementation: &str) -> CapabilityOffer
     let contract =
         conduit_semantic_catalog::structured_selector_contract(selector, PortTemporal::Value);
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),

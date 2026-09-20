@@ -3,9 +3,9 @@
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ConfigurationValue, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, PlannedGear,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    PlannedGear,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -21,9 +21,9 @@ pub(super) static DIRECT: BrowserInstallation = BrowserInstallation {
 };
 
 fn direct_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_text::text_morse_semantics().into_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("browser/text-morse-direct@1"),
             execution_profile_id: ExecutionProfileId::from("browser/kernel-text-morse-direct@1"),
             implementation_id: ImplementationId::from(DIRECT_IMPLEMENTATION),

@@ -3,9 +3,9 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationRequirement, ImplementationId,
-    PlannedGear, StructuredInfoValue,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, HostOperationRequirement, ImplementationId, PlannedGear,
+    StructuredInfoValue,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
@@ -83,9 +83,9 @@ impl PreparedStrokeCapture {
 fn offer() -> CapabilityOffer {
     let contract = conduit_presentation::capture_bounded_stroke_semantic_contract();
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),

@@ -10,7 +10,7 @@ fn mapping(id: &str, topic: &str, direction: InteropDirection) -> InteropMapping
         base_instance_id: BaseInstanceId::from("base/ros2/topics"),
         external_resource_id: topic_resource(topic),
         semantic_kind: KindId::from("value/text"),
-        semantic_revision: KindContractRevision::from("1"),
+        semantic_revision: KindIdentity::from("1"),
         direction,
         authority_grant_id: AuthorityGrantId::from(format!("grant/{id}")),
         maximum_payload_bytes: 68,

@@ -1,6 +1,6 @@
 use conduit_core::{
     bind_active_play, bind_sign, seal_plan, AuthorityGrantId, BootId, CapabilityId, FormIdentity,
-    KindContractRevision, Observation, ObservationKind, Plan, PlanId, SignId, TerminalDisposition,
+    KindIdentity, Observation, ObservationKind, Plan, PlanId, SignId, TerminalDisposition,
 };
 use conduit_observatory::{
     CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport, LineReport,
@@ -380,7 +380,7 @@ fn compatible_front_does_not_inherit_assignment_grant_plan_or_play() {
     let offer = &mut pico.capabilities[0];
     offer.capability_id = CapabilityId::from("replacement/equal-front-led");
     offer.kind_id = conduit_core::kind_id("replacement/show");
-    offer.kind_contract_revision = KindContractRevision::from("replacement/different-meaning@1");
+    offer.kind_contract_revision = KindIdentity::from("replacement/different-meaning@1");
     offer.implementation.implementation_id =
         conduit_core::ImplementationId::from("replacement/led-v9");
     let semantically_different = accepted

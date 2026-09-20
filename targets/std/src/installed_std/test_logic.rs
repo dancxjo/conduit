@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, ImplementationId, KindContractRevision, PlannedGear, PortDescriptor,
-    PortDirection, PortTemporal, Scalar, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
+    ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
+    PortTemporal, Scalar, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
 use conduit_form::{KindDefinition, ProfileCatalog};
 use conduit_kernel::{OperationAction, PortId, ValueRef, ValueStorage};
@@ -86,7 +86,7 @@ pub(super) fn offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-logic-script"),
         kind_id: kind_id(KIND),
-        kind_contract_revision: KindContractRevision::from(REVISION),
+        kind_contract_revision: KindIdentity::from(REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
@@ -114,7 +114,7 @@ pub(super) fn sink_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-logic-sink"),
         kind_id: kind_id(SINK_KIND),
-        kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+        kind_contract_revision: KindIdentity::from(SINK_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(SINK_PROFILE),
             implementation_id: ImplementationId::from(SINK_IMPLEMENTATION),
@@ -142,7 +142,7 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     catalog
         .insert(KindDefinition {
             kind_id: kind_id(KIND),
-            kind_contract_revision: KindContractRevision::from(REVISION),
+            kind_contract_revision: KindIdentity::from(REVISION),
             inputs: Vec::new(),
             outputs: offer().outputs,
             configuration: Vec::new(),
@@ -151,7 +151,7 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     catalog
         .insert(KindDefinition {
             kind_id: kind_id(SINK_KIND),
-            kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+            kind_contract_revision: KindIdentity::from(SINK_REVISION),
             inputs: sink_offer().inputs,
             outputs: Vec::new(),
             configuration: Vec::new(),

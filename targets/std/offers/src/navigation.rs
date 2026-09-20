@@ -1,9 +1,9 @@
 //! Finite hosted std offers for the portable navigation waist.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    SemanticCapabilityContract, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const NAVIGATION_STD_ARTIFACT: &str = "conduit-std-host/navigation@1";
@@ -78,7 +78,7 @@ pub fn navigation_std_offers() -> Vec<CapabilityOffer> {
 }
 
 fn navigation_offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     capability: &str,
     profile: &str,
     implementation: &str,
@@ -100,9 +100,9 @@ fn navigation_offer(
             maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         })
         .collect();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
@@ -115,7 +115,7 @@ fn navigation_offer(
     .build()
 }
 
-fn navigation_contract(expected_kind: &str) -> SemanticCapabilityContract {
+fn navigation_contract(expected_kind: &str) -> Kind {
     conduit_semantic_catalog::navigation_semantic_contracts()
         .into_iter()
         .find(|contract| contract.kind_id.as_str() == expected_kind)
