@@ -132,7 +132,7 @@ pub(super) fn resolve_selectors(
         let gear = CheckedCanonicalGear {
             name: None,
             kind: key,
-            startup_parameters: vec![conduit_core::FaceStartupParameter {
+            startup_parameters: vec![conduit_core::FrontStartupParameter {
                 name: "selector".to_string(),
                 value_type: conduit_core::kind_id("value/text"),
                 has_default: false,

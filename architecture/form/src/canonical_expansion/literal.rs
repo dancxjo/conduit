@@ -33,7 +33,7 @@ pub(super) fn expand_literal(
     let gear = CheckedCanonicalGear {
         name: None,
         kind: "text/literal".to_string(),
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
+        startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "value".to_string(),
             value_type: conduit_core::kind_id("value/text"),
             has_default: false,

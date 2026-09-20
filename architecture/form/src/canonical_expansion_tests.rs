@@ -188,7 +188,7 @@ fn exact_back_admission_refuses_stale_source_and_checked_form_identities() {
     assert!(matches!(
         backs.insert_exact(
             high,
-            &[conduit_core::FaceStartupParameter {
+            &[conduit_core::FrontStartupParameter {
                 name: "count".into(),
                 value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
@@ -203,7 +203,7 @@ fn exact_back_admission_refuses_stale_source_and_checked_form_identities() {
     assert!(matches!(
         backs.insert_exact(
             high,
-            &[conduit_core::FaceStartupParameter {
+            &[conduit_core::FrontStartupParameter {
                 name: "count".into(),
                 value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
@@ -219,7 +219,7 @@ fn exact_back_admission_refuses_stale_source_and_checked_form_identities() {
     backs
         .insert_exact(
             high,
-            &[conduit_core::FaceStartupParameter {
+            &[conduit_core::FrontStartupParameter {
                 name: "count".into(),
                 value_type: conduit_core::kind_id("value/count"),
                 has_default: true,

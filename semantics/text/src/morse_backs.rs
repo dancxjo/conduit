@@ -128,7 +128,7 @@ mod tests {
         let definition = profile
             .get(&conduit_core::kind_id(crate::TEXT_MORSE_KIND))
             .unwrap();
-        let mismatched_startup = [conduit_core::FaceStartupParameter {
+        let mismatched_startup = [conduit_core::FrontStartupParameter {
             name: "tempo".into(),
             value_type: conduit_core::kind_id("value/count"),
             has_default: true,

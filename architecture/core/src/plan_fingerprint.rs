@@ -322,7 +322,7 @@ fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
 ///
 /// Nominal callable names and authoring aliases are deliberately absent. The
 /// digest changes only when the exact callable contract changes.
-pub fn compute_checked_front_fingerprint(front: &CheckedFace) -> String {
+pub fn compute_checked_front_fingerprint(front: &CheckedFront) -> String {
     let mut canonical = Vec::new();
     push_checked_front(&mut canonical, front);
     hash_bytes(&canonical)

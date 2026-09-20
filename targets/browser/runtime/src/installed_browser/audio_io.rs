@@ -3,10 +3,8 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
-    PlannedGear,
+    kind_id, resource_requirement, AuthorityContractId, AuthorityRequirement, CapabilityOffer,
+    HostOperationContractId, HostOperationRequirement, PlannedGear,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
@@ -44,28 +42,18 @@ pub(crate) static PLAYBACK: BrowserInstallation = BrowserInstallation {
     perform: None,
 };
 
-fn identity(implementation: &str) -> ImplementationOffer {
-    ImplementationOffer {
-        execution_profile_id: ExecutionProfileId::from(PROFILE),
-        implementation_id: ImplementationId::from(implementation),
-        artifact_id: ArtifactId::from(ARTIFACT),
-    }
-}
-
 pub(crate) fn capture_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::audio_capture_push_to_talk_contract();
-    CapabilityOffer {
-        startup_parameters: conduit_semantic_catalog::startup_front(&contract.configuration),
-        shorthand: None,
-        capability_id: CapabilityId::from(CAPTURE_IMPLEMENTATION),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_REVISION,
-        ),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: identity(CAPTURE_IMPLEMENTATION),
-        host_operations: vec![HostOperationRequirement {
+    conduit_semantic_catalog::realization_offer(
+        contract,
+        conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
+            capability: CAPTURE_IMPLEMENTATION,
+            execution_profile: PROFILE,
+            implementation: CAPTURE_IMPLEMENTATION,
+            artifact: ARTIFACT,
+        },
+        vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(CAPTURE_OPERATION),
             target_kind: Some(kind_id(
                 conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_KIND,
@@ -75,30 +63,27 @@ pub(crate) fn capture_offer() -> CapabilityOffer {
             maximum_output_bytes: conduit_audio::MAXIMUM_PCM_FRAME_BYTES
                 + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32,
         }],
-        resource_requirements: vec![resource_requirement(CAPTURE_RESOURCE, 1)],
-        authority_requirements: vec![AuthorityRequirement {
+        vec![resource_requirement(CAPTURE_RESOURCE, 1)],
+        vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(CAPTURE_AUTHORITY),
             host_operation_contract_id: HostOperationContractId::from(CAPTURE_OPERATION),
             subject_kind: kind_id(conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_KIND),
         }],
-        limits: contract.limits,
-    }
+    )
 }
 
 pub(crate) fn playback_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::audio_play_contract();
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id: CapabilityId::from(PLAY_IMPLEMENTATION),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::AUDIO_PLAY_REVISION,
-        ),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: identity(PLAY_IMPLEMENTATION),
-        host_operations: vec![HostOperationRequirement {
+    conduit_semantic_catalog::realization_offer(
+        contract,
+        conduit_semantic_catalog::AUDIO_PLAY_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
+            capability: PLAY_IMPLEMENTATION,
+            execution_profile: PROFILE,
+            implementation: PLAY_IMPLEMENTATION,
+            artifact: ARTIFACT,
+        },
+        vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(PLAY_OPERATION),
             target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
@@ -106,14 +91,13 @@ pub(crate) fn playback_offer() -> CapabilityOffer {
                 + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32,
             maximum_output_bytes: 0,
         }],
-        resource_requirements: vec![resource_requirement(PLAY_RESOURCE, 1)],
-        authority_requirements: vec![AuthorityRequirement {
+        vec![resource_requirement(PLAY_RESOURCE, 1)],
+        vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(PLAY_AUTHORITY),
             host_operation_contract_id: HostOperationContractId::from(PLAY_OPERATION),
             subject_kind: kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
         }],
-        limits: contract.limits,
-    }
+    )
 }
 
 fn prepare_capture(
