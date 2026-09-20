@@ -8,6 +8,7 @@ const required = [
   "conduit_browser_shared_pool_output_ptr", "conduit_browser_shared_pool_output_len",
   "conduit_browser_shared_pool_start", "conduit_browser_shared_pool_admit",
   "conduit_browser_shared_pool_trigger", "conduit_browser_shared_pool_release",
+  "conduit_browser_shared_pool_fail_preparation",
   "conduit_browser_shared_pool_provider_lost", "conduit_browser_shared_pool_close",
 ];
 
@@ -112,6 +113,9 @@ export function openBrowserSharedPool({
     },
     trigger(member) {
       return memberAction("conduit_browser_shared_pool_trigger", member);
+    },
+    failPreparation(member) {
+      return memberAction("conduit_browser_shared_pool_fail_preparation", member);
     },
     release(member) {
       return memberAction("conduit_browser_shared_pool_release", member);

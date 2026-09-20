@@ -180,6 +180,15 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
             .map_err(SharedPoolRuntimeError::Lifecycle)
     }
 
+    pub fn fail_preparation(
+        &mut self,
+        member: MemberIdentity,
+    ) -> Result<(), SharedPoolRuntimeError> {
+        self.kernel
+            .fail_preparation(member)
+            .map_err(SharedPoolRuntimeError::Lifecycle)
+    }
+
     pub fn release(&mut self, member: MemberIdentity) -> Result<(), SharedPoolRuntimeError> {
         self.kernel
             .request_release(member)

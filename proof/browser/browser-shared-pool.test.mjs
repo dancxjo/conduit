@@ -59,6 +59,7 @@ class FakePoolApi {
     });
   }
   conduit_browser_shared_pool_trigger(length) { return this.memberTransition(length); }
+  conduit_browser_shared_pool_fail_preparation(length) { return this.memberTransition(length); }
   conduit_browser_shared_pool_release(length) { return this.memberTransition(length); }
   conduit_browser_shared_pool_provider_lost(length) {
     const request = this.request(length);
