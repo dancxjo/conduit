@@ -19,6 +19,21 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         0,
         "semantic contract owner",
     ),
+    (
+        "semantics/net/src/ordered_record_queue_catalog.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
+        "semantics/net/src/record_delivery_catalog.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
+        "semantics/net/src/record_temporal_catalog.rs",
+        0,
+        "semantic contract owner",
+    ),
     ("semantics/signal/src/control.rs", 0, "fully migrated"),
     ("semantics/signal/src/lib.rs", 0, "fully migrated"),
     ("semantics/tongues/src/contract.rs", 0, "fully migrated"),
@@ -33,6 +48,21 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "fully migrated",
     ),
     (
+        "targets/browser/runtime/src/installed_browser/record_delivery.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/browser/runtime/src/installed_browser/record_queue.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/browser/runtime/src/installed_browser/record_temporal.rs",
+        0,
+        "fully migrated",
+    ),
+    (
         "targets/std/offers/src/copy_file.rs",
         1,
         "the structured copy-result presenter awaits its owning semantic contract",
@@ -41,6 +71,21 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "targets/std/offers/src/music.rs",
         2,
         "two KindDefinition families do not yet own semantic capacity",
+    ),
+    (
+        "targets/std/offers/src/record_delivery.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/std/offers/src/record_queue.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/std/offers/src/record_temporal.rs",
+        0,
+        "fully migrated",
     ),
     ("targets/std/offers/src/signal.rs", 0, "fully migrated"),
     (

@@ -2,8 +2,8 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
 };
 use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
 
@@ -57,6 +57,23 @@ pub fn record_delivery_status_kind_definition() -> KindDefinition {
     }
 }
 
+pub fn record_delivery_status_semantic_contract() -> SemanticCapabilityContract {
+    let definition = record_delivery_status_kind_definition();
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: (crate::MAXIMUM_RECORD_DELIVERY_CANONICAL_BYTES * 2) as u32,
+        },
+    }
+}
+
 fn leaf(identity: &str) -> StructuredInfoType {
     StructuredInfoType::leaf(kind_id(identity)).expect("the reviewed record identity is finite")
 }
@@ -67,5 +84,23 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Flow { closes: true },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn semantic_contract_owns_delivery_front_and_capacity() {
+        let contract = record_delivery_status_semantic_contract();
+        let definition = record_delivery_status_kind_definition();
+        assert_eq!(contract.inputs, definition.inputs);
+        assert_eq!(contract.outputs, definition.outputs);
+        assert_eq!(contract.limits.max_active_instances, 1);
+        assert_eq!(
+            contract.limits.max_queue_bytes,
+            (crate::MAXIMUM_RECORD_DELIVERY_CANONICAL_BYTES * 2) as u32
+        );
     }
 }
