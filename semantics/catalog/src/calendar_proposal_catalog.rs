@@ -7,9 +7,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
-    StructuredInfoTypeShape, StructuredInfoValue, StructuredVariantCase,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
+    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
+    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
+    StructuredInfoValue, StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -22,6 +23,37 @@ pub const CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS: u16 = 8;
 pub const CALENDAR_PROPOSAL_MAXIMUM_INTERVALS: u16 = 8;
 pub const CALENDAR_PROPOSAL_MAXIMUM_CANDIDATES: u16 = 8;
 pub const CALENDAR_PROPOSAL_MAXIMUM_RESULTS: u16 = 3;
+
+pub fn calendar_proposal_semantic_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![FrontStartupParameter {
+            name: "request".into(),
+            value_type: CALENDAR_PROPOSAL_REQUEST_TYPE.into(),
+            has_default: false,
+        }],
+        shorthand: None,
+        kind_id: kind_id(CALENDAR_PROPOSAL_KIND),
+        kind_contract_revision: KindContractRevision::from(CALENDAR_PROPOSAL_REVISION),
+        inputs: vec![],
+        outputs: vec![PortDescriptor {
+            port_id: port_id("proposal"),
+            value_kind: calendar_proposal_result_type()
+                .profile()
+                .expect("reviewed proposal result is bounded")
+                .value_kind()
+                .clone(),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Value,
+        }],
+        limits: CapabilityLimits {
+            max_active_instances: 4,
+            max_queue_items: CALENDAR_PROPOSAL_MAXIMUM_RESULTS,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES
+                * usize::from(CALENDAR_PROPOSAL_MAXIMUM_RESULTS))
+                as u32,
+        },
+    }
+}
 
 fn leaf(kind: &str) -> StructuredInfoType {
     StructuredInfoType::leaf(kind_id(kind)).expect("reviewed calendar leaf")
