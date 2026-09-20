@@ -7,8 +7,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
 };
 use conduit_form::{
     check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindDefinition,
@@ -105,6 +105,10 @@ pub fn garden_fixture_definition() -> KindDefinition {
     }
 }
 
+pub fn garden_fixture_semantic_contract() -> SemanticCapabilityContract {
+    garden_semantic_contract(garden_fixture_definition(), 3)
+}
+
 pub fn garden_state_presentation_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(GARDEN_STATE_PRESENTATION_KIND),
@@ -143,6 +147,10 @@ pub fn garden_minimal_step_definition() -> KindDefinition {
     }
 }
 
+pub fn garden_minimal_step_semantic_contract() -> SemanticCapabilityContract {
+    garden_semantic_contract(garden_minimal_step_definition(), 2)
+}
+
 pub fn garden_observation_combine_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(GARDEN_OBSERVATION_COMBINE_KIND),
@@ -168,6 +176,10 @@ pub fn garden_observation_combine_definition() -> KindDefinition {
     }
 }
 
+pub fn garden_observation_combine_semantic_contract() -> SemanticCapabilityContract {
+    garden_semantic_contract(garden_observation_combine_definition(), 2)
+}
+
 pub fn garden_enriched_reducer_definition() -> KindDefinition {
     KindDefinition {
         kind_id: kind_id(GARDEN_ENRICHED_REDUCER_KIND),
@@ -182,6 +194,30 @@ pub fn garden_enriched_reducer_definition() -> KindDefinition {
         ],
         outputs: vec![port("next", &garden_state_type(), PortDirection::Output)],
         configuration: vec![],
+    }
+}
+
+pub fn garden_enriched_reducer_semantic_contract() -> SemanticCapabilityContract {
+    garden_semantic_contract(garden_enriched_reducer_definition(), 2)
+}
+
+fn garden_semantic_contract(
+    definition: KindDefinition,
+    maximum_queue_items: u16,
+) -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: maximum_queue_items,
+            max_queue_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
+                * u32::from(maximum_queue_items),
+        },
     }
 }
 
