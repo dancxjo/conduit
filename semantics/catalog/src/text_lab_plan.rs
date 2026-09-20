@@ -288,31 +288,25 @@ fn exact_text_lab_split_plan_with_loss(
 }
 
 fn keyboard_fixture_offer() -> CapabilityOffer {
-    let contract = crate::keyboard_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: "text-lab-native-keyboard".into(),
-        kind_id: contract.kind_id,
-        kind_contract_revision: crate::keyboard_contract_revision(),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: "text-lab/native-fixture@1".into(),
-            implementation_id: "text-lab/native-keyboard@1".into(),
-            artifact_id: "text-lab/native-keyboard@1".into(),
+    crate::realization_offer(
+        crate::keyboard_contract(),
+        crate::KEYBOARD_CONTRACT_REVISION,
+        crate::RealizationOfferIdentity {
+            capability: "text-lab-native-keyboard",
+            execution_profile: "text-lab/native-fixture@1",
+            implementation: "text-lab/native-keyboard@1",
+            artifact: "text-lab/native-keyboard@1",
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![conduit_core::HostOperationRequirement {
+        vec![conduit_core::HostOperationRequirement {
             contract_id: "proof/input-next-key-event@1".into(),
             target_kind: Some(kind_id(conduit_human::KEY_EVENT_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: 0,
             maximum_output_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
         }],
-        resource_requirements: vec![resource_requirement(INPUT_RESOURCE_CLASS, 1)],
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+        vec![resource_requirement(INPUT_RESOURCE_CLASS, 1)],
+        Vec::new(),
+    )
 }
 
 fn text_presentation_fixture_offer() -> CapabilityOffer {
@@ -389,7 +383,7 @@ fn text_upper_fixture_offer(
 mod tests {
     use super::*;
 
-    fn browser_text_upper_fixture() -> conduit_core::CapabilityOffer {
+    fn browser_text_upper_fixture() -> CapabilityOffer {
         text_upper_fixture_offer(
             "test-browser-text-upper-v1",
             "test/browser-text-upper@1",
