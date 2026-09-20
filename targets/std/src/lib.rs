@@ -442,6 +442,7 @@ pub struct StdHost {
     vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
     calendar: Option<Box<dyn hosted_calendar::HostedCalendarAdapter>>,
     body_conversation_context: Option<BodyConversationContextSource>,
+    vision: Option<hosted_vision::FiniteHostedVisionBase>,
     kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
@@ -574,10 +575,48 @@ impl StdHost {
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
+            vision: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
         }
+    }
+
+    pub fn new_with_finite_vision(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        vision: hosted_vision::FiniteHostedVisionBase,
+    ) -> Result<Self, String> {
+        let mut advertisement =
+            composition::build_advertisement(config, composition, None, None, None, false);
+        advertisement
+            .resources
+            .push(hosted_vision::FiniteHostedVisionBase::resource_offer());
+        advertisement
+            .capabilities
+            .push(hosted_vision::FiniteHostedVisionBase::motion_offer());
+        advertisement.resources.sort();
+        normalize_capability_offers(&mut advertisement.capabilities)?;
+        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        Ok(Self {
+            advertisement,
+            image_identity: None,
+            playback: None,
+            wav_artifact: None,
+            midi_input: None,
+            midi_output: None,
+            local_model: None,
+            speech_synthesis: None,
+            speech_recognition: None,
+            microphone: None,
+            vector_search: None,
+            calendar: None,
+            body_conversation_context: None,
+            vision: Some(vision),
+            kernel_resources,
+            next_kernel_play_sequence: 0,
+            next_kernel_sign_sequence: 0,
+        })
     }
 
     pub fn new_with_local_model(
@@ -650,6 +689,7 @@ impl StdHost {
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
+            vision: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -690,6 +730,7 @@ impl StdHost {
             vector_search: Some(adapter),
             calendar: None,
             body_conversation_context: None,
+            vision: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -730,6 +771,7 @@ impl StdHost {
             vector_search: None,
             calendar: Some(adapter),
             body_conversation_context: None,
+            vision: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -800,6 +842,7 @@ impl StdHost {
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
+            vision: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -854,6 +897,7 @@ impl StdHost {
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
+            vision: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -909,6 +953,7 @@ impl StdHost {
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
+            vision: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -1073,6 +1118,7 @@ impl StdHost {
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
+            vision: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -1098,6 +1144,7 @@ impl StdHost {
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
+            vision: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -1147,6 +1194,7 @@ impl StdHost {
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
+            vision: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -1191,6 +1239,7 @@ impl StdHost {
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
+            vision: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -1224,6 +1273,7 @@ impl StdHost {
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
+            vision: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
@@ -1270,6 +1320,7 @@ impl StdHost {
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
+            vision: None,
             kernel_resources,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,

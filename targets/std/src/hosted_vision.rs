@@ -15,6 +15,78 @@ use conduit_semantic_catalog::{
 
 pub const MAXIMUM_HOSTED_VISION_RESOURCES: usize = 8;
 
+pub struct FiniteHostedVisionBase {
+    vision: HostedContinuousVision<FiniteVisionProvider>,
+    provider_instance_id: String,
+    minimum_motion_delta: u8,
+    component_threshold: u8,
+    minimum_component_area: u32,
+}
+
+impl FiniteHostedVisionBase {
+    pub fn new(
+        frames: Vec<HostedVisionFrame>,
+        width: u16,
+        height: u16,
+        maximum_components: usize,
+        provider_instance_id: impl Into<String>,
+    ) -> Result<Self, HostedVisionRefusal> {
+        let provider_instance_id = provider_instance_id.into();
+        if provider_instance_id.is_empty()
+            || provider_instance_id.len()
+                > conduit_semantic_catalog::MAXIMUM_LOCAL_VISION_IDENTITY_BYTES
+        {
+            return Err(HostedVisionRefusal::InvalidOutput);
+        }
+        Ok(Self {
+            vision: HostedContinuousVision::new(
+                FiniteVisionProvider::new(frames)?,
+                width,
+                height,
+                maximum_components,
+            )?,
+            provider_instance_id,
+            minimum_motion_delta: 32,
+            component_threshold: 128,
+            minimum_component_area: 2,
+        })
+    }
+
+    pub fn resource_offer() -> conduit_core::ResourceOffer {
+        conduit_core::resource_offer(
+            "std-finite-image-residence",
+            conduit_std_offers::LOCAL_VISION_RESOURCE_CLASS,
+            1,
+        )
+    }
+
+    pub fn motion_offer() -> conduit_core::CapabilityOffer {
+        conduit_std_offers::local_vision_offers()
+            .into_iter()
+            .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::VISION_MOTION_KIND)
+            .expect("reviewed local motion offer")
+    }
+
+    pub(crate) fn execute_motion(
+        &mut self,
+        input: &[u8],
+        run_id: &str,
+    ) -> Result<&[u8], HostedVisionRefusal> {
+        self.vision.observe_motion_encoded(
+            input,
+            self.minimum_motion_delta,
+            self.component_threshold,
+            self.minimum_component_area,
+            &conduit_semantic_catalog::LocalVisionProvenance {
+                implementation_id: conduit_std_offers::LOCAL_VISION_IMPLEMENTATION.into(),
+                provider_instance_id: self.provider_instance_id.clone(),
+                artifact_id: conduit_std_offers::LOCAL_VISION_ARTIFACT.into(),
+                run_id: run_id.into(),
+            },
+        )
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HostedVisionFrame {
     pub resource: BoundedResourceRef,
