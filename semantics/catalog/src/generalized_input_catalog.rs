@@ -31,16 +31,7 @@ pub fn install_generalized_input_catalogs(
             .insert_structured_type(name, value_type)
             .map_err(|error| error.to_string())?;
     }
-    insert_kind(
-        startup,
-        profile,
-        POINTER_SOURCE_KIND,
-        vec![source_port(
-            "pointer",
-            &pointer_event_type(),
-            PortDirection::Output,
-        )],
-    )?;
+    insert_semantic_kind(startup, profile, pointer_source_semantic_contract())?;
     insert_kind(
         startup,
         profile,
@@ -85,6 +76,26 @@ pub fn deterministic_pointer_touch_semantic_contract() -> SemanticCapabilityCont
     )
 }
 
+pub fn pointer_source_semantic_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id(POINTER_SOURCE_KIND),
+        kind_contract_revision: KindContractRevision::from(GENERALIZED_INPUT_REVISION),
+        inputs: vec![],
+        outputs: vec![source_port(
+            "pointer",
+            &pointer_event_type(),
+            PortDirection::Output,
+        )],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
+    }
+}
+
 fn semantic_contract(kind: &str, outputs: Vec<PortDescriptor>) -> SemanticCapabilityContract {
     SemanticCapabilityContract {
         startup_parameters: vec![],
@@ -107,18 +118,26 @@ fn insert_kind(
     kind: &str,
     outputs: Vec<PortDescriptor>,
 ) -> Result<(), String> {
+    insert_semantic_kind(startup, profile, semantic_contract(kind, outputs))
+}
+
+fn insert_semantic_kind(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+    contract: SemanticCapabilityContract,
+) -> Result<(), String> {
     startup
         .insert(KindSignature {
-            kind: kind.into(),
+            kind: contract.kind_id.as_str().into(),
             startup_parameters: vec![],
         })
         .map_err(|error| error.to_string())?;
     profile
         .insert(KindDefinition {
-            kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(GENERALIZED_INPUT_REVISION),
-            inputs: vec![],
-            outputs,
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
             configuration: vec![],
         })
         .map_err(|error| error.to_string())
