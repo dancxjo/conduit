@@ -29,7 +29,7 @@ test("Crèche respects the live Body owner and returns a retained Body to its Fo
   await page.close();
   await creche.reload();
   await expect(creche.getByRole("heading", { name: "Return to your Body", exact: true })).toBeVisible();
-  await creche.getByRole("link", { name: "Open your body", exact: true }).click();
+  await creche.getByRole("link", { name: "Open your Body", exact: true }).click();
   await expect(creche.locator("[data-play-state]")).toHaveText("Playing");
   const returned = await creche.evaluate(() => globalThis.__conduitWorkspace.current());
   expect(returned.body_id).toBe(first.body_id);
@@ -50,7 +50,7 @@ test('the actual Gallery Use link returns to the same Body with the selected For
   const original = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.goto(new URL('tour/', entrance.url).href);
-  await page.getByRole('button', { name: 'Form Gallery', exact: true }).click();
+  await page.getByRole('button', { name: 'form Gallery', exact: true }).click();
   const entry = page.locator('[data-application-key="gallery-cards"] > [data-application-component="panel"]')
     .filter({ has: page.getByRole('heading', { name: 'Desk Telegraph', exact: true }) });
   await entry.getByRole('link', { name: 'Use in your Body', exact: true }).click();
