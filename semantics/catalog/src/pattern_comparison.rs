@@ -6,9 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
-    StructuredInfoValue, StructuredInfoValueShape,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
+    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
+    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
     ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
@@ -77,6 +78,34 @@ pub fn compare_normalized_pattern_definition() -> KindDefinition {
                 },
             },
         ],
+    }
+}
+
+pub fn compare_normalized_pattern_semantic_contract() -> SemanticCapabilityContract {
+    let definition = compare_normalized_pattern_definition();
+    SemanticCapabilityContract {
+        startup_parameters: vec![
+            FrontStartupParameter {
+                name: "metric".into(),
+                value_type: kind_id("value/text"),
+                has_default: true,
+            },
+            FrontStartupParameter {
+                name: "tolerance-millionths".into(),
+                value_type: kind_id("value/count"),
+                has_default: true,
+            },
+        ],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 2,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 3) as u32,
+        },
     }
 }
 
@@ -305,6 +334,20 @@ mod tests {
         assert_eq!(
             compare_normalized_patterns(&one, &two, MAXIMUM_ABSOLUTE_METRIC, 0),
             Err(PatternComparisonRefusal::LengthMismatch)
+        );
+    }
+
+    #[test]
+    fn semantic_contract_owns_comparison_startup_and_capacity() {
+        let contract = compare_normalized_pattern_semantic_contract();
+        let definition = compare_normalized_pattern_definition();
+        assert_eq!(contract.startup_parameters.len(), 2);
+        assert_eq!(contract.inputs, definition.inputs);
+        assert_eq!(contract.outputs, definition.outputs);
+        assert_eq!(contract.limits.max_queue_items, 2);
+        assert_eq!(
+            contract.limits.max_queue_bytes,
+            (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 3) as u32
         );
     }
 }
