@@ -54,40 +54,34 @@ During a play, the kernel advances work in bounded **steps**. A step may make a 
 
 Put together:
 
-```text
-form
-  contains gears
-      |
-      v
-    kinds
-      |
-      +---- front: how the kind is used
-      |
-      +---- backs: ways the kind can be realized
+```mermaid
+flowchart TB
+    subgraph meaning["meaning"]
+        form["form"] --> gear["gear"]
+        gear --> kind["kind"]
+        kind --> front["front"]
+        gear --> out["output port"]
+        out --> cord["cord"]
+        cord -->|"typed info"| input["input port"]
+        input --> next["gear"]
+    end
 
-ports -- cords carrying info --> ports
+    subgraph realization["current realization"]
+        host["host"] -->|"offers"| back["back"]
+        back -->|"may use"| base["base"]
+        back -->|"needs"| resource["resource"]
+        back -->|"requires"| authority["authority"]
+        line["line"]
+    end
 
-hosts offer backs
-  |
-  +---- bases
-  +---- resources
-  +---- authority
-
-remote cord
-  |
-  v
- line
-
-form + current host truth
-  |
-  v
- plan
-  |
-  v
- play
-  |
-  v
- steps + calls + signs
+    back -->|"realizes"| kind
+    cord -. "if remote, carried by" .-> line
+    form --> plan["plan"]
+    host --> plan
+    plan --> play["play"]
+    play --> step["step"]
+    step --> call["call"]
+    step --> sign["sign"]
 ```
 
 These words are ordinary common nouns. They describe different parts of the system and are meant to stay different.
@@ -98,27 +92,9 @@ These words are ordinary common nouns. They describe different parts of the syst
 
 A **kind** says what a piece of work means.
 
-For example:
+For example, `text/upper` means that text is transformed to uppercase.
 
-```text
-text/upper
-```
-
-means that text is transformed to uppercase.
-
-Another kind might be:
-
-```text
-text/redact
-```
-
-Both could have the same visible shape:
-
-```text
-text -> text
-```
-
-but they do not mean the same thing.
+Another kind, `text/redact`, might expose exactly the same front, `text → text`, while meaning something quite different.
 
 Conduit therefore separates two questions:
 
@@ -198,14 +174,12 @@ This lets Conduit keep meaning portable while keeping execution exact.
 
 For example:
 
-```text
-kind
-    speech/synthesize
-
-backs
-    local speech engine
-    browser speech engine
-    remote speech engine
+```mermaid
+flowchart LR
+    kind["kind<br/>speech/synthesize"]
+    kind -->|"realized by"| local["local speech back"]
+    kind -->|"realized by"| browser["browser speech back"]
+    kind -->|"realized by"| remote["remote speech back"]
 ```
 
 The implementations differ. The semantic promise does not.
@@ -276,11 +250,9 @@ An output port produces info.
 
 A **cord** connects compatible ports.
 
-```text
-gear a                  gear b
-
-  output  ==========>    input
-             cord
+```mermaid
+flowchart LR
+    a["gear a<br/>output port"] -->|"cord · typed info"| b["gear b<br/>input port"]
 ```
 
 Cords carry **info**.
@@ -322,12 +294,12 @@ Likewise, storing a resource does not automatically make it semantic state.
 
 Conduit keeps these ideas separate because their lifetimes and obligations are different:
 
-```text
-info       a value
-state      retained evolving info
-resource   bounded addressable content
-record     retained historical evidence
-```
+| noun | meaning |
+|---|---|
+| **info** | a finite typed value |
+| **state** | evolving info retained across an explicit time boundary |
+| **resource** | bounded addressable content with its own lifecycle |
+| **record** | retained historical evidence |
 
 There is intentionally no magical universal `save` operation hiding those distinctions.
 
@@ -396,14 +368,12 @@ The base remains concrete.
 
 For example:
 
-```text
-kind
-    robotics/observe-range
-
-possible bases
-    usb robot controller
-    embedded uart
-    remote admitted robot host
+```mermaid
+flowchart LR
+    kind["kind<br/>robotics/observe-range"] -->|"realized by"| back["back"]
+    back -->|"may use"| usb["usb robot base"]
+    back -->|"may use"| uart["embedded uart base"]
+    back -->|"may use"| remote["remote robot base"]
 ```
 
 The form asks for the observation.
@@ -453,14 +423,16 @@ Knowing where something is is not permission to use it.
 
 ## Authority is separate from availability
 
-Conduit separates:
+Conduit keeps several facts separate:
 
-```text
-available
-authorized
-selected
-active
-```
+| fact | what it says |
+|---|---|
+| **available** | the machinery exists and is currently usable |
+| **authorized** | the required authority has been admitted |
+| **selected** | an exact plan chose it |
+| **active** | a play is actually using it |
+
+None of these facts implies the next.
 
 A device may exist without being authorized.
 
@@ -494,19 +466,9 @@ A line may use:
 * WebRTC;
 * another admitted carrier.
 
-The form does not say:
+The form does not say `send this value over websocket` unless websocket itself is the intended meaning.
 
-```text
-send this value over websocket
-```
-
-unless websocket itself is the intended meaning.
-
-It says:
-
-```text
-connect these ports
-```
+It says, in effect, `connect these ports`.
 
 Planning determines how that cord can actually be carried.
 
@@ -526,12 +488,14 @@ Hosts describe current reality.
 
 Planning joins them.
 
-The planner begins by finding backs that satisfy both:
+The planner begins by admitting only backs that match both the required front and the required kind:
 
-```text
-same required front
-+
-same required kind
+```mermaid
+flowchart LR
+    front["matching front"] --> eligible["eligible back"]
+    kind["matching kind"] --> eligible
+    eligible --> facts["resources · authority · lines · limits · policy"]
+    facts --> plan["exact plan"]
 ```
 
 Then it considers additional facts:
@@ -632,15 +596,11 @@ That prevents the platform adapter from quietly becoming a second scheduler.
 
 The difference is useful:
 
-```text
-kind
-    says what work means
-
-back
-    says how this host realizes it
-
-call
-    asks the host to perform one admitted concrete action
+```mermaid
+flowchart LR
+    kind["kind<br/>what the work means"] -->|"realized by"| back["back<br/>how this host realizes it"]
+    back -->|"during a step"| call["call<br/>one admitted request"]
+    call --> host["host machinery"]
 ```
 
 ---
@@ -735,49 +695,32 @@ Patchbay is likewise a projection over actual body and execution truth. It does 
 
 ## One body, many machines
 
-Consider a small robot body.
+Consider a small robot body. Its form describes semantic work while the current plan places that work across several hosts:
 
-It might contain:
+```mermaid
+flowchart LR
+    subgraph form["form"]
+        observe["observe"] --> understand["understand"] --> remember["remember"] --> respond["respond"]
+        understand --> move["move<br/>when permitted"]
+    end
 
-```text
-host a
-    camera and microphone
+    subgraph body["body"]
+        a["host a<br/>camera · microphone"]
+        b["host b<br/>model server"]
+        c["host c<br/>second model server"]
+        d["host d<br/>robot computer"]
+        e["host e<br/>motor microcontroller"]
+    end
 
-host b
-    local model server
-
-host c
-    second model server
-
-host d
-    robot computer
-
-host e
-    microcontroller attached to motors
+    observe -. "vision back" .-> a
+    understand -. "chosen language back" .-> b
+    understand -. "alternate language back" .-> c
+    respond -. "speech back" .-> a
+    move -. "motion back" .-> d
+    d -->|"admitted line"| e
 ```
 
-A form may describe:
-
-```text
-observe
-  >
-understand
-  >
-remember
-  >
-respond
-```
-
-The planner might initially choose:
-
-```text
-vision          host a
-language        host b
-speech          host a
-motion          host d
-```
-
-Remote cords cross lines between those hosts.
+Remote cords cross admitted lines between those hosts.
 
 Motion eventually reaches an admitted robot base.
 
@@ -960,34 +903,16 @@ Automatic retry is a semantic promise. A base or host may not invent it behind t
 
 The repository is organized around the same boundaries:
 
-```text
-architecture/
-    core identities and contracts
-    form checking and expansion
-    planning
-    kernel execution
-
-semantics/
-    kinds, info types, and domain meaning
-
-forms/
-    reusable authored compositions
-
-targets/
-    hosts, bases, fabrication, and platform realization
-
-bodies/
-    complete durable body compositions such as Pete
-
-products/
-    user-facing tools and projections such as Patchbay
-
-proof/
-    executable evidence and conformance work
-
-docs/
-    architecture, guides, evidence, and history
-```
+| path | responsibility |
+|---|---|
+| `architecture/` | core identities and contracts, form checking and expansion, planning, and kernel execution |
+| `semantics/` | kinds, info types, and domain meaning |
+| `forms/` | reusable authored compositions |
+| `targets/` | hosts, bases, fabrication, and platform realization |
+| `bodies/` | complete durable body compositions such as Pete |
+| `products/` | user-facing tools and projections such as Patchbay |
+| `proof/` | executable evidence and conformance work |
+| `docs/` | architecture, guides, evidence, and history |
 
 If code that defines portable meaning starts depending on browser, Linux, usb, or a specific robot, it is probably in the wrong layer.
 
