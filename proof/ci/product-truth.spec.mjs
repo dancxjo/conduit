@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -102,6 +103,15 @@ test("the artifact refuses unbounded or ambiguous evidence", () => {
 test("the release emitter records exact current identities and proof receipts", async () => {
   const directory = await mkdtemp(join(tmpdir(), "conduit-current-truth-"));
   const outputPath = join(directory, "product-truth.json");
+  const supplyChain = join(directory, "supply-chain");
+  await mkdir(join(supplyChain, "blobs", "sha256"), { recursive: true });
+  const release = Buffer.from(JSON.stringify({ annotations: {
+    "org.conduit.artifact-id": `image:sha256:${"e".repeat(64)}`,
+    "org.conduit.build-id": "build:exact",
+  } }));
+  const releaseDigest = createHash("sha256").update(release).digest("hex");
+  await writeFile(join(supplyChain, "blobs", "sha256", releaseDigest), release);
+  await writeFile(join(supplyChain, "index.json"), JSON.stringify({ manifests: [{ digest: `sha256:${releaseDigest}` }] }));
   const result = spawnSync(process.execPath, [
     "tools/ci/emit-current-product-truth.mjs",
     outputPath,
@@ -113,6 +123,7 @@ test("the release emitter records exact current identities and proof receipts", 
     "https://dancxjo.github.io/conduit/",
     "https://example/publication-run",
     "https://example/product-proof-run",
+    supplyChain,
   ], { cwd: process.cwd(), encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   const truth = JSON.parse(await readFile(outputPath, "utf8"));
@@ -121,4 +132,7 @@ test("the release emitter records exact current identities and proof receipts", 
   assert.deepEqual(truth.evidence.map(({ proof_class }) => proof_class), [
     "released-product", "live-browser", "freestanding-emulator",
   ]);
+  assert.equal(truth.supply_chain[0].artifact_id, `image:sha256:${"e".repeat(64)}`);
+  assert.equal(truth.supply_chain[0].build_id, "build:exact");
+  assert.match(truth.supply_chain[0].index_digest, /^sha256:[0-9a-f]{64}$/);
 });

@@ -357,12 +357,35 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
         "orange-pi-release",
         "raspberry-pi-release",
         "conduitos-releases",
+        "conduitos-oci-provenance",
     ] {
         assert!(stage.contains(&format!("needs.{prerequisite}.result == 'success'")));
     }
     assert!(stage.contains("cargo +1.98.1 xtask host release-catalog"));
     assert!(stage.contains("--root target/creche-release-artifacts"));
     assert!(stage.contains("--generation \"${{ github.run_number }}\""));
+}
+
+#[test]
+fn conduitos_oci_export_is_exact_subject_linked_and_carried_to_pages() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+        .expect("read product workflow");
+    let export = products
+        .split("\n  conduitos-oci-provenance:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  esp32-release-images:\n").next())
+        .expect("locate ConduitOS OCI export job");
+    assert!(export.contains("needs: conduitos-releases"));
+    assert!(export.contains("oci-release-export.mjs prepare-conduitos"));
+    assert!(export.contains("oci-release-export.mjs export"));
+    assert!(export.contains("oci-release-export.mjs verify"));
+    assert!(export.contains("name: conduit-conduitos-x86_64-oci"));
+    assert!(products.contains("target/pages-root/supply-chain/conduitos-x86_64-pc"));
+
+    let deploy = fs::read_to_string(root.join(".github/workflows/tour-pages-deploy.yml"))
+        .expect("read Pages deployment workflow");
+    assert!(deploy.contains("target/pages-site-with-truth/supply-chain/conduitos-x86_64-pc"));
 }
 
 #[test]

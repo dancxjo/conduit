@@ -23,6 +23,7 @@ current capabilities, practical workflows, and detailed design references.
 | [Targets](../targets/README.md) | Platform setup, fabrication, and target-specific proof |
 | [body building](body-building.md) | body-bound target artifacts and deployment boundaries |
 | [host fabrication](host-fabrication.md) | PROFILE, BUILD, IMAGE, and fabrication packages |
+| [Supply-chain export](supply-chain-export.md) | OCI transport, in-toto/SLSA provenance, and proof separation |
 | [Visual evidence](visual-evidence.md) | Screenshots, provenance, reproduction, and publication |
 
 ## Understand the design
