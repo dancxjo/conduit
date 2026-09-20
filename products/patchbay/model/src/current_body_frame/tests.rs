@@ -136,6 +136,24 @@ fn external_readers_distinguish_hosted_and_unhosted_graduations() {
 }
 
 #[test]
+fn external_reader_accepts_a_workspace_born_body_without_creche_graduation() {
+    let mut workspace_body = evidence(BodyGraduationChoice::ExternalReader);
+    workspace_body.graduation = None;
+    workspace_body.records.pop();
+    workspace_body.validate().unwrap();
+    let attachment = PatchbayBodyAttachment::open_serialized(
+        &serde_json::to_vec(&workspace_body).unwrap(),
+        PatchbayBodyApplicationEntrance::ExternalReader,
+    )
+    .unwrap();
+
+    assert_eq!(
+        CurrentBodyFrame::from_attachment(1, &attachment).patchbay_reader,
+        CurrentBodyPatchbayReader::ExternalReadingWorkspaceBody
+    );
+}
+
+#[test]
 fn stale_and_malformed_replacements_clear_prior_friendly_content() {
     let mut slot = CurrentBodyFrameSlot::default();
     slot.replace_serialized(
