@@ -5,7 +5,7 @@
 //! the Body-side admission manager.
 
 use conduit_body::{BodyConversationContext, MembershipCredential, SpawnInvitationClaim};
-use conduit_core::HostAdvertisement;
+use conduit_core::{HostAdvertisement, PoolRealizationEnvelope, PoolRealizationObservation};
 use conduit_std_host::websocket::{
     NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener,
 };
@@ -155,6 +155,10 @@ enum Ingress {
         protocol: u16,
         context: BodyConversationContext,
     },
+    ObserveLocalModelPool {
+        protocol: u16,
+        realization: PoolRealizationEnvelope,
+    },
     Close {
         protocol: u16,
     },
@@ -200,6 +204,10 @@ enum Egress<'a> {
         protocol: u16,
         body_id: &'a str,
         basis_revision: u64,
+    },
+    LocalModelPoolObserved {
+        protocol: u16,
+        observation: &'a PoolRealizationObservation,
     },
     RemotePrepared {
         protocol: u16,
@@ -465,6 +473,22 @@ fn run_session_with_join(
                     },
                 )?;
                 body_context_installed = true;
+            }
+            JoinedIngress::Control(Ingress::ObserveLocalModelPool {
+                protocol,
+                realization,
+            }) if protocol == PROTOCOL && membership_retained => {
+                let observation = crate::durable_host_control::observe_local_model_pool(
+                    state_dir,
+                    realization,
+                )?;
+                send(
+                    line,
+                    &Egress::LocalModelPoolObserved {
+                        protocol: PROTOCOL,
+                        observation: &observation,
+                    },
+                )?;
             }
             JoinedIngress::Control(Ingress::PrepareRemote { protocol, plan })
                 if protocol == PROTOCOL && membership_retained && body_context_installed =>
@@ -758,6 +782,35 @@ mod tests {
         assert!(matches!(
             receive_joined(&mut line).unwrap(),
             JoinedIngress::Control(Ingress::Close { protocol: PROTOCOL })
+        ));
+    }
+
+    #[test]
+    fn joined_line_decodes_one_bounded_model_pool_observation_request() {
+        let request = serde_json::json!({
+            "kind": "observe-local-model-pool",
+            "protocol": PROTOCOL,
+            "realization": {
+                "host_id": "host/model-a",
+                "boot_id": "boot/model-a/1",
+                "offer_generation": 2,
+                "capability_id": "capability/model-a/generate",
+                "implementation_id": "std/local-model@1",
+                "artifact_id": "model/sha256-a",
+                "member_capacity": 1,
+                "resources": []
+            }
+        });
+        let mut line = MemoryLine {
+            incoming: VecDeque::from([serde_json::to_vec(&request).unwrap()]),
+        };
+        assert!(matches!(
+            receive_joined(&mut line).unwrap(),
+            JoinedIngress::Control(Ingress::ObserveLocalModelPool {
+                protocol: PROTOCOL,
+                realization,
+            }) if realization.host_id.as_str() == "host/model-a"
+                && realization.boot_id.as_str() == "boot/model-a/1"
         ));
     }
 }
