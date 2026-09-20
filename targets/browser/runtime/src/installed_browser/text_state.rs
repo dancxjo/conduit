@@ -2,7 +2,11 @@
 
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
-use conduit_core::{kind_id, ConfigurationValue, HostOperationRequirement, PlannedGear};
+use conduit_core::{
+    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ConfigurationValue, ExecutionProfileId, HostOperationRequirement,
+    ImplementationId, PlannedGear, SemanticCapabilityContract,
+};
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
 pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-text-state@1";
@@ -22,44 +26,38 @@ pub(super) static SUBMIT: BrowserInstallation = BrowserInstallation {
     perform: None,
 };
 
-fn edit_offer() -> conduit_core::CapabilityOffer {
+fn edit_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::text_edit_contract(),
-        conduit_semantic_catalog::TEXT_EDIT_REVISION,
+        conduit_semantic_catalog::text_edit_semantic_contract(),
         EDIT_IMPLEMENTATION,
     )
 }
-fn submit_offer() -> conduit_core::CapabilityOffer {
+fn submit_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::text_submit_lines_contract(),
-        conduit_semantic_catalog::TEXT_SUBMIT_LINES_REVISION,
+        conduit_semantic_catalog::text_submit_lines_semantic_contract(),
         SUBMIT_IMPLEMENTATION,
     )
 }
-fn offer(
-    contract: conduit_semantic_catalog::StandardKindContract,
-    revision: &str,
-    implementation: &'static str,
-) -> conduit_core::CapabilityOffer {
-    conduit_semantic_catalog::realization_offer(
+fn offer(contract: SemanticCapabilityContract, implementation: &'static str) -> CapabilityOffer {
+    CapabilityOfferBuilder::new(
         contract,
-        revision,
-        conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: implementation,
-            execution_profile: implementation,
-            implementation,
-            artifact: "conduit-browser-runtime/text-state@1",
+        CapabilityRealization {
+            capability_id: CapabilityId::from(implementation),
+            execution_profile_id: ExecutionProfileId::from(implementation),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from("conduit-browser-runtime/text-state@1"),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HOST_OPERATION.into(),
+                target_kind: Some(kind_id("text/bounded-state-output@1")),
+                maximum_in_flight: 1,
+                maximum_input_bytes: 4,
+                maximum_output_bytes: conduit_semantic_catalog::MAXIMUM_EDITED_TEXT_BYTES,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        vec![HostOperationRequirement {
-            contract_id: HOST_OPERATION.into(),
-            target_kind: Some(kind_id("text/bounded-state-output@1")),
-            maximum_in_flight: 1,
-            maximum_input_bytes: 4,
-            maximum_output_bytes: conduit_semantic_catalog::MAXIMUM_EDITED_TEXT_BYTES,
-        }],
-        Vec::new(),
-        Vec::new(),
     )
+    .build()
 }
 
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
