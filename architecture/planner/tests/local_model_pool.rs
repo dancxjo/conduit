@@ -26,6 +26,7 @@ use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_shared_pools, PlanningOptions,
     SharedPoolPlanningRequirement,
 };
+use serde::Serialize;
 
 const SOURCE: &str = r#"
 form model-worker (
@@ -183,6 +184,55 @@ fn key(value: u8) -> MemberKey {
     MemberKey([value; 32])
 }
 
+fn with_capacity(mut host: HostAdvertisement, capacity: u16) -> HostAdvertisement {
+    host.capabilities[0].limits.max_active_instances = capacity;
+    for resource in &mut host.resources {
+        resource.capacity_units = resource.capacity_units.max(64);
+    }
+    host
+}
+
+#[derive(Serialize)]
+struct SelectionReceipt {
+    operation_id: &'static str,
+    disposition: &'static str,
+    realization: Option<u16>,
+    observation_signs: Vec<u16>,
+    planning_requested: bool,
+}
+
+#[derive(Serialize)]
+struct DeterministicReceipt<'a> {
+    schema: &'static str,
+    proof_class: &'static str,
+    physical_evidence: bool,
+    body_id: &'static str,
+    wake_id: &'static str,
+    source_document_id: &'a str,
+    checked_form_id: &'a str,
+    expanded_form_id: &'a str,
+    plan_id: &'a str,
+    play_id: &'a str,
+    pool_id: &'a str,
+    realization_envelope: &'a [conduit_core::PoolRealizationEnvelope],
+    selections: Vec<SelectionReceipt>,
+    unsealed_host_refused: bool,
+    replacement_plan_id: &'a str,
+    replacement_play_id: &'a str,
+    replacement_preserved_body_and_wake: bool,
+}
+
+fn retain_receipt(receipt: &DeterministicReceipt<'_>) {
+    let Some(path) = std::env::var_os("CONDUIT_LOCAL_MODEL_POOL_RECEIPT_PATH") else {
+        return;
+    };
+    let path = std::path::PathBuf::from(path);
+    let temporary = path.with_extension("json.tmp");
+    let bytes = serde_json::to_vec_pretty(receipt).unwrap();
+    std::fs::write(&temporary, bytes).unwrap();
+    std::fs::rename(temporary, path).unwrap();
+}
+
 #[test]
 fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
     let form = expanded();
@@ -282,9 +332,11 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
     };
 
     let first = select(&mut pool, key(1), &observations, &mut signs).unwrap();
+    let first_signs = signs[..usize::from(first.observation_sign_count)].to_vec();
     pool.trigger(first.member).unwrap();
     assert_eq!(first.member.placement.realization, 0);
     let second = select(&mut pool, key(2), &observations, &mut signs).unwrap();
+    let second_signs = signs[..usize::from(second.observation_sign_count)].to_vec();
     pool.trigger(second.member).unwrap();
     assert_eq!(second.member.placement.realization, 1);
     pool.request_release(second.member).unwrap();
@@ -303,6 +355,7 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
         "failed work is not replayed"
     );
     let later = select(&mut pool, key(3), &lost, &mut signs).unwrap();
+    let later_signs = signs[..usize::from(later.observation_sign_count)].to_vec();
     pool.trigger(later.member).unwrap();
     assert_eq!(later.member.key, key(3));
     assert_eq!(later.member.placement.realization, 1);
@@ -342,12 +395,104 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
         conduit_core::ControlLoopEvent::PlanningRequested { .. }
     ));
 
-    let mut replacement_hosts = hosts.clone();
-    replacement_hosts[1].boot_id = BootId::from("ai-small-local-boot/2");
-    replacement_hosts[1].offer_generation = OfferGeneration(2);
+    let a_only_hosts = vec![
+        hosts[0].clone(),
+        with_capacity(fixtures[0].advertisement.clone(), 2),
+    ];
+    let a_only = build_plan(&a_only_hosts);
+    assert_eq!(
+        a_only.fragments[0].shared_pools[0]
+            .realization_envelope
+            .len(),
+        1
+    );
+    assert_eq!(
+        a_only.fragments[0].shared_pools[0].realization_envelope[0].member_capacity,
+        2
+    );
+    assert!(!a_only.fragments[0].shared_pools[0]
+        .realization_envelope
+        .iter()
+        .any(|realization| realization.host_id == hosts[2].host_id));
+
+    let replacement_hosts = vec![
+        hosts[0].clone(),
+        with_capacity(fixtures[1].advertisement.clone(), 2),
+    ];
     let replacement = build_plan(&replacement_hosts);
     assert_ne!(replacement.plan_id, plan.plan_id);
-    assert_eq!(replacement.source_document_id, plan.source_document_id);
-    assert_eq!(replacement.checked_form_id, plan.checked_form_id);
-    assert_eq!(replacement.expanded_form_id, plan.expanded_form_id);
+    assert_ne!(replacement.plan_id, a_only.plan_id);
+    assert_eq!(replacement.source_document_id, a_only.source_document_id);
+    assert_eq!(replacement.checked_form_id, a_only.checked_form_id);
+    assert_eq!(replacement.expanded_form_id, a_only.expanded_form_id);
+    let a_only_pool = &a_only.fragments[0].shared_pools[0];
+    let b_replacement = &replacement.fragments[0].shared_pools[0].realization_envelope[0];
+    assert!(!a_only_pool.permits_realization(b_replacement, &a_only_pool.member_front));
+    let play = conduit_core::bind_active_play(
+        &plan.plan_id,
+        &HostId::from("host/consumer"),
+        &BootId::from("boot/consumer/1"),
+        1,
+    );
+    let replacement_play = conduit_core::bind_active_play(
+        &replacement.plan_id,
+        &HostId::from("host/consumer"),
+        &BootId::from("boot/consumer/1"),
+        2,
+    );
+    retain_receipt(&DeterministicReceipt {
+        schema: "conduit.local-model-pool-proof/v1",
+        proof_class: "deterministic-hosted-integration",
+        physical_evidence: false,
+        body_id: "body/local-model-pool-fixture",
+        wake_id: "wake/local-model-pool-fixture/1",
+        source_document_id: plan.source_document_id.as_str(),
+        checked_form_id: plan.checked_form_id.as_str(),
+        expanded_form_id: plan.expanded_form_id.as_str(),
+        plan_id: plan.plan_id.as_str(),
+        play_id: play.active_play_id.as_str(),
+        pool_id: planned.pool_id.as_str(),
+        realization_envelope: &planned.realization_envelope,
+        selections: vec![
+            SelectionReceipt {
+                operation_id: "model-request/1",
+                disposition: "selected",
+                realization: Some(first.member.placement.realization),
+                observation_signs: first_signs,
+                planning_requested: false,
+            },
+            SelectionReceipt {
+                operation_id: "model-request/2",
+                disposition: "selected-after-capacity-refusal",
+                realization: Some(second.member.placement.realization),
+                observation_signs: second_signs,
+                planning_requested: false,
+            },
+            SelectionReceipt {
+                operation_id: "model-request/1",
+                disposition: "provider-lost-no-replay",
+                realization: Some(first.member.placement.realization),
+                observation_signs: vec![],
+                planning_requested: false,
+            },
+            SelectionReceipt {
+                operation_id: "model-request/3",
+                disposition: "selected-sealed-fallback",
+                realization: Some(later.member.placement.realization),
+                observation_signs: later_signs,
+                planning_requested: false,
+            },
+            SelectionReceipt {
+                operation_id: "model-request/4",
+                disposition: "envelope-exhausted",
+                realization: None,
+                observation_signs: vec![],
+                planning_requested: true,
+            },
+        ],
+        unsealed_host_refused: true,
+        replacement_plan_id: replacement.plan_id.as_str(),
+        replacement_play_id: replacement_play.active_play_id.as_str(),
+        replacement_preserved_body_and_wake: true,
+    });
 }

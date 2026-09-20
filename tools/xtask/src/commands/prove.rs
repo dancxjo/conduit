@@ -106,7 +106,7 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
             crate::commands::ollama_embodiment::run(&args, &root, opts)
         }
         ProveTarget::LlmCrossHost => run_suite(PROVE_LLM_CROSS_HOST_STEPS, &root, opts),
-        ProveTarget::LocalModelPool => run_suite(PROVE_LOCAL_MODEL_POOL_STEPS, &root, opts),
+        ProveTarget::LocalModelPool => run_local_model_pool(&args, &root, opts),
         ProveTarget::MessagingGithub => crate::commands::messaging_github::run(&args, &root, opts),
         ProveTarget::PatchbayBodyWorkbench => {
             run_suite(PROVE_PATCHBAY_BODY_WORKBENCH_STEPS, &root, opts)
@@ -247,6 +247,98 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         }
         ProveTarget::R1NewPlanRecovery => crate::commands::r1_recovery::run(opts),
     }
+}
+
+fn run_local_model_pool(
+    args: &ProveArgs,
+    root: &std::path::Path,
+    opts: &GlobalOpts,
+) -> Result<(), StepError> {
+    if opts.dry_run {
+        return run_suite(PROVE_LOCAL_MODEL_POOL_STEPS, root, opts);
+    }
+    let evidence_root = args
+        .evidence_root
+        .clone()
+        .unwrap_or_else(|| root.join("target/conduit-evidence/local-model-pool"));
+    let mut evidence = EvidenceManifest::new(
+        &evidence_root,
+        root,
+        "local-model-pool",
+        "prove.local-model-pool",
+    )
+    .map_err(|error| StepError::prereq("prove.local-model-pool.evidence", error))?;
+    let receipt_path = evidence.root().join("receipt.json");
+    if receipt_path.exists() || receipt_path.is_symlink() {
+        std::fs::remove_file(&receipt_path).map_err(|error| {
+            StepError::prereq(
+                "prove.local-model-pool.evidence",
+                format!(
+                    "cannot remove stale receipt {}: {error}",
+                    receipt_path.display()
+                ),
+            )
+        })?;
+    }
+    run_suite_with_environment(
+        PROVE_LOCAL_MODEL_POOL_STEPS,
+        root,
+        opts,
+        &[(
+            "CONDUIT_LOCAL_MODEL_POOL_RECEIPT_PATH",
+            receipt_path.as_os_str(),
+        )],
+    )?;
+    let receipt_bytes = std::fs::read(&receipt_path).map_err(|error| {
+        StepError::prereq(
+            "prove.local-model-pool.evidence",
+            format!("cannot read {}: {error}", receipt_path.display()),
+        )
+    })?;
+    let receipt: serde_json::Value = serde_json::from_slice(&receipt_bytes).map_err(|error| {
+        StepError::prereq(
+            "prove.local-model-pool.evidence",
+            format!("invalid receipt JSON: {error}"),
+        )
+    })?;
+    let identity = |field: &str| {
+        receipt
+            .get(field)
+            .and_then(serde_json::Value::as_str)
+            .filter(|value| !value.is_empty())
+            .map(str::to_owned)
+            .ok_or_else(|| {
+                StepError::prereq(
+                    "prove.local-model-pool.evidence",
+                    format!("receipt has no nonempty '{field}'"),
+                )
+            })
+    };
+    evidence
+        .declare(EvidenceOutput {
+            id: "local-model-pool.deterministic-receipt".into(),
+            kind: EvidenceKind::MachineReadableManifest,
+            path: "receipt.json".into(),
+            media_type: "application/json".into(),
+            required: true,
+            provenance: EvidenceProvenance {
+                scenario_id: "local-model-pool.deterministic@1".into(),
+                step_id: Some("prove.local-model-pool.plan-play".into()),
+                plan_id: Some(identity("plan_id")?),
+                active_play_id: Some(identity("play_id")?),
+                asserted_semantic_disposition: Some(
+                    "sealed-load-sharing-provider-loss-no-replay-exhaustion-and-replan-asserted"
+                        .into(),
+                ),
+                proof_class: Some("deterministic-hosted-integration".into()),
+                physical_evidence: Some(false),
+                ..Default::default()
+            },
+        })
+        .map_err(|error| StepError::prereq("prove.local-model-pool.evidence", error))?;
+    evidence
+        .finish(EvidenceResult::Complete)
+        .map_err(|error| StepError::prereq("prove.local-model-pool.evidence", error))
 }
 
 fn run_patchbay_front_door(
