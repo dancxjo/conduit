@@ -102,7 +102,11 @@ fn startup_parameters() -> Vec<FrontStartupParameter> {
     .into_iter()
     .map(|(name, value_type)| FrontStartupParameter {
         name: name.into(),
-        value_type: value_type.into(),
+        value_type: kind_id(match value_type {
+            "Text" => "value/text",
+            "Count" => "value/count",
+            _ => unreachable!("reviewed startup value kind"),
+        }),
         has_default: true,
     })
     .collect()
