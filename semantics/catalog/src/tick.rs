@@ -4,7 +4,7 @@ use super::{
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
-use conduit_core::{CapabilityLimits, ConfigurationValue};
+use conduit_core::{CapabilityLimits, ConfigurationValue, SemanticCapabilityContract};
 
 pub fn tick_contract() -> StandardKindContract {
     StandardKindContract {
@@ -41,6 +41,19 @@ pub fn tick_contract() -> StandardKindContract {
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "clock: time/tick".to_string(),
+    }
+}
+
+pub fn tick_semantic_contract() -> SemanticCapabilityContract {
+    let contract = tick_contract();
+    SemanticCapabilityContract {
+        startup_parameters: super::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: conduit_time::TICK_CONTRACT_REVISION.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        limits: contract.limits,
     }
 }
 
