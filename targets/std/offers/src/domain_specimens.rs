@@ -40,11 +40,12 @@ pub fn vision_std_offers() -> Vec<CapabilityOffer> {
     conduit_semantic_catalog::vision_kind_contracts()
         .into_iter()
         .map(|(kind, inputs, outputs)| {
+            let revision = conduit_semantic_catalog::vision_kind_revision(kind.as_str());
             offer(
                 kind,
                 inputs,
                 outputs,
-                conduit_semantic_catalog::VISION_REVISION,
+                revision,
                 VISION_PROFILE,
                 VISION_ARTIFACT,
                 VISION_HOST_OPERATION,

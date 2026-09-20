@@ -16,6 +16,33 @@ use std::collections::BTreeMap;
 
 #[test]
 fn authored_motion_runs_through_protected_finite_base_and_production_kernel() {
+    authored_local_vision_runs(
+        conduit_semantic_catalog::VISION_MOTION_KIND,
+        "motion",
+        "motions",
+        conduit_std_offers::LOCAL_VISION_MOTION_OPERATION,
+        conduit_semantic_catalog::vision_motions_type(),
+    );
+}
+
+#[test]
+fn authored_objects_run_through_protected_finite_base_and_production_kernel() {
+    authored_local_vision_runs(
+        conduit_semantic_catalog::VISION_OBJECTS_KIND,
+        "objects",
+        "detections",
+        conduit_std_offers::LOCAL_VISION_OBJECTS_OPERATION,
+        conduit_semantic_catalog::local_vision_object_observations_type(),
+    );
+}
+
+fn authored_local_vision_runs(
+    vision_kind: &str,
+    gear_name: &str,
+    output_port: &str,
+    expected_operation: &str,
+    output_type: conduit_core::StructuredInfoType,
+) {
     let image = conduit_semantic_catalog::deterministic_vision_fixture()
         .unwrap()
         .image;
@@ -47,7 +74,7 @@ fn authored_motion_runs_through_protected_finite_base_and_production_kernel() {
     )
     .unwrap();
 
-    let (startup, profile, source_offer, sink_offer) = catalogs(&image);
+    let (startup, profile, source_offer, sink_offer) = catalogs(&image, &output_type);
     host.advertisement
         .capabilities
         .extend([source_offer, sink_offer]);
@@ -57,37 +84,37 @@ fn authored_motion_runs_through_protected_finite_base_and_production_kernel() {
     host.kernel_resources =
         crate::kernel_preparation::KernelResourceLedger::new(&host.advertisement).unwrap();
     let source = format!(
-        "form proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n motion: vision/local-motion\n sink: conduit-test/local-model-result\n source.image > motion.image\n motion.motions > sink.value\n}}\n",
-        hex(&encoded)
+        "form proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n {gear_name}: {vision_kind}\n sink: conduit-test/local-model-result\n source.image > {gear_name}.image\n {gear_name}.{output_port} > sink.value\n}}\n",
+        hex(&encoded),
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "proof", &profile).unwrap();
     let hosts = [host.advertisement().clone()];
     let placements = conduit_planner::default_expanded_placements(&expanded, &hosts).unwrap();
-    let motion_offer = hosts[0]
+    let vision_offer = hosts[0]
         .capabilities
         .iter()
-        .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::VISION_MOTION_KIND)
+        .find(|offer| offer.kind_id.as_str() == vision_kind)
         .unwrap();
-    let motion_gear = expanded
+    let vision_gear = expanded
         .gears
         .iter()
-        .find(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::VISION_MOTION_KIND)
+        .find(|gear| gear.kind_id.as_str() == vision_kind)
         .unwrap();
     let authority = authority_grant(
         "grant/vision/read-1",
-        &motion_offer.authority_requirements[0],
+        &vision_offer.authority_requirements[0],
         hosts[0].host_id.clone(),
         hosts[0].boot_id.clone(),
-        motion_offer.capability_id.clone(),
+        vision_offer.capability_id.clone(),
     );
     let resource = ProtectedResourceGrant {
         role_id: ResourceBindingRoleId::from(conduit_std_offers::LOCAL_VISION_RESOURCE_ROLE),
         handle_id: ResourceHandleId::from("handle/finite-image-residence/1"),
-        gear_id: motion_gear.gear_id.clone(),
+        gear_id: vision_gear.gear_id.clone(),
         host_id: hosts[0].host_id.clone(),
         boot_id: hosts[0].boot_id.clone(),
-        capability_id: motion_offer.capability_id.clone(),
+        capability_id: vision_offer.capability_id.clone(),
         class_id: ResourceClassId::from(conduit_std_offers::LOCAL_VISION_RESOURCE_CLASS),
         access: ProtectedResourceAccess::ReadExisting,
         maximum_bytes: conduit_semantic_catalog::MAXIMUM_LOCAL_CV_PIXELS as u64,
@@ -109,19 +136,17 @@ fn authored_motion_runs_through_protected_finite_base_and_production_kernel() {
         },
     )
     .unwrap();
-    let motion = plan.fragments[0]
+    let vision = plan.fragments[0]
         .placements
         .iter()
-        .find(|placement| {
-            placement.kind_id.as_str() == conduit_semantic_catalog::VISION_MOTION_KIND
-        })
+        .find(|placement| placement.kind_id.as_str() == vision_kind)
         .unwrap();
-    assert_eq!(motion.resources.len(), 1);
-    assert!(motion.resources[0].protected.is_some());
-    assert_eq!(motion.authority.len(), 1);
+    assert_eq!(vision.resources.len(), 1);
+    assert!(vision.resources[0].protected.is_some());
+    assert_eq!(vision.authority.len(), 1);
     assert_eq!(
-        motion.host_operations[0].contract_id.as_str(),
-        conduit_std_offers::LOCAL_VISION_MOTION_OPERATION
+        vision.host_operations[0].contract_id.as_str(),
+        expected_operation
     );
 
     let report = host
@@ -145,6 +170,7 @@ fn authored_motion_runs_through_protected_finite_base_and_production_kernel() {
 
 fn catalogs(
     image: &conduit_core::StructuredInfoValue,
+    output_type: &conduit_core::StructuredInfoType,
 ) -> (
     StartupCatalog,
     ProfileCatalog,
@@ -164,9 +190,8 @@ fn catalogs(
     offer.outputs[0].port_id = conduit_core::port_id("image");
     offer.outputs[0].temporal = PortTemporal::Current;
     offer.capability_id = CapabilityId::from(kind);
-    let motions = conduit_semantic_catalog::vision_motions_type();
     let mut sink_offer = crate::installed_std::test_local_model_io::sink_offer(
-        motions.profile().unwrap().value_kind().as_str(),
+        output_type.profile().unwrap().value_kind().as_str(),
     );
     sink_offer.inputs[0].temporal = PortTemporal::Current;
     sink_offer.limits.max_queue_bytes = conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32;
