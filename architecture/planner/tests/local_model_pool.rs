@@ -382,6 +382,15 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
     assert_eq!(later.member.placement.realization, 1);
     assert_eq!(
         select(&mut pool, key(4), &lost, &mut signs),
+        Err(PoolSelectionError::CapacityUnavailable {
+            examined_realizations: 2
+        })
+    );
+    for observation in &mut lost {
+        observation.health = LoweredObservationHealth::Unavailable;
+    }
+    assert_eq!(
+        select(&mut pool, key(5), &lost, &mut signs),
         Err(PoolSelectionError::NoCurrentRealization {
             examined_realizations: 2
         })
@@ -389,11 +398,11 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
     let exhausted = PoolSelectionEvidence {
         plan_id: plan.plan_id.clone(),
         pool_id: planned.pool_id.clone(),
-        operation_id: PoolOperationId::from("model-request/4"),
+        operation_id: PoolOperationId::from("model-request/5"),
         selected_realization: None,
         observation_sign_ids: vec![],
         disposition: PoolSelectionDisposition::EnvelopeExhausted,
-        sign_id: SignId::from("sign/model-pool-exhausted/4"),
+        sign_id: SignId::from("sign/model-pool-exhausted/5"),
     };
     let events = exhausted
         .exhaustion_replan_events(
@@ -401,7 +410,7 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
             HostId::from("host/consumer"),
             BootId::from("boot/consumer/1"),
             PlanningRequestAuthority::HostLocal,
-            SignId::from("sign/model-pool-replan-request/4"),
+            SignId::from("sign/model-pool-replan-request/5"),
         )
         .unwrap();
     assert!(matches!(
@@ -505,6 +514,13 @@ fn two_generate_text_hosts_fallback_only_inside_the_immutable_plan_envelope() {
             },
             SelectionReceipt {
                 operation_id: "model-request/4",
+                disposition: "capacity-unavailable",
+                realization: None,
+                observation_signs: vec![],
+                planning_requested: false,
+            },
+            SelectionReceipt {
+                operation_id: "model-request/5",
                 disposition: "envelope-exhausted",
                 realization: None,
                 observation_signs: vec![],

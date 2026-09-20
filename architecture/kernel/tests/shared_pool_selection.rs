@@ -231,3 +231,35 @@ fn every_resource_must_be_current_and_each_observation_sign_is_retained() {
         Err(PoolSelectionError::DuplicateObservation)
     );
 }
+
+#[test]
+fn healthy_but_occupied_capacity_is_not_provider_exhaustion() {
+    let envelope = [realization(0)];
+    let requirements = [requirement(envelope[0], 0)];
+    let observations = [observation(envelope[0], 0, 91)];
+    let mut pool = FixedSharedPool::<1, 8>::new(PoolId(9), 1, 7, 1).unwrap();
+    let mut evidence = [0; 1];
+    let active = admit(
+        &mut pool,
+        key(1),
+        &envelope,
+        &requirements,
+        &observations,
+        &mut evidence,
+    )
+    .unwrap();
+    pool.trigger(active.member).unwrap();
+    assert_eq!(
+        admit(
+            &mut pool,
+            key(2),
+            &envelope,
+            &requirements,
+            &observations,
+            &mut evidence,
+        ),
+        Err(PoolSelectionError::CapacityUnavailable {
+            examined_realizations: 1
+        })
+    );
+}
