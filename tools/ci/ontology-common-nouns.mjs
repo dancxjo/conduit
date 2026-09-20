@@ -12,8 +12,6 @@ const excluded = [
   ".github/workflows/",
   "docs/history/",
   "products/patchbay/native/assets/",
-  "products/creche/tools/stage-legacy-routes.mjs",
-  "products/tour/tools/stage-legacy-routes.mjs",
   "tools/ci/ontology-common-nouns.mjs",
 ];
 

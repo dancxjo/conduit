@@ -68,7 +68,7 @@ pub(crate) fn checked_front(
                     },
                 )?,
                 // Presence is callable compatibility: callers need to know
-                // whether omission is legal. The checked Form identity owns
+                // whether omission is legal. The checked form identity owns
                 // the canonical default expression and therefore its meaning.
                 has_default: parameter.default.is_some(),
             })

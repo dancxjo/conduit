@@ -61,7 +61,7 @@ impl StartupCatalog {
     }
 
     /// Resolves authoring spellings into the canonical startup type identities
-    /// carried by checked Fronts and realization offers.
+    /// carried by checked fronts and realization offers.
     pub fn canonical_startup_parameters(
         &self,
         signature: &KindSignature,

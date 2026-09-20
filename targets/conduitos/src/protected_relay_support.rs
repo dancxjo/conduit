@@ -57,9 +57,9 @@ pub enum WireOperationRefusal<E> {
     Operation(E),
 }
 
-/// Run canonical ordinary Host frames inside the exact protected relay Line.
+/// Run canonical ordinary host frames inside the exact protected relay line.
 ///
-/// The selected device must match the Host supervisor's current provider
+/// The selected device must match the host supervisor's current provider
 /// generation before any network work. The nested session checks that truth
 /// again before every frame and terminally refuses replacement.
 #[allow(clippy::too_many_arguments)]
