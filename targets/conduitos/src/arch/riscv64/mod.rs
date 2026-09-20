@@ -121,6 +121,20 @@ pub fn interruptible_idle() {
     unsafe { core::arch::asm!("wfi", options(nostack)) }
 }
 
+pub const fn emergency_machine_profile() -> crate::machine::EmergencyMachineProfile {
+    crate::machine::EmergencyMachineProfile {
+        halt: crate::machine::EmergencyMachineAvailability::Available,
+        reset: crate::machine::EmergencyMachineAvailability::Unavailable,
+    }
+}
+
+pub fn emergency_halt() -> ! {
+    disable_interrupts();
+    loop {
+        unsafe { core::arch::asm!("wfi", options(nostack)) }
+    }
+}
+
 pub fn pop_interrupt() -> Option<InterruptFact> {
     if FACT_OVERFLOW.swap(false, Ordering::AcqRel) {
         return Some(InterruptFact::Overflow);
