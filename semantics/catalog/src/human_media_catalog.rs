@@ -2,7 +2,8 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    PortTemporal, SemanticCapabilityContract,
 };
 
 pub const CAMERA_ACQUIRE_KIND: &str = "media/acquire-camera@1";
@@ -13,6 +14,7 @@ pub const MEDIA_ACQUISITION_RESULT_KIND: &str = "media/acquisition-result@1";
 pub const CAMERA_FRAME_KIND: &str = "media/camera-frame@1";
 pub const MICROPHONE_FRAME_KIND: &str = "media/microphone-frame@1";
 pub const MICROPHONE_CLIP_SOURCE_KIND: &str = "media/capture-microphone-clip";
+pub const MICROPHONE_CLIP_SOURCE_REVISION: &str = "conduit.std/microphone-clip-source@1";
 pub const CAMERA_SOURCE_KIND: &str = "media/camera";
 pub const CAMERA_FRAME_SINK_KIND: &str = "media/frame-sink";
 pub const CAMERA_RESOURCE_CLASS: &str = "conduit.resource/acquired-camera@1";
@@ -27,6 +29,32 @@ pub const MAXIMUM_MEDIA_QUEUE_ITEMS: u16 = 4;
 pub const MAXIMUM_MEDIA_QUEUE_BYTES: u32 = 4 * MAXIMUM_MEDIA_RESULT_BYTES;
 pub const MAXIMUM_MEDIA_VALUE_BYTES: u32 = 64 * 1024;
 
+pub fn microphone_clip_source_semantic_contract() -> SemanticCapabilityContract {
+    SemanticCapabilityContract {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id(MICROPHONE_CLIP_SOURCE_KIND),
+        kind_contract_revision: KindContractRevision::from(MICROPHONE_CLIP_SOURCE_REVISION),
+        inputs: vec![PortDescriptor {
+            port_id: port_id("request"),
+            value_kind: kind_id(conduit_text::TEXT_VALUE_KIND),
+            direction: PortDirection::Input,
+            temporal: PortTemporal::Value,
+        }],
+        outputs: vec![PortDescriptor {
+            port_id: port_id("clip"),
+            value_kind: kind_id(conduit_audio::AUDIO_PCM_CLIP_INFO_ID),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Value,
+        }],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
+        },
+    }
+}
+
 #[cfg(feature = "form-catalog")]
 pub fn install_microphone_clip_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -38,24 +66,13 @@ pub fn install_microphone_clip_catalogs(
         kind: MICROPHONE_CLIP_SOURCE_KIND.into(),
         startup_parameters: vec![],
     })?;
+    let contract = microphone_clip_source_semantic_contract();
     profile
         .insert(KindDefinition {
-            kind_id: kind_id(MICROPHONE_CLIP_SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from(
-                "conduit.std/microphone-clip-source@1",
-            ),
-            inputs: vec![PortDescriptor {
-                port_id: port_id("request"),
-                value_kind: kind_id(conduit_text::TEXT_VALUE_KIND),
-                direction: PortDirection::Input,
-                temporal: PortTemporal::Value,
-            }],
-            outputs: vec![PortDescriptor {
-                port_id: port_id("clip"),
-                value_kind: kind_id(conduit_audio::AUDIO_PCM_CLIP_INFO_ID),
-                direction: PortDirection::Output,
-                temporal: PortTemporal::Value,
-            }],
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
             configuration: vec![],
         })
         .map_err(|error| error.to_string())
