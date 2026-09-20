@@ -1,5 +1,5 @@
-use super::{gui::GuiAction, Arguments, PatchbayApplication};
-use conduit_core::ConfigurationValue;
+use super::{Arguments, PatchbayApplication, gui::GuiAction};
+use conduit_core::{ConfigurationValue, Quantity, QuantityUnit};
 
 #[test]
 fn native_front_control_uses_interaction_execution_and_persists_canonical_source() {
@@ -34,7 +34,7 @@ fn native_front_control_uses_interaction_execution_and_persists_canonical_source
         .handle_gui_action(GuiAction::ConfigureGear {
             subject,
             key: "freq".into(),
-            value: ConfigurationValue::U64(26),
+            value: ConfigurationValue::Quantity(Quantity::new(26, QuantityUnit::Millisecond)),
         })
         .unwrap();
     let graph = application.graphical_form.as_ref().unwrap();
@@ -49,27 +49,31 @@ fn native_front_control_uses_interaction_execution_and_persists_canonical_source
     );
     assert_eq!(
         graph.gears[0].controls[0].value,
-        ConfigurationValue::U64(26)
+        ConfigurationValue::Quantity(Quantity::new(26, QuantityUnit::Millisecond))
     );
-    assert!(application
-        .form_editor
-        .as_ref()
-        .unwrap()
-        .view()
-        .source
-        .contains("freq = 26ms"));
-    assert!(application
-        .interaction
-        .as_ref()
-        .unwrap()
-        .history()
-        .any(|receipt| matches!(
-            &receipt.request,
-            patchbay_model::PatchbayInteractionRequest::Edit {
-                edit: patchbay_model::PatchbayEdit::ConfigureGear { .. },
-                ..
-            }
-        )));
+    assert!(
+        application
+            .form_editor
+            .as_ref()
+            .unwrap()
+            .view()
+            .source
+            .contains("freq = 26ms")
+    );
+    assert!(
+        application
+            .interaction
+            .as_ref()
+            .unwrap()
+            .history()
+            .any(|receipt| matches!(
+                &receipt.request,
+                patchbay_model::PatchbayInteractionRequest::Edit {
+                    edit: patchbay_model::PatchbayEdit::ConfigureGear { .. },
+                    ..
+                }
+            ))
+    );
     assert_eq!(
         application.control.plan().unwrap().plan_id,
         immutable_plan_id
@@ -110,7 +114,7 @@ fn native_front_control_uses_interaction_execution_and_persists_canonical_source
     .unwrap();
     assert_eq!(
         reopened.graphical_form.as_ref().unwrap().gears[0].controls[0].value,
-        ConfigurationValue::U64(26)
+        ConfigurationValue::Quantity(Quantity::new(26, QuantityUnit::Millisecond))
     );
     std::fs::remove_file(path).unwrap();
     std::fs::remove_file(directory.join("controls.conduit.patchbay.json")).unwrap();
@@ -143,12 +147,14 @@ fn native_front_control_refuses_invalid_value_without_changing_source() {
             value: ConfigurationValue::U64(conduit_semantic_catalog::TIME_MAXIMUM_VALUES + 1),
         })
         .unwrap();
-    assert!(application
-        .interaction_status
-        .current()
-        .unwrap()
-        .text
-        .contains("does not fit"));
+    assert!(
+        application
+            .interaction_status
+            .current()
+            .unwrap()
+            .text
+            .contains("does not fit")
+    );
     assert_eq!(
         application.form_editor.as_ref().unwrap().view().source,
         source
@@ -242,22 +248,24 @@ fn pointer_hit_prefers_front_control_over_containing_gear_rectangle() {
     application.handle_canvas_press().unwrap();
     assert_eq!(
         application.graphical_form.as_ref().unwrap().gears[0].controls[0].value,
-        ConfigurationValue::U64(24)
+        ConfigurationValue::Quantity(Quantity::new(24, QuantityUnit::Millisecond))
     );
-    assert!(application
-        .interaction
-        .as_ref()
-        .unwrap()
-        .history()
-        .any(|receipt| {
-            matches!(
-                &receipt.request,
-                patchbay_model::PatchbayInteractionRequest::Edit {
-                    edit: patchbay_model::PatchbayEdit::ConfigureGear { .. },
-                    ..
-                }
-            )
-        }));
+    assert!(
+        application
+            .interaction
+            .as_ref()
+            .unwrap()
+            .history()
+            .any(|receipt| {
+                matches!(
+                    &receipt.request,
+                    patchbay_model::PatchbayInteractionRequest::Edit {
+                        edit: patchbay_model::PatchbayEdit::ConfigureGear { .. },
+                        ..
+                    }
+                )
+            })
+    );
     let subject = application
         .graphical_form
         .as_ref()
@@ -278,7 +286,7 @@ fn pointer_hit_prefers_front_control_over_containing_gear_rectangle() {
         .unwrap();
     assert_eq!(
         application.graphical_form.as_ref().unwrap().gears[0].controls[0].value,
-        ConfigurationValue::U64(25)
+        ConfigurationValue::Quantity(Quantity::new(25, QuantityUnit::Millisecond))
     );
     std::fs::remove_file(path).unwrap();
     std::fs::remove_dir(directory).unwrap();

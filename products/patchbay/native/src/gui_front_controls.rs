@@ -2,7 +2,7 @@
 
 use crate::{
     gui_hit::{GuiAction, HitShape, HitTarget},
-    gui_primitives::{frame_rect, text, PixelRect},
+    gui_primitives::{PixelRect, frame_rect, text},
 };
 use embedded_graphics::{
     pixelcolor::Rgb888,
@@ -275,6 +275,24 @@ fn control_actions(control: &patchbay_model::FaceControl) -> Vec<conduit_core::C
             conduit_core::ConfigurationValue::I64(value.saturating_sub(1).max(*minimum)),
             conduit_core::ConfigurationValue::I64(value.saturating_add(1).min(*maximum)),
         ],
+        (
+            Some(conduit_human::InteractionFamily::Scalar {
+                minimum, maximum, ..
+            }),
+            conduit_core::ConfigurationValue::Quantity(value),
+        ) => {
+            let unit = value.unit();
+            vec![
+                conduit_core::ConfigurationValue::Quantity(conduit_core::Quantity::new(
+                    value.value().saturating_sub(1).max(*minimum),
+                    unit,
+                )),
+                conduit_core::ConfigurationValue::Quantity(conduit_core::Quantity::new(
+                    value.value().saturating_add(1).min(*maximum),
+                    unit,
+                )),
+            ]
+        }
         (
             Some(conduit_human::InteractionFamily::Text { .. }),
             conduit_core::ConfigurationValue::Text(value),

@@ -1,9 +1,9 @@
 //! Exact source edits initiated by compact controls on a gear Front.
 
 use conduit_core::{
-    ConfigurationValue, InfoBool, KindId, Quantity, BOOL_INFO_ID, QUANTITY_INFO_ID,
+    BOOL_INFO_ID, ConfigurationValue, InfoBool, KindId, QUANTITY_INFO_ID, Quantity,
 };
-use conduit_form::{parse_syntax_document, Argument, BackStatement};
+use conduit_form::{Argument, BackStatement, parse_syntax_document};
 use conduit_human::{
     HumanInteractionProposal, InteractionFamily, InteractionProposalPayload, InteractionValue,
     TEXT_INFO_ID,
@@ -45,6 +45,17 @@ impl FormEditor {
                 "configuration is not representable by the common interaction contract".into(),
             )
         })?;
+        let rule = conduit_semantic_catalog::supported_nucleus_contracts()
+            .into_iter()
+            .find(|contract| contract.kind_id == gear.kind_id)
+            .and_then(|contract| {
+                contract
+                    .configuration
+                    .into_iter()
+                    .find(|field| field.key == key)
+            })
+            .ok_or_else(|| FormEditorError::UnknownConfiguration(key.into()))?
+            .rule;
         proposal
             .validate_against(&interaction.contract, &interaction.state)
             .map_err(|refusal| {
@@ -52,7 +63,7 @@ impl FormEditor {
                     "common interaction refused: {refusal:?}"
                 ))
             })?;
-        let value = configuration_from_proposal(&interaction.contract.family, proposal)?;
+        let value = configuration_from_proposal(&interaction.contract.family, &rule, proposal)?;
         self.set_gear_configuration_exact(
             offered_revision,
             offered_expanded_form_id,
@@ -244,7 +255,7 @@ fn proposal_for_configuration(
         _ => {
             return Err(FormEditorError::InvalidConfiguration(
                 "value does not fit the common interaction family".into(),
-            ))
+            ));
         }
     }
     .map_err(|refusal| {
@@ -267,6 +278,7 @@ fn proposal_for_configuration(
 
 fn configuration_from_proposal(
     family: &InteractionFamily,
+    rule: &StandardConfigurationRule,
     proposal: &HumanInteractionProposal,
 ) -> Result<ConfigurationValue, FormEditorError> {
     let InteractionProposalPayload::Values(values) = &proposal.payload else {
@@ -291,6 +303,19 @@ fn configuration_from_proposal(
             })?;
             if *unit == conduit_core::QuantityUnit::Millionth {
                 Ok(ConfigurationValue::I64(decoded.value()))
+            } else if matches!(rule, StandardConfigurationRule::DurationMillis { .. }) {
+                decoded
+                    .convert(*unit)
+                    .and_then(|value| {
+                        u64::try_from(value.value())
+                            .map_err(|_| conduit_core::QuantityConversionRefusal::Overflow)
+                    })
+                    .map(ConfigurationValue::U64)
+                    .map_err(|_| {
+                        FormEditorError::InvalidConfiguration(
+                            "inexact, incompatible, or negative quantity".into(),
+                        )
+                    })
             } else if *unit != conduit_core::QuantityUnit::One {
                 decoded
                     .convert(*unit)

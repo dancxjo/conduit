@@ -1,4 +1,4 @@
-use conduit_core::ConfigurationValue;
+use conduit_core::{ConfigurationValue, Quantity, QuantityUnit};
 
 use crate::{FaceControlKind, FormEditor, FormEditorError, PatchbayGraph};
 
@@ -12,7 +12,10 @@ fn front_controls_project_actual_values_and_visible_contracts() {
     let graph = PatchbayGraph::from_expanded(&editor.expand_form("controls").unwrap()).unwrap();
     let controls = &graph.gears[0].controls;
     assert_eq!(controls.len(), 1);
-    assert_eq!(controls[0].value, ConfigurationValue::U64(25));
+    assert_eq!(
+        controls[0].value,
+        ConfigurationValue::Quantity(Quantity::new(25, QuantityUnit::Millisecond))
+    );
     assert!(matches!(
         controls[0].kind,
         FaceControlKind::Number {
@@ -93,10 +96,12 @@ fn instrument_synth_exposes_every_control_and_an_edit_requires_a_new_plan() {
     let graph = PatchbayGraph::from_expanded(&before).unwrap();
     let synth = &graph.gears[0];
     assert_eq!(synth.controls.len(), 14);
-    assert!(synth
-        .controls
-        .iter()
-        .all(|control| control.interaction.is_some()));
+    assert!(
+        synth
+            .controls
+            .iter()
+            .all(|control| control.interaction.is_some())
+    );
     for required in [
         conduit_semantic_catalog::SYNTH_MAXIMUM_VOICES_KEY,
         conduit_semantic_catalog::SYNTH_OSCILLATOR_KEY,
@@ -164,11 +169,13 @@ fn instrument_configuration_uses_common_typed_proposals_and_replans() {
         &interaction.contract,
         &interaction.state,
         1,
-        InteractionProposalPayload::Values(vec![InteractionValue::new(
-            KindId::from("configuration/text-choice@1"),
-            b"triangle".to_vec(),
-        )
-        .unwrap()]),
+        InteractionProposalPayload::Values(vec![
+            InteractionValue::new(
+                KindId::from("configuration/text-choice@1"),
+                b"triangle".to_vec(),
+            )
+            .unwrap(),
+        ]),
     )
     .unwrap();
     editor
@@ -266,7 +273,7 @@ fn front_edit_preserves_gear_identity_and_reseals_all_form_identities() {
             &before.expanded_form_id,
             "clock",
             "freq",
-            ConfigurationValue::U64(26),
+            ConfigurationValue::Quantity(Quantity::new(26, QuantityUnit::Millisecond)),
         )
         .unwrap();
     let after = editor.expand_form("controls").unwrap();
@@ -310,10 +317,12 @@ fn default_value_becomes_an_authored_named_argument() {
             ConfigurationValue::U64(3),
         )
         .unwrap();
-    assert!(editor
-        .view()
-        .source
-        .contains("stable: time/debounce(duration-ms = 3ms)"));
+    assert!(
+        editor
+            .view()
+            .source
+            .contains("stable: time/debounce(duration-ms = 3ms)")
+    );
 }
 
 #[test]
