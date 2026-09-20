@@ -176,12 +176,14 @@ fn host() -> HostId {
 
 #[test]
 fn invitation_transfer_methods_share_one_revision_bound_semantic_identity() {
+    let transfer_uri =
+        "https://example.invalid/workspace/#body-invitation=header.payload.signature";
     let semantic = conduit_workspace_model::invitation::InvitationPresentation {
         invitation_id: "invitation/one",
         body_id: "body/one",
         body_name: "Orifina",
         expires_at_millis: 42,
-        transfer_uri: "https://example.invalid/workspace/#body-invitation=opaque",
+        transfer_uri,
         clipboard_available: true,
         share_available: false,
     }
@@ -202,7 +204,13 @@ fn invitation_transfer_methods_share_one_revision_bound_semantic_identity() {
             .iter()
             .any(|action| action.id == "invitation.share")
     );
-    assert!(format!("{semantic:?}").contains("body-invitation=opaque"));
+    let link_nodes: Vec<_> = view
+        .nodes
+        .iter()
+        .filter(|node| node.key == "invitation-link")
+        .collect();
+    assert_eq!(link_nodes.len(), 1);
+    assert_eq!(link_nodes[0].value, transfer_uri);
 }
 
 #[test]

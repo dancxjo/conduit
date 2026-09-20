@@ -50,18 +50,14 @@ impl InvitationPresentation<'_> {
             },
             vec![],
         )];
-        for (index, chunk) in self.transfer_uri.as_bytes().chunks(240).enumerate() {
-            children.push(node(
-                &format!("invitation-link-{index}"),
-                PresentationMechanism::CodeBlock {
-                    language: "uri-fragment".into(),
-                    code: core::str::from_utf8(chunk)
-                        .expect("ASCII checked above")
-                        .into(),
-                },
-                vec![],
-            ));
-        }
+        children.push(node(
+            "invitation-link",
+            PresentationMechanism::CodeBlock {
+                language: "uri-fragment".into(),
+                code: self.transfer_uri.into(),
+            },
+            vec![],
+        ));
         children.push(node(
             "invitation-actions",
             PresentationMechanism::ActionGroup {
