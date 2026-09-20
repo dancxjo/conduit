@@ -1,7 +1,10 @@
 //! Browser timing transforms using the shared preallocated semantic codecs.
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
-use conduit_core::{CapabilityOffer, PlannedGear};
+use conduit_core::{
+    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, HostOperationRequirement,
+    PlannedGear,
+};
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 use conduit_semantic_catalog::{BoundedIntervalCodec, BoundedNormalizationCodec};
 
@@ -34,38 +37,30 @@ fn normalization_offer() -> CapabilityOffer {
 }
 fn offer(index: usize) -> CapabilityOffer {
     let contract = if index == 0 {
-        conduit_semantic_catalog::ordered_event_intervals_definition()
+        conduit_semantic_catalog::ordered_event_intervals_semantic_contract()
     } else {
-        conduit_semantic_catalog::normalize_relative_duration_definition()
+        conduit_semantic_catalog::normalize_relative_duration_semantic_contract()
     };
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: IMPLEMENTATIONS[index].into(),
-        kind_id: contract.kind_id.clone(),
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: conduit_core::ImplementationOffer {
+    let target_kind = contract.kind_id.clone();
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: IMPLEMENTATIONS[index].into(),
             execution_profile_id: "browser/bounded-timing@1".into(),
             implementation_id: IMPLEMENTATIONS[index].into(),
             artifact_id: "conduit-browser-runtime/bounded-timing@1".into(),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: OPERATIONS[index].into(),
+                target_kind: Some(target_kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: MAXIMUM,
+                maximum_output_bytes: MAXIMUM,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        host_operations: vec![conduit_core::HostOperationRequirement {
-            contract_id: OPERATIONS[index].into(),
-            target_kind: Some(contract.kind_id),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAXIMUM,
-            maximum_output_bytes: MAXIMUM,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: conduit_core::CapabilityLimits {
-            max_active_instances: 8,
-            max_queue_items: 1,
-            max_queue_bytes: MAXIMUM * 2,
-        },
-    }
+    )
+    .build()
 }
 fn index(placement: &PlannedGear) -> Option<usize> {
     IMPLEMENTATIONS

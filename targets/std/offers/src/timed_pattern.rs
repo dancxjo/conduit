@@ -1,8 +1,8 @@
 //! Exact finite timed-pattern realization offers owned by the hosted std Host.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer,
+    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
@@ -12,35 +12,27 @@ pub const ORDERED_EVENT_INTERVALS_STD_ARTIFACT: &str = "conduit-std-host/ordered
 pub const ORDERED_EVENT_INTERVALS_HOST_OPERATION: &str = "conduit.host/ordered-event-intervals@1";
 
 pub fn ordered_event_intervals_std_offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::ordered_event_intervals_definition();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("ordered-event-intervals"),
-        kind_id: contract.kind_id.clone(),
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
+    let contract = conduit_semantic_catalog::ordered_event_intervals_semantic_contract();
+    let target_kind = contract.kind_id.clone();
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from("ordered-event-intervals"),
             execution_profile_id: ExecutionProfileId::from(ORDERED_EVENT_INTERVALS_STD_PROFILE),
             implementation_id: ImplementationId::from(ORDERED_EVENT_INTERVALS_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ORDERED_EVENT_INTERVALS_STD_ARTIFACT),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(ORDERED_EVENT_INTERVALS_HOST_OPERATION),
+                target_kind: Some(target_kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+                maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(ORDERED_EVENT_INTERVALS_HOST_OPERATION),
-            target_kind: Some(contract.kind_id),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-            maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: conduit_core::CapabilityLimits {
-            max_active_instances: 8,
-            max_queue_items: 1,
-            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
-        },
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]

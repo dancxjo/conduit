@@ -9,11 +9,26 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         0,
         "fully migrated",
     ),
+    (
+        "semantics/catalog/src/sequence_normalization.rs",
+        0,
+        "semantic contract owner",
+    ),
+    (
+        "semantics/catalog/src/timed_pattern.rs",
+        0,
+        "semantic contract owner",
+    ),
     ("semantics/signal/src/control.rs", 0, "fully migrated"),
     ("semantics/signal/src/lib.rs", 0, "fully migrated"),
     ("semantics/tongues/src/contract.rs", 0, "fully migrated"),
     (
         "targets/browser/runtime/src/installed_browser/audio_io.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/browser/runtime/src/installed_browser/timing.rs",
         0,
         "fully migrated",
     ),
@@ -29,7 +44,17 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     ("targets/std/offers/src/signal.rs", 0, "fully migrated"),
     (
+        "targets/std/offers/src/sequence_normalization.rs",
+        0,
+        "fully migrated",
+    ),
+    (
         "targets/std/offers/src/speech_synthesis.rs",
+        0,
+        "fully migrated",
+    ),
+    (
+        "targets/std/offers/src/timed_pattern.rs",
         0,
         "fully migrated",
     ),
