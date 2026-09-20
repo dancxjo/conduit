@@ -5,10 +5,10 @@ use super::factory::{
 };
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, FrontStartupParameter, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, PlannedGear, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
-    PRESENTATION_RESOURCE_CLASS,
+    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ConfigurationValue, ExecutionProfileId, HostOperationContractId,
+    HostOperationRequirement, ImplementationId, PlannedGear, SemanticCapabilityContract,
+    StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
 
@@ -61,12 +61,7 @@ pub(super) fn install_catalogs(
 
 fn tokenize_offer() -> CapabilityOffer {
     offer(
-        conduit_language::tokenize_four_definition(),
-        vec![FrontStartupParameter {
-            name: "text".into(),
-            value_type: conduit_core::kind_id("value/text"),
-            has_default: false,
-        }],
+        conduit_language::tokenize_four_semantic_contract(),
         TOKENIZE_IMPLEMENTATION,
         Vec::new(),
     )
@@ -74,8 +69,7 @@ fn tokenize_offer() -> CapabilityOffer {
 
 fn annotate_offer() -> CapabilityOffer {
     offer(
-        conduit_language::annotate_four_definition(),
-        Vec::new(),
+        conduit_language::annotate_four_semantic_contract(),
         ANNOTATE_IMPLEMENTATION,
         vec![operation(
             ANNOTATE_IMPLEMENTATION,
@@ -85,58 +79,42 @@ fn annotate_offer() -> CapabilityOffer {
 }
 
 fn presentation_offer() -> CapabilityOffer {
-    let contract = presentation_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(PRESENTATION_IMPLEMENTATION),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: conduit_core::ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        presentation_contract().into(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(PRESENTATION_IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(PRESENTATION_IMPLEMENTATION),
             implementation_id: ImplementationId::from(PRESENTATION_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_operations: vec![operation(PRESENTATION_IMPLEMENTATION, 0)],
+            resource_requirements: vec![conduit_core::resource_requirement(
+                PRESENTATION_RESOURCE_CLASS,
+                1,
+            )],
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![operation(PRESENTATION_IMPLEMENTATION, 0)],
-        resource_requirements: vec![conduit_core::resource_requirement(
-            PRESENTATION_RESOURCE_CLASS,
-            1,
-        )],
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 fn offer(
-    definition: conduit_form::KindDefinition,
-    startup_parameters: Vec<FrontStartupParameter>,
+    contract: SemanticCapabilityContract,
     implementation: &str,
     host_operations: Vec<HostOperationRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters,
-        shorthand: None,
-        capability_id: CapabilityId::from(implementation),
-        kind_id: definition.kind_id,
-        kind_contract_revision: definition.kind_contract_revision,
-        implementation: conduit_core::ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_operations,
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations,
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 4,
-            max_queue_items: 1,
-            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        },
-    }
+    )
+    .build()
 }
 
 fn operation(target: &str, output: u32) -> HostOperationRequirement {
@@ -235,4 +213,35 @@ fn configuration_text(placement: &PlannedGear) -> Result<&str, String> {
 
 fn debug_error(error: impl core::fmt::Debug) -> String {
     format!("{error:?}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn browser_linguistics_preserves_each_exact_semantic_contract() {
+        for (offer, semantic) in [
+            (
+                tokenize_offer(),
+                conduit_language::tokenize_four_semantic_contract(),
+            ),
+            (
+                annotate_offer(),
+                conduit_language::annotate_four_semantic_contract(),
+            ),
+            (presentation_offer(), presentation_contract().into()),
+        ] {
+            assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+            assert_eq!(offer.shorthand, semantic.shorthand);
+            assert_eq!(offer.kind_id, semantic.kind_id);
+            assert_eq!(
+                offer.kind_contract_revision,
+                semantic.kind_contract_revision
+            );
+            assert_eq!(offer.inputs, semantic.inputs);
+            assert_eq!(offer.outputs, semantic.outputs);
+            assert_eq!(offer.limits, semantic.limits);
+        }
+    }
 }
