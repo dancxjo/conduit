@@ -1,9 +1,10 @@
 //! Exact hosted local-CV offers over an explicit finite image residence.
 
 use conduit_core::{
-    kind_id, protected_resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
+    protected_resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
+    CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
+    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    SemanticCapabilityContract,
 };
 
 pub const LOCAL_VISION_PROFILE: &str = "conduit.std/local-vision-gray8@1";
@@ -19,61 +20,58 @@ pub fn local_vision_offers() -> [CapabilityOffer; 2] {
     [
         local_vision_offer(
             "local-vision-motion",
-            conduit_semantic_catalog::VISION_MOTION_KIND,
+            vision_contract(conduit_semantic_catalog::VISION_MOTION_KIND),
             LOCAL_VISION_MOTION_OPERATION,
         ),
         local_vision_offer(
             "local-vision-objects",
-            conduit_semantic_catalog::VISION_OBJECTS_KIND,
+            vision_contract(conduit_semantic_catalog::VISION_OBJECTS_KIND),
             LOCAL_VISION_OBJECTS_OPERATION,
         ),
     ]
 }
 
-fn local_vision_offer(capability: &str, kind: &str, operation: &str) -> CapabilityOffer {
-    let (_, inputs, outputs) = conduit_semantic_catalog::vision_experience_kind_contracts()
-        .into_iter()
-        .find(|(candidate, _, _)| candidate.as_str() == kind)
-        .expect("local Vision Kind is registered");
+fn local_vision_offer(
+    capability: &str,
+    contract: SemanticCapabilityContract,
+    operation: &str,
+) -> CapabilityOffer {
     let operation = HostOperationContractId::from(operation);
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(capability),
-        kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::VISION_REVISION,
-        ),
-        implementation: ImplementationOffer {
+    let target_kind = contract.kind_id.clone();
+    CapabilityOfferBuilder::new(
+        contract,
+        CapabilityRealization {
+            capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(LOCAL_VISION_PROFILE),
             implementation_id: ImplementationId::from(LOCAL_VISION_IMPLEMENTATION),
             artifact_id: ArtifactId::from(LOCAL_VISION_ARTIFACT),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: operation.clone(),
+                target_kind: Some(target_kind.clone()),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+                maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            }],
+            resource_requirements: vec![protected_resource_requirement(
+                LOCAL_VISION_RESOURCE_ROLE,
+                LOCAL_VISION_RESOURCE_CLASS,
+                1,
+            )],
+            authority_requirements: vec![AuthorityRequirement {
+                contract_id: AuthorityContractId::from(LOCAL_VISION_READ_AUTHORITY),
+                host_operation_contract_id: operation,
+                subject_kind: target_kind,
+            }],
         },
-        inputs,
-        outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: operation.clone(),
-            target_kind: Some(kind_id(kind)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-            maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        }],
-        resource_requirements: vec![protected_resource_requirement(
-            LOCAL_VISION_RESOURCE_ROLE,
-            LOCAL_VISION_RESOURCE_CLASS,
-            1,
-        )],
-        authority_requirements: vec![AuthorityRequirement {
-            contract_id: AuthorityContractId::from(LOCAL_VISION_READ_AUTHORITY),
-            host_operation_contract_id: operation,
-            subject_kind: kind_id(kind),
-        }],
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        },
-    }
+    )
+    .build()
+}
+
+fn vision_contract(kind: &str) -> SemanticCapabilityContract {
+    conduit_semantic_catalog::vision_semantic_contracts()
+        .into_iter()
+        .find(|contract| contract.kind_id.as_str() == kind)
+        .expect("local Vision Kind is registered")
 }
 
 #[cfg(test)]
