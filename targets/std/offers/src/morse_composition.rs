@@ -1,8 +1,9 @@
 //! Exact hosted implementations for the finite leaf Gears in reviewed Morse Backs.
 
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
-    HostOperationContractId, HostOperationRequirement, ImplementationId,
+    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
+    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
+    ImplementationId,
 };
 
 pub const ARTIFACT: &str = "conduit-std-host/morse-composition@1";
@@ -40,41 +41,25 @@ pub fn morse_composition_offers() -> Vec<CapabilityOffer> {
 fn offer(contract: conduit_text::MorseKindContract, implementation: &str) -> CapabilityOffer {
     let maximum_input_bytes = value_bound(contract.inputs[0].value_kind.as_str());
     let maximum_output_bytes = value_bound(contract.outputs[0].value_kind.as_str());
-    CapabilityOffer {
-        startup_parameters: contract
-            .configuration
-            .iter()
-            .map(|(name, _)| FaceStartupParameter {
-                name: (*name).into(),
-                value_type: conduit_core::kind_id("value/count"),
-                has_default: true,
-            })
-            .collect(),
-        shorthand: Some((
-            contract.inputs[0].port_id.clone(),
-            contract.outputs[0].port_id.clone(),
-        )),
-        capability_id: CapabilityId::from(implementation),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: conduit_core::ImplementationOffer {
+    CapabilityOfferBuilder::new(
+        contract.into_semantic_contract(),
+        CapabilityRealization {
+            capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_operations: vec![HostOperationRequirement {
+                contract_id: HostOperationContractId::from(implementation),
+                target_kind: Some(kind_id(implementation)),
+                maximum_in_flight: 1,
+                maximum_input_bytes,
+                maximum_output_bytes,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(implementation),
-            target_kind: Some(kind_id(implementation)),
-            maximum_in_flight: 1,
-            maximum_input_bytes,
-            maximum_output_bytes,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 fn value_bound(kind: &str) -> u32 {
