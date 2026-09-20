@@ -47,29 +47,23 @@ fn copy_file_offer_for(
     isolated: bool,
 ) -> CapabilityOffer {
     let contract = conduit_semantic_catalog::copy_file_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(COPY_FILE_CAPABILITY),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::COPY_FILE_CONTRACT_REVISION,
-        ),
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(execution_profile),
-            implementation_id: ImplementationId::from(implementation),
-            artifact_id: ArtifactId::from(artifact),
+    conduit_semantic_catalog::realization_offer(
+        contract,
+        conduit_semantic_catalog::COPY_FILE_CONTRACT_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
+            capability: COPY_FILE_CAPABILITY,
+            execution_profile,
+            implementation,
+            artifact,
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
+        vec![HostOperationRequirement {
             contract_id: HostOperationContractId::from(COPY_FILE_HOST_OPERATION_CONTRACT),
             target_kind: Some(kind_id(conduit_semantic_catalog::COPY_FILE_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: COPY_COMMAND_BYTES,
             maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         }],
-        resource_requirements: vec![
+        vec![
             protected_resource_requirement(
                 conduit_semantic_catalog::COPY_DESTINATION_ROLE,
                 conduit_semantic_catalog::PROTECTED_FILE_RESOURCE_CLASS,
@@ -81,7 +75,7 @@ fn copy_file_offer_for(
                 1,
             ),
         ],
-        authority_requirements: if isolated {
+        if isolated {
             vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(ISOLATED_COPY_FILE_AUTHORITY_CONTRACT),
                 host_operation_contract_id: HostOperationContractId::from(
@@ -92,8 +86,7 @@ fn copy_file_offer_for(
         } else {
             Vec::new()
         },
-        limits: contract.limits,
-    }
+    )
 }
 
 pub fn copy_result_presentation_offer() -> CapabilityOffer {
