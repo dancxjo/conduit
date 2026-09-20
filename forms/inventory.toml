@@ -345,6 +345,12 @@ title = "Robotics Diversity"
 entry = "robotics-diversity"
 deterministic = { package = "conduit-semantic-catalog", test = "robotics_diversity_forms", case = "canonical_form_consumes_structured_observations_and_motion_intent" }
 [[forms]]
+slug = "robotics-range"
+title = "Robotics Range"
+entry = "robotics-range"
+deterministic = { package = "conduit-semantic-catalog", test = "lib", case = "robotics::tests::ordinary_robotics_form_retains_typed_distance_quantity" }
+browser_safe_not_applicable = "portable simulated range semantics have no reviewed browser Host execution oracle"
+[[forms]]
 slug = "route-annotation-stroke"
 title = "Route Annotation Stroke"
 entry = "route-annotation-stroke"
