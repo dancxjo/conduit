@@ -146,7 +146,7 @@ test("a Workspace-born canonical workset continues as the same executing Body", 
     expect(signs.placements.map(binding => binding.placement_id).sort()).toEqual(
       proposal.plan.forms.flatMap(form => form.plan.fragments.flatMap(fragment => fragment.placements.map(placement => placement.placement_id))).sort(),
     );
-    await page.getByText("Inspect selected Body Plan", { exact: true }).click();
+    await page.getByText("Inspect selected body Plan", { exact: true }).click();
     const inspection = page.locator("#body-plan-inspection");
     await expect(inspection).toContainText(proposal.plan.plan_id);
     await expect(inspection).toContainText("not current availability or physical proof");
