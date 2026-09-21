@@ -2,7 +2,10 @@
 
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
-use conduit_kernel::{Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef,
+};
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::RECORD_TRANSCRIPT_STD_IMPLEMENTATION,
@@ -17,6 +20,87 @@ pub(super) struct RecordTranscriptOperation {
     closed: [bool; 3],
     framed_type: Vec<u8>,
     terminal_type: Vec<u8>,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for RecordTranscriptOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        for port in [PortId(0), PortId(1), PortId(2)] {
+            let Some(value) = io.input(port) else {
+                continue;
+            };
+            let index = usize::from(port.0);
+            if !io.output_ready(port) {
+                return StepOutcome::Await;
+            }
+            if self.closed[index]
+                || self.events >= self.maximum_events
+                || value.byte_len > MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
+            {
+                return step_fail(FailureCode::StorageExhausted, 271);
+            }
+            let Some(canonical) = input_bytes.input(port) else {
+                return step_fail(FailureCode::InvalidInput, 272);
+            };
+            let result = match index {
+                0 | 1 => super::typed_record_operation::typed_leaf(canonical, &self.framed_type)
+                    .map_err(|_| ())
+                    .and_then(|frame| {
+                        self.transcript
+                            .record(
+                                if index == 0 {
+                                    conduit_net::RecordTranscriptDirection::Sent
+                                } else {
+                                    conduit_net::RecordTranscriptDirection::Received
+                                },
+                                frame,
+                            )
+                            .map(|_| ())
+                            .map_err(|_| ())
+                    }),
+                _ => super::typed_record_operation::typed_leaf(canonical, &self.terminal_type)
+                    .map_err(|_| ())
+                    .and_then(|wire| {
+                        conduit_net::decode_record_transcript_terminal(wire).map_err(|_| ())
+                    })
+                    .and_then(|terminal| {
+                        self.transcript
+                            .terminal(terminal)
+                            .map(|_| ())
+                            .map_err(|_| ())
+                    }),
+            };
+            if result.is_err() {
+                return step_fail(FailureCode::InvalidInput, 272);
+            }
+            io.consume(port).expect("present transcript event");
+            io.send(port, value).expect("ready transcript output");
+            self.events += 1;
+            return StepOutcome::Progress;
+        }
+
+        for port in [PortId(0), PortId(1), PortId(2)] {
+            let index = usize::from(port.0);
+            if io.input_closed(port) && !self.closed[index] {
+                io.consume_closed(port)
+                    .expect("observed transcript input closure");
+                self.closed[index] = true;
+                return if self.closed.iter().all(|closed| *closed) {
+                    StepOutcome::Complete
+                } else {
+                    StepOutcome::Progress
+                };
+            }
+        }
+        StepOutcome::Await
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl RecordTranscriptOperation {
