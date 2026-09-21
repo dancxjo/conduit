@@ -7,6 +7,7 @@ use conduit_audio::{
 };
 use conduit_core::PlannedGear;
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -31,6 +32,89 @@ pub(super) struct SpeechWindowToClipOperation {
     trigger: ValueRef,
     closing: bool,
     emitted: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for SpeechWindowToClipOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(FailureCode::InvalidLifecycle, 6);
+            }
+            if self.closing {
+                match (outcome.disposition, outcome.output, outcome.failure) {
+                    (HostCallDisposition::Completed, Some(output), None) => {
+                        if !io.output_ready(PortId(0)) {
+                            return StepOutcome::Await;
+                        }
+                        io.consume_host_completion()
+                            .expect("observed speech window close completion");
+                        io.send(PortId(0), output.value)
+                            .expect("ready speech clip output");
+                        self.pending = None;
+                        self.emitted = true;
+                        StepOutcome::Progress
+                    }
+                    (HostCallDisposition::Cancelled, _, _) => step_fail(FailureCode::Cancelled, 0),
+                    (_, _, Some(failure)) => StepOutcome::Fail(failure),
+                    _ => step_fail(FailureCode::InvalidLifecycle, 5),
+                }
+            } else {
+                match (outcome.disposition, outcome.output, outcome.failure) {
+                    (HostCallDisposition::Completed, None, None) => {
+                        io.consume_host_completion()
+                            .expect("observed speech window append completion");
+                        self.pending = None;
+                        StepOutcome::Progress
+                    }
+                    (HostCallDisposition::Cancelled, _, _) => step_fail(FailureCode::Cancelled, 0),
+                    (_, _, Some(failure)) => StepOutcome::Fail(failure),
+                    _ => step_fail(FailureCode::InvalidLifecycle, 3),
+                }
+            }
+        } else if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() || self.closing {
+                return step_fail(FailureCode::InvalidLifecycle, 6);
+            }
+            let Ok(input) = BoundedValueRef::new(
+                value,
+                conduit_audio::MAXIMUM_PCM_FRAME_BYTES
+                    + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32,
+            ) else {
+                return step_fail(FailureCode::InvalidInput, 1);
+            };
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_fail(FailureCode::StorageExhausted, 2);
+            };
+            io.consume(PortId(0)).expect("present speech PCM frame");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("speech window append Host Call");
+            self.next_request = next;
+            self.pending = Some(request);
+            StepOutcome::Progress
+        } else if io.input_closed(PortId(0)) && self.pending.is_none() && !self.closing {
+            let request = RequestId(self.next_request);
+            let input = BoundedValueRef::new(self.trigger, 1)
+                .expect("speech window close trigger is one byte");
+            io.consume_closed(PortId(0))
+                .expect("observed speech PCM closure");
+            io.request_host_call(request, HostCallId(1), input)
+                .expect("speech window close Host Call");
+            self.closing = true;
+            self.pending = Some(request);
+            StepOutcome::Progress
+        } else {
+            StepOutcome::Await
+        }
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.closing = true;
+    }
 }
 
 impl SpeechWindowToClipOperation {
@@ -127,6 +211,62 @@ impl SpeechWindowToClipOperation {
 pub(super) struct SpeechResultToEventStreamOperation {
     pending: Option<RequestId>,
     emitted: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for SpeechResultToEventStreamOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(FailureCode::InvalidLifecycle, 22);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed speech result adaptation completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready recognition event output");
+                    self.pending = None;
+                    self.emitted = true;
+                    StepOutcome::Progress
+                }
+                (HostCallDisposition::Cancelled, _, _) => step_fail(FailureCode::Cancelled, 0),
+                (_, _, Some(failure)) => StepOutcome::Fail(failure),
+                _ => step_fail(FailureCode::InvalidLifecycle, 21),
+            }
+        } else if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() {
+                return step_fail(FailureCode::InvalidLifecycle, 22);
+            }
+            let Ok(input) = BoundedValueRef::new(
+                value,
+                conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32,
+            ) else {
+                return step_fail(FailureCode::InvalidInput, 20);
+            };
+            io.consume(PortId(0))
+                .expect("present speech recognition result");
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("speech result adaptation Host Call");
+            self.pending = Some(RequestId(0));
+            StepOutcome::Progress
+        } else {
+            StepOutcome::Await
+        }
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl SpeechResultToEventStreamOperation {
