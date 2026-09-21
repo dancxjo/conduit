@@ -1,18 +1,7 @@
 use super::*;
 
-type SinkScheduler = FixedScheduler<
-    OperationDriver<RenderOperation, PORTS>,
-    HostedValueStore,
-    HostedSignLog,
-    1,
-    1,
-    PORTS,
-    1,
-    PORTS,
-    1,
-    1,
-    1,
->;
+type SinkScheduler =
+    FixedScheduler<RenderBack, HostedValueStore, HostedSignLog, 1, 1, PORTS, 1, PORTS, 1, 1, 1>;
 
 pub(super) struct Sink {
     scheduler: SinkScheduler,
@@ -63,8 +52,7 @@ impl Sink {
                 .map_err(|_| CrossHostRendererError::Kernel("renderer Cord table width".into()))?,
             routes,
             host_bindings,
-            [OperationDriver::new(RenderOperation { pending: None })
-                .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?],
+            [RenderBack { pending: None }],
             HostedValueStore::new(1, MAX_RENDERER_VALUE_BYTES, MAX_RENDERER_VALUE_BYTES)
                 .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?,
             sign_log()?,
