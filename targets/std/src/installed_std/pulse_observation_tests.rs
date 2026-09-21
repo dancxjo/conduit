@@ -31,9 +31,12 @@ fn placement() -> PlannedGear {
         pool_references: vec![],
     }
 }
-fn prepared() -> (InstalledOperation, HostedValueStore) {
+fn prepared() -> (conduit_time::PulseObservationOperation, HostedValueStore) {
     let mut values = HostedValueStore::new(128, 8, 1024).unwrap();
-    let operation = prepare(&placement(), &mut values).unwrap();
+    let InstalledOperation::PulseObserve(operation) = prepare(&placement(), &mut values).unwrap()
+    else {
+        panic!("pulse preparation returned another Back");
+    };
     (operation, values)
 }
 fn tick() -> ValueRef {
