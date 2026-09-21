@@ -2,7 +2,10 @@
 
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
-use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    OperationAction, OperationInput, PortId, ValueRef,
+};
 
 pub(super) static SINGLETON: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::RECORD_SINGLETON_STREAM_STD_IMPLEMENTATION,
@@ -17,6 +20,29 @@ pub(super) static EXACTLY_ONE: InstalledFactory = InstalledFactory {
 
 pub(super) struct RecordSingletonStreamOperation {
     emitted: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for RecordSingletonStreamOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        let Some(value) = io.input(PortId(0)) else {
+            return StepOutcome::Await;
+        };
+        if value.byte_len > MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 {
+            return StepOutcome::Fail(step_failure(240));
+        }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.consume(PortId(0))
+            .expect("present singleton record input");
+        io.send(PortId(0), value)
+            .expect("ready singleton record output");
+        self.emitted = true;
+        StepOutcome::Progress
+    }
 }
 
 impl RecordSingletonStreamOperation {
@@ -54,6 +80,57 @@ pub(super) struct RecordExactlyOneOperation {
     released: Option<ValueRef>,
     emitted: bool,
     retain_resumed: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for RecordExactlyOneOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if self.held.is_none() {
+            if let Some(value) = io.input(PortId(0)) {
+                if value.byte_len > MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 {
+                    return StepOutcome::Fail(step_failure(241));
+                }
+                self.held = Some(
+                    io.take_input(PortId(0))
+                        .expect("present exactly-one record input"),
+                );
+                return StepOutcome::Progress;
+            }
+        } else if io.input(PortId(0)).is_some() {
+            return StepOutcome::Fail(step_failure(241));
+        }
+        if io.input_closed(PortId(0)) {
+            let Some(value) = self.held else {
+                return StepOutcome::Fail(step_failure(241));
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume_closed(PortId(0))
+                .expect("observed exactly-one record closure");
+            io.send(PortId(0), value)
+                .expect("ready exactly-one record output");
+            self.held = None;
+            self.emitted = true;
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.held = None;
+        self.released = None;
+        self.retain_resumed = false;
+    }
+}
+
+const fn step_failure(detail: u16) -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    }
 }
 
 impl RecordExactlyOneOperation {
