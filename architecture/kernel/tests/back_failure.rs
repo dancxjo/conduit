@@ -1,42 +1,24 @@
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver, SchedulerError,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, StepInputBytes, StepIo,
+    StepOperation, StepOutcome,
 };
 use conduit_kernel::{
     CordId, Failure, FailureCode, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent, NodeId,
-    Operation, OperationAction, OperationInput, PortId,
+    PortId,
 };
 
-struct RefusingOperation(Failure);
+struct RefusingBack(Failure);
 
-impl Operation for RefusingOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Fail(self.0)
+impl StepOperation<1> for RefusingBack {
+    fn step(&mut self, _: &mut StepIo<1>, _: &StepInputBytes<'_, 1>) -> StepOutcome {
+        StepOutcome::Fail(self.0)
     }
-
-    fn resume(&mut self, _: OperationInput) -> OperationAction {
-        OperationAction::Fail(self.0)
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn cancel(&mut self) {}
 }
 
 #[test]
 fn identical_detail_codes_do_not_erase_distinct_back_failures() {
-    type Play = FixedScheduler<
-        OperationDriver<RefusingOperation, 1>,
-        FixedValueStore<1, 1>,
-        FixedSignLog<8>,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-    >;
+    type Play =
+        FixedScheduler<RefusingBack, FixedValueStore<1, 1>, FixedSignLog<8>, 1, 1, 1, 1, 1, 1>;
     for code in [
         FailureCode::InvalidInput,
         FailureCode::InvalidPort,
@@ -71,7 +53,7 @@ fn identical_detail_codes_do_not_erase_distinct_back_failures() {
                 },
             )],
             routes,
-            [OperationDriver::new(RefusingOperation(failure)).unwrap()],
+            [RefusingBack(failure)],
             FixedValueStore::new(1).unwrap(),
             FixedSignLog::new((8 * core::mem::size_of::<KernelEvent>()) as u32).unwrap(),
         )
