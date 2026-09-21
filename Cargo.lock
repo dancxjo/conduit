@@ -6661,6 +6661,7 @@ dependencies = [
  "conduit-web",
  "conduit-wire",
  "conduit-workspace-fabrication",
+ "conduit-workspace-model",
  "conduitos",
  "console",
  "embedded-websocket",

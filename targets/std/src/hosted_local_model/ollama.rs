@@ -189,11 +189,17 @@ impl OllamaDiscovery {
         {
             return Err("local model does not advertise embedding capability".to_string());
         }
+        // A byte can require at most one byte-fallback token, so admitting no
+        // more input bytes than the discovered context length is conservative
+        // without pretending to know the provider's private tokenizer.
+        let maximum_input_bytes = self
+            .context_length
+            .clamp(4_096, conduit_ai::MAXIMUM_LLM_INPUT_BYTES);
         let work = LlmWorkBounds {
-            maximum_input_bytes: 4_096,
+            maximum_input_bytes,
             maximum_context_items: 1,
             maximum_output_bytes: 4_096,
-            maximum_work_units: self.context_length.min(4_096),
+            maximum_work_units: self.context_length.min(conduit_ai::MAXIMUM_LLM_WORK_UNITS),
             maximum_history_items: 0,
         };
         let offer = LocalModelOffer {
@@ -218,8 +224,8 @@ impl OllamaDiscovery {
                     minimum_service_guarantee: conduit_core::ComputeServiceGuarantee::Shared,
                 },
                 maximum_in_flight: 1,
-                maximum_queue_items: 4,
-                maximum_queue_bytes: (work.maximum_input_bytes * 4) as u32,
+                maximum_queue_items: 1,
+                maximum_queue_bytes: (work.maximum_input_bytes + work.maximum_output_bytes) as u32,
                 cancellation_supported: false,
                 cache_policy: LocalModelCachePolicy::OneLoadedModelUntilShutdown,
             },
@@ -526,7 +532,10 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
             conduit_ai::LLM_PRESENT_KIND => {
                 let prepared = match super::ollama_present::prepare(input.as_bytes()) {
                     Ok(prepared) => prepared,
-                    Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
+                    Err(error) => {
+                        proof_presenter_diagnostic("prepare", &error);
+                        return LocalModelAdapterTerminal::InvalidStructuredResult;
+                    }
                 };
                 let generated = match self.chat_present(
                     prepared.system_policy(),
@@ -534,7 +543,10 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                     maximum_tokens,
                 ) {
                     Ok(generated) => generated,
-                    Err(_) => return LocalModelAdapterTerminal::ProviderLost,
+                    Err(error) => {
+                        proof_presenter_diagnostic("provider", &error);
+                        return LocalModelAdapterTerminal::ProviderLost;
+                    }
                 };
                 let truncated = generated.done_reason == "length";
                 let work_units = generated
@@ -548,7 +560,10 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                     truncated,
                 ) {
                     Ok(payload) => payload,
-                    Err(_) => return LocalModelAdapterTerminal::InvalidStructuredResult,
+                    Err(error) => {
+                        proof_presenter_diagnostic("finish", &error);
+                        return LocalModelAdapterTerminal::InvalidStructuredResult;
+                    }
                 };
                 (payload, truncated, work_units)
             }
@@ -557,7 +572,13 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
         if payload.is_empty() || payload.len() as u64 > maximum_output_bytes {
             return LocalModelAdapterTerminal::Failed;
         }
-        if placement.kind_id.as_str() == conduit_ai::GENERATE_TEXT_KIND {
+        if matches!(
+            placement.kind_id.as_str(),
+            conduit_ai::GENERATE_TEXT_KIND | conduit_ai::LLM_PRESENT_KIND
+        ) {
+            if placement.kind_id.as_str() == conduit_ai::LLM_PRESENT_KIND {
+                self.next_request_sequence = self.next_request_sequence.saturating_add(1);
+            }
             output.extend_from_slice(&payload);
             return if truncated {
                 LocalModelAdapterTerminal::Truncated
@@ -699,6 +720,13 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
     fn cancel_stream(&mut self) {
         self.active_stream = None;
     }
+}
+
+fn proof_presenter_diagnostic(stage: &str, error: &str) {
+    #[cfg(feature = "local-model-proof")]
+    eprintln!("local-model Presenter {stage} failure: {error}");
+    #[cfg(not(feature = "local-model-proof"))]
+    let _ = (stage, error);
 }
 
 fn configuration_count(placement: &PlannedGear, key: &str) -> Option<u64> {
