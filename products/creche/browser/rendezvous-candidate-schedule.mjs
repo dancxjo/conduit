@@ -54,6 +54,59 @@ export async function openOrderedRemoteCandidates(decoded, {
   );
 }
 
+export async function adaptBrowserDataChannelLine(line) {
+  if (!line || typeof line.open !== "function" || typeof line.send !== "function"
+    || typeof line.receive !== "function" || typeof line.close !== "function") {
+    throw new RemoteCandidateScheduleError(
+      "LineFailed", "WebRTC candidate omitted the bounded DataChannel Line contract",
+    );
+  }
+  await line.open();
+  return Object.freeze({
+    async sendBytes(bytes) {
+      if (typeof line.writable === "function") await line.writable(bytes.byteLength);
+      const result = line.send(bytes);
+      if (result?.accepted !== true) {
+        throw new RemoteCandidateScheduleError(
+          result?.reason === "buffer-pressure" ? "LinePressure" : "LineFailed",
+          `WebRTC DataChannel refused rendezvous frame (${result?.reason ?? "unknown"})`,
+        );
+      }
+    },
+    async receiveBytes() {
+      const result = await line.receive();
+      if (result?.ok !== true || !(result.bytes instanceof Uint8Array)) {
+        throw new RemoteCandidateScheduleError(
+          "LineFailed", `WebRTC DataChannel ended (${result?.reason ?? "unknown"})`,
+        );
+      }
+      return result.bytes;
+    },
+    async close() { line.close(); },
+    closed: typeof line.closed === "function" ? line.closed() : Promise.resolve(),
+  });
+}
+
+export function adaptProtectedRelayLine(line) {
+  if (!line || typeof line.sendSessionFrame !== "function"
+    || typeof line.receiveSessionFrame !== "function" || typeof line.close !== "function") {
+    throw new RemoteCandidateScheduleError(
+      "LineFailed", "relay candidate omitted the protected Line contract",
+    );
+  }
+  let resolveClosed;
+  const closed = new Promise((resolve) => { resolveClosed = resolve; });
+  return Object.freeze({
+    sendBytes: (bytes) => line.sendSessionFrame(bytes),
+    receiveBytes: () => line.receiveSessionFrame(),
+    async close() {
+      try { await line.close(); }
+      finally { resolveClosed(); }
+    },
+    closed,
+  });
+}
+
 function requireLine(line) {
   if (!line || typeof line.sendBytes !== "function"
     || typeof line.receiveBytes !== "function" || typeof line.close !== "function") {

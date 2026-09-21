@@ -7,6 +7,10 @@ import {
   openRemoteRendezvousCandidates,
 } from "../../products/creche/browser/creche-rendezvous.mjs";
 import { decodeRendezvousCoseSign1, decodeRendezvousManifestation } from "../../products/creche/browser/rendezvous-cbor.mjs";
+import {
+  adaptBrowserDataChannelLine,
+  adaptProtectedRelayLine,
+} from "../../products/creche/browser/rendezvous-candidate-schedule.mjs";
 
 test("browser decodes the exact canonical Rust and ConduitOS rendezvous vector", () => {
   const hex = readFileSync(new URL("../../architecture/body/schemas/running-host-rendezvous-v1.hex", import.meta.url), "utf8").trim();
@@ -130,6 +134,36 @@ test("browser records direct and WebRTC failure before protected relay fallback"
     ["candidate/webrtc", "route-unavailable"],
     ["candidate/relay", "connected"],
   ]);
+});
+
+test("candidate adapters reuse bounded WebRTC and protected-relay Line APIs", async () => {
+  const received = new Uint8Array([4, 5, 6]);
+  const sent = [];
+  let dataChannelClosed = false;
+  const webrtc = await adaptBrowserDataChannelLine({
+    async open() {},
+    async writable(length) { assert.equal(length, 3); },
+    send(bytes) { sent.push([...bytes]); return { accepted: true }; },
+    async receive() { return { ok: true, bytes: received }; },
+    close() { dataChannelClosed = true; },
+    closed() { return Promise.resolve({ ok: false, reason: "closed" }); },
+  });
+  await webrtc.sendBytes(new Uint8Array([1, 2, 3]));
+  assert.deepEqual(await webrtc.receiveBytes(), received);
+  await webrtc.close();
+  assert.deepEqual(sent, [[1, 2, 3]]);
+  assert.equal(dataChannelClosed, true);
+
+  let relayClosed = false;
+  const relay = adaptProtectedRelayLine({
+    async sendSessionFrame(bytes) { sent.push([...bytes]); },
+    async receiveSessionFrame() { return received; },
+    close() { relayClosed = true; },
+  });
+  await relay.sendBytes(new Uint8Array([7, 8, 9]));
+  assert.deepEqual(await relay.receiveBytes(), received);
+  await relay.close();
+  assert.equal(relayClosed, true);
 });
 test("browser verifies the exact RFC 9052 Sign1 vector under caller-owned policy", async () => {
   const hex = readFileSync(new URL("../../architecture/body/schemas/running-host-rendezvous-sign1-v1.hex", import.meta.url), "utf8").trim();
