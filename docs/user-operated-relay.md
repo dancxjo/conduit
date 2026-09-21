@@ -91,6 +91,17 @@ expiry, binding refusal, pressure, end-to-end authentication, active loss, and
 ordinary Line loss remain distinct. Any next candidate is selected only by the
 existing finite rendezvous schedule.
 
+That schedule is shared with secure direct and WebRTC candidates. A browser may
+therefore attempt an authenticated direct Line, then a WebRTC DataChannel, then
+this protected relay without changing the invitation or admission protocol.
+The descriptor retains only a bounded `webrtc-bootstrap:` reference and the
+expected signaling identity and transport binding. The admitted signaling
+provider exchanges transient SDP and ICE material; neither the descriptor nor
+attempt evidence retains it. Native std uses the same candidate meaning and its
+existing bounded STUN/TURN configuration. ConduitOS decodes the same descriptor
+and records an unsupported-family result for WebRTC before continuing to a
+supported direct or relay candidate.
+
 ## Current proof boundary
 
 Repository tests exercise a real TLS relay with two outbound native clients,
@@ -100,8 +111,8 @@ same candidate contract and browser protected-frame adapter. ConduitOS consumes
 the portable candidate contract but truthfully refuses execution until its
 entropy, Noise, TLS, and bounded socket realization is admitted.
 
-These checks do not substitute for the open three-machine, two-NAT physical
-acceptance run in [issue #3621](https://github.com/dancxjo/conduit/issues/3621).
+These checks do not substitute for the open multi-machine, materially separate
+network acceptance run in [issue #3711](https://github.com/dancxjo/conduit/issues/3711).
 They also do not prove that a browser can inspect a TLS leaf fingerprint: the
 browser relies on WebPKI for the outer connection while the expected digest is
 bound into the end-to-end session identity.

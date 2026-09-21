@@ -41,8 +41,38 @@ function decodeRemoteDescriptor(raw) {
   try { descriptor = decodeRendezvousManifestation(raw); }
   catch (error) { refuse("InvalidDescriptor", "remote rendezvous descriptor is not canonical bounded CBOR", error); }
   const candidates = descriptor.candidates.map((candidate) => {
+    if (candidate.line_family === "web-rtc-data-channel") {
+      return Object.freeze({
+        supported: true,
+        candidate_id: candidate.candidate_id,
+        carrier: "webrtc",
+        line_id: "conduit-line/webrtc-data-channel@1",
+        reachability: candidate.reachability,
+        transport_binding_sha256: hexBytes(candidate.transport_binding_sha256),
+        expires_at_millis: candidate.expires_at_millis,
+        maximum_attempts: candidate.maximum_attempts,
+        attempt_timeout_millis: candidate.attempt_timeout_millis,
+      });
+    }
+    if (candidate.line_family === "authenticated-conduit-line") {
+      return Object.freeze({
+        supported: true,
+        candidate_id: candidate.candidate_id,
+        carrier: "relay",
+        line_id: "conduit-line/authenticated-conduit@1",
+        reachability: candidate.reachability,
+        transport_binding_sha256: hexBytes(candidate.transport_binding_sha256),
+        expires_at_millis: candidate.expires_at_millis,
+        maximum_attempts: candidate.maximum_attempts,
+        attempt_timeout_millis: candidate.attempt_timeout_millis,
+      });
+    }
     if (candidate.line_family !== "authenticated-tls-stream") {
-      return Object.freeze({ supported: false, candidate_id: candidate.candidate_id });
+      return Object.freeze({
+        supported: false,
+        candidate_id: candidate.candidate_id,
+        expires_at_millis: candidate.expires_at_millis,
+      });
     }
     let endpoint;
     try { endpoint = new URL(candidate.reachability); }
@@ -80,17 +110,64 @@ function hexBytes(bytes) {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+export async function openRemoteRendezvousCandidates(decoded, {
+  signal,
+  WebSocketClass = globalThis.WebSocket,
+  openWebRtcLine,
+  openRelayLine,
+  now = () => Date.now(),
+} = {}) {
+  try {
+    return await openOrderedRemoteCandidates(decoded, {
+      signal,
+      now,
+      openCandidate(candidate, currentSignal) {
+        if (candidate.carrier === "websocket") {
+          return openWebSocketLine(
+            candidate, WebSocketClass, currentSignal, candidate.attempt_timeout_millis,
+          );
+        }
+        if (candidate.carrier === "webrtc" && typeof openWebRtcLine === "function") {
+          return openWebRtcLine(candidate, currentSignal);
+        }
+        if (candidate.carrier === "relay" && typeof openRelayLine === "function") {
+          return openRelayLine(candidate, currentSignal);
+        }
+        throw new RemoteCandidateScheduleError(
+          "UnsupportedLineFamily", "browser has no admitted implementation for candidate",
+        );
+      },
+    });
+  } catch (error) {
+    if (error instanceof RemoteCandidateScheduleError) {
+      refuse(error.code, error.message, error);
+    }
+    throw error;
+  }
+}
+
 export async function connectRendezvousHost(code, {
   signal,
   retainLine = false,
   WebSocketClass = globalThis.WebSocket,
   serial = globalThis.navigator?.serial,
+  openWebRtcLine,
+  openRelayLine,
 } = {}) {
   const decoded = decodeRendezvousCode(code);
   requireCurrent(signal);
-  const line = decoded.carrier === "websocket"
-    ? await openWebSocketLine(decoded, WebSocketClass, signal)
-    : await openSerialLine(serial, signal);
+  const opened = decoded.candidates
+    ? await openRemoteRendezvousCandidates(decoded, {
+      signal, WebSocketClass, openWebRtcLine, openRelayLine,
+    })
+    : Object.freeze({
+      line: decoded.carrier === "websocket"
+        ? await openWebSocketLine(decoded, WebSocketClass, signal)
+        : await openSerialLine(serial, signal),
+      selected: decoded,
+      evidence: Object.freeze([]),
+    });
+  const { line, selected, evidence } = opened;
   try {
     await send(line, {
       kind: "hello",
@@ -98,12 +175,13 @@ export async function connectRendezvousHost(code, {
       session_secret: Array.from(decoded.session_secret),
     });
     const descriptor = await receive(line, signal);
-    requireHostDescriptor(descriptor, decoded.line_id);
+    requireHostDescriptor(descriptor, selected.line_id);
     let used = false;
     return Object.freeze({
       schema: "conduit.creche/running-host-rendezvous@1",
       code_schema: decoded.schema,
-      line_id: decoded.line_id,
+      line_id: selected.line_id,
+      rendezvous_attempts: evidence,
       descriptor: Object.freeze(descriptor),
       async invite(prepared) {
         if (used) refuse("Replay", "this one-use rendezvous session has already carried an invitation");
@@ -141,7 +219,7 @@ export async function connectRendezvousHost(code, {
         let intentional = false, membershipRetained = false, bodyContextInstalled = false, remotePrepared = false;
         const joinedLine = Object.freeze({
           schema: "conduit.creche/joined-host-line@1",
-          line_id: decoded.line_id,
+          line_id: selected.line_id,
           onClosed(callback) { void line.closed.then(() => callback(Object.freeze({ intentional }))); },
           async retainMembership(credential) {
             if (intentional) refuse("LineClosed", "joined Host Line is already closed");
@@ -356,11 +434,13 @@ function websocketUrl(portHex) {
   return `ws://127.0.0.1:${port}/conduit`;
 }
 
-async function openWebSocketLine(decoded, WebSocketClass, signal) {
+async function openWebSocketLine(
+  decoded, WebSocketClass, signal, timeoutMillis = MAXIMUM_WAIT_MILLIS,
+) {
   if (typeof WebSocketClass !== "function") refuse("LineUnavailable", "this browser does not offer the WebSocket Line carrier");
   const socket = new WebSocketClass(decoded.url);
   socket.binaryType = "arraybuffer";
-  await waitForSocket(socket, signal, "open");
+  await waitForSocket(socket, signal, "open", timeoutMillis);
   const queued = [];
   const waiting = [];
   socket.addEventListener("message", (event) => {
@@ -446,7 +526,7 @@ async function receive(line, signal) {
   }
 }
 
-function waitForSocket(socket, signal, wanted) {
+function waitForSocket(socket, signal, wanted, timeoutMillis = MAXIMUM_WAIT_MILLIS) {
   return new Promise((resolve, reject) => {
     let settled = false;
     const finish = (callback, value) => {
@@ -463,7 +543,7 @@ function waitForSocket(socket, signal, wanted) {
     const failed = () => finish(reject, new CrecheRendezvousRefusal("LineFailed", "rendezvous Line reported an error"));
     const closed = () => finish(reject, new CrecheRendezvousRefusal("LineClosed", "rendezvous Line closed before completion"));
     const aborted = () => finish(reject, signal.reason ?? new DOMException("Aborted", "AbortError"));
-    const timer = setTimeout(() => finish(reject, new CrecheRendezvousRefusal("LineTimeout", "rendezvous Line did not answer within its admitted time")), MAXIMUM_WAIT_MILLIS);
+    const timer = setTimeout(() => finish(reject, new CrecheRendezvousRefusal("LineTimeout", "rendezvous Line did not answer within its admitted time")), timeoutMillis);
     socket.addEventListener(wanted, accepted, { once: true });
     socket.addEventListener("error", failed, { once: true });
     socket.addEventListener("close", closed, { once: true });
@@ -475,8 +555,6 @@ function waitForSocket(socket, signal, wanted) {
 function waitForPromise(promise, signal) {
   return new Promise((resolve, reject) => {
     let settled = false;
-    const aborted = () => finish(reject, signal.reason ?? new DOMException("Aborted", "AbortError"));
-    const timer = setTimeout(() => finish(reject, new CrecheRendezvousRefusal("LineTimeout", "rendezvous Line did not answer within its admitted time")), MAXIMUM_WAIT_MILLIS);
     const finish = (callback, value) => {
       if (settled) return;
       settled = true;
@@ -484,6 +562,15 @@ function waitForPromise(promise, signal) {
       signal?.removeEventListener("abort", aborted);
       callback(value);
     };
+    const aborted = () => finish(
+      reject, signal.reason ?? new DOMException("Aborted", "AbortError"),
+    );
+    const timer = setTimeout(() => finish(
+      reject,
+      new CrecheRendezvousRefusal(
+        "LineTimeout", "rendezvous Line did not answer within its admitted time",
+      ),
+    ), MAXIMUM_WAIT_MILLIS);
     promise.then((value) => finish(resolve, value), (error) => finish(reject, error));
     signal?.addEventListener("abort", aborted, { once: true });
     if (signal?.aborted) aborted();
@@ -569,3 +656,7 @@ export const CRECHE_RENDEZVOUS_BOUNDS = Object.freeze({
   maximumSessions: 1,
 });
 import { decodeRendezvousManifestation } from "./rendezvous-cbor.mjs";
+import {
+  openOrderedRemoteCandidates,
+  RemoteCandidateScheduleError,
+} from "./rendezvous-candidate-schedule.mjs";

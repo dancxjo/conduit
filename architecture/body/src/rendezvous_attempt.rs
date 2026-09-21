@@ -82,6 +82,7 @@ impl<'a> RendezvousAttemptSchedule<'a> {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RendezvousAttemptOutcome {
+    UnsupportedLineFamily,
     RouteUnavailable,
     TimedOut,
     AuthenticationRefused,
@@ -278,5 +279,53 @@ mod tests {
             }) if candidate_id == "candidate/relay"
         ));
         assert_eq!(schedule.next(1_000), RendezvousAttemptDecision::Exhausted);
+    }
+
+    #[test]
+    fn unsupported_webrtc_is_recorded_before_supported_fallback() {
+        let direct = candidate("candidate/direct");
+        let mut webrtc = candidate("candidate/webrtc");
+        webrtc.line_family = RendezvousLineFamily::WebRtcDataChannel;
+        webrtc.reachability = "webrtc-bootstrap:operator/negotiation-7".into();
+        let candidates = vec![direct, webrtc, candidate("candidate/relay")];
+        let mut schedule = RendezvousAttemptSchedule::for_candidates(&candidates, 1_000).unwrap();
+        let mut journal = RendezvousAttemptJournal::default();
+
+        let RendezvousAttemptDecision::Try(direct) = schedule.next(1_000) else {
+            panic!("direct attempt missing");
+        };
+        journal.begin(direct).unwrap();
+        journal
+            .finish(
+                "candidate/direct",
+                1,
+                RendezvousAttemptOutcome::RouteUnavailable,
+            )
+            .unwrap();
+
+        let RendezvousAttemptDecision::Try(unsupported) = schedule.next(1_000) else {
+            panic!("WebRTC attempt missing");
+        };
+        journal.begin(unsupported).unwrap();
+        journal
+            .finish(
+                "candidate/webrtc",
+                1,
+                RendezvousAttemptOutcome::UnsupportedLineFamily,
+            )
+            .unwrap();
+
+        let RendezvousAttemptDecision::Try(fallback) = schedule.next(1_000) else {
+            panic!("supported fallback missing");
+        };
+        assert_eq!(fallback.candidate.candidate_id, "candidate/relay");
+        assert_eq!(
+            journal.records()[0].outcome,
+            RendezvousAttemptOutcome::RouteUnavailable
+        );
+        assert_eq!(
+            journal.records()[1].outcome,
+            RendezvousAttemptOutcome::UnsupportedLineFamily
+        );
     }
 }

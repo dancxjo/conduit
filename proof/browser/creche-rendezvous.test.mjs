@@ -1,8 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { connectRendezvousHost, decodeRendezvousCode } from "../../products/creche/browser/creche-rendezvous.mjs";
+import {
+  connectRendezvousHost,
+  decodeRendezvousCode,
+  openRemoteRendezvousCandidates,
+} from "../../products/creche/browser/creche-rendezvous.mjs";
 import { decodeRendezvousCoseSign1, decodeRendezvousManifestation } from "../../products/creche/browser/rendezvous-cbor.mjs";
+import {
+  adaptBrowserDataChannelLine,
+  adaptProtectedRelayLine,
+} from "../../products/creche/browser/rendezvous-candidate-schedule.mjs";
 
 test("browser decodes the exact canonical Rust and ConduitOS rendezvous vector", () => {
   const hex = readFileSync(new URL("../../architecture/body/schemas/running-host-rendezvous-v1.hex", import.meta.url), "utf8").trim();
@@ -12,6 +20,150 @@ test("browser decodes the exact canonical Rust and ConduitOS rendezvous vector",
   assert.deepEqual(decoded.candidates.map(({ candidate_id }) => candidate_id),
     ["candidate/direct", "candidate/relay"]);
   assert.deepEqual([...decoded.session_secret], new Array(32).fill(0x55));
+});
+
+test("browser decodes the shared bounded WebRTC candidate without retaining signaling", () => {
+  const candidate = new Map([
+    [0, "candidate/webrtc"],
+    [1, 4],
+    [2, "webrtc-bootstrap:operator/negotiation-7"],
+    [3, new Map([[0, "host/peer/key-7"], [1, new Uint8Array(32).fill(0xef)]])],
+    [4, Date.now() + 30_000],
+    [5, 1],
+    [6, 10_000],
+  ]);
+  const decoded = decodeRendezvousManifestation(
+    `conduit-rendezvous-v1:${Buffer.from(encodeCanonicalCbor(new Map([
+      [0, 1], [1, [candidate]], [2, new Uint8Array(32).fill(0xcd)],
+    ]))).toString("base64url")}`,
+  );
+  assert.equal(decoded.candidates[0].line_family, "web-rtc-data-channel");
+  assert.equal(decoded.candidates[0].reachability, "webrtc-bootstrap:operator/negotiation-7");
+  assert.equal("sdp" in decoded.candidates[0], false);
+  assert.equal("ice_credentials" in decoded.candidates[0], false);
+});
+
+test("browser records ordered direct failure before WebRTC selection", async () => {
+  const line = Object.freeze({
+    sendBytes() {},
+    async receiveBytes() { return new Uint8Array([1]); },
+    async close() {},
+    closed: Promise.resolve(),
+  });
+  const candidates = [
+    Object.freeze({
+      supported: true,
+      candidate_id: "candidate/direct",
+      carrier: "websocket",
+      line_id: "conduit-line/authenticated-tls-stream@1",
+      url: "wss://direct.test/conduit",
+      expires_at_millis: 2_000,
+      maximum_attempts: 1,
+      attempt_timeout_millis: 100,
+    }),
+    Object.freeze({
+      supported: true,
+      candidate_id: "candidate/webrtc",
+      carrier: "webrtc",
+      line_id: "conduit-line/webrtc-data-channel@1",
+      reachability: "webrtc-bootstrap:operator/negotiation-7",
+      expires_at_millis: 2_000,
+      maximum_attempts: 1,
+      attempt_timeout_millis: 100,
+    }),
+    Object.freeze({
+      supported: true,
+      candidate_id: "candidate/relay",
+      carrier: "relay",
+      line_id: "conduit-line/authenticated-conduit@1",
+      reachability: "relay:operator/route-7",
+      expires_at_millis: 2_000,
+      maximum_attempts: 1,
+      attempt_timeout_millis: 100,
+    }),
+  ];
+  class RefusingWebSocket {
+    constructor() { throw new Error("direct route unavailable"); }
+  }
+  let relayOpened = false;
+  const opened = await openRemoteRendezvousCandidates({ candidates }, {
+    WebSocketClass: RefusingWebSocket,
+    openWebRtcLine: async () => line,
+    openRelayLine: async () => { relayOpened = true; return line; },
+    now: () => 1_000,
+  });
+  assert.equal(opened.selected.candidate_id, "candidate/webrtc");
+  assert.equal(relayOpened, false);
+  assert.deepEqual(opened.evidence, [
+    { candidate_id: "candidate/direct", attempt: 1, timeout_millis: 100, outcome: "route-unavailable" },
+    { candidate_id: "candidate/webrtc", attempt: 1, timeout_millis: 100, outcome: "connected" },
+  ]);
+  assert.equal(JSON.stringify(opened.evidence).includes("negotiation-7"), false);
+});
+
+test("browser records direct and WebRTC failure before protected relay fallback", async () => {
+  const line = Object.freeze({
+    sendBytes() {}, async receiveBytes() { return new Uint8Array([1]); }, async close() {},
+  });
+  const candidate = (candidateId, carrier, lineId) => Object.freeze({
+    supported: true,
+    candidate_id: candidateId,
+    carrier,
+    line_id: lineId,
+    url: carrier === "websocket" ? "wss://direct.test/conduit" : undefined,
+    reachability: carrier === "webrtc" ? "webrtc-bootstrap:operator/negotiation-7"
+      : carrier === "relay" ? "relay:operator/route-7" : undefined,
+    expires_at_millis: 2_000,
+    maximum_attempts: 1,
+    attempt_timeout_millis: 100,
+  });
+  class RefusingWebSocket { constructor() { throw new Error("direct unavailable"); } }
+  const opened = await openRemoteRendezvousCandidates({ candidates: [
+    candidate("candidate/direct", "websocket", "conduit-line/authenticated-tls-stream@1"),
+    candidate("candidate/webrtc", "webrtc", "conduit-line/webrtc-data-channel@1"),
+    candidate("candidate/relay", "relay", "conduit-line/authenticated-conduit@1"),
+  ] }, {
+    WebSocketClass: RefusingWebSocket,
+    openWebRtcLine: async () => { throw new Error("ICE exhausted"); },
+    openRelayLine: async () => line,
+    now: () => 1_000,
+  });
+  assert.equal(opened.selected.candidate_id, "candidate/relay");
+  assert.deepEqual(opened.evidence.map(({ candidate_id, outcome }) => [candidate_id, outcome]), [
+    ["candidate/direct", "route-unavailable"],
+    ["candidate/webrtc", "route-unavailable"],
+    ["candidate/relay", "connected"],
+  ]);
+});
+
+test("candidate adapters reuse bounded WebRTC and protected-relay Line APIs", async () => {
+  const received = new Uint8Array([4, 5, 6]);
+  const sent = [];
+  let dataChannelClosed = false;
+  const webrtc = await adaptBrowserDataChannelLine({
+    async open() {},
+    async writable(length) { assert.equal(length, 3); },
+    send(bytes) { sent.push([...bytes]); return { accepted: true }; },
+    async receive() { return { ok: true, bytes: received }; },
+    close() { dataChannelClosed = true; },
+    closed() { return Promise.resolve({ ok: false, reason: "closed" }); },
+  });
+  await webrtc.sendBytes(new Uint8Array([1, 2, 3]));
+  assert.deepEqual(await webrtc.receiveBytes(), received);
+  await webrtc.close();
+  assert.deepEqual(sent, [[1, 2, 3]]);
+  assert.equal(dataChannelClosed, true);
+
+  let relayClosed = false;
+  const relay = adaptProtectedRelayLine({
+    async sendSessionFrame(bytes) { sent.push([...bytes]); },
+    async receiveSessionFrame() { return received; },
+    close() { relayClosed = true; },
+  });
+  await relay.sendBytes(new Uint8Array([7, 8, 9]));
+  assert.deepEqual(await relay.receiveBytes(), received);
+  await relay.close();
+  assert.equal(relayClosed, true);
 });
 test("browser verifies the exact RFC 9052 Sign1 vector under caller-owned policy", async () => {
   const hex = readFileSync(new URL("../../architecture/body/schemas/running-host-rendezvous-sign1-v1.hex", import.meta.url), "utf8").trim();
@@ -74,12 +226,50 @@ test("finite secure LAN descriptor selects the authenticated TLS Line", () => {
     { code: "InvalidDescriptor" });
 });
 
+test("shared WebRTC candidate carries the unchanged running-Host admission session", async () => {
+  const line = new FakeRendezvousLine("conduit-line/webrtc-data-channel@1");
+  const session = await connectRendezvousHost(webRtcDescriptor(), {
+    openWebRtcLine: async () => line,
+  });
+  assert.equal(session.line_id, "conduit-line/webrtc-data-channel@1");
+  assert.deepEqual(session.rendezvous_attempts.map(({ candidate_id, outcome }) => [
+    candidate_id, outcome,
+  ]), [["candidate/webrtc", "connected"]]);
+  const prepared = {
+    spore_id: "spore/webrtc", image_id: "image/webrtc",
+    invitation_id: "invitation/webrtc", body_id: "body/webrtc",
+    invitation_nonce: new Array(32).fill(23),
+    invitation_secret: new Array(32).fill(31),
+    invitation_expires_at_millis: Date.now() + 60_000,
+  };
+  const join = await session.invite(prepared);
+  assert.equal(join.spore_id, "spore/webrtc");
+  assert.equal(join.signature.length, 64);
+  assert.equal(line.closed, true);
+});
+
 function secureDescriptor({ expiresAt = Date.now() + 30_000, scheme = "wss" } = {}) {
   const candidate = new Map([
     [0, "candidate/secure-lan"],
     [1, 0],
     [2, `${scheme}://conduit-host.test:7443/conduit`],
     [3, new Map([[0, "conduit-host.test"], [1, new Uint8Array(32).fill(0xab)]])],
+    [4, expiresAt],
+    [5, 1],
+    [6, 10_000],
+  ]);
+  const bytes = encodeCanonicalCbor(new Map([
+    [0, 1], [1, [candidate]], [2, new Uint8Array(32).fill(0xcd)],
+  ]));
+  return `conduit-rendezvous-v1:${Buffer.from(bytes).toString("base64url")}`;
+}
+
+function webRtcDescriptor(expiresAt = Date.now() + 30_000) {
+  const candidate = new Map([
+    [0, "candidate/webrtc"],
+    [1, 4],
+    [2, "webrtc-bootstrap:operator/negotiation-7"],
+    [3, new Map([[0, "host/peer/key-7"], [1, new Uint8Array(32).fill(0xef)]])],
     [4, expiresAt],
     [5, 1],
     [6, 10_000],
@@ -328,6 +518,38 @@ class FakeWebSocket extends EventTarget {
     this.readyState = 3;
     this.dispatchEvent(new Event("close"));
   }
+}
+
+class FakeRendezvousLine {
+  constructor(lineId) {
+    this.lineId = lineId;
+    this.responses = [];
+    this.waiter = null;
+    this.closed = false;
+  }
+  async sendBytes(bytes) {
+    const request = JSON.parse(new TextDecoder().decode(bytes));
+    if (request.kind === "close") { this.closed = true; return; }
+    const advertisement = { host_id: "host/webrtc", boot_id: "boot/webrtc", offer_generation: 1 };
+    const response = request.kind === "hello" ? {
+      kind: "host", protocol: 1, friendly_label: "This running computer",
+      target_id: "std/x86_64/computer", image_content_digest: `sha256:${"3".repeat(64)}`,
+      advertisement, lines: [this.lineId],
+    } : {
+      kind: "join", protocol: 1, spore_id: request.spore_id, image_id: request.image_id,
+      advertisement, invitation_id: request.claim.invitation_id, body_id: request.claim.body_id,
+      host_id: advertisement.host_id, boot_id: advertisement.boot_id, nonce: request.claim.nonce,
+      signature: new Array(64).fill(9), observed_at_millis: Date.now(),
+    };
+    const encoded = new TextEncoder().encode(JSON.stringify(response));
+    if (this.waiter) { const waiter = this.waiter; this.waiter = null; waiter(encoded); }
+    else this.responses.push(encoded);
+  }
+  async receiveBytes() {
+    if (this.responses.length) return this.responses.shift();
+    return await new Promise((resolve) => { this.waiter = resolve; });
+  }
+  async close() { this.closed = true; }
 }
 
 class FakeSerialPort {
