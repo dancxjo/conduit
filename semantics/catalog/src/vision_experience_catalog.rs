@@ -6,7 +6,9 @@ use conduit_core::{
     StructuredInfoType, StructuredVariantCase,
 };
 
-use crate::{image_resource_type, local_vision_object_observations_type};
+use crate::{
+    image_observation_reference_type, image_resource_type, local_vision_object_observations_type,
+};
 
 pub const VISION_NORMALIZE_KIND: &str = "vision/normalize";
 pub const VISION_MOTION_KIND: &str = "vision/local-motion";
@@ -51,7 +53,7 @@ fn sequence(value_type: StructuredInfoType, capacity: u16) -> StructuredInfoType
     StructuredInfoType::sequence(value_type, capacity).expect("bounded vision sequence")
 }
 
-fn pixel_region_type() -> StructuredInfoType {
+pub(crate) fn pixel_region_type() -> StructuredInfoType {
     record(
         "vision/pixel-region@1",
         vec![
@@ -63,7 +65,7 @@ fn pixel_region_type() -> StructuredInfoType {
     )
 }
 
-fn optional_pixel_region_type() -> StructuredInfoType {
+pub(crate) fn optional_pixel_region_type() -> StructuredInfoType {
     StructuredInfoType::variant(
         kind_id("vision/optional-pixel-region@1"),
         vec![case("absent", unit()), case("present", pixel_region_type())],
@@ -71,7 +73,7 @@ fn optional_pixel_region_type() -> StructuredInfoType {
     .expect("reviewed optional pixel region")
 }
 
-fn temporal_instant_type() -> StructuredInfoType {
+pub(crate) fn temporal_instant_type() -> StructuredInfoType {
     record(
         "time/temporal-instant@1",
         vec![
@@ -84,7 +86,7 @@ fn temporal_instant_type() -> StructuredInfoType {
     )
 }
 
-fn evidence_class_type() -> StructuredInfoType {
+pub(crate) fn evidence_class_type() -> StructuredInfoType {
     StructuredInfoType::variant(
         kind_id("vision/observation-evidence-class@1"),
         vec![
@@ -96,7 +98,7 @@ fn evidence_class_type() -> StructuredInfoType {
     .expect("reviewed visual evidence class")
 }
 
-fn observation_provenance_type() -> StructuredInfoType {
+pub(crate) fn observation_provenance_type() -> StructuredInfoType {
     record(
         "vision/observation-provenance@1",
         vec![
@@ -116,36 +118,63 @@ pub fn vision_motions_type() -> StructuredInfoType {
 }
 
 pub fn vision_texts_type() -> StructuredInfoType {
-    sequence(
-        record(
-            "vision/visible-text-observation@1",
-            vec![
-                field("confidence_permille", count()),
-                field("provenance", observation_provenance_type()),
-                field("region", optional_pixel_region_type()),
-                field("source_image", image_resource_type()),
-                field("text", text()),
-            ],
-        ),
-        8,
-    )
+    sequence(visible_text_observation_type(), 8)
 }
 
 pub fn vision_tracks_type() -> StructuredInfoType {
-    sequence(
-        record(
-            "vision/track-observation@1",
-            vec![
-                field("continuity_confidence_permille", count()),
-                field("contributing_observation_signs", sequence(text(), 16)),
-                field("current_region", pixel_region_type()),
-                field("provenance", observation_provenance_type()),
-                field("source_image", image_resource_type()),
-                field("track", text()),
-                field("tracking_context", text()),
-            ],
-        ),
-        4,
+    sequence(track_observation_type(), 4)
+}
+
+pub(crate) fn object_observation_type() -> StructuredInfoType {
+    record(
+        "vision/object-observation@1",
+        vec![
+            field("candidate_label", text()),
+            field("confidence_permille", count()),
+            field("provenance", observation_provenance_type()),
+            field("region", pixel_region_type()),
+            field("source_image", image_observation_reference_type()),
+        ],
+    )
+}
+
+pub(crate) fn motion_observation_type() -> StructuredInfoType {
+    record(
+        "vision/motion-observation@1",
+        vec![
+            field("change_permille", count()),
+            field("changed_region", pixel_region_type()),
+            field("provenance", observation_provenance_type()),
+            field("source_image", image_observation_reference_type()),
+        ],
+    )
+}
+
+pub(crate) fn visible_text_observation_type() -> StructuredInfoType {
+    record(
+        "vision/visible-text-observation@1",
+        vec![
+            field("confidence_permille", count()),
+            field("provenance", observation_provenance_type()),
+            field("region", optional_pixel_region_type()),
+            field("source_image", image_observation_reference_type()),
+            field("text", text()),
+        ],
+    )
+}
+
+pub(crate) fn track_observation_type() -> StructuredInfoType {
+    record(
+        "vision/track-observation@1",
+        vec![
+            field("continuity_confidence_permille", count()),
+            field("contributing_observation_signs", sequence(text(), 16)),
+            field("current_region", pixel_region_type()),
+            field("provenance", observation_provenance_type()),
+            field("source_image", image_observation_reference_type()),
+            field("track", text()),
+            field("tracking_context", text()),
+        ],
     )
 }
 
@@ -158,13 +187,13 @@ pub fn visual_impression_type() -> StructuredInfoType {
             field("prompt_contract_revision", text()),
             field("provenance", observation_provenance_type()),
             field("selected_observation_signs", sequence(text(), 24)),
-            field("source_image", image_resource_type()),
+            field("source_image", image_observation_reference_type()),
             field("text", text()),
         ],
     )
 }
 
-fn impression_disposition_type() -> StructuredInfoType {
+pub(crate) fn impression_disposition_type() -> StructuredInfoType {
     StructuredInfoType::variant(
         kind_id("vision/visual-impression-disposition@1"),
         vec![case("complete", unit()), case("truncated", count())],
@@ -176,28 +205,28 @@ pub fn visual_experience_type() -> StructuredInfoType {
     record(
         "vision/visual-experience@1",
         vec![
-            field(
-                "observation_refs",
-                sequence(experience_observation_ref_type(), 24),
-            ),
+            field("observations", sequence(experience_observation_type(), 24)),
             field("relations", sequence(experience_relation_type(), 32)),
-            field("source_image", image_resource_type()),
+            field("source_image", image_observation_reference_type()),
         ],
     )
 }
 
-fn experience_observation_ref_type() -> StructuredInfoType {
-    record(
-        "vision/experience-observation-ref@1",
+pub(crate) fn experience_observation_type() -> StructuredInfoType {
+    StructuredInfoType::variant(
+        kind_id("vision/experience-observation@1"),
         vec![
-            field("evidence_class", evidence_class_type()),
-            field("observation_sign", text()),
-            field("value_kind", text()),
+            case("impression", visual_impression_type()),
+            case("motion", motion_observation_type()),
+            case("object", object_observation_type()),
+            case("track", track_observation_type()),
+            case("visible_text", visible_text_observation_type()),
         ],
     )
+    .expect("reviewed visual experience observation")
 }
 
-fn experience_relation_type() -> StructuredInfoType {
+pub(crate) fn experience_relation_type() -> StructuredInfoType {
     record(
         "vision/experience-relation@1",
         vec![

@@ -125,7 +125,7 @@ fn continuous_vision_ports_carry_exact_observation_and_model_provenance() {
     );
     assert_eq!(
         record_fields(&conduit_semantic_catalog::visual_experience_type()),
-        ["observation_refs", "relations", "source_image"]
+        ["observations", "relations", "source_image"]
     );
 }
 
