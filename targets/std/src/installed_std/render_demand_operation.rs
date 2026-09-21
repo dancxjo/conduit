@@ -4,6 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_audio::AudioRenderDemand;
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, RequestId,
     ValueRef, ValueStorage,
 };
@@ -19,6 +20,69 @@ pub(super) struct AudioRenderDemandOperation {
     waits: Vec<ValueRef>,
     next: usize,
     pending: Option<RequestId>,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for AudioRenderDemandOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.next >= self.demands.len() {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(step_failure(45));
+            }
+            if !io.output_ready(conduit_kernel::PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(value) = self.demands.get(self.next).copied() else {
+                return StepOutcome::Fail(step_failure(44));
+            };
+            io.consume_host_completion()
+                .expect("observed audio render wait completion");
+            io.send(conduit_kernel::PortId(0), value)
+                .expect("ready audio render demand output");
+            self.pending = None;
+            self.next += 1;
+            if let Some(wait) = self.waits.get(self.next).copied() {
+                let request = RequestId(
+                    u32::try_from(self.next).expect("admitted render-demand request count"),
+                );
+                let input = BoundedValueRef::new(wait, 8).expect("eight-byte render wait");
+                io.request_host_call(request, HostCallId(0), input)
+                    .expect("next audio render wait Host Call");
+                self.pending = Some(request);
+            }
+            return StepOutcome::Progress;
+        }
+        if self.pending.is_none() {
+            let Some(wait) = self.waits.get(self.next).copied() else {
+                return StepOutcome::Complete;
+            };
+            let request =
+                RequestId(u32::try_from(self.next).expect("admitted render-demand request count"));
+            let input = BoundedValueRef::new(wait, 8).expect("eight-byte render wait");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("audio render wait Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+const fn step_failure(detail: u16) -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    }
 }
 
 impl AudioRenderDemandOperation {

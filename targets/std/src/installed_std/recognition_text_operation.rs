@@ -3,6 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId,
 };
@@ -18,6 +19,73 @@ pub(super) struct RecognitionTextOperation {
     next_request: u32,
     emitted: bool,
     flow: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for RecognitionTextOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted && !self.flow {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(FailureCode::InvalidLifecycle, 4);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed recognition-to-text completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready recognized text output");
+                    self.pending = None;
+                    self.emitted = true;
+                    StepOutcome::Progress
+                }
+                (HostCallDisposition::Denied, _, _) => step_fail(FailureCode::HostCallDenied, 2),
+                (_, _, Some(failure)) => StepOutcome::Fail(failure),
+                _ => step_fail(FailureCode::HostCallFailed, 3),
+            }
+        } else if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() || (!self.flow && self.emitted) {
+                return step_fail(FailureCode::InvalidLifecycle, 4);
+            }
+            let maximum = if self.flow {
+                conduit_tongues::MAXIMUM_COMMITTED_USER_MESSAGE_BYTES as u32
+            } else {
+                conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32
+            };
+            let Ok(input) = BoundedValueRef::new(value, maximum) else {
+                return step_fail(FailureCode::InvalidInput, 1);
+            };
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_fail(FailureCode::IdentityCapacityExhausted, 1);
+            };
+            io.consume(PortId(0))
+                .expect("present recognition result input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("recognition-to-text Host Call");
+            self.next_request = next;
+            self.pending = Some(request);
+            StepOutcome::Progress
+        } else if self.flow && io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed recognition stream closure");
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Await
+        }
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl RecognitionTextOperation {

@@ -1,6 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId, ValueRef,
 };
@@ -16,6 +17,108 @@ pub(super) struct BodyChatPromptOperation {
     next_request: u32,
     queued_human: Option<ValueRef>,
     emit_human: bool,
+    closed: [bool; 3],
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for BodyChatPromptOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(FailureCode::InvalidLifecycle, 4);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if self.queued_human.is_some() {
+                        if !io.output_ready(PortId(0)) || !io.output_ready(PortId(1)) {
+                            return StepOutcome::Await;
+                        }
+                        let human = self.queued_human.expect("queued human message");
+                        io.consume_host_completion()
+                            .expect("observed Body Chat prompt completion");
+                        io.send(PortId(0), output.value)
+                            .expect("ready Body Chat prompt output");
+                        io.send(PortId(1), human)
+                            .expect("ready Body Chat human-message output");
+                        self.queued_human = None;
+                    } else {
+                        if !io.output_ready(PortId(2)) {
+                            return StepOutcome::Await;
+                        }
+                        io.consume_host_completion()
+                            .expect("observed Body Chat response completion");
+                        io.send(PortId(2), output.value)
+                            .expect("ready Body Chat response output");
+                    }
+                    self.pending = None;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Completed, None, None) => {
+                    io.consume_host_completion()
+                        .expect("observed Body Chat state completion");
+                    self.pending = None;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Denied, _, _) => {
+                    return step_fail(FailureCode::HostCallDenied, 2)
+                }
+                (_, _, Some(failure)) => return StepOutcome::Fail(failure),
+                _ => return step_fail(FailureCode::HostCallFailed, 3),
+            }
+        }
+        for port in 0..3_u16 {
+            let id = PortId(port);
+            let Some(value) = io.input(id) else {
+                continue;
+            };
+            let maximum = if port == 2 {
+                conduit_chat::MAXIMUM_BODY_CHAT_CONTEXT_BYTES
+            } else {
+                conduit_chat::MAXIMUM_BODY_CHAT_MESSAGE_BYTES
+            } as u32;
+            let Ok(input) = BoundedValueRef::new(value, maximum) else {
+                return step_fail(FailureCode::InvalidInput, 1);
+            };
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_fail(FailureCode::IdentityCapacityExhausted, 6);
+            };
+            if port == 0 {
+                self.queued_human =
+                    Some(io.take_input(id).expect("present Body Chat human message"));
+            } else {
+                io.consume(id).expect("present Body Chat state input");
+            }
+            io.request_host_call(request, HostCallId(port), input)
+                .expect("Body Chat prompt Host Call");
+            self.next_request = next;
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        for port in 0..3_u16 {
+            let id = PortId(port);
+            if io.input_closed(id) && !self.closed[usize::from(port)] {
+                io.consume_closed(id)
+                    .expect("observed Body Chat input closure");
+                self.closed[usize::from(port)] = true;
+                return StepOutcome::Progress;
+            }
+        }
+        StepOutcome::Await
+    }
+
+    fn retains_host_call_input(&self, _request: RequestId, value: ValueRef) -> bool {
+        self.queued_human == Some(value)
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.queued_human = None;
+        self.emit_human = false;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl BodyChatPromptOperation {
@@ -215,6 +318,7 @@ fn prepare(
             next_request: 0,
             queued_human: None,
             emit_human: false,
+            closed: [false; 3],
         },
     ))
 }

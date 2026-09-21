@@ -3,6 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, ResourceClassId};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
     OperationAction, OperationInput, PortId, RequestId,
 };
@@ -22,6 +23,58 @@ pub(super) struct WhisperSpeechOperation {
     pending: bool,
     emitted: bool,
     maximum_input_bytes: u32,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for WhisperSpeechOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if !self.pending || request != RequestId(0) {
+                return step_fail(FailureCode::InvalidLifecycle, 5);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed Whisper completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready Whisper output");
+                    self.pending = false;
+                    self.emitted = true;
+                    StepOutcome::Progress
+                }
+                (HostCallDisposition::Denied, _, _) => step_fail(FailureCode::HostCallDenied, 2),
+                (HostCallDisposition::Cancelled, _, _) => step_fail(FailureCode::Cancelled, 3),
+                (_, _, Some(failure)) => StepOutcome::Fail(failure),
+                _ => step_fail(FailureCode::HostCallFailed, 4),
+            }
+        } else if let Some(value) = io.input(PortId(0)) {
+            if self.pending {
+                return step_fail(FailureCode::InvalidLifecycle, 5);
+            }
+            let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
+                return step_fail(FailureCode::InvalidInput, 1);
+            };
+            io.consume(PortId(0)).expect("present Whisper input");
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("Whisper Host Call");
+            self.pending = true;
+            StepOutcome::Progress
+        } else {
+            StepOutcome::Await
+        }
+    }
+    fn cancel(&mut self) {
+        self.pending = false;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl WhisperSpeechOperation {

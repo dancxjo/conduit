@@ -3,6 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -41,6 +42,120 @@ pub(super) struct SpeechSynthesisOperation {
     input_closed: bool,
     started: bool,
     finished: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for SpeechSynthesisOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.finished {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(FailureCode::InvalidLifecycle, 8);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None)
+                    if self.emitted_blocks < self.maximum_blocks
+                        && output.admitted_bytes == conduit_std_offers::PIPER_PCM_BLOCK_BYTES
+                        && output.value.byte_len <= conduit_std_offers::PIPER_PCM_BLOCK_BYTES =>
+                {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    let input = BoundedValueRef::new(self.continuation, 1)
+                        .expect("prepared speech continuation marker");
+                    let next_request = RequestId(self.next_request);
+                    let Some(next) = self.next_request.checked_add(1) else {
+                        return step_fail(FailureCode::IdentityCapacityExhausted, 6);
+                    };
+                    io.consume_host_completion()
+                        .expect("observed speech synthesis completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready speech PCM output");
+                    io.request_host_call(next_request, HostCallId(0), input)
+                        .expect("speech synthesis continuation Host Call");
+                    self.emitted_blocks += 1;
+                    self.next_request = next;
+                    self.pending = Some(next_request);
+                    StepOutcome::Progress
+                }
+                (HostCallDisposition::Completed, None, None) if self.started => {
+                    io.consume_host_completion()
+                        .expect("observed completed speech segment");
+                    self.pending = None;
+                    self.started = false;
+                    if self.streaming && !self.input_closed {
+                        StepOutcome::Progress
+                    } else {
+                        self.finished = true;
+                        StepOutcome::Complete
+                    }
+                }
+                (HostCallDisposition::Denied, _, Some(failure))
+                | (HostCallDisposition::Cancelled, _, Some(failure))
+                | (HostCallDisposition::Failed, _, Some(failure)) => StepOutcome::Fail(failure),
+                (HostCallDisposition::Denied, _, None) => step_fail(FailureCode::HostCallDenied, 3),
+                (HostCallDisposition::Cancelled, _, None) => step_fail(FailureCode::Cancelled, 4),
+                (HostCallDisposition::Failed, _, None) => step_fail(FailureCode::HostCallFailed, 5),
+                (HostCallDisposition::Completed, Some(_), None) => {
+                    step_fail(FailureCode::WorkBudgetExhausted, 6)
+                }
+                _ => step_fail(FailureCode::InvalidLifecycle, 7),
+            }
+        } else if let Some(value) = io.input(PortId(0)) {
+            if self.started || self.pending.is_some() || self.input_closed {
+                return step_fail(FailureCode::InvalidLifecycle, 8);
+            }
+            let maximum = if self.streaming {
+                conduit_tongues::SPEECH_COMMIT_QUEUE_BYTES
+            } else {
+                conduit_tongues::MAXIMUM_TEXT_BYTES
+            };
+            let Ok(input) = BoundedValueRef::new(value, maximum) else {
+                return step_fail(FailureCode::InvalidInput, 1);
+            };
+            if value.byte_len == 0 {
+                return step_fail(FailureCode::InvalidInput, 2);
+            }
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_fail(FailureCode::IdentityCapacityExhausted, 6);
+            };
+            io.consume(PortId(0))
+                .expect("present speech synthesis input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("speech synthesis Host Call");
+            self.started = true;
+            self.next_request = next;
+            self.pending = Some(request);
+            StepOutcome::Progress
+        } else if self.streaming && io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed speech synthesis stream closure");
+            self.input_closed = true;
+            if self.pending.is_none() && !self.started {
+                self.finished = true;
+                StepOutcome::Complete
+            } else {
+                StepOutcome::Progress
+            }
+        } else {
+            StepOutcome::Await
+        }
+    }
+
+    fn retains_host_call_input(&self, _request: RequestId, value: ValueRef) -> bool {
+        value == self.continuation
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.finished = true;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl SpeechSynthesisOperation {

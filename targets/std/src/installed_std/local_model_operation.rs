@@ -1,6 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId,
 };
@@ -21,6 +22,132 @@ pub(super) struct LocalModelOperation {
     stream: bool,
     stream_complete: bool,
     input: Option<conduit_kernel::ValueRef>,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for LocalModelOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.stream_complete || (self.emitted && !self.flow && !self.stream) || self.closed {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(FailureCode::InvalidLifecycle, 6);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    if self.stream {
+                        let Some(value) = self.input else {
+                            return step_fail(FailureCode::InvalidLifecycle, 7);
+                        };
+                        let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes)
+                        else {
+                            return step_fail(FailureCode::InvalidInput, 8);
+                        };
+                        let next_request = RequestId(self.next_request);
+                        let Some(next) = self.next_request.checked_add(1) else {
+                            return step_fail(FailureCode::IdentityCapacityExhausted, 8);
+                        };
+                        io.consume_host_completion()
+                            .expect("observed streaming local-model completion");
+                        io.send(PortId(0), output.value)
+                            .expect("ready local-model chunk output");
+                        io.request_host_call(next_request, HostCallId(0), input)
+                            .expect("next streaming local-model Host Call");
+                        self.next_request = next;
+                        self.pending = Some(next_request);
+                    } else {
+                        io.consume_host_completion()
+                            .expect("observed local-model completion");
+                        io.send(PortId(0), output.value)
+                            .expect("ready local-model output");
+                        self.pending = None;
+                        self.emitted = true;
+                    }
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Completed, None, None) if self.stream => {
+                    io.consume_host_completion()
+                        .expect("observed local-model stream completion");
+                    self.pending = None;
+                    if let Some(value) = self.input.take() {
+                        io.discard(value)
+                            .expect("finished local-model stream input");
+                    }
+                    self.stream_complete = true;
+                    return StepOutcome::Complete;
+                }
+                (HostCallDisposition::Denied, _, _) => {
+                    return step_fail(FailureCode::HostCallDenied, 2)
+                }
+                (HostCallDisposition::Cancelled, _, _) => {
+                    return step_fail(FailureCode::Cancelled, 3)
+                }
+                (HostCallDisposition::Failed, _, _) => {
+                    return StepOutcome::Fail(outcome.failure.unwrap_or(Failure {
+                        code: FailureCode::HostCallFailed,
+                        detail: 4,
+                    }))
+                }
+                _ => return step_fail(FailureCode::InvalidLifecycle, 5),
+            }
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some()
+                || self.closed
+                || (self.stream && self.input.is_some())
+                || (!self.stream && !self.flow && self.emitted)
+            {
+                return step_fail(FailureCode::InvalidLifecycle, 6);
+            }
+            let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
+                return step_fail(FailureCode::InvalidInput, 1);
+            };
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_fail(FailureCode::IdentityCapacityExhausted, 1);
+            };
+            if self.stream {
+                self.input = Some(
+                    io.take_input(PortId(0))
+                        .expect("present streaming local-model input"),
+                );
+            } else {
+                io.consume(PortId(0)).expect("present local-model input");
+            }
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("local-model Host Call");
+            self.next_request = next;
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed local-model input closure");
+            self.closed = true;
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn retains_host_call_input(
+        &self,
+        _request: RequestId,
+        value: conduit_kernel::ValueRef,
+    ) -> bool {
+        self.input == Some(value)
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.input = None;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl LocalModelOperation {
