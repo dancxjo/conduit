@@ -7,8 +7,8 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
-    Failure, FailureCode, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
-    ValueRef, ValueStorage,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    HostedValueStore, PortId, ValueRef, ValueStorage,
 };
 
 const IMPLEMENTATION: &str = "browser/kernel-deterministic-garden-observations@1";
@@ -65,7 +65,7 @@ fn prepare(
     let values: [ValueRef; 3] = stored
         .try_into()
         .map_err(|_| "deterministic Garden source value count".to_string())?;
-    Ok(BrowserOperation::installed(SourceOperation {
+    Ok(BrowserOperation::installed_step(SourceOperation {
         values,
         next: 0,
     }))
@@ -76,31 +76,18 @@ struct SourceOperation {
     next: usize,
 }
 
-impl Operation for SourceOperation {
-    fn start(&mut self) -> OperationAction {
-        self.emit_next()
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        OperationAction::Fail(Failure {
-            code: FailureCode::InvalidInput,
-            detail: 1,
-        })
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        self.emit_next()
-    }
-}
-
-impl SourceOperation {
-    fn emit_next(&mut self) -> OperationAction {
+impl<const PORTS: usize> StepOperation<PORTS> for SourceOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         let Some(value) = self.values.get(self.next).copied() else {
-            return OperationAction::Complete;
+            return StepOutcome::Complete;
         };
         let port = PortId(u16::try_from(self.next).expect("three Garden source ports"));
+        if !io.output_ready(port) {
+            return StepOutcome::Await;
+        }
+        io.send(port, value).expect("ready Garden fixture output");
         self.next += 1;
-        OperationAction::Emit { port, value }
+        StepOutcome::Progress
     }
 }
 
