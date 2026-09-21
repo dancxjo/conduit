@@ -1,24 +1,35 @@
 //! Generic finite kernel verbs used by installed browser implementations.
 
 use conduit_core::Scalar;
+use conduit_kernel::scheduler::{
+    OperationDriver, StepInputBytes, StepIo, StepOperation, StepOutcome,
+};
 use conduit_kernel::ValueStorage;
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
     OperationAction, OperationInput, PortId, RequestId, ValueRef,
 };
 
-pub(crate) struct BrowserOperation(Box<dyn Operation>);
+struct LegacyBrowserOperation(Box<dyn Operation>);
+
+pub(crate) struct BrowserOperation {
+    legacy: Option<LegacyBrowserOperation>,
+    step: Option<OperationDriver<LegacyBrowserOperation, { super::BROWSER_PORTS_PER_GEAR }>>,
+}
 
 impl BrowserOperation {
     pub(crate) fn installed(operation: impl Operation + 'static) -> Self {
-        Self(Box::new(operation))
+        Self {
+            legacy: Some(LegacyBrowserOperation(Box::new(operation))),
+            step: None,
+        }
     }
 
     pub(crate) fn source(value: ValueRef) -> Self {
-        Self(Box::new(SourceOperation {
+        Self::installed(SourceOperation {
             value,
             emitted: false,
-        }))
+        })
     }
 
     pub(crate) fn host_source(
@@ -53,36 +64,36 @@ impl BrowserOperation {
     }
 
     pub(crate) fn unary(maximum_input_bytes: u32, _maximum_values: u32) -> Self {
-        Self(Box::new(UnaryOperation {
+        Self::installed(UnaryOperation {
             maximum_input_bytes,
             next_request: 0,
             pending: None,
-        }))
+        })
     }
 
     pub(crate) fn singleton_stream(maximum_bytes: u32) -> Self {
-        Self(Box::new(SingletonStreamOperation {
+        Self::installed(SingletonStreamOperation {
             maximum_bytes,
             emitted: false,
-        }))
+        })
     }
 
     pub(crate) fn exactly_one(maximum_bytes: u32) -> Self {
-        Self(Box::new(ExactlyOneOperation {
+        Self::installed(ExactlyOneOperation {
             maximum_bytes,
             held: None,
             released: None,
             emitted: false,
             retain_resumed: false,
-        }))
+        })
     }
 
     pub(crate) fn presentation(maximum_input_bytes: u32, _maximum_values: u32) -> Self {
-        Self(Box::new(PresentationOperation {
+        Self::installed(PresentationOperation {
             maximum_input_bytes,
             next_request: 0,
             pending: None,
-        }))
+        })
     }
 
     pub(crate) fn compare_scalar(
@@ -90,28 +101,28 @@ impl BrowserOperation {
         false_value: ValueRef,
         true_value: ValueRef,
     ) -> Self {
-        Self(Box::new(CompareScalarOperation {
+        Self::installed(CompareScalarOperation {
             operator,
             operands: [None, None],
             decisions: [Some(false_value), Some(true_value)],
             released: [None, None],
             decided: false,
-        }))
+        })
     }
 
     pub(crate) fn inactive() -> Self {
-        Self(Box::new(InactiveOperation))
+        Self::installed(InactiveOperation)
     }
 
     pub(crate) fn select_scalar() -> Self {
-        Self(Box::new(SelectScalarOperation {
+        Self::installed(SelectScalarOperation {
             selector: None,
             selector_closed: false,
             candidates: [None; 2],
             seen: [false; 2],
             released: [None; 2],
             retain_resumed: false,
-        }))
+        })
     }
 }
 
@@ -248,7 +259,7 @@ impl Operation for HostSourceOperation {
     }
 }
 
-impl Operation for BrowserOperation {
+impl Operation for LegacyBrowserOperation {
     fn start(&mut self) -> OperationAction {
         self.0.start()
     }
@@ -296,6 +307,90 @@ impl Operation for BrowserOperation {
 
     fn cancel(&mut self) {
         self.0.cancel();
+    }
+}
+
+impl StepOperation<{ super::BROWSER_PORTS_PER_GEAR }> for BrowserOperation {
+    fn step_committed(&mut self) {
+        if let Some(step) = self.step.as_mut() {
+            step.step_committed();
+        }
+    }
+
+    fn step(
+        &mut self,
+        io: &mut StepIo<{ super::BROWSER_PORTS_PER_GEAR }>,
+        input_bytes: &StepInputBytes<'_, { super::BROWSER_PORTS_PER_GEAR }>,
+    ) -> StepOutcome {
+        if self.step.is_none() {
+            let legacy = self.legacy.take().expect("browser Back initializes once");
+            match OperationDriver::new(legacy) {
+                Ok(step) => self.step = Some(step),
+                Err(_) => {
+                    return StepOutcome::Fail(Failure {
+                        code: FailureCode::InvalidLifecycle,
+                        detail: u16::MAX,
+                    });
+                }
+            }
+        }
+        self.step
+            .as_mut()
+            .expect("browser Step initialized")
+            .step(io, input_bytes)
+    }
+
+    fn accepts_input_while_host_call_pending(&self) -> bool {
+        self.step
+            .as_ref()
+            .is_some_and(StepOperation::accepts_input_while_host_call_pending)
+    }
+
+    fn retains_host_call_input(&self, request: RequestId, value: ValueRef) -> bool {
+        self.step
+            .as_ref()
+            .is_some_and(|step| StepOperation::retains_host_call_input(step, request, value))
+    }
+
+    fn cancel(&mut self) {
+        if let Some(step) = self.step.as_mut() {
+            step.cancel();
+        } else if let Some(legacy) = self.legacy.as_mut() {
+            legacy.cancel();
+        }
+    }
+}
+
+// The remaining unit tests exercise the old verb-level fixtures directly.
+// Production browser execution enters only through `StepOperation` above.
+#[cfg(test)]
+impl Operation for BrowserOperation {
+    fn start(&mut self) -> OperationAction {
+        self.legacy
+            .as_mut()
+            .expect("unstarted browser fixture")
+            .start()
+    }
+
+    fn resume(&mut self, input: OperationInput) -> OperationAction {
+        self.legacy
+            .as_mut()
+            .expect("unstarted browser fixture")
+            .resume(input)
+    }
+
+    fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
+        self.legacy
+            .as_mut()
+            .expect("unstarted browser fixture")
+            .resume_value(port, value, canonical)
+    }
+
+    fn advance(&mut self) -> OperationAction {
+        self.legacy
+            .as_mut()
+            .expect("unstarted browser fixture")
+            .advance()
     }
 }
 

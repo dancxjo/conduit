@@ -27,7 +27,7 @@ use crate::installed_browser::{
 };
 use conduit_core::PlanFragment;
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostCallRequest, NodeSpec, OperationDriver, SchedulerStatus,
+    CordSpec, FixedScheduler, HostCallRequest, NodeSpec, SchedulerStatus,
 };
 use conduit_kernel::{
     BoundedValueRef, CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
@@ -36,7 +36,7 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
 
 type BrowserKernel = FixedScheduler<
-    OperationDriver<BrowserOperation, BROWSER_PORTS_PER_GEAR>,
+    BrowserOperation,
     HostedValueStore,
     HostedSignLog,
     MAXIMUM_BROWSER_GEARS,
