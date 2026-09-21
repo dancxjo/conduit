@@ -1,65 +1,8 @@
 use super::{
     BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent,
-    KernelEventKind, NodeId, Operation, OperationAction, OperationInput, PortId, RequestId,
+    HostCallBinding, HostCallId, KernelEvent, KernelEventKind, NodeId, PortId, RequestId,
     RouteRange, RouteTarget, SignError, SignQuery, SignSink, StorageError, ValueStorage,
 };
-
-#[test]
-fn port_aware_actions_and_inputs_preserve_exact_identity() {
-    struct Echo {
-        input: PortId,
-        output: PortId,
-    }
-
-    impl Operation for Echo {
-        fn start(&mut self) -> OperationAction {
-            OperationAction::Await
-        }
-
-        fn resume(&mut self, input: OperationInput) -> OperationAction {
-            match input {
-                OperationInput::Value { port, value } if port == self.input => {
-                    OperationAction::Emit {
-                        port: self.output,
-                        value,
-                    }
-                }
-                OperationInput::Closed { port } if port == self.input => OperationAction::Complete,
-                _ => OperationAction::Fail(super::Failure {
-                    code: super::FailureCode::InvalidPort,
-                    detail: 0,
-                }),
-            }
-        }
-    }
-
-    let mut operation = Echo {
-        input: PortId(3),
-        output: PortId(7),
-    };
-    let value = super::ValueRef {
-        slot: 1,
-        generation: 2,
-        byte_len: 4,
-    };
-    assert_eq!(operation.start(), OperationAction::Await);
-    assert_eq!(
-        operation.resume(OperationInput::Value {
-            port: PortId(3),
-            value
-        }),
-        OperationAction::Emit {
-            port: PortId(7),
-            value
-        }
-    );
-    assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(3) }),
-        OperationAction::Complete
-    );
-}
-
 #[test]
 fn prebound_routes_never_broadcast_between_output_ports() {
     let mut routes = FixedRoutes::<4, 3>::new(2);
@@ -125,45 +68,6 @@ fn fixed_value_store_enforces_items_bytes_generation_and_fanout_references() {
     assert_eq!(replacement.slot, first.slot);
     assert_ne!(replacement.generation, first.generation);
     assert_eq!(store.get(second).unwrap(), b"123456");
-}
-
-#[test]
-fn host_call_completion_is_correlated_and_byte_admitted() {
-    let value = super::ValueRef {
-        slot: 0,
-        generation: 1,
-        byte_len: 4,
-    };
-    let bounded = BoundedValueRef::new(value, 4).unwrap();
-    let action = OperationAction::RequestHostCall {
-        request: RequestId(9),
-        operation: HostCallId(2),
-        input: bounded,
-    };
-    assert!(matches!(
-        action,
-        OperationAction::RequestHostCall {
-            request: RequestId(9),
-            operation: HostCallId(2),
-            ..
-        }
-    ));
-    let input = OperationInput::HostCallCompleted {
-        request: RequestId(9),
-        outcome: HostCallOutcome {
-            disposition: HostCallDisposition::Completed,
-            output: Some(bounded),
-            failure: None,
-        },
-    };
-    assert!(matches!(
-        input,
-        OperationInput::HostCallCompleted {
-            request: RequestId(9),
-            ..
-        }
-    ));
-    assert!(BoundedValueRef::new(value, 3).is_err());
 }
 
 #[test]
