@@ -220,31 +220,37 @@ fn scheduler_operation_keeps_note_and_control_bindings_distinct() {
         generation: 1,
         byte_len: conduit_audio::NOTE_EVENT_ENCODED_LEN as u32,
     };
-    let action = operation.resume(OperationInput::Value {
-        port: PortId(0),
-        value: note_value,
-    });
-    assert!(matches!(
-        action,
-        OperationAction::RequestHostCall {
-            request: RequestId(0),
-            operation: HostCallId(1),
-            ..
-        }
-    ));
+    let mut io = StepIo::test_frame([Some(note_value), None], [false; 2], [None; 2], None, 8);
     assert_eq!(
-        operation.resume(OperationInput::HostCallCompleted {
-            request: RequestId(0),
-            outcome: completed(),
-        }),
-        OperationAction::Await
+        operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Progress
+    );
+    assert!(io.test_consumed(PortId(0)));
+    assert_eq!(
+        io.test_host_request().map(|request| (request.0, request.1)),
+        Some((RequestId(0), HostCallId(1)))
+    );
+    let mut io = StepIo::test_frame(
+        [None; 2],
+        [false; 2],
+        [None; 2],
+        Some((RequestId(0), completed())),
+        8,
     );
     assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::Await
+        operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Progress
     );
+    let mut io = StepIo::test_frame([None; 2], [true, false], [None; 2], None, 8);
     assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(1) }),
-        OperationAction::Complete
+        operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Progress
     );
+    assert!(io.test_consumed_closed(PortId(0)));
+    let mut io = StepIo::test_frame([None; 2], [false, true], [None; 2], None, 8);
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Complete
+    );
+    assert!(io.test_consumed_closed(PortId(1)));
 }

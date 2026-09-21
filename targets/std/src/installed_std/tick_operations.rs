@@ -34,10 +34,14 @@ pub(super) struct TickOperation {
     pending: Option<RequestId>,
     recurring: bool,
     sequence: u64,
+    cancelled: bool,
 }
 
 impl<const PORTS: usize> StepOperation<PORTS> for TickOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.cancelled {
+            return StepOutcome::Fail(tick_failure(FailureCode::Cancelled, 2));
+        }
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
                 || outcome.disposition != HostCallDisposition::Completed
@@ -104,6 +108,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for TickOperation {
 
     fn cancel(&mut self) {
         self.pending = None;
+        self.cancelled = true;
     }
 }
 
@@ -217,6 +222,7 @@ fn prepare_every(
         pending: None,
         recurring: true,
         sequence: 0,
+        cancelled: false,
     }))
 }
 
@@ -247,6 +253,7 @@ fn prepare_tick_values(
         pending: None,
         recurring: false,
         sequence: 0,
+        cancelled: false,
     }))
 }
 
@@ -405,30 +412,39 @@ mod tests {
             pending: None,
             recurring: false,
             sequence: 0,
+            cancelled: false,
         };
-        assert!(matches!(
-            operation.start(),
-            OperationAction::RequestHostCall {
-                request: RequestId(0),
-                operation: HostCallId(0),
-                ..
-            }
-        ));
-        operation.cancel();
-        assert!(matches!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome: HostCallOutcome {
+        let mut io = StepIo::test_frame([None], [false], [Some(TICK_ENCODED_LEN)], None, 8);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert_eq!(
+            io.test_host_request().map(|request| (request.0, request.1)),
+            Some((RequestId(0), HostCallId(0)))
+        );
+        StepOperation::<1>::cancel(&mut operation);
+        let mut io = StepIo::test_frame(
+            [None],
+            [false],
+            [Some(TICK_ENCODED_LEN)],
+            Some((
+                RequestId(0),
+                HostCallOutcome {
                     disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },
-            }),
-            OperationAction::Fail(Failure {
-                code: FailureCode::InvalidLifecycle,
+            )),
+            8,
+        );
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Fail(Failure {
+                code: FailureCode::Cancelled,
                 detail: 2,
             })
-        ));
+        );
     }
 
     #[test]
@@ -441,32 +457,44 @@ mod tests {
             pending: None,
             recurring: true,
             sequence: 0,
+            cancelled: false,
         };
-        let mut action = operation.start();
+        let mut io = StepIo::test_frame([None], [false], [Some(TICK_ENCODED_LEN)], None, 8);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
         for sequence in 0..7_u64 {
-            assert!(matches!(
-                action,
-                OperationAction::RequestHostCall {
-                    request: RequestId(found),
-                    ..
-                } if u64::from(found) == sequence
-            ));
-            let emitted = operation.resume(OperationInput::HostCallCompleted {
-                request: RequestId(sequence as u32),
-                outcome: HostCallOutcome {
-                    disposition: HostCallDisposition::Completed,
-                    output: None,
-                    failure: None,
-                },
-            });
-            let OperationAction::EmitCanonical { port, value } = emitted else {
-                panic!("time/every did not emit recurring tick {sequence}");
-            };
-            assert_eq!(port, conduit_kernel::PortId(0));
+            assert_eq!(
+                io.test_host_request().map(|request| request.0),
+                Some(RequestId(sequence as u32))
+            );
+            let mut completion = StepIo::test_frame(
+                [None],
+                [false],
+                [Some(TICK_ENCODED_LEN)],
+                Some((
+                    RequestId(sequence as u32),
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
+                        output: None,
+                        failure: None,
+                    },
+                )),
+                8,
+            );
+            assert_eq!(
+                operation.step(&mut completion, &StepInputBytes::test_frame([None], None)),
+                StepOutcome::Progress
+            );
+            let (port, value) = completion
+                .test_canonical_output()
+                .expect("time/every emitted recurring Tick");
+            assert_eq!(*port, conduit_kernel::PortId(0));
             assert_eq!(value.as_slice(), encode_tick(sequence));
-            action = operation.advance();
+            io = completion;
         }
-        assert!(matches!(action, OperationAction::RequestHostCall { .. }));
+        assert!(io.test_host_request().is_some());
         assert_eq!(operation.allocation_capacity(), 1);
     }
 }
