@@ -24,7 +24,7 @@ serde = { version = "1", default-features = false, features = ["alloc", "derive"
 conduit-planner = { path = "../../architecture/planner" }
 
 [features]
-kernel-operation = ["dep:conduit-kernel"]
+kernel-step = ["dep:conduit-kernel"]
 default = ["form-catalog"]
 form-catalog = ["conduit-time/form-catalog", "conduit-web/form-catalog", "conduit-text/form-catalog"]
 text-lab-plan = ["form-catalog", "dep:conduit-planner"]

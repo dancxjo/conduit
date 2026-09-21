@@ -5,7 +5,7 @@ edition = "2021"
 
 [features]
 default = ["form-catalog"]
-kernel-operation = ["dep:conduit-kernel"]
+kernel-step = ["dep:conduit-kernel"]
 form-catalog = ["dep:conduit-form"]
 
 [dependencies]
