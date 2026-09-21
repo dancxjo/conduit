@@ -210,6 +210,15 @@ impl<const PORTS: usize> StepInputBytes<'_, PORTS> {
     }
 }
 
+impl StepInputBytes<'static, 1> {
+    pub(crate) const fn single_source() -> Self {
+        Self {
+            inputs: [None],
+            host_output: None,
+        }
+    }
+}
+
 pub struct StepIo<const PORTS: usize> {
     inputs: [Option<ValueRef>; PORTS],
     input_closed: [bool; PORTS],
@@ -450,6 +459,64 @@ impl<const PORTS: usize> StepIo<PORTS> {
             consumed_host_completion: self.consumed_host_completion,
             host_request: self.host_request,
             host_cancellation: self.host_cancellation,
+        }
+    }
+}
+
+impl StepIo<1> {
+    pub(crate) fn single_source(
+        maximum_output_bytes: u32,
+        maximum_work: u16,
+        host_completion: Option<(RequestId, HostCallOutcome)>,
+    ) -> Self {
+        Self {
+            inputs: [None],
+            input_closed: [false],
+            output_maximum_bytes: [Some(maximum_output_bytes)],
+            consumed: [false],
+            retained_inputs: [false],
+            consumed_closed: [false],
+            outputs: [None],
+            canonical_output: None,
+            discards: [None],
+            host_completion,
+            consumed_host_completion: false,
+            host_request: None,
+            host_cancellation: None,
+            maximum_work,
+            work: 0,
+            fault: None,
+        }
+    }
+
+    pub(crate) fn single_source_start_request(
+        &self,
+    ) -> Option<(RequestId, HostCallId, BoundedValueRef)> {
+        if self.fault.is_none()
+            && self.host_request.is_some()
+            && !self.consumed_host_completion
+            && self.outputs[0].is_none()
+            && self.canonical_output.is_none()
+            && self.discards[0].is_none()
+            && self.host_cancellation.is_none()
+        {
+            self.host_request
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn single_source_completion_output(&self) -> Option<ValueRef> {
+        if self.fault.is_none()
+            && self.consumed_host_completion
+            && self.host_request.is_none()
+            && self.canonical_output.is_none()
+            && self.discards[0].is_none()
+            && self.host_cancellation.is_none()
+        {
+            self.outputs[0]
+        } else {
+            None
         }
     }
 }
