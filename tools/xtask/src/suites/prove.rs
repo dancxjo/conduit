@@ -1,5 +1,44 @@
 use crate::{process::Step, proof::ProofClass};
 
+pub const PROVE_EMERGENCY_CONTROL_STEPS: &[Step] = &[
+    Step::typed(
+        "prove.emergency-control.independent",
+        "Prove bounded acoustic corpus, independent local reduction, one-shot behavior, partial reachability truth and separate recovery admission",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--lib",
+            "acoustic_emergency::tests::",
+            "--locked",
+        ],
+        None,
+        None,
+        Some(ProofClass::HostedIntegration),
+        &[],
+    ),
+    Step::typed(
+        "prove.emergency-control.machine-effect",
+        "Prove the selected ConduitOS profile reaches its exact low-level emergency halt disposition",
+        "cargo",
+        &[
+            "xtask",
+            "conduitos",
+            "prove-many",
+            "--proof",
+            "emergency-halt",
+            "--max-parallel",
+            "1",
+            "--locked",
+        ],
+        None,
+        None,
+        Some(ProofClass::FreestandingEmulator),
+        &[],
+    ),
+];
+
 pub const PROVE_RECURSIVE_RECOVERY_STEPS: &[Step] = &[
     Step::typed(
         "prove.recursive-recovery.vertical",
