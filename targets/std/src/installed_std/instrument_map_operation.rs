@@ -23,7 +23,6 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
 pub(super) struct InstrumentMapOperation {
     mapping: InstrumentMapping,
     next_order: u32,
-    emitted: bool,
 }
 
 struct InstrumentMapping {
@@ -79,10 +78,6 @@ impl<const PORTS: usize> StepOperation<PORTS> for InstrumentMapOperation {
             return StepOutcome::Complete;
         }
         StepOutcome::Await
-    }
-
-    fn cancel(&mut self) {
-        self.emitted = false;
     }
 }
 
@@ -268,7 +263,6 @@ fn prepare(
     Ok(InstalledOperation::InstrumentMap(InstrumentMapOperation {
         mapping: mapping(placement)?,
         next_order: 0,
-        emitted: false,
     }))
 }
 

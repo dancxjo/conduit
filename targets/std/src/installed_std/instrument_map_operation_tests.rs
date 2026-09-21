@@ -3,6 +3,29 @@ use conduit_core::{
     kind_id, BootId, ConfigurationEntry, GearId, HostId, OfferGeneration, PlacementId,
     StructuredFieldValue, StructuredInfoType,
 };
+use conduit_kernel::{scheduler::StepOutcome, ValueRef};
+
+fn note(event: MappedEvent) -> MusicalNoteEvent {
+    let MappedEvent::Note(event) = event else {
+        panic!("expected note event")
+    };
+    event
+}
+
+fn musical_control(event: MappedEvent) -> MusicalControlEvent {
+    let MappedEvent::Control(event) = event else {
+        panic!("expected control event")
+    };
+    event
+}
+
+fn value(bytes: &[u8]) -> ValueRef {
+    ValueRef {
+        slot: 1,
+        generation: 1,
+        byte_len: u32::try_from(bytes.len()).unwrap(),
+    }
+}
 
 fn placement() -> PlannedGear {
     let offer = conduit_std_offers::instrument_map_std_offer();
@@ -177,36 +200,49 @@ fn operation_waits_for_pressure_release_and_only_closes_when_idle() {
     let mut operation = InstrumentMapOperation {
         mapping: test_mapping(),
         next_order: 0,
-        emitted: false,
     };
     let canonical = button(0, true, 1, 10).canonical_bytes().unwrap();
-    assert!(matches!(operation.start(), OperationAction::Await));
-    assert!(matches!(
-        operation.resume_value(PortId(0), &canonical),
-        OperationAction::EmitCanonical {
-            port: PortId(0),
-            ..
-        }
-    ));
-    assert!(matches!(
-        operation.resume_value(PortId(0), &canonical),
-        OperationAction::Fail(Failure {
-            code: FailureCode::InvalidLifecycle,
-            ..
-        })
-    ));
-    assert!(matches!(
-        operation.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::Fail(Failure {
-            code: FailureCode::InvalidLifecycle,
-            ..
-        })
-    ));
-    assert!(matches!(operation.advance(), OperationAction::Await));
-    assert!(matches!(
-        operation.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::Complete
-    ));
+    let mut blocked = StepIo::test_frame(
+        [Some(value(&canonical)), None],
+        [false; 2],
+        [None; 2],
+        None,
+        8,
+    );
+    assert_eq!(
+        operation.step(
+            &mut blocked,
+            &StepInputBytes::test_frame([Some(&canonical), None], None)
+        ),
+        StepOutcome::Await
+    );
+    assert!(!blocked.test_consumed(PortId(0)));
+
+    let mut ready = StepIo::test_frame(
+        [Some(value(&canonical)), None],
+        [false; 2],
+        [Some(conduit_audio::NOTE_EVENT_ENCODED_LEN as u32), None],
+        None,
+        8,
+    );
+    assert_eq!(
+        operation.step(
+            &mut ready,
+            &StepInputBytes::test_frame([Some(&canonical), None], None)
+        ),
+        StepOutcome::Progress
+    );
+    assert!(ready.test_consumed(PortId(0)));
+    assert_eq!(
+        ready.test_canonical_output().map(|(port, _)| *port),
+        Some(PortId(0))
+    );
+
+    let mut closed = StepIo::test_frame([None; 2], [true, false], [None; 2], None, 8);
+    assert_eq!(
+        operation.step(&mut closed, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Complete
+    );
 }
 
 #[test]
@@ -214,23 +250,43 @@ fn wrong_profile_and_malformed_canonical_input_fail_closed() {
     let mut operation = InstrumentMapOperation {
         mapping: test_mapping(),
         next_order: 0,
-        emitted: false,
     };
     let wrong = leaf("value/count", 1).canonical_bytes().unwrap();
-    assert!(matches!(
-        operation.resume_value(PortId(0), &wrong),
-        OperationAction::Fail(Failure {
+    let mut io = StepIo::test_frame(
+        [Some(value(&wrong)), None],
+        [false; 2],
+        [Some(128), Some(128)],
+        None,
+        8,
+    );
+    assert_eq!(
+        operation.step(
+            &mut io,
+            &StepInputBytes::test_frame([Some(&wrong), None], None)
+        ),
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidInput,
             detail: 176
         })
-    ));
-    assert!(matches!(
-        operation.resume_value(PortId(0), &[0xff]),
-        OperationAction::Fail(Failure {
+    );
+    let malformed = [0xff];
+    let mut io = StepIo::test_frame(
+        [Some(value(&malformed)), None],
+        [false; 2],
+        [Some(128), Some(128)],
+        None,
+        8,
+    );
+    assert_eq!(
+        operation.step(
+            &mut io,
+            &StepInputBytes::test_frame([Some(&malformed), None], None)
+        ),
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidInput,
             detail: 175
         })
-    ));
+    );
 }
 
 #[test]
@@ -238,16 +294,26 @@ fn admitted_event_bound_fails_closed_before_consuming_more_input() {
     let mut operation = InstrumentMapOperation {
         mapping: test_mapping(),
         next_order: u32::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS),
-        emitted: false,
     };
     let canonical = button(0, true, 1, 10).canonical_bytes().unwrap();
-    assert!(matches!(
-        operation.resume_value(PortId(0), &canonical),
-        OperationAction::Fail(Failure {
+    let mut io = StepIo::test_frame(
+        [Some(value(&canonical)), None],
+        [false; 2],
+        [Some(128), Some(128)],
+        None,
+        8,
+    );
+    assert_eq!(
+        operation.step(
+            &mut io,
+            &StepInputBytes::test_frame([Some(&canonical), None], None)
+        ),
+        StepOutcome::Fail(Failure {
             code: FailureCode::StorageExhausted,
             detail: 172
         })
-    ));
+    );
+    assert!(!io.test_consumed(PortId(0)));
 }
 
 #[test]
