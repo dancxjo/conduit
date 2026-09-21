@@ -1,9 +1,8 @@
 use crate::boundary::augment_boundary_cords;
-use crate::{BoxedKernelOperation, KernelOperationRegistry};
+use crate::{BoxedKernelBack, KernelOperationRegistry};
 use conduit_core::{PlanFragment, PortDirection, PortId as SemanticPortId, ValuePayload};
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostCallRequest, OperationDriver, RemoteIngressOutcome,
-    SchedulerStatus,
+    CordSpec, FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
     CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
@@ -23,7 +22,7 @@ const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_CALLS_PER_NODE as usize;
 const PENDING_REQUESTS: usize = MAX_NODES;
 
 type ChildScheduler = FixedScheduler<
-    OperationDriver<BoxedKernelOperation, PORTS>,
+    BoxedKernelBack,
     HostedValueStore,
     HostedSignLog,
     MAX_NODES,
@@ -118,25 +117,21 @@ impl ChildKernel {
             value_bytes.max(1),
         )
         .map_err(debug)?;
-        let mut operations = Vec::with_capacity(MAX_NODES);
+        let mut backs = Vec::with_capacity(MAX_NODES);
         for placement in &fragment.placements {
             let factory = registry
                 .get(&placement.implementation_id)
                 .ok_or_else(|| "installed implementation disappeared".to_string())?;
-            operations.push(BoxedKernelOperation::new(
+            backs.push(BoxedKernelBack::new(
                 factory.prepare(placement, &mut values)?,
             ));
         }
-        while operations.len() < MAX_NODES {
-            operations.push(BoxedKernelOperation::inactive());
+        while backs.len() < MAX_NODES {
+            backs.push(BoxedKernelBack::inactive());
         }
-        let drivers = operations
-            .into_iter()
-            .map(OperationDriver::new)
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(debug)?
+        let backs = backs
             .try_into()
-            .map_err(|_| "kernel composite driver capacity changed".to_string())?;
+            .map_err(|_| "kernel composite Back capacity changed".to_string())?;
 
         let inactive_node = conduit_kernel::scheduler::NodeSpec {
             input_cords: [None; PORTS],
@@ -196,7 +191,7 @@ impl ChildKernel {
             cords,
             routes,
             host_calls,
-            drivers,
+            backs,
             values,
             signs,
         )

@@ -1,7 +1,7 @@
 use conduit_core::{ImplementationId, PlannedGear};
-use conduit_kernel::{
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
-};
+use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::HostedValueStore;
+use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -21,7 +21,7 @@ pub trait KernelOperationFactory: Send + Sync {
         &self,
         placement: &PlannedGear,
         values: &mut HostedValueStore,
-    ) -> Result<Box<dyn Operation + Send>, String>;
+    ) -> Result<Box<dyn StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String>;
 }
 
 #[derive(Default)]
@@ -58,11 +58,15 @@ impl KernelOperationRegistry {
     }
 }
 
-pub(crate) struct BoxedKernelOperation(Box<dyn Operation + Send>);
+pub(crate) struct BoxedKernelBack(
+    Box<dyn StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>,
+);
 
-impl BoxedKernelOperation {
-    pub(crate) fn new(operation: Box<dyn Operation + Send>) -> Self {
-        Self(operation)
+impl BoxedKernelBack {
+    pub(crate) fn new(
+        back: Box<dyn StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>,
+    ) -> Self {
+        Self(back)
     }
 
     pub(crate) fn inactive() -> Self {
@@ -70,46 +74,26 @@ impl BoxedKernelOperation {
     }
 }
 
-impl Operation for BoxedKernelOperation {
-    fn start(&mut self) -> OperationAction {
-        self.0.start()
+impl StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for BoxedKernelBack {
+    fn step_committed(&mut self) {
+        self.0.step_committed();
     }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        self.0.resume(input)
+    fn step(
+        &mut self,
+        io: &mut StepIo<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+        input_bytes: &StepInputBytes<'_, { FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+    ) -> StepOutcome {
+        self.0.step(io, input_bytes)
     }
-
     fn accepts_input_while_host_call_pending(&self) -> bool {
         self.0.accepts_input_while_host_call_pending()
     }
-
-    fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
-        self.0.take_host_call_cancellation()
-    }
-
-    fn resume_value(&mut self, port: PortId, value: ValueRef, bytes: &[u8]) -> OperationAction {
-        self.0.resume_value(port, value, bytes)
-    }
-
-    fn resume_host_call(
-        &mut self,
-        request: RequestId,
-        outcome: conduit_kernel::HostCallOutcome,
-        bytes: Option<&[u8]>,
-    ) -> OperationAction {
-        self.0.resume_host_call(request, outcome, bytes)
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        self.0.advance()
-    }
-
-    fn retains_resumed_value(&self) -> bool {
-        self.0.retains_resumed_value()
-    }
-
-    fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.0.take_released_value()
+    fn retains_host_call_input(
+        &self,
+        request: conduit_kernel::RequestId,
+        value: conduit_kernel::ValueRef,
+    ) -> bool {
+        self.0.retains_host_call_input(request, value)
     }
 
     fn cancel(&mut self) {
@@ -119,12 +103,12 @@ impl Operation for BoxedKernelOperation {
 
 struct Inactive;
 
-impl Operation for Inactive {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Complete
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        OperationAction::Complete
+impl StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for Inactive {
+    fn step(
+        &mut self,
+        _io: &mut StepIo<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+        _input_bytes: &StepInputBytes<'_, { FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+    ) -> StepOutcome {
+        StepOutcome::Complete
     }
 }
