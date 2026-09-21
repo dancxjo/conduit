@@ -1,116 +1,103 @@
 use super::*;
 
 #[derive(Clone, Copy, Debug)]
-enum CancellationOperation {
+enum CancellationBack {
     Reset {
         initial: ValueRef,
         replacement: Option<ValueRef>,
-        cancellation: Option<RequestId>,
         phase: u8,
     },
     Source {
         value: ValueRef,
-        advanced: bool,
+        emitted: bool,
     },
 }
 
-impl Operation for CancellationOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepOperation<2> for CancellationBack {
+    fn step(&mut self, io: &mut StepIo<2>, _input_bytes: &StepInputBytes<'_, 2>) -> StepOutcome {
         match self {
-            Self::Reset { initial, phase, .. } => {
-                *phase = 1;
-                OperationAction::RequestHostCall {
-                    request: RequestId(21),
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(*initial, 8).unwrap(),
+            Self::Reset {
+                initial,
+                replacement,
+                phase,
+            } => match *phase {
+                0 => {
+                    io.request_host_call(
+                        RequestId(21),
+                        HostCallId(0),
+                        BoundedValueRef::new(*initial, 8).unwrap(),
+                    )
+                    .unwrap();
+                    *phase = 1;
+                    StepOutcome::Progress
                 }
-            }
-            Self::Source { value, .. } => OperationAction::Emit {
-                port: PortId(0),
-                value: *value,
+                1 => {
+                    if let Some((request, outcome)) = io.host_completion() {
+                        if request != RequestId(21)
+                            || outcome.disposition != HostCallDisposition::Cancelled
+                            || io.consume_host_completion().is_err()
+                        {
+                            return invalid_cancellation();
+                        }
+                        let Some(value) = replacement.take() else {
+                            return invalid_cancellation();
+                        };
+                        io.request_host_call(
+                            RequestId(22),
+                            HostCallId(0),
+                            BoundedValueRef::new(value, 8).unwrap(),
+                        )
+                        .unwrap();
+                        *phase = 2;
+                        return StepOutcome::Progress;
+                    }
+                    let Some(value) = io.input(PortId(0)) else {
+                        return StepOutcome::Await;
+                    };
+                    io.take_input(PortId(0)).unwrap();
+                    io.cancel_host_call(RequestId(21)).unwrap();
+                    *replacement = Some(value);
+                    StepOutcome::Progress
+                }
+                2 => {
+                    let Some((request, outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    if request != RequestId(22)
+                        || outcome.disposition != HostCallDisposition::Completed
+                        || io.consume_host_completion().is_err()
+                    {
+                        return invalid_cancellation();
+                    }
+                    *phase = 3;
+                    StepOutcome::Complete
+                }
+                _ => StepOutcome::Complete,
             },
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Reset {
-                    replacement,
-                    cancellation,
-                    phase: 1,
-                    ..
-                },
-                OperationInput::Value { value, .. },
-            ) => {
-                *replacement = Some(value);
-                *cancellation = Some(RequestId(21));
-                OperationAction::Await
-            }
-            (
-                Self::Reset {
-                    replacement, phase, ..
-                },
-                OperationInput::HostCallCompleted {
-                    request: RequestId(21),
-                    outcome,
-                },
-            ) if outcome.disposition == HostCallDisposition::Cancelled => {
-                *phase = 2;
-                OperationAction::RequestHostCall {
-                    request: RequestId(22),
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(replacement.take().unwrap(), 8).unwrap(),
+            Self::Source { value, emitted } => {
+                if *emitted {
+                    return StepOutcome::Complete;
                 }
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                io.send(PortId(0), *value).unwrap();
+                *emitted = true;
+                StepOutcome::Complete
             }
-            (
-                Self::Reset { phase, .. },
-                OperationInput::HostCallCompleted {
-                    request: RequestId(22),
-                    outcome,
-                },
-            ) if outcome.disposition == HostCallDisposition::Completed => {
-                *phase = 3;
-                OperationAction::Complete
-            }
-            _ => OperationAction::Fail(Failure {
-                code: FailureCode::InvalidInput,
-                detail: 856,
-            }),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source { advanced, .. } if !*advanced => {
-                *advanced = true;
-                OperationAction::Complete
-            }
-            _ => OperationAction::Await,
         }
     }
 
     fn accepts_input_while_host_call_pending(&self) -> bool {
         matches!(self, Self::Reset { phase: 1, .. })
     }
+}
 
-    fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
-        match self {
-            Self::Reset { cancellation, .. } => cancellation.take(),
-            Self::Source { .. } => None,
-        }
-    }
-
-    fn retains_resumed_value(&self) -> bool {
-        matches!(
-            self,
-            Self::Reset {
-                replacement: Some(_),
-                phase: 1,
-                ..
-            }
-        )
-    }
+fn invalid_cancellation() -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidInput,
+        detail: 856,
+    })
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -123,8 +110,7 @@ struct Normalized {
     saw_cancellation: bool,
 }
 
-type CancellationScheduler<S, E> =
-    FixedScheduler<OperationDriver<CancellationOperation, 2>, S, E, 2, 1, 2, 1, 4, 1, 2, 1>;
+type CancellationScheduler<S, E> = FixedScheduler<CancellationBack, S, E, 2, 1, 2, 1, 4, 1, 2, 1>;
 
 fn scheduler<S: ValueStorage, E: SignSink>(mut values: S, signs: E) -> CancellationScheduler<S, E> {
     let initial = values.store(&10_u64.to_le_bytes()).unwrap();
@@ -170,18 +156,15 @@ fn scheduler<S: ValueStorage, E: SignSink>(mut values: S, signs: E) -> Cancellat
         routes,
         bindings,
         [
-            OperationDriver::new(CancellationOperation::Reset {
+            CancellationBack::Reset {
                 initial,
                 replacement: None,
-                cancellation: None,
                 phase: 0,
-            })
-            .unwrap(),
-            OperationDriver::new(CancellationOperation::Source {
+            },
+            CancellationBack::Source {
                 value: replacement,
-                advanced: false,
-            })
-            .unwrap(),
+                emitted: false,
+            },
         ],
         values,
         signs,
