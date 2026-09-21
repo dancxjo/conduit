@@ -3,8 +3,9 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
-    RequestId,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId,
 };
 
 pub(super) static FRAME: InstalledFactory =
@@ -27,6 +28,71 @@ const fn factory(implementation_id: &'static str) -> InstalledFactory {
 pub(super) struct TypedRecordOperation {
     pending: bool,
     complete: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TypedRecordOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.complete {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if !self.pending || request != RequestId(0) {
+                return step_fail(164);
+            }
+            if let Some(failure) = outcome.failure {
+                return StepOutcome::Fail(failure);
+            }
+            if outcome.disposition != HostCallDisposition::Completed {
+                return step_fail(164);
+            }
+            let Some(output) = outcome.output else {
+                return step_fail(163);
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume_host_completion()
+                .expect("observed typed-record completion");
+            io.send(PortId(0), output.value)
+                .expect("ready typed-record output");
+            self.pending = false;
+            self.complete = true;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending {
+                return step_fail(164);
+            }
+            let Ok(input) = BoundedValueRef::new(value, MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32)
+            else {
+                return step_fail(162);
+            };
+            io.consume(PortId(0)).expect("present typed-record input");
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("typed-record Host Call");
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && !self.pending {
+            io.consume_closed(PortId(0))
+                .expect("observed typed-record closure");
+            self.complete = true;
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = false;
+        self.complete = true;
+    }
+}
+
+const fn step_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidLifecycle,
+        detail,
+    })
 }
 
 impl TypedRecordOperation {

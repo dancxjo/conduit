@@ -3,6 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId,
 };
@@ -16,6 +17,64 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
 pub(super) struct SequenceNormalizationOperation {
     pending: bool,
     completed: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for SequenceNormalizationOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.completed {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if !self.pending || request != RequestId(0) {
+                return step_fail(FailureCode::InvalidLifecycle, 242);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed sequence normalization completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready normalized sequence output");
+                    self.pending = false;
+                    self.completed = true;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Cancelled, _, _) => {
+                    return step_fail(FailureCode::Cancelled, 0)
+                }
+                (HostCallDisposition::Failed, None, Some(failure)) => {
+                    return StepOutcome::Fail(failure)
+                }
+                _ => return step_fail(FailureCode::InvalidLifecycle, 241),
+            }
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending {
+                return step_fail(FailureCode::InvalidLifecycle, 242);
+            }
+            let Ok(input) = BoundedValueRef::new(value, MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32)
+            else {
+                return step_fail(FailureCode::InvalidInput, 240);
+            };
+            io.consume(PortId(0))
+                .expect("present sequence normalization input");
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("sequence normalization Host Call");
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = false;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl SequenceNormalizationOperation {
