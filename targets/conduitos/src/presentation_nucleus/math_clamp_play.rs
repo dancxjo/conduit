@@ -8,9 +8,7 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal, Scalar, kind_id, port_id,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog, parse};
-use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{CordSpec, FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostCallDisposition, HostCallOutcome, NodeId, ValueStorage,
@@ -18,7 +16,7 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
 
-use super::operation::PresentationOperation;
+use super::back::PresentationBack;
 const SOURCE_KIND: &str = "conduitos/fixture-clamp-source";
 const SOURCE_REVISION: &str = "conduitos/fixture-clamp-source@1";
 const SOURCE_IMPLEMENTATION: &str = "conduitos.fixture/clamp-source@1";
@@ -38,7 +36,7 @@ const VALUE_BYTES: usize = VALUES * MAX_VALUE_BYTES;
 const SIGNS: usize = 48;
 
 type Kernel = FixedScheduler<
-    OperationDriver<PresentationOperation, PORTS>,
+    PresentationBack,
     FixedValueStore<VALUES, MAX_VALUE_BYTES>,
     FixedSignLog<SIGNS>,
     NODES,
@@ -371,7 +369,7 @@ fn scheduler(
         .enumerate()
         .map(|(index, placement)| {
             let operation = match placement.kind_id.as_str() {
-                SOURCE_KIND => PresentationOperation::Source {
+                SOURCE_KIND => PresentationBack::Source {
                     value: values
                         .store(&input.encode())
                         .map_err(|_| MathClampError::Value)?,
@@ -379,7 +377,7 @@ fn scheduler(
                 },
                 conduit_semantic_catalog::MATH_CLAMP_KIND => {
                     transform = Some(NodeId(index as u16));
-                    PresentationOperation::Transform {
+                    PresentationBack::Transform {
                         maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
                         pending: false,
                         emitted: false,
@@ -387,7 +385,7 @@ fn scheduler(
                 }
                 SINK_KIND => {
                     sink = Some(NodeId(index as u16));
-                    PresentationOperation::Sink {
+                    PresentationBack::Sink {
                         maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
                         pending: false,
                         complete: false,
@@ -395,7 +393,7 @@ fn scheduler(
                 }
                 _ => return Err(MathClampError::Shape),
             };
-            OperationDriver::new(operation).map_err(|_| MathClampError::Kernel)
+            Ok(operation)
         })
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
