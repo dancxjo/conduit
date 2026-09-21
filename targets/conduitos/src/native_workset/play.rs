@@ -6,12 +6,12 @@ mod tests;
 
 use super::application_delivery::NativeApplication;
 use super::{AdmittedFormInput, PreparedNativeWorkset, WorksetRefusal};
-use crate::keyboard_text_operations::PlannedOperation;
+use crate::keyboard_text_backs::PlannedBack;
 use alloc::boxed::Box;
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyTransition};
 use conduit_kernel::{
     FixedSignLog, FixedValueStore, KernelEvent, NodeId,
-    scheduler::{FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus},
+    scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus},
 };
 use conduit_semantic_catalog::BoundedTextState;
 
@@ -21,7 +21,7 @@ const CORDS: usize = 10;
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const SIGN_ITEMS: usize = 1024;
 type Scheduler = FixedScheduler<
-    OperationDriver<PlannedOperation, PORTS>,
+    PlannedBack,
     FixedValueStore<10, 3072>,
     FixedSignLog<SIGN_ITEMS>,
     NODES,

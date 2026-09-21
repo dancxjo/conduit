@@ -52,10 +52,10 @@ pub mod keyboard_input;
 pub mod keyboard_offer;
 pub mod keyboard_plan;
 pub mod keyboard_play;
+mod keyboard_text_backs;
 #[cfg(target_arch = "x86_64")]
 pub mod keyboard_text_guest;
 pub mod keyboard_text_observatory;
-mod keyboard_text_operations;
 pub mod keyboard_text_plan;
 pub mod keyboard_text_play;
 #[cfg(test)]
