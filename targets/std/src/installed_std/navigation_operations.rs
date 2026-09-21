@@ -3,6 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId, ValueRef,
 };
@@ -26,11 +27,96 @@ pub(super) static CONTROL_FACTORY: InstalledFactory = InstalledFactory {
 pub(super) struct NavigationOperation {
     input_count: u16,
     seen: [bool; 4],
+    closed: [bool; 4],
     deferred: [Option<ValueRef>; 4],
     pending: Option<RequestId>,
     next_request: u32,
     emitted: bool,
     operation_by_port: [HostCallId; 4],
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for NavigationOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(FailureCode::InvalidLifecycle, 3);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed navigation Host Call completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready navigation output");
+                    self.pending = None;
+                    self.emitted = true;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Completed, None, None) => {
+                    io.consume_host_completion()
+                        .expect("observed partial navigation completion");
+                    self.pending = None;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Denied, _, _) => {
+                    return step_fail(FailureCode::HostCallDenied, 1)
+                }
+                (_, _, Some(failure)) => return StepOutcome::Fail(failure),
+                _ => return step_fail(FailureCode::HostCallFailed, 2),
+            }
+        }
+        for port in 0..self.input_count {
+            let id = PortId(port);
+            let Some(value) = io.input(id) else {
+                continue;
+            };
+            if self.seen[usize::from(port)] {
+                return step_fail(FailureCode::InvalidLifecycle, 3);
+            }
+            let Ok(input) = BoundedValueRef::new(value, MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32)
+            else {
+                return step_fail(FailureCode::InvalidInput, 4);
+            };
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_fail(FailureCode::StorageExhausted, 4);
+            };
+            io.consume(id).expect("present navigation input");
+            io.request_host_call(request, self.operation_by_port[usize::from(port)], input)
+                .expect("navigation Host Call");
+            self.seen[usize::from(port)] = true;
+            self.next_request = next;
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        for port in 0..self.input_count {
+            let id = PortId(port);
+            if io.input_closed(id)
+                && self.seen[usize::from(port)]
+                && !self.closed[usize::from(port)]
+            {
+                io.consume_closed(id)
+                    .expect("observed navigation input closure");
+                self.closed[usize::from(port)] = true;
+                return StepOutcome::Progress;
+            }
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.deferred = [None; 4];
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl NavigationOperation {
@@ -352,6 +438,7 @@ fn prepare(
     Ok(InstalledOperation::Navigation(NavigationOperation {
         input_count: placement.inputs.len() as u16,
         seen: [false; 4],
+        closed: [false; 4],
         deferred: [None; 4],
         pending: None,
         next_request: 0,
