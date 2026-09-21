@@ -7,8 +7,8 @@ use conduit_core::{
     HostCallRequirement, ImplementationId,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
-    OperationAction, OperationInput, PortId, RequestId,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 use conduit_semantic_catalog::{NormalizedQuantityRefusal, PreparedNormalizedQuantity};
 use std::sync::OnceLock;
@@ -57,7 +57,7 @@ fn prepare(
         return Err("normalized Quantity conversion accepts no configuration".into());
     }
     CONVERTER.get_or_init(PreparedNormalizedQuantity::new);
-    Ok(BrowserOperation::installed(NormalizeOperation {
+    Ok(BrowserOperation::installed_step(NormalizeOperation {
         pending: false,
         next_request: 0,
         cancelled: false,
@@ -91,62 +91,63 @@ struct NormalizeOperation {
     cancelled: bool,
 }
 
-impl Operation for NormalizeOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending && !self.cancelled => {
+impl<const PORTS: usize> StepOperation<PORTS> for NormalizeOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if !self.pending || request.0.checked_add(1) != Some(self.next_request) {
+                return StepOutcome::Fail(failure(11));
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None)
+                    if output.admitted_bytes == 8 && output.value.byte_len == 8 =>
+                {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed normalized Quantity completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready normalized Quantity output");
+                    self.pending = false;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Failed, None, Some(reason)) => {
+                    return StepOutcome::Fail(reason)
+                }
+                _ => return StepOutcome::Fail(failure(11)),
+            }
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if !self.pending && !self.cancelled {
                 let Ok(input) = BoundedValueRef::new(
                     value,
                     conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
                 ) else {
-                    return OperationAction::Fail(failure(11));
+                    return StepOutcome::Fail(failure(11));
                 };
                 let request = RequestId(self.next_request);
                 let Some(next_request) = self.next_request.checked_add(1) else {
-                    return OperationAction::Fail(Failure {
+                    return StepOutcome::Fail(Failure {
                         code: FailureCode::IdentityCapacityExhausted,
                         detail: 15,
                     });
                 };
+                io.consume(PortId(0))
+                    .expect("present normalized Quantity input");
+                io.request_host_call(request, HostCallId(0), input)
+                    .expect("normalized Quantity Host Call");
                 self.next_request = next_request;
                 self.pending = true;
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input,
-                }
+                return StepOutcome::Progress;
             }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending && request.0.checked_add(1) == Some(self.next_request) =>
-            {
-                self.pending = false;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None)
-                        if output.admitted_bytes == 8 && output.value.byte_len == 8 =>
-                    {
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Failed, None, Some(reason)) => {
-                        OperationAction::Fail(reason)
-                    }
-                    _ => OperationAction::Fail(failure(11)),
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.pending => {
-                OperationAction::Complete
-            }
-            _ => OperationAction::Fail(failure(11)),
+            return StepOutcome::Fail(failure(11));
         }
+        if io.input_closed(PortId(0)) && !self.pending {
+            io.consume_closed(PortId(0))
+                .expect("observed normalized Quantity closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -187,16 +188,23 @@ mod tests {
                 next_request: 1,
                 cancelled: false,
             };
-            assert_eq!(
-                operation.resume(OperationInput::HostCallCompleted {
-                    request: RequestId(0),
-                    outcome: conduit_kernel::HostCallOutcome {
+            let mut io = StepIo::test_frame(
+                [None],
+                [false],
+                [Some(8)],
+                Some((
+                    RequestId(0),
+                    conduit_kernel::HostCallOutcome {
                         disposition: HostCallDisposition::Failed,
                         output: None,
                         failure: Some(reason),
                     },
-                }),
-                OperationAction::Fail(reason)
+                )),
+                4,
+            );
+            assert_eq!(
+                operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+                StepOutcome::Fail(reason)
             );
         }
     }
