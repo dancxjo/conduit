@@ -1,12 +1,12 @@
-//! Kernel operation for the distributed toggle browser sink.
+//! Kernel Back for the distributed toggle browser sink.
 //!
-//! `ToggleShowOperation` awaits canonical Boolean values over the remote cord
+//! `ToggleShowBack` awaits canonical Boolean values over the remote cord
 //! and drives `presentation/bool` through the browser kernel.
 
 use conduit_core::BOOL_ENCODED_LEN;
+use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
-    OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 /// Maximum Boolean values that the toggle sink will receive (must match `lib.rs`).
@@ -20,59 +20,69 @@ pub(super) struct CapacitySeal {
     pub(super) projections: usize,
 }
 
-pub(super) struct ToggleShowOperation {
+pub(super) struct ToggleShowBack {
     pub(super) next: usize,
     pub(super) pending: Option<RequestId>,
 }
 
-impl ToggleShowOperation {
-    fn fail(detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure {
+impl ToggleShowBack {
+    fn fail(detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             detail,
         })
     }
 }
 
-impl Operation for ToggleShowOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => {
+impl<const PORTS: usize> StepOperation<PORTS> for ToggleShowBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if self.pending.is_none() {
+            if let Some(value) = io.input(PortId(0)) {
                 let Ok(sequence) = u32::try_from(self.next) else {
                     return Self::fail(1);
                 };
                 let request = RequestId(0x8000_0000 | sequence);
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(value, BOOL_ENCODED_LEN as u32)
-                        .expect("remote Boolean was admitted at its exact byte bound"),
+                if io.consume(PortId(0)).is_err()
+                    || io
+                        .request_host_call(
+                            request,
+                            HostCallId(0),
+                            BoundedValueRef::new(value, BOOL_ENCODED_LEN as u32)
+                                .expect("remote Boolean was admitted at its exact byte bound"),
+                        )
+                        .is_err()
+                {
+                    return Self::fail(2);
                 }
+                self.pending = Some(request);
+                return StepOutcome::Progress;
             }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+            if io.input_closed(PortId(0)) && self.next == MAXIMUM_RECEIPTS {
+                if io.consume_closed(PortId(0)).is_err() {
+                    return Self::fail(3);
+                }
+                return StepOutcome::Complete;
+            }
+            return StepOutcome::Await;
+        }
+
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending == Some(request)
+                && outcome.disposition == HostCallDisposition::Completed
+                && outcome.output.is_none()
+                && outcome.failure.is_none()
+                && io.consume_host_completion().is_ok()
             {
                 self.pending = None;
                 self.next += 1;
-                OperationAction::Await
+                return StepOutcome::Progress;
             }
-            OperationInput::Closed { port: PortId(0) }
-                if self.pending.is_none() && self.next == MAXIMUM_RECEIPTS =>
-            {
-                OperationAction::Complete
-            }
-            _ => Self::fail(2),
+            return Self::fail(4);
         }
+        StepOutcome::Await
     }
 }

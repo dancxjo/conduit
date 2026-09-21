@@ -8,13 +8,13 @@ use super::super::{
     write_typed_presentation_frame, FrameWriter, PreparedProjection, FRAME_CAPACITY,
     MAXIMUM_RECEIPTS, PORTS,
 };
-use super::operation::{CapacitySeal, ToggleShowOperation};
+use super::operation::{CapacitySeal, ToggleShowBack};
 use super::plan::exact_toggle_plan;
 use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, InfoBool, PlanFragment, BOOL_ENCODED_LEN,
 };
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
+    FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
     CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
@@ -44,7 +44,7 @@ pub(super) const SIGN_ITEMS: u16 = 256;
 const PRESSURE_HOLD_SEQUENCE: u64 = 1;
 
 pub(super) type ToggleSinkScheduler = FixedScheduler<
-    OperationDriver<ToggleShowOperation, PORTS>,
+    ToggleShowBack,
     HostedValueStore,
     HostedSignLog,
     1,
@@ -139,11 +139,10 @@ impl ToggleDistributedSink {
             remote_sign_bytes,
         )
         .map_err(|_| ERROR_PREPARE)?;
-        let driver = OperationDriver::new(ToggleShowOperation {
+        let driver = ToggleShowBack {
             next: 0,
             pending: None,
-        })
-        .map_err(|_| ERROR_PREPARE)?;
+        };
         let scheduler = ToggleSinkScheduler::new_with_host_calls(
             lowered
                 .node_specs
