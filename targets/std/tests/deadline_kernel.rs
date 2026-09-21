@@ -1,11 +1,11 @@
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepInputBytes, StepIo, StepOperation,
+    StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, HostCallBinding,
     HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, NodeId,
-    Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
-    ValueRef, ValueStorage,
+    PortId, RequestId, RouteRange, RouteTarget, ValueRef, ValueStorage,
 };
 use conduit_std_host::{DeadlineHostAdapter, DeadlineWake};
 
@@ -14,7 +14,6 @@ enum DeadlineOperation {
     Reset {
         initial: ValueRef,
         replacement: Option<ValueRef>,
-        cancellation: Option<RequestId>,
         phase: u8,
     },
     Source {
@@ -23,103 +22,96 @@ enum DeadlineOperation {
     },
 }
 
-impl Operation for DeadlineOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepOperation<2> for DeadlineOperation {
+    fn step(&mut self, io: &mut StepIo<2>, _: &StepInputBytes<'_, 2>) -> StepOutcome {
         match self {
-            Self::Reset { initial, phase, .. } => {
-                *phase = 1;
-                OperationAction::RequestHostCall {
-                    request: RequestId(21),
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(*initial, 8).unwrap(),
+            Self::Reset {
+                initial,
+                replacement,
+                phase,
+                ..
+            } => match *phase {
+                0 => {
+                    io.request_host_call(
+                        RequestId(21),
+                        HostCallId(0),
+                        BoundedValueRef::new(*initial, 8).unwrap(),
+                    )
+                    .unwrap();
+                    *phase = 1;
+                    StepOutcome::Progress
                 }
-            }
-            Self::Source { value, .. } => OperationAction::Emit {
-                port: PortId(0),
-                value: *value,
+                1 => {
+                    if let Some((request, outcome)) = io.host_completion() {
+                        if request != RequestId(21)
+                            || outcome.disposition != HostCallDisposition::Cancelled
+                            || outcome.output.is_some()
+                            || outcome.failure.is_some()
+                            || io.consume_host_completion().is_err()
+                        {
+                            return invalid_deadline_lifecycle();
+                        }
+                        let Some(value) = replacement.take() else {
+                            return invalid_deadline_lifecycle();
+                        };
+                        io.request_host_call(
+                            RequestId(22),
+                            HostCallId(0),
+                            BoundedValueRef::new(value, 8).unwrap(),
+                        )
+                        .unwrap();
+                        *phase = 2;
+                        return StepOutcome::Progress;
+                    }
+                    let Some(value) = io.input(PortId(0)) else {
+                        return StepOutcome::Await;
+                    };
+                    io.take_input(PortId(0)).unwrap();
+                    io.cancel_host_call(RequestId(21)).unwrap();
+                    *replacement = Some(value);
+                    StepOutcome::Progress
+                }
+                2 => {
+                    let Some((request, outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    if request != RequestId(22)
+                        || outcome.disposition != HostCallDisposition::Completed
+                        || outcome.output.is_some()
+                        || outcome.failure.is_some()
+                        || io.consume_host_completion().is_err()
+                    {
+                        return invalid_deadline_lifecycle();
+                    }
+                    *phase = 3;
+                    StepOutcome::Complete
+                }
+                _ => StepOutcome::Complete,
             },
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Reset {
-                    replacement,
-                    cancellation,
-                    phase: 1,
-                    ..
-                },
-                OperationInput::Value { value, .. },
-            ) => {
-                *replacement = Some(value);
-                *cancellation = Some(RequestId(21));
-                OperationAction::Await
-            }
-            (
-                Self::Reset {
-                    replacement, phase, ..
-                },
-                OperationInput::HostCallCompleted {
-                    request: RequestId(21),
-                    outcome,
-                },
-            ) if outcome.disposition == HostCallDisposition::Cancelled => {
-                *phase = 2;
-                OperationAction::RequestHostCall {
-                    request: RequestId(22),
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(replacement.take().unwrap(), 8).unwrap(),
+            Self::Source { value, advanced } => {
+                if *advanced {
+                    return StepOutcome::Complete;
                 }
-            }
-            (
-                Self::Reset { phase, .. },
-                OperationInput::HostCallCompleted {
-                    request: RequestId(22),
-                    outcome,
-                },
-            ) if outcome.disposition == HostCallDisposition::Completed => {
-                *phase = 3;
-                OperationAction::Complete
-            }
-            _ => OperationAction::Fail(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::InvalidInput,
-                detail: 856,
-            }),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source { advanced, .. } if !*advanced => {
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                io.send(PortId(0), *value).unwrap();
                 *advanced = true;
-                OperationAction::Complete
+                StepOutcome::Complete
             }
-            _ => OperationAction::Await,
         }
     }
 
     fn accepts_input_while_host_call_pending(&self) -> bool {
         matches!(self, Self::Reset { phase: 1, .. })
     }
+}
 
-    fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
-        match self {
-            Self::Reset { cancellation, .. } => cancellation.take(),
-            Self::Source { .. } => None,
-        }
-    }
-
-    fn retains_resumed_value(&self) -> bool {
-        matches!(
-            self,
-            Self::Reset {
-                replacement: Some(_),
-                phase: 1,
-                ..
-            }
-        )
-    }
+fn invalid_deadline_lifecycle() -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidInput,
+        detail: 856,
+    })
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -200,18 +192,15 @@ fn production_kernel_arms_cancels_replaces_and_completes_one_deadline() {
         routes,
         bindings,
         [
-            OperationDriver::new(DeadlineOperation::Reset {
+            DeadlineOperation::Reset {
                 initial,
                 replacement: None,
-                cancellation: None,
                 phase: 0,
-            })
-            .unwrap(),
-            OperationDriver::new(DeadlineOperation::Source {
+            },
+            DeadlineOperation::Source {
                 value: replacement,
                 advanced: false,
-            })
-            .unwrap(),
+            },
         ],
         values,
         signs,
