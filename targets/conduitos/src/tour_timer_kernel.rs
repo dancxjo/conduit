@@ -5,10 +5,11 @@ use alloc::vec::Vec;
 use conduit_core::{ConfigurationValue, PlanFragment};
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, Operation, OperationAction,
-    OperationInput, PortId, RequestId, SignSink, ValueRef, ValueStorage,
+    HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, PortId, RequestId, SignSink,
+    ValueRef, ValueStorage,
     scheduler::{
-        FixedScheduler, HostCallRequest, OperationDriver, SchedulerError, SchedulerStatus,
+        FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus, StepInputBytes, StepIo,
+        StepOperation, StepOutcome,
     },
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
@@ -21,9 +22,8 @@ const VALUES: usize = 6;
 const VALUE_BYTES: usize = 48;
 const SIGNS: usize = 96;
 
-type Driver = OperationDriver<TimerOperation, PORTS>;
 type Scheduler = FixedScheduler<
-    Driver,
+    TimerBack,
     FixedValueStore<VALUES, 8>,
     FixedSignLog<SIGNS>,
     NODES,
@@ -37,7 +37,7 @@ type Scheduler = FixedScheduler<
 >;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum TimerOperation {
+enum TimerBack {
     Every {
         waits: [BoundedValueRef; 2],
         tick: ValueRef,
@@ -56,116 +56,54 @@ enum TimerOperation {
     },
 }
 
-impl Operation for TimerOperation {
-    fn start(&mut self) -> OperationAction {
-        match self {
-            Self::Every {
-                waits, next_wait, ..
-            } => request_wait(waits, next_wait),
-            Self::Count { zero, .. } => OperationAction::Emit {
-                port: PortId(0),
-                value: *zero,
-            },
-            Self::Presentation { .. } => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Every {
-                    tick,
-                    emitting,
-                    next_wait,
-                    ..
-                },
-                OperationInput::HostCallCompleted { request, outcome },
-            ) if usize::try_from(request.0).ok() == Some(*next_wait)
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                *emitting = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: *tick,
-                }
-            }
-            (
-                Self::Count {
-                    one,
-                    initial_emitted: true,
-                    bumped,
-                    ..
-                },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if !*bumped && value.byte_len == conduit_time::TICK_ENCODED_LEN => {
-                *bumped = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: *one,
-                }
-            }
-            (
-                Self::Presentation {
-                    pending,
-                    next_request,
-                },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if pending.is_none() => {
-                let Ok(input) =
-                    BoundedValueRef::new(value, conduit_semantic_catalog::COUNT_ENCODED_LEN)
-                else {
-                    return invalid(20);
-                };
-                let request = RequestId(*next_request);
-                *next_request = next_request.saturating_add(1);
-                *pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: conduit_kernel::HostCallId(0),
-                    input,
-                }
-            }
-            (
-                Self::Presentation { pending, .. },
-                OperationInput::HostCallCompleted { request, outcome },
-            ) if *pending == Some(request)
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                *pending = None;
-                OperationAction::Await
-            }
-            _ => invalid(21),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for TimerBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
             Self::Every {
                 waits,
+                tick,
                 emitting,
                 next_wait,
-                ..
-            } if *emitting => {
-                *emitting = false;
-                request_wait(waits, next_wait)
-            }
+            } => step_every(waits, *tick, emitting, next_wait, io),
             Self::Count {
-                initial_emitted, ..
+                zero,
+                one,
+                initial_emitted,
+                bumped,
             } => {
-                *initial_emitted = true;
-                OperationAction::Await
+                if !*initial_emitted {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    if io.send(PortId(0), *zero).is_err() {
+                        return invalid(21);
+                    }
+                    *initial_emitted = true;
+                    return StepOutcome::Progress;
+                }
+                if let Some(value) = io.input(PortId(0)) {
+                    if *bumped || value.byte_len != conduit_time::TICK_ENCODED_LEN {
+                        return invalid(21);
+                    }
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    if io.consume(PortId(0)).is_err() || io.send(PortId(0), *one).is_err() {
+                        return invalid(21);
+                    }
+                    *bumped = true;
+                    return StepOutcome::Progress;
+                }
+                StepOutcome::Await
             }
-            _ => OperationAction::Await,
+            Self::Presentation {
+                pending,
+                next_request,
+            } => step_presentation(pending, next_request, io),
         }
     }
 
@@ -176,21 +114,89 @@ impl Operation for TimerOperation {
     }
 }
 
-fn request_wait(waits: &[BoundedValueRef; 2], next_wait: &mut usize) -> OperationAction {
+fn step_every(
+    waits: &[BoundedValueRef; 2],
+    tick: ValueRef,
+    pending: &mut bool,
+    next_wait: &mut usize,
+    io: &mut StepIo<PORTS>,
+) -> StepOutcome {
+    if *pending {
+        let Some((request, outcome)) = io.host_completion() else {
+            return StepOutcome::Await;
+        };
+        if usize::try_from(request.0).ok() != Some(*next_wait)
+            || outcome.disposition != HostCallDisposition::Completed
+            || outcome.output.is_some()
+            || outcome.failure.is_some()
+        {
+            return invalid(21);
+        }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        if io.consume_host_completion().is_err() || io.send(PortId(0), tick).is_err() {
+            return invalid(21);
+        }
+        *pending = false;
+        return StepOutcome::Progress;
+    }
     let Some(wait) = waits.get(*next_wait).copied() else {
         return invalid(10);
     };
     let request = RequestId(u32::try_from(*next_wait + 1).unwrap_or(u32::MAX));
-    *next_wait += 1;
-    OperationAction::RequestHostCall {
-        request,
-        operation: conduit_kernel::HostCallId(0),
-        input: wait,
+    if io
+        .request_host_call(request, conduit_kernel::HostCallId(0), wait)
+        .is_err()
+    {
+        return invalid(10);
     }
+    *next_wait += 1;
+    *pending = true;
+    StepOutcome::Progress
 }
 
-const fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+fn step_presentation(
+    pending: &mut Option<RequestId>,
+    next_request: &mut u32,
+    io: &mut StepIo<PORTS>,
+) -> StepOutcome {
+    if let Some(request) = *pending {
+        let Some((completed, outcome)) = io.host_completion() else {
+            return StepOutcome::Await;
+        };
+        if completed != request
+            || outcome.disposition != HostCallDisposition::Completed
+            || outcome.output.is_some()
+            || outcome.failure.is_some()
+            || io.consume_host_completion().is_err()
+        {
+            return invalid(21);
+        }
+        *pending = None;
+        return StepOutcome::Progress;
+    }
+    let Some(value) = io.input(PortId(0)) else {
+        return StepOutcome::Await;
+    };
+    let Ok(input) = BoundedValueRef::new(value, conduit_semantic_catalog::COUNT_ENCODED_LEN) else {
+        return invalid(20);
+    };
+    let request = RequestId(*next_request);
+    if io.consume(PortId(0)).is_err()
+        || io
+            .request_host_call(request, conduit_kernel::HostCallId(0), input)
+            .is_err()
+    {
+        return invalid(21);
+    }
+    *next_request = next_request.saturating_add(1);
+    *pending = Some(request);
+    StepOutcome::Progress
+}
+
+const fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
         detail,
     })
@@ -239,7 +245,7 @@ impl TourTimerKernel {
         let mut drivers = Vec::with_capacity(NODES);
         for index in 0..NODES {
             let operation = if index == timer {
-                TimerOperation::Every {
+                TimerBack::Every {
                     waits: [
                         BoundedValueRef::new(wait, 8)?,
                         BoundedValueRef::new(next_wait, 8)?,
@@ -249,21 +255,21 @@ impl TourTimerKernel {
                     next_wait: 0,
                 }
             } else if index == count {
-                TimerOperation::Count {
+                TimerBack::Count {
                     zero,
                     one,
                     initial_emitted: false,
                     bumped: false,
                 }
             } else {
-                TimerOperation::Presentation {
+                TimerBack::Presentation {
                     pending: None,
                     next_request: 1,
                 }
             };
-            drivers.push(OperationDriver::new(operation)?);
+            drivers.push(operation);
         }
-        let drivers: [Driver; NODES] = drivers
+        let drivers: [TimerBack; NODES] = drivers
             .try_into()
             .map_err(|_| SchedulerError::InvalidPlan)?;
         let nodes = lowered
