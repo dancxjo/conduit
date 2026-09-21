@@ -89,14 +89,14 @@ impl<const PORTS: usize> StepBack<PORTS> for ExternalWebSocketListenerBack {
                     if outcome.disposition == HostCallDisposition::Cancelled
                         && outcome.failure.is_none() =>
                 {
-                    let Some(output) = outcome.output else {
-                        return step_fail(25);
-                    };
                     io.consume_host_completion()
                         .expect("observed external WebSocket peer closure");
                     self.pending = None;
                     self.connected[peer] = false;
                     if self.connected.iter().any(|connected| *connected) {
+                        let Some(output) = outcome.output else {
+                            return step_fail(25);
+                        };
                         return self.request_receive_step(io, output.value);
                     }
                     return StepOutcome::Complete;
