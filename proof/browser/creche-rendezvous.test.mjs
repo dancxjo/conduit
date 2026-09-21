@@ -13,6 +13,27 @@ test("browser decodes the exact canonical Rust and ConduitOS rendezvous vector",
     ["candidate/direct", "candidate/relay"]);
   assert.deepEqual([...decoded.session_secret], new Array(32).fill(0x55));
 });
+
+test("browser decodes the shared bounded WebRTC candidate without retaining signaling", () => {
+  const candidate = new Map([
+    [0, "candidate/webrtc"],
+    [1, 4],
+    [2, "webrtc-bootstrap:operator/negotiation-7"],
+    [3, new Map([[0, "host/peer/key-7"], [1, new Uint8Array(32).fill(0xef)]])],
+    [4, Date.now() + 30_000],
+    [5, 1],
+    [6, 10_000],
+  ]);
+  const decoded = decodeRendezvousManifestation(
+    `conduit-rendezvous-v1:${Buffer.from(encodeCanonicalCbor(new Map([
+      [0, 1], [1, [candidate]], [2, new Uint8Array(32).fill(0xcd)],
+    ]))).toString("base64url")}`,
+  );
+  assert.equal(decoded.candidates[0].line_family, "web-rtc-data-channel");
+  assert.equal(decoded.candidates[0].reachability, "webrtc-bootstrap:operator/negotiation-7");
+  assert.equal("sdp" in decoded.candidates[0], false);
+  assert.equal("ice_credentials" in decoded.candidates[0], false);
+});
 test("browser verifies the exact RFC 9052 Sign1 vector under caller-owned policy", async () => {
   const hex = readFileSync(new URL("../../architecture/body/schemas/running-host-rendezvous-sign1-v1.hex", import.meta.url), "utf8").trim();
   const publicKey = await crypto.subtle.importKey("raw",
