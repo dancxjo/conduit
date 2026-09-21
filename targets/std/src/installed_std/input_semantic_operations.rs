@@ -376,20 +376,21 @@ mod tests {
             generation: 1,
             byte_len: KEY_EVENT_ENCODED_LEN as u32,
         };
-        assert!(matches!(
-            operation.resume(OperationInput::Value {
-                port: PortId(0),
-                value,
-            }),
-            OperationAction::RequestHostCall {
-                request: RequestId(0),
-                ..
-            }
-        ));
-        operation.cancel();
+        let mut io = StepIo::test_frame([Some(value)], [false], [Some(4)], None, 8);
         assert_eq!(
-            operation.resume(OperationInput::Closed { port: PortId(0) }),
-            OperationAction::Complete
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
         );
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(0))
+        );
+        StepOperation::<1>::cancel(&mut operation);
+        let mut io = StepIo::test_frame([None], [true], [None], None, 8);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Complete
+        );
+        assert!(io.test_consumed_closed(PortId(0)));
     }
 }

@@ -229,26 +229,42 @@ mod tests {
             released: None,
             retain_resumed: false,
         };
-        assert_eq!(operation.start(), OperationAction::Await);
-        assert!(matches!(
-            operation.resume(OperationInput::Value {
-                port: PortId(0),
-                value: value(1),
-            }),
-            OperationAction::Emit { value: found, .. } if found == value(1)
-        ));
-        assert!(operation.retains_resumed_value());
-        assert_eq!(operation.take_released_value(), None);
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: value(2),
-        });
-        assert_eq!(operation.take_released_value(), Some(value(1)));
-        assert_eq!(
-            operation.resume(OperationInput::Closed { port: PortId(0) }),
-            OperationAction::Complete
+        let mut io = StepIo::test_frame(
+            [Some(value(1))],
+            [false],
+            [Some(SCALAR_ENCODED_LEN as u32)],
+            None,
+            8,
         );
-        assert_eq!(operation.take_released_value(), Some(value(2)));
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert!(io.test_retained(PortId(0)));
+        assert_eq!(io.test_output(PortId(0)), Some(value(1)));
+
+        let mut io = StepIo::test_frame(
+            [Some(value(2))],
+            [false],
+            [Some(SCALAR_ENCODED_LEN as u32)],
+            None,
+            8,
+        );
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert!(io.test_retained(PortId(0)));
+        assert!(io.test_discards().contains(&Some(value(1))));
+        assert_eq!(io.test_output(PortId(0)), Some(value(2)));
+
+        let mut io = StepIo::test_frame([None], [true], [None], None, 8);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Complete
+        );
+        assert!(io.test_consumed_closed(PortId(0)));
+        assert!(io.test_discards().contains(&Some(value(2))));
     }
 
     #[test]
@@ -257,23 +273,19 @@ mod tests {
             pending: None,
             phase: 0,
         };
-        assert_eq!(
-            operation.resume(OperationInput::Value {
-                port: PortId(0),
-                value: value(3),
-            }),
-            OperationAction::Emit {
-                port: PortId(0),
-                value: value(3),
-            }
+        let mut io = StepIo::test_frame(
+            [Some(value(3)), None],
+            [false; 2],
+            [Some(SCALAR_ENCODED_LEN as u32); 2],
+            None,
+            8,
         );
         assert_eq!(
-            operation.advance(),
-            OperationAction::Emit {
-                port: PortId(1),
-                value: value(3),
-            }
+            operation.step(&mut io, &StepInputBytes::test_frame([None, None], None)),
+            StepOutcome::Progress
         );
-        assert_eq!(operation.advance(), OperationAction::Await);
+        assert!(io.test_consumed(PortId(0)));
+        assert_eq!(io.test_output(PortId(0)), Some(value(3)));
+        assert_eq!(io.test_output(PortId(1)), Some(value(3)));
     }
 }
