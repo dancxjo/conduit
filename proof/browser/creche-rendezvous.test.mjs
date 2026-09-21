@@ -226,12 +226,50 @@ test("finite secure LAN descriptor selects the authenticated TLS Line", () => {
     { code: "InvalidDescriptor" });
 });
 
+test("shared WebRTC candidate carries the unchanged running-Host admission session", async () => {
+  const line = new FakeRendezvousLine("conduit-line/webrtc-data-channel@1");
+  const session = await connectRendezvousHost(webRtcDescriptor(), {
+    openWebRtcLine: async () => line,
+  });
+  assert.equal(session.line_id, "conduit-line/webrtc-data-channel@1");
+  assert.deepEqual(session.rendezvous_attempts.map(({ candidate_id, outcome }) => [
+    candidate_id, outcome,
+  ]), [["candidate/webrtc", "connected"]]);
+  const prepared = {
+    spore_id: "spore/webrtc", image_id: "image/webrtc",
+    invitation_id: "invitation/webrtc", body_id: "body/webrtc",
+    invitation_nonce: new Array(32).fill(23),
+    invitation_secret: new Array(32).fill(31),
+    invitation_expires_at_millis: Date.now() + 60_000,
+  };
+  const join = await session.invite(prepared);
+  assert.equal(join.spore_id, "spore/webrtc");
+  assert.equal(join.signature.length, 64);
+  assert.equal(line.closed, true);
+});
+
 function secureDescriptor({ expiresAt = Date.now() + 30_000, scheme = "wss" } = {}) {
   const candidate = new Map([
     [0, "candidate/secure-lan"],
     [1, 0],
     [2, `${scheme}://conduit-host.test:7443/conduit`],
     [3, new Map([[0, "conduit-host.test"], [1, new Uint8Array(32).fill(0xab)]])],
+    [4, expiresAt],
+    [5, 1],
+    [6, 10_000],
+  ]);
+  const bytes = encodeCanonicalCbor(new Map([
+    [0, 1], [1, [candidate]], [2, new Uint8Array(32).fill(0xcd)],
+  ]));
+  return `conduit-rendezvous-v1:${Buffer.from(bytes).toString("base64url")}`;
+}
+
+function webRtcDescriptor(expiresAt = Date.now() + 30_000) {
+  const candidate = new Map([
+    [0, "candidate/webrtc"],
+    [1, 4],
+    [2, "webrtc-bootstrap:operator/negotiation-7"],
+    [3, new Map([[0, "host/peer/key-7"], [1, new Uint8Array(32).fill(0xef)]])],
     [4, expiresAt],
     [5, 1],
     [6, 10_000],
@@ -480,6 +518,38 @@ class FakeWebSocket extends EventTarget {
     this.readyState = 3;
     this.dispatchEvent(new Event("close"));
   }
+}
+
+class FakeRendezvousLine {
+  constructor(lineId) {
+    this.lineId = lineId;
+    this.responses = [];
+    this.waiter = null;
+    this.closed = false;
+  }
+  async sendBytes(bytes) {
+    const request = JSON.parse(new TextDecoder().decode(bytes));
+    if (request.kind === "close") { this.closed = true; return; }
+    const advertisement = { host_id: "host/webrtc", boot_id: "boot/webrtc", offer_generation: 1 };
+    const response = request.kind === "hello" ? {
+      kind: "host", protocol: 1, friendly_label: "This running computer",
+      target_id: "std/x86_64/computer", image_content_digest: `sha256:${"3".repeat(64)}`,
+      advertisement, lines: [this.lineId],
+    } : {
+      kind: "join", protocol: 1, spore_id: request.spore_id, image_id: request.image_id,
+      advertisement, invitation_id: request.claim.invitation_id, body_id: request.claim.body_id,
+      host_id: advertisement.host_id, boot_id: advertisement.boot_id, nonce: request.claim.nonce,
+      signature: new Array(64).fill(9), observed_at_millis: Date.now(),
+    };
+    const encoded = new TextEncoder().encode(JSON.stringify(response));
+    if (this.waiter) { const waiter = this.waiter; this.waiter = null; waiter(encoded); }
+    else this.responses.push(encoded);
+  }
+  async receiveBytes() {
+    if (this.responses.length) return this.responses.shift();
+    return await new Promise((resolve) => { this.waiter = resolve; });
+  }
+  async close() { this.closed = true; }
 }
 
 class FakeSerialPort {
