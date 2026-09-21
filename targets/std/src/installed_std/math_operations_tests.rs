@@ -1,5 +1,8 @@
 use super::*;
-use conduit_kernel::{HostCallOutcome, ValueRef};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    HostCallOutcome, ValueRef,
+};
 
 fn value(slot: u16) -> ValueRef {
     ValueRef {
@@ -27,24 +30,32 @@ fn quantity_completion_checks_output_bound_and_preserves_failure_detail() {
         input_bytes: SCALAR_ENCODED_LEN as u32,
         output_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
     };
-    active.resume(OperationInput::Value {
-        port: PortId(0),
-        value: value(1),
-    });
+    let mut io = StepIo::test_frame([Some(value(1))], [false], [Some(32)], None, 8);
+    assert_eq!(
+        active.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
     let failure = Failure {
         code: FailureCode::InvalidInput,
         detail: 4,
     };
-    assert_eq!(
-        active.resume(OperationInput::HostCallCompleted {
-            request: RequestId(0),
-            outcome: HostCallOutcome {
+    let mut io = StepIo::test_frame(
+        [None],
+        [false],
+        [Some(32)],
+        Some((
+            RequestId(0),
+            HostCallOutcome {
                 disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
-        }),
-        OperationAction::Fail(failure)
+        )),
+        8,
+    );
+    assert_eq!(
+        active.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Fail(failure)
     );
 
     let mut active = MathScalarOperation {
@@ -53,20 +64,28 @@ fn quantity_completion_checks_output_bound_and_preserves_failure_detail() {
         input_bytes: SCALAR_ENCODED_LEN as u32,
         output_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
     };
-    active.resume(OperationInput::Value {
-        port: PortId(0),
-        value: value(1),
-    });
-    assert!(matches!(
-        active.resume(OperationInput::HostCallCompleted {
-            request: RequestId(0),
-            outcome: HostCallOutcome {
+    let mut io = StepIo::test_frame([Some(value(1))], [false], [Some(32)], None, 8);
+    assert_eq!(
+        active.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
+    let mut io = StepIo::test_frame(
+        [None],
+        [false],
+        [Some(32)],
+        Some((
+            RequestId(0),
+            HostCallOutcome {
                 disposition: HostCallDisposition::Completed,
                 output: Some(BoundedValueRef::new(value(2), SCALAR_ENCODED_LEN as u32).unwrap()),
                 failure: None,
             },
-        }),
-        OperationAction::Fail(_)
+        )),
+        8,
+    );
+    assert!(matches!(
+        active.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Fail(_)
     ));
 }
 
@@ -100,58 +119,71 @@ fn transform_vectors_match_the_portable_no_std_semantics() {
 #[test]
 fn operation_requires_one_exact_completion_and_closure_is_terminal() {
     let mut active = operation();
-    assert_eq!(active.start(), OperationAction::Await);
-    assert!(matches!(
-        active.resume(OperationInput::Value {
-            port: PortId(0),
-            value: value(1),
-        }),
-        OperationAction::RequestHostCall {
-            request: RequestId(0),
-            ..
-        }
-    ));
-    assert!(matches!(
-        active.resume(OperationInput::HostCallCompleted {
-            request: RequestId(0),
-            outcome: HostCallOutcome {
+    let mut io = StepIo::test_frame([Some(value(1))], [false], [Some(32)], None, 8);
+    assert_eq!(
+        active.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
+    assert_eq!(
+        io.test_host_request().map(|request| request.0),
+        Some(RequestId(0))
+    );
+    let mut io = StepIo::test_frame(
+        [None],
+        [false],
+        [Some(SCALAR_ENCODED_LEN as u32)],
+        Some((
+            RequestId(0),
+            HostCallOutcome {
                 disposition: HostCallDisposition::Completed,
                 output: Some(BoundedValueRef::new(value(2), SCALAR_ENCODED_LEN as u32).unwrap()),
                 failure: None,
             },
-        }),
-        OperationAction::Emit {
-            port: PortId(0),
-            value: emitted,
-        } if emitted == value(2)
-    ));
+        )),
+        8,
+    );
+    assert_eq!(
+        active.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
+    assert_eq!(io.test_output(PortId(0)), Some(value(2)));
 
     let mut closed = operation();
+    let mut io = StepIo::test_frame([None], [true], [None], None, 8);
     assert_eq!(
-        closed.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::Complete
+        closed.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Complete
     );
 }
 
 #[test]
 fn cancellation_clears_pending_transform_without_inventing_output() {
     let mut operation = operation();
-    operation.resume(OperationInput::Value {
-        port: PortId(0),
-        value: value(1),
-    });
-    operation.cancel();
+    let mut io = StepIo::test_frame([Some(value(1))], [false], [Some(32)], None, 8);
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
+    StepOperation::<1>::cancel(&mut operation);
     assert!(operation.pending.is_none());
     assert!(operation.completed);
-    assert!(matches!(
-        operation.resume(OperationInput::HostCallCompleted {
-            request: RequestId(0),
-            outcome: HostCallOutcome {
+    let mut io = StepIo::test_frame(
+        [None],
+        [false],
+        [Some(32)],
+        Some((
+            RequestId(0),
+            HostCallOutcome {
                 disposition: HostCallDisposition::Completed,
                 output: Some(BoundedValueRef::new(value(2), SCALAR_ENCODED_LEN as u32).unwrap()),
                 failure: None,
             },
-        }),
-        OperationAction::Fail(_)
-    ));
+        )),
+        8,
+    );
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Complete
+    );
+    assert!(!io.test_host_completion_consumed());
 }
