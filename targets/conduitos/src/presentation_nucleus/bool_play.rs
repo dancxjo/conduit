@@ -6,9 +6,7 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal, kind_id, port_id, resource_offer,
 };
 use conduit_form::{ProfileCatalog, parse};
-use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{CordSpec, FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
     FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, HostCallDisposition,
     HostCallOutcome, ValueStorage,
@@ -19,7 +17,7 @@ use conduit_presentation::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, LayoutRect, MAX_GRAPHICS_SCENE_BYTES,
 };
 
-use super::operation::PresentationOperation;
+use super::back::PresentationBack;
 use crate::display::{DisplayError, DisplayReceipt, PixelTarget, render_scene};
 
 const SOURCE_KIND: &str = "conduitos/fixture-bool-source";
@@ -37,7 +35,7 @@ const VALUE_BYTES: usize = VALUES * MAX_VALUE_BYTES;
 const SIGNS: usize = 32;
 
 type Scheduler = FixedScheduler<
-    OperationDriver<PresentationOperation, PORTS>,
+    PresentationBack,
     FixedValueStore<VALUES, MAX_VALUE_BYTES>,
     FixedSignLog<SIGNS>,
     NODES,
@@ -285,7 +283,7 @@ fn scheduler(
         .iter()
         .map(|placement| {
             let operation = if placement.kind_id.as_str() == SOURCE_KIND {
-                PresentationOperation::Source {
+                PresentationBack::Source {
                     value: values
                         .store(&value.encode())
                         .map_err(|_| BoolPresentationError::Value)?,
@@ -293,7 +291,7 @@ fn scheduler(
                 }
             } else if placement.kind_id.as_str() == conduit_semantic_catalog::BOOL_PRESENTATION_KIND
             {
-                PresentationOperation::Sink {
+                PresentationBack::Sink {
                     maximum_input_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
                     pending: false,
                     complete: false,
@@ -301,7 +299,7 @@ fn scheduler(
             } else {
                 return Err(BoolPresentationError::Shape);
             };
-            OperationDriver::new(operation).map_err(|_| BoolPresentationError::Kernel)
+            Ok(operation)
         })
         .collect::<Result<Vec<_>, _>>()?
         .try_into()

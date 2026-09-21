@@ -1,5 +1,6 @@
 //! Ordinary portable presentation execution on the ConduitOS display Base.
 
+mod back;
 mod bool_play;
 mod flow_state_operation;
 mod flow_state_plan;
@@ -14,7 +15,6 @@ mod logic_not_play;
 mod math_clamp_play;
 #[cfg(test)]
 mod math_clamp_play_tests;
-mod operation;
 mod plan;
 mod play;
 mod portable_state_input_operation;
@@ -22,7 +22,7 @@ mod portable_state_input_plan;
 mod portable_state_input_play;
 #[cfg(test)]
 mod portable_state_input_tests;
-mod robotics_operation;
+mod robotics_back;
 mod robotics_plan;
 mod robotics_play;
 #[cfg(test)]
@@ -51,7 +51,7 @@ pub use portable_state_input_plan::{PreparedPortableStateInput, prepare_portable
 pub use portable_state_input_play::{
     PortableStateInputError, PortableStateInputProof, run_portable_state_input,
 };
-pub use robotics_operation::RoboticsDriveEffect;
+pub use robotics_back::RoboticsDriveEffect;
 pub use robotics_plan::{PreparedRobotics, prepare_robotics};
 pub use robotics_play::{RoboticsError, RoboticsProof, run_robotics};
 pub use state_select_plan::{PreparedStateSelect, StateSelectSequence, prepare_state_select};

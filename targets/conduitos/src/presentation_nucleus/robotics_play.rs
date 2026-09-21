@@ -1,16 +1,16 @@
 //! Fixed production-kernel execution for the complete PREWAKE robotics family.
 
 use alloc::vec::Vec;
-use conduit_kernel::scheduler::{CordSpec, FixedScheduler, OperationDriver, SchedulerStatus};
+use conduit_kernel::scheduler::{CordSpec, FixedScheduler, SchedulerStatus};
 use conduit_kernel::{
     FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, NodeId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 
 use super::{
-    operation::PresentationOperation,
-    robotics_operation::RoboticsDiscardOperation,
-    robotics_operation::{RoboticsDriveEffect, RoboticsDriveOperation, RoboticsSourceOperation},
+    back::PresentationBack,
+    robotics_back::RoboticsDiscardBack,
+    robotics_back::{RoboticsDriveBack, RoboticsDriveEffect, RoboticsSourceBack},
     robotics_plan::{
         BATTERY_SINK_KIND, BUMP_SINK_KIND, IMU_SINK_KIND, ODOMETRY_SINK_KIND, PreparedRobotics,
         RANGE_SINK_KIND,
@@ -28,7 +28,7 @@ const VALUE_BYTES: usize = VALUES * MAX_VALUE_BYTES;
 const SIGNS: usize = 160;
 
 type Kernel = FixedScheduler<
-    OperationDriver<PresentationOperation, PORTS>,
+    PresentationBack,
     FixedValueStore<VALUES, MAX_VALUE_BYTES>,
     FixedSignLog<SIGNS>,
     NODES,
@@ -86,9 +86,7 @@ pub fn run_robotics(prepared: &PreparedRobotics) -> Result<RoboticsProof, Roboti
             SchedulerStatus::Drained => break,
             SchedulerStatus::Idle => {
                 return Err(RoboticsError::Idle(
-                    kernel.drivers()[usize::from(drive.0)]
-                        .operation()
-                        .robotics_effect(),
+                    kernel.drivers()[usize::from(drive.0)].robotics_effect(),
                 ));
             }
             SchedulerStatus::Cancelled => {
@@ -99,7 +97,6 @@ pub fn run_robotics(prepared: &PreparedRobotics) -> Result<RoboticsProof, Roboti
         }
     }
     let effect = kernel.drivers()[usize::from(drive.0)]
-        .operation()
         .robotics_effect()
         .ok_or(RoboticsError::Shape)?;
     Ok(RoboticsProof {
@@ -169,12 +166,12 @@ fn scheduler(
                     | ODOMETRY_SINK_KIND
                     | BATTERY_SINK_KIND
             ) {
-                PresentationOperation::RoboticsDiscard(RoboticsDiscardOperation::new())
+                PresentationBack::RoboticsDiscard(RoboticsDiscardBack::new())
             } else if placement.kind_id.as_str()
                 == conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND
             {
                 drive = Some(NodeId(index as u16));
-                PresentationOperation::RoboticsDrive(RoboticsDriveOperation::new())
+                PresentationBack::RoboticsDrive(RoboticsDriveBack::new())
             } else {
                 let encoded = conduit_semantic_catalog::robotics_simulation_values(
                     placement.kind_id.as_str(),
@@ -187,7 +184,7 @@ fn scheduler(
                         *slot = Some(values.store(canonical).map_err(|_| RoboticsError::Value)?);
                     }
                 }
-                PresentationOperation::RoboticsSource(RoboticsSourceOperation {
+                PresentationBack::RoboticsSource(RoboticsSourceBack {
                     availability: conduit_semantic_catalog::robotics_simulation_availability(
                         &placement.configuration,
                     )
@@ -197,7 +194,7 @@ fn scheduler(
                     cancelled: false,
                 })
             };
-            OperationDriver::new(operation).map_err(RoboticsError::Kernel)
+            Ok(operation)
         })
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
