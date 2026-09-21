@@ -1,5 +1,8 @@
 use super::*;
-use conduit_kernel::{BoundedValueRef, HostCallOutcome, OperationAction, OperationInput};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    BoundedValueRef, HostCallOutcome,
+};
 
 fn value(slot: u16, byte_len: u32) -> ValueRef {
     ValueRef {
@@ -15,18 +18,46 @@ fn initialized_operation() -> LeniaStepOperation {
         .encode()
         .unwrap();
     let mut operation = LeniaStepOperation::new();
-    assert!(matches!(
-        operation.resume_value(PortId(0), value(1, seed.len() as u32), &seed),
-        OperationAction::RequestHostCall {
-            request: RequestId(0),
-            operation: HostCallId(0),
-            ..
-        }
-    ));
-    assert_eq!(operation.resume(complete(0, None)), OperationAction::Await);
+    let mut io = StepIo::test_frame(
+        [Some(value(1, seed.len() as u32)), None],
+        [false; 2],
+        [Some(LENIA_MAXIMUM_FIELD_BYTES), None],
+        None,
+        8,
+    );
     assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::Await
+        operation.step(
+            &mut io,
+            &StepInputBytes::test_frame([Some(&seed), None], None)
+        ),
+        StepOutcome::Progress
+    );
+    assert_eq!(
+        io.test_host_request().map(|request| (request.0, request.1)),
+        Some((RequestId(0), HostCallId(0)))
+    );
+    let mut io = StepIo::test_frame(
+        [None; 2],
+        [false; 2],
+        [Some(LENIA_MAXIMUM_FIELD_BYTES), None],
+        Some((
+            RequestId(0),
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: None,
+                failure: None,
+            },
+        )),
+        8,
+    );
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Progress
+    );
+    let mut io = StepIo::test_frame([None; 2], [true, false], [None; 2], None, 8);
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Progress
     );
     operation
 }
@@ -36,29 +67,52 @@ fn value_closure_then_ordered_tick_is_the_only_accepted_lifecycle() {
     let mut operation = initialized_operation();
     let tick = super::super::contract::encode_tick(0);
     let tick_ref = value(2, tick.len() as u32);
-    assert!(matches!(
-        operation.resume_value(PortId(1), tick_ref, &tick),
-        OperationAction::RequestHostCall {
-            request: RequestId(1),
-            operation: HostCallId(1),
-            ..
-        }
-    ));
+    let mut io = StepIo::test_frame(
+        [None, Some(tick_ref)],
+        [false; 2],
+        [Some(LENIA_MAXIMUM_FIELD_BYTES), None],
+        None,
+        8,
+    );
+    assert_eq!(
+        operation.step(
+            &mut io,
+            &StepInputBytes::test_frame([None, Some(&tick)], None)
+        ),
+        StepOutcome::Progress
+    );
+    assert_eq!(
+        io.test_host_request().map(|request| (request.0, request.1)),
+        Some((RequestId(1), HostCallId(1)))
+    );
     let field = BoundedValueRef::new(
         value(3, LENIA_MAXIMUM_FIELD_BYTES),
         LENIA_MAXIMUM_FIELD_BYTES,
     )
     .unwrap();
-    assert_eq!(
-        operation.resume(complete(1, Some(field))),
-        OperationAction::Emit {
-            port: PortId(0),
-            value: field.value,
-        }
+    let mut io = StepIo::test_frame(
+        [None; 2],
+        [false; 2],
+        [Some(LENIA_MAXIMUM_FIELD_BYTES), None],
+        Some((
+            RequestId(1),
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: Some(field),
+                failure: None,
+            },
+        )),
+        8,
     );
     assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(1) }),
-        OperationAction::Complete
+        operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Progress
+    );
+    assert_eq!(io.test_output(PortId(0)), Some(field.value));
+    let mut io = StepIo::test_frame([None; 2], [false, true], [None; 2], None, 8);
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Complete
     );
 }
 
@@ -66,9 +120,19 @@ fn value_closure_then_ordered_tick_is_the_only_accepted_lifecycle() {
 fn reordered_tick_and_completion_after_cancel_remain_machine_readable_failures() {
     let mut reordered = initialized_operation();
     let tick = super::super::contract::encode_tick(1);
+    let mut io = StepIo::test_frame(
+        [None, Some(value(2, tick.len() as u32))],
+        [false; 2],
+        [Some(LENIA_MAXIMUM_FIELD_BYTES), None],
+        None,
+        8,
+    );
     assert_eq!(
-        reordered.resume_value(PortId(1), value(2, tick.len() as u32), &tick),
-        OperationAction::Fail(Failure {
+        reordered.step(
+            &mut io,
+            &StepInputBytes::test_frame([None, Some(&tick)], None)
+        ),
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidInput,
             detail: 183,
         })
@@ -76,11 +140,38 @@ fn reordered_tick_and_completion_after_cancel_remain_machine_readable_failures()
 
     let mut cancelled = initialized_operation();
     let tick = super::super::contract::encode_tick(0);
-    cancelled.resume_value(PortId(1), value(2, tick.len() as u32), &tick);
-    cancelled.cancel();
+    let mut io = StepIo::test_frame(
+        [None, Some(value(2, tick.len() as u32))],
+        [false; 2],
+        [Some(LENIA_MAXIMUM_FIELD_BYTES), None],
+        None,
+        8,
+    );
     assert_eq!(
-        cancelled.resume(complete(1, None)),
-        OperationAction::Fail(Failure {
+        cancelled.step(
+            &mut io,
+            &StepInputBytes::test_frame([None, Some(&tick)], None)
+        ),
+        StepOutcome::Progress
+    );
+    StepOperation::<2>::cancel(&mut cancelled);
+    let mut io = StepIo::test_frame(
+        [None; 2],
+        [false; 2],
+        [Some(LENIA_MAXIMUM_FIELD_BYTES), None],
+        Some((
+            RequestId(1),
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: None,
+                failure: None,
+            },
+        )),
+        8,
+    );
+    assert_eq!(
+        cancelled.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             detail: 188,
         })
