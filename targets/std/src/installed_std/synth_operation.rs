@@ -4,8 +4,9 @@ use conduit_audio::{
 };
 use conduit_core::{CapabilityOffer, ConfigurationValue, HostCallRequirement, PlannedGear};
 use conduit_kernel::{
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
-    RequestId,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId,
 };
 
 pub(super) use super::synth_render::{execute, InstalledSynthState};
@@ -33,6 +34,109 @@ pub(super) struct MusicSynthOperation {
     next_request: u32,
     closed: [bool; 3],
     completed: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for MusicSynthOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.completed {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(43);
+            }
+            if let Some(failure) = outcome.failure {
+                return StepOutcome::Fail(failure);
+            }
+            if outcome.disposition != HostCallDisposition::Completed {
+                return step_fail(43);
+            }
+            match outcome.output {
+                Some(output)
+                    if output.admitted_bytes == PCM_BLOCK_BYTES
+                        && output.value.byte_len <= PCM_BLOCK_BYTES =>
+                {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed synth completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready synth PCM output");
+                }
+                None => {
+                    io.consume_host_completion()
+                        .expect("observed empty synth completion");
+                }
+                _ => return step_fail(41),
+            }
+            self.pending = None;
+            self.input = None;
+            if self.closed == [true; 3] {
+                self.completed = true;
+                return StepOutcome::Complete;
+            }
+            return StepOutcome::Progress;
+        }
+
+        for port in [PortId(0), PortId(1), PortId(2)] {
+            let Some(value) = io.input(port) else {
+                continue;
+            };
+            let exact = (port == PortId(0) && value.byte_len == NOTE_EVENT_ENCODED_LEN as u32)
+                || (port == PortId(1) && value.byte_len == CONTROL_EVENT_ENCODED_LEN as u32)
+                || (port == PortId(2) && value.byte_len == AUDIO_RENDER_DEMAND_ENCODED_LEN as u32);
+            if self.pending.is_some() || self.closed[usize::from(port.0)] || !exact {
+                return step_fail(43);
+            }
+            let Ok(input) = BoundedValueRef::new(
+                value,
+                NOTE_EVENT_ENCODED_LEN
+                    .max(CONTROL_EVENT_ENCODED_LEN)
+                    .max(AUDIO_RENDER_DEMAND_ENCODED_LEN) as u32,
+            ) else {
+                return step_fail(40);
+            };
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_fail(40);
+            };
+            io.consume(port).expect("present synth input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("synth Host Call");
+            self.next_request = next;
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+
+        for port in [PortId(0), PortId(1), PortId(2)] {
+            let index = usize::from(port.0);
+            if io.input_closed(port) && !self.closed[index] {
+                io.consume_closed(port)
+                    .expect("observed synth input closure");
+                self.closed[index] = true;
+                if self.closed == [true; 3] {
+                    self.completed = true;
+                    return StepOutcome::Complete;
+                }
+                return StepOutcome::Progress;
+            }
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.input = None;
+        self.completed = true;
+    }
+}
+
+const fn step_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidLifecycle,
+        detail,
+    })
 }
 
 impl MusicSynthOperation {

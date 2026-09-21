@@ -1,11 +1,12 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, CanonicalValue, Failure, FailureCode, HostCallDisposition, HostCallId,
     HostCallOutcome, OperationAction, PortId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_midi::{
-    MidiInputAdapter, MidiInputObservation, MidiProfile, ParsedMidi, PortableMidiEvent,
+    MidiInputAdapter, MidiInputObservation, MidiMessage, MidiProfile, ParsedMidi, PortableMidiEvent,
 };
 
 pub(super) static MIDI_INPUT_FACTORY: InstalledFactory = InstalledFactory {
@@ -20,6 +21,97 @@ pub(super) struct MidiInputOperation {
     pending: Option<RequestId>,
     next_request: u32,
     emitted: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for MidiInputOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
+                || outcome.output.is_none()
+            {
+                return outcome
+                    .failure
+                    .map_or_else(|| step_fail(92), StepOutcome::Fail);
+            }
+            let Some(canonical) = input_bytes.host_output() else {
+                return step_fail(93);
+            };
+            let Ok(observation) = MidiInputObservation::decode(canonical) else {
+                return step_failure(FailureCode::InvalidInput, 94);
+            };
+            let ParsedMidi::Message(message) = observation.parsed else {
+                return step_failure(FailureCode::InvalidInput, 95);
+            };
+            let port = match message {
+                MidiMessage::NoteOn { .. } | MidiMessage::NoteOff { .. } => PortId(0),
+                MidiMessage::ControlChange { .. } => PortId(1),
+                _ => return step_failure(FailureCode::InvalidInput, 96),
+            };
+            if !io.output_ready(port) {
+                return StepOutcome::Await;
+            }
+            let event = match self.adapter.accept(message, observation.event_time_micros) {
+                Ok(PortableMidiEvent::Note(event)) => CanonicalValue::new(&event.encode()),
+                Ok(PortableMidiEvent::Control(event)) => CanonicalValue::new(&event.encode()),
+                Ok(PortableMidiEvent::UnsupportedControl { .. })
+                | Ok(PortableMidiEvent::IgnoredChannel { .. }) => {
+                    return step_failure(FailureCode::InvalidInput, 96);
+                }
+                Err(_) => return step_failure(FailureCode::InvalidInput, 97),
+            };
+            let Ok(value) = event else {
+                return step_failure(FailureCode::StorageExhausted, 98);
+            };
+            io.consume_host_completion()
+                .expect("observed MIDI input completion");
+            io.send_canonical(port, value)
+                .expect("ready MIDI event output");
+            self.pending = None;
+            self.emitted = true;
+            return StepOutcome::Progress;
+        }
+
+        if self.pending.is_none() && !self.emitted {
+            if self.next_request >= u32::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS)
+            {
+                return step_failure(FailureCode::StorageExhausted, 101);
+            }
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_failure(FailureCode::StorageExhausted, 101);
+            };
+            let input = BoundedValueRef::new(self.empty_input, 0)
+                .expect("empty MIDI source request is exact");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("MIDI input Host Call");
+            self.next_request = next;
+            self.pending = Some(request);
+            self.emitted = false;
+            return StepOutcome::Progress;
+        }
+        self.emitted = false;
+        StepOutcome::Progress
+    }
+
+    fn cancel(&mut self) {
+        self.adapter.cancel();
+        self.pending = None;
+        self.emitted = false;
+    }
+}
+
+const fn step_failure(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
+}
+
+const fn step_fail(detail: u16) -> StepOutcome {
+    step_failure(FailureCode::InvalidLifecycle, detail)
 }
 
 impl MidiInputOperation {
