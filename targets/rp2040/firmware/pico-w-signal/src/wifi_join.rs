@@ -1,8 +1,6 @@
 //! Ordinary generated network/join execution over the existing UsbCdc session.
 
-use conduit_kernel::scheduler::{
-    FixedScheduler, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{FixedScheduler, RemoteIngressOutcome, SchedulerStatus};
 use conduit_kernel::{
     BoundedValueRef, FixedSignLog, FixedValueStore, HostCallDisposition, HostCallOutcome,
 };
@@ -21,7 +19,7 @@ use crate::network_image::{
     generated_routes, network_join_layout, CORDS, HOST_BINDING_SLOTS, NODES, PENDING_REQUESTS,
     PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_SIGN_BYTES, RUNTIME_SIGN_EVENTS,
 };
-use crate::network_operations::NetworkOperation;
+use crate::network_operations::NetworkBack;
 use crate::network_receipts::NetworkAttachmentIdentity;
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
 use crate::usb::PicoUsbCdcLine;
@@ -40,7 +38,7 @@ async fn network_task(mut runner: embassy_net::Runner<'static, cyw43::NetDriver<
 }
 
 type JoinScheduler = FixedScheduler<
-    OperationDriver<NetworkOperation, PORTS>,
+    NetworkBack,
     FixedValueStore<QUEUE_SLOTS, { conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES as usize }>,
     FixedSignLog<RUNTIME_SIGN_EVENTS>,
     NODES,
@@ -73,17 +71,14 @@ impl JoinKernel {
         )
         .map_err(UsbLinkError::Storage)?;
         let sign = FixedSignLog::new(RUNTIME_SIGN_BYTES).map_err(UsbLinkError::SignStorage)?;
-        let join = NetworkOperation::join(
+        let join = NetworkBack::join(
             layout.join_input_port,
             layout.join_output_port,
             layout.join_operation,
         );
         let attachment_sign =
-            NetworkOperation::attachment_sign(layout.sign_input_port, layout.sign_operation);
-        let join = OperationDriver::new(join).map_err(UsbLinkError::Kernel)?;
-        let attachment_sign =
-            OperationDriver::new(attachment_sign).map_err(UsbLinkError::Kernel)?;
-        let drivers = match (layout.join_node.0, layout.sign_node.0) {
+            NetworkBack::attachment_sign(layout.sign_input_port, layout.sign_operation);
+        let backs = match (layout.join_node.0, layout.sign_node.0) {
             (0, 1) => [join, attachment_sign],
             (1, 0) => [attachment_sign, join],
             _ => return Err(UsbLinkError::InvalidGeneratedEndpoint),
@@ -100,7 +95,7 @@ impl JoinKernel {
             cords,
             routes,
             host_bindings,
-            drivers,
+            backs,
             values,
             sign,
         )

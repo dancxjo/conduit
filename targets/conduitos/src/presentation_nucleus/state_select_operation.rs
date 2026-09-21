@@ -1,11 +1,12 @@
-//! Fixed-storage operation for the portable current Scalar selector.
+//! Fixed-storage Backs for the portable current Scalar selector.
 
 use conduit_core::{BOOL_ENCODED_LEN, InfoBool, SCALAR_ENCODED_LEN, Scalar};
-use conduit_kernel::{
-    CanonicalValue, Operation, OperationAction, OperationInput, PortId, ValueRef,
-};
+use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::{CanonicalValue, PortId, ValueRef};
 
-pub(super) enum StateSelectOperation {
+const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
+
+pub(super) enum StateSelectBack {
     Source {
         values: [Option<ValueRef>; 2],
         phase: u8,
@@ -14,6 +15,7 @@ pub(super) enum StateSelectOperation {
         selector: Option<bool>,
         candidates: [Option<[u8; SCALAR_ENCODED_LEN]>; 2],
         closed: [bool; 3],
+        input_cursor: usize,
     },
     Sink {
         pending: bool,
@@ -21,149 +23,45 @@ pub(super) enum StateSelectOperation {
     },
 }
 
-impl Operation for StateSelectOperation {
-    fn start(&mut self) -> OperationAction {
-        match self {
-            Self::Source { values, phase: 0 } => {
-                values[0].map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                    port: PortId(0),
-                    value,
-                })
-            }
-            _ => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Source { values, phase },
-                OperationInput::HostCallCompleted {
-                    request: conduit_kernel::RequestId(0),
-                    outcome,
-                },
-            ) if *phase == 1
-                && outcome.disposition == conduit_kernel::HostCallDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                *phase = 2;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: values[1].expect("phase one exists only for a second value"),
-                }
-            }
-            (Self::Select { closed, .. }, OperationInput::Closed { port })
-                if usize::from(port.0) < closed.len() && !closed[usize::from(port.0)] =>
-            {
-                closed[usize::from(port.0)] = true;
-                if closed.iter().all(|closed| *closed) {
-                    OperationAction::Complete
-                } else {
-                    OperationAction::Await
-                }
-            }
-            (
-                Self::Sink {
-                    pending,
-                    next_request,
-                },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if !*pending && value.byte_len == SCALAR_ENCODED_LEN as u32 => {
-                let request = conduit_kernel::RequestId(*next_request);
-                *next_request = next_request.saturating_add(1);
-                *pending = true;
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: conduit_kernel::HostCallId(0),
-                    input: conduit_kernel::BoundedValueRef::new(value, SCALAR_ENCODED_LEN as u32)
-                        .expect("exact Scalar length is within the sink bound"),
-                }
-            }
-            (Self::Sink { pending, .. }, OperationInput::HostCallCompleted { outcome, .. })
-                if *pending
-                    && outcome.disposition == conduit_kernel::HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                *pending = false;
-                OperationAction::Await
-            }
-            (Self::Sink { pending: false, .. }, OperationInput::Closed { port: PortId(0) }) => {
-                OperationAction::Complete
-            }
-            _ => invalid(71),
-        }
-    }
-
-    fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
+#[cfg(test)]
+impl StateSelectBack {
+    pub(super) fn accept_for_test(
+        &mut self,
+        port: PortId,
+        value: ValueRef,
+        canonical: &[u8],
+    ) -> Result<Option<[u8; SCALAR_ENCODED_LEN]>, conduit_kernel::Failure> {
         let Self::Select {
             selector,
             candidates,
             closed,
+            ..
         } = self
         else {
-            return self.resume(OperationInput::Value { port, value });
+            return Err(failure(72));
         };
-        match port {
-            PortId(0) if value.byte_len == BOOL_ENCODED_LEN as u32 && !closed[0] => {
-                let Ok(decoded) = InfoBool::decode(canonical) else {
-                    return invalid(72);
-                };
-                *selector = Some(decoded.get());
-            }
-            PortId(1) | PortId(2)
-                if value.byte_len == SCALAR_ENCODED_LEN as u32 && !closed[usize::from(port.0)] =>
-            {
-                if Scalar::decode(canonical).is_err() {
-                    return invalid(72);
-                }
-                candidates[usize::from(port.0 - 1)] = Some(
-                    canonical
-                        .try_into()
-                        .expect("decoded Scalar has exact canonical length"),
-                );
-            }
-            _ => return invalid(72),
-        }
-        let Some(selected) = *selector else {
-            return OperationAction::Await;
-        };
-        if candidates.iter().any(Option::is_none) {
-            return OperationAction::Await;
-        }
-        let value = candidates[usize::from(selected)].expect("both candidates are present");
-        OperationAction::EmitCanonical {
-            port: PortId(0),
-            value: CanonicalValue::new(&value).expect("Scalar fits the canonical value bound"),
-        }
+        accept_select(selector, candidates, closed, port, value, canonical)
     }
+}
 
-    fn advance(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for StateSelectBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
-            Self::Source {
-                values,
-                phase: phase @ 0,
-            } => match values[1] {
-                Some(_) => {
-                    *phase = 1;
-                    OperationAction::RequestHostCall {
-                        request: conduit_kernel::RequestId(0),
-                        operation: conduit_kernel::HostCallId(0),
-                        input: conduit_kernel::BoundedValueRef::new(
-                            values[0].expect("a source always has its first value"),
-                            SCALAR_ENCODED_LEN as u32,
-                        )
-                        .expect("source values fit the Scalar upper bound"),
-                    }
-                }
-                None => OperationAction::Complete,
-            },
-            Self::Source { phase: 2, .. } => OperationAction::Complete,
-            _ => OperationAction::Await,
+            Self::Source { values, phase } => step_source(values, phase, io),
+            Self::Select {
+                selector,
+                candidates,
+                closed,
+                input_cursor,
+            } => step_select(selector, candidates, closed, input_cursor, io, input_bytes),
+            Self::Sink {
+                pending,
+                next_request,
+            } => step_sink(pending, next_request, io),
         }
     }
 
@@ -183,9 +81,198 @@ impl Operation for StateSelectOperation {
     }
 }
 
-fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+fn step_source(
+    values: &[Option<ValueRef>; 2],
+    phase: &mut u8,
+    io: &mut StepIo<PORTS>,
+) -> StepOutcome {
+    if *phase == 1 {
+        let Some((request, outcome)) = io.host_completion() else {
+            return StepOutcome::Await;
+        };
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        if request != conduit_kernel::RequestId(0)
+            || outcome.disposition != conduit_kernel::HostCallDisposition::Completed
+            || outcome.output.is_some()
+            || outcome.failure.is_some()
+            || io.consume_host_completion().is_err()
+        {
+            return invalid(71);
+        }
+    }
+    let index = usize::from(*phase == 1);
+    let Some(value) = values[index] else {
+        return StepOutcome::Complete;
+    };
+    if !io.output_ready(PortId(0)) {
+        return StepOutcome::Await;
+    }
+    if io.send(PortId(0), value).is_err() {
+        return invalid(71);
+    }
+    if index == 1 || values[1].is_none() {
+        *phase = 2;
+        return StepOutcome::Complete;
+    }
+    if io
+        .request_host_call(
+            conduit_kernel::RequestId(0),
+            conduit_kernel::HostCallId(0),
+            conduit_kernel::BoundedValueRef::new(value, SCALAR_ENCODED_LEN as u32)
+                .expect("source values fit the Scalar upper bound"),
+        )
+        .is_err()
+    {
+        return invalid(71);
+    }
+    *phase = 1;
+    StepOutcome::Progress
+}
+
+fn step_select(
+    selector: &mut Option<bool>,
+    candidates: &mut [Option<[u8; SCALAR_ENCODED_LEN]>; 2],
+    closed: &mut [bool; 3],
+    input_cursor: &mut usize,
+    io: &mut StepIo<PORTS>,
+    input_bytes: &StepInputBytes<'_, PORTS>,
+) -> StepOutcome {
+    for offset in 0..3 {
+        let index = (*input_cursor + offset) % 3;
+        let port = PortId(index as u16);
+        if let Some(value) = io.input(port) {
+            let Some(canonical) = input_bytes.input(port) else {
+                return invalid(72);
+            };
+            let would_emit = match port {
+                PortId(0) => candidates.iter().all(Option::is_some),
+                PortId(1) => selector.is_some() && candidates[1].is_some(),
+                PortId(2) => selector.is_some() && candidates[0].is_some(),
+                _ => false,
+            };
+            if would_emit && !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let selected = match accept_select(selector, candidates, closed, port, value, canonical)
+            {
+                Ok(selected) => selected,
+                Err(failure) => return StepOutcome::Fail(failure),
+            };
+            if io.consume(port).is_err() {
+                return invalid(72);
+            }
+            *input_cursor = (index + 1) % 3;
+            if let Some(value) = selected
+                && io
+                    .send_canonical(
+                        PortId(0),
+                        CanonicalValue::new(&value).expect("Scalar fits the canonical value bound"),
+                    )
+                    .is_err()
+            {
+                return invalid(72);
+            }
+            return StepOutcome::Progress;
+        }
+    }
+    for (index, is_closed) in closed.iter_mut().enumerate() {
+        let port = PortId(index as u16);
+        if !*is_closed && io.input_closed(port) {
+            if io.consume_closed(port).is_err() {
+                return invalid(71);
+            }
+            *is_closed = true;
+            return if closed.iter().all(|closed| *closed) {
+                StepOutcome::Complete
+            } else {
+                StepOutcome::Progress
+            };
+        }
+    }
+    StepOutcome::Await
+}
+
+fn accept_select(
+    selector: &mut Option<bool>,
+    candidates: &mut [Option<[u8; SCALAR_ENCODED_LEN]>; 2],
+    closed: &[bool; 3],
+    port: PortId,
+    value: ValueRef,
+    canonical: &[u8],
+) -> Result<Option<[u8; SCALAR_ENCODED_LEN]>, conduit_kernel::Failure> {
+    match port {
+        PortId(0) if value.byte_len == BOOL_ENCODED_LEN as u32 && !closed[0] => {
+            let decoded = InfoBool::decode(canonical).map_err(|_| failure(72))?;
+            *selector = Some(decoded.get());
+        }
+        PortId(1) | PortId(2)
+            if value.byte_len == SCALAR_ENCODED_LEN as u32 && !closed[usize::from(port.0)] =>
+        {
+            Scalar::decode(canonical).map_err(|_| failure(72))?;
+            candidates[usize::from(port.0 - 1)] =
+                Some(canonical.try_into().map_err(|_| failure(72))?);
+        }
+        _ => return Err(failure(72)),
+    }
+    Ok(selector
+        .and_then(|selected| candidates[usize::from(selected)])
+        .filter(|_| candidates.iter().all(Option::is_some)))
+}
+
+fn step_sink(pending: &mut bool, next_request: &mut u32, io: &mut StepIo<PORTS>) -> StepOutcome {
+    if *pending {
+        let Some((_request, outcome)) = io.host_completion() else {
+            return StepOutcome::Await;
+        };
+        if outcome.disposition != conduit_kernel::HostCallDisposition::Completed
+            || outcome.output.is_some()
+            || outcome.failure.is_some()
+            || io.consume_host_completion().is_err()
+        {
+            return invalid(71);
+        }
+        *pending = false;
+        return StepOutcome::Progress;
+    }
+    if let Some(value) = io.input(PortId(0)) {
+        if value.byte_len != SCALAR_ENCODED_LEN as u32 {
+            return invalid(71);
+        }
+        let request = conduit_kernel::RequestId(*next_request);
+        if io.consume(PortId(0)).is_err()
+            || io
+                .request_host_call(
+                    request,
+                    conduit_kernel::HostCallId(0),
+                    conduit_kernel::BoundedValueRef::new(value, SCALAR_ENCODED_LEN as u32)
+                        .expect("exact Scalar length is within the sink bound"),
+                )
+                .is_err()
+        {
+            return invalid(71);
+        }
+        *next_request = next_request.saturating_add(1);
+        *pending = true;
+        return StepOutcome::Progress;
+    }
+    if io.input_closed(PortId(0)) {
+        if io.consume_closed(PortId(0)).is_err() {
+            return invalid(71);
+        }
+        return StepOutcome::Complete;
+    }
+    StepOutcome::Await
+}
+
+fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(failure(detail))
+}
+
+fn failure(detail: u16) -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
         detail,
-    })
+    }
 }

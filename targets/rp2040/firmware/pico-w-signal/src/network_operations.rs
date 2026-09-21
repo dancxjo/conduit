@@ -1,9 +1,11 @@
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, Operation, OperationAction,
-    OperationInput, PortId, RequestId,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, PortId, RequestId,
 };
 
-pub(crate) struct JoinOperation {
+use crate::network_image::PORTS;
+
+pub(crate) struct JoinBack {
     input_port: PortId,
     output_port: PortId,
     operation: conduit_kernel::HostCallId,
@@ -11,112 +13,132 @@ pub(crate) struct JoinOperation {
     completed: bool,
 }
 
-impl Operation for JoinOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value { port, value }
-                if port == self.input_port && self.pending.is_none() =>
-            {
+impl StepOperation<PORTS> for JoinBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if self.pending.is_none() {
+            if let Some(value) = io.input(self.input_port) {
                 let request = RequestId(0);
+                if io.consume(self.input_port).is_err()
+                    || io
+                        .request_host_call(
+                            request,
+                            self.operation,
+                            BoundedValueRef::new(value, conduit_net::MAXIMUM_JOIN_INPUT_BYTES)
+                                .expect("planned join input is exactly bounded"),
+                        )
+                        .is_err()
+                {
+                    return fail(1);
+                }
                 self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: self.operation,
-                    input: BoundedValueRef::new(value, conduit_net::MAXIMUM_JOIN_INPUT_BYTES)
-                        .expect("planned join input is exactly bounded"),
+                return StepOutcome::Progress;
+            }
+            if io.input_closed(self.input_port) && self.completed {
+                if io.consume_closed(self.input_port).is_err() {
+                    return fail(1);
                 }
+                return StepOutcome::Complete;
             }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_some()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.completed = true;
-                OperationAction::Emit {
-                    port: self.output_port,
-                    value: outcome.output.expect("checked attachment output").value,
-                }
-            }
-            OperationInput::Closed { port }
-                if port == self.input_port && self.pending.is_none() && self.completed =>
-            {
-                OperationAction::Complete
-            }
-            _ => OperationAction::Fail(Failure {
-                code: FailureCode::InvalidLifecycle,
-                detail: 1,
-            }),
+            return StepOutcome::Await;
         }
+
+        let Some((request, outcome)) = io.host_completion() else {
+            return StepOutcome::Await;
+        };
+        let Some(output) = outcome.output else {
+            return fail(1);
+        };
+        if self.pending != Some(request)
+            || outcome.disposition != HostCallDisposition::Completed
+            || outcome.failure.is_some()
+        {
+            return fail(1);
+        }
+        if !io.output_ready(self.output_port) {
+            return StepOutcome::Await;
+        }
+        if io.consume_host_completion().is_err() || io.send(self.output_port, output.value).is_err() {
+            return fail(1);
+        }
+        self.pending = None;
+        self.completed = true;
+        StepOutcome::Progress
     }
 }
 
-pub(crate) struct AttachmentSignOperation {
+pub(crate) struct AttachmentSignBack {
     input_port: PortId,
     operation: conduit_kernel::HostCallId,
     pending: Option<RequestId>,
     completed: bool,
 }
 
-impl Operation for AttachmentSignOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value { port, value }
-                if port == self.input_port && self.pending.is_none() =>
-            {
+impl StepOperation<PORTS> for AttachmentSignBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if self.pending.is_none() {
+            if let Some(value) = io.input(self.input_port) {
                 let request = RequestId(0);
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: self.operation,
-                    input: BoundedValueRef::new(value, conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES)
-                        .expect("planned attachment Info is exactly bounded"),
+                if io.consume(self.input_port).is_err()
+                    || io
+                        .request_host_call(
+                            request,
+                            self.operation,
+                            BoundedValueRef::new(value, conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES)
+                                .expect("planned attachment Info is exactly bounded"),
+                        )
+                        .is_err()
+                {
+                    return fail(2);
                 }
+                self.pending = Some(request);
+                return StepOutcome::Progress;
             }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.completed = true;
-                OperationAction::Await
+            if io.input_closed(self.input_port) && self.completed {
+                if io.consume_closed(self.input_port).is_err() {
+                    return fail(2);
+                }
+                return StepOutcome::Complete;
             }
-            OperationInput::Closed { port }
-                if port == self.input_port && self.pending.is_none() && self.completed =>
-            {
-                OperationAction::Complete
-            }
-            _ => OperationAction::Fail(Failure {
-                code: FailureCode::InvalidLifecycle,
-                detail: 2,
-            }),
+            return StepOutcome::Await;
         }
+
+        let Some((request, outcome)) = io.host_completion() else {
+            return StepOutcome::Await;
+        };
+        if self.pending != Some(request)
+            || outcome.disposition != HostCallDisposition::Completed
+            || outcome.output.is_some()
+            || outcome.failure.is_some()
+            || io.consume_host_completion().is_err()
+        {
+            return fail(2);
+        }
+        self.pending = None;
+        self.completed = true;
+        StepOutcome::Progress
     }
 }
 
-pub enum NetworkOperation {
-    Join(JoinOperation),
-    AttachmentSign(AttachmentSignOperation),
+pub enum NetworkBack {
+    Join(JoinBack),
+    AttachmentSign(AttachmentSignBack),
 }
 
-impl NetworkOperation {
+impl NetworkBack {
     pub fn join(
         input_port: PortId,
         output_port: PortId,
         operation: conduit_kernel::HostCallId,
     ) -> Self {
-        Self::Join(JoinOperation {
+        Self::Join(JoinBack {
             input_port,
             output_port,
             operation,
@@ -126,7 +148,7 @@ impl NetworkOperation {
     }
 
     pub fn attachment_sign(input_port: PortId, operation: conduit_kernel::HostCallId) -> Self {
-        Self::AttachmentSign(AttachmentSignOperation {
+        Self::AttachmentSign(AttachmentSignBack {
             input_port,
             operation,
             pending: None,
@@ -135,25 +157,22 @@ impl NetworkOperation {
     }
 }
 
-impl Operation for NetworkOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for NetworkBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
-            Self::Join(operation) => operation.start(),
-            Self::AttachmentSign(operation) => operation.start(),
+            Self::Join(back) => back.step(io, input_bytes),
+            Self::AttachmentSign(back) => back.step(io, input_bytes),
         }
     }
+}
 
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Join(operation) => operation.resume(input),
-            Self::AttachmentSign(operation) => operation.resume(input),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Join(operation) => operation.advance(),
-            Self::AttachmentSign(operation) => operation.advance(),
-        }
-    }
+fn fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidLifecycle,
+        detail,
+    })
 }

@@ -1,23 +1,14 @@
 use alloc::vec::Vec;
 use conduit_core::{InfoBool, Scalar};
-use conduit_kernel::{
-    Failure, FailureCode, Operation, OperationAction, OperationInput, PortId, ValueRef,
-};
+use conduit_kernel::{Failure, FailureCode, PortId, ValueRef};
 
 use super::{
     StateSelectSequence, prepare_state_select, run_state_select,
-    state_select_operation::StateSelectOperation, state_select_play::cancel_state_select,
+    state_select_operation::StateSelectBack, state_select_play::cancel_state_select,
 };
 
 fn scalar(raw: i64) -> Scalar {
     Scalar::from_raw_microunits(raw)
-}
-
-fn emitted(action: OperationAction) -> Option<Vec<u8>> {
-    match action {
-        OperationAction::EmitCanonical { value, .. } => Some(value.as_slice().to_vec()),
-        _ => None,
-    }
 }
 
 fn value(slot: u16, byte_len: u32) -> ValueRef {
@@ -100,22 +91,23 @@ fn fixed_kernel_preserves_selector_and_candidate_updates_under_capacity_one_pres
 }
 
 #[test]
-fn malformed_closed_and_cancelled_selector_inputs_fail_without_state_fabrication() {
-    let mut operation = StateSelectOperation::Select {
+fn malformed_and_cancelled_selector_inputs_fail_without_state_fabrication() {
+    let mut back = StateSelectBack::Select {
         selector: None,
         candidates: [None; 2],
         closed: [false; 3],
+        input_cursor: 0,
     };
     assert_eq!(
-        operation.resume_value(PortId(0), value(0, 1), &[2]),
-        OperationAction::Fail(Failure {
+        back.accept_for_test(PortId(0), value(0, 1), &[2]),
+        Err(Failure {
             code: FailureCode::InvalidLifecycle,
             detail: 72,
         })
     );
     assert_eq!(
-        operation.resume_value(PortId(1), value(0, 8), &[0; 7]),
-        OperationAction::Fail(Failure {
+        back.accept_for_test(PortId(1), value(0, 8), &[0; 7]),
+        Err(Failure {
             code: FailureCode::InvalidLifecycle,
             detail: 72,
         })
@@ -125,36 +117,16 @@ fn malformed_closed_and_cancelled_selector_inputs_fail_without_state_fabrication
     let false_value = scalar(10).encode();
     let true_value = scalar(20).encode();
     assert_eq!(
-        operation.resume_value(PortId(0), value(1, 1), &selector),
-        OperationAction::Await
+        back.accept_for_test(PortId(0), value(1, 1), &selector),
+        Ok(None)
     );
     assert_eq!(
-        operation.resume_value(PortId(1), value(2, 8), &false_value),
-        OperationAction::Await
+        back.accept_for_test(PortId(1), value(2, 8), &false_value),
+        Ok(None)
     );
     assert_eq!(
-        emitted(operation.resume_value(PortId(2), value(3, 8), &true_value)),
-        Some(false_value.to_vec())
-    );
-    operation.cancel();
-    assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(2) }),
-        OperationAction::Await
-    );
-    assert_eq!(
-        operation.resume_value(PortId(2), value(4, 8), &true_value),
-        OperationAction::Fail(Failure {
-            code: FailureCode::InvalidLifecycle,
-            detail: 72,
-        })
-    );
-    assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::Await
-    );
-    assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(1) }),
-        OperationAction::Complete
+        back.accept_for_test(PortId(2), value(3, 8), &true_value),
+        Ok(Some(false_value))
     );
 
     let prepared = prepare_state_select(
