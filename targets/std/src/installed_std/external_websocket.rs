@@ -1,8 +1,9 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
-    RequestId, ValueRef, ValueStorage,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static EXTERNAL_WEBSOCKET_LISTENER_FACTORY: InstalledFactory = InstalledFactory {
@@ -33,6 +34,208 @@ pub(super) struct ExternalWebSocketListenerOperation {
     next_request: u32,
     pending: Option<Pending>,
     after_emit: AfterEmit,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for ExternalWebSocketListenerOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if request != RequestId(self.next_request.saturating_sub(1)) {
+                return step_fail(20);
+            }
+            let Some(pending) = self.pending else {
+                return step_fail(20);
+            };
+            match pending {
+                Pending::Accept(peer)
+                    if outcome.disposition == HostCallDisposition::Completed
+                        && outcome.failure.is_none()
+                        && outcome.output.is_none() =>
+                {
+                    io.consume_host_completion()
+                        .expect("observed external WebSocket accept completion");
+                    self.pending = None;
+                    self.connected[peer] = true;
+                    self.accepted += 1;
+                    if self.accepted < self.connected.len() {
+                        return self.request_accept_step(io);
+                    }
+                    return self.request_initial_receive_step(io);
+                }
+                Pending::Receive(_peer)
+                    if outcome.disposition == HostCallDisposition::Completed
+                        && outcome.failure.is_none() =>
+                {
+                    let Some(output) = outcome.output else {
+                        return step_fail(22);
+                    };
+                    if !io.output_ready(PortId(1)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed external WebSocket receive completion");
+                    io.send(PortId(1), output.value)
+                        .expect("ready external WebSocket receive output");
+                    self.pending = None;
+                    self.received = self.received.saturating_add(1);
+                    self.after_emit = AfterEmit::AwaitSend;
+                    return if self.received >= conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_HISTORY_ITEMS
+                    {
+                        StepOutcome::Complete
+                    } else {
+                        StepOutcome::Progress
+                    };
+                }
+                Pending::Receive(peer)
+                    if outcome.disposition == HostCallDisposition::Cancelled
+                        && outcome.failure.is_none() =>
+                {
+                    let Some(output) = outcome.output else {
+                        return step_fail(25);
+                    };
+                    io.consume_host_completion()
+                        .expect("observed external WebSocket peer closure");
+                    self.pending = None;
+                    self.connected[peer] = false;
+                    if self.connected.iter().any(|connected| *connected) {
+                        return self.request_receive_step(io, output.value);
+                    }
+                    return StepOutcome::Complete;
+                }
+                Pending::Send
+                    if outcome.disposition == HostCallDisposition::Completed
+                        && outcome.failure.is_none() =>
+                {
+                    let Some(output) = outcome.output else {
+                        return step_fail(26);
+                    };
+                    io.consume_host_completion()
+                        .expect("observed external WebSocket send completion");
+                    self.pending = None;
+                    return self.request_receive_step(io, output.value);
+                }
+                _ => return step_fail(23),
+            }
+        }
+
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() {
+                return step_fail(24);
+            }
+            let Ok(input) = BoundedValueRef::new(
+                value,
+                conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
+            ) else {
+                return step_fail(24);
+            };
+            let Some((request, next)) = self.next_request_id() else {
+                return step_failure(FailureCode::StorageExhausted, 27);
+            };
+            io.consume(PortId(0))
+                .expect("present external WebSocket send input");
+            io.request_host_call(request, HostCallId(2), input)
+                .expect("external WebSocket send Host Call");
+            self.next_request = next;
+            self.pending = Some(Pending::Send);
+            return StepOutcome::Progress;
+        }
+
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed external WebSocket send closure");
+            return StepOutcome::Complete;
+        }
+
+        if self.pending.is_none() && self.accepted == 0 {
+            return self.request_accept_step(io);
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+impl ExternalWebSocketListenerOperation {
+    fn next_request_id(&self) -> Option<(RequestId, u32)> {
+        self.next_request
+            .checked_add(1)
+            .map(|next| (RequestId(self.next_request), next))
+    }
+
+    fn request_accept_step<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        let peer = self.accepted;
+        let Some(value) = self.accept_commands.get(peer).copied() else {
+            return step_fail(21);
+        };
+        self.request_step(io, Pending::Accept(peer), value, 64)
+    }
+
+    fn request_initial_receive_step<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+    ) -> StepOutcome {
+        let Some(value) = self.initial_receive_command.take() else {
+            return StepOutcome::Complete;
+        };
+        self.request_receive_step(io, value)
+    }
+
+    fn request_receive_step<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        value: ValueRef,
+    ) -> StepOutcome {
+        let Some(peer) = (0..self.connected.len())
+            .map(|offset| (self.receive_cursor + offset) % self.connected.len())
+            .find(|peer| self.connected[*peer])
+        else {
+            return StepOutcome::Complete;
+        };
+        self.receive_cursor = (peer + 1) % self.connected.len();
+        self.request_step(
+            io,
+            Pending::Receive(peer),
+            value,
+            conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
+        )
+    }
+
+    fn request_step<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        pending: Pending,
+        value: ValueRef,
+        maximum: u32,
+    ) -> StepOutcome {
+        let Some((request, next)) = self.next_request_id() else {
+            return step_failure(FailureCode::StorageExhausted, 27);
+        };
+        let Ok(input) = BoundedValueRef::new(value, maximum) else {
+            return step_fail(24);
+        };
+        io.request_host_call(
+            request,
+            HostCallId(match pending {
+                Pending::Accept(_) => 0,
+                Pending::Receive(_) => 1,
+                Pending::Send => 2,
+            }),
+            input,
+        )
+        .expect("external WebSocket Host Call");
+        self.next_request = next;
+        self.pending = Some(pending);
+        StepOutcome::Progress
+    }
+}
+
+const fn step_failure(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
+}
+
+const fn step_fail(detail: u16) -> StepOutcome {
+    step_failure(FailureCode::InvalidLifecycle, detail)
 }
 
 impl ExternalWebSocketListenerOperation {
