@@ -2,7 +2,10 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     ConfigurationValue, InfoBool, PlannedGear, PortDirection, PortTemporal, BOOL_ENCODED_LEN,
 };
-use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef, ValueStorage};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef, ValueStorage,
+};
 
 pub(super) static STATE_TOGGLE_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::STATE_TOGGLE_IMPLEMENTATION,
@@ -14,6 +17,54 @@ pub(super) struct StateToggleOperation {
     values: Vec<ValueRef>,
     next: usize,
     initial_emitted: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for StateToggleOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if !self.initial_emitted {
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(value) = self.values.first().copied() else {
+                return StepOutcome::Fail(toggle_failure(35));
+            };
+            io.send(PortId(0), value)
+                .expect("ready initial toggle output");
+            self.initial_emitted = true;
+            return StepOutcome::Progress;
+        }
+        if let Some(tick) = io.input(PortId(0)) {
+            if tick.byte_len != conduit_time::TICK_ENCODED_LEN {
+                return StepOutcome::Fail(toggle_failure(34));
+            }
+            let Some(next) = self.next.checked_add(1) else {
+                return StepOutcome::Fail(toggle_failure(35));
+            };
+            let Some(value) = self.values.get(next).copied() else {
+                return StepOutcome::Fail(toggle_failure(35));
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume(PortId(0)).expect("present toggle tick");
+            io.send(PortId(0), value).expect("ready toggle output");
+            self.next = next;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed toggle input closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+}
+
+fn toggle_failure(detail: u16) -> Failure {
+    Failure {
+        code: FailureCode::InvalidLifecycle,
+        detail,
+    }
 }
 
 impl StateToggleOperation {
