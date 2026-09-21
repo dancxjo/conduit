@@ -31,7 +31,7 @@ fn malformed_input_preserves_committed_state_and_is_not_completion() {
     let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
     let plan = conduit_planner::plan(&form, &hosts, &placements, &[]).unwrap();
     let state = derive_state_boundary(&form, &GearId::from("retained/cell"), 64).unwrap();
-    let mut operation = conduit_std_host::state_value::TypedStateOperation::prepare(
+    let mut back = conduit_std_host::state_value::TypedStateBack::prepare(
         &plan.fragments[0].placements[0],
         &state,
         0,
@@ -40,7 +40,7 @@ fn malformed_input_preserves_committed_state_and_is_not_completion() {
     )
     .unwrap();
     assert!(matches!(
-        operation.start(),
+        back.start(),
         OperationAction::EmitCanonical { .. }
     ));
     let next = initial.canonical_bytes().unwrap();
@@ -50,19 +50,19 @@ fn malformed_input_preserves_committed_state_and_is_not_completion() {
         byte_len: next.len() as u32,
     };
     assert!(matches!(
-        operation.resume_value(PortId(0), reference, &next),
+        back.resume_value(PortId(0), reference, &next),
         OperationAction::EmitCanonical { .. }
     ));
     assert_eq!(
-        operation.generation(),
+        back.generation(),
         0,
         "proposing output does not publish State"
     );
-    operation.step_committed();
-    assert_eq!(operation.current(), next);
-    assert_eq!(operation.generation(), 1);
-    assert!(matches!(operation.advance(), OperationAction::Await));
-    let before = operation.current().to_vec();
+    back.step_committed();
+    assert_eq!(back.current(), next);
+    assert_eq!(back.generation(), 1);
+    assert!(matches!(back.advance(), OperationAction::Await));
+    let before = back.current().to_vec();
     let invalid = [255_u8];
     let reference = ValueRef {
         slot: 0,
@@ -70,9 +70,9 @@ fn malformed_input_preserves_committed_state_and_is_not_completion() {
         byte_len: 1,
     };
     assert!(matches!(
-        operation.resume_value(PortId(0), reference, &invalid),
+        back.resume_value(PortId(0), reference, &invalid),
         OperationAction::Fail(_)
     ));
-    assert_eq!(operation.current(), before);
-    assert_eq!(operation.generation(), 1);
+    assert_eq!(back.current(), before);
+    assert_eq!(back.generation(), 1);
 }

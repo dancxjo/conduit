@@ -5,7 +5,7 @@ use conduit_plan_lowering::lowering::{
 };
 use conduit_planner::state_delay::continuity::{seal_state_continuity, StateContinuityApproval};
 use conduit_semantic_catalog::state_value::*;
-use conduit_std_host::state_value::{RetainedTypedState, TypedStateOperation};
+use conduit_std_host::state_value::{RetainedTypedState, TypedStateBack};
 
 fn planned() -> (Plan, Vec<u8>) {
     let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
@@ -71,8 +71,7 @@ fn play(plan: &Plan, sequence: u64) -> ActivePlayIdentity {
 
 fn retained(plan: &Plan, next: &[u8]) -> RetainedTypedState {
     let mut operation =
-        TypedStateOperation::prepare_for_play(&plan.fragments[0], &lower(plan), &play(plan, 1))
-            .unwrap();
+        TypedStateBack::prepare_for_play(&plan.fragments[0], &lower(plan), &play(plan, 1)).unwrap();
     assert!(matches!(
         operation.start(),
         OperationAction::EmitCanonical { .. }
@@ -126,7 +125,7 @@ fn owned_state_moves_to_new_boot_and_larger_capacity_without_resetting_generatio
     let owned = retained(&source, &next);
     assert_eq!(owned.provenance().source_play, play(&source, 1));
     let destination = destination(&source, &owned);
-    let mut continued = TypedStateOperation::prepare_continued(
+    let mut continued = TypedStateBack::prepare_continued(
         &destination.fragments[0],
         &lower(&destination),
         &play(&destination, 2),
@@ -156,7 +155,7 @@ fn forged_snapshot_refuses_and_returns_the_original_owned_cell() {
     altered[0].states[0].retained.as_mut().unwrap().generation += 1;
     let forged = seal_plan(owned.provenance().source_form.clone(), altered);
     assert!(verify_plan(&forged)); // Structurally valid metadata is insufficient.
-    let refused = TypedStateOperation::prepare_continued(
+    let refused = TypedStateBack::prepare_continued(
         &forged.fragments[0],
         &lower(&forged),
         &play(&forged, 2),
@@ -166,7 +165,7 @@ fn forged_snapshot_refuses_and_returns_the_original_owned_cell() {
     .unwrap();
     assert_eq!(refused.source.provenance().current_value, next);
     assert_eq!(refused.source.provenance().generation, 1);
-    let continued = TypedStateOperation::prepare_continued(
+    let continued = TypedStateBack::prepare_continued(
         &destination.fragments[0],
         &lower(&destination),
         &play(&destination, 2),
@@ -181,7 +180,7 @@ fn fresh_constructor_cannot_reset_a_retained_contract() {
     let (source, next) = planned();
     let owned = retained(&source, &next);
     let destination = destination(&source, &owned);
-    assert!(TypedStateOperation::prepare_for_play(
+    assert!(TypedStateBack::prepare_for_play(
         &destination.fragments[0],
         &lower(&destination),
         &play(&destination, 2)
@@ -189,10 +188,8 @@ fn fresh_constructor_cannot_reset_a_retained_contract() {
     .is_err());
     let mut wrong_play = play(&source, 1);
     wrong_play.boot_id = "stale".into();
-    assert!(TypedStateOperation::prepare_for_play(
-        &source.fragments[0],
-        &lower(&source),
-        &wrong_play
-    )
-    .is_err());
+    assert!(
+        TypedStateBack::prepare_for_play(&source.fragments[0], &lower(&source), &wrong_play)
+            .is_err()
+    );
 }

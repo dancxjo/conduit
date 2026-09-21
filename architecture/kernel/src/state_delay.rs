@@ -1,6 +1,6 @@
 //! Allocation-independent explicit state/delay transition primitive.
 
-pub mod operation;
+pub mod back;
 pub mod transfer;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

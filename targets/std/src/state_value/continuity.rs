@@ -1,10 +1,10 @@
 //! Consuming handoff of typed State between exact prepared executions.
-use super::TypedStateOperation;
+use super::TypedStateBack;
 use conduit_core::{
     bind_active_play, verify_plan_fragment, ActivePlayIdentity, FormIdentity, PlanFragment,
     PlannedGear, RetainedStateProvenance,
 };
-use conduit_kernel::state_delay::{operation::StateOperation, StateDelay};
+use conduit_kernel::state_delay::{back::StateBack, StateDelay};
 use conduit_plan_lowering::lowering::LoweredState;
 
 pub(super) struct StateExecutionBinding {
@@ -34,28 +34,28 @@ impl RetainedTypedState {
     }
 }
 
-impl TypedStateOperation {
+impl TypedStateBack {
     pub fn prepare_for_play(
         fragment: &PlanFragment,
         state: &LoweredState,
         play: &ActivePlayIdentity,
     ) -> Result<Self, String> {
         let (placement, binding) = bind(fragment, state, play)?;
-        let mut operation = Self::prepare(
+        let mut back = Self::prepare(
             placement,
             &state.contract,
             state.slot,
             state.next,
             state.current,
         )?;
-        operation.binding = Some(binding);
-        Ok(operation)
+        back.binding = Some(binding);
+        Ok(back)
     }
 
-    /// Only a consumed, terminal, bound operation can yield retained ownership.
+    /// Only a consumed, terminal, bound back can yield retained ownership.
     /// An active scheduler exposes borrowed drivers, so it must first retire.
     pub fn try_retire(self) -> Result<RetainedTypedState, Box<StateContinuityFailure<Self>>> {
-        if !self.operation.is_terminal() || self.binding.is_none() {
+        if !self.back.is_terminal() || self.binding.is_none() {
             return Err(Box::new(StateContinuityFailure {
                 reason: "State is not terminal or lacks exact execution binding".into(),
                 source: self,
@@ -64,7 +64,7 @@ impl TypedStateOperation {
         let binding = self
             .binding
             .expect("binding checked before consuming State");
-        let cell = self.operation.into_state();
+        let cell = self.back.into_state();
         let provenance = RetainedStateProvenance {
             source_form: binding.form,
             source_play: binding.play,
@@ -148,7 +148,7 @@ impl TypedStateOperation {
         };
         Ok(Self {
             binding: Some(binding),
-            operation: StateOperation::new(cell, state.next, state.current)
+            back: StateBack::new(cell, state.next, state.current)
                 .expect("validated std State capacity fits the kernel envelope"),
             validator,
         })

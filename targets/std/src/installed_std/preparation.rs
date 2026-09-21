@@ -53,7 +53,7 @@ pub(super) fn prepare_operations(
                 continue;
             }
             operations[usize::from(node.node.0)] = InstalledOperation::TypedState(Box::new(
-                crate::state_value::TypedStateOperation::prepare_for_play(fragment, state, play)?,
+                crate::state_value::TypedStateBack::prepare_for_play(fragment, state, play)?,
             ));
         } else {
             operations[usize::from(node.node.0)] =
@@ -74,7 +74,7 @@ pub(super) fn prepare_operations(
             .position(|source| source.provenance().source_state == state.contract.state_id)
             .expect("every retained obligation has one owned source");
         let source = sources.remove(index);
-        let operation = match crate::state_value::TypedStateOperation::prepare_continued(
+        let operation = match crate::state_value::TypedStateBack::prepare_continued(
             fragment, state, play, source,
         ) {
             Ok(operation) => operation,
@@ -193,9 +193,7 @@ pub(crate) fn validate_retained_inputs(
         if matches.next().is_some() {
             return Err("duplicate retained State owner".into());
         }
-        crate::state_value::TypedStateOperation::validate_continuation(
-            fragment, state, play, source,
-        )?;
+        crate::state_value::TypedStateBack::validate_continuation(fragment, state, play, source)?;
     }
     Ok(())
 }
