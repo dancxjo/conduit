@@ -1,18 +1,14 @@
 //! Fixed-storage kernel installation for the shared explicit fan-out Tour Form.
 
 use crate::{
-    text_kernel_operations::{
-        LiteralOperation, LiteralState, PresentationOperation, UpperOperation,
-    },
-    tour_morse_operations::{IndicatorOperation, MorseOperation, TourMorseOperation},
+    text_kernel_backs::{LiteralBack, LiteralState, PresentationBack, UpperBack},
+    tour_morse_backs::{IndicatorBack, MorseBack, TourMorseBack},
 };
 use conduit_core::{ConfigurationValue, PlanFragment};
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
-    scheduler::{
-        FixedScheduler, HostCallRequest, OperationDriver, SchedulerError, SchedulerStatus,
-    },
+    scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
@@ -29,7 +25,7 @@ const VALUE_BYTES: usize =
     conduit_text::MAXIMUM_MORSE_PATTERN_BYTES * 4 + conduit_text::MAX_TEXT_BYTES as usize * 4;
 const SIGN_CAPACITY: usize = 96;
 
-type Driver = OperationDriver<TourMorseOperation, PORTS>;
+type Driver = TourMorseBack;
 type Scheduler = FixedScheduler<
     Driver,
     FixedValueStore<VALUE_SLOTS, VALUE_BYTES>,
@@ -98,36 +94,27 @@ impl TourMorseKernel {
         }
         bindings.seal()?;
         let mut drivers: [Option<Driver>; MAX_NODES] = [None, None, None, None, None];
-        drivers[literal_index] = Some(OperationDriver::new(TourMorseOperation::Literal(
-            LiteralOperation {
-                text,
-                state: LiteralState::Emitting,
-            },
-        ))?);
-        drivers[upper_index] = Some(OperationDriver::new(TourMorseOperation::Upper(
-            UpperOperation {
-                pending: false,
-                emitted: false,
-            },
-        ))?);
-        drivers[text_presentation_index] = Some(OperationDriver::new(
-            TourMorseOperation::TextPresentation(PresentationOperation {
+        drivers[literal_index] = Some(TourMorseBack::Literal(LiteralBack {
+            text,
+            state: LiteralState::Emitting,
+        }));
+        drivers[upper_index] = Some(TourMorseBack::Upper(UpperBack {
+            pending: false,
+            emitted: false,
+        }));
+        drivers[text_presentation_index] =
+            Some(TourMorseBack::TextPresentation(PresentationBack {
                 pending: false,
                 complete: false,
-            }),
-        )?);
-        drivers[morse_index] = Some(OperationDriver::new(TourMorseOperation::Morse(
-            MorseOperation {
-                pending: false,
-                emitted: false,
-            },
-        ))?);
-        drivers[indicator_index] = Some(OperationDriver::new(TourMorseOperation::Indicator(
-            IndicatorOperation {
-                pending: false,
-                complete: false,
-            },
-        ))?);
+            }));
+        drivers[morse_index] = Some(TourMorseBack::Morse(MorseBack {
+            pending: false,
+            emitted: false,
+        }));
+        drivers[indicator_index] = Some(TourMorseBack::Indicator(IndicatorBack {
+            pending: false,
+            complete: false,
+        }));
         let [
             Some(first),
             Some(second),

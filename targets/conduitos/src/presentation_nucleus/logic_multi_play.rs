@@ -2,9 +2,7 @@
 
 use alloc::vec::Vec;
 use conduit_core::{InfoBool, Scalar};
-use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{CordSpec, FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostCallDisposition, HostCallOutcome, NodeId, ValueStorage,
@@ -12,10 +10,10 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 
 use super::{
+    back::PresentationBack,
     logic_multi_plan::{
         FALSE_KIND, LEFT_KIND, PreparedLogicMulti, RIGHT_KIND, SINK_KIND, TRUE_KIND,
     },
-    operation::PresentationOperation,
 };
 
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -29,7 +27,7 @@ const VALUE_BYTES: usize = VALUES * MAX_VALUE_BYTES;
 const SIGNS: usize = 96;
 
 type Kernel = FixedScheduler<
-    OperationDriver<PresentationOperation, PORTS>,
+    PresentationBack,
     FixedValueStore<VALUES, MAX_VALUE_BYTES>,
     FixedSignLog<SIGNS>,
     NODES,
@@ -261,7 +259,7 @@ fn scheduler(
                 TRUE_KIND => source(&mut values, prepared.when_true)?,
                 conduit_semantic_catalog::LOGIC_COMPARE_KIND => {
                     compare = Some(NodeId(index as u16));
-                    PresentationOperation::LogicInputs {
+                    PresentationBack::LogicInputs {
                         input_count: 2,
                         seen: 0,
                         next_request: 0,
@@ -271,7 +269,7 @@ fn scheduler(
                 }
                 conduit_semantic_catalog::LOGIC_SELECT_KIND => {
                     select = Some(NodeId(index as u16));
-                    PresentationOperation::LogicInputs {
+                    PresentationBack::LogicInputs {
                         input_count: 3,
                         seen: 0,
                         next_request: 0,
@@ -281,7 +279,7 @@ fn scheduler(
                 }
                 SINK_KIND => {
                     sink = Some(NodeId(index as u16));
-                    PresentationOperation::Sink {
+                    PresentationBack::Sink {
                         maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
                         pending: false,
                         complete: false,
@@ -289,7 +287,7 @@ fn scheduler(
                 }
                 _ => return Err(LogicMultiError::Shape),
             };
-            OperationDriver::new(operation).map_err(|_| LogicMultiError::Kernel)
+            Ok(operation)
         })
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
@@ -314,8 +312,8 @@ fn scheduler(
 fn source(
     values: &mut FixedValueStore<VALUES, MAX_VALUE_BYTES>,
     value: Scalar,
-) -> Result<PresentationOperation, LogicMultiError> {
-    Ok(PresentationOperation::Source {
+) -> Result<PresentationBack, LogicMultiError> {
+    Ok(PresentationBack::Source {
         value: values
             .store(&value.encode())
             .map_err(|_| LogicMultiError::Value)?,

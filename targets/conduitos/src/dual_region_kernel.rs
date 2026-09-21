@@ -2,18 +2,16 @@
 
 use crate::{
     machine::KernelInterest,
-    text_kernel_operations::{
-        LiteralOperation, LiteralState, PlannedOperation, PresentationOperation,
-        TickPresentationOperation, TimerOperation, TimerState, UpperOperation,
+    text_kernel_backs::{
+        LiteralBack, LiteralState, PlannedBack, PresentationBack, TickPresentationBack, TimerBack,
+        TimerState, UpperBack,
     },
 };
 use conduit_core::{ConfigurationValue, PlanFragment};
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
-    scheduler::{
-        FixedScheduler, HostCallRequest, OperationDriver, SchedulerError, SchedulerStatus,
-    },
+    scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
@@ -30,7 +28,7 @@ const VALUE_SLOT_BYTES: usize = conduit_text::MAX_TEXT_BYTES as usize;
 const VALUE_BUDGET_BYTES: u32 = conduit_text::MAX_TEXT_BYTES * 4;
 const SIGN_CAPACITY: usize = 64;
 
-type Driver = OperationDriver<PlannedOperation, PORTS>;
+type Driver = PlannedBack;
 type Scheduler = FixedScheduler<
     Driver,
     FixedValueStore<VALUE_SLOTS, VALUE_SLOT_BYTES>,
@@ -104,37 +102,28 @@ impl DualRegionKernel {
         bindings.seal()?;
 
         let mut drivers = [const { None }; MAX_NODES];
-        drivers[literal_index] = Some(OperationDriver::new(PlannedOperation::Literal(
-            LiteralOperation {
-                text: literal_value,
-                state: LiteralState::Emitting,
-            },
-        ))?);
-        drivers[upper_index] = Some(OperationDriver::new(PlannedOperation::Upper(
-            UpperOperation {
-                pending: false,
-                emitted: false,
-            },
-        ))?);
-        drivers[text_presentation_index] = Some(OperationDriver::new(
-            PlannedOperation::Presentation(PresentationOperation {
-                pending: false,
-                complete: false,
-            }),
-        )?);
-        drivers[timer_index] = Some(OperationDriver::new(PlannedOperation::Timer(
-            TimerOperation {
-                wait: BoundedValueRef::new(wait, 8)?,
-                tick,
-                state: TimerState::Waiting,
-            },
-        ))?);
-        drivers[tick_presentation_index] = Some(OperationDriver::new(
-            PlannedOperation::TickPresentation(TickPresentationOperation {
+        drivers[literal_index] = Some(PlannedBack::Literal(LiteralBack {
+            text: literal_value,
+            state: LiteralState::Emitting,
+        }));
+        drivers[upper_index] = Some(PlannedBack::Upper(UpperBack {
+            pending: false,
+            emitted: false,
+        }));
+        drivers[text_presentation_index] = Some(PlannedBack::Presentation(PresentationBack {
+            pending: false,
+            complete: false,
+        }));
+        drivers[timer_index] = Some(PlannedBack::Timer(TimerBack {
+            wait: BoundedValueRef::new(wait, 8)?,
+            tick,
+            state: TimerState::Waiting,
+        }));
+        drivers[tick_presentation_index] =
+            Some(PlannedBack::TickPresentation(TickPresentationBack {
                 pending: false,
                 complete: false,
-            }),
-        )?);
+            }));
         let drivers = drivers
             .into_iter()
             .collect::<Option<alloc::vec::Vec<_>>>()

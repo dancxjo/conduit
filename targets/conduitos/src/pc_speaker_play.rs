@@ -4,12 +4,11 @@ use conduit_audio::{Gate, ToneIntent};
 
 use conduit_kernel::{
     BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, NodeId,
-    Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
-    SignSink, ValueRef, ValueStorage,
+    HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, NodeId, PortId,
+    RequestId, RouteRange, RouteTarget, SignSink, ValueRef, ValueStorage,
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, OperationDriver,
-        SchedulerError, SchedulerStatus,
+        CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, SchedulerError,
+        SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
     },
 };
 
@@ -28,104 +27,107 @@ const EVENTS: usize = 4;
 const SIGN_CAPACITY: usize = 64;
 
 #[derive(Clone, Copy)]
-struct SourceOperation {
+struct SourceBack {
     values: [ValueRef; EVENTS],
     tokens: [ValueRef; EVENTS],
     next: usize,
 }
 
-impl Operation for SourceOperation {
-    fn start(&mut self) -> OperationAction {
-        self.request_or_complete()
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if request == RequestId((self.next + 1) as u32)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: self.values[self.next],
-                }
-            }
-            _ => invalid(10),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        self.request_or_complete()
-    }
-
+impl SourceBack {
     fn cancel(&mut self) {
         self.next = EVENTS;
     }
-}
 
-impl SourceOperation {
-    fn request_or_complete(&self) -> OperationAction {
-        self.values
-            .get(self.next)
-            .map_or(OperationAction::Complete, |_value| {
-                OperationAction::RequestHostCall {
-                    request: RequestId((self.next + 1) as u32),
-                    operation: FIXTURE_OPERATION,
-                    input: BoundedValueRef::new(self.tokens[self.next], 8)
-                        .expect("fixture token is exactly admitted"),
-                }
-            })
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        if self.next == EVENTS {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if request != RequestId((self.next + 1) as u32)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return invalid(10);
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            if io.consume_host_completion().is_err()
+                || io.send(PortId(0), self.values[self.next]).is_err()
+            {
+                return invalid(10);
+            }
+            self.next += 1;
+            return if self.next == EVENTS {
+                StepOutcome::Complete
+            } else {
+                StepOutcome::Progress
+            };
+        }
+        if io
+            .request_host_call(
+                RequestId((self.next + 1) as u32),
+                FIXTURE_OPERATION,
+                BoundedValueRef::new(self.tokens[self.next], 8)
+                    .expect("fixture token is exactly admitted"),
+            )
+            .is_err()
+        {
+            return invalid(10);
+        }
+        StepOutcome::Progress
     }
 }
 
 #[derive(Clone, Copy)]
-struct ToneOperation {
+struct ToneBack {
     pending: Option<RequestId>,
     next_request: u32,
 }
 
-impl Operation for ToneOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => {
-                let Ok(input) =
-                    BoundedValueRef::new(value, conduit_audio::TONE_INTENT_ENCODED_LEN as u32)
-                else {
-                    return invalid(20);
-                };
-                let request = RequestId(self.next_request);
-                self.next_request = self.next_request.saturating_add(1);
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: TONE_OPERATION,
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+impl ToneBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        if let Some(request) = self.pending {
+            let Some((completed, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            if completed != request
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+                || io.consume_host_completion().is_err()
             {
-                self.pending = None;
-                OperationAction::Await
+                return invalid(21);
             }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => invalid(21),
+            self.pending = None;
+            return StepOutcome::Progress;
         }
+        if let Some(value) = io.input(PortId(0)) {
+            let Ok(input) =
+                BoundedValueRef::new(value, conduit_audio::TONE_INTENT_ENCODED_LEN as u32)
+            else {
+                return invalid(20);
+            };
+            let request = RequestId(self.next_request);
+            if io.consume(PortId(0)).is_err()
+                || io
+                    .request_host_call(request, TONE_OPERATION, input)
+                    .is_err()
+            {
+                return invalid(21);
+            }
+            self.next_request = self.next_request.saturating_add(1);
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            if io.consume_closed(PortId(0)).is_err() {
+                return invalid(21);
+            }
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -133,38 +135,28 @@ impl Operation for ToneOperation {
     }
 }
 
-const fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+const fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
         detail,
     })
 }
 
 #[derive(Clone, Copy)]
-enum PcSpeakerOperation {
-    Source(SourceOperation),
-    Tone(ToneOperation),
+enum PcSpeakerBack {
+    Source(SourceBack),
+    Tone(ToneBack),
 }
 
-impl Operation for PcSpeakerOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for PcSpeakerBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
-            Self::Source(operation) => operation.start(),
-            Self::Tone(operation) => operation.start(),
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Source(operation) => operation.resume(input),
-            Self::Tone(operation) => operation.resume(input),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source(operation) => operation.advance(),
-            Self::Tone(operation) => operation.advance(),
+            Self::Source(back) => back.step(io),
+            Self::Tone(back) => back.step(io),
         }
     }
 
@@ -176,9 +168,8 @@ impl Operation for PcSpeakerOperation {
     }
 }
 
-type Driver = OperationDriver<PcSpeakerOperation, PORTS>;
 type Scheduler = FixedScheduler<
-    Driver,
+    PcSpeakerBack,
     FixedValueStore<{ EVENTS * 2 }, 256>,
     FixedSignLog<SIGN_CAPACITY>,
     2,
@@ -273,15 +264,15 @@ impl PcSpeakerKernel {
                 routes,
                 bindings,
                 [
-                    OperationDriver::new(PcSpeakerOperation::Source(SourceOperation {
+                    PcSpeakerBack::Source(SourceBack {
                         values: references,
                         tokens,
                         next: 0,
-                    }))?,
-                    OperationDriver::new(PcSpeakerOperation::Tone(ToneOperation {
+                    }),
+                    PcSpeakerBack::Tone(ToneBack {
                         pending: None,
                         next_request: 1,
-                    }))?,
+                    }),
                 ],
                 store,
                 signs,

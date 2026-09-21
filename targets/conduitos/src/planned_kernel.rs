@@ -3,10 +3,11 @@
 use conduit_core::{ConfigurationValue, PlanFragment};
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, Operation, OperationAction,
-    OperationInput, PortId, RequestId, SignSink, ValueRef, ValueStorage,
+    HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, PortId, RequestId, SignSink,
+    ValueRef, ValueStorage,
     scheduler::{
-        FixedScheduler, HostCallRequest, OperationDriver, SchedulerError, SchedulerStatus,
+        FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus, StepInputBytes, StepIo,
+        StepOperation, StepOutcome,
     },
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
@@ -29,9 +30,8 @@ const VALUE_SLOTS: usize = 4;
 const VALUE_BYTES: usize = 64;
 const SIGN_CAPACITY: usize = 64;
 
-type Driver = OperationDriver<PlannedOperation, PORTS>;
 type Scheduler = FixedScheduler<
-    Driver,
+    PlannedBack,
     FixedValueStore<VALUE_SLOTS, VALUE_BYTES>,
     FixedSignLog<SIGN_CAPACITY>,
     MAX_NODES,
@@ -47,63 +47,57 @@ type Scheduler = FixedScheduler<
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum TimerState {
     Waiting,
-    Emitting,
+    Requested,
     Complete,
     Cancelled,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct TimerOperation {
+struct TimerBack {
     wait: BoundedValueRef,
     tick: ValueRef,
     state: TimerState,
 }
 
-impl Operation for TimerOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::RequestHostCall {
-            request: TIMER_REQUEST,
-            operation: conduit_kernel::HostCallId(0),
-            input: self.wait,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if request == TIMER_REQUEST
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.state = TimerState::Emitting;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: self.tick,
+impl TimerBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        match self.state {
+            TimerState::Waiting => {
+                if io
+                    .request_host_call(TIMER_REQUEST, conduit_kernel::HostCallId(0), self.wait)
+                    .is_err()
+                {
+                    return invalid(11);
                 }
+                self.state = TimerState::Requested;
+                StepOutcome::Progress
             }
-            OperationInput::HostCallCompleted { request, outcome }
-                if request == TIMER_REQUEST
-                    && outcome.disposition == HostCallDisposition::Cancelled =>
-            {
-                OperationAction::Fail(conduit_kernel::Failure {
-                    code: conduit_kernel::FailureCode::Cancelled,
-                    detail: 10,
-                })
+            TimerState::Requested => {
+                let Some((request, outcome)) = io.host_completion() else {
+                    return StepOutcome::Await;
+                };
+                if request == TIMER_REQUEST && outcome.disposition == HostCallDisposition::Cancelled
+                {
+                    return failure(conduit_kernel::FailureCode::Cancelled, 10);
+                }
+                if request != TIMER_REQUEST
+                    || outcome.disposition != HostCallDisposition::Completed
+                    || outcome.output.is_some()
+                    || outcome.failure.is_some()
+                {
+                    return failure(conduit_kernel::FailureCode::HostCallFailed, 11);
+                }
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                if io.consume_host_completion().is_err() || io.send(PortId(0), self.tick).is_err() {
+                    return invalid(11);
+                }
+                self.state = TimerState::Complete;
+                StepOutcome::Complete
             }
-            _ => OperationAction::Fail(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::HostCallFailed,
-                detail: 11,
-            }),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        if self.state == TimerState::Emitting {
-            self.state = TimerState::Complete;
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
+            TimerState::Complete => StepOutcome::Complete,
+            TimerState::Cancelled => failure(conduit_kernel::FailureCode::Cancelled, 10),
         }
     }
 
@@ -113,48 +107,50 @@ impl Operation for TimerOperation {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct PresentationOperation {
+struct PresentationBack {
     pending: bool,
     complete: bool,
 }
 
-impl Operation for PresentationOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending => {
-                let Ok(input) = BoundedValueRef::new(value, 8) else {
-                    return invalid(20);
-                };
-                self.pending = true;
-                OperationAction::RequestHostCall {
-                    request: PRESENT_REQUEST,
-                    operation: conduit_kernel::HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if request == PRESENT_REQUEST
-                    && self.pending
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+impl PresentationBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        if self.pending {
+            let Some((request, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            if request != PRESENT_REQUEST
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+                || io.consume_host_completion().is_err()
             {
-                self.pending = false;
-                self.complete = true;
-                OperationAction::Await
+                return invalid(21);
             }
-            OperationInput::Closed { port: PortId(0) } if self.complete && !self.pending => {
-                OperationAction::Complete
-            }
-            _ => invalid(21),
+            self.pending = false;
+            self.complete = true;
+            return StepOutcome::Progress;
         }
+        if let Some(value) = io.input(PortId(0)) {
+            let Ok(input) = BoundedValueRef::new(value, 8) else {
+                return invalid(20);
+            };
+            if io.consume(PortId(0)).is_err()
+                || io
+                    .request_host_call(PRESENT_REQUEST, conduit_kernel::HostCallId(0), input)
+                    .is_err()
+            {
+                return invalid(21);
+            }
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        if self.complete && io.input_closed(PortId(0)) {
+            if io.consume_closed(PortId(0)).is_err() {
+                return invalid(21);
+            }
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -162,38 +158,29 @@ impl Operation for PresentationOperation {
     }
 }
 
-const fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
-        code: conduit_kernel::FailureCode::InvalidLifecycle,
-        detail,
-    })
+const fn invalid(detail: u16) -> StepOutcome {
+    failure(conduit_kernel::FailureCode::InvalidLifecycle, detail)
+}
+
+const fn failure(code: conduit_kernel::FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure { code, detail })
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum PlannedOperation {
-    Timer(TimerOperation),
-    Presentation(PresentationOperation),
+enum PlannedBack {
+    Timer(TimerBack),
+    Presentation(PresentationBack),
 }
 
-impl Operation for PlannedOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for PlannedBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
-            Self::Timer(operation) => operation.start(),
-            Self::Presentation(operation) => operation.start(),
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Timer(operation) => operation.resume(input),
-            Self::Presentation(operation) => operation.resume(input),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Timer(operation) => operation.advance(),
-            Self::Presentation(operation) => operation.advance(),
+            Self::Timer(back) => back.step(io),
+            Self::Presentation(back) => back.step(io),
         }
     }
 
@@ -241,15 +228,15 @@ impl PlannedKernel {
         }
         bindings.seal()?;
         let drivers = [
-            OperationDriver::new(PlannedOperation::Timer(TimerOperation {
+            PlannedBack::Timer(TimerBack {
                 wait: BoundedValueRef::new(wait, 8)?,
                 tick,
                 state: TimerState::Waiting,
-            }))?,
-            OperationDriver::new(PlannedOperation::Presentation(PresentationOperation {
+            }),
+            PlannedBack::Presentation(PresentationBack {
                 pending: false,
                 complete: false,
-            }))?,
+            }),
         ];
         let minimum_sign_bytes = (SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32;
         let signs = FixedSignLog::<SIGN_CAPACITY>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;

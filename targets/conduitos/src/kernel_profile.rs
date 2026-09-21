@@ -2,12 +2,11 @@
 
 use conduit_kernel::{
     BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, NodeId,
-    Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
-    SignSink, ValueRef,
+    HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, NodeId, PortId,
+    RequestId, RouteRange, RouteTarget, SignSink, ValueRef,
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, OperationDriver,
-        SchedulerError, SchedulerStatus,
+        CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, SchedulerError,
+        SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
     },
 };
 
@@ -32,9 +31,8 @@ const PENDING_REQUESTS: usize = 2;
 const VALUE_SLOTS: usize = 4;
 const VALUE_BYTES: usize = 64;
 
-type Driver = OperationDriver<ProfileOperation, PORTS>;
 type Scheduler = FixedScheduler<
-    Driver,
+    ProfileBack,
     FixedValueStore<VALUE_SLOTS, VALUE_BYTES>,
     FixedSignLog<SIGN_CAPACITY>,
     NODE_COUNT,
@@ -48,91 +46,80 @@ type Scheduler = FixedScheduler<
 >;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum TimerOperationState {
+enum TimerBackState {
     Waiting,
-    Emitting(ValueRef),
+    Requested,
     Complete,
     Cancelled,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct TimerOperation {
+struct TimerBack {
     wait: BoundedValueRef,
     tick: ValueRef,
-    state: TimerOperationState,
+    state: TimerBackState,
 }
 
-impl TimerOperation {
+impl TimerBack {
     fn new(wait: ValueRef, tick: ValueRef) -> Result<Self, SchedulerError> {
         Ok(Self {
             wait: BoundedValueRef::new(wait, 8)?,
             tick,
-            state: TimerOperationState::Waiting,
+            state: TimerBackState::Waiting,
         })
     }
 }
 
-impl Operation for TimerOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::RequestHostCall {
-            request: TIMER_REQUEST,
-            operation: WAIT_OPERATION,
-            input: self.wait,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if request == TIMER_REQUEST
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none() =>
-            {
-                self.state = TimerOperationState::Emitting(self.tick);
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: self.tick,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if request == TIMER_REQUEST
-                    && outcome.disposition == HostCallDisposition::Cancelled =>
-            {
-                OperationAction::Fail(conduit_kernel::Failure {
-                    code: conduit_kernel::FailureCode::Cancelled,
-                    detail: 10,
-                })
-            }
-            OperationInput::HostCallCompleted { request, .. } if request == TIMER_REQUEST => {
-                OperationAction::Fail(conduit_kernel::Failure {
-                    code: conduit_kernel::FailureCode::HostCallFailed,
-                    detail: 11,
-                })
-            }
-            _ => OperationAction::Fail(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::InvalidInput,
-                detail: 12,
-            }),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
+impl TimerBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
         match self.state {
-            TimerOperationState::Emitting(_) => {
-                self.state = TimerOperationState::Complete;
-                OperationAction::Complete
+            TimerBackState::Waiting => {
+                if io
+                    .request_host_call(TIMER_REQUEST, WAIT_OPERATION, self.wait)
+                    .is_err()
+                {
+                    return fail(conduit_kernel::FailureCode::InvalidInput, 12);
+                }
+                self.state = TimerBackState::Requested;
+                StepOutcome::Progress
             }
-            _ => OperationAction::Await,
+            TimerBackState::Requested => {
+                let Some((request, outcome)) = io.host_completion() else {
+                    return StepOutcome::Await;
+                };
+                if request != TIMER_REQUEST {
+                    return fail(conduit_kernel::FailureCode::InvalidInput, 12);
+                }
+                if outcome.disposition == HostCallDisposition::Cancelled {
+                    return fail(conduit_kernel::FailureCode::Cancelled, 10);
+                }
+                if outcome.disposition != HostCallDisposition::Completed
+                    || outcome.output.is_some()
+                    || outcome.failure.is_some()
+                {
+                    return fail(conduit_kernel::FailureCode::HostCallFailed, 11);
+                }
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                if io.consume_host_completion().is_err() || io.send(PortId(0), self.tick).is_err() {
+                    return fail(conduit_kernel::FailureCode::InvalidInput, 12);
+                }
+                self.state = TimerBackState::Complete;
+                StepOutcome::Complete
+            }
+            TimerBackState::Complete => StepOutcome::Complete,
+            TimerBackState::Cancelled => fail(conduit_kernel::FailureCode::Cancelled, 10),
         }
     }
 
     fn cancel(&mut self) {
-        self.state = TimerOperationState::Cancelled;
+        self.state = TimerBackState::Cancelled;
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum SerialOperationState {
+enum SerialBackState {
     Waiting,
     Presenting,
     Complete,
@@ -140,93 +127,75 @@ enum SerialOperationState {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct SerialOperation {
-    state: SerialOperationState,
+struct SerialBack {
+    state: SerialBackState,
 }
 
-impl Operation for SerialOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.state == SerialOperationState::Waiting => {
-                let Ok(input) = BoundedValueRef::new(value, 16) else {
-                    return OperationAction::Fail(conduit_kernel::Failure {
-                        code: conduit_kernel::FailureCode::InvalidInput,
-                        detail: 20,
-                    });
+impl SerialBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        match self.state {
+            SerialBackState::Waiting => {
+                let Some(value) = io.input(PortId(0)) else {
+                    return StepOutcome::Await;
                 };
-                self.state = SerialOperationState::Presenting;
-                OperationAction::RequestHostCall {
-                    request: PRESENT_REQUEST,
-                    operation: PRESENT_OPERATION,
-                    input,
+                let Ok(input) = BoundedValueRef::new(value, 16) else {
+                    return fail(conduit_kernel::FailureCode::InvalidInput, 20);
+                };
+                if io.consume(PortId(0)).is_err()
+                    || io
+                        .request_host_call(PRESENT_REQUEST, PRESENT_OPERATION, input)
+                        .is_err()
+                {
+                    return fail(conduit_kernel::FailureCode::HostCallFailed, 22);
                 }
+                self.state = SerialBackState::Presenting;
+                StepOutcome::Progress
             }
-            OperationInput::HostCallCompleted { request, outcome }
-                if request == PRESENT_REQUEST
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none() =>
-            {
-                self.state = SerialOperationState::Complete;
-                OperationAction::Complete
+            SerialBackState::Presenting => {
+                let Some((request, outcome)) = io.host_completion() else {
+                    return StepOutcome::Await;
+                };
+                if request != PRESENT_REQUEST {
+                    return fail(conduit_kernel::FailureCode::HostCallFailed, 22);
+                }
+                if outcome.disposition == HostCallDisposition::Cancelled {
+                    return fail(conduit_kernel::FailureCode::Cancelled, 21);
+                }
+                if outcome.disposition != HostCallDisposition::Completed
+                    || outcome.output.is_some()
+                    || outcome.failure.is_some()
+                    || io.consume_host_completion().is_err()
+                {
+                    return fail(conduit_kernel::FailureCode::HostCallFailed, 22);
+                }
+                self.state = SerialBackState::Complete;
+                StepOutcome::Complete
             }
-            OperationInput::HostCallCompleted { request, outcome }
-                if request == PRESENT_REQUEST
-                    && outcome.disposition == HostCallDisposition::Cancelled =>
-            {
-                OperationAction::Fail(conduit_kernel::Failure {
-                    code: conduit_kernel::FailureCode::Cancelled,
-                    detail: 21,
-                })
-            }
-            OperationInput::Closed { port: PortId(0) }
-                if self.state == SerialOperationState::Complete =>
-            {
-                OperationAction::Complete
-            }
-            _ => OperationAction::Fail(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::HostCallFailed,
-                detail: 22,
-            }),
+            SerialBackState::Complete => StepOutcome::Complete,
+            SerialBackState::Cancelled => fail(conduit_kernel::FailureCode::Cancelled, 21),
         }
     }
 
     fn cancel(&mut self) {
-        self.state = SerialOperationState::Cancelled;
+        self.state = SerialBackState::Cancelled;
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ProfileOperation {
-    Timer(TimerOperation),
-    Serial(SerialOperation),
+enum ProfileBack {
+    Timer(TimerBack),
+    Serial(SerialBack),
 }
 
-impl Operation for ProfileOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for ProfileBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
-            Self::Timer(operation) => operation.start(),
-            Self::Serial(operation) => operation.start(),
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Timer(operation) => operation.resume(input),
-            Self::Serial(operation) => operation.resume(input),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Timer(operation) => operation.advance(),
-            Self::Serial(operation) => operation.advance(),
+            Self::Timer(back) => back.step(io),
+            Self::Serial(back) => back.step(io),
         }
     }
 
@@ -236,6 +205,10 @@ impl Operation for ProfileOperation {
             Self::Serial(operation) => operation.cancel(),
         }
     }
+}
+
+const fn fail(code: conduit_kernel::FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure { code, detail })
 }
 
 pub struct KernelProfile {
@@ -305,13 +278,10 @@ impl KernelProfile {
             },
         )];
         let drivers = [
-            OperationDriver::new(ProfileOperation::Timer(TimerOperation::new(
-                timer_wait,
-                timer_value,
-            )?))?,
-            OperationDriver::new(ProfileOperation::Serial(SerialOperation {
-                state: SerialOperationState::Waiting,
-            }))?,
+            ProfileBack::Timer(TimerBack::new(timer_wait, timer_value)?),
+            ProfileBack::Serial(SerialBack {
+                state: SerialBackState::Waiting,
+            }),
         ];
         let sign_bytes = u32::try_from(SIGN_CAPACITY * core::mem::size_of::<KernelEvent>())
             .map_err(|_| SchedulerError::InvalidPlan)?;

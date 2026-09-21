@@ -1,7 +1,7 @@
 //! Numeric composition and all runtime storage admission before Play.
 use super::*;
-use crate::keyboard_text_operations::{
-    ApplicationOperation, KeyboardOperation, PresentationOperation, StreamTransformOperation,
+use crate::keyboard_text_backs::{
+    ApplicationBack, KeyboardBack, PresentationBack, StreamTransformBack,
 };
 use alloc::vec::Vec;
 use conduit_kernel::{
@@ -49,7 +49,7 @@ pub(super) fn prepare(
             let (effect, operation) = match placement.implementation_id.as_str() {
                 super::super::keyboard_delivery::IMPLEMENTATION => (
                     Effect::Keyboard,
-                    PlannedOperation::Keyboard(KeyboardOperation {
+                    PlannedBack::Keyboard(KeyboardBack {
                         empty,
                         pending: None,
                         next: 0,
@@ -58,7 +58,7 @@ pub(super) fn prepare(
                 ),
                 super::super::application_delivery::EVENT_IMPLEMENTATION => (
                     Effect::ApplicationEvent,
-                    PlannedOperation::Keyboard(KeyboardOperation {
+                    PlannedBack::Keyboard(KeyboardBack {
                         empty,
                         pending: None,
                         next: 0,
@@ -67,7 +67,7 @@ pub(super) fn prepare(
                 ),
                 super::super::application_delivery::STATE_IMPLEMENTATION => (
                     Effect::Application,
-                    PlannedOperation::Application(ApplicationOperation {
+                    PlannedBack::Application(ApplicationBack {
                         empty: values.store(&[]).map_err(|_| WorksetRefusal::Kernel)?,
                         pending: None,
                         next: 0,
@@ -76,18 +76,18 @@ pub(super) fn prepare(
                 ),
                 super::super::application_delivery::PRESENTATION_IMPLEMENTATION => (
                     Effect::ApplicationPresentation,
-                    PlannedOperation::Presentation(PresentationOperation {
+                    PlannedBack::Presentation(PresentationBack {
                         pending: None,
                         next: 0,
                     }),
                 ),
                 crate::keyboard_text_plan::KEYMAP_IMPLEMENTATION => (
                     Effect::Keymap,
-                    PlannedOperation::Keymap(StreamTransformOperation::new(true)),
+                    PlannedBack::Keymap(StreamTransformBack::new(true)),
                 ),
                 crate::offer::TEXT_UPPER_IMPLEMENTATION => (
                     Effect::Upper,
-                    PlannedOperation::Upper(StreamTransformOperation::new(false)),
+                    PlannedBack::Upper(StreamTransformBack::new(false)),
                 ),
                 super::super::text_state::TEXT_EDIT_IMPLEMENTATION => {
                     let maximum = placement
@@ -114,12 +114,12 @@ pub(super) fn prepare(
                     // installed host binding gives it retained text semantics.
                     (
                         Effect::Edit,
-                        PlannedOperation::TextEdit(StreamTransformOperation::new(false)),
+                        PlannedBack::TextEdit(StreamTransformBack::new(false)),
                     )
                 }
                 crate::offer::TEXT_PRESENTATION_IMPLEMENTATION => (
                     Effect::Presentation,
-                    PlannedOperation::Presentation(PresentationOperation {
+                    PlannedBack::Presentation(PresentationBack {
                         pending: None,
                         next: 0,
                     }),
@@ -134,14 +134,11 @@ pub(super) fn prepare(
         }
     }
     while operations.len() < NODES {
-        operations.push(PlannedOperation::Upper(StreamTransformOperation::new(
-            false,
-        )));
+        operations.push(PlannedBack::Upper(StreamTransformBack::new(false)));
     }
     let drivers = operations
         .into_iter()
-        .map(|operation| OperationDriver::new(operation).map_err(|_| WorksetRefusal::Kernel))
-        .collect::<Result<Vec<_>, _>>()?
+        .collect::<Vec<_>>()
         .try_into()
         .map_err(|_| WorksetRefusal::Kernel)?;
     let mut nodes = [NodeSpec {

@@ -1,7 +1,5 @@
 use alloc::{string::String, vec::Vec};
-use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostCallDisposition, HostCallOutcome, ValueStorage,
@@ -12,7 +10,7 @@ use conduit_presentation::{
     MAX_GRAPHICS_SCENE_BYTES, PresentationComposition,
 };
 
-use super::{PreparedPresentationPlay, TEXT_SOURCE_KIND, operation::PresentationOperation};
+use super::{PreparedPresentationPlay, TEXT_SOURCE_KIND, back::PresentationBack};
 use crate::display::{DisplayReceipt, PixelTarget, render_scene};
 
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -26,7 +24,7 @@ const VALUE_BYTES: usize = VALUES * MAX_VALUE_BYTES;
 const SIGNS: usize = 256;
 
 type PresentationScheduler = FixedScheduler<
-    OperationDriver<PresentationOperation, PORTS>,
+    PresentationBack,
     FixedValueStore<VALUES, MAX_VALUE_BYTES>,
     FixedSignLog<SIGNS>,
     NODES,
@@ -279,7 +277,7 @@ fn prepare_scheduler(
             TEXT_SOURCE_KIND => source(&mut values, b"Gear Front")?,
             conduit_semantic_catalog::TEXT_PRESENTATION_KIND
             | conduit_semantic_catalog::GRAPHICS_PRESENTATION_KIND
-            | conduit_semantic_catalog::LAYOUT_COLUMN_KIND => PresentationOperation::Sink {
+            | conduit_semantic_catalog::LAYOUT_COLUMN_KIND => PresentationBack::Sink {
                 maximum_input_bytes: placement
                     .host_calls
                     .first()
@@ -288,7 +286,7 @@ fn prepare_scheduler(
                 pending: false,
                 complete: false,
             },
-            _ => PresentationOperation::Transform {
+            _ => PresentationBack::Transform {
                 maximum_input_bytes: placement
                     .host_calls
                     .first()
@@ -298,7 +296,7 @@ fn prepare_scheduler(
                 emitted: false,
             },
         };
-        drivers.push(OperationDriver::new(operation).map_err(|_| PresentationRunError::Kernel)?);
+        drivers.push(operation);
     }
     let drivers = drivers
         .try_into()
@@ -316,8 +314,8 @@ fn prepare_scheduler(
 fn source(
     values: &mut FixedValueStore<VALUES, MAX_VALUE_BYTES>,
     bytes: &[u8],
-) -> Result<PresentationOperation, PresentationRunError> {
-    Ok(PresentationOperation::Source {
+) -> Result<PresentationBack, PresentationRunError> {
+    Ok(PresentationBack::Source {
         value: values
             .store(bytes)
             .map_err(|_| PresentationRunError::Value)?,

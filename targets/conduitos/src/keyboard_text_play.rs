@@ -11,16 +11,12 @@ use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, FixedSignLog,
     FixedValueStore, HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef,
     ValueStorage,
-    scheduler::{
-        FixedScheduler, HostCallRequest, OperationDriver, SchedulerError, SchedulerStatus,
-    },
+    scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
 use crate::{
-    keyboard_text_operations::{
-        KeyboardOperation, PlannedOperation, PresentationOperation, StreamTransformOperation,
-    },
+    keyboard_text_backs::{KeyboardBack, PlannedBack, PresentationBack, StreamTransformBack},
     keyboard_text_plan::PreparedKeyboardTextPlay,
     ordinary_plan::PreparationError,
 };
@@ -40,9 +36,8 @@ const MAX_VALUE_BYTES: usize = conduit_text::MAX_TEXT_BYTES as usize;
 const VALUE_BYTE_CAPACITY: usize = 128;
 const SIGN_CAPACITY: usize = 768;
 
-type Driver = OperationDriver<PlannedOperation, PORTS>;
 type Scheduler = FixedScheduler<
-    Driver,
+    PlannedBack,
     FixedValueStore<VALUE_SLOTS, MAX_VALUE_BYTES>,
     FixedSignLog<SIGN_CAPACITY>,
     MAX_NODES,

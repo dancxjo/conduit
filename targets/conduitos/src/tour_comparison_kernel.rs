@@ -5,17 +5,13 @@ use conduit_core::{ConfigurationValue, PlanFragment};
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostCallDisposition, HostCallOutcome, KernelEvent, SignSink, ValueRef, ValueStorage,
-    scheduler::{
-        FixedScheduler, HostCallRequest, OperationDriver, SchedulerError, SchedulerStatus,
-    },
+    scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
 use crate::{
-    text_kernel_operations::{LiteralOperation, LiteralState},
-    tour_morse_operations::{
-        IndicatorOperation, LeafOperation, MorseOperation, TourMorseOperation,
-    },
+    text_kernel_backs::{LiteralBack, LiteralState},
+    tour_morse_backs::{IndicatorBack, LeafBack, MorseBack, TourMorseBack},
 };
 
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -29,7 +25,7 @@ const MAX_VALUE_BYTES: usize = conduit_text::MAXIMUM_MORSE_PATTERN_BYTES;
 const VALUE_BUDGET: usize = MAX_VALUE_BYTES * 8;
 const SIGN_CAPACITY: usize = 80;
 
-type Driver = OperationDriver<TourMorseOperation, PORTS>;
+type Driver = TourMorseBack;
 type Scheduler<const N: usize, const C: usize> = FixedScheduler<
     Driver,
     FixedValueStore<VALUE_SLOTS, MAX_VALUE_BYTES>,
@@ -174,9 +170,9 @@ impl<const N: usize, const C: usize> BoxedKernel<N, C> {
         let mut drivers = Vec::with_capacity(N);
         let mut kinds = Vec::with_capacity(N);
         for placement in &fragment.placements {
-            let (kind, operation) = operation(placement, &mut values)?;
+            let (kind, back) = back(placement, &mut values)?;
             kinds.push(kind);
-            drivers.push(OperationDriver::new(operation)?);
+            drivers.push(back);
         }
         let drivers: [Driver; N] = drivers
             .try_into()
@@ -221,18 +217,18 @@ impl<const N: usize, const C: usize> BoxedKernel<N, C> {
     }
 }
 
-fn operation(
+fn back(
     placement: &conduit_core::PlannedGear,
     values: &mut FixedValueStore<VALUE_SLOTS, MAX_VALUE_BYTES>,
-) -> Result<(ComparisonNodeKind, TourMorseOperation), SchedulerError> {
-    let (kind, expected_implementation, operation) = match placement.kind_id.as_str() {
+) -> Result<(ComparisonNodeKind, TourMorseBack), SchedulerError> {
+    let (kind, expected_implementation, back) = match placement.kind_id.as_str() {
         conduit_text::TEXT_LITERAL_KIND => {
             let literal = configured_text(&placement.configuration, "value")?;
             let text = values.store(literal.as_bytes())?;
             (
                 ComparisonNodeKind::Literal,
                 crate::offer::TEXT_LITERAL_IMPLEMENTATION,
-                TourMorseOperation::Literal(LiteralOperation {
+                TourMorseBack::Literal(LiteralBack {
                     text,
                     state: LiteralState::Emitting,
                 }),
@@ -277,7 +273,7 @@ fn operation(
         conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND => (
             ComparisonNodeKind::Indicator,
             crate::offer::INDICATOR_PRESENTATION_IMPLEMENTATION,
-            TourMorseOperation::Indicator(IndicatorOperation {
+            TourMorseBack::Indicator(IndicatorBack {
                 pending: false,
                 complete: false,
             }),
@@ -287,7 +283,7 @@ fn operation(
     if placement.implementation_id.as_str() != expected_implementation {
         return Err(SchedulerError::InvalidPlan);
     }
-    Ok((kind, operation))
+    Ok((kind, back))
 }
 
 fn leaf(
@@ -295,20 +291,20 @@ fn leaf(
     implementation: &'static str,
     maximum_input_bytes: u32,
     direct: bool,
-) -> (ComparisonNodeKind, &'static str, TourMorseOperation) {
-    let operation = if direct {
-        TourMorseOperation::Morse(MorseOperation {
+) -> (ComparisonNodeKind, &'static str, TourMorseBack) {
+    let back = if direct {
+        TourMorseBack::Morse(MorseBack {
             pending: false,
             emitted: false,
         })
     } else {
-        TourMorseOperation::Leaf(LeafOperation {
+        TourMorseBack::Leaf(LeafBack {
             maximum_input_bytes,
             pending: false,
             emitted: false,
         })
     };
-    (kind, implementation, operation)
+    (kind, implementation, back)
 }
 
 fn configured_text<'a>(

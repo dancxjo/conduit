@@ -60,34 +60,18 @@ pub(super) fn prepare(
         .seal()
         .map_err(|_| PreparationError::KernelRejected)?;
     let mut drivers = [None, None, None, None];
-    drivers[usize::from(keyboard_node.0)] = Some(
-        OperationDriver::new(PlannedOperation::Keyboard(KeyboardOperation {
-            empty,
-            pending: None,
-            next: 0,
-            maximum: event_count.map(|count| count as u32),
-        }))
-        .map_err(|_| PreparationError::KernelRejected)?,
-    );
-    drivers[usize::from(keymap_node.0)] = Some(
-        OperationDriver::new(PlannedOperation::Keymap(StreamTransformOperation::new(
-            true,
-        )))
-        .map_err(|_| PreparationError::KernelRejected)?,
-    );
-    drivers[usize::from(upper_node.0)] = Some(
-        OperationDriver::new(PlannedOperation::Upper(StreamTransformOperation::new(
-            false,
-        )))
-        .map_err(|_| PreparationError::KernelRejected)?,
-    );
-    drivers[usize::from(presentation_node.0)] = Some(
-        OperationDriver::new(PlannedOperation::Presentation(PresentationOperation {
-            pending: None,
-            next: 0,
-        }))
-        .map_err(|_| PreparationError::KernelRejected)?,
-    );
+    drivers[usize::from(keyboard_node.0)] = Some(PlannedBack::Keyboard(KeyboardBack {
+        empty,
+        pending: None,
+        next: 0,
+        maximum: event_count.map(|count| count as u32),
+    }));
+    drivers[usize::from(keymap_node.0)] = Some(PlannedBack::Keymap(StreamTransformBack::new(true)));
+    drivers[usize::from(upper_node.0)] = Some(PlannedBack::Upper(StreamTransformBack::new(false)));
+    drivers[usize::from(presentation_node.0)] = Some(PlannedBack::Presentation(PresentationBack {
+        pending: None,
+        next: 0,
+    }));
     let [Some(first), Some(second), Some(third), Some(fourth)] = drivers else {
         return Err(PreparationError::KernelRejected);
     };
