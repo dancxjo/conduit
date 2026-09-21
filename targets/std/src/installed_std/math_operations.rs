@@ -1,6 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, Scalar, SCALAR_ENCODED_LEN};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
     RequestId,
 };
@@ -38,6 +39,79 @@ pub(super) enum MathTransform {
     Clamp { minimum: Scalar, maximum: Scalar },
     Scale { gain: Scalar },
     Deadband { radius: Scalar },
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for MathScalarOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.completed {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return StepOutcome::Fail(math_failure());
+            }
+            if outcome.disposition == HostCallDisposition::Failed && outcome.output.is_none() {
+                io.consume_host_completion()
+                    .expect("observed failed math Host Call");
+                self.pending = None;
+                self.completed = true;
+                return StepOutcome::Fail(outcome.failure.unwrap_or_else(math_failure));
+            }
+            if outcome.disposition != HostCallDisposition::Completed || outcome.failure.is_some() {
+                return StepOutcome::Fail(math_failure());
+            }
+            let Some(output) = outcome.output else {
+                return StepOutcome::Fail(math_failure());
+            };
+            if output.admitted_bytes != self.output_bytes
+                || output.value.byte_len != self.output_bytes
+            {
+                return StepOutcome::Fail(math_failure());
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume_host_completion()
+                .expect("observed completed math Host Call");
+            io.send(PortId(0), output.value).expect("ready math output");
+            self.pending = None;
+            self.completed = true;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() || value.byte_len != self.input_bytes {
+                return StepOutcome::Fail(math_failure());
+            }
+            let Ok(input) = BoundedValueRef::new(value, self.input_bytes) else {
+                return StepOutcome::Fail(math_failure());
+            };
+            let request = RequestId(0);
+            io.consume(PortId(0)).expect("present math input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("single math Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed math input closure");
+            self.completed = true;
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.completed = true;
+    }
+}
+
+fn math_failure() -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail: 25,
+    }
 }
 
 impl MathTransform {
