@@ -4,6 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use super::robotics_effect::SimulatedDriveEffect;
 use conduit_core::{ConfigurationEntry, PlannedGear, Scalar, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     Failure, FailureCode, HostedValueStore, OperationAction, OperationInput, PortId, ValueRef,
     ValueStorage,
 };
@@ -47,6 +48,36 @@ pub(super) struct RoboticsSourceOperation {
     values: [Option<ValueRef>; 2],
     next: usize,
     cancelled: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for RoboticsSourceOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.cancelled {
+            return StepOutcome::Fail(Failure {
+                code: FailureCode::Cancelled,
+                detail: 47,
+            });
+        }
+        match self.availability {
+            SimulatedAvailability::Missing => return step_failure(FailureCode::InvalidInput, 40),
+            SimulatedAvailability::Stale => return step_failure(FailureCode::InvalidInput, 41),
+            SimulatedAvailability::Fresh => {}
+        }
+        let Some(value) = self.values.get(self.next).copied().flatten() else {
+            return StepOutcome::Complete;
+        };
+        let port = PortId(u16::try_from(self.next).expect("robotics has at most two outputs"));
+        if !io.output_ready(port) {
+            return StepOutcome::Await;
+        }
+        io.send(port, value).expect("ready robotics source output");
+        self.next += 1;
+        StepOutcome::Progress
+    }
+
+    fn cancel(&mut self) {
+        self.cancelled = true;
+    }
 }
 
 impl RoboticsSourceOperation {
@@ -95,6 +126,64 @@ pub(super) struct RoboticsDriveOperation {
     angular: Option<Scalar>,
     closed: [bool; 2],
     effect: Option<SimulatedDriveEffect>,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for RoboticsDriveOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        for port in [PortId(0), PortId(1)] {
+            let Some(value) = io.input(port) else {
+                continue;
+            };
+            let index = usize::from(port.0);
+            if self.closed[index] || value.byte_len != SCALAR_ENCODED_LEN as u32 {
+                return step_failure(FailureCode::InvalidInput, 46);
+            }
+            let Some(canonical) = input_bytes.input(port) else {
+                return step_failure(FailureCode::InvalidInput, 46);
+            };
+            let Ok(decoded) = Scalar::decode(canonical) else {
+                return step_failure(FailureCode::InvalidInput, 46);
+            };
+            match index {
+                0 if self.linear.is_none() => self.linear = Some(decoded),
+                1 if self.angular.is_none() => self.angular = Some(decoded),
+                _ => return step_failure(FailureCode::InvalidInput, 46),
+            }
+            io.consume(port).expect("present robotics drive input");
+            if let (Some(linear), Some(angular)) = (self.linear, self.angular) {
+                self.effect = Some(SimulatedDriveEffect::Projected { linear, angular });
+                return StepOutcome::Complete;
+            }
+            return StepOutcome::Progress;
+        }
+
+        for port in [PortId(0), PortId(1)] {
+            let index = usize::from(port.0);
+            if io.input_closed(port) && !self.closed[index] {
+                io.consume_closed(port)
+                    .expect("observed robotics drive closure");
+                self.closed[index] = true;
+                if self.closed.iter().all(|closed| *closed) {
+                    self.effect = Some(SimulatedDriveEffect::Suppressed);
+                    return StepOutcome::Complete;
+                }
+                return StepOutcome::Progress;
+            }
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.effect = Some(SimulatedDriveEffect::Cancelled);
+    }
+}
+
+const fn step_failure(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl RoboticsDriveOperation {
