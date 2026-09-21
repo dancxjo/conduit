@@ -1,7 +1,8 @@
 #![cfg(feature = "kernel-step")]
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    PortId, RequestId, ValueRef,
 };
 use conduit_semantic_catalog::TemplateStorageOperation;
 
@@ -12,42 +13,58 @@ fn value(bytes: u32) -> ValueRef {
         byte_len: bytes,
     }
 }
-fn input(bytes: u32) -> OperationInput {
-    OperationInput::Value {
-        port: PortId(0),
-        value: value(bytes),
-    }
+
+fn input(operation: &mut TemplateStorageOperation, bytes: u32) -> (StepOutcome, StepIo<1>) {
+    let mut io = StepIo::test_frame([Some(value(bytes))], [false], [Some(4096)], None, 4);
+    let outcome = operation.step(&mut io, &StepInputBytes::test_frame([None], None));
+    (outcome, io)
 }
-fn completed(request: u32) -> OperationInput {
-    OperationInput::HostCallCompleted {
-        request: RequestId(request),
-        outcome: HostCallOutcome {
-            disposition: HostCallDisposition::Completed,
-            output: Some(BoundedValueRef::new(value(10), 4096).unwrap()),
-            failure: None,
-        },
-    }
+
+fn completion(
+    operation: &mut TemplateStorageOperation,
+    request: u32,
+    outcome: HostCallOutcome,
+) -> (StepOutcome, StepIo<1>) {
+    let mut io = StepIo::test_frame(
+        [None],
+        [false],
+        [Some(4096)],
+        Some((RequestId(request), outcome)),
+        4,
+    );
+    let result = operation.step(&mut io, &StepInputBytes::test_frame([None], None));
+    (result, io)
 }
-fn failure(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
+
+fn completed() -> HostCallOutcome {
+    HostCallOutcome {
+        disposition: HostCallDisposition::Completed,
+        output: Some(BoundedValueRef::new(value(10), 4096).unwrap()),
+        failure: None,
+    }
 }
 
 #[test]
 fn exact_host_bounds_accept_and_oversize_refuses() {
     for bound in [4096, 65536] {
         let mut operation = TemplateStorageOperation::new(2, bound);
+        let (outcome, io) = input(&mut operation, bound);
+        assert_eq!(outcome, StepOutcome::Progress);
         assert_eq!(
-            operation.resume(input(bound)),
-            OperationAction::RequestHostCall {
-                request: RequestId(0),
-                operation: HostCallId(0),
-                input: BoundedValueRef::new(value(bound), bound).unwrap(),
-            }
+            io.test_host_request(),
+            Some((
+                RequestId(0),
+                HostCallId(0),
+                BoundedValueRef::new(value(bound), bound).unwrap()
+            ))
         );
         let mut operation = TemplateStorageOperation::new(2, bound);
         assert_eq!(
-            operation.resume(input(bound + 1)),
-            failure(FailureCode::InvalidInput, 264)
+            input(&mut operation, bound + 1).0,
+            StepOutcome::Fail(Failure {
+                code: FailureCode::InvalidInput,
+                detail: 264
+            })
         );
     }
 }
@@ -55,56 +72,60 @@ fn exact_host_bounds_accept_and_oversize_refuses() {
 #[test]
 fn finite_commands_emit_exactly_then_refuse_excess_and_allow_closure() {
     let mut operation = TemplateStorageOperation::new(2, 4096);
-    assert_eq!(operation.start(), OperationAction::Await);
     for request in 0..2 {
-        assert!(
-            matches!(operation.resume(input(10)), OperationAction::RequestHostCall {
-            request: RequestId(actual), operation: HostCallId(0), ..
-        } if actual == request)
-        );
+        let (outcome, io) = input(&mut operation, 10);
+        assert_eq!(outcome, StepOutcome::Progress);
         assert_eq!(
-            operation.resume(completed(request)),
-            OperationAction::Emit {
-                port: PortId(0),
-                value: value(10)
-            }
+            io.test_host_request().map(|call| (call.0, call.1)),
+            Some((RequestId(request), HostCallId(0)))
         );
-        assert_eq!(operation.advance(), OperationAction::Await);
+        let (outcome, io) = completion(&mut operation, request, completed());
+        assert_eq!(outcome, StepOutcome::Progress);
+        assert_eq!(io.test_output(PortId(0)), Some(value(10)));
     }
     assert_eq!(
-        operation.resume(input(10)),
-        failure(FailureCode::StorageExhausted, 262)
+        input(&mut operation, 10).0,
+        StepOutcome::Fail(Failure {
+            code: FailureCode::StorageExhausted,
+            detail: 262
+        })
     );
+    let mut io = StepIo::test_frame([None], [true], [None], None, 4);
     assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::Complete
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Complete
     );
 }
 
 #[test]
 fn cancellation_invalidates_pending_completion_and_host_failures_remain_exact() {
     let mut operation = TemplateStorageOperation::new(2, 4096);
-    operation.resume(input(10));
-    operation.cancel();
+    input(&mut operation, 10);
+    StepOperation::<1>::cancel(&mut operation);
     assert_eq!(
-        operation.resume(completed(0)),
-        failure(FailureCode::InvalidLifecycle, 261)
+        completion(&mut operation, 0, completed()).0,
+        StepOutcome::Fail(Failure {
+            code: FailureCode::InvalidLifecycle,
+            detail: 261
+        })
     );
     let mut operation = TemplateStorageOperation::new(2, 4096);
-    operation.resume(input(10));
+    input(&mut operation, 10);
     let reason = Failure {
         code: FailureCode::InvalidInput,
         detail: 4,
     };
     assert_eq!(
-        operation.resume(OperationInput::HostCallCompleted {
-            request: RequestId(0),
-            outcome: HostCallOutcome {
+        completion(
+            &mut operation,
+            0,
+            HostCallOutcome {
                 disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(reason),
-            }
-        }),
-        OperationAction::Fail(reason)
+            },
+        )
+        .0,
+        StepOutcome::Fail(reason)
     );
 }
