@@ -2,6 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use super::timing_configuration::{self, TimingConfiguration};
 use conduit_core::{encode_monotonic_duration, InfoBool, PlannedGear, PortDirection, BOOL_INFO_ID};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -48,6 +49,340 @@ pub(super) struct TimeoutOperation {
     timed_out: bool,
     closing: bool,
     arm_after_emit: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for DebounceOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return outcome
+                    .failure
+                    .map_or_else(|| step_fail(780), StepOutcome::Fail);
+            }
+            match outcome.disposition {
+                HostCallDisposition::Cancelled => {
+                    if self.closing && self.candidate.is_some() && !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed debounce deadline cancellation");
+                    self.pending = None;
+                    self.cancellation = None;
+                    if self.closing {
+                        if let Some(value) = self.candidate.take() {
+                            io.send(PortId(0), value)
+                                .expect("ready final debounce output");
+                            self.complete_after_emit = true;
+                        }
+                        return self.finish_cleanup(io);
+                    }
+                    if let Err(outcome) = self.request_deadline_step(io) {
+                        return outcome;
+                    }
+                    return StepOutcome::Progress;
+                }
+                HostCallDisposition::Completed => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    let Some(value) = self.candidate.take() else {
+                        return step_fail(779);
+                    };
+                    io.consume_host_completion()
+                        .expect("observed debounce deadline completion");
+                    io.send(PortId(0), value).expect("ready debounced output");
+                    self.pending = None;
+                    if self.closing {
+                        self.complete_after_emit = true;
+                        return self.finish_cleanup(io);
+                    }
+                    return StepOutcome::Progress;
+                }
+                _ => return step_fail(780),
+            }
+        }
+
+        if let Some(value) = io.input(PortId(0)) {
+            if self.closing || self.accepted_values >= self.maximum_values {
+                return step_fail(780);
+            }
+            let retained = io.take_input(PortId(0)).expect("present debounce input");
+            debug_assert_eq!(retained, value);
+            if let Some(previous) = self.candidate.replace(retained) {
+                io.discard(previous).expect("superseded debounce candidate");
+            }
+            self.accepted_values += 1;
+            self.retain_resumed = false;
+            if let Some(request) = self.pending {
+                io.cancel_host_call(request)
+                    .expect("debounce deadline cancellation");
+                self.cancellation = Some(request);
+            } else if let Err(outcome) = self.request_deadline_step(io) {
+                return outcome;
+            }
+            return StepOutcome::Progress;
+        }
+
+        if io.input_closed(PortId(0)) && !self.closing {
+            io.consume_closed(PortId(0))
+                .expect("observed debounce input closure");
+            self.closing = true;
+            self.release_unused_durations();
+            if let Some(request) = self.pending {
+                io.cancel_host_call(request)
+                    .expect("closing debounce deadline cancellation");
+                self.cancellation = Some(request);
+                self.stage_terminal_releases(io);
+                return StepOutcome::Progress;
+            }
+            if self.candidate.is_some() && !io.output_ready(PortId(0)) {
+                return StepOutcome::Progress;
+            }
+            if let Some(value) = self.candidate.take() {
+                io.send(PortId(0), value)
+                    .expect("ready final debounce output");
+                self.complete_after_emit = true;
+            }
+            return self.finish_cleanup(io);
+        }
+
+        if self.closing && self.pending.is_none() {
+            if self.candidate.is_some() && !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            if let Some(value) = self.candidate.take() {
+                io.send(PortId(0), value)
+                    .expect("ready final debounce output");
+                self.complete_after_emit = true;
+            }
+            return self.finish_cleanup(io);
+        }
+        StepOutcome::Await
+    }
+
+    fn accepts_input_while_host_call_pending(&self) -> bool {
+        true
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.cancellation = None;
+        self.candidate = None;
+        self.released = None;
+    }
+}
+
+impl DebounceOperation {
+    fn request_deadline_step<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+    ) -> Result<(), StepOutcome> {
+        let Some(input) = self.durations.get(self.next_request).copied() else {
+            return Err(step_fail(781));
+        };
+        let Ok(raw_request) = u32::try_from(self.next_request + 1) else {
+            return Err(step_fail(782));
+        };
+        let request = RequestId(raw_request);
+        let input =
+            BoundedValueRef::new(input, 8).expect("deadline duration is exactly eight bytes");
+        io.request_host_call(request, HostCallId(0), input)
+            .expect("debounce deadline Host Call");
+        self.next_request += 1;
+        self.pending = Some(request);
+        Ok(())
+    }
+
+    fn stage_terminal_releases<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) {
+        for _ in 0..PORTS {
+            let Some(value) = self.terminal_releases.pop() else {
+                break;
+            };
+            io.discard(value).expect("unused debounce duration");
+        }
+    }
+
+    fn finish_cleanup<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        self.stage_terminal_releases(io);
+        if self.terminal_releases.is_empty() {
+            self.complete_after_emit = false;
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Progress
+        }
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TimeoutOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return outcome
+                    .failure
+                    .map_or_else(|| step_fail(784), StepOutcome::Fail);
+            }
+            match outcome.disposition {
+                HostCallDisposition::Cancelled => {
+                    io.consume_host_completion()
+                        .expect("observed timeout deadline cancellation");
+                    self.pending = None;
+                    self.cancellation = None;
+                    if self.closing {
+                        return self.finish_cleanup(io);
+                    }
+                    if let Err(outcome) = self.request_deadline_step(io) {
+                        return outcome;
+                    }
+                    return StepOutcome::Progress;
+                }
+                HostCallDisposition::Completed => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    let Some(value) = self.true_values.get(self.next_true).copied() else {
+                        return step_fail(788);
+                    };
+                    io.consume_host_completion()
+                        .expect("observed timeout deadline completion");
+                    io.send(PortId(0), value).expect("ready timeout output");
+                    self.pending = None;
+                    self.next_true += 1;
+                    self.timed_out = true;
+                    return StepOutcome::Progress;
+                }
+                _ => return step_fail(784),
+            }
+        }
+
+        if io.input(PortId(0)).is_some() {
+            if self.closing || self.accepted_values >= self.maximum_values {
+                return step_fail(784);
+            }
+            if self.timed_out && self.pending.is_none() && !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume(PortId(0)).expect("present timeout input");
+            self.accepted_values += 1;
+            if let Some(request) = self.pending {
+                io.cancel_host_call(request)
+                    .expect("timeout deadline cancellation");
+                self.cancellation = Some(request);
+                return StepOutcome::Progress;
+            }
+            if self.timed_out {
+                self.timed_out = false;
+                if let Err(outcome) = self.emit_false_and_arm_step(io) {
+                    return outcome;
+                }
+                return StepOutcome::Progress;
+            }
+            return step_fail(783);
+        }
+
+        if io.input_closed(PortId(0)) && !self.closing {
+            io.consume_closed(PortId(0))
+                .expect("observed timeout input closure");
+            self.closing = true;
+            self.release_unused_values();
+            if let Some(request) = self.pending {
+                io.cancel_host_call(request)
+                    .expect("closing timeout deadline cancellation");
+                self.cancellation = Some(request);
+                self.stage_terminal_releases(io);
+                return StepOutcome::Progress;
+            }
+            return self.finish_cleanup(io);
+        }
+
+        if self.closing && self.pending.is_none() {
+            return self.finish_cleanup(io);
+        }
+        if self.next_request == 0 && self.next_false == 0 && self.accepted_values == 0 {
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            if let Err(outcome) = self.emit_false_and_arm_step(io) {
+                return outcome;
+            }
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn accepts_input_while_host_call_pending(&self) -> bool {
+        true
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.cancellation = None;
+    }
+}
+
+impl TimeoutOperation {
+    fn emit_false_and_arm_step<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+    ) -> Result<(), StepOutcome> {
+        let Some(value) = self.false_values.get(self.next_false).copied() else {
+            return Err(step_fail(785));
+        };
+        io.send(PortId(0), value).expect("ready non-timeout output");
+        self.next_false += 1;
+        self.arm_after_emit = false;
+        self.request_deadline_step(io)
+    }
+
+    fn request_deadline_step<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+    ) -> Result<(), StepOutcome> {
+        let Some(input) = self.durations.get(self.next_request).copied() else {
+            return Err(step_fail(786));
+        };
+        let Ok(raw_request) = u32::try_from(self.next_request + 1) else {
+            return Err(step_fail(787));
+        };
+        let request = RequestId(raw_request);
+        let input =
+            BoundedValueRef::new(input, 8).expect("deadline duration is exactly eight bytes");
+        io.request_host_call(request, HostCallId(0), input)
+            .expect("timeout deadline Host Call");
+        self.next_request += 1;
+        self.pending = Some(request);
+        Ok(())
+    }
+
+    fn stage_terminal_releases<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) {
+        for _ in 0..PORTS {
+            let Some(value) = self.terminal_releases.pop() else {
+                break;
+            };
+            io.discard(value).expect("unused timeout value");
+        }
+    }
+
+    fn finish_cleanup<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        self.stage_terminal_releases(io);
+        if self.terminal_releases.is_empty() {
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Progress
+        }
+    }
+}
+
+const fn step_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidLifecycle,
+        detail,
+    })
 }
 
 impl DebounceOperation {
