@@ -11,7 +11,7 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    CanonicalValue, Failure, FailureCode, OperationAction, OperationInput, PortId,
+    CanonicalValue, Failure, FailureCode, PortId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -58,17 +58,11 @@ impl<const PORTS: usize> StepOperation<PORTS> for InstrumentMapOperation {
             if control.value_type() != &conduit_semantic_catalog::instrument_control_type() {
                 return step_fail(FailureCode::InvalidInput, 176);
             }
-            let action = match map_control(&self.mapping, &control, self.next_order) {
-                Ok(action) => action,
+            let event = match map_control(&self.mapping, &control, self.next_order) {
+                Ok(event) => event,
                 Err(detail) => return step_fail(FailureCode::InvalidInput, detail),
             };
-            let OperationAction::EmitCanonical {
-                port,
-                value: output,
-            } = action
-            else {
-                return step_fail(FailureCode::InvalidLifecycle, 171);
-            };
+            let (port, output) = event.encode();
             if !io.output_ready(port) {
                 return StepOutcome::Await;
             }
@@ -96,73 +90,21 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl InstrumentMapOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value { .. } => InstalledOperation::fail(170),
-            OperationInput::Closed { port: PortId(0) } if !self.emitted => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(174),
-        }
-    }
-
-    pub(super) fn resume_value(&mut self, port: PortId, bytes: &[u8]) -> OperationAction {
-        if port != PortId(0) || self.emitted {
-            return InstalledOperation::fail(171);
-        }
-        if self.next_order >= u32::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS) {
-            return fail(FailureCode::StorageExhausted, 172);
-        }
-        let Some(next_order) = self.next_order.checked_add(1) else {
-            return fail(FailureCode::StorageExhausted, 173);
-        };
-        if bytes.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
-            return fail(FailureCode::InvalidInput, 174);
-        }
-        let Ok(control) = StructuredInfoValue::from_canonical_bytes(bytes) else {
-            return fail(FailureCode::InvalidInput, 175);
-        };
-        if control.value_type() != &conduit_semantic_catalog::instrument_control_type() {
-            return fail(FailureCode::InvalidInput, 176);
-        }
-        let event = match map_control(&self.mapping, &control, self.next_order) {
-            Ok(event) => event,
-            Err(detail) => return fail(FailureCode::InvalidInput, detail),
-        };
-        self.next_order = next_order;
-        self.emitted = true;
-        event
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if !self.emitted {
-            return InstalledOperation::fail(175);
-        }
-        self.emitted = false;
-        OperationAction::Await
-    }
-}
-
 enum MappedEvent {
     Note(MusicalNoteEvent),
     Control(MusicalControlEvent),
 }
 
-impl From<MappedEvent> for OperationAction {
-    fn from(event: MappedEvent) -> Self {
-        let (port, encoded) = match event {
+impl MappedEvent {
+    fn encode(self) -> (PortId, CanonicalValue) {
+        let (port, encoded) = match self {
             MappedEvent::Note(event) => (PortId(0), event.encode().to_vec()),
             MappedEvent::Control(event) => (PortId(1), event.encode().to_vec()),
         };
-        OperationAction::EmitCanonical {
+        (
             port,
-            value: CanonicalValue::new(&encoded).expect("portable music encodings are bounded"),
-        }
+            CanonicalValue::new(&encoded).expect("portable music encodings are bounded"),
+        )
     }
 }
 
@@ -170,7 +112,7 @@ fn map_control(
     mapping: &InstrumentMapping,
     control: &StructuredInfoValue,
     order: u32,
-) -> Result<OperationAction, u16> {
+) -> Result<MappedEvent, u16> {
     let StructuredInfoValueShape::Variant { tag, payload } = control.shape() else {
         return Err(176);
     };
@@ -184,7 +126,6 @@ fn map_control(
             if index == mapping.sustain_button {
                 MusicalControlEvent::new(MusicalControl::Sustain { down }, event_time, order)
                     .map(MappedEvent::Control)
-                    .map(Into::into)
                     .map_err(|_| 186)
             } else {
                 let pitch = usize::try_from(index)
@@ -201,7 +142,6 @@ fn map_control(
                     order,
                 )
                 .map(MappedEvent::Note)
-                .map(Into::into)
                 .map_err(|_| 189)
             }
         }
@@ -228,7 +168,6 @@ fn map_control(
                 order,
             )
             .map(MappedEvent::Control)
-            .map(Into::into)
             .map_err(|_| 198)
         }
         _ => Err(199),
@@ -380,10 +319,6 @@ fn boolean(value: &StructuredInfoValue, detail: u16) -> Result<bool, u16> {
 
 fn detail(_: u16) -> String {
     "instrument mapping structured field mismatch".into()
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }
 
 #[cfg(test)]

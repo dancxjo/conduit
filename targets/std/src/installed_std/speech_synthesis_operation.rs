@@ -4,8 +4,8 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -162,110 +162,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl SpeechSynthesisOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.started && self.pending.is_none() && !self.input_closed => {
-                let maximum = if self.streaming {
-                    conduit_tongues::SPEECH_COMMIT_QUEUE_BYTES
-                } else {
-                    conduit_tongues::MAXIMUM_TEXT_BYTES
-                };
-                let Ok(input) = BoundedValueRef::new(value, maximum) else {
-                    return fail(FailureCode::InvalidInput, 1);
-                };
-                if value.byte_len == 0 {
-                    return fail(FailureCode::InvalidInput, 2);
-                }
-                self.started = true;
-                self.request(input)
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None)
-                        if self.emitted_blocks < self.maximum_blocks
-                            && output.admitted_bytes
-                                == conduit_std_offers::PIPER_PCM_BLOCK_BYTES
-                            && output.value.byte_len
-                                <= conduit_std_offers::PIPER_PCM_BLOCK_BYTES =>
-                    {
-                        self.emitted_blocks += 1;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Completed, None, None) if self.started => {
-                        self.started = false;
-                        if self.streaming && !self.input_closed {
-                            OperationAction::Await
-                        } else {
-                            self.finished = true;
-                            OperationAction::Complete
-                        }
-                    }
-                    (HostCallDisposition::Denied, _, Some(failure))
-                    | (HostCallDisposition::Cancelled, _, Some(failure))
-                    | (HostCallDisposition::Failed, _, Some(failure)) => {
-                        OperationAction::Fail(failure)
-                    }
-                    (HostCallDisposition::Denied, _, None) => fail(FailureCode::HostCallDenied, 3),
-                    (HostCallDisposition::Cancelled, _, None) => fail(FailureCode::Cancelled, 4),
-                    (HostCallDisposition::Failed, _, None) => fail(FailureCode::HostCallFailed, 5),
-                    (HostCallDisposition::Completed, Some(_), None) => {
-                        fail(FailureCode::WorkBudgetExhausted, 6)
-                    }
-                    _ => fail(FailureCode::InvalidLifecycle, 7),
-                }
-            }
-            OperationInput::Closed { port: PortId(0) }
-                if self.streaming && !self.started && self.pending.is_none() =>
-            {
-                self.input_closed = true;
-                self.finished = true;
-                OperationAction::Complete
-            }
-            OperationInput::Closed { port: PortId(0) } if self.streaming => {
-                self.input_closed = true;
-                OperationAction::Await
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 8),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.finished {
-            return OperationAction::Complete;
-        }
-        if self.started && self.pending.is_none() {
-            let input = BoundedValueRef::new(self.continuation, 1)
-                .expect("prepared speech continuation marker is one byte");
-            return self.request(input);
-        }
-        OperationAction::Await
-    }
-
-    fn request(&mut self, input: BoundedValueRef) -> OperationAction {
-        let request = RequestId(self.next_request);
-        self.next_request = self.next_request.saturating_add(1);
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input,
-        }
-    }
-}
+impl SpeechSynthesisOperation {}
 
 fn maximum_output_bytes(placement: &PlannedGear) -> Result<u32, String> {
     let value = placement
@@ -386,10 +283,6 @@ fn prepare(
             finished: false,
         },
     ))
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }
 
 pub(super) fn execute_piper<'a>(

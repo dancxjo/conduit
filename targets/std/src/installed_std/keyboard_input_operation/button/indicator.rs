@@ -3,8 +3,7 @@ use crate::installed_std::operation::{InstalledFactory, InstalledOperation, Oper
 use conduit_core::{CapabilityOffer, PlannedGear};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    CanonicalValue, Failure, FailureCode, HostedValueStore, OperationAction, OperationInput,
-    PortId,
+    CanonicalValue, Failure, FailureCode, HostedValueStore, PortId,
 };
 use conduit_semantic_catalog::{PreparedButtonIndicatorMapper, BUTTON_TRANSITION_MAXIMUM_VALUES};
 
@@ -85,37 +84,7 @@ const fn mapper_step_fail(detail: u16) -> StepOutcome {
     })
 }
 
-impl Mapper {
-    pub(in crate::installed_std) fn resume_value(
-        &mut self,
-        port: PortId,
-        bytes: &[u8],
-    ) -> OperationAction {
-        if port != PortId(0) {
-            return InstalledOperation::fail(61);
-        }
-        let Ok(state) = self.mapper.map(bytes) else {
-            return InstalledOperation::fail(62);
-        };
-        if self.closed || self.emitted == BUTTON_TRANSITION_MAXIMUM_VALUES as usize {
-            return InstalledOperation::fail(63);
-        }
-        self.emitted += 1;
-        OperationAction::EmitCanonical {
-            port: PortId(0),
-            value: CanonicalValue::new(&state.encode()).expect("one bounded Boolean byte"),
-        }
-    }
-    pub(in crate::installed_std) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Closed { port: PortId(0) } => {
-                self.closed = true;
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(60),
-        }
-    }
-}
+impl Mapper {}
 
 fn validate(placement: &PlannedGear, offer: CapabilityOffer) -> Result<(), String> {
     if placement.kind_id != offer.kind_id

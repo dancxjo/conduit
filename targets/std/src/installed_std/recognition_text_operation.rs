@@ -4,8 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -88,71 +87,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl RecognitionTextOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() && (self.flow || !self.emitted) => {
-                let Ok(input) = BoundedValueRef::new(
-                    value,
-                    if self.flow {
-                        conduit_tongues::MAXIMUM_COMMITTED_USER_MESSAGE_BYTES as u32
-                    } else {
-                        conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32
-                    },
-                ) else {
-                    return fail(FailureCode::InvalidInput, 1);
-                };
-                let request = RequestId(self.next_request);
-                self.next_request = self.next_request.saturating_add(1);
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 2),
-                    _ => fail(FailureCode::HostCallFailed, 3),
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() && self.flow => {
-                OperationAction::Complete
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 4),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted && !self.flow {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-}
+impl RecognitionTextOperation {}
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
     let offer = if placement.kind_id.as_str() == conduit_tongues::COMMITTED_TURN_TO_TEXT_KIND {
@@ -207,8 +142,4 @@ fn prepare(
             flow: placement.kind_id.as_str() == conduit_tongues::COMMITTED_TURN_TO_TEXT_KIND,
         },
     ))
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }

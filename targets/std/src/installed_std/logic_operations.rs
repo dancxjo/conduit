@@ -4,7 +4,7 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    HostedValueStore, OperationAction, OperationInput, PortId, ValueRef, ValueStorage,
+    HostedValueStore, PortId, ValueRef, ValueStorage,
 };
 
 pub(super) static LOGIC_COMPARE_SCALAR_FACTORY: InstalledFactory = InstalledFactory {
@@ -41,28 +41,6 @@ impl DecisionValues {
             ],
             released: [None; 2],
         })
-    }
-
-    fn decide(&mut self, decision: bool) -> OperationAction {
-        let selected = usize::from(decision);
-        let unused = usize::from(!decision);
-        let Some(value) = self.values[selected].take() else {
-            return InstalledOperation::fail(20);
-        };
-        self.released[0] = self.values[unused].take();
-        OperationAction::Emit {
-            port: PortId(0),
-            value,
-        }
-    }
-
-    fn complete_without_decision(&mut self) -> OperationAction {
-        self.released = [self.values[0].take(), self.values[1].take()];
-        OperationAction::Complete
-    }
-
-    fn take_released(&mut self) -> Option<ValueRef> {
-        self.released.iter_mut().find_map(Option::take)
     }
 
     fn cancel(&mut self) {
@@ -141,39 +119,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for LogicCompareScalarOperation {
     }
 }
 
-impl LogicCompareScalarOperation {
-    pub(super) fn resume_value(
-        &mut self,
-        port: PortId,
-        value: ValueRef,
-        canonical: &[u8],
-    ) -> OperationAction {
-        let index = usize::from(port.0);
-        if index >= self.operands.len()
-            || self.operands[index].is_some()
-            || value.byte_len != SCALAR_ENCODED_LEN as u32
-        {
-            return InstalledOperation::fail(20);
-        }
-        let Ok(scalar) = Scalar::decode(canonical) else {
-            return InstalledOperation::fail(20);
-        };
-        self.operands[index] = Some(scalar);
-        match self.operands {
-            [Some(left), Some(right)] => self.decisions.decide(self.operator.evaluate(left, right)),
-            _ => OperationAction::Await,
-        }
-    }
-
-    pub(super) fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.decisions.take_released()
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.operands = [None; 2];
-        self.decisions.cancel();
-    }
-}
+impl LogicCompareScalarOperation {}
 
 pub(super) struct LogicNotOperation {
     received: bool,
@@ -248,36 +194,7 @@ const fn logic_failure(detail: u16) -> conduit_kernel::Failure {
     }
 }
 
-impl LogicNotOperation {
-    pub(super) fn resume_value(
-        &mut self,
-        port: PortId,
-        value: ValueRef,
-        canonical: &[u8],
-    ) -> OperationAction {
-        if port != PortId(0) || self.received || value.byte_len != BOOL_ENCODED_LEN as u32 {
-            return InstalledOperation::fail(21);
-        }
-        let Ok(input) = InfoBool::decode(canonical) else {
-            return InstalledOperation::fail(21);
-        };
-        self.received = true;
-        self.decisions.decide(!input.get())
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Closed { port: PortId(0) } if !self.received => {
-                self.decisions.complete_without_decision()
-            }
-            _ => InstalledOperation::fail(21),
-        }
-    }
-
-    pub(super) fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.decisions.take_released()
-    }
-}
+impl LogicNotOperation {}
 
 pub(super) struct LogicSelectScalarOperation {
     selector: Option<bool>,
@@ -384,90 +301,6 @@ impl LogicSelectScalarOperation {
 }
 
 impl LogicSelectScalarOperation {
-    pub(super) fn resume_value(
-        &mut self,
-        port: PortId,
-        value: ValueRef,
-        canonical: &[u8],
-    ) -> OperationAction {
-        self.retain_resumed = false;
-        match port {
-            PortId(0) if self.selector.is_none() && value.byte_len == BOOL_ENCODED_LEN as u32 => {
-                let Ok(selector) = InfoBool::decode(canonical) else {
-                    return InstalledOperation::fail(22);
-                };
-                self.selector = Some(selector.get());
-            }
-            PortId(1) | PortId(2) if value.byte_len == SCALAR_ENCODED_LEN as u32 => {
-                let index = usize::from(port.0 - 1);
-                if self.candidate_seen[index] || Scalar::decode(canonical).is_err() {
-                    return InstalledOperation::fail(22);
-                }
-                self.candidate_seen[index] = true;
-                self.candidates[index] = Some(value);
-                self.retain_resumed = true;
-            }
-            _ => return InstalledOperation::fail(22),
-        }
-        self.decide_or_await()
-    }
-
-    fn decide_or_await(&mut self) -> OperationAction {
-        if !self.candidate_seen.into_iter().all(|seen| seen) {
-            return OperationAction::Await;
-        }
-        let Some(selector) = self.selector else {
-            return if self.selector_closed {
-                self.complete_without_decision()
-            } else {
-                OperationAction::Await
-            };
-        };
-        let selected = usize::from(selector);
-        let unselected = usize::from(!selector);
-        let Some(value) = self.candidates[selected].take() else {
-            return self.complete_without_decision();
-        };
-        self.released[0] = self.candidates[unselected].take();
-        self.retain_resumed = false;
-        OperationAction::Emit {
-            port: PortId(0),
-            value,
-        }
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        self.retain_resumed = false;
-        match input {
-            OperationInput::Closed { port: PortId(0) } if self.selector.is_none() => {
-                self.selector_closed = true;
-                self.decide_or_await()
-            }
-            OperationInput::Closed { port } if matches!(port, PortId(1) | PortId(2)) => {
-                let index = usize::from(port.0 - 1);
-                if self.candidate_seen[index] {
-                    return InstalledOperation::fail(22);
-                }
-                self.candidate_seen[index] = true;
-                self.decide_or_await()
-            }
-            _ => InstalledOperation::fail(22),
-        }
-    }
-
-    fn complete_without_decision(&mut self) -> OperationAction {
-        self.released = [self.candidates[0].take(), self.candidates[1].take()];
-        OperationAction::Complete
-    }
-
-    pub(super) fn retains_resumed_value(&self) -> bool {
-        self.retain_resumed
-    }
-
-    pub(super) fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.released.iter_mut().find_map(Option::take)
-    }
-
     pub(super) fn cancel(&mut self) {
         self.selector = None;
         self.selector_closed = false;

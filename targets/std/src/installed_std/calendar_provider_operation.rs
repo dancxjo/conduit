@@ -4,8 +4,8 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection, StructuredInfoValue};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 pub(super) static CALENDAR_READ_FACTORY: InstalledFactory =
@@ -119,77 +119,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl CalendarProviderOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        if self.requires_prior {
-            OperationAction::Await
-        } else {
-            let Some(value) = self.request else {
-                return fail(FailureCode::InvalidLifecycle, 240);
-            };
-            self.request(value)
-        }
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.requires_prior && !self.pending && !self.emitted => self.request(value),
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending && request == RequestId(0) =>
-            {
-                self.pending = false;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 241),
-                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 242),
-                    (HostCallDisposition::Failed, _, Some(failure)) => {
-                        OperationAction::Fail(failure)
-                    }
-                    _ => fail(FailureCode::InvalidLifecycle, 243),
-                }
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 244),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = false;
-    }
-
-    fn request(&mut self, value: ValueRef) -> OperationAction {
-        self.pending = true;
-        let maximum_input_bytes = if self.requires_prior {
-            conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES
-        } else {
-            conduit_semantic_catalog::CALENDAR_MAXIMUM_SEMANTIC_JSON_BYTES
-        };
-        let Ok(input) = BoundedValueRef::new(value, maximum_input_bytes) else {
-            return fail(FailureCode::InvalidInput, 245);
-        };
-        OperationAction::RequestHostCall {
-            request: RequestId(0),
-            operation: HostCallId(0),
-            input,
-        }
-    }
-}
+impl CalendarProviderOperation {}
 
 pub(super) fn operation(
     placement: &PlannedGear,
@@ -349,8 +279,4 @@ fn prepare(
             emitted: false,
         },
     ))
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }

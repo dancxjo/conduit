@@ -6,7 +6,7 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    CanonicalValue, Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef,
+    CanonicalValue, Failure, FailureCode, PortId,
 };
 
 pub(super) static STATE_SELECT_SCALAR_FACTORY: InstalledFactory = InstalledFactory {
@@ -116,70 +116,7 @@ fn select_failure() -> Failure {
     }
 }
 
-impl StateSelectScalarOperation {
-    pub(super) fn resume_value(
-        &mut self,
-        port: PortId,
-        value: ValueRef,
-        canonical: &[u8],
-    ) -> OperationAction {
-        match port {
-            PortId(0) if value.byte_len == BOOL_ENCODED_LEN as u32 && !self.closed[0] => {
-                let Ok(selector) = InfoBool::decode(canonical) else {
-                    return InstalledOperation::fail(14);
-                };
-                self.selector = Some(selector.get());
-            }
-            PortId(1) | PortId(2)
-                if value.byte_len == SCALAR_ENCODED_LEN as u32
-                    && !self.closed[usize::from(port.0)] =>
-            {
-                if Scalar::decode(canonical).is_err() {
-                    return InstalledOperation::fail(14);
-                }
-                let index = usize::from(port.0 - 1);
-                self.candidates[index] = Some(
-                    canonical
-                        .try_into()
-                        .expect("decoded Scalar has exact canonical length"),
-                );
-            }
-            _ => return InstalledOperation::fail(14),
-        }
-        self.emit_or_await()
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Closed { port } if usize::from(port.0) < self.closed.len() => {
-                self.closed[usize::from(port.0)] = true;
-                if self.closed.into_iter().all(|closed| closed) {
-                    OperationAction::Complete
-                } else {
-                    OperationAction::Await
-                }
-            }
-            _ => InstalledOperation::fail(14),
-        }
-    }
-
-    fn emit_or_await(&self) -> OperationAction {
-        let Some(selector) = self.selector else {
-            return OperationAction::Await;
-        };
-        let Some(value) = self.candidates[usize::from(selector)] else {
-            return OperationAction::Await;
-        };
-        if self.candidates[usize::from(!selector)].is_none() {
-            return OperationAction::Await;
-        }
-        OperationAction::EmitCanonical {
-            port: PortId(0),
-            value: conduit_kernel::CanonicalValue::new(&value)
-                .expect("Scalar fits derived-value bound"),
-        }
-    }
-}
+impl StateSelectScalarOperation {}
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;

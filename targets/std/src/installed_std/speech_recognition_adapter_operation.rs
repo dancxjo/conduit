@@ -8,8 +8,8 @@ use conduit_audio::{
 use conduit_core::PlannedGear;
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 const TARGET_RATE_HZ: u32 = 16_000;
@@ -117,96 +117,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for SpeechWindowToClipOperation {
     }
 }
 
-impl SpeechWindowToClipOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() && !self.closing && !self.emitted => {
-                let Ok(input) = BoundedValueRef::new(
-                    value,
-                    conduit_audio::MAXIMUM_PCM_FRAME_BYTES
-                        + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32,
-                ) else {
-                    return fail(1);
-                };
-                let request = RequestId(self.next_request);
-                let Some(next) = self.next_request.checked_add(1) else {
-                    return fail(2);
-                };
-                self.next_request = next;
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) && !self.closing =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, None, None) => OperationAction::Await,
-                    (HostCallDisposition::Cancelled, _, _) => cancelled(),
-                    (_, _, Some(failure)) => OperationAction::Fail(failure),
-                    _ => fail(3),
-                }
-            }
-            OperationInput::Closed { port: PortId(0) }
-                if self.pending.is_none() && !self.closing && !self.emitted =>
-            {
-                self.closing = true;
-                let request = RequestId(self.next_request);
-                let Ok(input) = BoundedValueRef::new(self.trigger, 1) else {
-                    return fail(4);
-                };
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(1),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) && self.closing =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Cancelled, _, _) => cancelled(),
-                    (_, _, Some(failure)) => OperationAction::Fail(failure),
-                    _ => fail(5),
-                }
-            }
-            _ => fail(6),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.closing = true;
-    }
-}
+impl SpeechWindowToClipOperation {}
 
 pub(super) struct SpeechResultToEventStreamOperation {
     pending: Option<RequestId>,
@@ -269,63 +180,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl SpeechResultToEventStreamOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() && !self.emitted => {
-                let Ok(input) = BoundedValueRef::new(
-                    value,
-                    conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32,
-                ) else {
-                    return fail(20);
-                };
-                self.pending = Some(RequestId(0));
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Cancelled, _, _) => cancelled(),
-                    (_, _, Some(failure)) => OperationAction::Fail(failure),
-                    _ => fail(21),
-                }
-            }
-            _ => fail(22),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-}
+impl SpeechResultToEventStreamOperation {}
 
 pub(super) struct SpeechWindowToClipHost {
     source_rate_hz: Option<u32>,
@@ -609,20 +464,6 @@ fn validate(placement: &PlannedGear, offer: &conduit_core::CapabilityOffer) -> R
         return Err("planned speech recognition adapter differs from installed realization".into());
     }
     Ok(())
-}
-
-fn cancelled() -> OperationAction {
-    OperationAction::Fail(Failure {
-        code: FailureCode::Cancelled,
-        detail: 0,
-    })
-}
-
-fn fail(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
-        code: FailureCode::InvalidLifecycle,
-        detail,
-    })
 }
 
 #[cfg(test)]

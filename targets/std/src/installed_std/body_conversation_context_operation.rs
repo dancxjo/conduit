@@ -3,7 +3,7 @@ use conduit_core::PlannedGear;
 use conduit_kernel::{
     scheduler::{HostCallRequest, StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -15,7 +15,6 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
 pub(super) struct BodyConversationContextOperation {
     token: Option<ValueRef>,
     pending: bool,
-    emitted: bool,
     next_request: u32,
 }
 
@@ -90,62 +89,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for BodyConversationContextOperati
 const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
-impl BodyConversationContextOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        let Some(token) = self.token else {
-            return fail(FailureCode::InvalidLifecycle, 1);
-        };
-        let Ok(input) = BoundedValueRef::new(token, 0) else {
-            return fail(FailureCode::InvalidInput, 2);
-        };
-        self.request(input)
-    }
-    fn request(&mut self, input: BoundedValueRef) -> OperationAction {
-        let request = RequestId(self.next_request);
-        let Some(next_request) = self.next_request.checked_add(1) else {
-            return fail(FailureCode::IdentityCapacityExhausted, 6);
-        };
-        self.next_request = next_request;
-        self.pending = true;
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input,
-        }
-    }
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted {
-                request: _,
-                outcome,
-            } if self.pending => {
-                self.pending = false;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 3),
-                    (HostCallDisposition::Cancelled, None, None) => fail(FailureCode::Cancelled, 4),
-                    _ => fail(FailureCode::HostCallFailed, 4),
-                }
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 5),
-        }
-    }
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            self.emitted = false;
-            let token = self.token.expect("prepared Body context source token");
-            self.request(BoundedValueRef::new(token, 0).expect("empty source token"))
-        } else {
-            OperationAction::Await
-        }
-    }
-}
+impl BodyConversationContextOperation {}
 
 pub(super) struct BodyConversationContextHost<'a> {
     source: Option<&'a crate::BodyConversationContextSource>,
@@ -275,13 +219,9 @@ fn prepare(
         BodyConversationContextOperation {
             token: Some(token),
             pending: false,
-            emitted: false,
             next_request: 0,
         },
     ))
-}
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }
 
 #[cfg(test)]
@@ -301,7 +241,6 @@ mod tests {
         let mut operation = BodyConversationContextOperation {
             token: Some(value(0)),
             pending: false,
-            emitted: false,
             next_request: 0,
         };
         assert!(matches!(

@@ -7,8 +7,7 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
-    RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static LITERAL_FACTORY: InstalledFactory = InstalledFactory {
@@ -41,21 +40,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for StructuredLiteralOperation {
     }
 }
 
-impl StructuredLiteralOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.value
-            .take()
-            .map(|value| OperationAction::Emit {
-                port: PortId(0),
-                value,
-            })
-            .unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Complete
-    }
-}
+impl StructuredLiteralOperation {}
 
 pub(super) struct StructuredPresentationOperation {
     pending: Option<RequestId>,
@@ -114,51 +99,7 @@ fn step_failure(detail: u16) -> conduit_kernel::Failure {
     }
 }
 
-impl StructuredPresentationOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => {
-                let request = RequestId(self.next);
-                let Some(next) = self.next.checked_add(1) else {
-                    return InstalledOperation::fail(154);
-                };
-                self.next = next;
-                self.pending = Some(request);
-                let Ok(input) =
-                    BoundedValueRef::new(value, MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32)
-                else {
-                    return InstalledOperation::fail(155);
-                };
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(156),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-}
+impl StructuredPresentationOperation {}
 
 fn configured(placement: &PlannedGear) -> Result<&[u8], String> {
     let [entry] = placement.configuration.as_slice() else {

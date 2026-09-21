@@ -2,8 +2,8 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, HostCallDisposition, HostCallId, HostCallOutcome, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, HostCallOutcome, PortId, RequestId, ValueRef,
+    ValueStorage,
 };
 use conduit_semantic_catalog::{
     MAX_TEXT_VALUES, TEXT_PRESENTATION_CONTRACT_REVISION, TEXT_PRESENTATION_KIND,
@@ -179,27 +179,7 @@ pub(super) struct TextPresentationOperation {
     maximum_values: u32,
 }
 
-impl TextLiteralOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.value,
-        }
-    }
-
-    pub(super) fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        InstalledOperation::fail(7)
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            InstalledOperation::fail(7)
-        } else {
-            self.emitted = true;
-            OperationAction::Complete
-        }
-    }
-}
+impl TextLiteralOperation {}
 
 impl TextTransformOperation {
     pub(super) fn bounded(maximum_values: u32) -> Self {
@@ -214,53 +194,6 @@ impl TextTransformOperation {
             maximum_input_bytes,
         }
     }
-
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() && self.next < self.maximum_values => {
-                let request = RequestId(self.next);
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(value, self.maximum_input_bytes) {
-                        Ok(input) => input,
-                        Err(_) => return InstalledOperation::fail(8),
-                    },
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return InstalledOperation::fail(8);
-                };
-                self.pending = None;
-                self.next = self.next.saturating_add(1);
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(8),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
 }
 
 impl TextPresentationOperation {
@@ -270,48 +203,6 @@ impl TextPresentationOperation {
             next: 0,
             maximum_values,
         }
-    }
-
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() && self.next < self.maximum_values => {
-                let request = RequestId(self.next);
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(value, MAX_TEXT_BYTES) {
-                        Ok(input) => input,
-                        Err(_) => return InstalledOperation::fail(5),
-                    },
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.next = self.next.saturating_add(1);
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(5),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
     }
 }
 

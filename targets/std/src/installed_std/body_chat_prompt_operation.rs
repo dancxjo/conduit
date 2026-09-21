@@ -2,8 +2,8 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -121,87 +121,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl BodyChatPromptOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(port),
-                value,
-            } if port < 3 && self.pending.is_none() => {
-                if port == 0 {
-                    self.queued_human = Some(value);
-                }
-                let maximum = if port == 2 {
-                    conduit_chat::MAXIMUM_BODY_CHAT_CONTEXT_BYTES
-                } else {
-                    conduit_chat::MAXIMUM_BODY_CHAT_MESSAGE_BYTES
-                } as u32;
-                let Ok(input) = BoundedValueRef::new(value, maximum) else {
-                    return fail(FailureCode::InvalidInput, 1);
-                };
-                self.request(port, input)
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        let port = if self.queued_human.is_some() {
-                            self.emit_human = true;
-                            0
-                        } else {
-                            2
-                        };
-                        OperationAction::Emit {
-                            port: PortId(port),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Completed, None, None) => OperationAction::Await,
-                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 2),
-                    _ => fail(FailureCode::HostCallFailed, 3),
-                }
-            }
-            OperationInput::Closed { port: PortId(port) } if port < 3 => OperationAction::Await,
-            _ => fail(FailureCode::InvalidLifecycle, 4),
-        }
-    }
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emit_human {
-            self.emit_human = false;
-            if let Some(value) = self.queued_human.take() {
-                return OperationAction::Emit {
-                    port: PortId(1),
-                    value,
-                };
-            }
-        }
-        OperationAction::Await
-    }
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.queued_human = None;
-        self.emit_human = false;
-    }
-
-    fn request(&mut self, port: u16, input: BoundedValueRef) -> OperationAction {
-        let request = RequestId(self.next_request);
-        let Some(next_request) = self.next_request.checked_add(1) else {
-            return fail(FailureCode::IdentityCapacityExhausted, 6);
-        };
-        self.next_request = next_request;
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(port),
-            input,
-        }
-    }
-}
+impl BodyChatPromptOperation {}
 
 pub(super) struct BodyChatPromptHost {
     state: Option<conduit_chat::BodyChatPromptState>,
@@ -321,9 +241,6 @@ fn prepare(
             closed: [false; 3],
         },
     ))
-}
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }
 
 #[cfg(test)]

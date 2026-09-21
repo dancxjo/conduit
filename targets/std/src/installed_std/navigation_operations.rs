@@ -4,8 +4,8 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef,
 };
 
 pub(super) static ROUTE_FACTORY: InstalledFactory = InstalledFactory {
@@ -119,86 +119,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl NavigationOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(port),
-                value,
-            } if port < self.input_count && !self.seen[usize::from(port)] => {
-                self.seen[usize::from(port)] = true;
-                if self.pending.is_some() {
-                    self.deferred[usize::from(port)] = Some(value);
-                    OperationAction::Await
-                } else {
-                    self.request(port, value)
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Completed, None, None) => self
-                        .deferred
-                        .iter_mut()
-                        .enumerate()
-                        .find_map(|(port, value)| value.take().map(|value| (port, value)))
-                        .map_or(OperationAction::Await, |(port, value)| {
-                            self.request(port as u16, value)
-                        }),
-                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 1),
-                    _ => fail(FailureCode::HostCallFailed, 2),
-                }
-            }
-            OperationInput::Closed { port: PortId(port) }
-                if port < self.input_count && self.seen[usize::from(port)] =>
-            {
-                OperationAction::Await
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 3),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.deferred = [None; 4];
-    }
-
-    fn request(&mut self, port: u16, value: ValueRef) -> OperationAction {
-        let request = RequestId(self.next_request);
-        self.next_request = self.next_request.saturating_add(1);
-        self.pending = Some(request);
-        let Ok(input) = BoundedValueRef::new(value, MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32)
-        else {
-            return fail(FailureCode::InvalidInput, 4);
-        };
-        OperationAction::RequestHostCall {
-            request,
-            operation: self.operation_by_port[usize::from(port)],
-            input,
-        }
-    }
-}
+impl NavigationOperation {}
 
 pub(super) struct NavigationHost {
     kind: NavigationHostKind,
@@ -456,8 +377,4 @@ fn prepare(
             _ => return Err("unknown installed navigation implementation".into()),
         },
     }))
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }

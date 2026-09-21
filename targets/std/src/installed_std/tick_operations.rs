@@ -11,8 +11,8 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, CanonicalValue, Failure, FailureCode, HostCallDisposition, HostCallId,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, CanonicalValue, Failure, FailureCode, HostCallDisposition, HostCallId, PortId,
+    RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static TICK_FACTORY: InstalledFactory = InstalledFactory {
@@ -140,85 +140,6 @@ fn tick_failure(code: FailureCode, detail: u16) -> Failure {
 impl TickOperation {
     pub(super) fn allocation_capacity(&self) -> usize {
         self.values.capacity() + self.waits.capacity()
-    }
-
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                if self.recurring {
-                    CanonicalValue::new(&encode_tick(self.sequence)).map_or_else(
-                        |_| InstalledOperation::fail(1),
-                        |value| OperationAction::EmitCanonical {
-                            port: conduit_kernel::PortId(0),
-                            value,
-                        },
-                    )
-                } else {
-                    self.values.get(self.next).copied().map_or_else(
-                        || InstalledOperation::fail(1),
-                        |value| OperationAction::Emit {
-                            port: conduit_kernel::PortId(0),
-                            value,
-                        },
-                    )
-                }
-            }
-            _ => InstalledOperation::fail(2),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.recurring {
-            let Some(sequence) = self.sequence.checked_add(1) else {
-                return OperationAction::Fail(Failure {
-                    code: FailureCode::IdentityCapacityExhausted,
-                    detail: 1,
-                });
-            };
-            if u32::try_from(sequence).is_err() {
-                return OperationAction::Fail(Failure {
-                    code: FailureCode::IdentityCapacityExhausted,
-                    detail: 1,
-                });
-            }
-            self.sequence = sequence;
-        } else {
-            self.next += 1;
-        }
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-
-    fn request_wait(&mut self) -> Option<OperationAction> {
-        let wait = self
-            .waits
-            .get(if self.recurring { 0 } else { self.next })
-            .copied()?;
-        let request = if self.recurring {
-            RequestId(u32::try_from(self.sequence).ok()?)
-        } else {
-            RequestId(u32::try_from(self.next).ok()?)
-        };
-        self.pending = Some(request);
-        Some(OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(wait, TICK_ENCODED_LEN)
-                .expect("wait duration is exactly eight bytes"),
-        })
     }
 }
 

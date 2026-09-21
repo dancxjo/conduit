@@ -3,8 +3,8 @@ use super::timing_configuration::{self, TimingConfiguration};
 use conduit_core::{encode_monotonic_duration, PlannedGear};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 pub(super) static TIME_DELAY_FACTORY: InstalledFactory = InstalledFactory {
@@ -28,7 +28,6 @@ pub(super) struct DelayOperation {
     maximum_values: usize,
     pending: Option<RequestId>,
     accepted_values: usize,
-    retain_resumed: bool,
     closing: bool,
     continue_after_emit: bool,
 }
@@ -270,194 +269,14 @@ const fn step_fail(detail: u16) -> StepOutcome {
 }
 
 impl DelayOperation {
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        self.retain_resumed = false;
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.closing && self.accepted_values < self.maximum_values => {
-                self.accepted_values += 1;
-                self.retain_resumed = true;
-                self.values.push(value);
-                if self.pending.is_none() && self.next_value + 1 == self.values.len() {
-                    self.request_deadline()
-                } else {
-                    OperationAction::Await
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                let Some(value) = self.values.get(self.next_value).copied() else {
-                    return fail(886);
-                };
-                self.next_value += 1;
-                self.continue_after_emit = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.closing => {
-                self.closing = true;
-                if self.pending.is_some() {
-                    OperationAction::Await
-                } else if self.next_value < self.values.len() {
-                    self.request_deadline()
-                } else {
-                    self.release_unused_durations();
-                    OperationAction::Complete
-                }
-            }
-            _ => fail(887),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if !self.continue_after_emit {
-            return OperationAction::Await;
-        }
-        self.continue_after_emit = false;
-        if self.next_value < self.values.len() {
-            self.request_deadline()
-        } else if self.closing {
-            self.release_unused_durations();
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub(super) fn retains_resumed_value(&self) -> bool {
-        self.retain_resumed
-    }
-
     pub(super) fn allocation_capacity(&self) -> usize {
         self.durations.capacity() + self.values.capacity() + self.terminal_releases.capacity()
-    }
-
-    fn request_deadline(&mut self) -> OperationAction {
-        let Some(input) = self.durations.get(self.next_request).copied() else {
-            return fail(888);
-        };
-        let Ok(raw_request) = u32::try_from(self.next_request + 1) else {
-            return fail(889);
-        };
-        self.next_request += 1;
-        let request = RequestId(raw_request);
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(input, 8).expect("delay duration is exactly eight bytes"),
-        }
-    }
-
-    fn release_unused_durations(&mut self) {
-        self.terminal_releases
-            .extend(self.durations.drain(self.next_request..));
     }
 }
 
 impl ThrottleOperation {
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.closing && self.accepted_values < self.maximum_values => {
-                self.accepted_values += 1;
-                if self.pending.is_some() || self.arm_after_emit {
-                    OperationAction::Await
-                } else {
-                    self.arm_after_emit = true;
-                    OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    }
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                OperationAction::Await
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Cancelled
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none()
-                    && self.closing =>
-            {
-                self.pending = None;
-                self.release_unused_durations();
-                OperationAction::Complete
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.closing => {
-                self.closing = true;
-                if let Some(request) = self.pending {
-                    self.cancellation = Some(request);
-                    OperationAction::Await
-                } else {
-                    self.release_unused_durations();
-                    OperationAction::Complete
-                }
-            }
-            _ => fail(890),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.arm_after_emit {
-            self.arm_after_emit = false;
-            self.request_deadline()
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub(super) fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.terminal_releases.pop()
-    }
-
-    pub(super) fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
-        self.cancellation.take()
-    }
-
     pub(super) fn allocation_capacity(&self) -> usize {
         self.durations.capacity() + self.terminal_releases.capacity()
-    }
-
-    fn request_deadline(&mut self) -> OperationAction {
-        let Some(input) = self.durations.get(self.next_request).copied() else {
-            return fail(891);
-        };
-        let Ok(raw_request) = u32::try_from(self.next_request + 1) else {
-            return fail(892);
-        };
-        self.next_request += 1;
-        let request = RequestId(raw_request);
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(input, 8)
-                .expect("throttle duration is exactly eight bytes"),
-        }
-    }
-
-    fn release_unused_durations(&mut self) {
-        self.terminal_releases
-            .extend(self.durations.drain(self.next_request..));
     }
 }
 
@@ -500,7 +319,6 @@ fn prepare_delay(
         maximum_values,
         pending: None,
         accepted_values: 0,
-        retain_resumed: false,
         closing: false,
         continue_after_emit: false,
     }))
@@ -565,13 +383,6 @@ fn validate(placement: &PlannedGear, offer: &conduit_core::CapabilityOffer) -> R
         return Err("planned pacing identity does not match its installation".to_string());
     }
     Ok(())
-}
-
-fn fail(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
-        code: FailureCode::InvalidLifecycle,
-        detail,
-    })
 }
 
 #[cfg(test)]

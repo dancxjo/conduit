@@ -2,8 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
-    RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_presentation::{
     GraphicsScene, PresentationComposition, MAX_GRAPHICS_SCENE_BYTES,
@@ -105,50 +104,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for GraphicsPresentationOperation 
     }
 }
 
-impl GraphicsPresentationOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending && !self.presented => {
-                self.pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(value, MAX_GRAPHICS_SCENE_BYTES as u32) {
-                        Ok(value) => value,
-                        Err(_) => return InstalledOperation::fail(48),
-                    },
-                }
-            }
-            OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                self.pending = false;
-                self.presented = true;
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.pending => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(48),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = false;
-    }
-}
+impl GraphicsPresentationOperation {}
 
 #[cfg(test)]
 pub(super) struct PresentationSinkOperation;
@@ -173,72 +129,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for PresentationSinkOperation {
 #[cfg(test)]
 impl PresentationSinkOperation {}
 
-impl PresentationCompositionOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        match self.source {
-            Some(value) => OperationAction::Emit {
-                port: PortId(0),
-                value,
-            },
-            None => OperationAction::Await,
-        }
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending && !self.emitted => {
-                self.pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(
-                        value,
-                        MAX_PRESENTATION_COMPOSITION_BYTES as u32,
-                    ) {
-                        Ok(value) => value,
-                        Err(_) => return InstalledOperation::fail(44),
-                    },
-                }
-            }
-            OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return InstalledOperation::fail(45);
-                };
-                self.pending = false;
-                self.emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.pending => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(46),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.source.is_some() && !self.emitted {
-            self.emitted = true;
-        }
-        OperationAction::Complete
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = false;
-        self.emitted = true;
-    }
-}
+impl PresentationCompositionOperation {}
 
 impl<const PORTS: usize> StepOperation<PORTS> for PresentationCompositionOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {

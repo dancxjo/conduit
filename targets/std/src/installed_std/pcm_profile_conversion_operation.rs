@@ -5,8 +5,7 @@ use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) const HOST_CALL: &str = conduit_std_offers::AUDIO_CONVERT_PCM_OPERATION;
@@ -98,70 +97,7 @@ const fn step_failure(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl PcmProfileConversionOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() && !self.emitted && !self.closed => {
-                let Ok(input) =
-                    BoundedValueRef::new(value, conduit_std_offers::PIPER_PCM_BLOCK_BYTES)
-                else {
-                    return fail(FailureCode::InvalidInput, 1);
-                };
-                let request = RequestId(self.next_request);
-                self.next_request = self.next_request.saturating_add(1);
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Completed, None, None) => OperationAction::Await,
-                    (_, _, Some(failure)) => OperationAction::Fail(failure),
-                    _ => fail(FailureCode::InvalidLifecycle, 2),
-                }
-            }
-            OperationInput::Closed { port: PortId(0) }
-                if self.pending.is_none() && !self.emitted && !self.closed =>
-            {
-                self.closed = true;
-                OperationAction::Complete
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 3),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            self.emitted = false;
-        }
-        OperationAction::Await
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.closed = true;
-    }
-}
+impl PcmProfileConversionOperation {}
 
 pub(super) struct PcmProfileConversionHost {
     source_clock: Option<u64>,
@@ -322,10 +258,6 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         return Err("planned PCM conversion does not match the exact installed profile".into());
     }
     Ok(())
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }
 
 #[cfg(test)]

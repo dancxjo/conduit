@@ -6,8 +6,7 @@ use conduit_human::{
 };
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) static KEY_EVENT_TEE_FACTORY: InstalledFactory = InstalledFactory {
@@ -132,107 +131,9 @@ const fn step_fail(detail: u16) -> StepOutcome {
     })
 }
 
-impl KeyEventTeeOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
+impl KeyEventTeeOperation {}
 
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if conduit_semantic_catalog::key_event_tee_accepts_encoded_len(value.byte_len)
-                && self.pending.is_none() =>
-            {
-                self.pending = Some(value);
-                self.phase = 1;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(41),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        match (self.pending, self.phase) {
-            (Some(value), 1) => {
-                self.phase = 2;
-                OperationAction::Emit {
-                    port: PortId(1),
-                    value,
-                }
-            }
-            (Some(_), 2) => {
-                self.pending = None;
-                self.phase = 0;
-                OperationAction::Await
-            }
-            _ => InstalledOperation::fail(41),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.phase = 0;
-    }
-}
-
-impl InputSemanticOperation {
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none()
-                && self.next < conduit_semantic_catalog::INPUT_SEMANTIC_MAXIMUM_VALUES.into() =>
-            {
-                let request = RequestId(self.next);
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: conduit_kernel::HostCallId(0),
-                    input: match BoundedValueRef::new(value, KEY_EVENT_ENCODED_LEN as u32) {
-                        Ok(value) => value,
-                        Err(_) => return InstalledOperation::fail(42),
-                    },
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                self.next += 1;
-                if let Some(failure) = outcome.failure {
-                    return OperationAction::Fail(failure);
-                }
-                if outcome.disposition != HostCallDisposition::Completed {
-                    return InstalledOperation::fail(42);
-                }
-                match outcome.output {
-                    Some(output) => OperationAction::Emit {
-                        port: PortId(0),
-                        value: output.value,
-                    },
-                    None => OperationAction::Await,
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(42),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-}
+impl InputSemanticOperation {}
 
 #[derive(Debug, PartialEq, Eq)]
 pub(super) struct EncodedOutput {

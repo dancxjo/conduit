@@ -3,8 +3,8 @@ use super::timing_configuration::{self, TimingConfiguration};
 use conduit_core::{encode_monotonic_duration, InfoBool, PlannedGear, PortDirection, BOOL_INFO_ID};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 pub(super) static TIME_DEBOUNCE_FACTORY: InstalledFactory = InstalledFactory {
@@ -386,124 +386,8 @@ const fn step_fail(detail: u16) -> StepOutcome {
 }
 
 impl DebounceOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        self.retain_resumed = false;
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.closing && self.accepted_values < self.maximum_values => {
-                self.accepted_values += 1;
-                self.retain_resumed = true;
-                self.released = self.candidate.replace(value);
-                if let Some(request) = self.pending {
-                    self.cancellation = Some(request);
-                    OperationAction::Await
-                } else {
-                    self.request_deadline()
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Cancelled
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                if self.closing {
-                    self.flush_and_complete()
-                } else {
-                    self.request_deadline()
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.candidate.take().map_or_else(
-                    || fail(779),
-                    |value| OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    },
-                )
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.closing => {
-                self.closing = true;
-                self.release_unused_durations();
-                if let Some(request) = self.pending {
-                    self.cancellation = Some(request);
-                    OperationAction::Await
-                } else {
-                    self.flush_and_complete()
-                }
-            }
-            _ => fail(780),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.complete_after_emit {
-            self.complete_after_emit = false;
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub(super) fn retains_resumed_value(&self) -> bool {
-        self.retain_resumed
-    }
-
-    pub(super) fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.released
-            .take()
-            .or_else(|| self.terminal_releases.pop())
-    }
-
-    pub(super) fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
-        self.cancellation.take()
-    }
-
     pub(super) fn allocation_capacity(&self) -> usize {
         self.durations.capacity() + self.terminal_releases.capacity()
-    }
-
-    fn request_deadline(&mut self) -> OperationAction {
-        let Some(input) = self.durations.get(self.next_request).copied() else {
-            return fail(781);
-        };
-        let Ok(raw_request) = u32::try_from(self.next_request + 1) else {
-            return fail(782);
-        };
-        self.next_request += 1;
-        let request = RequestId(raw_request);
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(input, 8)
-                .expect("deadline duration is exactly eight bytes"),
-        }
-    }
-
-    fn flush_and_complete(&mut self) -> OperationAction {
-        self.candidate
-            .take()
-            .map_or(OperationAction::Complete, |value| {
-                self.complete_after_emit = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
-                }
-            })
     }
 
     fn release_unused_durations(&mut self) {
@@ -513,125 +397,11 @@ impl DebounceOperation {
 }
 
 impl TimeoutOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.emit_false_and_arm()
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0), ..
-            } if !self.closing && self.accepted_values < self.maximum_values => {
-                self.accepted_values += 1;
-                if let Some(request) = self.pending {
-                    self.cancellation = Some(request);
-                    OperationAction::Await
-                } else if self.timed_out {
-                    self.timed_out = false;
-                    self.emit_false_and_arm()
-                } else {
-                    fail(783)
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Cancelled
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                if self.closing {
-                    OperationAction::Complete
-                } else {
-                    self.request_deadline()
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.timed_out = true;
-                self.next_true_value()
-                    .map_or_else(fail_timeout_value, |value| OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    })
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.closing => {
-                self.closing = true;
-                self.release_unused_values();
-                if let Some(request) = self.pending {
-                    self.cancellation = Some(request);
-                    OperationAction::Await
-                } else {
-                    OperationAction::Complete
-                }
-            }
-            _ => fail(784),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.arm_after_emit {
-            self.arm_after_emit = false;
-            self.request_deadline()
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub(super) fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
-        self.cancellation.take()
-    }
-
-    pub(super) fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.terminal_releases.pop()
-    }
-
     pub(super) fn allocation_capacity(&self) -> usize {
         self.durations.capacity()
             + self.false_values.capacity()
             + self.true_values.capacity()
             + self.terminal_releases.capacity()
-    }
-
-    fn emit_false_and_arm(&mut self) -> OperationAction {
-        let Some(value) = self.false_values.get(self.next_false).copied() else {
-            return fail(785);
-        };
-        self.next_false += 1;
-        self.arm_after_emit = true;
-        OperationAction::Emit {
-            port: PortId(0),
-            value,
-        }
-    }
-
-    fn next_true_value(&mut self) -> Option<ValueRef> {
-        let value = self.true_values.get(self.next_true).copied()?;
-        self.next_true += 1;
-        Some(value)
-    }
-
-    fn request_deadline(&mut self) -> OperationAction {
-        let Some(input) = self.durations.get(self.next_request).copied() else {
-            return fail(786);
-        };
-        let Ok(raw_request) = u32::try_from(self.next_request + 1) else {
-            return fail(787);
-        };
-        self.next_request += 1;
-        let request = RequestId(raw_request);
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(input, 8)
-                .expect("deadline duration is exactly eight bytes"),
-        }
     }
 
     fn release_unused_values(&mut self) {
@@ -642,17 +412,6 @@ impl TimeoutOperation {
         self.terminal_releases
             .extend(self.true_values.drain(self.next_true..));
     }
-}
-
-fn fail(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
-        code: FailureCode::InvalidLifecycle,
-        detail,
-    })
-}
-
-fn fail_timeout_value() -> OperationAction {
-    fail(788)
 }
 
 fn debounce_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {

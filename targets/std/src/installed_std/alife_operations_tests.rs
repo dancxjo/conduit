@@ -9,17 +9,6 @@ fn value(slot: u16, byte_len: u32) -> ValueRef {
     }
 }
 
-fn complete(request: u32, output: Option<BoundedValueRef>) -> OperationInput {
-    OperationInput::HostCallCompleted {
-        request: RequestId(request),
-        outcome: HostCallOutcome {
-            disposition: HostCallDisposition::Completed,
-            output,
-            failure: None,
-        },
-    }
-}
-
 fn initialized_operation() -> LeniaStepOperation {
     let seed = conduit_alife::orbium_seed(32, 32, 1)
         .unwrap()

@@ -2,8 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) static LOCAL_MODEL_FACTORY: InstalledFactory = InstalledFactory {
@@ -150,91 +149,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl LocalModelOperation {
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none()
-                && !self.closed
-                && if self.stream {
-                    self.input.is_none()
-                } else {
-                    self.flow || !self.emitted
-                } =>
-            {
-                let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
-                    return fail(FailureCode::InvalidInput, 1);
-                };
-                let request = RequestId(self.next_request);
-                self.next_request = self.next_request.saturating_add(1);
-                self.pending = Some(request);
-                if self.stream {
-                    self.input = Some(value);
-                }
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Completed, None, None) if self.stream => {
-                        self.stream_complete = true;
-                        OperationAction::Complete
-                    }
-                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 2),
-                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 3),
-                    (HostCallDisposition::Failed, _, _) => fail(FailureCode::HostCallFailed, 4),
-                    _ => fail(FailureCode::InvalidLifecycle, 5),
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                self.closed = true;
-                OperationAction::Complete
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 6),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.stream_complete {
-            OperationAction::Complete
-        } else if self.stream && self.emitted {
-            let Some(value) = self.input else {
-                return fail(FailureCode::InvalidLifecycle, 7);
-            };
-            let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
-                return fail(FailureCode::InvalidInput, 8);
-            };
-            self.emitted = false;
-            let request = RequestId(self.next_request);
-            self.next_request = self.next_request.saturating_add(1);
-            self.pending = Some(request);
-            OperationAction::RequestHostCall {
-                request,
-                operation: HostCallId(0),
-                input,
-            }
-        } else if self.emitted && !self.flow {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-}
+impl LocalModelOperation {}
 
 pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
     let contract = conduit_ai::llm_contract(placement.kind_id.as_str())
@@ -339,10 +254,6 @@ fn prepare(
         stream_complete: false,
         input: None,
     }))
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }
 
 #[cfg(test)]

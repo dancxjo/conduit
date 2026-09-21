@@ -4,7 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef,
+    Failure, FailureCode, PortId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -68,52 +68,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl RecordQueueOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Closed { port: PortId(0) } => OperationAction::Complete,
-            _ => fail(FailureCode::InvalidLifecycle, 250),
-        }
-    }
-
-    pub(super) fn resume_value(
-        &mut self,
-        port: PortId,
-        value: ValueRef,
-        canonical: &[u8],
-    ) -> OperationAction {
-        if port != PortId(0) || value.byte_len > MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 {
-            return fail(FailureCode::InvalidInput, 251);
-        }
-        if self.accepted >= self.maximum_items {
-            return fail(FailureCode::StorageExhausted, 252);
-        }
-        let frame = match super::typed_record_operation::typed_leaf(canonical, &self.framed_type) {
-            Ok(frame) => frame,
-            Err(_) => return fail(FailureCode::InvalidInput, 253),
-        };
-        if frame.len() > self.maximum_frame_bytes
-            || conduit_net::decode_typed_record(frame).is_err()
-        {
-            return fail(FailureCode::InvalidInput, 254);
-        }
-        self.accepted += 1;
-        OperationAction::Emit {
-            port: PortId(0),
-            value,
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn cancel(&mut self) {}
-}
+impl RecordQueueOperation {}
 
 fn limits(placement: &PlannedGear) -> Result<(u64, usize), String> {
     let [items, bytes] = placement.configuration.as_slice() else {
@@ -182,8 +137,4 @@ fn prepare(
             .canonical_bytes()
             .map_err(|error| format!("encode framed-record type: {error:?}"))?,
     }))
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }

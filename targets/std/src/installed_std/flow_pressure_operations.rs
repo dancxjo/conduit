@@ -2,7 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection, PortTemporal};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    OperationAction, OperationInput, PortId,
+    PortId,
 };
 
 pub(super) static FLOW_BACKPRESSURE_FACTORY: InstalledFactory = InstalledFactory {
@@ -38,25 +38,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for FlowPressureOperation {
     }
 }
 
-impl FlowPressureOperation {
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } => OperationAction::Emit {
-                port: PortId(0),
-                value,
-            },
-            OperationInput::Closed { port: PortId(0) } => OperationAction::Complete,
-            _ => InstalledOperation::fail(270),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-}
+impl FlowPressureOperation {}
 
 fn backpressure_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_backpressure(placement)?;

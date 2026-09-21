@@ -4,7 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef,
+    Failure, FailureCode, PortId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -103,80 +103,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl RecordTranscriptOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Closed { port: PortId(port) } if port < 3 => {
-                self.closed[usize::from(port)] = true;
-                if self.closed.iter().all(|closed| *closed) {
-                    OperationAction::Complete
-                } else {
-                    OperationAction::Await
-                }
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 270),
-        }
-    }
-
-    pub(super) fn resume_value(
-        &mut self,
-        port: PortId,
-        value: ValueRef,
-        canonical: &[u8],
-    ) -> OperationAction {
-        let index = usize::from(port.0);
-        if index >= 3
-            || self.closed[index]
-            || self.events >= self.maximum_events
-            || value.byte_len > MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
-        {
-            return fail(FailureCode::StorageExhausted, 271);
-        }
-        let result = match index {
-            0 | 1 => super::typed_record_operation::typed_leaf(canonical, &self.framed_type)
-                .map_err(|_| ())
-                .and_then(|frame| {
-                    self.transcript
-                        .record(
-                            if index == 0 {
-                                conduit_net::RecordTranscriptDirection::Sent
-                            } else {
-                                conduit_net::RecordTranscriptDirection::Received
-                            },
-                            frame,
-                        )
-                        .map(|_| ())
-                        .map_err(|_| ())
-                }),
-            _ => super::typed_record_operation::typed_leaf(canonical, &self.terminal_type)
-                .map_err(|_| ())
-                .and_then(|wire| {
-                    conduit_net::decode_record_transcript_terminal(wire).map_err(|_| ())
-                })
-                .and_then(|terminal| {
-                    self.transcript
-                        .terminal(terminal)
-                        .map(|_| ())
-                        .map_err(|_| ())
-                }),
-        };
-        if result.is_err() {
-            return fail(FailureCode::InvalidInput, 272);
-        }
-        self.events += 1;
-        OperationAction::Emit { port, value }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn cancel(&mut self) {}
-}
+impl RecordTranscriptOperation {}
 
 fn limits(placement: &PlannedGear) -> Result<(usize, usize, usize, usize), String> {
     let [items, events, frame_bytes, retained_bytes] = placement.configuration.as_slice() else {
@@ -263,8 +190,4 @@ fn prepare(
                 .map_err(|error| format!("encode terminal event type: {error:?}"))?,
         },
     ))
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }

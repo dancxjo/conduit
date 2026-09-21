@@ -2,8 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
-    RequestId,
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -101,58 +100,7 @@ const fn step_failure(detail: u16) -> conduit_kernel::Failure {
     }
 }
 
-impl ImageTextOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value { port, value }
-                if self.pending.is_none() && !self.complete && port.0 < 2 =>
-            {
-                let request = RequestId(self.next);
-                self.next = self.next.saturating_add(1);
-                self.pending = Some(request);
-                let maximum = if port == PortId(0) {
-                    MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
-                } else {
-                    conduit_human::MAXIMUM_IMAGE_TEXT_CAPTION_BYTES as u32
-                };
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(if port == PortId(0) { 1 } else { 0 }),
-                    input: match BoundedValueRef::new(value, maximum) {
-                        Ok(value) => value,
-                        Err(_) => return InstalledOperation::fail(157),
-                    },
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                match outcome.output {
-                    Some(output) => {
-                        self.complete = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    None => OperationAction::Await,
-                }
-            }
-            OperationInput::Closed { .. } if self.pending.is_none() => OperationAction::Complete,
-            _ => InstalledOperation::fail(158),
-        }
-    }
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.complete = true;
-    }
-}
+impl ImageTextOperation {}
 
 pub(super) struct ImageTextHost {
     image_type: Vec<u8>,

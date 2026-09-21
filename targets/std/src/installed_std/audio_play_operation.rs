@@ -3,7 +3,7 @@ use conduit_core::{CapabilityOffer, PlannedGear, PortDirection};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) const DRAIN_MARKER: [u8; 1] = [0xff];
@@ -106,68 +106,7 @@ const fn step_fail(detail: u16) -> StepOutcome {
     })
 }
 
-impl AudioPlayOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none()
-                && !self.closed
-                && self.next_request
-                    < u32::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS) =>
-            {
-                self.request(value, false)
-            }
-            OperationInput::Closed { port: PortId(0) }
-                if self.pending.is_none() && !self.closed =>
-            {
-                self.closed = true;
-                self.request(self.drain_marker, true)
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                if let Some(failure) = outcome.failure {
-                    return OperationAction::Fail(failure);
-                }
-                if outcome.disposition != HostCallDisposition::Completed || outcome.output.is_some()
-                {
-                    return InstalledOperation::fail(61);
-                }
-                if self.draining {
-                    OperationAction::Complete
-                } else {
-                    OperationAction::Await
-                }
-            }
-            _ => InstalledOperation::fail(60),
-        }
-    }
-
-    fn request(&mut self, value: ValueRef, drain: bool) -> OperationAction {
-        let request = RequestId(self.next_request);
-        self.next_request = self.next_request.saturating_add(1);
-        self.pending = Some(request);
-        self.draining = drain;
-        let Ok(input) = BoundedValueRef::new(
-            value,
-            conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
-        ) else {
-            return InstalledOperation::fail(62);
-        };
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input,
-        }
-    }
-}
+impl AudioPlayOperation {}
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;

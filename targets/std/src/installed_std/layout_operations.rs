@@ -2,8 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
-    RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_presentation::{LayoutFrame, MAX_LAYOUT_FRAME_BYTES};
 
@@ -53,68 +52,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for LayoutSinkOperation {
 }
 #[cfg(test)]
 impl LayoutSinkOperation {}
-impl LayoutOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        match self.source {
-            Some(value) => OperationAction::Emit {
-                port: PortId(0),
-                value,
-            },
-            None => OperationAction::Await,
-        }
-    }
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() && !self.emitted => {
-                self.pending = Some(RequestId(0));
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(value, MAX_LAYOUT_FRAME_BYTES as u32) {
-                        Ok(value) => value,
-                        Err(_) => return InstalledOperation::fail(40),
-                    },
-                }
-            }
-            OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending == Some(RequestId(0))
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return InstalledOperation::fail(41);
-                };
-                self.pending = None;
-                self.emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(42),
-        }
-    }
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.source.is_some() && !self.emitted {
-            self.emitted = true;
-            OperationAction::Complete
-        } else {
-            OperationAction::Complete
-        }
-    }
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.emitted = true;
-    }
-}
+impl LayoutOperation {}
 
 impl<const PORTS: usize> StepOperation<PORTS> for LayoutOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {

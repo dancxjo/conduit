@@ -4,8 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -77,71 +76,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl SequenceNormalizationOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending && !self.completed => {
-                self.pending = true;
-                let Ok(input) =
-                    BoundedValueRef::new(value, MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32)
-                else {
-                    return InstalledOperation::fail(240);
-                };
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending => {
-                self.pending = false;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        self.completed = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Cancelled, _, _) => OperationAction::Fail(Failure {
-                        code: FailureCode::Cancelled,
-                        detail: 0,
-                    }),
-                    (HostCallDisposition::Failed, None, Some(failure)) => {
-                        OperationAction::Fail(failure)
-                    }
-                    _ => InstalledOperation::fail(241),
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if self.completed && !self.pending => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(242),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.completed {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = false;
-    }
-}
+impl SequenceNormalizationOperation {}
 
 pub(super) use conduit_semantic_catalog::BoundedNormalizationCodec as SequenceNormalizationHost;
 

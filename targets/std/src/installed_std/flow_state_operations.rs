@@ -2,7 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDescriptor, PortDirection, SCALAR_ENCODED_LEN};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef,
+    Failure, FailureCode, PortId, ValueRef,
 };
 
 pub(super) static STATE_LATEST_SCALAR_FACTORY: InstalledFactory = InstalledFactory {
@@ -97,81 +97,9 @@ fn flow_failure(detail: u16) -> Failure {
     }
 }
 
-impl StateLatestScalarOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
+impl StateLatestScalarOperation {}
 
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if value.byte_len == SCALAR_ENCODED_LEN as u32 => {
-                self.released = self.held.replace(value);
-                self.retain_resumed = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } => {
-                self.retain_resumed = false;
-                self.released = self.held.take();
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(12),
-        }
-    }
-
-    pub(super) fn retains_resumed_value(&self) -> bool {
-        self.retain_resumed
-    }
-
-    pub(super) fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.released.take()
-    }
-}
-
-impl FlowTeeScalarOperation {
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if value.byte_len == SCALAR_ENCODED_LEN as u32 && self.pending.is_none() => {
-                self.pending = Some(value);
-                self.phase = 1;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(13),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        match (self.pending, self.phase) {
-            (Some(value), 1) => {
-                self.phase = 2;
-                OperationAction::Emit {
-                    port: PortId(1),
-                    value,
-                }
-            }
-            (Some(_), 2) => {
-                self.pending = None;
-                self.phase = 0;
-                OperationAction::Await
-            }
-            _ => InstalledOperation::fail(13),
-        }
-    }
-}
+impl FlowTeeScalarOperation {}
 
 fn state_latest_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_state_latest(placement)?;

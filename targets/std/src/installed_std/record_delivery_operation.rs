@@ -4,8 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -85,59 +84,7 @@ const fn step_fail(detail: u16) -> StepOutcome {
     })
 }
 
-impl RecordDeliveryStatusOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending
-                && self.observations < conduit_net::MAXIMUM_RECORD_DELIVERY_OBSERVATIONS =>
-            {
-                self.pending = true;
-                let Ok(input) = BoundedValueRef::new(
-                    value,
-                    conduit_net::MAXIMUM_RECORD_DELIVERY_CANONICAL_BYTES as u32,
-                ) else {
-                    return InstalledOperation::fail(260);
-                };
-                OperationAction::RequestHostCall {
-                    request: RequestId(u32::from(self.observations)),
-                    operation: HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending
-                    && request == RequestId(u32::from(self.observations))
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return InstalledOperation::fail(261);
-                };
-                self.pending = false;
-                self.observations += 1;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.pending => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(262),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = false;
-    }
-}
+impl RecordDeliveryStatusOperation {}
 
 pub(super) fn prepare_hosts(
     fragment: &conduit_core::PlanFragment,

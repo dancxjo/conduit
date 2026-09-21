@@ -3,7 +3,7 @@ use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, CanonicalValue, Failure, FailureCode, HostCallDisposition, HostCallId,
-    HostCallOutcome, OperationAction, PortId, RequestId, ValueRef, ValueStorage,
+    HostCallOutcome, PortId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_midi::{
     MidiInputAdapter, MidiInputObservation, MidiMessage, MidiProfile, ParsedMidi, PortableMidiEvent,
@@ -113,89 +113,7 @@ const fn step_fail(detail: u16) -> StepOutcome {
     step_failure(FailureCode::InvalidLifecycle, detail)
 }
 
-impl MidiInputOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.request_next()
-    }
-
-    pub(super) fn resume_host_call(
-        &mut self,
-        request: RequestId,
-        outcome: HostCallOutcome,
-        canonical: Option<&[u8]>,
-    ) -> OperationAction {
-        if self.pending != Some(request)
-            || outcome.disposition != HostCallDisposition::Completed
-            || outcome.failure.is_some()
-            || outcome.output.is_none()
-        {
-            return outcome
-                .failure
-                .map_or_else(|| InstalledOperation::fail(92), OperationAction::Fail);
-        }
-        let Some(canonical) = canonical else {
-            return InstalledOperation::fail(93);
-        };
-        let Ok(observation) = MidiInputObservation::decode(canonical) else {
-            return fail(FailureCode::InvalidInput, 94);
-        };
-        let ParsedMidi::Message(message) = observation.parsed else {
-            return fail(FailureCode::InvalidInput, 95);
-        };
-        let event = match self.adapter.accept(message, observation.event_time_micros) {
-            Ok(PortableMidiEvent::Note(event)) => (PortId(0), CanonicalValue::new(&event.encode())),
-            Ok(PortableMidiEvent::Control(event)) => {
-                (PortId(1), CanonicalValue::new(&event.encode()))
-            }
-            Ok(PortableMidiEvent::UnsupportedControl { .. })
-            | Ok(PortableMidiEvent::IgnoredChannel { .. }) => {
-                return fail(FailureCode::InvalidInput, 96);
-            }
-            Err(_) => return fail(FailureCode::InvalidInput, 97),
-        };
-        let Ok(value) = event.1 else {
-            return fail(FailureCode::StorageExhausted, 98);
-        };
-        self.pending = None;
-        self.emitted = true;
-        OperationAction::EmitCanonical {
-            port: event.0,
-            value,
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if !self.emitted {
-            return InstalledOperation::fail(99);
-        }
-        self.emitted = false;
-        self.request_next()
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.adapter.cancel();
-        self.pending = None;
-        self.emitted = false;
-    }
-
-    fn request_next(&mut self) -> OperationAction {
-        if self.pending.is_some() || self.emitted {
-            return InstalledOperation::fail(100);
-        }
-        if self.next_request >= u32::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS) {
-            return fail(FailureCode::StorageExhausted, 101);
-        }
-        let request = RequestId(self.next_request);
-        self.next_request += 1;
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(self.empty_input, 0)
-                .expect("empty MIDI source request is exact"),
-        }
-    }
-}
+impl MidiInputOperation {}
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
@@ -378,10 +296,6 @@ pub(super) fn failure_outcome(error: crate::hosted_midi::MidiInputFailure) -> Ho
         output: None,
         failure: Some(Failure { code, detail }),
     }
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }
 
 #[cfg(test)]

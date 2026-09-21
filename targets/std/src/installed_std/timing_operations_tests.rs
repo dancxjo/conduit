@@ -12,17 +12,6 @@ fn value(slot: u16, byte_len: u32) -> ValueRef {
     }
 }
 
-fn completion(request: u32, disposition: HostCallDisposition) -> OperationInput {
-    OperationInput::HostCallCompleted {
-        request: RequestId(request),
-        outcome: HostCallOutcome {
-            disposition,
-            output: None,
-            failure: None,
-        },
-    }
-}
-
 fn debounce() -> DebounceOperation {
     DebounceOperation {
         durations: vec![value(10, 8), value(11, 8), value(12, 8)],

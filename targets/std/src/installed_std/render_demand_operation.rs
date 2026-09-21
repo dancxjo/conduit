@@ -5,8 +5,7 @@ use conduit_audio::AudioRenderDemand;
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, RequestId,
-    ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static AUDIO_RENDER_DEMAND_FACTORY: InstalledFactory = InstalledFactory {
@@ -86,53 +85,8 @@ const fn step_failure(detail: u16) -> conduit_kernel::Failure {
 }
 
 impl AudioRenderDemandOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.demands.get(self.next).copied().map_or_else(
-                    || InstalledOperation::fail(44),
-                    |value| OperationAction::Emit {
-                        port: conduit_kernel::PortId(0),
-                        value,
-                    },
-                )
-            }
-            _ => InstalledOperation::fail(45),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-
     pub(super) fn allocation_capacity(&self) -> usize {
         self.demands.capacity() + self.waits.capacity()
-    }
-
-    fn request_wait(&mut self) -> Option<OperationAction> {
-        let wait = self.waits.get(self.next).copied()?;
-        let request = RequestId(u32::try_from(self.next).ok()?);
-        self.pending = Some(request);
-        Some(OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(wait, 8).expect("render wait is exactly eight bytes"),
-        })
     }
 }
 

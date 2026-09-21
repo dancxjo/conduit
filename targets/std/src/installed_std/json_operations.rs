@@ -2,8 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 use conduit_web::{JsonRefusal, JsonValue};
 use std::vec::Vec;
@@ -158,67 +157,6 @@ impl JsonOperation {
             pending: None,
             next: 0,
         }
-    }
-
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() && self.next < 4 => {
-                let request = RequestId(self.next);
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(
-                        value,
-                        conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
-                    ) {
-                        Ok(input) => input,
-                        Err(_) => return InstalledOperation::fail(101),
-                    },
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        self.next += 1;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Cancelled, _, _) => OperationAction::Fail(Failure {
-                        code: FailureCode::Cancelled,
-                        detail: 0,
-                    }),
-                    (HostCallDisposition::Failed, None, Some(failure)) => {
-                        OperationAction::Fail(failure)
-                    }
-                    _ => InstalledOperation::fail(102),
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(103),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
     }
 }
 

@@ -4,8 +4,7 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
-    RequestId, ValueRef,
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef,
 };
 
 pub(super) static FLOW_GATE_SCALAR_FACTORY: InstalledFactory = InstalledFactory {
@@ -118,86 +117,7 @@ fn gate_failure() -> conduit_kernel::Failure {
     }
 }
 
-impl FlowGateScalarOperation {
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if value.byte_len == SCALAR_ENCODED_LEN as u32 && self.pending_enable.is_none() => {
-                if self.enabled {
-                    OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    }
-                } else {
-                    OperationAction::Await
-                }
-            }
-            OperationInput::Value {
-                port: PortId(1),
-                value,
-            } if value.byte_len == BOOL_ENCODED_LEN as u32
-                && self.pending_enable.is_none()
-                && self.next_request < self.maximum_enable_updates =>
-            {
-                let request = RequestId(self.next_request);
-                self.pending_enable = Some((request, value));
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(value, BOOL_ENCODED_LEN as u32) {
-                        Ok(input) => input,
-                        Err(_) => return InstalledOperation::fail(16),
-                    },
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending_enable.map(|pending| pending.0) == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.failure.is_none() =>
-            {
-                let (_, input) = self
-                    .pending_enable
-                    .take()
-                    .expect("matching gate request has an input");
-                self.next_request = self.next_request.saturating_add(1);
-                match outcome.output {
-                    None => self.enabled = false,
-                    Some(output)
-                        if output.value == input
-                            && output.admitted_bytes == BOOL_ENCODED_LEN as u32 =>
-                    {
-                        self.enabled = true;
-                    }
-                    Some(_) => return InstalledOperation::fail(16),
-                }
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending_enable.is_none() => {
-                self.data_closed = true;
-                self.terminal_or_await()
-            }
-            OperationInput::Closed { port: PortId(1) } if self.pending_enable.is_none() => {
-                self.enable_closed = true;
-                self.terminal_or_await()
-            }
-            _ => InstalledOperation::fail(16),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending_enable = None;
-    }
-
-    fn terminal_or_await(&self) -> OperationAction {
-        if self.data_closed && self.enable_closed {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-}
+impl FlowGateScalarOperation {}
 
 pub(super) fn decode_bool(input: &[u8]) -> Result<bool, String> {
     InfoBool::decode(input)

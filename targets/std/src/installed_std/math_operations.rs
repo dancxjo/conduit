@@ -2,8 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, Scalar, SCALAR_ENCODED_LEN};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
-    RequestId,
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) static MATH_CLAMP_FACTORY: InstalledFactory = InstalledFactory {
@@ -136,76 +135,7 @@ pub(super) struct MathScalarOperation {
     output_bytes: u32,
 }
 
-impl MathScalarOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none()
-                && !self.completed
-                && value.byte_len == self.input_bytes =>
-            {
-                let request = RequestId(0);
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(value, self.input_bytes) {
-                        Ok(input) => input,
-                        Err(_) => return InstalledOperation::fail(25),
-                    },
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return InstalledOperation::fail(25);
-                };
-                if output.admitted_bytes != self.output_bytes
-                    || output.value.byte_len != self.output_bytes
-                {
-                    return InstalledOperation::fail(25);
-                }
-                self.pending = None;
-                self.completed = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                self.completed = true;
-                OperationAction::Complete
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Failed
-                    && outcome.output.is_none() =>
-            {
-                self.pending = None;
-                self.completed = true;
-                match outcome.failure {
-                    Some(failure) => OperationAction::Fail(failure),
-                    None => InstalledOperation::fail(25),
-                }
-            }
-            _ => InstalledOperation::fail(25),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.completed = true;
-    }
-}
+impl MathScalarOperation {}
 
 pub(super) fn transform_for(placement: &PlannedGear) -> Result<MathTransform, String> {
     match placement.kind_id.as_str() {

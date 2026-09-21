@@ -104,28 +104,6 @@ fn analog(index: u64, value: u64, time: u64) -> StructuredInfoValue {
     )
 }
 
-fn note(action: OperationAction) -> MusicalNoteEvent {
-    let OperationAction::EmitCanonical {
-        port: PortId(0),
-        value,
-    } = action
-    else {
-        panic!("expected exact note output")
-    };
-    MusicalNoteEvent::decode(value.as_slice()).unwrap()
-}
-
-fn musical_control(action: OperationAction) -> MusicalControlEvent {
-    let OperationAction::EmitCanonical {
-        port: PortId(1),
-        value,
-    } = action
-    else {
-        panic!("expected exact control output")
-    };
-    MusicalControlEvent::decode(value.as_slice()).unwrap()
-}
-
 #[test]
 fn eight_buttons_map_to_portable_frequencies_and_preserve_identity_and_time() {
     let mapping = test_mapping();

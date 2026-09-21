@@ -4,8 +4,8 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef,
 };
 use std::collections::VecDeque;
 
@@ -156,93 +156,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl GeneratedSpeechCommitOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() && !self.closing => {
-                self.trigger = Some(value);
-                self.request(HostCallId(0), value)
-            }
-            OperationInput::Closed { port: PortId(0) }
-                if self.pending.is_none() && !self.closing =>
-            {
-                self.closing = true;
-                match self.trigger {
-                    Some(value) => self.request(HostCallId(2), value),
-                    None => OperationAction::Complete,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        self.drain_after_emit = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Completed, None, None) if self.closing => {
-                        OperationAction::Complete
-                    }
-                    (HostCallDisposition::Completed, None, None) => OperationAction::Await,
-                    (HostCallDisposition::Cancelled, _, _) => OperationAction::Fail(Failure {
-                        code: FailureCode::Cancelled,
-                        detail: 0,
-                    }),
-                    (HostCallDisposition::Failed, None, Some(failure)) => {
-                        OperationAction::Fail(failure)
-                    }
-                    _ => fail(1),
-                }
-            }
-            _ => fail(2),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.drain_after_emit {
-            self.drain_after_emit = false;
-            if let Some(value) = self.trigger {
-                return self.request(HostCallId(1), value);
-            }
-        }
-        OperationAction::Await
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.trigger = None;
-        self.closing = true;
-        self.drain_after_emit = false;
-    }
-
-    fn request(&mut self, operation: HostCallId, value: ValueRef) -> OperationAction {
-        let request = RequestId(self.next_request);
-        let Some(next) = self.next_request.checked_add(1) else {
-            return fail(3);
-        };
-        let Ok(input) = BoundedValueRef::new(value, conduit_tongues::MAXIMUM_TEXT_BYTES) else {
-            return fail(4);
-        };
-        self.next_request = next;
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
-            request,
-            operation,
-            input,
-        }
-    }
-}
+impl GeneratedSpeechCommitOperation {}
 
 pub(super) struct GeneratedSpeechCommitHost {
     committer: conduit_tongues::StreamingSpeechCommitter,
@@ -362,13 +276,6 @@ fn prepare(
             drain_after_emit: false,
         },
     ))
-}
-
-fn fail(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
-        code: FailureCode::InvalidLifecycle,
-        detail,
-    })
 }
 
 #[cfg(test)]

@@ -8,10 +8,9 @@ use conduit_core::{
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationInput,
-    RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, RequestId,
 };
-use conduit_kernel::{OperationAction, PortId, ValueRef, ValueStorage};
+use conduit_kernel::{PortId, ValueRef, ValueStorage};
 
 pub(super) const KIND: &str = "conduit-proof/pcm-specimen-source";
 const REVISION: &str = "conduit-proof/pcm-specimen-source@1";
@@ -80,51 +79,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for TestPcmSourceOperation {
     }
 }
 
-impl TestPcmSourceOperation {
-    pub(super) fn emit_or_complete(&self) -> OperationAction {
-        self.values
-            .get(self.next)
-            .copied()
-            .map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                port: PortId(0),
-                value,
-            })
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.emit_or_complete()
-            }
-            _ => InstalledOperation::fail(64),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        if self.next >= self.values.len() {
-            return OperationAction::Complete;
-        }
-        let request = RequestId(self.next as u32);
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(self.yield_markers[self.next - 1], 1)
-                .expect("yield marker is one byte"),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-}
+impl TestPcmSourceOperation {}
 
 pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {

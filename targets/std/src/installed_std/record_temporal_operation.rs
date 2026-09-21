@@ -4,7 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    OperationAction, OperationInput, PortId, ValueRef,
+    PortId, ValueRef,
 };
 
 pub(super) static SINGLETON: InstalledFactory = InstalledFactory {
@@ -45,35 +45,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for RecordSingletonStreamOperation
     }
 }
 
-impl RecordSingletonStreamOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.emitted && value.byte_len <= MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 => {
-                self.emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
-                }
-            }
-            _ => InstalledOperation::fail(240),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Complete
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.emitted = true;
-    }
-}
+impl RecordSingletonStreamOperation {}
 
 pub(super) struct RecordExactlyOneOperation {
     held: Option<ValueRef>,
@@ -133,55 +105,7 @@ const fn step_failure(detail: u16) -> conduit_kernel::Failure {
     }
 }
 
-impl RecordExactlyOneOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        self.retain_resumed = false;
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.held.is_none()
-                && value.byte_len <= MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 =>
-            {
-                self.held = Some(value);
-                self.retain_resumed = true;
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.emitted => {
-                let Some(value) = self.held.take() else {
-                    return InstalledOperation::fail(241);
-                };
-                self.emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
-                }
-            }
-            _ => InstalledOperation::fail(241),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Complete
-    }
-
-    pub(super) fn retains_resumed_value(&self) -> bool {
-        self.retain_resumed
-    }
-
-    pub(super) fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.released.take()
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.released = self.held.take();
-        self.retain_resumed = false;
-    }
-}
+impl RecordExactlyOneOperation {}
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;

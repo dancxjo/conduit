@@ -5,8 +5,7 @@ use conduit_audio::{
 use conduit_core::{CapabilityOffer, ConfigurationValue, HostCallRequirement, PlannedGear};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) use super::synth_render::{execute, InstalledSynthState};
@@ -137,101 +136,6 @@ const fn step_fail(detail: u16) -> StepOutcome {
         code: FailureCode::InvalidLifecycle,
         detail,
     })
-}
-
-impl MusicSynthOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value { port, value }
-                if self.pending.is_none()
-                    && self.input.is_none()
-                    && ((port == PortId(0) && value.byte_len == NOTE_EVENT_ENCODED_LEN as u32)
-                        || (port == PortId(1)
-                            && value.byte_len == CONTROL_EVENT_ENCODED_LEN as u32)
-                        || (port == PortId(2)
-                            && value.byte_len == AUDIO_RENDER_DEMAND_ENCODED_LEN as u32)) =>
-            {
-                let request = RequestId(self.next_request);
-                self.next_request = self.next_request.wrapping_add(1);
-                self.pending = Some(request);
-                self.input = Some(value);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(
-                        value,
-                        NOTE_EVENT_ENCODED_LEN
-                            .max(CONTROL_EVENT_ENCODED_LEN)
-                            .max(AUDIO_RENDER_DEMAND_ENCODED_LEN) as u32,
-                    ) {
-                        Ok(input) => input,
-                        Err(_) => return InstalledOperation::fail(40),
-                    },
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.input = None;
-                match outcome.output {
-                    Some(output)
-                        if output.admitted_bytes == PCM_BLOCK_BYTES
-                            && output.value.byte_len <= PCM_BLOCK_BYTES =>
-                    {
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    None => self.finish_or_await(),
-                    _ => InstalledOperation::fail(41),
-                }
-            }
-            OperationInput::Closed { port } if self.pending.is_none() && self.input.is_none() => {
-                let index = usize::from(port.0);
-                if index >= self.closed.len() || self.closed[index] {
-                    return InstalledOperation::fail(42);
-                }
-                self.closed[index] = true;
-                self.finish_or_await()
-            }
-            _ => InstalledOperation::fail(43),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.finish_or_await()
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.input = None;
-        self.completed = true;
-    }
-
-    pub(super) fn retains_resumed_value(&self) -> bool {
-        false
-    }
-
-    pub(super) fn take_released_value(&mut self) -> Option<conduit_kernel::ValueRef> {
-        None
-    }
-
-    fn finish_or_await(&mut self) -> OperationAction {
-        if self.closed == [true; 3] {
-            self.completed = true;
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
 }
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {

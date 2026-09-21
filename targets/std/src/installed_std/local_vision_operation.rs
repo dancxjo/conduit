@@ -4,8 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
-    RequestId,
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -88,54 +87,7 @@ const fn step_failure(detail: u16) -> conduit_kernel::Failure {
     }
 }
 
-impl LocalVisionOperation {
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending && !self.closed => {
-                self.pending = true;
-                let Ok(input) =
-                    BoundedValueRef::new(value, MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32)
-                else {
-                    return InstalledOperation::fail(330);
-                };
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return InstalledOperation::fail(331);
-                };
-                self.pending = false;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.pending => {
-                self.closed = true;
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(332),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = false;
-        self.closed = true;
-    }
-}
+impl LocalVisionOperation {}
 
 fn offer(placement: &PlannedGear) -> Result<conduit_core::CapabilityOffer, String> {
     conduit_std_offers::local_vision_offers()

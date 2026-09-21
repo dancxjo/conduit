@@ -12,28 +12,6 @@ fn value(slot: u16, byte_len: u32) -> ValueRef {
     }
 }
 
-fn completed(request: u32) -> OperationInput {
-    OperationInput::HostCallCompleted {
-        request: RequestId(request),
-        outcome: HostCallOutcome {
-            disposition: HostCallDisposition::Completed,
-            output: None,
-            failure: None,
-        },
-    }
-}
-
-fn cancelled(request: u32) -> OperationInput {
-    OperationInput::HostCallCompleted {
-        request: RequestId(request),
-        outcome: HostCallOutcome {
-            disposition: HostCallDisposition::Cancelled,
-            output: None,
-            failure: None,
-        },
-    }
-}
-
 #[test]
 fn delay_retains_finite_values_and_drains_them_in_order_after_close() {
     let mut operation = DelayOperation {

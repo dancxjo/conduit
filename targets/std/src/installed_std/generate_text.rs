@@ -2,8 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) static GENERATE_TEXT_SMALL_FACTORY: InstalledFactory = InstalledFactory {
@@ -86,61 +85,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl GenerateTextOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending && !self.emitted => {
-                let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
-                    return fail(FailureCode::InvalidInput, 1);
-                };
-                self.pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending && request == RequestId(0) =>
-            {
-                self.pending = false;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 2),
-                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 3),
-                    (HostCallDisposition::Failed, _, _) => fail(FailureCode::HostCallFailed, 4),
-                    _ => fail(FailureCode::InvalidLifecycle, 5),
-                }
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 6),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = false;
-    }
-}
+impl GenerateTextOperation {}
 
 pub(super) fn execute_fixture(
     placement: &PlannedGear,
@@ -246,8 +191,4 @@ fn prepare(
         pending: false,
         emitted: false,
     }))
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }

@@ -2,8 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
-    RequestId,
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -83,57 +82,7 @@ const fn step_failure(detail: u16) -> conduit_kernel::Failure {
     }
 }
 
-impl ImageTextRecordOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending && !self.complete => {
-                self.pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(
-                        value,
-                        conduit_net::MAXIMUM_TYPED_RECORD_PAYLOAD_BYTES as u32,
-                    ) {
-                        Ok(value) => value,
-                        Err(_) => return InstalledOperation::fail(159),
-                    },
-                }
-            }
-            OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return InstalledOperation::fail(160);
-                };
-                self.pending = false;
-                self.complete = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.pending => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(161),
-        }
-    }
-    pub(super) fn cancel(&mut self) {
-        self.pending = false;
-        self.complete = true;
-    }
-}
+impl ImageTextRecordOperation {}
 
 pub(super) struct ImageTextRecordHost {
     input_type: StructuredInfoType,

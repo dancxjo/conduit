@@ -2,8 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) static MIDI_OUTPUT_FACTORY: InstalledFactory = InstalledFactory {
@@ -105,64 +104,7 @@ const fn step_fail(detail: u16) -> StepOutcome {
     })
 }
 
-impl MidiOutputOperation {
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value { port, value }
-                if self.pending.is_none()
-                    && usize::from(port.0) < self.closed.len()
-                    && !self.closed[usize::from(port.0)]
-                    && self.next_request
-                        < u32::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS) =>
-            {
-                let maximum = if port == PortId(0) {
-                    conduit_audio::NOTE_EVENT_ENCODED_LEN as u32
-                } else {
-                    conduit_audio::CONTROL_EVENT_ENCODED_LEN as u32
-                };
-                let Ok(input) = BoundedValueRef::new(value, maximum) else {
-                    return InstalledOperation::fail(82);
-                };
-                let request = RequestId(self.next_request);
-                self.next_request = self.next_request.saturating_add(1);
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: if port == PortId(0) {
-                        HostCallId(1)
-                    } else {
-                        HostCallId(0)
-                    },
-                    input,
-                }
-            }
-            OperationInput::Closed { port }
-                if self.pending.is_none() && usize::from(port.0) < self.closed.len() =>
-            {
-                self.closed[usize::from(port.0)] = true;
-                if self.closed.into_iter().all(|closed| closed) {
-                    OperationAction::Complete
-                } else {
-                    OperationAction::Await
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                if let Some(failure) = outcome.failure {
-                    return OperationAction::Fail(failure);
-                }
-                if outcome.disposition != HostCallDisposition::Completed || outcome.output.is_some()
-                {
-                    return InstalledOperation::fail(83);
-                }
-                OperationAction::Await
-            }
-            _ => InstalledOperation::fail(81),
-        }
-    }
-}
+impl MidiOutputOperation {}
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;

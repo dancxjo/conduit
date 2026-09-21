@@ -4,8 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) static EDIT_FACTORY: InstalledFactory = InstalledFactory {
@@ -97,64 +96,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl TextStateOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => {
-                let request = RequestId(self.next_request);
-                let Some(next) = self.next_request.checked_add(1) else {
-                    return fail(FailureCode::StorageExhausted, 1);
-                };
-                let Ok(input) = BoundedValueRef::new(value, 4) else {
-                    return fail(FailureCode::InvalidInput, 2);
-                };
-                self.next_request = next;
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => OperationAction::Emit {
-                        port: PortId(0),
-                        value: output.value,
-                    },
-                    (HostCallDisposition::Completed, None, None) => OperationAction::Await,
-                    (HostCallDisposition::Cancelled, None, None) => fail(FailureCode::Cancelled, 0),
-                    (HostCallDisposition::Failed, None, Some(failure)) => {
-                        OperationAction::Fail(failure)
-                    }
-                    _ => fail(FailureCode::InvalidLifecycle, 3),
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 4),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-}
+impl TextStateOperation {}
 
 pub(super) struct TextStateHost(conduit_semantic_catalog::BoundedTextState);
 
@@ -253,8 +195,4 @@ fn prepare(
         pending: None,
         next_request: 0,
     }))
-}
-
-const fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }

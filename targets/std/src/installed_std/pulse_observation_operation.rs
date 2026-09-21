@@ -14,11 +14,6 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     prepare,
 };
 
-#[cfg(test)]
-fn failure(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
-}
-
 fn validate(placement: &PlannedGear) -> Result<PulseObservationConfiguration, String> {
     let offer = conduit_std_offers::pulse_observe_offer();
     if placement.kind_id != offer.kind_id

@@ -6,8 +6,8 @@ use super::super::operation::{InstalledFactory, InstalledOperation, OperationBud
 use conduit_core::{PlannedGear, PreparedStructuredValueValidator};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
-    HostedValueStore, OperationAction, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
+    PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(crate) static FACTORY: InstalledFactory = InstalledFactory {
@@ -18,7 +18,6 @@ pub(crate) static FACTORY: InstalledFactory = InstalledFactory {
 
 pub(crate) struct ButtonOperation {
     empty: ValueRef,
-    empty_released: bool,
     next: u32,
     pending: Option<RequestId>,
     terminal: bool,
@@ -96,83 +95,9 @@ const fn button_step_fail(code: FailureCode, detail: u16) -> StepOutcome {
 }
 
 impl ButtonOperation {
-    pub(crate) fn take_released_value(&mut self) -> Option<ValueRef> {
-        if self.terminal && !self.empty_released {
-            self.empty_released = true;
-            return Some(self.empty);
-        }
-        None
-    }
-    pub(crate) fn start(&mut self) -> OperationAction {
-        self.request()
-    }
-    pub(crate) fn advance(&mut self) -> OperationAction {
-        self.request()
-    }
-    pub(crate) fn cancel(&mut self) {
-        self.pending = None;
-        self.terminal = true;
-    }
     pub(crate) fn allocation_capacity(&self) -> usize {
         0
     }
-
-    fn request(&mut self) -> OperationAction {
-        if self.terminal || self.pending.is_some() {
-            return fail(FailureCode::InvalidLifecycle, 1);
-        }
-        let Some(next) = self.next.checked_add(1) else {
-            return fail(FailureCode::StorageExhausted, 2);
-        };
-        let request = RequestId(self.next);
-        self.next = next;
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(self.empty, 0)
-                .expect("pre-admitted empty keyboard request"),
-        }
-    }
-
-    pub(crate) fn resume_host_call(
-        &mut self,
-        request: RequestId,
-        outcome: HostCallOutcome,
-        canonical: Option<&[u8]>,
-    ) -> OperationAction {
-        if self.terminal || self.pending != Some(request) {
-            return fail(FailureCode::InvalidLifecycle, 3);
-        }
-        self.pending = None;
-        if let Some(failure) = outcome.failure {
-            self.terminal = true;
-            return OperationAction::Fail(failure);
-        }
-        match outcome.disposition {
-            HostCallDisposition::Completed => {
-                let (Some(output), Some(canonical)) = (outcome.output, canonical) else {
-                    return fail(FailureCode::InvalidInput, 4);
-                };
-                if self.validator.validate(canonical).is_err() {
-                    return fail(FailureCode::InvalidInput, 5);
-                }
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            HostCallDisposition::Cancelled if outcome.output.is_none() => {
-                self.terminal = true;
-                fail(FailureCode::Cancelled, 0)
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 6),
-        }
-    }
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
@@ -237,7 +162,6 @@ fn prepare(
     .map_err(|error| format!("prepare button transition validator: {error:?}"))?;
     Ok(InstalledOperation::ButtonInput(ButtonOperation {
         empty,
-        empty_released: false,
         next: 0,
         pending: None,
         terminal: false,

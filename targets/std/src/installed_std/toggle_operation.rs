@@ -4,7 +4,7 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef, ValueStorage,
+    Failure, FailureCode, PortId, ValueRef, ValueStorage,
 };
 
 pub(super) static STATE_TOGGLE_FACTORY: InstalledFactory = InstalledFactory {
@@ -67,41 +67,7 @@ fn toggle_failure(detail: u16) -> Failure {
     }
 }
 
-impl StateToggleOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.values[0],
-        }
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.initial_emitted && value.byte_len == conduit_time::TICK_ENCODED_LEN => {
-                self.next += 1;
-                self.values.get(self.next).copied().map_or_else(
-                    || InstalledOperation::fail(35),
-                    |value| OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    },
-                )
-            }
-            OperationInput::Closed { port: PortId(0) } if self.initial_emitted => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(34),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.initial_emitted = true;
-        OperationAction::Await
-    }
-}
+impl StateToggleOperation {}
 
 fn state_toggle_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate_state_toggle(placement)?;

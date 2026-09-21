@@ -5,8 +5,8 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
-    OperationAction, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -100,82 +100,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl KeyboardInputOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.request_next()
-    }
-
-    pub(super) fn resume_host_call(
-        &mut self,
-        request: RequestId,
-        outcome: HostCallOutcome,
-        canonical: Option<&[u8]>,
-    ) -> OperationAction {
-        if self.pending != Some(request) || outcome.failure.is_some() {
-            return outcome
-                .failure
-                .map_or_else(|| InstalledOperation::fail(110), OperationAction::Fail);
-        }
-        self.pending = None;
-        match outcome.disposition {
-            HostCallDisposition::Completed => {
-                let Some(canonical) = canonical else {
-                    return InstalledOperation::fail(111);
-                };
-                if conduit_human::KeyEvent::decode(canonical).is_err() {
-                    return fail(FailureCode::InvalidInput, 112);
-                }
-                let Ok(value) = conduit_kernel::CanonicalValue::new(canonical) else {
-                    return fail(FailureCode::StorageExhausted, 113);
-                };
-                self.emitted = true;
-                OperationAction::EmitCanonical {
-                    port: PortId(0),
-                    value,
-                }
-            }
-            HostCallDisposition::Cancelled if outcome.output.is_none() => OperationAction::Complete,
-            HostCallDisposition::Denied
-            | HostCallDisposition::Failed
-            | HostCallDisposition::Cancelled => InstalledOperation::fail(114),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if !self.emitted {
-            return InstalledOperation::fail(115);
-        }
-        self.emitted = false;
-        self.request_next()
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.emitted = false;
-    }
-
-    fn request_next(&mut self) -> OperationAction {
-        if self.pending.is_some() || self.emitted {
-            return InstalledOperation::fail(116);
-        }
-        let request = RequestId(self.next_request);
-        let Some(next_request) = self.next_request.checked_add(1) else {
-            return fail(FailureCode::StorageExhausted, 117);
-        };
-        self.next_request = next_request;
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(self.empty_input, 0)
-                .expect("keyboard request input is exactly empty"),
-        }
-    }
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure { code, detail })
-}
+impl KeyboardInputOperation {}
 
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;

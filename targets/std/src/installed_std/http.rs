@@ -6,8 +6,8 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 pub(super) const CLIENT_IMPLEMENTATION: &str = "std/kernel-http-client-http1";
@@ -206,64 +206,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for HttpClientOperation {
     }
 }
 
-impl HttpClientOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending => {
-                self.pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(u32::from(self.completed)),
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(
-                        value,
-                        conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
-                    )
-                    .expect("planned HTTP request is bounded"),
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending && request == RequestId(u32::from(self.completed)) =>
-            {
-                self.pending = false;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        self.completed += 1;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 1),
-                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 2),
-                    (HostCallDisposition::Failed, _, Some(failure)) => {
-                        OperationAction::Fail(failure)
-                    }
-                    _ => fail(FailureCode::InvalidLifecycle, 3),
-                }
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 4),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.completed == conduit_web::HTTP_MAXIMUM_IN_FLIGHT {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = false;
-    }
-}
+impl HttpClientOperation {}
 
 #[derive(Clone, Copy)]
 enum ServerPending {
@@ -376,91 +319,7 @@ const fn http_step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl HttpServerOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.request_accept()
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() && self.accepted > 0 => {
-                self.pending = Some(ServerPending::Respond);
-                OperationAction::RequestHostCall {
-                    request: RequestId(u32::from(self.accepted) * 2 - 1),
-                    operation: HostCallId(1),
-                    input: BoundedValueRef::new(
-                        value,
-                        conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
-                    )
-                    .expect("planned HTTP response is bounded"),
-                }
-            }
-            OperationInput::HostCallCompleted { outcome, .. } => {
-                let Some(pending) = self.pending.take() else {
-                    return fail(FailureCode::InvalidLifecycle, 10);
-                };
-                match (
-                    pending,
-                    outcome.disposition,
-                    outcome.output,
-                    outcome.failure,
-                ) {
-                    (ServerPending::Accept, HostCallDisposition::Completed, Some(output), None) => {
-                        self.accepted += 1;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (ServerPending::Respond, HostCallDisposition::Completed, None, None) => {
-                        if self.accepted == conduit_web::HTTP_MAXIMUM_IN_FLIGHT {
-                            self.released = Some(self.empty);
-                            OperationAction::Complete
-                        } else {
-                            self.request_accept()
-                        }
-                    }
-                    (_, HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 11),
-                    (_, HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 12),
-                    (_, HostCallDisposition::Failed, _, Some(failure)) => {
-                        OperationAction::Fail(failure)
-                    }
-                    _ => fail(FailureCode::InvalidLifecycle, 13),
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 14),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.released = Some(self.empty);
-    }
-
-    pub(super) fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.released.take()
-    }
-
-    fn request_accept(&mut self) -> OperationAction {
-        self.pending = Some(ServerPending::Accept);
-        OperationAction::RequestHostCall {
-            request: RequestId(u32::from(self.accepted) * 2),
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(self.empty, 0)
-                .expect("empty HTTP accept command is bounded"),
-        }
-    }
-}
+impl HttpServerOperation {}
 
 fn client_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement, &client_offer())?;
@@ -527,10 +386,6 @@ fn validate(placement: &PlannedGear, offer: &CapabilityOffer) -> Result<(), Stri
         return Err("planned HTTP identity differs from the installed realization".into());
     }
     Ok(())
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }
 
 #[cfg(test)]

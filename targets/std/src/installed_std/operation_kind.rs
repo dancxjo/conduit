@@ -87,7 +87,6 @@ use super::toggle_operation::StateToggleOperation;
 use super::typed_record_operation::TypedRecordOperation;
 use super::vector_search_operation::VectorSearchOperation;
 use super::wav_artifact_operation::WavArtifactOperation;
-use conduit_kernel::{Failure, FailureCode, OperationAction};
 
 pub(super) enum InstalledOperation {
     #[cfg(any(test, feature = "local-model-proof"))]
@@ -241,13 +240,6 @@ pub(super) enum InstalledOperation {
 impl InstalledOperation {
     pub(super) fn inactive() -> Self {
         Self::Inactive
-    }
-
-    pub(super) fn fail(detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure {
-            code: FailureCode::InvalidLifecycle,
-            detail,
-        })
     }
 
     pub(super) fn simulated_drive_effect(&self) -> Option<SimulatedDriveEffect> {

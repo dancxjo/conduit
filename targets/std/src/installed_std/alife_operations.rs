@@ -7,8 +7,8 @@ use conduit_alife::{
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 pub(super) static ORBIUM_SEED_FACTORY: InstalledFactory = InstalledFactory {
@@ -242,23 +242,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl OrbiumSeedOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.value,
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            InstalledOperation::fail(180)
-        } else {
-            self.emitted = true;
-            OperationAction::Complete
-        }
-    }
-}
+impl OrbiumSeedOperation {}
 
 impl LeniaStepOperation {
     fn new() -> Self {
@@ -269,139 +253,9 @@ impl LeniaStepOperation {
             next_tick: 0,
         }
     }
-
-    pub(super) fn resume_value(
-        &mut self,
-        port: PortId,
-        value: ValueRef,
-        canonical: &[u8],
-    ) -> OperationAction {
-        if port == PortId(0) && !self.initialized && self.pending.is_none() {
-            if LeniaFieldView::decode(canonical).is_err() {
-                return fail(FailureCode::InvalidInput, 181);
-            }
-            let request = RequestId(0);
-            self.pending = Some(Pending::Initialize(request));
-            return request_action(request, HostCallId(0), value, LENIA_MAXIMUM_FIELD_BYTES);
-        }
-        if port == PortId(1)
-            && self.initialized
-            && self.initial_closed
-            && self.pending.is_none()
-            && self.next_tick < u32::from(conduit_alife::MAXIMUM_PRESENTED_FIELDS)
-        {
-            let Ok(sequence) = super::contract::decode_tick(canonical) else {
-                return fail(FailureCode::InvalidInput, 182);
-            };
-            if sequence != u64::from(self.next_tick) {
-                return fail(FailureCode::InvalidInput, 183);
-            }
-            let request_id = RequestId(self.next_tick + 1);
-            self.pending = Some(Pending::Step(request_id));
-            return request_action(
-                request_id,
-                HostCallId(1),
-                value,
-                conduit_time::TICK_ENCODED_LEN,
-            );
-        }
-        fail(FailureCode::InvalidLifecycle, 184)
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(Pending::Initialize(request)) =>
-            {
-                self.pending = None;
-                if outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none()
-                {
-                    self.initialized = true;
-                    OperationAction::Await
-                } else {
-                    host_failure(outcome.failure, 185)
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(Pending::Step(request)) =>
-            {
-                self.pending = None;
-                if outcome.disposition == HostCallDisposition::Completed
-                    && outcome.failure.is_none()
-                {
-                    let Some(output) = outcome.output else {
-                        return fail(FailureCode::HostCallFailed, 186);
-                    };
-                    self.next_tick += 1;
-                    OperationAction::Emit {
-                        port: PortId(0),
-                        value: output.value,
-                    }
-                } else {
-                    host_failure(outcome.failure, 187)
-                }
-            }
-            OperationInput::Closed { port: PortId(1) }
-                if self.initialized && self.initial_closed && self.pending.is_none() =>
-            {
-                OperationAction::Complete
-            }
-            OperationInput::Closed { port: PortId(0) }
-                if self.initialized && !self.initial_closed && self.pending.is_none() =>
-            {
-                self.initial_closed = true;
-                OperationAction::Await
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 188),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
 }
 
-impl ScalarFieldPresentationOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none()
-                && self.next < u32::from(conduit_alife::MAXIMUM_PRESENTED_FIELDS) =>
-            {
-                let request = RequestId(self.next);
-                self.pending = Some(request);
-                request_action(request, HostCallId(0), value, LENIA_MAXIMUM_FIELD_BYTES)
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.next += 1;
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            OperationInput::HostCallCompleted { outcome, .. } => host_failure(outcome.failure, 189),
-            _ => fail(FailureCode::InvalidLifecycle, 190),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-}
+impl ScalarFieldPresentationOperation {}
 
 pub(super) fn parameters(placement: &PlannedGear) -> Result<LeniaParameters, String> {
     validate_lenia(placement)?;
@@ -611,33 +465,6 @@ fn text_configuration<'a>(placement: &'a PlannedGear, key: &str) -> Result<&'a s
             _ => None,
         })
         .ok_or_else(|| format!("missing or invalid text configuration '{key}'"))
-}
-
-fn request_action(
-    request: RequestId,
-    operation: HostCallId,
-    value: ValueRef,
-    maximum: u32,
-) -> OperationAction {
-    match BoundedValueRef::new(value, maximum) {
-        Ok(input) => OperationAction::RequestHostCall {
-            request,
-            operation,
-            input,
-        },
-        Err(_) => fail(FailureCode::InvalidInput, 191),
-    }
-}
-
-fn host_failure(failure: Option<Failure>, detail: u16) -> OperationAction {
-    OperationAction::Fail(failure.unwrap_or(Failure {
-        code: FailureCode::HostCallFailed,
-        detail,
-    }))
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }
 
 #[cfg(test)]

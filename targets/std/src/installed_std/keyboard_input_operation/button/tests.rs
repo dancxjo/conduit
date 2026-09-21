@@ -44,17 +44,6 @@ fn completed(output: ValueRef) -> HostCallOutcome {
     }
 }
 
-fn request(action: OperationAction, expected: u32) {
-    assert!(matches!(
-        action,
-        OperationAction::RequestHostCall {
-            request: RequestId(id),
-            operation: HostCallId(0),
-            ..
-        } if id == expected
-    ));
-}
-
 #[test]
 fn transitions_continue_in_one_play_until_explicit_stop() {
     let mut source = source();

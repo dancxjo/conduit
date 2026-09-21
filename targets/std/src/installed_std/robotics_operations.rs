@@ -5,8 +5,7 @@ use super::robotics_effect::SimulatedDriveEffect;
 use conduit_core::{ConfigurationEntry, PlannedGear, Scalar, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    Failure, FailureCode, HostedValueStore, OperationAction, OperationInput, PortId, ValueRef,
-    ValueStorage,
+    Failure, FailureCode, HostedValueStore, PortId, ValueRef, ValueStorage,
 };
 use conduit_robotics::{
     ROBOTICS_BATTERY_ENCODED_LEN, ROBOTICS_ODOMETRY_ENCODED_LEN, ROBOTICS_ORIENTATION_ENCODED_LEN,
@@ -84,41 +83,6 @@ impl RoboticsSourceOperation {
     pub(super) fn allocation_capacity(&self) -> usize {
         0
     }
-
-    pub(super) fn start(&mut self) -> OperationAction {
-        if self.cancelled {
-            return cancelled();
-        }
-        match self.availability {
-            SimulatedAvailability::Fresh => self.emit_or_complete(),
-            SimulatedAvailability::Missing => fail(FailureCode::InvalidInput, 40),
-            SimulatedAvailability::Stale => fail(FailureCode::InvalidInput, 41),
-        }
-    }
-
-    pub(super) fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        fail(FailureCode::InvalidLifecycle, 42)
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.next = self.next.saturating_add(1);
-        self.emit_or_complete()
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.cancelled = true;
-    }
-
-    fn emit_or_complete(&self) -> OperationAction {
-        self.values
-            .get(self.next)
-            .copied()
-            .flatten()
-            .map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                port: PortId(u16::try_from(self.next).expect("robotics has at most two outputs")),
-                value,
-            })
-    }
 }
 
 pub(super) struct RoboticsDriveOperation {
@@ -187,68 +151,6 @@ const fn step_failure(code: FailureCode, detail: u16) -> StepOutcome {
 }
 
 impl RoboticsDriveOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Closed { port } => {
-                let index = usize::from(port.0);
-                if index >= self.closed.len() || self.closed[index] {
-                    return fail(FailureCode::InvalidPort, 43);
-                }
-                self.closed[index] = true;
-                if self.closed.iter().all(|closed| *closed) {
-                    self.effect = Some(SimulatedDriveEffect::Suppressed);
-                    OperationAction::Complete
-                } else {
-                    OperationAction::Await
-                }
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 44),
-        }
-    }
-
-    pub(super) fn resume_value(
-        &mut self,
-        port: PortId,
-        value: ValueRef,
-        canonical: &[u8],
-    ) -> OperationAction {
-        let index = usize::from(port.0);
-        if index >= self.closed.len() || self.closed[index] {
-            return fail(FailureCode::InvalidInput, 45);
-        }
-        let decoded = match index {
-            0 if self.linear.is_none() && value.byte_len == SCALAR_ENCODED_LEN as u32 => {
-                Scalar::decode(canonical).map(|value| self.linear = Some(value))
-            }
-            1 if self.angular.is_none() && value.byte_len == SCALAR_ENCODED_LEN as u32 => {
-                Scalar::decode(canonical).map(|value| self.angular = Some(value))
-            }
-            _ => return fail(FailureCode::InvalidInput, 46),
-        };
-        if decoded.is_err() {
-            return fail(FailureCode::InvalidInput, 46);
-        }
-        match (self.linear, self.angular) {
-            (Some(linear), Some(angular)) => {
-                self.effect = Some(SimulatedDriveEffect::Projected { linear, angular });
-                OperationAction::Complete
-            }
-            _ => OperationAction::Await,
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.effect = Some(SimulatedDriveEffect::Cancelled);
-    }
-
     pub(super) fn effect(&self) -> Option<SimulatedDriveEffect> {
         self.effect
     }
@@ -419,12 +321,4 @@ fn availability(entries: &[ConfigurationEntry]) -> Result<SimulatedAvailability,
             Ok(SimulatedAvailability::Stale)
         }
     }
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
-}
-
-fn cancelled() -> OperationAction {
-    fail(FailureCode::Cancelled, 47)
 }

@@ -4,8 +4,8 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -152,114 +152,6 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl RhythmCompareOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value { value, .. }
-                if value.byte_len > MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 =>
-            {
-                fail(FailureCode::InvalidInput, 224)
-            }
-            OperationInput::Value { port, value }
-                if self.pending.is_none()
-                    && matches!(port, PortId(0) | PortId(1))
-                    && !self.closed[usize::from(port.0)] =>
-            {
-                self.request(HostCallId(port.0 + 1), value)
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => OperationAction::Emit {
-                        port: PortId(0),
-                        value: output.value,
-                    },
-                    (HostCallDisposition::Completed, None, None) => {
-                        if self.draining_missed {
-                            self.draining_missed = false;
-                        }
-                        self.complete_or_await()
-                    }
-                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 0),
-                    (HostCallDisposition::Failed, None, Some(failure)) => {
-                        OperationAction::Fail(failure)
-                    }
-                    _ => fail(FailureCode::InvalidLifecycle, 220),
-                }
-            }
-            OperationInput::Closed {
-                port: PortId(port @ 0..=1),
-            } if self.pending.is_none() && !self.closed[usize::from(port)] => {
-                self.closed[usize::from(port)] = true;
-                if port == 0 {
-                    self.draining_missed = true;
-                    self.request(HostCallId(0), self.drain_marker)
-                } else {
-                    self.complete_or_await()
-                }
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 221),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.draining_missed {
-            self.request(HostCallId(0), self.drain_marker)
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub(super) fn retains_resumed_value(&self) -> bool {
-        false
-    }
-
-    pub(super) fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.release_drain_marker.then(|| {
-            self.release_drain_marker = false;
-            self.drain_marker
-        })
-    }
-
-    fn request(&mut self, operation: HostCallId, value: ValueRef) -> OperationAction {
-        let request = RequestId(self.next_request);
-        let Some(next) = self.next_request.checked_add(1) else {
-            return fail(FailureCode::StorageExhausted, 223);
-        };
-        self.next_request = next;
-        self.pending = Some(request);
-        let maximum = if operation == HostCallId(0) {
-            0
-        } else {
-            MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
-        };
-        let Ok(input) = BoundedValueRef::new(value, maximum) else {
-            self.pending = None;
-            return fail(FailureCode::InvalidInput, 224);
-        };
-        OperationAction::RequestHostCall {
-            request,
-            operation,
-            input,
-        }
-    }
-
-    fn complete_or_await(&mut self) -> OperationAction {
-        if self.closed == [true, true] {
-            self.release_drain_marker = true;
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-}
-
 pub(super) fn validate(placement: &PlannedGear) -> Result<(i64, u64), String> {
     let offer = conduit_std_offers::rhythm_compare_std_offer();
     if placement.kind_id != offer.kind_id
@@ -325,10 +217,6 @@ fn prepare(
         closed: [false; 2],
         draining_missed: false,
     }))
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }
 
 #[cfg(test)]

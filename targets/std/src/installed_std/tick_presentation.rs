@@ -2,8 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) static TICK_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
@@ -68,55 +67,7 @@ fn tick_failure(code: FailureCode) -> Failure {
     Failure { code, detail: 9 }
 }
 
-impl TickPresentationOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => {
-                let request = RequestId(self.next);
-                self.pending = Some(request);
-                let Ok(input) = BoundedValueRef::new(value, conduit_time::TICK_ENCODED_LEN) else {
-                    return InstalledOperation::fail(9);
-                };
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                let Some(next) = self.next.checked_add(1) else {
-                    return OperationAction::Fail(Failure {
-                        code: FailureCode::IdentityCapacityExhausted,
-                        detail: 9,
-                    });
-                };
-                self.next = next;
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(9),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-}
+impl TickPresentationOperation {}
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
     if placement.kind_id.as_str() != conduit_semantic_catalog::TICK_PRESENTATION_KIND
