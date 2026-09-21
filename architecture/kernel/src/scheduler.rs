@@ -8,9 +8,8 @@ use crate::{
         DebugObserverControl, DebugRuntimeControl, DebugRuntimeEvent, DebugSuspension,
     },
     BoundedValueRef, CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostCallBinding,
-    HostCallId, HostCallOutcome, KernelEventKind, NodeId, OperationAction, PortId, ProtocolError,
-    RemoteEndpointId, RequestId, RouteTarget, SignError, SignSink, StorageError, ValueRef,
-    ValueStorage,
+    HostCallId, HostCallOutcome, KernelEventKind, NodeId, PortId, ProtocolError, RemoteEndpointId,
+    RequestId, RouteTarget, SignError, SignSink, StorageError, ValueRef, ValueStorage,
 };
 pub use conduit_assigned_plan::AssignedPressurePolicy;
 
@@ -1910,14 +1909,7 @@ where
                 .host_bindings
                 .as_ref()
                 .ok_or(SchedulerError::InvalidHostCallAccess)?;
-            Some(bindings.admit(
-                NodeId(as_u16(node)?),
-                OperationAction::RequestHostCall {
-                    request,
-                    operation,
-                    input,
-                },
-            )?)
+            Some(bindings.admit_request(NodeId(as_u16(node)?), operation, input)?)
         } else {
             None
         };

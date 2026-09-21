@@ -185,19 +185,17 @@ fn only_plan_admitted_host_calls_cross_the_boundary() {
         )
         .unwrap();
     bindings.seal().unwrap();
-    let action = OperationAction::RequestHostCall {
-        request: RequestId(7),
-        operation: HostCallId(0),
-        input: BoundedValueRef::new(value, 4).unwrap(),
-    };
+    let input = BoundedValueRef::new(value, 4).unwrap();
     assert_eq!(
         bindings
-            .admit(NodeId(1), action)
+            .admit_request(NodeId(1), HostCallId(0), input)
             .unwrap()
             .maximum_output_bytes,
         8
     );
-    assert!(bindings.admit(NodeId(0), action).is_err());
+    assert!(bindings
+        .admit_request(NodeId(0), HostCallId(0), input)
+        .is_err());
 }
 
 #[test]
@@ -215,22 +213,18 @@ fn admitted_sink_host_call_may_have_no_output_payload() {
         .unwrap();
     bindings.seal().unwrap();
 
-    let action = OperationAction::RequestHostCall {
-        request: RequestId(1),
-        operation: HostCallId(0),
-        input: BoundedValueRef::new(
-            super::ValueRef {
-                slot: 0,
-                generation: 1,
-                byte_len: 4,
-            },
-            4,
-        )
-        .unwrap(),
-    };
+    let input = BoundedValueRef::new(
+        super::ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: 4,
+        },
+        4,
+    )
+    .unwrap();
     assert_eq!(
         bindings
-            .admit(NodeId(0), action)
+            .admit_request(NodeId(0), HostCallId(0), input)
             .unwrap()
             .maximum_output_bytes,
         0
@@ -251,22 +245,18 @@ fn admitted_source_host_call_may_have_no_input_payload() {
         )
         .unwrap();
     bindings.seal().unwrap();
-    let action = OperationAction::RequestHostCall {
-        request: RequestId(1),
-        operation: HostCallId(0),
-        input: BoundedValueRef::new(
-            super::ValueRef {
-                slot: 0,
-                generation: 1,
-                byte_len: 0,
-            },
-            0,
-        )
-        .unwrap(),
-    };
+    let input = BoundedValueRef::new(
+        super::ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: 0,
+        },
+        0,
+    )
+    .unwrap();
     assert_eq!(
         bindings
-            .admit(NodeId(0), action)
+            .admit_request(NodeId(0), HostCallId(0), input)
             .unwrap()
             .maximum_output_bytes,
         3

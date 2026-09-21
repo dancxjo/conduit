@@ -227,20 +227,15 @@ impl<const SLOTS: usize> FixedHostCallBindings<SLOTS> {
         Ok(())
     }
 
-    pub fn admit(
+    pub fn admit_request(
         &self,
         node: NodeId,
-        action: OperationAction,
+        operation: HostCallId,
+        input: BoundedValueRef,
     ) -> Result<HostCallBinding, ProtocolError> {
         if !self.sealed {
             return Err(ProtocolError::HostCallTableInvalid);
         }
-        let OperationAction::RequestHostCall {
-            operation, input, ..
-        } = action
-        else {
-            return Err(ProtocolError::HostCallMissing);
-        };
         let binding =
             self.bindings[self.slot(node, operation)?].ok_or(ProtocolError::HostCallMissing)?;
         if input.value.byte_len > binding.maximum_input_bytes
