@@ -6,6 +6,7 @@ use conduit_core::{
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
     RequestId, ValueRef, ValueStorage,
 };
@@ -23,6 +24,21 @@ pub(super) static PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
 
 pub(super) struct StructuredLiteralOperation {
     value: Option<ValueRef>,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for StructuredLiteralOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        let Some(value) = self.value else {
+            return StepOutcome::Complete;
+        };
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), value)
+            .expect("ready structured literal output");
+        self.value = None;
+        StepOutcome::Progress
+    }
 }
 
 impl StructuredLiteralOperation {
@@ -44,6 +60,58 @@ impl StructuredLiteralOperation {
 pub(super) struct StructuredPresentationOperation {
     pending: Option<RequestId>,
     next: u32,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for StructuredPresentationOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return StepOutcome::Fail(step_failure(156));
+            }
+            io.consume_host_completion()
+                .expect("observed structured Presentation completion");
+            self.pending = None;
+            if let Some(failure) = outcome.failure {
+                return StepOutcome::Fail(failure);
+            }
+            if outcome.disposition != HostCallDisposition::Completed || outcome.output.is_some() {
+                return StepOutcome::Fail(step_failure(156));
+            }
+            return StepOutcome::Complete;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() {
+                return StepOutcome::Fail(step_failure(156));
+            }
+            let Ok(input) = BoundedValueRef::new(value, MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32)
+            else {
+                return StepOutcome::Fail(step_failure(155));
+            };
+            let request = RequestId(self.next);
+            let Some(next) = self.next.checked_add(1) else {
+                return StepOutcome::Fail(step_failure(154));
+            };
+            io.consume(PortId(0))
+                .expect("present structured Presentation input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("single structured Presentation Host Call");
+            self.next = next;
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+fn step_failure(detail: u16) -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    }
 }
 
 impl StructuredPresentationOperation {
