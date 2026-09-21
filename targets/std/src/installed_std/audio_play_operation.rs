@@ -1,8 +1,9 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{CapabilityOffer, PlannedGear, PortDirection};
 use conduit_kernel::{
-    BoundedValueRef, HostCallDisposition, HostCallId, HostedValueStore, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
+    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) const DRAIN_MARKER: [u8; 1] = [0xff];
@@ -20,6 +21,89 @@ pub(super) struct AudioPlayOperation {
     drain_marker: ValueRef,
     draining: bool,
     closed: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for AudioPlayOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(60);
+            }
+            if let Some(failure) = outcome.failure {
+                return StepOutcome::Fail(failure);
+            }
+            if outcome.disposition != HostCallDisposition::Completed || outcome.output.is_some() {
+                return step_fail(61);
+            }
+            io.consume_host_completion()
+                .expect("observed audio playback completion");
+            self.pending = None;
+            return if self.draining {
+                StepOutcome::Complete
+            } else {
+                StepOutcome::Progress
+            };
+        }
+
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some()
+                || self.closed
+                || self.next_request
+                    >= u32::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS)
+            {
+                return step_fail(60);
+            }
+            let Ok(input) = BoundedValueRef::new(
+                value,
+                conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+            ) else {
+                return step_fail(62);
+            };
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_fail(62);
+            };
+            io.consume(PortId(0)).expect("present audio playback block");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("audio playback Host Call");
+            self.next_request = next;
+            self.pending = Some(request);
+            self.draining = false;
+            return StepOutcome::Progress;
+        }
+
+        if io.input_closed(PortId(0)) && self.pending.is_none() && !self.closed {
+            let request = RequestId(self.next_request);
+            let Ok(input) = BoundedValueRef::new(
+                self.drain_marker,
+                conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+            ) else {
+                return step_fail(62);
+            };
+            io.consume_closed(PortId(0))
+                .expect("observed audio playback closure");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("audio playback drain Host Call");
+            self.next_request = self.next_request.saturating_add(1);
+            self.pending = Some(request);
+            self.draining = true;
+            self.closed = true;
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.closed = true;
+    }
+}
+
+const fn step_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidLifecycle,
+        detail,
+    })
 }
 
 impl AudioPlayOperation {
