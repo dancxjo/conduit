@@ -1,6 +1,6 @@
 //! Explicit pre-play input and output fixtures, absent from production builds.
 use super::factory::{BrowserHostResult, BrowserInstallation, BrowserManifestation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::*;
 use conduit_kernel::{HostedValueStore, ValueStorage};
 use std::cell::RefCell;
@@ -86,14 +86,14 @@ fn offer(sink: bool) -> CapabilityOffer {
         Vec::new(),
     )
 }
-fn source(_: &PlannedGear, values: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn source(_: &PlannedGear, values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     INPUT
         .with(|bytes| values.store(&bytes.borrow()))
-        .map(BrowserOperation::source)
+        .map(BrowserBack::source)
         .map_err(|e| format!("{e:?}"))
 }
-fn sink(_: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
-    Ok(BrowserOperation::presentation(4096, 1))
+fn sink(_: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
+    Ok(BrowserBack::presentation(4096, 1))
 }
 fn present(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
     Ok(BrowserHostResult {

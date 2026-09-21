@@ -3,11 +3,13 @@ use crate::{
     PatchbayInteractionRequest, PATCHBAY_PRESENTATION_KIND,
 };
 use conduit_core::{BootId, HostId};
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
+use conduit_kernel::scheduler::{
+    FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
+};
 use conduit_kernel::{
-    BoundedValueRef, FixedHostCallBindings, FixedRoutes, HostCallDisposition, HostCallId,
-    HostCallOutcome, HostedSignLog, HostedValueStore, KernelEventKind, Operation, OperationAction,
-    OperationInput, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
+    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, KernelEventKind, RequestId,
+    ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 
@@ -24,33 +26,43 @@ struct PresentLeaf {
     pending: bool,
 }
 
-impl Operation for PresentLeaf {
-    fn start(&mut self) -> OperationAction {
-        let Some(operation) = self.host_call else {
-            return OperationAction::Complete;
-        };
-        self.pending = true;
-        OperationAction::RequestHostCall {
-            request: RequestId(0),
-            operation,
-            input: BoundedValueRef::new(self.input, 1).unwrap(),
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { outcome, .. }
-                if self.pending && outcome.disposition == HostCallDisposition::Completed =>
+impl StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> for PresentLeaf {
+    fn step(
+        &mut self,
+        io: &mut StepIo<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>,
+        _: &StepInputBytes<'_, FIXED_KERNEL_STORAGE_PORTS_PER_NODE>,
+    ) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if !self.pending
+                || request != RequestId(0)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
             {
-                self.pending = false;
-                OperationAction::Complete
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidLifecycle,
+                    detail: 1,
+                });
             }
-            _ => OperationAction::Await,
+            io.consume_host_completion()
+                .expect("observed Presenter Host Call completion");
+            self.pending = false;
+            return StepOutcome::Complete;
         }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
+        if self.pending {
+            return StepOutcome::Await;
+        }
+        let Some(operation) = self.host_call else {
+            return StepOutcome::Complete;
+        };
+        io.request_host_call(
+            RequestId(0),
+            operation,
+            BoundedValueRef::new(self.input, 1).unwrap(),
+        )
+        .expect("planned Presenter Host Call");
+        self.pending = true;
+        StepOutcome::Progress
     }
 
     fn cancel(&mut self) {
@@ -304,20 +316,16 @@ fn execute<const NODES: usize, const CORDS: usize>(
             .host_calls
             .iter()
             .find(|operation| operation.node == node.node)
-            .map(|operation| operation.operation);
-        prepared.push(
-            OperationDriver::new(PresentLeaf {
-                input,
-                host_call,
-                pending: false,
-            })
-            .map_err(|error| format!("driver: {error:?}"))?,
-        );
+            .map(|operation| operation.call);
+        prepared.push(PresentLeaf {
+            input,
+            host_call,
+            pending: false,
+        });
     }
-    let drivers: [OperationDriver<PresentLeaf, FIXED_KERNEL_STORAGE_PORTS_PER_NODE>; NODES] =
-        prepared
-            .try_into()
-            .map_err(|_| "driver count changed".to_string())?;
+    let drivers: [PresentLeaf; NODES] = prepared
+        .try_into()
+        .map_err(|_| "driver count changed".to_string())?;
     let nodes = lowered
         .node_specs
         .clone()

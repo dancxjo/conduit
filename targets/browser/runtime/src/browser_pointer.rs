@@ -10,7 +10,7 @@ use conduit_core::{
 };
 use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_kernel::scheduler::{
-    FixedScheduler, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+    FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, HostCallDisposition,
@@ -72,7 +72,7 @@ enum PointerBack {
     },
 }
 
-impl StepOperation<PORTS> for PointerBack {
+impl StepBack<PORTS> for PointerBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

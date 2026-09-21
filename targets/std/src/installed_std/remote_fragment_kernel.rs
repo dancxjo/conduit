@@ -45,14 +45,14 @@ pub struct InstalledRemoteFragment {
     text_output_buffer: Vec<u8>,
     model_output_buffer: Vec<u8>,
     recognized_turn_commit_hosts:
-        Vec<Option<super::recognized_turn_commit_operation::RecognizedTurnCommitHost>>,
+        Vec<Option<super::recognized_turn_commit_back::RecognizedTurnCommitHost>>,
     speech_window_hosts:
-        Vec<Option<super::speech_recognition_adapter_operation::SpeechWindowToClipHost>>,
+        Vec<Option<super::speech_recognition_adapter_back::SpeechWindowToClipHost>>,
     speech_result_stream_hosts:
-        Vec<Option<super::speech_recognition_adapter_operation::SpeechResultToEventStreamHost>>,
+        Vec<Option<super::speech_recognition_adapter_back::SpeechResultToEventStreamHost>>,
     generated_speech_commit_hosts:
-        Vec<Option<super::generated_speech_commit_operation::GeneratedSpeechCommitHost>>,
-    body_chat_prompt_hosts: Vec<Option<super::body_chat_prompt_operation::BodyChatPromptHost>>,
+        Vec<Option<super::generated_speech_commit_back::GeneratedSpeechCommitHost>>,
+    body_chat_prompt_hosts: Vec<Option<super::body_chat_prompt_back::BodyChatPromptHost>>,
     pending_body_context: Option<HostCallRequest>,
     delivered_body_context: Option<[u8; 32]>,
 }
@@ -79,7 +79,7 @@ impl InstalledRemoteFragment {
         let mut maximum_value_bytes = super::TICK_ENCODED_LEN;
         let mut sign_items = 32_u16;
         for placement in &fragment.placements {
-            let budget = preparation::operation_budget(placement)?;
+            let budget = preparation::back_budget(placement)?;
             value_items = value_items
                 .checked_add(budget.value_items)
                 .ok_or_else(|| "remote fragment value item budget overflow".to_string())?;
@@ -130,14 +130,14 @@ impl InstalledRemoteFragment {
         .map_err(|error| format!("remote fragment Sign store: {error:?}"))?;
         let scheduler = tables.install(drivers, values, signs)?;
         let recognized_turn_commit_hosts =
-            super::recognized_turn_commit_operation::prepare_hosts(fragment);
+            super::recognized_turn_commit_back::prepare_hosts(fragment);
         let speech_window_hosts =
-            super::speech_recognition_adapter_operation::prepare_window_hosts(fragment);
+            super::speech_recognition_adapter_back::prepare_window_hosts(fragment);
         let speech_result_stream_hosts =
-            super::speech_recognition_adapter_operation::prepare_result_hosts(fragment);
+            super::speech_recognition_adapter_back::prepare_result_hosts(fragment);
         let generated_speech_commit_hosts =
-            super::generated_speech_commit_operation::prepare_hosts(fragment)?;
-        let body_chat_prompt_hosts = super::body_chat_prompt_operation::prepare_hosts(fragment);
+            super::generated_speech_commit_back::prepare_hosts(fragment)?;
+        let body_chat_prompt_hosts = super::body_chat_prompt_back::prepare_hosts(fragment);
         Ok(Self {
             scheduler,
             lowered,
@@ -179,9 +179,7 @@ impl InstalledRemoteFragment {
             .lowered
             .host_calls
             .iter()
-            .find(|operation| {
-                operation.node == request.node && operation.operation == request.operation
-            })
+            .find(|operation| operation.node == request.node && operation.call == request.call)
             .ok_or_else(|| "remote host request has no lowered contract identity".to_string())?;
         let input = self
             .scheduler
@@ -212,9 +210,7 @@ impl InstalledRemoteFragment {
             .lowered
             .host_calls
             .iter()
-            .find(|operation| {
-                operation.node == request.node && operation.operation == request.operation
-            })
+            .find(|operation| operation.node == request.node && operation.call == request.call)
             .ok_or_else(|| "remote host request has no lowered contract identity".to_string())?;
         let contract = operation.contract_id.as_str();
         let maximum_output_bytes = operation.binding.maximum_output_bytes;
@@ -297,7 +293,7 @@ impl InstalledRemoteFragment {
             && operation.target_kind.as_ref()
                 == Some(&kind_id(conduit_std_offers::TEXT_UPPER_HOST_CALL_TARGET))
         {
-            super::text_operations::uppercase_utf8(input, &mut self.text_output_buffer)?;
+            super::text_backs::uppercase_utf8(input, &mut self.text_output_buffer)?;
             (
                 HostCallDisposition::Completed,
                 Some(self.text_output_buffer.as_slice()),
@@ -455,9 +451,7 @@ impl InstalledRemoteFragment {
             .lowered
             .host_calls
             .iter()
-            .find(|operation| {
-                operation.node == request.node && operation.operation == request.operation
-            })
+            .find(|operation| operation.node == request.node && operation.call == request.call)
             .ok_or_else(|| "remote host request has no lowered contract identity".to_string())?;
         let contract = operation.contract_id.as_str();
         let maximum_output_bytes = operation.binding.maximum_output_bytes;
@@ -471,9 +465,9 @@ impl InstalledRemoteFragment {
                 | conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION
         ) {
             let recognition = if contract == conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION {
-                super::whisper_speech_operation::execute_clip(speech_recognition, input, cancelled)
+                super::whisper_speech_back::execute_clip(speech_recognition, input, cancelled)
             } else {
-                super::whisper_speech_operation::execute(speech_recognition, input, cancelled)
+                super::whisper_speech_back::execute(speech_recognition, input, cancelled)
             };
             match recognition {
                 Ok(encoded) => {
@@ -489,7 +483,7 @@ impl InstalledRemoteFragment {
                         failure: None,
                     }
                 }
-                Err(failure) => super::whisper_speech_operation::failure_outcome(failure),
+                Err(failure) => super::whisper_speech_back::failure_outcome(failure),
             }
         } else if matches!(
             contract,
@@ -546,7 +540,7 @@ impl InstalledRemoteFragment {
                     placement.implementation_id.as_str()
                         == conduit_std_offers::PIPER_STREAMING_SPEECH_IMPLEMENTATION
                 });
-            match super::speech_synthesis_operation::execute_piper_cancellable(
+            match super::speech_synthesis_back::execute_piper_cancellable(
                 speech_synthesis,
                 input,
                 streaming,
@@ -568,7 +562,7 @@ impl InstalledRemoteFragment {
                 }
                 Err(error) => {
                     let (disposition, failure) =
-                        super::speech_synthesis_operation::piper_failure_outcome(error);
+                        super::speech_synthesis_back::piper_failure_outcome(error);
                     HostCallOutcome {
                         disposition,
                         output: None,

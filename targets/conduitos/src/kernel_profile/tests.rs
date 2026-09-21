@@ -82,10 +82,10 @@ fn base_failure_remains_failure_and_bounded_sign_eviction_stays_visible() {
     let event_bytes = core::mem::size_of::<KernelEvent>() as u32;
     let mut signs = FixedSignLog::<1>::new(event_bytes).unwrap();
     signs
-        .record(NodeId(0), None, None, KernelEventKind::Decision)
+        .record(NodeId(0), None, None, KernelEventKind::StepFuelGranted)
         .unwrap();
     signs
-        .record(NodeId(0), None, None, KernelEventKind::Decision)
+        .record(NodeId(0), None, None, KernelEventKind::StepFuelGranted)
         .unwrap();
     assert_eq!(
         signs.retention_gap(),

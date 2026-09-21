@@ -8,7 +8,7 @@ use conduit_kernel::{
     RequestId, RouteRange, RouteTarget, SignSink, ValueRef, ValueStorage,
     scheduler::{
         CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, SchedulerError,
-        SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+        SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
     },
 };
 
@@ -148,7 +148,7 @@ enum PcSpeakerBack {
     Tone(ToneBack),
 }
 
-impl StepOperation<PORTS> for PcSpeakerBack {
+impl StepBack<PORTS> for PcSpeakerBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -222,7 +222,7 @@ impl PcSpeakerKernel {
         bindings.install(
             SOURCE_NODE,
             HostCallBinding {
-                operation: FIXTURE_OPERATION,
+                call: FIXTURE_OPERATION,
                 maximum_input_bytes: 8,
                 maximum_output_bytes: 0,
             },
@@ -230,7 +230,7 @@ impl PcSpeakerKernel {
         bindings.install(
             SINK_NODE,
             HostCallBinding {
-                operation: TONE_OPERATION,
+                call: TONE_OPERATION,
                 maximum_input_bytes: conduit_audio::TONE_INTENT_ENCODED_LEN as u32,
                 maximum_output_bytes: 0,
             },
@@ -243,11 +243,11 @@ impl PcSpeakerKernel {
                 [
                     NodeSpec {
                         input_cords: [None],
-                        maximum_step_work: 4,
+                        maximum_step_fuel: 4,
                     },
                     NodeSpec {
                         input_cords: [Some(CordId(0))],
-                        maximum_step_work: 4,
+                        maximum_step_fuel: 4,
                     },
                 ],
                 [CordSpec::local(
@@ -294,7 +294,7 @@ impl PcSpeakerKernel {
             SINK_NODE => TONE_OPERATION,
             _ => return Err(SchedulerError::InvalidHostCallAccess),
         };
-        if request.operation != expected {
+        if request.call != expected {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
         self.scheduler.complete_host_call(

@@ -1,6 +1,6 @@
 //! Stateful admitted std-host boundary for fixed-point Lenia evolution.
 
-use super::alife_operations::parameters;
+use super::alife_backs::parameters;
 use conduit_alife::{LeniaEngine, LeniaFieldView, LENIA_MAXIMUM_FIELD_BYTES, LENIA_Q16_ONE};
 use conduit_core::{ConfigurationValue, HostCallContractId, KindId, PlanFragment, PlannedGear};
 use conduit_kernel::{Failure, FailureCode, NodeId};

@@ -56,9 +56,9 @@ struct JoinKernel {
     endpoint: conduit_kernel::RemoteEndpointId,
     cord: conduit_kernel::CordId,
     node: conduit_kernel::NodeId,
-    operation: conduit_kernel::HostCallId,
+    host_call: conduit_kernel::HostCallId,
     sign_node: conduit_kernel::NodeId,
-    sign_operation: conduit_kernel::HostCallId,
+    sign_host_call: conduit_kernel::HostCallId,
 }
 
 impl JoinKernel {
@@ -74,10 +74,10 @@ impl JoinKernel {
         let join = NetworkBack::join(
             layout.join_input_port,
             layout.join_output_port,
-            layout.join_operation,
+            layout.join_host_call,
         );
         let attachment_sign =
-            NetworkBack::attachment_sign(layout.sign_input_port, layout.sign_operation);
+            NetworkBack::attachment_sign(layout.sign_input_port, layout.sign_host_call);
         let backs = match (layout.join_node.0, layout.sign_node.0) {
             (0, 1) => [join, attachment_sign],
             (1, 0) => [attachment_sign, join],
@@ -105,9 +105,9 @@ impl JoinKernel {
             endpoint: remote.endpoint,
             cord: remote.cord,
             node: layout.join_node,
-            operation: layout.join_operation,
+            host_call: layout.join_host_call,
             sign_node: layout.sign_node,
-            sign_operation: layout.sign_operation,
+            sign_host_call: layout.sign_host_call,
         })
     }
 
@@ -131,7 +131,7 @@ impl JoinKernel {
         crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelExecution);
         loop {
             if let Some(request) = self.scheduler.next_host_request() {
-                if request.node == self.sign_node && request.operation == self.sign_operation {
+                if request.node == self.sign_node && request.call == self.sign_host_call {
                     let encoded = self
                         .scheduler
                         .host_value(request.input.value)
@@ -162,7 +162,7 @@ impl JoinKernel {
                     self.scheduler.step().map_err(UsbLinkError::Kernel)?;
                     return Ok(());
                 }
-                if request.node != self.node || request.operation != self.operation {
+                if request.node != self.node || request.call != self.host_call {
                     return Err(UsbLinkError::InvalidGeneratedEndpoint);
                 }
                 let mut ssid = HString::<{ conduit_net::MAXIMUM_SSID_BYTES }>::new();

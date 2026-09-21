@@ -7,8 +7,8 @@ use super::{
 };
 use conduit_core::{bind_active_play, bind_presentation, bind_sign, BootId, HostId, PlanFragment};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus, StepInputBytes, StepIo,
-    StepOperation, StepOutcome,
+    FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus, StepBack,
+    StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
@@ -76,7 +76,7 @@ impl ShowBack {
     }
 }
 
-impl StepOperation<PORTS> for ShowBack {
+impl StepBack<PORTS> for ShowBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -558,7 +558,7 @@ impl DistributedSink {
         let signal = decode_signal_bytes(input).map_err(|_| ERROR_PRESENTATION)?;
         if projection.node != request.node
             || projection.signal != signal
-            || request_identity.operation != request.operation
+            || request_identity.call != request.call
         {
             return Err(ERROR_PRESENTATION);
         }

@@ -1,6 +1,6 @@
 //! Backs owned only by the bounded `state/latest > flow/tee` proof.
 
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef,
 };
@@ -14,7 +14,7 @@ pub(super) enum FlowStateBack {
     Sink { pending: bool, complete: bool },
 }
 
-impl StepOperation<PORTS> for FlowStateBack {
+impl StepBack<PORTS> for FlowStateBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

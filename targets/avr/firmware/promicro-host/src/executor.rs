@@ -12,7 +12,7 @@ use conduit_create_oi::{
     CreateUartProvider,
 };
 use crate::assigned_receiver::ValidatedContactPlan;
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepBack, StepOutcome};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome, NodeId,
     PortId, RequestId, SingleSourceExecutor, SingleSourceSignLog, SingleSourceValues, ValueRef,
@@ -58,7 +58,7 @@ struct ContactSource {
     emitted: bool,
 }
 
-impl StepOperation<1> for ContactSource {
+impl StepBack<1> for ContactSource {
     #[inline(never)]
     fn step(
         &mut self,
@@ -190,11 +190,11 @@ fn execute<P: CreateUartProvider>(
         HOST_CALL,
         0,
         plan.maximum_output_bytes,
-        plan.maximum_step_work,
+        plan.maximum_step_fuel,
     )
     .map_err(|_| ExecutionRefusal::Kernel)?;
     let request = kernel.start().map_err(|_| ExecutionRefusal::Kernel)?;
-    if request.request != REQUEST || request.operation != HOST_CALL {
+    if request.request != REQUEST || request.call != HOST_CALL {
         return Err(ExecutionRefusal::Kernel);
     }
     let observed = transition_oi_mode(provider, CreateOiModeRequest::Full, deadline_tick)

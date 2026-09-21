@@ -1,7 +1,7 @@
 //! Browser production realization of finite measurement plot projection.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, HostCallRequirement, ImplementationId, PlannedGear,
@@ -43,13 +43,10 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     profile(placement).map_err(|_| "invalid browser measurement plot configuration".to_string())?;
-    Ok(BrowserOperation::unary(
-        MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        1,
-    ))
+    Ok(BrowserBack::unary(MAXIMUM_BROWSER_VALUE_BYTES as u32, 1))
 }
 
 pub(crate) fn execute(placement: &PlannedGear, input: &[u8]) -> Result<Vec<u8>, Failure> {

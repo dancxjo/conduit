@@ -1,11 +1,11 @@
 //! Exact, bounded Scalar-to-Quantity work through the browser Host Call waist.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{ConfigurationValue, PlannedGear, QuantityUnit, Scalar};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
-    OperationAction, OperationInput, PortId, RequestId,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 use conduit_semantic_catalog::{
     QuantityMapping, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
@@ -94,13 +94,13 @@ pub(crate) fn configuration(placement: &PlannedGear) -> Result<QuantityMapping, 
 fn prepare(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     if placement.configuration.len() != 8 {
         return Err("quantity mapping requires exactly eight configuration fields".into());
     }
     configuration(placement)?;
-    Ok(BrowserOperation::installed(QuantityOperation {
+    Ok(BrowserBack::installed_step(QuantityBack {
         pending: false,
         next_request: 0,
         cancelled: false,
@@ -135,68 +135,68 @@ fn failure(detail: u16) -> Failure {
     }
 }
 
-struct QuantityOperation {
+struct QuantityBack {
     pending: bool,
     next_request: u32,
     cancelled: bool,
 }
 
-impl Operation for QuantityOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending
+impl<const PORTS: usize> StepBack<PORTS> for QuantityBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if !self.pending || request.0.checked_add(1) != Some(self.next_request) {
+                return StepOutcome::Fail(failure(1));
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None)
+                    if output.admitted_bytes == conduit_core::QUANTITY_ENCODED_LEN as u32
+                        && output.value.byte_len == conduit_core::QUANTITY_ENCODED_LEN as u32 =>
+                {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed Quantity completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready Quantity output");
+                    self.pending = false;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Failed, None, Some(reason)) => {
+                    return StepOutcome::Fail(reason)
+                }
+                _ => return StepOutcome::Fail(failure(1)),
+            }
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if !self.pending
                 && !self.cancelled
-                && value.byte_len == conduit_core::SCALAR_ENCODED_LEN as u32 =>
+                && value.byte_len == conduit_core::SCALAR_ENCODED_LEN as u32
             {
                 let request = RequestId(self.next_request);
                 let Some(next_request) = self.next_request.checked_add(1) else {
-                    return OperationAction::Fail(Failure {
+                    return StepOutcome::Fail(Failure {
                         code: FailureCode::IdentityCapacityExhausted,
                         detail: 6,
                     });
                 };
+                let input = BoundedValueRef::new(value, conduit_core::SCALAR_ENCODED_LEN as u32)
+                    .expect("exact Scalar");
+                io.consume(PortId(0)).expect("present Scalar input");
+                io.request_host_call(request, HostCallId(0), input)
+                    .expect("Quantity mapping Host Call");
                 self.next_request = next_request;
                 self.pending = true;
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(value, conduit_core::SCALAR_ENCODED_LEN as u32)
-                        .expect("exact Scalar"),
-                }
+                return StepOutcome::Progress;
             }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending && request.0.checked_add(1) == Some(self.next_request) =>
-            {
-                self.pending = false;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None)
-                        if output.admitted_bytes == conduit_core::QUANTITY_ENCODED_LEN as u32
-                            && output.value.byte_len
-                                == conduit_core::QUANTITY_ENCODED_LEN as u32 =>
-                    {
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Failed, None, Some(reason)) => {
-                        OperationAction::Fail(reason)
-                    }
-                    _ => OperationAction::Fail(failure(1)),
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.pending => {
-                OperationAction::Complete
-            }
-            _ => OperationAction::Fail(failure(1)),
+            return StepOutcome::Fail(failure(1));
         }
+        if io.input_closed(PortId(0)) && !self.pending {
+            io.consume_closed(PortId(0))
+                .expect("observed Scalar input closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -210,9 +210,19 @@ mod tests {
     use super::*;
     use conduit_kernel::{HostCallOutcome, ValueRef};
 
+    fn completion(
+        operation: &mut QuantityBack,
+        outcome: HostCallOutcome,
+    ) -> (StepOutcome, StepIo<1>) {
+        let mut io =
+            StepIo::test_frame([None], [false], [Some(9)], Some((RequestId(0), outcome)), 4);
+        let result = operation.step(&mut io, &StepInputBytes::test_frame([None], None));
+        (result, io)
+    }
+
     #[test]
     fn browser_quantity_operation_requires_exact_ports_requests_and_output() {
-        let mut operation = QuantityOperation {
+        let mut operation = QuantityBack {
             pending: false,
             next_request: 0,
             cancelled: false,
@@ -222,45 +232,41 @@ mod tests {
             generation: 1,
             byte_len: 8,
         };
-        assert!(matches!(
-            operation.resume(OperationInput::Value {
-                port: PortId(0),
-                value: input
-            }),
-            OperationAction::RequestHostCall {
-                request: RequestId(0),
-                ..
-            }
-        ));
+        let mut io = StepIo::test_frame([Some(input)], [false], [Some(9)], None, 4);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(0))
+        );
         let output = ValueRef {
             slot: 1,
             generation: 1,
             byte_len: 9,
         };
-        assert_eq!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome: HostCallOutcome {
-                    disposition: HostCallDisposition::Completed,
-                    output: Some(BoundedValueRef::new(output, 9).unwrap()),
-                    failure: None,
-                },
-            }),
-            OperationAction::Emit {
-                port: PortId(0),
-                value: output
-            }
+        let (result, io) = completion(
+            &mut operation,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: Some(BoundedValueRef::new(output, 9).unwrap()),
+                failure: None,
+            },
         );
+        assert_eq!(result, StepOutcome::Progress);
+        assert_eq!(io.test_output(PortId(0)), Some(output));
+        let mut io = StepIo::test_frame([None], [true], [None], None, 4);
         assert_eq!(
-            operation.resume(OperationInput::Closed { port: PortId(0) }),
-            OperationAction::Complete
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Complete
         );
     }
 
     #[test]
     fn browser_quantity_failure_and_cancellation_never_become_output() {
         for detail in 1..=5 {
-            let mut operation = QuantityOperation {
+            let mut operation = QuantityBack {
                 pending: true,
                 next_request: 1,
                 cancelled: false,
@@ -271,23 +277,20 @@ mod tests {
                 failure: Some(failure(detail)),
             };
             assert_eq!(
-                operation.resume(OperationInput::HostCallCompleted {
-                    request: RequestId(0),
-                    outcome
-                }),
-                OperationAction::Fail(failure(detail))
+                completion(&mut operation, outcome).0,
+                StepOutcome::Fail(failure(detail))
             );
         }
-        let mut operation = QuantityOperation {
+        let mut operation = QuantityBack {
             pending: true,
             next_request: 1,
             cancelled: false,
         };
-        operation.cancel();
+        StepBack::<1>::cancel(&mut operation);
         assert!(matches!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome: HostCallOutcome {
+            completion(
+                &mut operation,
+                HostCallOutcome {
                     disposition: HostCallDisposition::Completed,
                     output: Some(
                         BoundedValueRef::new(
@@ -301,9 +304,10 @@ mod tests {
                         .unwrap()
                     ),
                     failure: None,
-                },
-            }),
-            OperationAction::Fail(_)
+                }
+            )
+            .0,
+            StepOutcome::Fail(_)
         ));
     }
 }

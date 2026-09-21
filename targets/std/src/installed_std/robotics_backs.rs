@@ -1,0 +1,322 @@
+//! Bounded PREWAKE-only robotics sources and differential-drive projection.
+
+use super::back::{BackBudget, BackFactory, InstalledBack};
+use super::robotics_effect::SimulatedDriveEffect;
+use conduit_core::{ConfigurationEntry, PlannedGear, Scalar, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN};
+use conduit_kernel::{
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    Failure, FailureCode, HostedValueStore, PortId, ValueRef, ValueStorage,
+};
+use conduit_robotics::{
+    ROBOTICS_BATTERY_ENCODED_LEN, ROBOTICS_ODOMETRY_ENCODED_LEN, ROBOTICS_ORIENTATION_ENCODED_LEN,
+    ROBOTICS_RANGE_ENCODED_LEN,
+};
+
+pub(super) static ROBOTICS_OBSERVE_BUMP_FACTORY: BackFactory =
+    factory(conduit_std_offers::ROBOTICS_OBSERVE_BUMP_IMPLEMENTATION);
+pub(super) static ROBOTICS_OBSERVE_IMU_FACTORY: BackFactory =
+    factory(conduit_std_offers::ROBOTICS_OBSERVE_IMU_IMPLEMENTATION);
+pub(super) static ROBOTICS_OBSERVE_RANGE_FACTORY: BackFactory =
+    factory(conduit_std_offers::ROBOTICS_OBSERVE_RANGE_IMPLEMENTATION);
+pub(super) static ROBOTICS_OBSERVE_ODOMETRY_FACTORY: BackFactory =
+    factory(conduit_std_offers::ROBOTICS_OBSERVE_ODOMETRY_IMPLEMENTATION);
+pub(super) static ROBOTICS_OBSERVE_BATTERY_FACTORY: BackFactory =
+    factory(conduit_std_offers::ROBOTICS_OBSERVE_BATTERY_IMPLEMENTATION);
+pub(super) static ROBOTICS_VELOCITY_INTENT_FACTORY: BackFactory =
+    factory(conduit_std_offers::ROBOTICS_VELOCITY_INTENT_IMPLEMENTATION);
+pub(super) static ROBOTICS_DRIVE_DIFFERENTIAL_FACTORY: BackFactory =
+    factory(conduit_std_offers::ROBOTICS_DRIVE_DIFFERENTIAL_IMPLEMENTATION);
+
+const fn factory(implementation_id: &'static str) -> BackFactory {
+    BackFactory {
+        implementation_id,
+        budget: robotics_budget,
+        prepare: prepare_robotics,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SimulatedAvailability {
+    Fresh,
+    Missing,
+    Stale,
+}
+
+pub(super) struct RoboticsSourceBack {
+    availability: SimulatedAvailability,
+    values: [Option<ValueRef>; 2],
+    next: usize,
+    cancelled: bool,
+}
+
+impl<const PORTS: usize> StepBack<PORTS> for RoboticsSourceBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.cancelled {
+            return StepOutcome::Fail(Failure {
+                code: FailureCode::Cancelled,
+                detail: 47,
+            });
+        }
+        match self.availability {
+            SimulatedAvailability::Missing => return step_failure(FailureCode::InvalidInput, 40),
+            SimulatedAvailability::Stale => return step_failure(FailureCode::InvalidInput, 41),
+            SimulatedAvailability::Fresh => {}
+        }
+        let Some(value) = self.values.get(self.next).copied().flatten() else {
+            return StepOutcome::Complete;
+        };
+        let port = PortId(u16::try_from(self.next).expect("robotics has at most two outputs"));
+        if !io.output_ready(port) {
+            return StepOutcome::Await;
+        }
+        io.send(port, value).expect("ready robotics source output");
+        self.next += 1;
+        StepOutcome::Progress
+    }
+
+    fn cancel(&mut self) {
+        self.cancelled = true;
+    }
+}
+
+impl RoboticsSourceBack {
+    pub(super) fn allocation_capacity(&self) -> usize {
+        0
+    }
+}
+
+pub(super) struct RoboticsDriveBack {
+    linear: Option<Scalar>,
+    angular: Option<Scalar>,
+    closed: [bool; 2],
+    effect: Option<SimulatedDriveEffect>,
+}
+
+impl<const PORTS: usize> StepBack<PORTS> for RoboticsDriveBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        for port in [PortId(0), PortId(1)] {
+            let Some(value) = io.input(port) else {
+                continue;
+            };
+            let index = usize::from(port.0);
+            if self.closed[index] || value.byte_len != SCALAR_ENCODED_LEN as u32 {
+                return step_failure(FailureCode::InvalidInput, 46);
+            }
+            let Some(canonical) = input_bytes.input(port) else {
+                return step_failure(FailureCode::InvalidInput, 46);
+            };
+            let Ok(decoded) = Scalar::decode(canonical) else {
+                return step_failure(FailureCode::InvalidInput, 46);
+            };
+            match index {
+                0 if self.linear.is_none() => self.linear = Some(decoded),
+                1 if self.angular.is_none() => self.angular = Some(decoded),
+                _ => return step_failure(FailureCode::InvalidInput, 46),
+            }
+            io.consume(port).expect("present robotics drive input");
+            if let (Some(linear), Some(angular)) = (self.linear, self.angular) {
+                self.effect = Some(SimulatedDriveEffect::Projected { linear, angular });
+                return StepOutcome::Complete;
+            }
+            return StepOutcome::Progress;
+        }
+
+        for port in [PortId(0), PortId(1)] {
+            let index = usize::from(port.0);
+            if io.input_closed(port) && !self.closed[index] {
+                io.consume_closed(port)
+                    .expect("observed robotics drive closure");
+                self.closed[index] = true;
+                if self.closed.iter().all(|closed| *closed) {
+                    self.effect = Some(SimulatedDriveEffect::Suppressed);
+                    return StepOutcome::Complete;
+                }
+                return StepOutcome::Progress;
+            }
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.effect = Some(SimulatedDriveEffect::Cancelled);
+    }
+}
+
+const fn step_failure(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
+}
+
+impl RoboticsDriveBack {
+    pub(super) fn effect(&self) -> Option<SimulatedDriveEffect> {
+        self.effect
+    }
+}
+
+fn robotics_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    let offer = expected_offer(placement)?;
+    validate_exact_placement(placement, &offer)?;
+    if placement.kind_id.as_str() == conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND {
+        return Ok(BackBudget {
+            value_items: 0,
+            value_bytes: 0,
+            host_requests: 0,
+            sign_items: 64,
+            maximum_value_bytes: SCALAR_ENCODED_LEN as u32,
+        });
+    }
+    let (items, bytes, maximum) = source_shape(placement)?;
+    Ok(BackBudget {
+        value_items: items,
+        value_bytes: bytes,
+        host_requests: 0,
+        sign_items: 64,
+        maximum_value_bytes: maximum,
+    })
+}
+
+fn prepare_robotics(
+    placement: &PlannedGear,
+    values: &mut HostedValueStore,
+) -> Result<InstalledBack, String> {
+    let offer = expected_offer(placement)?;
+    validate_exact_placement(placement, &offer)?;
+    if placement.kind_id.as_str() == conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND {
+        return Ok(InstalledBack::RoboticsDrive(RoboticsDriveBack {
+            linear: None,
+            angular: None,
+            closed: [false; 2],
+            effect: None,
+        }));
+    }
+    let availability = availability(&placement.configuration)?;
+    let mut prepared = [None; 2];
+    let encoded = source_values(placement)?;
+    for (slot, canonical) in prepared.iter_mut().zip(encoded.iter()) {
+        if let Some(canonical) = canonical {
+            *slot = Some(
+                values
+                    .store(canonical)
+                    .map_err(|error| format!("store simulated robotics value: {error:?}"))?,
+            );
+        }
+    }
+    Ok(InstalledBack::RoboticsSource(RoboticsSourceBack {
+        availability,
+        values: prepared,
+        next: 0,
+        cancelled: false,
+    }))
+}
+
+fn expected_offer(placement: &PlannedGear) -> Result<conduit_core::CapabilityOffer, String> {
+    match placement.kind_id.as_str() {
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_BUMP_KIND => {
+            Ok(conduit_std_offers::robotics_observe_bump_offer())
+        }
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_IMU_KIND => {
+            Ok(conduit_std_offers::robotics_observe_imu_offer())
+        }
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_RANGE_KIND => {
+            Ok(conduit_std_offers::robotics_observe_range_offer())
+        }
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_ODOMETRY_KIND => {
+            Ok(conduit_std_offers::robotics_observe_odometry_offer())
+        }
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_BATTERY_KIND => {
+            Ok(conduit_std_offers::robotics_observe_battery_offer())
+        }
+        conduit_semantic_catalog::ROBOTICS_VELOCITY_INTENT_KIND => {
+            Ok(conduit_std_offers::robotics_velocity_intent_offer())
+        }
+        conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND => {
+            Ok(conduit_std_offers::robotics_drive_differential_offer())
+        }
+        _ => Err("unsupported installed robotics Kind".to_string()),
+    }
+}
+
+fn validate_exact_placement(
+    placement: &PlannedGear,
+    offer: &conduit_core::CapabilityOffer,
+) -> Result<(), String> {
+    if placement.kind_id != offer.kind_id
+        || placement.kind_contract_revision != offer.kind_contract_revision
+        || placement.execution_profile_id != offer.implementation.execution_profile_id
+        || placement.implementation_id != offer.implementation.implementation_id
+        || placement.artifact_id != offer.implementation.artifact_id
+        || placement.inputs != offer.inputs
+        || placement.outputs != offer.outputs
+        || placement.host_calls != offer.host_calls
+        || !placement.resources.is_empty()
+        || !placement.authority.is_empty()
+        || placement.limits != offer.limits
+    {
+        return Err(
+            "planned robotics executable identity does not match its PREWAKE installation"
+                .to_string(),
+        );
+    }
+    Ok(())
+}
+
+fn source_shape(placement: &PlannedGear) -> Result<(u16, u32, u32), String> {
+    match placement.kind_id.as_str() {
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_BUMP_KIND => {
+            Ok((1, BOOL_ENCODED_LEN as u32, BOOL_ENCODED_LEN as u32))
+        }
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_IMU_KIND => Ok((
+            1,
+            ROBOTICS_ORIENTATION_ENCODED_LEN as u32,
+            ROBOTICS_ORIENTATION_ENCODED_LEN as u32,
+        )),
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_RANGE_KIND => Ok((
+            1,
+            ROBOTICS_RANGE_ENCODED_LEN as u32,
+            ROBOTICS_RANGE_ENCODED_LEN as u32,
+        )),
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_ODOMETRY_KIND => Ok((
+            1,
+            ROBOTICS_ODOMETRY_ENCODED_LEN as u32,
+            ROBOTICS_ODOMETRY_ENCODED_LEN as u32,
+        )),
+        conduit_semantic_catalog::ROBOTICS_OBSERVE_BATTERY_KIND => Ok((
+            1,
+            ROBOTICS_BATTERY_ENCODED_LEN as u32,
+            ROBOTICS_BATTERY_ENCODED_LEN as u32,
+        )),
+        conduit_semantic_catalog::ROBOTICS_VELOCITY_INTENT_KIND => Ok((
+            2,
+            (SCALAR_ENCODED_LEN * 2) as u32,
+            SCALAR_ENCODED_LEN as u32,
+        )),
+        _ => Err("robotics source shape is unsupported".to_string()),
+    }
+}
+
+fn source_values(placement: &PlannedGear) -> Result<[Option<Vec<u8>>; 2], String> {
+    conduit_semantic_catalog::robotics_simulation_values(
+        placement.kind_id.as_str(),
+        &placement.configuration,
+    )
+    .map_err(str::to_string)
+}
+
+fn availability(entries: &[ConfigurationEntry]) -> Result<SimulatedAvailability, String> {
+    match conduit_semantic_catalog::robotics_simulation_availability(entries)
+        .map_err(str::to_string)?
+    {
+        conduit_semantic_catalog::RoboticsSimulationAvailability::Fresh => {
+            Ok(SimulatedAvailability::Fresh)
+        }
+        conduit_semantic_catalog::RoboticsSimulationAvailability::Missing => {
+            Ok(SimulatedAvailability::Missing)
+        }
+        conduit_semantic_catalog::RoboticsSimulationAvailability::Stale => {
+            Ok(SimulatedAvailability::Stale)
+        }
+    }
+}

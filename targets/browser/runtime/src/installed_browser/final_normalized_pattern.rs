@@ -1,7 +1,7 @@
 //! Browser installation of finite Flow-to-final normalized-pattern selection.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, ImplementationId, PlannedGear,
@@ -35,7 +35,7 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     let maximum = placement
         .configuration
@@ -48,8 +48,8 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserO
     if !(1..=conduit_semantic_catalog::MAXIMUM_FINAL_PATTERN_VALUES).contains(&maximum) {
         return Err("final normalized-pattern value bound is outside browser limits".into());
     }
-    Ok(BrowserOperation::installed(
-        conduit_semantic_catalog::FinalNormalizedPatternOperation::new(maximum),
+    Ok(BrowserBack::installed_step(
+        conduit_semantic_catalog::FinalNormalizedPatternBack::new(maximum),
     ))
 }
 

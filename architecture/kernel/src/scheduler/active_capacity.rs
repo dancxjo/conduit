@@ -17,7 +17,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn admits_zero_cord_operations_but_not_zero_nodes_or_capacity_overflow() {
+    fn admits_zero_cord_calls_but_not_zero_nodes_or_capacity_overflow() {
         assert_eq!(validate_active_capacity(1, 1, 0, 1), Ok(()));
         assert_eq!(
             validate_active_capacity(0, 1, 0, 1),

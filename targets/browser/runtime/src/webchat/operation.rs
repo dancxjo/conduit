@@ -1,4 +1,4 @@
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef,
@@ -112,7 +112,7 @@ impl BrowserChatBack {
     }
 }
 
-impl StepOperation<PORTS> for BrowserChatBack {
+impl StepBack<PORTS> for BrowserChatBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -355,14 +355,14 @@ impl Interaction {
 
 impl Socket {
     fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
-        if let Some((expected, operation)) = self.pending {
+        if let Some((expected, host_call)) = self.pending {
             let Some((request, outcome)) = io.host_completion() else {
                 return StepOutcome::Await;
             };
             if request != expected {
                 return BrowserChatBack::fail(50);
             }
-            return self.complete(operation, outcome, io);
+            return self.complete(host_call, outcome, io);
         }
 
         if self.opened {
@@ -414,28 +414,28 @@ impl Socket {
 
     fn request(
         &mut self,
-        operation: HostCallId,
+        host_call: HostCallId,
         value: ValueRef,
         maximum: u32,
         io: &mut StepIo<PORTS>,
     ) -> StepOutcome {
         let request = RequestId(self.next);
         let input = BoundedValueRef::new(value, maximum).expect("bounded socket input");
-        if io.request_host_call(request, operation, input).is_err() {
+        if io.request_host_call(request, host_call, input).is_err() {
             return BrowserChatBack::fail(54);
         }
         self.next = self.next.saturating_add(1);
-        self.pending = Some((request, operation));
+        self.pending = Some((request, host_call));
         StepOutcome::Progress
     }
 
     fn complete(
         &mut self,
-        operation: HostCallId,
+        host_call: HostCallId,
         outcome: conduit_kernel::HostCallOutcome,
         io: &mut StepIo<PORTS>,
     ) -> StepOutcome {
-        match operation {
+        match host_call {
             OPEN if outcome.disposition == HostCallDisposition::Completed
                 && outcome.failure.is_none() =>
             {

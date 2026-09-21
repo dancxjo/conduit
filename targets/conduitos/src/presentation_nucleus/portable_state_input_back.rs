@@ -1,6 +1,6 @@
 //! Fixed-storage Backs for bounded count, toggle, and typed key fan-out.
 
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef,
 };
@@ -30,7 +30,7 @@ pub(super) enum PortableStateInputBack {
     },
 }
 
-impl StepOperation<PORTS> for PortableStateInputBack {
+impl StepBack<PORTS> for PortableStateInputBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -202,7 +202,7 @@ mod tests {
             pending: true,
             next_request: 1,
         };
-        StepOperation::<PORTS>::cancel(&mut back);
+        StepBack::<PORTS>::cancel(&mut back);
         assert!(matches!(
             back,
             PortableStateInputBack::Sink { pending: false, .. }

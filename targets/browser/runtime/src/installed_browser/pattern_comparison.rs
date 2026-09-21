@@ -48,10 +48,10 @@ fn host_call(contract: &str, kind: &conduit_core::KindId) -> HostCallRequirement
 pub(super) fn prepare(
     placement: &conduit_core::PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<super::BrowserOperation, String> {
+) -> Result<super::BrowserBack, String> {
     tolerance(placement)?;
-    Ok(super::BrowserOperation::installed(
-        conduit_semantic_catalog::PatternComparisonOperation::new(
+    Ok(super::BrowserBack::installed_step(
+        conduit_semantic_catalog::PatternComparisonBack::new(
             super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
         ),
     ))

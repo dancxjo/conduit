@@ -135,7 +135,7 @@ impl ChildKernel {
 
         let inactive_node = conduit_kernel::scheduler::NodeSpec {
             input_cords: [None; PORTS],
-            maximum_step_work: 1,
+            maximum_step_fuel: 1,
         };
         let mut nodes = [inactive_node; MAX_NODES];
         nodes[..active_nodes].copy_from_slice(&lowered.node_specs);

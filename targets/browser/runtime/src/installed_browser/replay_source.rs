@@ -1,7 +1,7 @@
 //! Browser realization of the reusable finite history-to-replay projection.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
@@ -92,10 +92,10 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     PreparedReplaySource::for_placement(placement)?
         .ok_or_else(|| "replay source placement selected another implementation".to_string())?;
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
         1,
     ))

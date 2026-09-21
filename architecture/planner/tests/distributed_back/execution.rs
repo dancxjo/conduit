@@ -6,8 +6,8 @@ use std::sync::{
 use conduit_core::Plan;
 use conduit_kernel::{
     scheduler::{
-        FixedScheduler, RemoteIngressOutcome, SchedulerStatus, StepInputBytes, StepIo,
-        StepOperation, StepOutcome,
+        FixedScheduler, RemoteIngressOutcome, SchedulerStatus, StepBack, StepInputBytes, StepIo,
+        StepOutcome,
     },
     FixedRoutes, FixedSignLog, FixedValueStore, PortId, RemoteEndpointId, SignSink, ValueRef,
     ValueStorage,
@@ -29,7 +29,7 @@ enum Leaf {
     Sink { seen: Arc<AtomicBool> },
 }
 
-impl StepOperation<PORTS> for Leaf {
+impl StepBack<PORTS> for Leaf {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

@@ -13,7 +13,7 @@ enum CancellationBack {
     },
 }
 
-impl StepOperation<2> for CancellationBack {
+impl StepBack<2> for CancellationBack {
     fn step(&mut self, io: &mut StepIo<2>, _input_bytes: &StepInputBytes<'_, 2>) -> StepOutcome {
         match self {
             Self::Reset {
@@ -133,7 +133,7 @@ fn scheduler<S: ValueStorage, E: SignSink>(mut values: S, signs: E) -> Cancellat
         .install(
             NodeId(0),
             HostCallBinding {
-                operation: HostCallId(0),
+                call: HostCallId(0),
                 maximum_input_bytes: 8,
                 maximum_output_bytes: 0,
             },
@@ -278,7 +278,7 @@ fn cancels_and_replaces_one_dispatched_request() {
     assert_eq!(normalized.replacement, RequestId(22));
     assert_eq!(normalized.cancellation.node, NodeId(0));
     assert_eq!(normalized.cancellation.request, normalized.first);
-    assert_eq!(normalized.cancellation.operation, HostCallId(0));
+    assert_eq!(normalized.cancellation.call, HostCallId(0));
     assert_eq!(normalized.used_items, 0);
     assert_eq!(normalized.pending, 0);
     assert!(normalized.saw_cancellation);

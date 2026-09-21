@@ -224,7 +224,7 @@ impl BrowserChatSession {
                         &self.lowered_identity,
                         request.node,
                         request.request,
-                        request.operation,
+                        request.call,
                     )
                     .map_err(|_| -227)?;
                 let contract = self.contract(request)?.to_owned();
@@ -353,7 +353,7 @@ impl BrowserChatSession {
 
     fn contract(&self, request: HostCallRequest) -> Result<&str, i32> {
         self.lowered_identity
-            .host_call_contract(request.node, request.operation)
+            .host_call_contract(request.node, request.call)
             .map(|contract| contract.as_str())
             .ok_or(-231)
     }

@@ -1,7 +1,7 @@
 //! Browser installations for finite exact Boolean decisions.
 
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     kind_id, ConfigurationValue, HostCallContractId, HostCallRequirement, InfoBool, PlannedGear,
     BOOL_ENCODED_LEN,
@@ -89,7 +89,7 @@ fn offer(
 fn prepare_compare(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &compare_offer())?;
     let operator = comparison_operator(placement)?;
     let false_value = values
@@ -98,7 +98,7 @@ fn prepare_compare(
     let true_value = values
         .store(&InfoBool::TRUE.encode())
         .map_err(debug_error)?;
-    Ok(BrowserOperation::compare_scalar(
+    Ok(BrowserBack::compare_scalar(
         operator,
         false_value,
         true_value,
@@ -108,17 +108,17 @@ fn prepare_compare(
 fn prepare_not(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &not_offer())?;
-    Ok(BrowserOperation::unary(BOOL_ENCODED_LEN as u32, 1))
+    Ok(BrowserBack::unary(BOOL_ENCODED_LEN as u32, 1))
 }
 
 fn prepare_select(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &select_offer())?;
-    Ok(BrowserOperation::select_scalar())
+    Ok(BrowserBack::select_scalar())
 }
 
 fn perform_not(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {

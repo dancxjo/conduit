@@ -3,11 +3,13 @@
 use super::presentation_validation::validate_presentation_invocation;
 use super::*;
 use conduit_core::{bind_active_play, BaseImplementationId};
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerError, SchedulerStatus};
+use conduit_kernel::scheduler::{
+    FixedScheduler, SchedulerError, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
+};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
-    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, Operation, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, PortId, RequestId, ValueRef,
+    ValueStorage,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use std::collections::BTreeMap;
@@ -24,7 +26,7 @@ const SIGN_ITEMS: u16 = 32;
 const MAXIMUM_DECISIONS: u32 = 32;
 
 type InteractionScheduler = FixedScheduler<
-    OperationDriver<InteractionOperation, PORTS>,
+    InteractionOperation,
     HostedValueStore,
     HostedSignLog,
     NODES,
@@ -42,66 +44,55 @@ enum InteractionOperation {
     Apply { pending: bool },
 }
 
-impl Operation for InteractionOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepBack<PORTS> for InteractionOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
-            Self::Source { value, .. } => OperationAction::Emit {
-                port: PortId(0),
-                value: *value,
-            },
-            Self::Apply { .. } => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Apply { pending },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if !*pending => {
-                *pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(value, MAX_INTERACTION_VALUE_BYTES) {
-                        Ok(input) => input,
-                        Err(_) => return failed(FailureCode::InvalidInput, 1),
-                    },
+            Self::Source { value, emitted } => {
+                if *emitted {
+                    return StepOutcome::Complete;
                 }
-            }
-            (
-                Self::Apply { pending },
-                OperationInput::HostCallCompleted {
-                    request: RequestId(0),
-                    outcome,
-                },
-            ) if *pending => {
-                *pending = false;
-                match outcome.disposition {
-                    HostCallDisposition::Completed
-                        if outcome.output.is_none() && outcome.failure.is_none() =>
-                    {
-                        OperationAction::Complete
-                    }
-                    HostCallDisposition::Denied => failed(FailureCode::HostCallDenied, 2),
-                    HostCallDisposition::Cancelled => failed(FailureCode::Cancelled, 3),
-                    _ => failed(FailureCode::HostCallFailed, 4),
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
                 }
-            }
-            _ => failed(FailureCode::InvalidLifecycle, 5),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source { emitted, .. } if !*emitted => {
+                io.send(PortId(0), *value).expect("ready interaction Cord");
                 *emitted = true;
-                OperationAction::Complete
+                StepOutcome::Complete
             }
-            _ => OperationAction::Await,
+            Self::Apply { pending } => {
+                if let Some((request, outcome)) = io.host_completion() {
+                    if request != RequestId(0) || !*pending {
+                        return failed(FailureCode::InvalidLifecycle, 5);
+                    }
+                    io.consume_host_completion()
+                        .expect("observed interaction Host Call completion");
+                    *pending = false;
+                    return match outcome.disposition {
+                        HostCallDisposition::Completed
+                            if outcome.output.is_none() && outcome.failure.is_none() =>
+                        {
+                            StepOutcome::Complete
+                        }
+                        HostCallDisposition::Denied => failed(FailureCode::HostCallDenied, 2),
+                        HostCallDisposition::Cancelled => failed(FailureCode::Cancelled, 3),
+                        _ => failed(FailureCode::HostCallFailed, 4),
+                    };
+                }
+                if *pending {
+                    return StepOutcome::Await;
+                }
+                let Some(value) = io.input(PortId(0)) else {
+                    return StepOutcome::Await;
+                };
+                let input = match BoundedValueRef::new(value, MAX_INTERACTION_VALUE_BYTES) {
+                    Ok(input) => input,
+                    Err(_) => return failed(FailureCode::InvalidInput, 1),
+                };
+                io.consume(PortId(0)).expect("present interaction request");
+                io.request_host_call(RequestId(0), HostCallId(0), input)
+                    .expect("planned interaction Host Call");
+                *pending = true;
+                StepOutcome::Progress
+            }
         }
     }
 
@@ -112,8 +103,8 @@ impl Operation for InteractionOperation {
     }
 }
 
-fn failed(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
+fn failed(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl PatchbayInteraction {
@@ -237,13 +228,6 @@ impl PatchbayInteraction {
             .store(&encoded)
             .map_err(|error| InteractionError::Execution(format!("request value: {error:?}")))?;
         let operations = operations(fragment, &lowered, request_value)?;
-        let drivers = operations
-            .map(OperationDriver::new)
-            .into_iter()
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(scheduler_error("prepare interaction driver"))?
-            .try_into()
-            .map_err(|_| InteractionError::Execution("interaction driver count changed".into()))?;
         let mut routes = FixedRoutes::<ROUTE_SLOTS, ROUTE_TARGETS>::new(PORTS as u16);
         for route in &lowered.routes {
             routes
@@ -274,7 +258,7 @@ impl PatchbayInteraction {
             })?;
         let cord_specs = [lowered.cords[0].spec];
         let mut scheduler = InteractionScheduler::new_with_host_calls(
-            node_specs, cord_specs, routes, bindings, drivers, values, signs,
+            node_specs, cord_specs, routes, bindings, operations, values, signs,
         )
         .map_err(scheduler_error("prepare scheduler"))?;
 

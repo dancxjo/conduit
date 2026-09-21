@@ -1,4 +1,4 @@
-use super::operation::OperationBudget;
+use super::back::BackBudget;
 use conduit_core::{ConfigurationValue, PlannedGear, Quantity, QuantityUnit};
 
 #[derive(Clone, Copy)]
@@ -105,7 +105,7 @@ pub(super) fn budget(
     requests: usize,
     duration_values: usize,
     output_values: usize,
-) -> Result<OperationBudget, String> {
+) -> Result<BackBudget, String> {
     let items = duration_values
         .checked_add(output_values)
         .and_then(|value| u16::try_from(value.max(1)).ok())
@@ -119,7 +119,7 @@ pub(super) fn budget(
         .and_then(|value| value.checked_add(64))
         .and_then(|value| u16::try_from(value).ok())
         .ok_or_else(|| "timing Sign budget overflow".to_string())?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: items,
         value_bytes: bytes,
         host_requests: requests,

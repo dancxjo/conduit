@@ -146,7 +146,7 @@ pub struct GeneratedStaticNode {
     pub implementation_id: String,
     pub artifact_id: String,
     pub input_cords: [Option<u16>; FIXED_KERNEL_STORAGE_PORTS_PER_NODE],
-    pub maximum_step_work: u16,
+    pub maximum_step_fuel: u16,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -184,7 +184,7 @@ pub struct GeneratedStaticRouteTarget {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GeneratedHostCall {
     pub node: u16,
-    pub operation: u16,
+    pub call: u16,
     pub contract_id: String,
     pub target_kind: Option<String>,
     pub maximum_in_flight: u16,

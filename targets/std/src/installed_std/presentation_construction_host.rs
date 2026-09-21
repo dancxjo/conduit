@@ -1,6 +1,6 @@
 //! Pre-admitted matching and completion for presentation construction operations.
 
-use super::{layout_operations, presentation_composition, InstalledScheduler};
+use super::{layout_backs, presentation_composition, InstalledScheduler};
 use conduit_core::{kind_id, HostCallContractId, KindId, PlanFragment};
 use conduit_kernel::scheduler::HostCallRequest;
 use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
@@ -79,7 +79,7 @@ impl PresentationConstructionHost {
                 .placements
                 .get(usize::from(request.node.0))
                 .ok_or_else(|| "layout request has no exact placement".to_string())?;
-            let (encoded, encoded_len) = layout_operations::transform_bytes(placement, input)?;
+            let (encoded, encoded_len) = layout_backs::transform_bytes(placement, input)?;
             let value = scheduler
                 .store_host_value(&encoded[..encoded_len])
                 .map_err(|error| format!("store layout frame output: {error:?}"))?;

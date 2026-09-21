@@ -1,7 +1,7 @@
 //! Browser realization of the reusable bounded typed-history operation.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
@@ -128,10 +128,10 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     PreparedHistory::for_placement(placement)?
         .ok_or_else(|| "bounded history placement selected another implementation".to_string())?;
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         conduit_time::MAXIMUM_HISTORICAL_TIMELINE_COMMAND_BYTES as u32,
         MAXIMUM_COMMANDS,
     ))

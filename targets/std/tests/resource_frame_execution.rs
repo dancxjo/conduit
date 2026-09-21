@@ -1,7 +1,7 @@
 #[path = "resource_common/execution.rs"]
 mod execution;
 use conduit_core::*;
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
+use conduit_kernel::scheduler::{FixedScheduler, SchedulerStatus};
 use conduit_kernel::{
     FixedHostCallBindings, FixedRoutes, HostCallDisposition, HostCallOutcome, HostedSignLog,
     HostedValueStore, KernelEvent, ValueStorage,
@@ -11,7 +11,7 @@ use conduit_planner::proof::resource_frame::*;
 use conduit_std_host::hosted_resource::HostedResourceGeneration;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 type Scheduler = FixedScheduler<
-    OperationDriver<execution::FrameOperation, PORTS>,
+    execution::FrameBack,
     HostedValueStore,
     HostedSignLog,
     4,
@@ -167,28 +167,25 @@ fn execute(copy: bool) -> (Vec<u64>, u16) {
     let drivers = lowered
         .nodes
         .iter()
-        .map(|node| {
-            OperationDriver::new(execution::FrameOperation {
-                input: node.inputs.first().map(|p| p.port),
-                output: node.outputs.first().map(|p| {
-                    (
-                        p.port,
-                        if p.value_kind == kind_id(RESOURCE_REFERENCE_INFO_ID)
-                            && node.inputs.is_empty()
-                        {
-                            input_value
-                        } else {
-                            output_value
-                        },
-                    )
-                }),
-                operation: lowered
-                    .host_calls
-                    .iter()
-                    .find(|o| o.node == node.node)
-                    .map(|o| o.binding.operation),
-            })
-            .unwrap()
+        .map(|node| execution::FrameBack {
+            input: node.inputs.first().map(|p| p.port),
+            output: node.outputs.first().map(|p| {
+                (
+                    p.port,
+                    if p.value_kind == kind_id(RESOURCE_REFERENCE_INFO_ID) && node.inputs.is_empty()
+                    {
+                        input_value
+                    } else {
+                        output_value
+                    },
+                )
+            }),
+            host_call: lowered
+                .host_calls
+                .iter()
+                .find(|o| o.node == node.node)
+                .map(|o| o.binding.call),
+            pending: false,
         })
         .collect::<Vec<_>>();
     let signs = HostedSignLog::new(256, 256 * std::mem::size_of::<KernelEvent>() as u32).unwrap();

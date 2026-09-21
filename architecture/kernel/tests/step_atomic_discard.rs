@@ -1,8 +1,8 @@
 //! Atomic bounded Step disposal under pressure and invalid identities.
 
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, SchedulerStatus,
-    StepInputBytes, StepIo, StepOperation, StepOutcome,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, SchedulerStatus, StepBack,
+    StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     CordEndpoint, CordId, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent, NodeId, PortId,
@@ -16,7 +16,7 @@ struct ReleaseBack {
     releases: [Option<ValueRef>; 3],
 }
 
-impl StepOperation<PORTS> for ReleaseBack {
+impl StepBack<PORTS> for ReleaseBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         for value in self.releases.into_iter().flatten() {
             if io.discard(value).is_err() {
@@ -41,7 +41,7 @@ enum PressureBack {
     },
 }
 
-impl StepOperation<PORTS> for PressureBack {
+impl StepBack<PORTS> for PressureBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
             Self::Source {
@@ -167,11 +167,11 @@ fn blocked_output_preserves_both_discards_until_atomic_commit() {
     let node_specs = [
         NodeSpec {
             input_cords: [None; PORTS],
-            maximum_step_work: 4,
+            maximum_step_fuel: 4,
         },
         NodeSpec {
             input_cords: [Some(CordId(1)), None],
-            maximum_step_work: 6,
+            maximum_step_fuel: 6,
         },
     ];
     let cord_specs = [
@@ -290,7 +290,7 @@ fn scheduler_without_cords(
         0,
         [NodeSpec {
             input_cords: [None; PORTS],
-            maximum_step_work: 4,
+            maximum_step_fuel: 4,
         }],
         [inactive_cord()],
         routes,

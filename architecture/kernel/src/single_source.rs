@@ -1,11 +1,11 @@
 //! Fixed one-Back source profile for tiny assigned fragments.
 //!
-//! This is a specialization of the same [`StepOperation`] protocol used by the
+//! This is a specialization of the same [`StepBack`] protocol used by the
 //! full scheduler. It is valid only for a fragment containing one source, one
 //! Host Call, one output Port, and no local or remote Cords. Any other
 //! shape must be refused before construction.
 
-use crate::scheduler::{HostCallRequest, StepInputBytes, StepIo, StepOperation, StepOutcome};
+use crate::scheduler::{HostCallRequest, StepBack, StepInputBytes, StepIo, StepOutcome};
 use crate::{
     BoundedValueRef, HostCallId, HostCallOutcome, KernelEventKind, NodeId, PortId,
     RemoteLifecycleIdentity, RequestId, SignError, SignSink, StorageError, ValueRef,
@@ -161,35 +161,35 @@ pub struct SingleSourceExecutor<B, E> {
     back: B,
     signs: E,
     node: NodeId,
-    operation_id: HostCallId,
+    call_id: HostCallId,
     maximum_input_bytes: u32,
     maximum_output_bytes: u32,
-    maximum_step_work: u16,
+    maximum_step_fuel: u16,
     request: Option<RequestId>,
     terminal: bool,
 }
 
-impl<B: StepOperation<1>, E: SignSink> SingleSourceExecutor<B, E> {
+impl<B: StepBack<1>, E: SignSink> SingleSourceExecutor<B, E> {
     pub fn new(
         back: B,
         signs: E,
         node: NodeId,
-        operation_id: HostCallId,
+        call_id: HostCallId,
         maximum_input_bytes: u32,
         maximum_output_bytes: u32,
-        maximum_step_work: u16,
+        maximum_step_fuel: u16,
     ) -> Result<Self, SingleSourceRefusal> {
-        if maximum_step_work < 3 || maximum_output_bytes == 0 {
+        if maximum_step_fuel < 3 || maximum_output_bytes == 0 {
             return Err(SingleSourceRefusal::InvalidBound);
         }
         Ok(Self {
             back,
             signs,
             node,
-            operation_id,
+            call_id,
             maximum_input_bytes,
             maximum_output_bytes,
-            maximum_step_work,
+            maximum_step_fuel,
             request: None,
             terminal: false,
         })
@@ -202,15 +202,15 @@ impl<B: StepOperation<1>, E: SignSink> SingleSourceExecutor<B, E> {
         if self.request.is_some() {
             return Err(SingleSourceRefusal::AlreadyStarted);
         }
-        let mut io = StepIo::single_source(self.maximum_output_bytes, self.maximum_step_work, None);
+        let mut io = StepIo::single_source(self.maximum_output_bytes, self.maximum_step_fuel, None);
         let input_bytes = StepInputBytes::single_source();
         if self.back.step(&mut io, &input_bytes) != StepOutcome::Progress {
             return Err(SingleSourceRefusal::InvalidStart);
         }
-        let Some((request, operation, input)) = io.single_source_start_request() else {
+        let Some((request, call, input)) = io.single_source_start_request() else {
             return Err(SingleSourceRefusal::InvalidStart);
         };
-        if operation != self.operation_id || input.value.byte_len > self.maximum_input_bytes {
+        if call != self.call_id || input.value.byte_len > self.maximum_input_bytes {
             return Err(SingleSourceRefusal::InvalidStart);
         }
         self.request = Some(request);
@@ -225,7 +225,7 @@ impl<B: StepOperation<1>, E: SignSink> SingleSourceExecutor<B, E> {
         Ok(HostCallRequest {
             node: self.node,
             request,
-            operation,
+            call,
             input,
         })
     }
@@ -257,7 +257,7 @@ impl<B: StepOperation<1>, E: SignSink> SingleSourceExecutor<B, E> {
             .map_err(|_| SingleSourceRefusal::SignCapacity)?;
         let mut io = StepIo::single_source(
             self.maximum_output_bytes,
-            self.maximum_step_work,
+            self.maximum_step_fuel,
             Some((request, outcome)),
         );
         let input_bytes = StepInputBytes::single_source();
@@ -299,7 +299,7 @@ mod tests {
     #[derive(Clone, Copy)]
     struct Source;
 
-    impl StepOperation<1> for Source {
+    impl StepBack<1> for Source {
         fn step(
             &mut self,
             io: &mut StepIo<1>,

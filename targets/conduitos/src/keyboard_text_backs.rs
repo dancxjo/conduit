@@ -1,6 +1,6 @@
 //! Production Backs for the ordinary keyboard-text Play.
 
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef,
@@ -57,7 +57,7 @@ pub(crate) enum PlannedBack {
     Application(ApplicationBack),
 }
 
-impl StepOperation<PORTS> for PlannedBack {
+impl StepBack<PORTS> for PlannedBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

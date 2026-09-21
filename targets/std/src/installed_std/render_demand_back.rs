@@ -1,0 +1,195 @@
+//! Installed finite audio render-demand source.
+
+use super::back::{BackBudget, BackFactory, InstalledBack};
+use conduit_audio::AudioRenderDemand;
+use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
+use conduit_kernel::{
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, HostCallDisposition, HostCallId, RequestId, ValueRef, ValueStorage,
+};
+
+pub(super) static AUDIO_RENDER_DEMAND_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::AUDIO_RENDER_DEMAND_IMPLEMENTATION,
+    budget,
+    prepare,
+};
+
+pub(super) struct AudioRenderDemandBack {
+    demands: Vec<ValueRef>,
+    waits: Vec<ValueRef>,
+    next: usize,
+    pending: Option<RequestId>,
+}
+
+impl<const PORTS: usize> StepBack<PORTS> for AudioRenderDemandBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.next >= self.demands.len() {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(step_failure(45));
+            }
+            if !io.output_ready(conduit_kernel::PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(value) = self.demands.get(self.next).copied() else {
+                return StepOutcome::Fail(step_failure(44));
+            };
+            io.consume_host_completion()
+                .expect("observed audio render wait completion");
+            io.send(conduit_kernel::PortId(0), value)
+                .expect("ready audio render demand output");
+            self.pending = None;
+            self.next += 1;
+            if let Some(wait) = self.waits.get(self.next).copied() {
+                let request = RequestId(
+                    u32::try_from(self.next).expect("admitted render-demand request count"),
+                );
+                let input = BoundedValueRef::new(wait, 8).expect("eight-byte render wait");
+                io.request_host_call(request, HostCallId(0), input)
+                    .expect("next audio render wait Host Call");
+                self.pending = Some(request);
+            }
+            return StepOutcome::Progress;
+        }
+        if self.pending.is_none() {
+            let Some(wait) = self.waits.get(self.next).copied() else {
+                return StepOutcome::Complete;
+            };
+            let request =
+                RequestId(u32::try_from(self.next).expect("admitted render-demand request count"));
+            let input = BoundedValueRef::new(wait, 8).expect("eight-byte render wait");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("audio render wait Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+const fn step_failure(detail: u16) -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    }
+}
+
+impl AudioRenderDemandBack {
+    pub(super) fn allocation_capacity(&self) -> usize {
+        self.demands.capacity() + self.waits.capacity()
+    }
+}
+
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate(placement)?;
+    let blocks = conduit_semantic_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS;
+    let value_items = blocks
+        .checked_mul(2)
+        .ok_or_else(|| "audio render-demand value item budget overflow".to_string())?;
+    let value_bytes = u32::from(blocks)
+        .checked_mul((conduit_audio::AUDIO_RENDER_DEMAND_ENCODED_LEN + 8) as u32)
+        .ok_or_else(|| "audio render-demand value byte budget overflow".to_string())?;
+    let sign_items = blocks
+        .checked_mul(15)
+        .and_then(|items| items.checked_add(64))
+        .ok_or_else(|| "audio render-demand Sign budget overflow".to_string())?;
+    Ok(BackBudget {
+        value_items,
+        value_bytes,
+        host_requests: usize::from(blocks),
+        sign_items,
+        maximum_value_bytes: conduit_audio::AUDIO_RENDER_DEMAND_ENCODED_LEN as u32,
+    })
+}
+
+fn prepare(
+    placement: &PlannedGear,
+    values: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    validate(placement)?;
+    let blocks = usize::from(conduit_semantic_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS);
+    let mut demands = Vec::with_capacity(blocks);
+    let mut waits = Vec::with_capacity(blocks);
+    for sequence in 0..conduit_semantic_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS {
+        let demand = AudioRenderDemand::new(
+            conduit_semantic_catalog::AUDIO_RENDER_CLOCK_ID,
+            u64::from(sequence) * u64::from(conduit_semantic_catalog::AUDIO_RENDER_BLOCK_FRAMES),
+            conduit_semantic_catalog::AUDIO_RENDER_BLOCK_FRAMES,
+            u32::from(sequence),
+        )
+        .map_err(|error| format!("construct audio render demand: {error:?}"))?;
+        demands.push(
+            values
+                .store(&demand.encode())
+                .map_err(|error| format!("store audio render demand: {error:?}"))?,
+        );
+        waits.push(
+            values
+                .store(&conduit_semantic_catalog::AUDIO_RENDER_PERIOD_MILLIS.to_le_bytes())
+                .map_err(|error| format!("store audio render wait: {error:?}"))?,
+        );
+    }
+    Ok(InstalledBack::AudioRenderDemand(AudioRenderDemandBack {
+        demands,
+        waits,
+        next: 0,
+        pending: None,
+    }))
+}
+
+fn validate(placement: &PlannedGear) -> Result<(), String> {
+    let offer = offer();
+    let configuration_is_exact = placement.configuration.len() == 2
+        && placement.configuration.iter().any(|entry| {
+            entry.key == conduit_semantic_catalog::AUDIO_RENDER_BLOCK_FRAMES_KEY
+                && entry.value
+                    == ConfigurationValue::U64(u64::from(
+                        conduit_semantic_catalog::AUDIO_RENDER_BLOCK_FRAMES,
+                    ))
+        })
+        && placement.configuration.iter().any(|entry| {
+            entry.key == conduit_semantic_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS_KEY
+                && entry.value
+                    == ConfigurationValue::U64(u64::from(
+                        conduit_semantic_catalog::AUDIO_RENDER_MAXIMUM_BLOCKS,
+                    ))
+        });
+    if placement.kind_id != offer.kind_id
+        || placement.kind_contract_revision != offer.kind_contract_revision
+        || placement.execution_profile_id != offer.implementation.execution_profile_id
+        || placement.implementation_id != offer.implementation.implementation_id
+        || placement.artifact_id != offer.implementation.artifact_id
+        || placement.inputs != offer.inputs
+        || placement.outputs != offer.outputs
+        || placement.host_calls != offer.host_calls
+        || placement.limits != offer.limits
+        || placement.outputs.len() != 1
+        || placement.outputs[0].port_id.as_str() != "demand"
+        || placement.outputs[0].direction != PortDirection::Output
+        || placement.resources.len() != 1
+        || placement.resources[0].class_id.as_str()
+            != conduit_core::MONOTONIC_MILLISECOND_TIMER_RESOURCE_CLASS
+        || placement.resources[0].units != 1
+        || placement.resources[0].protected.is_some()
+        || placement.resources[0].compute.is_some()
+        || !placement.authority.is_empty()
+        || !configuration_is_exact
+    {
+        return Err("planned audio/render-demand identity does not match installation".into());
+    }
+    Ok(())
+}
+
+pub(crate) fn offer() -> conduit_core::CapabilityOffer {
+    conduit_std_offers::audio_render_demand_offer()
+}

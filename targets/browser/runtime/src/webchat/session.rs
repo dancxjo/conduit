@@ -248,7 +248,7 @@ impl BrowserChatSession {
 
         let inactive_node = NodeSpec {
             input_cords: [None; PORTS],
-            maximum_step_work: 1,
+            maximum_step_fuel: 1,
         };
         let mut node_specs = [inactive_node; NODES];
         node_specs.copy_from_slice(&lowered.node_specs);

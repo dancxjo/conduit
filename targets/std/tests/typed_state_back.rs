@@ -1,5 +1,8 @@
 use conduit_core::*;
-use conduit_kernel::{Operation, OperationAction, PortId, ValueRef};
+use conduit_kernel::{
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    PortId, ValueRef,
+};
 use conduit_semantic_catalog::state_value::*;
 
 #[test]
@@ -39,29 +42,34 @@ fn malformed_input_preserves_committed_state_and_is_not_completion() {
         PortId(0),
     )
     .unwrap();
-    assert!(matches!(
-        back.start(),
-        OperationAction::EmitCanonical { .. }
-    ));
+    let mut initial_io = StepIo::test_frame([None], [false], [Some(64)], None, 4);
+    assert_eq!(
+        back.step(&mut initial_io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
+    assert!(initial_io.test_canonical_output().is_some());
     let next = initial.canonical_bytes().unwrap();
     let reference = ValueRef {
         slot: 0,
         generation: 0,
         byte_len: next.len() as u32,
     };
-    assert!(matches!(
-        back.resume_value(PortId(0), reference, &next),
-        OperationAction::EmitCanonical { .. }
-    ));
+    let mut next_io = StepIo::test_frame([Some(reference)], [false], [Some(64)], None, 4);
+    assert_eq!(
+        back.step(
+            &mut next_io,
+            &StepInputBytes::test_frame([Some(&next)], None),
+        ),
+        StepOutcome::Progress
+    );
     assert_eq!(
         back.generation(),
         0,
         "proposing output does not publish State"
     );
-    back.step_committed();
+    StepBack::<1>::step_committed(&mut back);
     assert_eq!(back.current(), next);
     assert_eq!(back.generation(), 1);
-    assert!(matches!(back.advance(), OperationAction::Await));
     let before = back.current().to_vec();
     let invalid = [255_u8];
     let reference = ValueRef {
@@ -69,9 +77,13 @@ fn malformed_input_preserves_committed_state_and_is_not_completion() {
         generation: 0,
         byte_len: 1,
     };
+    let mut invalid_io = StepIo::test_frame([Some(reference)], [false], [Some(64)], None, 4);
     assert!(matches!(
-        back.resume_value(PortId(0), reference, &invalid),
-        OperationAction::Fail(_)
+        back.step(
+            &mut invalid_io,
+            &StepInputBytes::test_frame([Some(&invalid)], None),
+        ),
+        StepOutcome::Fail(_)
     ));
     assert_eq!(back.current(), before);
     assert_eq!(back.generation(), 1);

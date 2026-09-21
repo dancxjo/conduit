@@ -1,11 +1,10 @@
 //! Prepared browser realization checks; these do not claim live human input.
 use super::*;
+use crate::installed_browser::BROWSER_PORTS_PER_GEAR;
 use conduit_form::{check_syntax_document, expand_canonical_form, parse_syntax_document};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::ValueStorage;
-use conduit_kernel::{
-    BoundedValueRef, HostCallDisposition, HostCallOutcome, Operation, OperationAction,
-    OperationInput, PortId, RequestId,
-};
+use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome, PortId, RequestId};
 use std::collections::BTreeMap;
 
 fn placements() -> Vec<PlannedGear> {
@@ -57,36 +56,63 @@ fn browser_plans_prepare_shared_codecs_and_emit_exact_timing_values() {
         let mut store = HostedValueStore::new(4, MAXIMUM, MAXIMUM * 4).unwrap();
         let mut operation = prepare(placement, &mut store).unwrap();
         let value = store.store(&input).unwrap();
-        assert_eq!(operation.start(), OperationAction::Await);
-        assert!(matches!(
-            operation.resume(OperationInput::Value {
-                port: PortId(0),
-                value
-            }),
-            OperationAction::RequestHostCall {
-                request: RequestId(0),
-                ..
-            }
-        ));
+        let mut inputs = [None; BROWSER_PORTS_PER_GEAR];
+        inputs[0] = Some(value);
+        let mut outputs = [None; BROWSER_PORTS_PER_GEAR];
+        outputs[0] = Some(MAXIMUM);
+        let mut io = StepIo::test_frame(inputs, [false; BROWSER_PORTS_PER_GEAR], outputs, None, 4);
+        assert_eq!(
+            operation.step(
+                &mut io,
+                &StepInputBytes::test_frame([None; BROWSER_PORTS_PER_GEAR], None),
+            ),
+            StepOutcome::Progress
+        );
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(0))
+        );
         input = codec.execute(OPERATIONS[index], &input).unwrap().to_vec();
         let output = store.store(&input).unwrap();
-        assert_eq!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome: HostCallOutcome {
+        let mut outputs = [None; BROWSER_PORTS_PER_GEAR];
+        outputs[0] = Some(MAXIMUM);
+        let mut io = StepIo::test_frame(
+            [None; BROWSER_PORTS_PER_GEAR],
+            [false; BROWSER_PORTS_PER_GEAR],
+            outputs,
+            Some((
+                RequestId(0),
+                HostCallOutcome {
                     disposition: HostCallDisposition::Completed,
                     output: Some(BoundedValueRef::new(output, MAXIMUM).unwrap()),
                     failure: None,
                 },
-            }),
-            OperationAction::Emit {
-                port: PortId(0),
-                value: output
-            }
+            )),
+            4,
         );
         assert_eq!(
-            operation.resume(OperationInput::Closed { port: PortId(0) }),
-            OperationAction::Complete
+            operation.step(
+                &mut io,
+                &StepInputBytes::test_frame([None; BROWSER_PORTS_PER_GEAR], None),
+            ),
+            StepOutcome::Progress
+        );
+        assert_eq!(io.test_output(PortId(0)), Some(output));
+        let mut closed = [false; BROWSER_PORTS_PER_GEAR];
+        closed[0] = true;
+        let mut io = StepIo::test_frame(
+            [None; BROWSER_PORTS_PER_GEAR],
+            closed,
+            [None; BROWSER_PORTS_PER_GEAR],
+            None,
+            4,
+        );
+        assert_eq!(
+            operation.step(
+                &mut io,
+                &StepInputBytes::test_frame([None; BROWSER_PORTS_PER_GEAR], None),
+            ),
+            StepOutcome::Complete
         );
     }
     assert_eq!(
@@ -117,21 +143,42 @@ fn prepared_timing_refuses_bad_sequences_bounds_and_changed_placement() {
     let mut store = HostedValueStore::new(2, MAXIMUM, MAXIMUM * 2).unwrap();
     let mut operation = prepare(placement, &mut store).unwrap();
     let value = store.store(&bytes).unwrap();
-    operation.start();
-    operation.resume(OperationInput::Value {
-        port: PortId(0),
-        value,
-    });
+    let mut inputs = [None; BROWSER_PORTS_PER_GEAR];
+    inputs[0] = Some(value);
+    let mut io = StepIo::test_frame(
+        inputs,
+        [false; BROWSER_PORTS_PER_GEAR],
+        [None; BROWSER_PORTS_PER_GEAR],
+        None,
+        4,
+    );
     assert_eq!(
-        operation.resume(OperationInput::HostCallCompleted {
-            request: RequestId(0),
-            outcome: HostCallOutcome {
+        operation.step(
+            &mut io,
+            &StepInputBytes::test_frame([None; BROWSER_PORTS_PER_GEAR], None),
+        ),
+        StepOutcome::Progress
+    );
+    let mut io = StepIo::test_frame(
+        [None; BROWSER_PORTS_PER_GEAR],
+        [false; BROWSER_PORTS_PER_GEAR],
+        [None; BROWSER_PORTS_PER_GEAR],
+        Some((
+            RequestId(0),
+            HostCallOutcome {
                 disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(codec.execute(OPERATIONS[0], &bytes).unwrap_err()),
             },
-        }),
-        OperationAction::Fail(failure(4))
+        )),
+        4,
+    );
+    assert_eq!(
+        operation.step(
+            &mut io,
+            &StepInputBytes::test_frame([None; BROWSER_PORTS_PER_GEAR], None),
+        ),
+        StepOutcome::Fail(failure(4))
     );
 
     assert_eq!(codec.execute(OPERATIONS[0], &[0]), Err(failure(1)));

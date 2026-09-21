@@ -1,7 +1,7 @@
 //! Browser production realization of exact measurement summaries.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostCallRequirement, ImplementationId, PlannedGear,
@@ -42,15 +42,12 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     if !placement.configuration.is_empty() {
         return Err("measurement summary accepts no configuration".into());
     }
-    Ok(BrowserOperation::unary(
-        MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        1,
-    ))
+    Ok(BrowserBack::unary(MAXIMUM_BROWSER_VALUE_BYTES as u32, 1))
 }
 
 pub(crate) fn execute(input: &[u8]) -> Result<Vec<u8>, Failure> {

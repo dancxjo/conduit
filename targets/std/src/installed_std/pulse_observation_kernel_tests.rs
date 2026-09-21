@@ -1,9 +1,8 @@
-//! The source and byte-checking sink are fixtures; the installed pulse operation
-//! and every execution decision use the production driver and fixed scheduler.
+//! The source and byte-checking sink are fixtures; the installed pulse Back and
+//! every execution decision use the production Step protocol and fixed scheduler.
 use super::*;
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver, StepInputBytes, StepIo,
-    StepOperation, StepOutcome,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, HostCallBinding, HostCallDisposition, HostCallId,
@@ -13,74 +12,22 @@ use conduit_kernel::{
     CordEndpoint, CordId, FixedRoutes, FixedSignLog, NodeId, RouteRange, RouteTarget,
 };
 
-enum Fixture {
-    Pulse(InstalledOperation),
-    Sink { next: u32, wait: ValueRef },
-}
-impl Operation for Fixture {
-    fn start(&mut self) -> OperationAction {
-        match self {
-            Self::Pulse(operation) => operation.start(),
-            Self::Sink { wait, .. } => OperationAction::RequestHostCall {
-                request: RequestId(0),
-                operation: HostCallId(0),
-                input: BoundedValueRef::new(*wait, 1).unwrap(),
-            },
-        }
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Pulse(operation) => operation.resume(input),
-            Self::Sink { .. }
-                if matches!(
-                    input,
-                    OperationInput::HostCallCompleted {
-                        request: RequestId(0),
-                        ..
-                    }
-                ) =>
-            {
-                OperationAction::Await
-            }
-            Self::Sink { .. } if input == (OperationInput::Closed { port: PortId(0) }) => {
-                OperationAction::Complete
-            }
-            _ => panic!("fixture received unexpected input"),
-        }
-    }
-    fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
-        match self {
-            Self::Pulse(operation) => operation.resume_value(port, value, canonical),
-            Self::Sink { next, .. } => {
-                assert_eq!(port, PortId(0));
-                let pulse = conduit_time::decode_pulse_observation(canonical).unwrap();
-                assert_eq!((pulse.sequence, pulse.period_ms), (*next, 320));
-                *next += 1;
-                OperationAction::Await
-            }
-        }
-    }
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Pulse(operation) => operation.advance(),
-            Self::Sink { .. } => OperationAction::Await,
-        }
-    }
-    fn cancel(&mut self) {
-        if let Self::Pulse(operation) = self {
-            operation.cancel();
-        }
-    }
-}
-
 enum Driver {
-    Source { values: Vec<ValueRef>, next: usize },
-    Installed(Box<OperationDriver<Fixture, 1>>),
+    Source {
+        values: Vec<ValueRef>,
+        next: usize,
+    },
+    Pulse(InstalledBack),
+    Sink {
+        next: u32,
+        wait: ValueRef,
+        pending: bool,
+    },
 }
-impl StepOperation<1> for Driver {
+impl StepBack<1> for Driver {
     fn step(&mut self, io: &mut StepIo<1>, bytes: &StepInputBytes<'_, 1>) -> StepOutcome {
         match self {
-            Self::Installed(operation) => operation.step(io, bytes),
+            Self::Pulse(operation) => operation.step(io, bytes),
             Self::Source { values, next } => {
                 let Some(value) = values.get(*next).copied() else {
                     return StepOutcome::Complete;
@@ -91,6 +38,44 @@ impl StepOperation<1> for Driver {
                 io.send(PortId(0), value).unwrap();
                 *next += 1;
                 StepOutcome::Progress
+            }
+            Self::Sink {
+                next,
+                wait,
+                pending,
+            } => {
+                if *pending {
+                    if io.host_completion().is_none() {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion().unwrap();
+                    *pending = false;
+                    *next = 1;
+                    return StepOutcome::Progress;
+                }
+                if *next == 0 {
+                    io.request_host_call(
+                        RequestId(0),
+                        HostCallId(0),
+                        BoundedValueRef::new(*wait, 1).unwrap(),
+                    )
+                    .unwrap();
+                    *pending = true;
+                    return StepOutcome::Progress;
+                }
+                if io.input(PortId(0)).is_some() {
+                    let canonical = bytes.input(PortId(0)).unwrap();
+                    let pulse = conduit_time::decode_pulse_observation(canonical).unwrap();
+                    assert_eq!((pulse.sequence, pulse.period_ms), (*next - 1, 320));
+                    io.consume(PortId(0)).unwrap();
+                    *next += 1;
+                    StepOutcome::Progress
+                } else if io.input_closed(PortId(0)) {
+                    io.consume_closed(PortId(0)).unwrap();
+                    StepOutcome::Complete
+                } else {
+                    StepOutcome::Await
+                }
             }
         }
     }
@@ -127,7 +112,7 @@ fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
         .install(
             NodeId(2),
             HostCallBinding {
-                operation: HostCallId(0),
+                call: HostCallId(0),
                 maximum_input_bytes: 1,
                 maximum_output_bytes: 1,
             },
@@ -137,7 +122,7 @@ fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
     let mut scheduler = FixedScheduler::<_, _, _, 3, 2, 1, 2, 3, 2, 3, 1>::new_with_host_calls(
         [None, Some(CordId(0)), Some(CordId(1))].map(|input| NodeSpec {
             input_cords: [input],
-            maximum_step_work: 3,
+            maximum_step_fuel: 3,
         }),
         [0, 1].map(|index| {
             CordSpec::local(
@@ -159,12 +144,12 @@ fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
                 values: ticks,
                 next: 0,
             },
-            Driver::Installed(Box::new(
-                OperationDriver::new(Fixture::Pulse(pulse)).unwrap(),
-            )),
-            Driver::Installed(Box::new(
-                OperationDriver::new(Fixture::Sink { next: 0, wait }).unwrap(),
-            )),
+            Driver::Pulse(InstalledBack::PulseObserve(pulse)),
+            Driver::Sink {
+                next: 0,
+                wait,
+                pending: false,
+            },
         ],
         values,
         FixedSignLog::<256>::new(
@@ -176,22 +161,16 @@ fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
     for _ in 0..32 {
         scheduler.step().unwrap();
     }
-    let Driver::Installed(observer) = &scheduler.drivers()[1] else {
+    let Driver::Pulse(InstalledBack::PulseObserve(observer)) = &scheduler.drivers()[1] else {
         panic!("pulse driver");
-    };
-    let Fixture::Pulse(InstalledOperation::PulseObserve(observer)) = observer.operation() else {
-        panic!("installed observer");
     };
     let staged_sequence = observer.next_sequence();
     assert!(staged_sequence > 0 && staged_sequence < 3);
     for _ in 0..16 {
         scheduler.step().unwrap();
     }
-    let Driver::Installed(observer) = &scheduler.drivers()[1] else {
+    let Driver::Pulse(InstalledBack::PulseObserve(observer)) = &scheduler.drivers()[1] else {
         panic!("pulse driver");
-    };
-    let Fixture::Pulse(InstalledOperation::PulseObserve(observer)) = observer.operation() else {
-        panic!("installed observer");
     };
     assert_eq!(
         observer.next_sequence(),
@@ -212,10 +191,9 @@ fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
         )
         .unwrap();
     scheduler.run(128).unwrap();
-    let Driver::Installed(sink) = &scheduler.drivers()[2] else {
+    let Driver::Sink { next: 4, .. } = &scheduler.drivers()[2] else {
         panic!("sink driver");
     };
-    assert!(matches!(sink.operation(), Fixture::Sink { next: 3, .. }));
     assert_eq!(
         scheduler.values().allocation_capacities(),
         allocation_before

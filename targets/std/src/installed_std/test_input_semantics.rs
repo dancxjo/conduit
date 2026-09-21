@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
@@ -10,8 +10,9 @@ use conduit_human::{
     CHORD_INFO_ID, KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 const SOURCE_KIND: &str = "conduit-test/key-event-source";
@@ -26,106 +27,107 @@ const SINK_PROFILE: &str = "conduit-test/chord-sink-kernel@1";
 pub(super) const SINK_IMPLEMENTATION: &str = "conduit-test/chord-sink-kernel@1";
 const SINK_ARTIFACT: &str = "conduit-std-host/test-chord-sink@1";
 
-pub(super) static TEST_KEY_EVENT_SOURCE_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_KEY_EVENT_SOURCE_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget: source_budget,
     prepare: prepare_source,
 };
 
-pub(super) static TEST_CHORD_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_CHORD_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: SINK_IMPLEMENTATION,
     budget: sink_budget,
     prepare: prepare_sink,
 };
 
-pub(super) struct TestKeyEventSourceOperation {
+pub(super) struct TestKeyEventSourceBack {
     pub(super) values: Vec<ValueRef>,
     pub(super) waits: Vec<ValueRef>,
     pub(super) next: usize,
     pending: Option<RequestId>,
 }
 
-pub(super) struct TestChordSinkOperation {
+pub(super) struct TestChordSinkBack {
     observed: u8,
 }
 
-impl TestKeyEventSourceOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+impl<const PORTS: usize> StepBack<PORTS> for TestKeyEventSourceBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
             {
-                self.pending = None;
-                self.values.get(self.next).copied().map_or_else(
-                    || invalid(60),
-                    |value| OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    },
-                )
+                return key_fixture_fail(60);
             }
-            _ => invalid(60),
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(value) = self.values.get(self.next).copied() else {
+                return key_fixture_fail(60);
+            };
+            io.consume_host_completion()
+                .expect("observed key fixture wait");
+            io.send(PortId(0), value).expect("ready key fixture output");
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
         }
+        let Some(wait) = self.waits.get(self.next).copied() else {
+            return StepOutcome::Complete;
+        };
+        if self.pending.is_none() {
+            let request = RequestId(u32::try_from(self.next).unwrap_or(u32::MAX));
+            io.request_host_call(
+                request,
+                HostCallId(0),
+                BoundedValueRef::new(wait, 8).expect("key fixture wait is bounded"),
+            )
+            .expect("key fixture wait Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
     }
 
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn cancel(&mut self) {
+    fn cancel(&mut self) {
         self.pending = None;
     }
+}
 
-    fn request_wait(&mut self) -> Option<OperationAction> {
-        let input = self.waits.get(self.next).copied()?;
-        let request = RequestId(u32::try_from(self.next).ok()?);
-        self.pending = Some(request);
-        Some(OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(input, 8).ok()?,
-        })
+impl<const PORTS: usize> StepBack<PORTS> for TestChordSinkBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        let Some(_) = io.input(PortId(0)) else {
+            return StepOutcome::Await;
+        };
+        let valid = self.observed == 0
+            && input_bytes.input(PortId(0)).is_some_and(|bytes| {
+                ChordInfo::decode(bytes)
+                    .is_ok_and(|chord| chord.chord_id() == CoreChordId::CancelOrEscape)
+            });
+        if !valid {
+            return key_fixture_fail(63);
+        }
+        io.consume(PortId(0)).expect("present chord fixture input");
+        self.observed = 1;
+        StepOutcome::Complete
     }
 }
 
-impl TestChordSinkOperation {
-    pub(super) fn start(&self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        let _ = input;
-        invalid(61)
-    }
-
-    pub(super) fn resume_value(&mut self, port: PortId, canonical: &[u8]) -> OperationAction {
-        if port != PortId(0) || self.observed != 0 {
-            return invalid(62);
-        }
-        match ChordInfo::decode(canonical) {
-            Ok(chord) if chord.chord_id() == CoreChordId::CancelOrEscape => {
-                self.observed = 1;
-                OperationAction::Complete
-            }
-            _ => invalid(63),
-        }
-    }
-}
-
-fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
+const fn key_fixture_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::InvalidInput,
         detail,
     })
 }
+
+impl TestKeyEventSourceBack {}
+
+impl TestChordSinkBack {}
 
 pub(super) fn source_offer() -> CapabilityOffer {
     offer(
@@ -236,9 +238,9 @@ fn sink_port() -> PortDescriptor {
     }
 }
 
-fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn source_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate_source(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 16,
         value_bytes: 8 * KEY_EVENT_ENCODED_LEN as u32 + 64,
         host_requests: 8,
@@ -247,9 +249,9 @@ fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     })
 }
 
-fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn sink_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate_sink(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 0,
@@ -261,7 +263,7 @@ fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_source(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate_source(placement)?;
     let specs = [
         (0x04, KeyTransition::Pressed, 0),
@@ -302,22 +304,20 @@ fn prepare_source(
                 .map_err(|error| format!("store test key wait: {error:?}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(InstalledOperation::TestKeyEventSource(
-        TestKeyEventSourceOperation {
-            values: event_values,
-            waits,
-            next: 0,
-            pending: None,
-        },
-    ))
+    Ok(InstalledBack::TestKeyEventSource(TestKeyEventSourceBack {
+        values: event_values,
+        waits,
+        next: 0,
+        pending: None,
+    }))
 }
 
 fn prepare_sink(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate_sink(placement)?;
-    Ok(InstalledOperation::TestChordSink(TestChordSinkOperation {
+    Ok(InstalledBack::TestChordSink(TestChordSinkBack {
         observed: 0,
     }))
 }

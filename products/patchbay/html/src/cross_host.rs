@@ -9,8 +9,8 @@ use wire::*;
 use crate::{RendererSnapshot, SnapshotError};
 use conduit_core::{bind_active_play, BootId, HostId, PlanFragment, SignId};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus, StepInputBytes, StepIo,
-    StepOperation, StepOutcome,
+    FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus, StepBack,
+    StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
@@ -73,7 +73,7 @@ struct ProjectBack {
     emitted: bool,
 }
 
-impl StepOperation<PORTS> for ProjectBack {
+impl StepBack<PORTS> for ProjectBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -100,7 +100,7 @@ struct RenderBack {
     pending: Option<RequestId>,
 }
 
-impl StepOperation<PORTS> for RenderBack {
+impl StepBack<PORTS> for RenderBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

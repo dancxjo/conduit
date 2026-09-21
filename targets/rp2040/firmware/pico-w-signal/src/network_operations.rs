@@ -1,5 +1,5 @@
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepInputBytes, StepIo, StepBack, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, PortId, RequestId,
 };
 
@@ -8,12 +8,12 @@ use crate::network_image::PORTS;
 pub(crate) struct JoinBack {
     input_port: PortId,
     output_port: PortId,
-    operation: conduit_kernel::HostCallId,
+    host_call: conduit_kernel::HostCallId,
     pending: Option<RequestId>,
     completed: bool,
 }
 
-impl StepOperation<PORTS> for JoinBack {
+impl StepBack<PORTS> for JoinBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -26,7 +26,7 @@ impl StepOperation<PORTS> for JoinBack {
                     || io
                         .request_host_call(
                             request,
-                            self.operation,
+                            self.host_call,
                             BoundedValueRef::new(value, conduit_net::MAXIMUM_JOIN_INPUT_BYTES)
                                 .expect("planned join input is exactly bounded"),
                         )
@@ -72,12 +72,12 @@ impl StepOperation<PORTS> for JoinBack {
 
 pub(crate) struct AttachmentSignBack {
     input_port: PortId,
-    operation: conduit_kernel::HostCallId,
+    host_call: conduit_kernel::HostCallId,
     pending: Option<RequestId>,
     completed: bool,
 }
 
-impl StepOperation<PORTS> for AttachmentSignBack {
+impl StepBack<PORTS> for AttachmentSignBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -90,7 +90,7 @@ impl StepOperation<PORTS> for AttachmentSignBack {
                     || io
                         .request_host_call(
                             request,
-                            self.operation,
+                            self.host_call,
                             BoundedValueRef::new(value, conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES)
                                 .expect("planned attachment Info is exactly bounded"),
                         )
@@ -136,28 +136,28 @@ impl NetworkBack {
     pub fn join(
         input_port: PortId,
         output_port: PortId,
-        operation: conduit_kernel::HostCallId,
+        host_call: conduit_kernel::HostCallId,
     ) -> Self {
         Self::Join(JoinBack {
             input_port,
             output_port,
-            operation,
+            host_call,
             pending: None,
             completed: false,
         })
     }
 
-    pub fn attachment_sign(input_port: PortId, operation: conduit_kernel::HostCallId) -> Self {
+    pub fn attachment_sign(input_port: PortId, host_call: conduit_kernel::HostCallId) -> Self {
         Self::AttachmentSign(AttachmentSignBack {
             input_port,
-            operation,
+            host_call,
             pending: None,
             completed: false,
         })
     }
 }
 
-impl StepOperation<PORTS> for NetworkBack {
+impl StepBack<PORTS> for NetworkBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

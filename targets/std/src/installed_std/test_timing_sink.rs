@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
@@ -6,8 +6,8 @@ use conduit_core::{
 };
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
-    RequestId, ValueRef, ValueStorage,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 const KIND: &str = "test/timing-bool-sink";
@@ -22,95 +22,104 @@ const SOURCE_PROFILE: &str = "conduit-test/timing-bool-source-kernel@1";
 const SOURCE_IMPLEMENTATION: &str = "conduit-test/timing-bool-source-kernel@1";
 const SOURCE_ARTIFACT: &str = "conduit-std-host/test-timing-bool-source@1";
 
-pub(super) static TEST_TIMING_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_TIMING_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
     budget,
     prepare,
 };
 
-pub(super) static TEST_TIMING_SOURCE_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_TIMING_SOURCE_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget: source_budget,
     prepare: prepare_source,
 };
 
-pub(super) struct TestTimingSinkOperation {
+pub(super) struct TestTimingSinkBack {
     received: usize,
 }
 
-pub(super) struct TestTimingSourceOperation {
+pub(super) struct TestTimingSourceBack {
     pub(super) values: Vec<ValueRef>,
     pub(super) waits: Vec<ValueRef>,
     next: usize,
     pending: Option<RequestId>,
 }
 
-impl TestTimingSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if value.byte_len == 1 && self.received < MAXIMUM_VALUES => {
-                self.received += 1;
-                OperationAction::Await
+impl<const PORTS: usize> StepBack<PORTS> for TestTimingSinkBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = io.input(PortId(0)) {
+            if value.byte_len != 1 || self.received >= MAXIMUM_VALUES {
+                return timing_fixture_fail(789);
             }
-            OperationInput::Closed { port: PortId(0) } => OperationAction::Complete,
-            _ => InstalledOperation::fail(789),
+            io.consume(PortId(0)).expect("present timing fixture input");
+            self.received += 1;
+            return StepOutcome::Progress;
         }
+        if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed timing fixture closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 }
 
-impl TestTimingSourceOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+impl<const PORTS: usize> StepBack<PORTS> for TestTimingSourceBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
             {
-                self.pending = None;
-                self.values.get(self.next).copied().map_or_else(
-                    || InstalledOperation::fail(790),
-                    |value| OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    },
-                )
+                return timing_fixture_fail(791);
             }
-            _ => InstalledOperation::fail(791),
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(value) = self.values.get(self.next).copied() else {
+                return timing_fixture_fail(790);
+            };
+            io.consume_host_completion()
+                .expect("observed timing fixture wait");
+            io.send(PortId(0), value)
+                .expect("ready timing fixture output");
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
         }
+        let Some(wait) = self.waits.get(self.next).copied() else {
+            return StepOutcome::Complete;
+        };
+        if self.pending.is_none() {
+            let request = RequestId(u32::try_from(self.next).unwrap_or(u32::MAX));
+            io.request_host_call(
+                request,
+                HostCallId(0),
+                BoundedValueRef::new(wait, 8).expect("timing fixture wait is bounded"),
+            )
+            .expect("timing fixture wait Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
     }
 
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn cancel(&mut self) {
+    fn cancel(&mut self) {
         self.pending = None;
     }
-
-    fn request_wait(&mut self) -> Option<OperationAction> {
-        let input = self.waits.get(self.next).copied()?;
-        let request = RequestId(u32::try_from(self.next).ok()?);
-        self.pending = Some(request);
-        Some(OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(input, 8).ok()?,
-        })
-    }
 }
+
+const fn timing_fixture_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    })
+}
+
+impl TestTimingSinkBack {}
+
+impl TestTimingSourceBack {}
 
 pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {
@@ -189,9 +198,9 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     }
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 0,
@@ -203,16 +212,16 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
-    Ok(InstalledOperation::TestTimingSink(
-        TestTimingSinkOperation { received: 0 },
-    ))
+    Ok(InstalledBack::TestTimingSink(TestTimingSinkBack {
+        received: 0,
+    }))
 }
 
-fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn source_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate_exact(placement, &source_offer())?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 6,
         value_bytes: 27,
         host_requests: 3,
@@ -224,7 +233,7 @@ fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_source(
     placement: &PlannedGear,
     store: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate_exact(placement, &source_offer())?;
     let values = [
         conduit_core::InfoBool::FALSE,
@@ -245,14 +254,12 @@ fn prepare_source(
                 .map_err(|error| format!("store timing fixture wait: {error:?}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(InstalledOperation::TestTimingSource(
-        TestTimingSourceOperation {
-            values,
-            waits,
-            next: 0,
-            pending: None,
-        },
-    ))
+    Ok(InstalledBack::TestTimingSource(TestTimingSourceBack {
+        values,
+        waits,
+        next: 0,
+        pending: None,
+    }))
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {

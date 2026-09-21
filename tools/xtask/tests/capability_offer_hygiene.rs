@@ -547,7 +547,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     ("targets/std/src/installed_std/http.rs", 0, "fully migrated"),
     (
-        "targets/std/src/installed_std/recorded_speech_operation.rs",
+        "targets/std/src/installed_std/recorded_speech_back.rs",
         0,
         "fully migrated",
     ),

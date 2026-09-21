@@ -1,7 +1,7 @@
 //! Stateful portable keyboard interpretation for the ordinary browser runner.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{kind_id, HostCallContractId, HostCallRequirement, PlannedGear};
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeymapDisposition, KeymapRefusal};
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
@@ -39,12 +39,9 @@ fn offer() -> conduit_core::CapabilityOffer {
     )
 }
 
-fn prepare(
-    placement: &PlannedGear,
-    _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         conduit_human::KEY_EVENT_ENCODED_LEN as u32,
         1,
     ))

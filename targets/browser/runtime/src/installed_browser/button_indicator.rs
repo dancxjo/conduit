@@ -3,14 +3,14 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     kind_id, HostCallContractId, HostCallRequirement, InfoBool, PlannedGear, BOOL_ENCODED_LEN,
     PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::{
-    CanonicalValue, Failure, FailureCode, HostedValueStore, Operation, OperationAction,
-    OperationInput, PortId, ValueRef,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    CanonicalValue, Failure, FailureCode, HostedValueStore, PortId,
 };
 
 const ARTIFACT: &str = "conduit-browser-runtime/button-indicator@1";
@@ -78,9 +78,9 @@ fn indicator_offer() -> conduit_core::CapabilityOffer {
 fn prepare_mapper(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &mapper_offer())?;
-    Ok(BrowserOperation::installed(ButtonIndicatorOperation {
+    Ok(BrowserBack::installed_step(ButtonIndicatorBack {
         mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper::new().map_err(debug)?,
         emitted: 0,
     }))
@@ -89,9 +89,9 @@ fn prepare_mapper(
 fn prepare_indicator(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &indicator_offer())?;
-    Ok(BrowserOperation::presentation(BOOL_ENCODED_LEN as u32, 8))
+    Ok(BrowserBack::presentation(BOOL_ENCODED_LEN as u32, 8))
 }
 
 fn perform_indicator(_placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
@@ -105,58 +105,56 @@ fn perform_indicator(_placement: &PlannedGear, input: &[u8]) -> Result<BrowserHo
     })
 }
 
-struct ButtonIndicatorOperation {
+struct ButtonIndicatorBack {
     mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper,
     emitted: u32,
 }
 
-impl Operation for ButtonIndicatorOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Closed { port: PortId(0) } => OperationAction::Complete,
-            _ => fail(60),
-        }
-    }
-
-    fn resume_value(
+impl<const PORTS: usize> StepBack<PORTS> for ButtonIndicatorBack {
+    fn step(
         &mut self,
-        port: PortId,
-        _value: ValueRef,
-        canonical: &[u8],
-    ) -> OperationAction {
-        if port != PortId(0) {
-            return fail(61);
-        }
-        match self.mapper.map(canonical) {
-            Ok(value) => {
-                let Some(next) = self.emitted.checked_add(1) else {
-                    return OperationAction::Fail(Failure {
-                        code: FailureCode::IdentityCapacityExhausted,
-                        detail: 63,
-                    });
-                };
-                self.emitted = next;
-                OperationAction::EmitCanonical {
-                    port: PortId(0),
-                    value: CanonicalValue::new(&value.encode())
-                        .expect("indicator state has a fixed canonical encoding"),
-                }
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if let Some(input) = io.input(PortId(0)) {
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
             }
-            Err(_) => fail(62),
+            let Some(canonical) = input_bytes.input(PortId(0)) else {
+                return fail(61);
+            };
+            if canonical.len() != input.byte_len as usize {
+                return fail(61);
+            }
+            let value = match self.mapper.map(canonical) {
+                Ok(value) => value,
+                Err(_) => return fail(62),
+            };
+            let Some(next) = self.emitted.checked_add(1) else {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::IdentityCapacityExhausted,
+                    detail: 63,
+                });
+            };
+            let output = CanonicalValue::new(&value.encode())
+                .expect("indicator state has a fixed canonical encoding");
+            io.consume(PortId(0)).expect("present button transition");
+            io.send_canonical(PortId(0), output)
+                .expect("ready indicator state output");
+            self.emitted = next;
+            return StepOutcome::Progress;
         }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
+        if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed button transition closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 }
 
-fn fail(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
+fn fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::InvalidInput,
         detail,
     })
@@ -169,10 +167,31 @@ fn debug(error: impl core::fmt::Debug) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduit_kernel::ValueRef;
+
+    fn value(byte_len: usize) -> ValueRef {
+        ValueRef {
+            slot: 3,
+            generation: 1,
+            byte_len: byte_len as u32,
+        }
+    }
+
+    fn step<const PORTS: usize>(
+        operation: &mut ButtonIndicatorBack,
+        inputs: [Option<ValueRef>; PORTS],
+        closed: [bool; PORTS],
+        outputs: [Option<u32>; PORTS],
+        bytes: [Option<&[u8]>; PORTS],
+    ) -> (StepOutcome, StepIo<PORTS>) {
+        let mut io = StepIo::test_frame(inputs, closed, outputs, None, 4);
+        let outcome = operation.step(&mut io, &StepInputBytes::test_frame(bytes, None));
+        (outcome, io)
+    }
 
     #[test]
     fn pressed_and_released_emit_transaction_local_current_states() {
-        let mut operation = ButtonIndicatorOperation {
+        let mut operation = ButtonIndicatorBack {
             mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper::new().unwrap(),
             emitted: 0,
         };
@@ -185,44 +204,31 @@ mod tests {
             .unwrap()
             .canonical_bytes()
             .unwrap();
-            assert_eq!(
-                operation.resume_value(
-                    PortId(0),
-                    ValueRef {
-                        slot: 3,
-                        generation: 1,
-                        byte_len: encoded.len() as u32
-                    },
-                    &encoded,
-                ),
-                OperationAction::EmitCanonical {
-                    port: PortId(0),
-                    value: CanonicalValue::new(
-                        &if pressed {
-                            InfoBool::TRUE
-                        } else {
-                            InfoBool::FALSE
-                        }
-                        .encode(),
-                    )
-                    .unwrap(),
-                }
+            let (outcome, io) = step(
+                &mut operation,
+                [Some(value(encoded.len()))],
+                [false],
+                [Some(BOOL_ENCODED_LEN as u32)],
+                [Some(&encoded)],
             );
-            assert_eq!(operation.advance(), OperationAction::Await);
-        }
-    }
-
-    fn value(slot: u16) -> ValueRef {
-        ValueRef {
-            slot,
-            generation: 1,
-            byte_len: 1,
+            assert_eq!(outcome, StepOutcome::Progress);
+            let (port, output) = io.test_canonical_output().unwrap();
+            assert_eq!(*port, PortId(0));
+            assert_eq!(
+                output.as_slice(),
+                &if pressed {
+                    InfoBool::TRUE
+                } else {
+                    InfoBool::FALSE
+                }
+                .encode()
+            );
         }
     }
 
     #[test]
-    fn mapping_refuses_bad_input_and_preserves_reuse_and_closure() {
-        let mut operation = ButtonIndicatorOperation {
+    fn mapping_preserves_pressure_state_and_closure() {
+        let mut operation = ButtonIndicatorBack {
             mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper::new().unwrap(),
             emitted: 0,
         };
@@ -230,31 +236,55 @@ mod tests {
             .unwrap()
             .canonical_bytes()
             .unwrap();
-        assert_eq!(operation.start(), OperationAction::Await);
         assert_eq!(
-            operation.resume_value(PortId(1), value(0), &encoded),
-            fail(61)
-        );
-        assert_eq!(
-            operation.resume_value(PortId(0), value(0), b"pressed"),
+            step(
+                &mut operation,
+                [Some(value(7))],
+                [false],
+                [Some(BOOL_ENCODED_LEN as u32)],
+                [Some(b"pressed")],
+            )
+            .0,
             fail(62)
         );
         assert_eq!(operation.emitted, 0);
         assert_eq!(
-            operation.resume_value(PortId(0), value(0), &encoded),
-            OperationAction::EmitCanonical {
-                port: PortId(0),
-                value: CanonicalValue::new(&InfoBool::TRUE.encode()).unwrap()
-            }
+            step(
+                &mut operation,
+                [Some(value(encoded.len()))],
+                [false],
+                [Some(BOOL_ENCODED_LEN as u32)],
+                [Some(b"pressed")],
+            )
+            .0,
+            fail(61)
         );
-        assert_eq!(operation.advance(), OperationAction::Await);
-        assert!(matches!(
-            operation.resume_value(PortId(0), value(0), &encoded),
-            OperationAction::EmitCanonical { .. }
-        ));
+        assert_eq!(operation.emitted, 0);
+        let (outcome, io) = step(
+            &mut operation,
+            [Some(value(encoded.len()))],
+            [false],
+            [None],
+            [Some(&encoded)],
+        );
+        assert_eq!(outcome, StepOutcome::Await);
+        assert!(!io.test_consumed(PortId(0)));
+        assert_eq!(operation.emitted, 0);
         assert_eq!(
-            operation.resume(OperationInput::Closed { port: PortId(0) }),
-            OperationAction::Complete
+            step(
+                &mut operation,
+                [Some(value(encoded.len()))],
+                [false],
+                [Some(BOOL_ENCODED_LEN as u32)],
+                [Some(&encoded)],
+            )
+            .0,
+            StepOutcome::Progress
+        );
+        assert_eq!(operation.emitted, 1);
+        assert_eq!(
+            step(&mut operation, [None], [true], [None], [None]).0,
+            StepOutcome::Complete
         );
     }
 }

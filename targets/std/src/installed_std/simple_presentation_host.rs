@@ -26,7 +26,7 @@ pub(super) fn present<W: Write>(
             writeln!(output, "tick sequence={tick}").map_err(|error| error.to_string())?;
         }
         Some(conduit_std_offers::COUNT_PRESENTATION_TARGET) => {
-            let count = super::count_operations::decode_count(input)?;
+            let count = super::count_backs::decode_count(input)?;
             writeln!(output, "count value={count}").map_err(|error| error.to_string())?;
         }
         Some(conduit_std_offers::BOOL_PRESENTATION_TARGET) => {

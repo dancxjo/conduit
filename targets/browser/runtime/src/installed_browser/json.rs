@@ -1,7 +1,7 @@
 //! Browser realizations of the shared bounded JSON semantics.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
@@ -97,7 +97,7 @@ fn json_realization_offer(
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let index = IMPLEMENTATIONS
         .iter()
         .position(|id| *id == placement.implementation_id.as_str())
@@ -108,7 +108,7 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserO
     } else if !placement.configuration.is_empty() {
         return Err("unexpected JSON configuration".into());
     }
-    Ok(BrowserOperation::unary(MAXIMUM, 4))
+    Ok(BrowserBack::unary(MAXIMUM, 4))
 }
 
 fn field(placement: &PlannedGear) -> Result<&str, String> {

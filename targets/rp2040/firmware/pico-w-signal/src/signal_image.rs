@@ -152,8 +152,8 @@ pub struct SignalLayout {
     pub show_node: NodeId,
     pub pulse_output_port: PortId,
     pub show_input_port: PortId,
-    pub wait_operation: HostCallId,
-    pub present_operation: HostCallId,
+    pub wait_host_call: HostCallId,
+    pub present_host_call: HostCallId,
     pub configuration: SignalConfiguration,
 }
 
@@ -170,7 +170,7 @@ pub struct SignalConfiguration {
 pub struct RemoteSignalLayout {
     pub show_node: NodeId,
     pub show_input_port: PortId,
-    pub present_operation: HostCallId,
+    pub present_host_call: HostCallId,
 }
 
 #[allow(dead_code)]
@@ -179,7 +179,7 @@ pub fn remote_signal_layout() -> Option<RemoteSignalLayout> {
     Some(RemoteSignalLayout {
         show_node,
         show_input_port: generated_port(&generated_signal::GENERATED_INPUT_PORTS, show_node)?,
-        present_operation: generated_host_call(show_node, PRESENT_HOST_CALL_CONTRACT)?,
+        present_host_call: generated_host_call(show_node, PRESENT_HOST_CALL_CONTRACT)?,
     })
 }
 
@@ -193,8 +193,8 @@ pub fn signal_layout() -> Option<SignalLayout> {
         show_node,
         pulse_output_port: generated_port(&generated_signal::GENERATED_OUTPUT_PORTS, pulse_node)?,
         show_input_port: generated_port(&generated_signal::GENERATED_INPUT_PORTS, show_node)?,
-        wait_operation: generated_host_call(pulse_node, WAIT_HOST_CALL_CONTRACT)?,
-        present_operation: generated_host_call(show_node, PRESENT_HOST_CALL_CONTRACT)?,
+        wait_host_call: generated_host_call(pulse_node, WAIT_HOST_CALL_CONTRACT)?,
+        present_host_call: generated_host_call(show_node, PRESENT_HOST_CALL_CONTRACT)?,
         configuration,
     })
 }
@@ -223,7 +223,7 @@ fn generated_host_call(node: NodeId, contract_id: &str) -> Option<HostCallId> {
         .find(|((candidate_node, _), (candidate_contract, _, _))| {
             *candidate_node == node && *candidate_contract == contract_id
         })
-        .map(|((_, binding), _)| binding.operation)
+        .map(|((_, binding), _)| binding.call)
 }
 
 #[allow(dead_code)]

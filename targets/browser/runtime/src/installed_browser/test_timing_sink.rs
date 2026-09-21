@@ -1,6 +1,6 @@
 //! Typed timing observation fixture, excluded from production installations.
 use super::factory::{BrowserHostResult, BrowserInstallation, BrowserManifestation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::*;
 use conduit_kernel::HostedValueStore;
 pub(crate) const KIND: &str = "conduit-test/timing-sink";
@@ -43,9 +43,9 @@ pub(crate) fn offer() -> CapabilityOffer {
         },
     }
 }
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     super::factory::validate_placement(placement, &offer())?;
-    Ok(BrowserOperation::presentation(4096, 1))
+    Ok(BrowserBack::presentation(4096, 1))
 }
 fn present(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
     Ok(BrowserHostResult {

@@ -1,4 +1,4 @@
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef,
 };
@@ -34,7 +34,7 @@ pub(super) enum PresentationBack {
     },
 }
 
-impl StepOperation<PORTS> for PresentationBack {
+impl StepBack<PORTS> for PresentationBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

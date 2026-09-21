@@ -1,13 +1,14 @@
 //! One bounded portable key transition acquired by the browser page adapter.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     kind_id, resource_requirement, HostCallContractId, HostCallRequirement, PlannedGear,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 pub(crate) const WINDOW_INPUT_RESOURCE_CLASS: &str = "conduit.resource/browser-window-input@1";
@@ -81,12 +82,12 @@ fn offer() -> conduit_core::CapabilityOffer {
 fn prepare(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     let request = values
         .store(&[0])
         .map_err(|error| format!("store keyboard request: {error:?}"))?;
-    Ok(BrowserOperation::installed(KeyboardOperation {
+    Ok(BrowserBack::installed_step(KeyboardBack {
         request,
         pending: false,
         next: 0,
@@ -96,67 +97,76 @@ fn prepare(
 fn prepare_button(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &button_offer())?;
     let request = values
         .store(&[0])
         .map_err(|error| format!("store button request: {error:?}"))?;
-    Ok(BrowserOperation::installed(ButtonOperation {
+    Ok(BrowserBack::installed_step(ButtonBack {
         request,
         pending: false,
         next: 0,
     }))
 }
 
-struct ButtonOperation {
+struct ButtonBack {
     request: ValueRef,
     pending: bool,
     next: u32,
 }
 
-impl ButtonOperation {
-    fn request(&mut self) -> OperationAction {
-        self.pending = true;
-        OperationAction::RequestHostCall {
-            request: RequestId(self.next),
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(self.request, 1).expect("button request is one byte"),
-        }
-    }
+struct KeyboardBack {
+    request: ValueRef,
+    pending: bool,
+    next: u32,
 }
 
-impl Operation for ButtonOperation {
-    fn start(&mut self) -> OperationAction {
-        self.request()
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending
-                    && request == RequestId(self.next)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return fail();
-                };
-                self.pending = false;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            _ => fail(),
+fn continuous_input_step<const PORTS: usize>(
+    request_value: ValueRef,
+    pending: &mut bool,
+    next: &mut u32,
+    io: &mut StepIo<PORTS>,
+) -> StepOutcome {
+    if let Some((request, outcome)) = io.host_completion() {
+        if !*pending
+            || request != RequestId(*next)
+            || outcome.disposition != HostCallDisposition::Completed
+            || outcome.failure.is_some()
+        {
+            return fail();
         }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        let Some(next) = self.next.checked_add(1) else {
+        let Some(output) = outcome.output else {
+            return fail();
+        };
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        let Some(following) = next.checked_add(1) else {
             return identity_exhausted();
         };
-        self.next = next;
-        self.request()
+        io.consume_host_completion()
+            .expect("observed browser input completion");
+        io.send(PortId(0), output.value)
+            .expect("ready browser input output");
+        *pending = false;
+        *next = following;
+    }
+    if !*pending {
+        io.request_host_call(
+            RequestId(*next),
+            HostCallId(0),
+            BoundedValueRef::new(request_value, 1).expect("browser input request is one byte"),
+        )
+        .expect("browser input Host Call");
+        *pending = true;
+        return StepOutcome::Progress;
+    }
+    StepOutcome::Await
+}
+
+impl<const PORTS: usize> StepBack<PORTS> for ButtonBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        continuous_input_step(self.request, &mut self.pending, &mut self.next, io)
     }
 
     fn cancel(&mut self) {
@@ -164,62 +174,25 @@ impl Operation for ButtonOperation {
     }
 }
 
-struct KeyboardOperation {
-    request: ValueRef,
-    pending: bool,
-    next: u32,
-}
+impl<const PORTS: usize> StepBack<PORTS> for KeyboardBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        continuous_input_step(self.request, &mut self.pending, &mut self.next, io)
+    }
 
-impl Operation for KeyboardOperation {
-    fn start(&mut self) -> OperationAction {
-        self.pending = true;
-        OperationAction::RequestHostCall {
-            request: RequestId(self.next),
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(self.request, 1).expect("keyboard request is one byte"),
-        }
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending
-                    && request == RequestId(self.next)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return fail();
-                };
-                self.pending = false;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            _ => fail(),
-        }
-    }
-    fn advance(&mut self) -> OperationAction {
-        let Some(next) = self.next.checked_add(1) else {
-            return identity_exhausted();
-        };
-        self.next = next;
-        self.start()
-    }
     fn cancel(&mut self) {
         self.pending = false;
     }
 }
 
-fn fail() -> OperationAction {
-    OperationAction::Fail(Failure {
+fn fail() -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::InvalidLifecycle,
         detail: 50,
     })
 }
 
-fn identity_exhausted() -> OperationAction {
-    OperationAction::Fail(Failure {
+fn identity_exhausted() -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::IdentityCapacityExhausted,
         detail: 50,
     })
@@ -230,6 +203,41 @@ mod tests {
     use super::*;
     use conduit_kernel::{HostCallOutcome, ValueRef};
 
+    fn initial<O: StepBack<1>>(operation: &mut O) -> StepIo<1> {
+        let mut io = StepIo::test_frame([None], [false], [Some(4096)], None, 4);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        io
+    }
+
+    fn complete<O: StepBack<1>>(
+        operation: &mut O,
+        request: RequestId,
+        output: BoundedValueRef,
+    ) -> StepIo<1> {
+        let mut io = StepIo::test_frame(
+            [None],
+            [false],
+            [Some(4096)],
+            Some((
+                request,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
+                    output: Some(output),
+                    failure: None,
+                },
+            )),
+            4,
+        );
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        io
+    }
+
     #[test]
     fn button_rearms_one_fixed_request_after_each_transition() {
         let request = ValueRef {
@@ -237,47 +245,38 @@ mod tests {
             generation: 1,
             byte_len: 1,
         };
-        let mut operation = ButtonOperation {
+        let mut operation = ButtonBack {
             request,
             pending: false,
             next: 0,
         };
-        let mut action = operation.start();
+        let mut io = initial(&mut operation);
         for sequence in 0..6 {
-            assert!(matches!(
-                action,
-                OperationAction::RequestHostCall {
-                    request: RequestId(found),
-                    ..
-                } if found == u32::from(sequence)
-            ));
+            assert_eq!(
+                io.test_host_request().map(|request| request.0),
+                Some(RequestId(sequence.into()))
+            );
             let value = ValueRef {
                 slot: sequence + 1,
                 generation: 1,
                 byte_len: 1,
             };
-            assert_eq!(
-                operation.resume(OperationInput::HostCallCompleted {
-                    request: RequestId(sequence.into()),
-                    outcome: HostCallOutcome {
-                        disposition: HostCallDisposition::Completed,
-                        output: Some(BoundedValueRef::new(value, 1).unwrap()),
-                        failure: None,
-                    },
-                }),
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value
-                }
+            io = complete(
+                &mut operation,
+                RequestId(sequence.into()),
+                BoundedValueRef::new(value, 1).unwrap(),
             );
-            action = operation.advance();
+            assert_eq!(io.test_output(PortId(0)), Some(value));
         }
-        assert!(matches!(action, OperationAction::RequestHostCall { .. }));
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(6))
+        );
     }
 
     #[test]
     fn keyboard_rearms_the_same_bounded_request_after_each_event() {
-        let mut operation = KeyboardOperation {
+        let mut operation = KeyboardBack {
             request: ValueRef {
                 slot: 1,
                 generation: 1,
@@ -286,41 +285,25 @@ mod tests {
             pending: false,
             next: 0,
         };
-        assert!(matches!(
-            operation.start(),
-            OperationAction::RequestHostCall {
-                request: RequestId(0),
-                ..
-            }
-        ));
+        let io = initial(&mut operation);
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(0))
+        );
         let key = ValueRef {
             slot: 2,
             generation: 1,
             byte_len: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
         };
-        assert_eq!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome: HostCallOutcome {
-                    disposition: HostCallDisposition::Completed,
-                    output: Some(
-                        BoundedValueRef::new(key, conduit_human::KEY_EVENT_ENCODED_LEN as u32)
-                            .unwrap()
-                    ),
-                    failure: None,
-                },
-            }),
-            OperationAction::Emit {
-                port: PortId(0),
-                value: key
-            }
+        let io = complete(
+            &mut operation,
+            RequestId(0),
+            BoundedValueRef::new(key, conduit_human::KEY_EVENT_ENCODED_LEN as u32).unwrap(),
         );
-        assert!(matches!(
-            operation.advance(),
-            OperationAction::RequestHostCall {
-                request: RequestId(1),
-                ..
-            }
-        ));
+        assert_eq!(io.test_output(PortId(0)), Some(key));
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(1))
+        );
     }
 }

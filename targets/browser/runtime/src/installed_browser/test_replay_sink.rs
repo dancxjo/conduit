@@ -1,6 +1,6 @@
 //! Typed replay observation fixture, excluded from production installations.
 use super::factory::{BrowserHostResult, BrowserInstallation, BrowserManifestation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::*;
 use conduit_kernel::HostedValueStore;
 
@@ -47,9 +47,9 @@ pub(crate) fn offer() -> CapabilityOffer {
     }
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     super::factory::validate_placement(placement, &offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
         1,
     ))

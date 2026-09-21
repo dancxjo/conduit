@@ -156,7 +156,7 @@ impl DualRegionKernel {
     }
 
     pub fn is_timer_request(&self, request: &HostCallRequest) -> bool {
-        request.node == self.timer_node && request.operation == conduit_kernel::HostCallId(0)
+        request.node == self.timer_node && request.call == conduit_kernel::HostCallId(0)
     }
 
     pub fn timer_interest(
@@ -186,7 +186,7 @@ impl DualRegionKernel {
     }
 
     pub fn is_upper_request(&self, request: &HostCallRequest) -> bool {
-        request.node == self.upper_node && request.operation == conduit_kernel::HostCallId(0)
+        request.node == self.upper_node && request.call == conduit_kernel::HostCallId(0)
     }
 
     pub fn complete_upper(
@@ -212,13 +212,11 @@ impl DualRegionKernel {
     }
 
     pub fn is_text_presentation_request(&self, request: &HostCallRequest) -> bool {
-        request.node == self.text_presentation_node
-            && request.operation == conduit_kernel::HostCallId(0)
+        request.node == self.text_presentation_node && request.call == conduit_kernel::HostCallId(0)
     }
 
     pub fn is_tick_presentation_request(&self, request: &HostCallRequest) -> bool {
-        request.node == self.tick_presentation_node
-            && request.operation == conduit_kernel::HostCallId(0)
+        request.node == self.tick_presentation_node && request.call == conduit_kernel::HostCallId(0)
     }
 
     pub fn complete_presentation(

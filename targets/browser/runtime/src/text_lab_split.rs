@@ -2,7 +2,7 @@
 
 use crate::presentation_nucleus::uppercase_utf8;
 use conduit_kernel::scheduler::{
-    FixedScheduler, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+    FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
@@ -38,7 +38,7 @@ impl UpperBack {
     }
 }
 
-impl StepOperation<PORTS> for UpperBack {
+impl StepBack<PORTS> for UpperBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

@@ -9,7 +9,7 @@ enum AliasDriver {
         consume: bool,
     },
 }
-impl StepOperation<2> for AliasDriver {
+impl StepBack<2> for AliasDriver {
     fn step(&mut self, io: &mut StepIo<2>, _: &StepInputBytes<'_, 2>) -> StepOutcome {
         match self {
             Self::Source(value) => {
@@ -83,7 +83,7 @@ fn exercise(consume: bool) {
         .install(
             NodeId(1),
             HostCallBinding {
-                operation: HostCallId(0),
+                call: HostCallId(0),
                 maximum_input_bytes: 4,
                 maximum_output_bytes: 4,
             },

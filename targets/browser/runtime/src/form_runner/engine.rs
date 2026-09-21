@@ -18,7 +18,7 @@ use preparation::{prepare_scheduler, validate_envelope};
 mod quantity_tests;
 
 use crate::installed_browser::{
-    factory, BrowserManifestation, BrowserOperation, BROWSER_HOST_CALLS_PER_GEAR,
+    factory, BrowserBack, BrowserManifestation, BROWSER_HOST_CALLS_PER_GEAR,
     BROWSER_HOST_CALL_BINDINGS, BROWSER_PENDING_REQUESTS, BROWSER_PORTS_PER_GEAR,
     BROWSER_QUEUE_SLOTS, BROWSER_ROUTE_SLOTS, BROWSER_ROUTE_TARGETS, BROWSER_SIGN_ITEMS,
     BROWSER_TOTAL_VALUE_BYTES, BROWSER_VALUE_ITEMS, MAXIMUM_BROWSER_CORDS,
@@ -27,7 +27,7 @@ use crate::installed_browser::{
 };
 use conduit_core::PlanFragment;
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostCallRequest, NodeSpec, OperationDriver, SchedulerStatus,
+    CordSpec, FixedScheduler, HostCallRequest, NodeSpec, SchedulerStatus,
 };
 use conduit_kernel::{
     BoundedValueRef, CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
@@ -36,7 +36,7 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
 
 type BrowserKernel = FixedScheduler<
-    OperationDriver<BrowserOperation, BROWSER_PORTS_PER_GEAR>,
+    BrowserBack,
     HostedValueStore,
     HostedSignLog,
     MAXIMUM_BROWSER_GEARS,
@@ -222,7 +222,7 @@ fn drive_with_boundary<'a>(
                 .ok_or_else(|| "browser request has no planned placement".to_string())?;
             let operation = placement
                 .host_calls
-                .get(usize::from(request.operation.0))
+                .get(usize::from(request.call.0))
                 .ok_or_else(|| "browser request has no planned Host Call".to_string())?;
             if resource_effect::matches(operation.contract_id.as_str()) {
                 if let Some(pending) = resource_effect::begin(scheduler, placement, request)? {

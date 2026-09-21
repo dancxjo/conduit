@@ -1,7 +1,7 @@
 //! Direct optimized Morse browser installation.
 
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
@@ -41,13 +41,10 @@ fn direct_offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(
-    placement: &PlannedGear,
-    _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &direct_offer())?;
     unit_millis(placement)?;
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         placement.host_calls[0].maximum_input_bytes,
         1,
     ))

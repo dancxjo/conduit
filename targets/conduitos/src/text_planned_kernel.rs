@@ -153,9 +153,7 @@ impl TextPlannedKernel {
         &mut self,
         request: HostCallRequest,
     ) -> Result<(), SchedulerError> {
-        if request.node != self.presentation_node
-            || request.operation != conduit_kernel::HostCallId(0)
-        {
+        if request.node != self.presentation_node || request.call != conduit_kernel::HostCallId(0) {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
         self.scheduler.complete_host_call(
@@ -209,10 +207,10 @@ impl TextPlannedKernel {
         )
     }
     pub fn is_presentation_request(&self, request: &HostCallRequest) -> bool {
-        request.node == self.presentation_node && request.operation == conduit_kernel::HostCallId(0)
+        request.node == self.presentation_node && request.call == conduit_kernel::HostCallId(0)
     }
     pub fn is_upper_request(&self, request: &HostCallRequest) -> bool {
-        request.node == self.upper_node && request.operation == conduit_kernel::HostCallId(0)
+        request.node == self.upper_node && request.call == conduit_kernel::HostCallId(0)
     }
 
     pub fn cancel(&mut self) -> Result<(), SchedulerError> {
@@ -361,7 +359,7 @@ mod tests {
             kernel.complete_presentation(HostCallRequest {
                 node: NodeId(99),
                 request: RequestId(99),
-                operation: conduit_kernel::HostCallId(0),
+                call: conduit_kernel::HostCallId(0),
                 input: BoundedValueRef::new(
                     ValueRef {
                         slot: 0,

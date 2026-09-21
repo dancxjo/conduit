@@ -172,9 +172,22 @@ An implementation must not possess materially more effect authority than the
 exact admitted realization it executes. General-purpose computation and
 continuous lifetime grant no filesystem, network, device, subprocess,
 credential, or other effect authority. Every concrete play remains finitely
-admitted, including its memory, queues, operations, resources, and mandatory
-work. resource containment is distinct from proving that every future step
-will fit or that a computation will terminate.
+admitted, including its memory, queues, Host Calls, resources, and mandatory
+work. A plan assigns every Back a finite fuel grant for each Step. Kernel-visible
+actions consume that grant automatically; cooperative private computation must
+consume it explicitly and may preserve an explicit continuation only by yielding
+after exhausting the grant. The scheduler regains control between Steps, so a
+long-running Play is a fair sequence of finite Steps rather than one short-lived
+computation.
+
+The cooperative contract is not hostile-code containment. A Back which may
+ignore fuel is eligible only behind a Host mechanism that can forcibly regain
+control, such as instruction fuel in the confined Wasm profile, a terminated
+browser Worker, an OS isolation boundary, a kernel timer/preemption boundary, or
+an enforceable MCU task/watchdog boundary. A target that has no such mechanism
+must reject that trust class rather than label elapsed wall time or native
+in-process goodwill as preemption. Resource containment is distinct from proving
+that every future Step will fit or that a computation will terminate.
 
 A grant identity describes authority; a serializable identity does not itself
 constitute unforgeable possession. The trusted enforcement boundary must

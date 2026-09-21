@@ -5,8 +5,7 @@ use conduit_core::{bind_active_play, Observation, PlanFragment};
 #[cfg(test)]
 use conduit_core::{BaseImplementationId, CapabilityId, GearId};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
-    StepOutcome,
+    FixedScheduler, HostCallRequest, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
@@ -95,7 +94,7 @@ impl PulseBack {
     }
 }
 
-impl StepOperation<PORTS> for PulseBack {
+impl StepBack<PORTS> for PulseBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -392,7 +391,7 @@ impl DistributedSource {
             .identity
             .request(request.node, request.request)
             .ok_or_else(|| "unbound std wait request identity".to_string())?;
-        if expected.operation != request.operation {
+        if expected.call != request.call {
             return Err("std wait request operation identity mismatch".to_string());
         }
         let bytes = self

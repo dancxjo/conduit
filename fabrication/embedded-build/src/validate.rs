@@ -79,7 +79,7 @@ pub(crate) fn validate_shape(
     for node in &lowered.nodes {
         let ports = node.inputs.len().max(node.outputs.len());
         check_bound("ports per node", ports, bounds.maximum_ports_per_node)?;
-        if node.maximum_step_work == 0 {
+        if node.maximum_step_fuel == 0 {
             return Err(GenerationError::InconsistentLowering(
                 "zero node step-work bound",
             ));

@@ -2,7 +2,7 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{CapabilityOffer, PlannedGear, StructuredInfoValue, StructuredInfoValueShape};
 
 pub(crate) const IMPLEMENTATION: &str = "browser/presentation-normalized-durations@1";
@@ -49,9 +49,9 @@ pub(super) fn install_catalogs(
 fn prepare(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
         1,
     ))

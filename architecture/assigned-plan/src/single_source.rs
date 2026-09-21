@@ -18,14 +18,14 @@ pub struct AssignedSingleSourceRequirements<'a> {
     pub host: AssignedIdentity,
     pub boot: AssignedIdentity,
     pub counts: [u8; ASSIGNED_PLAN_COUNT_KINDS],
-    pub operation: AssignedIdentity,
+    pub host_call: AssignedIdentity,
     pub resources: &'a [u16],
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AssignedSingleSourceView {
     pub assigned: AssignedPlanView,
-    pub maximum_step_work: u16,
+    pub maximum_step_fuel: u16,
     pub maximum_output_bytes: u32,
     pub output_port: u16,
 }
@@ -110,10 +110,10 @@ fn decode_records(
     if required.resources.len() > resources.len() {
         return Err(AssignedPlanRefusal::MalformedRecord);
     }
-    let mut maximum_step_work = None;
+    let mut maximum_step_fuel = None;
     let mut maximum_output_bytes = None;
     let mut output_port = None;
-    let mut operation_seen = false;
+    let mut host_call_seen = false;
     let mut cursor = ASSIGNED_PLAN_HEADER_BYTES;
     while cursor < bytes.len() {
         let tag = *bytes
@@ -133,7 +133,7 @@ fn decode_records(
             ASSIGNED_NODE => {
                 length == 52
                     && u16_at(payload, 0)? == 0
-                    && maximum_step_work.replace(u16_at(payload, 2)?).is_none()
+                    && maximum_step_fuel.replace(u16_at(payload, 2)?).is_none()
             }
             ASSIGNED_PORT => {
                 length == 37
@@ -143,13 +143,13 @@ fn decode_records(
             }
             ASSIGNED_HOST_CALL => {
                 let identity = identity_at(payload, 4)?;
-                let unique = !operation_seen;
-                operation_seen = true;
+                let unique = !host_call_seen;
+                host_call_seen = true;
                 length == 46
                     && unique
                     && u16_at(payload, 0)? == 0
                     && u16_at(payload, 2)? == 0
-                    && identity == required.operation
+                    && identity == required.host_call
                     && u16_at(payload, 36)? == 1
                     && u32_at(payload, 38)? == 0
                     && maximum_output_bytes.replace(u32_at(payload, 42)?).is_none()
@@ -199,7 +199,7 @@ fn decode_records(
             .ok_or(AssignedPlanRefusal::ExtraRecords)?;
         cursor = end;
     }
-    if seen != counts || !operation_seen {
+    if seen != counts || !host_call_seen {
         return Err(AssignedPlanRefusal::ExtraRecords);
     }
     let mut resource_index = 0;
@@ -219,8 +219,8 @@ fn decode_records(
             runtime_state_bytes,
             counts,
         },
-        maximum_step_work: maximum_step_work.ok_or(AssignedPlanRefusal::MissingOperation)?,
-        maximum_output_bytes: maximum_output_bytes.ok_or(AssignedPlanRefusal::MissingOperation)?,
+        maximum_step_fuel: maximum_step_fuel.ok_or(AssignedPlanRefusal::MissingBack)?,
+        maximum_output_bytes: maximum_output_bytes.ok_or(AssignedPlanRefusal::MissingHostCall)?,
         output_port: output_port.ok_or(AssignedPlanRefusal::MalformedRecord)?,
     })
 }
@@ -259,13 +259,13 @@ mod tests {
 
     #[test]
     fn exact_single_source_profile_accepts_one_generic_plan_and_refuses_inventory_drift() {
-        let operation = AssignedIdentity([7; 16]);
-        let mut bytes = fixture(operation);
+        let host_call = AssignedIdentity([7; 16]);
+        let mut bytes = fixture(host_call);
         let requirements = AssignedSingleSourceRequirements {
             host: AssignedIdentity([3; 16]),
             boot: AssignedIdentity([4; 16]),
             counts: COUNTS,
-            operation,
+            host_call,
             resources: &[0, 1, 2],
         };
         let decoded = decode_assigned_single_source(
@@ -278,12 +278,12 @@ mod tests {
             requirements,
         )
         .unwrap();
-        assert_eq!(decoded.maximum_step_work, 3);
+        assert_eq!(decoded.maximum_step_fuel, 3);
         assert_eq!(decoded.maximum_output_bytes, 1);
         assert_eq!(decoded.output_port, 0);
 
-        let operation_offset = ASSIGNED_PLAN_HEADER_BYTES + 3 + 52 + 3 + 37 + 3 + 4;
-        bytes[operation_offset] ^= 1;
+        let host_call_offset = ASSIGNED_PLAN_HEADER_BYTES + 3 + 52 + 3 + 37 + 3 + 4;
+        bytes[host_call_offset] ^= 1;
         refresh_digest(&mut bytes);
         assert_eq!(
             decode_assigned_single_source(
@@ -299,7 +299,7 @@ mod tests {
         );
     }
 
-    fn fixture(operation: AssignedIdentity) -> Vec<u8> {
+    fn fixture(expected_host_call: AssignedIdentity) -> Vec<u8> {
         let mut records = Vec::new();
         let mut node = [0; 52];
         node[2..4].copy_from_slice(&3_u16.to_le_bytes());
@@ -308,7 +308,7 @@ mod tests {
         port[4] = 1;
         record(&mut records, ASSIGNED_PORT, &port);
         let mut host_call = [0; 46];
-        host_call[4..20].copy_from_slice(&operation.0);
+        host_call[4..20].copy_from_slice(&expected_host_call.0);
         host_call[36..38].copy_from_slice(&1_u16.to_le_bytes());
         host_call[42..46].copy_from_slice(&1_u32.to_le_bytes());
         record(&mut records, ASSIGNED_HOST_CALL, &host_call);

@@ -128,11 +128,11 @@ fn result(contract: &LlmSemanticContract) -> ModelDerivedResult {
     }
 }
 
-fn proposal(proposal_id: &str, operation_kind: &str) -> ModelEffectProposal {
+fn proposal(proposal_id: &str, back_kind: &str) -> ModelEffectProposal {
     ModelEffectProposal {
         proposal_id: proposal_id.into(),
         plan_id: PlanId::from("plan/llm"),
-        operation_kind: KindId::from(operation_kind),
+        back_kind: KindId::from(back_kind),
         canonical_arguments: br#"{"enabled":true}"#.to_vec(),
         rationale: "Await an ordinary authority decision".into(),
         evidence: vec![SignId::from("sign/observed-bird")],

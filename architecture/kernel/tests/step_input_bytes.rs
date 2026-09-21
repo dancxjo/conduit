@@ -1,8 +1,8 @@
 //! Exact canonical bytes borrowed by a bounded Step.
 
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, StepInputBytes, StepIo,
-    StepOperation, StepOutcome,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, StepBack, StepInputBytes,
+    StepIo, StepOutcome,
 };
 #[cfg(feature = "alloc")]
 use conduit_kernel::HostedValueStore;
@@ -38,7 +38,7 @@ enum ProbeBack {
     },
 }
 
-impl StepOperation<PORTS> for ProbeBack {
+impl StepBack<PORTS> for ProbeBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -151,11 +151,11 @@ fn run_with_value<S: ValueStorage>(
     let node_specs = [
         NodeSpec {
             input_cords: [None],
-            maximum_step_work: 2,
+            maximum_step_fuel: 2,
         },
         NodeSpec {
             input_cords: [Some(CordId(0))],
-            maximum_step_work: 2,
+            maximum_step_fuel: 2,
         },
     ];
     let cord_specs = [CordSpec::local(

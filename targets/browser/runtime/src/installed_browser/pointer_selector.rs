@@ -1,7 +1,7 @@
 //! Two exact existing field selectors needed by the pointer controller.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
     ConfigurationValue, ExecutionProfileId, HostCallRequirement, ImplementationId, PlannedGear,
@@ -88,9 +88,9 @@ fn offer(selector: &StructuredSelector, implementation: &str) -> CapabilityOffer
 fn prepare(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     PreparedSelector::new(placement)?;
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
         1,
     ))

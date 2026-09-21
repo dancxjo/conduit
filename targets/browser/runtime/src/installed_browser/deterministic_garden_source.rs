@@ -1,14 +1,14 @@
 //! Pure browser realization of the canonical deterministic Garden observations.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
-    Failure, FailureCode, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
-    ValueRef, ValueStorage,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    HostedValueStore, PortId, ValueRef, ValueStorage,
 };
 
 const IMPLEMENTATION: &str = "browser/kernel-deterministic-garden-observations@1";
@@ -42,10 +42,7 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(
-    placement: &PlannedGear,
-    values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     let (state, clock, contact) = conduit_semantic_catalog::deterministic_garden_observations();
     let canonical = [
@@ -65,42 +62,26 @@ fn prepare(
     let values: [ValueRef; 3] = stored
         .try_into()
         .map_err(|_| "deterministic Garden source value count".to_string())?;
-    Ok(BrowserOperation::installed(SourceOperation {
-        values,
-        next: 0,
-    }))
+    Ok(BrowserBack::installed_step(SourceBack { values, next: 0 }))
 }
 
-struct SourceOperation {
+struct SourceBack {
     values: [ValueRef; 3],
     next: usize,
 }
 
-impl Operation for SourceOperation {
-    fn start(&mut self) -> OperationAction {
-        self.emit_next()
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        OperationAction::Fail(Failure {
-            code: FailureCode::InvalidInput,
-            detail: 1,
-        })
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        self.emit_next()
-    }
-}
-
-impl SourceOperation {
-    fn emit_next(&mut self) -> OperationAction {
+impl<const PORTS: usize> StepBack<PORTS> for SourceBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         let Some(value) = self.values.get(self.next).copied() else {
-            return OperationAction::Complete;
+            return StepOutcome::Complete;
         };
         let port = PortId(u16::try_from(self.next).expect("three Garden source ports"));
+        if !io.output_ready(port) {
+            return StepOutcome::Await;
+        }
+        io.send(port, value).expect("ready Garden fixture output");
         self.next += 1;
-        OperationAction::Emit { port, value }
+        StepOutcome::Progress
     }
 }
 

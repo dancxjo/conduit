@@ -1,7 +1,7 @@
 //! Browser realizations of the shared, transport-neutral typed-record codecs.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear, StructuredInfoValue,
@@ -81,7 +81,7 @@ fn offer(index: usize) -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let index = IMPLEMENTATIONS
         .iter()
         .position(|id| *id == placement.implementation_id.as_str())
@@ -90,7 +90,7 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserO
     if !placement.configuration.is_empty() {
         return Err("unexpected typed-record codec configuration".into());
     }
-    Ok(BrowserOperation::unary(MAXIMUM, 4))
+    Ok(BrowserBack::unary(MAXIMUM, 4))
 }
 
 pub(crate) fn execute(contract: &str, input: &[u8]) -> Result<Vec<u8>, Failure> {

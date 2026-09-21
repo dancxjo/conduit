@@ -28,7 +28,7 @@ fn offer() -> CapabilityOffer {
 fn prepare(
     placement: &conduit_core::PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<super::BrowserOperation, String> {
+) -> Result<super::BrowserBack, String> {
     super::factory::validate_placement(placement, &offer())?;
     if !placement.configuration.is_empty()
         || !placement.resources.is_empty()
@@ -36,8 +36,8 @@ fn prepare(
     {
         return Err("phase synchronization admission differs from installation".into());
     }
-    Ok(super::BrowserOperation::installed(
-        conduit_time::PhaseSynchronizationOperation::new(),
+    Ok(super::BrowserBack::installed_step(
+        conduit_time::PhaseSynchronizationBack::new(),
     ))
 }
 
@@ -51,7 +51,10 @@ pub(super) static INSTALLATION: super::factory::BrowserInstallation =
 
 #[cfg(test)]
 mod tests {
-    use conduit_kernel::{Operation, OperationAction, PortId, ValueRef};
+    use conduit_kernel::{
+        scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+        PortId, ValueRef,
+    };
 
     fn input(byte_len: usize) -> ValueRef {
         ValueRef {
@@ -74,8 +77,7 @@ mod tests {
         assert_eq!(offer.inputs, semantic.inputs);
         assert_eq!(offer.outputs, semantic.outputs);
         assert_eq!(offer.limits, semantic.limits);
-        let mut operation = conduit_time::PhaseSynchronizationOperation::new();
-        assert_eq!(operation.start(), OperationAction::Await);
+        let mut operation = conduit_time::PhaseSynchronizationBack::new();
         let local = conduit_time::RhythmState {
             sequence: 7,
             next_pulse_at_ms: 1_000,
@@ -86,22 +88,40 @@ mod tests {
             sequence: 4,
             period_ms: 280,
         };
-        assert_eq!(
-            operation.resume_value(
-                PortId(0),
-                input(conduit_time::RHYTHM_STATE_ENCODED_LEN),
-                &conduit_time::encode_rhythm_state(local)
-            ),
-            OperationAction::Await
+        let local_bytes = conduit_time::encode_rhythm_state(local);
+        let mut local_io = StepIo::test_frame(
+            [Some(input(local_bytes.len())), None],
+            [false; 2],
+            [Some(conduit_time::RHYTHM_STATE_ENCODED_LEN as u32), None],
+            None,
+            4,
         );
-        let OperationAction::EmitCanonical { port, value } = operation.resume_value(
-            PortId(1),
-            input(conduit_time::PULSE_OBSERVATION_ENCODED_LEN),
-            &conduit_time::encode_pulse_observation(peer),
-        ) else {
-            panic!("phase synchronization must derive one canonical state");
-        };
-        assert_eq!(port, PortId(0));
+        assert_eq!(
+            operation.step(
+                &mut local_io,
+                &StepInputBytes::test_frame([Some(&local_bytes), None], None),
+            ),
+            StepOutcome::Progress
+        );
+        let peer_bytes = conduit_time::encode_pulse_observation(peer);
+        let mut peer_io = StepIo::test_frame(
+            [None, Some(input(peer_bytes.len()))],
+            [false; 2],
+            [Some(conduit_time::RHYTHM_STATE_ENCODED_LEN as u32), None],
+            None,
+            4,
+        );
+        assert_eq!(
+            operation.step(
+                &mut peer_io,
+                &StepInputBytes::test_frame([None, Some(&peer_bytes)], None),
+            ),
+            StepOutcome::Progress
+        );
+        let (port, value) = peer_io
+            .test_canonical_output()
+            .expect("phase synchronization must derive one canonical state");
+        assert_eq!(*port, PortId(0));
         let updated = conduit_time::decode_rhythm_state(value.as_slice()).unwrap();
         assert_eq!(updated.expected_peer_sequence, 5);
         assert_eq!(updated.next_pulse_at_ms, 1_060);

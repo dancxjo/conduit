@@ -6,7 +6,7 @@ use super::test_logic;
 use super::test_midi_source;
 use super::test_scalar_flow;
 use super::test_text_source;
-use super::tick_operations::{TEST_OBSERVER_IMPLEMENTATION, TEST_OBSERVER_KIND};
+use super::tick_backs::{TEST_OBSERVER_IMPLEMENTATION, TEST_OBSERVER_KIND};
 use conduit_core::{
     kind_id, present_host_call_requirement, ArtifactId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ExecutionProfileId, KindIdentity, PortDescriptor, PortDirection,

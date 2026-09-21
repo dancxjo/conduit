@@ -68,7 +68,7 @@ impl PlayRefusal {
         match self {
             Self::Preparation => "native-body-play-preparation-refused",
             Self::Kernel => "native-body-kernel-boundary-refused",
-            Self::Scheduler(_) => "native-body-kernel-operation-refused",
+            Self::Scheduler(_) => "native-body-kernel-step-refused",
             Self::HostFailure(failure) => failure.code.as_str(),
             Self::Foreground => "native-body-foreground-unavailable",
             Self::InputOwnership => "native-body-input-ownership-unavailable",

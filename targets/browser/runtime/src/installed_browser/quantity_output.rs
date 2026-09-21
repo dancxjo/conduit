@@ -3,7 +3,7 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     kind_id, present_host_call_requirement, resource_requirement, ArtifactId, Back,
     BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, ImplementationId,
@@ -106,10 +106,10 @@ pub(super) fn install_catalogs(
 fn prepare_wrap(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &wrap_offer())?;
     PREFIX.get_or_init(quantity_info_prefix);
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         conduit_core::QUANTITY_ENCODED_LEN as u32,
         1,
     ))
@@ -130,9 +130,9 @@ pub(crate) fn wrap(input: &[u8]) -> Result<([u8; QUANTITY_INFO_MAXIMUM_BYTES], u
 fn prepare_presentation(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &presentation_offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         1,
     ))
@@ -141,9 +141,9 @@ fn prepare_presentation(
 fn prepare_direct_presentation(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &direct_presentation_offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         QUANTITY_INFO_MAXIMUM_BYTES as u32,
         1,
     ))

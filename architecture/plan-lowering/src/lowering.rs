@@ -103,7 +103,7 @@ pub struct LoweredPort {
 pub struct LoweredNode {
     pub node: NodeId,
     pub placement_id: PlacementId,
-    pub maximum_step_work: u16,
+    pub maximum_step_fuel: u16,
     pub inputs: Vec<LoweredPort>,
     pub outputs: Vec<LoweredPort>,
 }
@@ -149,7 +149,7 @@ pub struct LoweredRoute {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoweredHostCall {
     pub node: NodeId,
-    pub operation: HostCallId,
+    pub call: HostCallId,
     pub contract_id: HostCallContractId,
     pub target_kind: Option<KindId>,
     pub maximum_in_flight: u16,
@@ -268,12 +268,12 @@ impl KernelIdentityMap {
     pub fn host_call_contract(
         &self,
         node: NodeId,
-        operation: HostCallId,
+        call: HostCallId,
     ) -> Option<&HostCallContractId> {
         self.host_calls
             .iter()
-            .find(|(candidate_node, candidate_operation, _)| {
-                *candidate_node == node && *candidate_operation == operation
+            .find(|(candidate_node, candidate_call, _)| {
+                *candidate_node == node && *candidate_call == call
             })
             .map(|(_, _, contract)| contract)
     }
@@ -288,7 +288,7 @@ impl KernelIdentityMap {
             .find(|(candidate_node, _, candidate_contract)| {
                 *candidate_node == node && candidate_contract == contract
             })
-            .map(|(_, operation, _)| *operation)
+            .map(|(_, call, _)| *call)
     }
 }
 
@@ -309,7 +309,7 @@ pub enum ExecutionIdentityError {
 pub struct KernelHostRequestIdentity {
     pub node: NodeId,
     pub request: conduit_kernel::RequestId,
-    pub operation: HostCallId,
+    pub call: HostCallId,
     pub contract_id: HostCallContractId,
 }
 
@@ -367,10 +367,10 @@ impl KernelExecutionIdentityMap {
         lowered: &KernelIdentityMap,
         node: NodeId,
         request: conduit_kernel::RequestId,
-        operation: HostCallId,
+        call: HostCallId,
     ) -> Result<(), ExecutionIdentityError> {
         let contract_id = lowered
-            .host_call_contract(node, operation)
+            .host_call_contract(node, call)
             .ok_or(ExecutionIdentityError::UnknownHostCall)?;
         if self.requests.len() >= self.requests.capacity() {
             return Err(ExecutionIdentityError::CapacityExceeded);
@@ -385,7 +385,7 @@ impl KernelExecutionIdentityMap {
         self.requests.push(KernelHostRequestIdentity {
             node,
             request,
-            operation,
+            call,
             contract_id: contract_id.clone(),
         });
         Ok(())
@@ -615,7 +615,7 @@ pub fn lower_plan_fragment_for_profile(
             });
         }
         let input_cords = [None; FIXED_KERNEL_STORAGE_PORTS_PER_NODE];
-        let maximum_step_work = 1usize
+        let maximum_step_fuel = 1usize
             .checked_add(inputs.len())
             .and_then(|value| value.checked_add(outputs.len()))
             .and_then(|value| value.checked_add(placement.host_calls.len()))
@@ -635,13 +635,13 @@ pub fn lower_plan_fragment_for_profile(
         nodes.push(LoweredNode {
             node,
             placement_id: placement.placement_id.clone(),
-            maximum_step_work,
+            maximum_step_fuel,
             inputs,
             outputs,
         });
         node_specs.push(NodeSpec {
             input_cords,
-            maximum_step_work,
+            maximum_step_fuel,
         });
     }
 
@@ -810,15 +810,15 @@ pub fn lower_plan_fragment_for_profile(
                     placement.placement_id.clone(),
                 ));
             }
-            let operation = HostCallId(as_u16(index)?);
+            let call = HostCallId(as_u16(index)?);
             host_calls.push(LoweredHostCall {
                 node: node.node,
-                operation,
+                call,
                 contract_id: requirement.contract_id.clone(),
                 target_kind: requirement.target_kind.clone(),
                 maximum_in_flight: requirement.maximum_in_flight,
                 binding: HostCallBinding {
-                    operation,
+                    call,
                     maximum_input_bytes: requirement.maximum_input_bytes,
                     maximum_output_bytes: requirement.maximum_output_bytes,
                 },
@@ -892,7 +892,7 @@ pub fn lower_plan_fragment_for_profile(
                 .collect(),
             host_calls: host_calls
                 .iter()
-                .map(|item| (item.node, item.operation, item.contract_id.clone()))
+                .map(|item| (item.node, item.call, item.contract_id.clone()))
                 .collect(),
             resources: resources
                 .iter()

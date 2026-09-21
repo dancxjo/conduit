@@ -4,7 +4,7 @@ use crate::text_kernel_backs::{
     LiteralBack, PresentationBack, StepDetails, UpperBack, step_sink, step_transform,
 };
 use conduit_kernel::RequestId;
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const MORSE_REQUEST: RequestId = RequestId(5);
@@ -40,7 +40,7 @@ pub(super) enum TourMorseBack {
     Leaf(LeafBack),
 }
 
-impl StepOperation<PORTS> for TourMorseBack {
+impl StepBack<PORTS> for TourMorseBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

@@ -1,4 +1,4 @@
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef,
@@ -51,7 +51,7 @@ impl TripleBack {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TripleBack {
+impl<const PORTS: usize> StepBack<PORTS> for TripleBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

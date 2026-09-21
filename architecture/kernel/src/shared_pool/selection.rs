@@ -73,7 +73,7 @@ pub enum PoolSelectionError {
     Admission(PoolError),
 }
 
-/// Select and atomically occupy one exact realization for a new operation.
+/// Select and atomically occupy one exact realization for a new call.
 /// At most `envelope.len()` realizations are examined; observations for
 /// compatible but unsealed realizations are ignored. Selected observation Sign
 /// identities are copied to caller-owned fixed storage.

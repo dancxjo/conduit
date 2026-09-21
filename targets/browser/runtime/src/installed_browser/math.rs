@@ -1,7 +1,7 @@
 //! Browser installations for exact bounded scalar transforms.
 
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     kind_id, ConfigurationValue, HostCallContractId, HostCallRequirement, PlannedGear, Scalar,
     SCALAR_ENCODED_LEN,
@@ -81,15 +81,12 @@ fn offer(
     )
 }
 
-fn prepare(
-    placement: &PlannedGear,
-    _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let offer = installed_offer(placement.implementation_id.as_str())
         .ok_or_else(|| "unknown math installation".to_string())?;
     validate_placement(placement, &offer)?;
     transform(placement, Scalar::ZERO)?;
-    Ok(BrowserOperation::unary(SCALAR_ENCODED_LEN as u32, 1))
+    Ok(BrowserBack::unary(SCALAR_ENCODED_LEN as u32, 1))
 }
 
 fn installed_offer(implementation: &str) -> Option<conduit_core::CapabilityOffer> {

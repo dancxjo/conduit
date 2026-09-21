@@ -6,8 +6,8 @@ use conduit_core::{
     PROTOCOL_VERSION,
 };
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus, StepInputBytes, StepIo,
-    StepOperation, StepOutcome,
+    FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus, StepBack, StepInputBytes,
+    StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
@@ -223,7 +223,7 @@ impl SignalBack {
     }
 }
 
-impl StepOperation<PORTS> for SignalBack {
+impl StepBack<PORTS> for SignalBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -486,7 +486,7 @@ impl BrowserSession {
             .identity
             .request(request.node, request.request)
             .ok_or(ERROR_COMPLETION_IDENTITY)?;
-        if request_identity.operation != request.operation {
+        if request_identity.call != request.call {
             return self.fail(ERROR_COMPLETION_IDENTITY);
         }
         let placement = self
@@ -943,7 +943,7 @@ fn write_common_frame(
     writer.text(active_play_id.as_str())?;
     writer.u16(request.node.0)?;
     writer.u32(request.request.0)?;
-    writer.u16(request.operation.0)?;
+    writer.u16(request.call.0)?;
     writer.text(contract_id.as_str())?;
     writer.text(placement_id.as_str())
 }

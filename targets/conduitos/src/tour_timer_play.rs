@@ -132,7 +132,7 @@ fn step_error(_error: conduit_kernel::scheduler::SchedulerError) -> MachineRunEr
 }
 
 fn timer_interest(request: HostCallRequest) -> Result<KernelInterest, MachineRunError> {
-    if request.operation != conduit_kernel::HostCallId(0) {
+    if request.call != conduit_kernel::HostCallId(0) {
         return Err(MachineRunError::UnexpectedHostCall);
     }
     Ok(KernelInterest {

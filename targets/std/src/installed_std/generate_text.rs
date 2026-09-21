@@ -1,87 +1,91 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
-pub(super) static GENERATE_TEXT_SMALL_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static GENERATE_TEXT_SMALL_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_ai::SMALL_LOCAL_IMPLEMENTATION,
     budget,
     prepare,
 };
-pub(super) static GENERATE_TEXT_LARGE_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static GENERATE_TEXT_LARGE_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_ai::LARGE_LOCAL_IMPLEMENTATION,
     budget,
     prepare,
 };
-pub(super) static GENERATE_TEXT_REMOTE_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static GENERATE_TEXT_REMOTE_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_ai::REMOTE_FRONTIER_IMPLEMENTATION,
     budget,
     prepare,
 };
 
-pub(super) struct GenerateTextOperation {
+pub(super) struct GenerateTextBack {
     maximum_input_bytes: u32,
     pending: bool,
     emitted: bool,
 }
 
-impl GenerateTextOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending && !self.emitted => {
-                let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
-                    return fail(FailureCode::InvalidInput, 1);
-                };
-                self.pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending && request == RequestId(0) =>
-            {
-                self.pending = false;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 2),
-                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 3),
-                    (HostCallDisposition::Failed, _, _) => fail(FailureCode::HostCallFailed, 4),
-                    _ => fail(FailureCode::InvalidLifecycle, 5),
-                }
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 6),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
+impl<const PORTS: usize> StepBack<PORTS> for GenerateTextBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
-            OperationAction::Complete
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if !self.pending || request != RequestId(0) {
+                return step_fail(FailureCode::InvalidLifecycle, 6);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed generate-text completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready generated text output");
+                    self.pending = false;
+                    self.emitted = true;
+                    StepOutcome::Progress
+                }
+                (HostCallDisposition::Denied, _, _) => step_fail(FailureCode::HostCallDenied, 2),
+                (HostCallDisposition::Cancelled, _, _) => step_fail(FailureCode::Cancelled, 3),
+                (HostCallDisposition::Failed, _, _) => {
+                    StepOutcome::Fail(outcome.failure.unwrap_or(Failure {
+                        code: FailureCode::HostCallFailed,
+                        detail: 4,
+                    }))
+                }
+                _ => step_fail(FailureCode::InvalidLifecycle, 5),
+            }
+        } else if let Some(value) = io.input(PortId(0)) {
+            if self.pending {
+                return step_fail(FailureCode::InvalidLifecycle, 6);
+            }
+            let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
+                return step_fail(FailureCode::InvalidInput, 1);
+            };
+            io.consume(PortId(0)).expect("present generation prompt");
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("generate-text Host Call");
+            self.pending = true;
+            StepOutcome::Progress
         } else {
-            OperationAction::Await
+            StepOutcome::Await
         }
     }
 
-    pub(super) fn cancel(&mut self) {
+    fn cancel(&mut self) {
         self.pending = false;
     }
 }
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
+}
+
+impl GenerateTextBack {}
 
 pub(super) fn execute_fixture(
     placement: &PlannedGear,
@@ -159,7 +163,7 @@ fn configuration_count(placement: &PlannedGear, key: &str) -> Result<u64, String
         .ok_or_else(|| format!("generate-text configuration '{key}' is missing"))
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
     let maximum_input_bytes = u32::try_from(configuration_count(placement, "maximum-input-bytes")?)
         .map_err(|_| "generate-text input bound does not fit the kernel".to_string())?;
@@ -167,7 +171,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         .checked_mul(4)
         .and_then(|value| u32::try_from(value).ok())
         .ok_or_else(|| "generate-text output bound does not fit the kernel".to_string())?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 1,
         value_bytes: maximum_output_bytes,
         host_requests: 1,
@@ -179,16 +183,12 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
-    Ok(InstalledOperation::GenerateText(GenerateTextOperation {
+    Ok(InstalledBack::GenerateText(GenerateTextBack {
         maximum_input_bytes: u32::try_from(configuration_count(placement, "maximum-input-bytes")?)
             .map_err(|_| "generate-text input bound does not fit the kernel".to_string())?,
         pending: false,
         emitted: false,
     }))
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }

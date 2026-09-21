@@ -1,15 +1,15 @@
 //! Browser realization of the shared finite named-pattern template store.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
     ResourceRequirement, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
-    Failure, FailureCode, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
-    ValueRef, ValueStorage,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    Failure, FailureCode, HostedValueStore, PortId, ValueRef, ValueStorage,
 };
 
 pub(crate) const HOST_CALL: &str = "conduit.host/browser-named-pattern-storage@1";
@@ -124,10 +124,10 @@ fn validate(placement: &PlannedGear) -> Result<u64, String> {
     Ok(maximum)
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let maximum = validate(placement)?;
-    Ok(BrowserOperation::installed(
-        conduit_semantic_catalog::TemplateStorageOperation::new(
+    Ok(BrowserBack::installed_step(
+        conduit_semantic_catalog::TemplateStorageBack::new(
             maximum,
             MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         ),
@@ -137,7 +137,7 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserO
 fn prepare_initializer(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &initializer_offer())?;
     let configured = |key| {
         placement
@@ -169,37 +169,29 @@ fn prepare_initializer(
                 .map_err(|error| format!("template command: {error:?}"))?,
         )
         .map_err(|error| format!("store template command: {error:?}"))?;
-    Ok(BrowserOperation::installed(TemplateInitializerOperation {
+    Ok(BrowserBack::installed_step(TemplateInitializerBack {
         command: stored,
         emitted: false,
     }))
 }
 
-struct TemplateInitializerOperation {
+struct TemplateInitializerBack {
     command: ValueRef,
     emitted: bool,
 }
 
-impl Operation for TemplateInitializerOperation {
-    fn start(&mut self) -> OperationAction {
-        self.emitted = true;
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.command,
+impl<const PORTS: usize> StepBack<PORTS> for TemplateInitializerBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
         }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        let _ = input;
-        OperationAction::Fail(Failure {
-            code: FailureCode::InvalidLifecycle,
-            detail: 265,
-        })
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        debug_assert!(self.emitted);
-        OperationAction::Complete
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), self.command)
+            .expect("ready template initializer output");
+        self.emitted = true;
+        StepOutcome::Progress
     }
 }
 

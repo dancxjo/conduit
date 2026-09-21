@@ -45,10 +45,10 @@ pub struct NetworkJoinLayout {
     pub join_node: NodeId,
     pub join_input_port: PortId,
     pub join_output_port: PortId,
-    pub join_operation: HostCallId,
+    pub join_host_call: HostCallId,
     pub sign_node: NodeId,
     pub sign_input_port: PortId,
-    pub sign_operation: HostCallId,
+    pub sign_host_call: HostCallId,
 }
 
 pub fn network_join_layout() -> Option<NetworkJoinLayout> {
@@ -65,13 +65,13 @@ pub fn network_join_layout() -> Option<NetworkJoinLayout> {
                 && *info == conduit_net::NETWORK_JOIN_REQUEST_KIND
         })
         .map(|(_, port, _, _)| *port)?;
-    let join_operation = generated::GENERATED_HOST_CALLS
+    let join_host_call = generated::GENERATED_HOST_CALLS
         .iter()
         .zip(generated::GENERATED_HOST_CALL_IDENTITIES.iter())
         .find(|((candidate, _), (contract, _, _))| {
             *candidate == join_node && *contract == conduit_net::NETWORK_JOIN_HOST_CALL
         })
-        .map(|((_, binding), _)| binding.operation)?;
+        .map(|((_, binding), _)| binding.call)?;
     let join_output_port = generated::GENERATED_OUTPUT_PORTS
         .iter()
         .find(|(candidate, _, port, info)| {
@@ -93,22 +93,22 @@ pub fn network_join_layout() -> Option<NetworkJoinLayout> {
                 && *info == conduit_net::NETWORK_ATTACHMENT_KIND
         })
         .map(|(_, port, _, _)| *port)?;
-    let sign_operation = generated::GENERATED_HOST_CALLS
+    let sign_host_call = generated::GENERATED_HOST_CALLS
         .iter()
         .zip(generated::GENERATED_HOST_CALL_IDENTITIES.iter())
         .find(|((candidate, _), (contract, _, _))| {
             *candidate == sign_node
                 && *contract == conduit_net::NETWORK_ATTACHMENT_SIGN_HOST_CALL
         })
-        .map(|((_, binding), _)| binding.operation)?;
+        .map(|((_, binding), _)| binding.call)?;
     Some(NetworkJoinLayout {
         join_node,
         join_input_port,
         join_output_port,
-        join_operation,
+        join_host_call,
         sign_node,
         sign_input_port,
-        sign_operation,
+        sign_host_call,
     })
 }
 

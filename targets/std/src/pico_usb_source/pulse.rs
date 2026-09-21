@@ -1,6 +1,6 @@
 //! Finite Pulse Back used by the production R1 source kernel.
 
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef,
@@ -38,7 +38,7 @@ impl PulseBack {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for PulseBack {
+impl<const PORTS: usize> StepBack<PORTS> for PulseBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

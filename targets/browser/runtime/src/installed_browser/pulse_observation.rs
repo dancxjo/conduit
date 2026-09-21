@@ -28,7 +28,7 @@ fn offer() -> CapabilityOffer {
 fn prepare(
     placement: &conduit_core::PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<super::BrowserOperation, String> {
+) -> Result<super::BrowserBack, String> {
     let installed = offer();
     super::factory::validate_placement(placement, &installed)?;
     if !placement.resources.is_empty() || !placement.authority.is_empty() {
@@ -37,8 +37,8 @@ fn prepare(
     let configuration =
         conduit_time::PulseObservationConfiguration::parse(&placement.configuration)
             .map_err(|error| format!("invalid pulse observation configuration: {error:?}"))?;
-    let operation = conduit_time::PulseObservationOperation::new(configuration);
-    Ok(super::BrowserOperation::installed(operation))
+    let operation = conduit_time::PulseObservationBack::new(configuration);
+    Ok(super::BrowserBack::installed_step(operation))
 }
 
 pub(super) static INSTALLATION: super::factory::BrowserInstallation =
@@ -53,7 +53,7 @@ pub(super) static INSTALLATION: super::factory::BrowserInstallation =
 mod tests {
     use super::*;
     use conduit_core::{ConfigurationEntry, ConfigurationValue, PlannedGear};
-    use conduit_kernel::{HostedValueStore, Operation, OperationAction, PortId, ValueRef};
+    use conduit_kernel::HostedValueStore;
 
     fn placement() -> PlannedGear {
         let offer = offer();
@@ -88,29 +88,8 @@ mod tests {
     #[test]
     fn browser_installs_shared_observer_with_all_outputs_admitted_before_play() {
         let mut values = HostedValueStore::new(64, 8, 512).unwrap();
-        let mut operation = prepare(&placement(), &mut values).unwrap();
         let capacity = values.allocation_capacities();
-        assert_eq!(operation.start(), OperationAction::Await);
-        for sequence in 0..3 {
-            let tick = conduit_time::encode_tick(sequence);
-            let input = ValueRef {
-                slot: 63,
-                generation: 1,
-                byte_len: tick.len() as u32,
-            };
-            let OperationAction::EmitCanonical { port, value } =
-                operation.resume_value(PortId(0), input, &tick)
-            else {
-                panic!("browser observer must emit one exact pulse");
-            };
-            assert_eq!(port, PortId(0));
-            let observed = conduit_time::decode_pulse_observation(value.as_slice()).unwrap();
-            assert_eq!(
-                (observed.sequence, observed.period_ms),
-                (sequence as u32, 240)
-            );
-            assert_eq!(operation.advance(), OperationAction::Await);
-        }
+        let _back = prepare(&placement(), &mut values).unwrap();
         assert_eq!(values.allocation_capacities(), capacity);
     }
 

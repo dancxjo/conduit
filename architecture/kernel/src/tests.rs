@@ -82,7 +82,7 @@ fn only_plan_admitted_host_calls_cross_the_boundary() {
         .install(
             NodeId(1),
             HostCallBinding {
-                operation: HostCallId(0),
+                call: HostCallId(0),
                 maximum_input_bytes: 4,
                 maximum_output_bytes: 8,
             },
@@ -109,7 +109,7 @@ fn admitted_sink_host_call_may_have_no_output_payload() {
         .install(
             NodeId(0),
             HostCallBinding {
-                operation: HostCallId(0),
+                call: HostCallId(0),
                 maximum_input_bytes: 8,
                 maximum_output_bytes: 0,
             },
@@ -142,7 +142,7 @@ fn admitted_source_host_call_may_have_no_input_payload() {
         .install(
             NodeId(0),
             HostCallBinding {
-                operation: HostCallId(0),
+                call: HostCallId(0),
                 maximum_input_bytes: 0,
                 maximum_output_bytes: 3,
             },

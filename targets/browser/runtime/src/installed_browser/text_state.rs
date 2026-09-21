@@ -1,7 +1,7 @@
 //! Bounded retained text editing and repeated line submission.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
@@ -59,14 +59,14 @@ fn offer(contract: Kind, implementation: &'static str) -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let expected = match placement.implementation_id.as_str() {
         EDIT_IMPLEMENTATION => edit_offer(),
         SUBMIT_IMPLEMENTATION => submit_offer(),
         _ => return Err("unsupported text state implementation".into()),
     };
     validate_placement(placement, &expected)?;
-    Ok(BrowserOperation::unary(4, 1))
+    Ok(BrowserBack::unary(4, 1))
 }
 
 pub(crate) struct PreparedTextState(conduit_semantic_catalog::BoundedTextState);

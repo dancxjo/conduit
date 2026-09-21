@@ -14,10 +14,13 @@ use conduit_core::{
     ResourceVersionIdentity,
 };
 use conduit_kernel::{
-    scheduler::{CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver},
+    scheduler::{
+        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo,
+        StepOutcome,
+    },
     CordEndpoint, CordId, Failure, FailureCode, FixedRoutes, HostedSignLog, HostedValueStore,
-    KernelEvent, KernelEventKind, NodeId, Operation, OperationAction, OperationInput, PortId,
-    RouteRange, RouteTarget, SignQuery, ValueRef, ValueStorage,
+    KernelEvent, KernelEventKind, NodeId, PortId, RouteRange, RouteTarget, SignQuery, ValueRef,
+    ValueStorage,
 };
 
 const FUSION_NODE: NodeId = NodeId(4);
@@ -31,29 +34,6 @@ struct SourceOperation {
     emitted: bool,
 }
 
-impl Operation for SourceOperation {
-    fn start(&mut self) -> OperationAction {
-        self.emitted = true;
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.value,
-        }
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        invalid(1)
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            self.emitted = false;
-            OperationAction::Complete
-        } else {
-            invalid(2)
-        }
-    }
-}
-
 #[derive(Clone)]
 struct FusionOperation {
     policy: HybridFusionPolicy,
@@ -63,92 +43,8 @@ struct FusionOperation {
     emitted: bool,
 }
 
-impl Operation for FusionOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        invalid(3)
-    }
-
-    fn resume_value(&mut self, port: PortId, _value: ValueRef, bytes: &[u8]) -> OperationAction {
-        let index = usize::from(port.0);
-        if index >= self.stages.len() || self.stages[index].is_some() || self.emitted {
-            return invalid(4);
-        }
-        let Ok(stage) = RetrievalStage::decode(bytes) else {
-            return invalid(5);
-        };
-        let expected_mechanism = [
-            RetrievalMechanism::VectorSimilarity,
-            RetrievalMechanism::Lexical,
-            RetrievalMechanism::Metadata,
-            RetrievalMechanism::Temporal,
-        ][index];
-        if stage.retriever.mechanism != expected_mechanism {
-            return invalid(6);
-        }
-        self.stages[index] = Some(stage);
-        if self.stages.iter().any(Option::is_none) {
-            return OperationAction::Await;
-        }
-        let stages: Vec<_> = self
-            .stages
-            .iter()
-            .map(|stage| stage.clone().expect("all four stages are present"))
-            .collect();
-        let Ok(outcome) = self.policy.fuse(&stages, None) else {
-            return invalid(7);
-        };
-        let receipt = HybridRetrievalReceipt {
-            policy_identity: self.policy.identity.clone(),
-            outcome,
-        };
-        let Ok(encoded) = receipt.encode() else {
-            return invalid(8);
-        };
-        if encoded != self.expected {
-            return invalid(9);
-        }
-        self.emitted = true;
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.output,
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            self.emitted = false;
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-}
-
 #[derive(Clone)]
 struct SinkOperation;
-
-impl Operation for SinkOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        invalid(10)
-    }
-
-    fn resume_value(&mut self, port: PortId, _value: ValueRef, bytes: &[u8]) -> OperationAction {
-        match HybridRetrievalReceipt::decode(bytes) {
-            Ok(receipt) if port == PortId(0) && receipt.policy_identity == POLICY_IDENTITY => {
-                OperationAction::Complete
-            }
-            _ => invalid(11),
-        }
-    }
-}
 
 #[derive(Clone)]
 enum TestOperation {
@@ -157,58 +53,102 @@ enum TestOperation {
     Sink(SinkOperation),
 }
 
-impl Operation for TestOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepBack<4> for TestOperation {
+    fn step(&mut self, io: &mut StepIo<4>, bytes: &StepInputBytes<'_, 4>) -> StepOutcome {
         match self {
-            Self::Source(operation) => operation.start(),
-            Self::Fusion(operation) => operation.start(),
-            Self::Sink(operation) => operation.start(),
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Source(operation) => operation.resume(input),
-            Self::Fusion(operation) => operation.resume(input),
-            Self::Sink(operation) => operation.resume(input),
-        }
-    }
-
-    fn resume_value(&mut self, port: PortId, value: ValueRef, bytes: &[u8]) -> OperationAction {
-        match self {
-            Self::Source(operation) => operation.resume_value(port, value, bytes),
-            Self::Fusion(operation) => operation.resume_value(port, value, bytes),
-            Self::Sink(operation) => operation.resume_value(port, value, bytes),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source(operation) => operation.advance(),
-            Self::Fusion(operation) => operation.advance(),
-            Self::Sink(operation) => operation.advance(),
+            Self::Source(operation) => {
+                if operation.emitted {
+                    return StepOutcome::Complete;
+                }
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                io.send(PortId(0), operation.value).unwrap();
+                operation.emitted = true;
+                StepOutcome::Complete
+            }
+            Self::Fusion(operation) => {
+                if operation.emitted {
+                    return StepOutcome::Complete;
+                }
+                if let Some(index) = (0..operation.stages.len())
+                    .find(|&index| io.input(PortId(index as u16)).is_some())
+                {
+                    if operation.stages[index].is_some() {
+                        return invalid(4);
+                    }
+                    let Some(input) = bytes.input(PortId(index as u16)) else {
+                        return invalid(5);
+                    };
+                    let Ok(stage) = RetrievalStage::decode(input) else {
+                        return invalid(5);
+                    };
+                    let expected_mechanism = [
+                        RetrievalMechanism::VectorSimilarity,
+                        RetrievalMechanism::Lexical,
+                        RetrievalMechanism::Metadata,
+                        RetrievalMechanism::Temporal,
+                    ][index];
+                    if stage.retriever.mechanism != expected_mechanism {
+                        return invalid(6);
+                    }
+                    io.consume(PortId(index as u16)).unwrap();
+                    operation.stages[index] = Some(stage);
+                    if operation.stages.iter().any(Option::is_none) {
+                        return StepOutcome::Progress;
+                    }
+                }
+                if operation.stages.iter().any(Option::is_none) {
+                    return StepOutcome::Await;
+                }
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                let stages: Vec<_> = operation
+                    .stages
+                    .iter()
+                    .map(|stage| stage.clone().expect("all four stages are present"))
+                    .collect();
+                let Ok(outcome) = operation.policy.fuse(&stages, None) else {
+                    return invalid(7);
+                };
+                let receipt = HybridRetrievalReceipt {
+                    policy_identity: operation.policy.identity.clone(),
+                    outcome,
+                };
+                let Ok(encoded) = receipt.encode() else {
+                    return invalid(8);
+                };
+                if encoded != operation.expected {
+                    return invalid(9);
+                }
+                io.send(PortId(0), operation.output).unwrap();
+                operation.emitted = true;
+                StepOutcome::Complete
+            }
+            Self::Sink(_) => {
+                let Some(input) = bytes.input(PortId(0)) else {
+                    return StepOutcome::Await;
+                };
+                match HybridRetrievalReceipt::decode(input) {
+                    Ok(receipt) if receipt.policy_identity == POLICY_IDENTITY => {
+                        io.consume(PortId(0)).unwrap();
+                        StepOutcome::Complete
+                    }
+                    _ => invalid(11),
+                }
+            }
         }
     }
 }
 
-type Scheduler = FixedScheduler<
-    OperationDriver<TestOperation, 4>,
-    HostedValueStore,
-    HostedSignLog,
-    6,
-    5,
-    4,
-    5,
-    5,
-    5,
->;
+type Scheduler = FixedScheduler<TestOperation, HostedValueStore, HostedSignLog, 6, 5, 4, 5, 5, 5>;
 
-fn source_driver(value: ValueRef) -> OperationDriver<TestOperation, 4> {
-    OperationDriver::new(TestOperation::Source(SourceOperation {
+fn source_driver(value: ValueRef) -> TestOperation {
+    TestOperation::Source(SourceOperation {
         value,
         emitted: false,
-    }))
-    .unwrap()
+    })
 }
 
 fn chunk() -> Chunk<ExtractedSourceValue> {
@@ -350,22 +290,21 @@ fn scheduler(stages: &[RetrievalStage<ExtractedSourceValue>], expected: &[u8]) -
     });
     let source_node = NodeSpec {
         input_cords: [None; 4],
-        maximum_step_work: 2,
+        maximum_step_fuel: 2,
     };
     let drivers = [
         source_driver(inputs[0]),
         source_driver(inputs[1]),
         source_driver(inputs[2]),
         source_driver(inputs[3]),
-        OperationDriver::new(TestOperation::Fusion(Box::new(FusionOperation {
+        TestOperation::Fusion(Box::new(FusionOperation {
             policy: policy(),
             stages: core::array::from_fn(|_| None),
             expected: expected.to_vec(),
             output,
             emitted: false,
-        })))
-        .unwrap(),
-        OperationDriver::new(TestOperation::Sink(SinkOperation)).unwrap(),
+        })),
+        TestOperation::Sink(SinkOperation),
     ];
     let signs =
         HostedSignLog::new(128, (128 * core::mem::size_of::<KernelEvent>()) as u32).unwrap();
@@ -382,11 +321,11 @@ fn scheduler(stages: &[RetrievalStage<ExtractedSourceValue>], expected: &[u8]) -
                     Some(CordId(2)),
                     Some(CordId(3)),
                 ],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [Some(CordId(4)), None, None, None],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
         ],
         cord_specs,
@@ -469,8 +408,8 @@ fn cancellation_and_malformed_stage_are_distinct_kernel_terminals() {
     );
 }
 
-const fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
+const fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::InvalidLifecycle,
         detail,
     })

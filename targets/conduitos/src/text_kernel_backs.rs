@@ -1,6 +1,6 @@
 //! Fixed Backs for the ordinary bounded text pipeline.
 
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef,
 };
@@ -74,7 +74,7 @@ pub(super) enum PlannedBack {
     TickPresentation(TickPresentationBack),
 }
 
-impl StepOperation<PORTS> for PlannedBack {
+impl StepBack<PORTS> for PlannedBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -99,7 +99,7 @@ impl StepOperation<PORTS> for PlannedBack {
     }
 }
 
-impl StepOperation<PORTS> for LiteralBack {
+impl StepBack<PORTS> for LiteralBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -113,7 +113,7 @@ impl StepOperation<PORTS> for LiteralBack {
     }
 }
 
-impl StepOperation<PORTS> for PresentationBack {
+impl StepBack<PORTS> for PresentationBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

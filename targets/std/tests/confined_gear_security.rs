@@ -353,10 +353,16 @@ fn hostile_slots_resources_replay_pointers_fuel_and_call_flood_fail_closed() {
         ConfinedRefusal::HostCallLimit
     );
 
-    let work = "i32.const 1 drop ".repeat(100);
-    let bytes = wasm(&format!(
-        r#"(module (memory (export "memory") 1 1) (func (export "conduit_run") (param i32) (result i32) {work} i32.const 0))"#
-    ));
+    // This is deliberately non-cooperative: no call back into Conduit and no
+    // semantic continuation exists inside the guest. Wasmi instruction fuel
+    // must forcibly return control to the Host.
+    let bytes = wasm(
+        r#"(module
+            (memory (export "memory") 1 1)
+            (func (export "conduit_run") (param i32) (result i32)
+                (loop $spin br $spin)
+                unreachable))"#,
+    );
     let mut limits = ConfinedLimits::baseline();
     limits.maximum_fuel = 10;
     let spinning = prepare(
@@ -377,6 +383,6 @@ fn hostile_slots_resources_replay_pointers_fuel_and_call_flood_fail_closed() {
             }
         )
         .unwrap_err(),
-        ConfinedRefusal::FuelExhausted
+        ConfinedRefusal::InstructionFuelPreempted
     );
 }

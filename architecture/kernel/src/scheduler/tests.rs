@@ -1,6 +1,6 @@
 use super::{
     AssignedPressurePolicy, CordCapacity, CordSpec, FixedScheduler, NodeSpec, RemoteIngressOutcome,
-    SchedulerError, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+    SchedulerError, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use crate::{
     BoundedValueRef, CanonicalValue, CordId, Failure, FailureCode, FixedHostCallBindings,
@@ -37,7 +37,7 @@ enum Driver {
     },
 }
 
-impl StepOperation<PORTS> for Driver {
+impl StepBack<PORTS> for Driver {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -115,7 +115,7 @@ impl StepOperation<PORTS> for Driver {
             Self::Sink { seen, len, stall } => {
                 if *stall && io.input(PortId(0)).is_some() {
                     *stall = false;
-                    io.exhaust_work_budget();
+                    io.exhaust_fuel();
                     return StepOutcome::Yield;
                 }
                 if let Some(value) = io.input(PortId(0)) {
@@ -166,7 +166,7 @@ enum HostDriver {
     },
 }
 
-impl StepOperation<PORTS> for HostDriver {
+impl StepBack<PORTS> for HostDriver {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -306,7 +306,7 @@ enum JoinDriver {
     Sink { seen: Option<ValueRef> },
 }
 
-impl StepOperation<PORTS> for JoinDriver {
+impl StepBack<PORTS> for JoinDriver {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -501,7 +501,7 @@ fn scheduler_admits_correlates_and_wakes_host_calls() {
         FixedSignLog::<64>::new(charge * 64).unwrap(),
     );
     assert_eq!(normalized.request, RequestId(7));
-    assert_eq!(normalized.operation, HostCallId(0));
+    assert_eq!(normalized.call, HostCallId(0));
     assert_eq!(normalized.input, [3]);
     assert_eq!(normalized.output_slot, 1);
     assert_eq!(normalized.used_items, 0);
@@ -660,7 +660,7 @@ fn cancellation_rejects_late_host_completion_and_releases_pending_input() {
 #[derive(Debug, Eq, PartialEq)]
 struct HostNormalized {
     request: RequestId,
-    operation: HostCallId,
+    call: HostCallId,
     input: [u8; 1],
     output_slot: u16,
     decisions: u32,
@@ -770,7 +770,7 @@ where
     };
     HostNormalized {
         request: request.request,
-        operation: request.operation,
+        call: request.call,
         input,
         output_slot: seen.slot,
         decisions: scheduler.decisions(),
@@ -820,7 +820,7 @@ fn host_output_bytes_are_borrowed_and_derived_output_uses_admitted_storage() {
         .install(
             NodeId(0),
             HostCallBinding {
-                operation: HostCallId(0),
+                call: HostCallId(0),
                 maximum_input_bytes: 0,
                 maximum_output_bytes: 3,
             },
@@ -933,7 +933,7 @@ where
         .install(
             binding_node,
             HostCallBinding {
-                operation: HostCallId(0),
+                call: HostCallId(0),
                 maximum_input_bytes: 4,
                 maximum_output_bytes: 4,
             },
@@ -1034,11 +1034,11 @@ where
         [
             NodeSpec {
                 input_cords: [None, None],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0)), None],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             },
         ],
         [CordSpec::local(
@@ -1246,7 +1246,7 @@ where
 fn node(input_cords: [Option<CordId>; PORTS]) -> NodeSpec<PORTS> {
     NodeSpec {
         input_cords,
-        maximum_step_work: 3,
+        maximum_step_fuel: 3,
     }
 }
 

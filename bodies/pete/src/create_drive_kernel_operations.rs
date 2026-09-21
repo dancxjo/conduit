@@ -1,9 +1,11 @@
 use conduit_kernel::{
-    scheduler::{CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver},
+    scheduler::{
+        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo,
+        StepOutcome,
+    },
     BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostCallBinding, HostCallDisposition, HostCallId, KernelEvent, NodeId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget, ValueRef,
-    ValueStorage,
+    HostCallBinding, HostCallDisposition, HostCallId, KernelEvent, NodeId, PortId, RequestId,
+    RouteRange, RouteTarget, ValueRef, ValueStorage,
 };
 
 const LINEAR_NODE: NodeId = NodeId(0);
@@ -23,33 +25,6 @@ pub(super) struct ScalarSource {
     emitted: bool,
 }
 
-impl Operation for ScalarSource {
-    fn start(&mut self) -> OperationAction {
-        self.emitted = true;
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.value,
-        }
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        invalid(1)
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            self.emitted = false;
-            OperationAction::Complete
-        } else {
-            invalid(2)
-        }
-    }
-
-    fn cancel(&mut self) {
-        self.emitted = false;
-    }
-}
-
 #[derive(Clone, Copy)]
 pub(super) struct CreateDriveOperation {
     request: BoundedValueRef,
@@ -58,68 +33,8 @@ pub(super) struct CreateDriveOperation {
     admitted: bool,
 }
 
-impl Operation for CreateDriveOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value { port, .. }
-                if usize::from(port.0) < self.seen.len()
-                    && !self.seen[usize::from(port.0)]
-                    && !self.pending
-                    && !self.admitted =>
-            {
-                self.seen[usize::from(port.0)] = true;
-                if self.seen.into_iter().all(|seen| seen) {
-                    self.pending = true;
-                    OperationAction::RequestHostCall {
-                        request: DRIVE_REQUEST,
-                        operation: DRIVE_OPERATION,
-                        input: self.request,
-                    }
-                } else {
-                    OperationAction::Await
-                }
-            }
-            OperationInput::HostCallCompleted {
-                request: DRIVE_REQUEST,
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                self.pending = false;
-                self.admitted = true;
-                OperationAction::Await
-            }
-            OperationInput::HostCallCompleted { outcome, .. }
-                if self.pending
-                    && outcome.disposition == HostCallDisposition::Failed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_some() =>
-            {
-                self.pending = false;
-                OperationAction::Fail(outcome.failure.expect("guarded failure"))
-            }
-            _ => invalid(3),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        invalid(4)
-    }
-
-    fn cancel(&mut self) {
-        self.pending = false;
-        self.admitted = false;
-    }
-}
-
-const fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+const fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
         detail,
     })
@@ -131,35 +46,70 @@ pub(super) enum DriveKernelOperation {
     Drive(CreateDriveOperation),
 }
 
-impl Operation for DriveKernelOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepBack<PORTS> for DriveKernelOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
-            Self::Source(value) => value.start(),
-            Self::Drive(value) => value.start(),
-        }
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Source(value) => value.resume(input),
-            Self::Drive(value) => value.resume(input),
-        }
-    }
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source(value) => value.advance(),
-            Self::Drive(value) => value.advance(),
+            Self::Source(source) => {
+                if source.emitted {
+                    return StepOutcome::Complete;
+                }
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                io.send(PortId(0), source.value).expect("ready drive Cord");
+                source.emitted = true;
+                StepOutcome::Complete
+            }
+            Self::Drive(operation) => {
+                if let Some((request, outcome)) = io.host_completion() {
+                    if request != DRIVE_REQUEST || !operation.pending || outcome.output.is_some() {
+                        return invalid(3);
+                    }
+                    io.consume_host_completion()
+                        .expect("observed drive Host Call completion");
+                    operation.pending = false;
+                    return match (outcome.disposition, outcome.failure) {
+                        (HostCallDisposition::Completed, None) => {
+                            operation.admitted = true;
+                            StepOutcome::Progress
+                        }
+                        (HostCallDisposition::Failed, Some(failure)) => StepOutcome::Fail(failure),
+                        _ => invalid(3),
+                    };
+                }
+                if operation.pending || operation.admitted {
+                    return StepOutcome::Await;
+                }
+                for index in 0..operation.seen.len() {
+                    if !operation.seen[index] && io.input(PortId(index as u16)).is_some() {
+                        io.consume(PortId(index as u16))
+                            .expect("present drive input");
+                        operation.seen[index] = true;
+                        if operation.seen.into_iter().all(|seen| seen) {
+                            io.request_host_call(DRIVE_REQUEST, DRIVE_OPERATION, operation.request)
+                                .expect("planned drive Host Call");
+                            operation.pending = true;
+                        }
+                        return StepOutcome::Progress;
+                    }
+                }
+                StepOutcome::Await
+            }
         }
     }
     fn cancel(&mut self) {
         match self {
-            Self::Source(value) => value.cancel(),
-            Self::Drive(value) => value.cancel(),
+            Self::Source(value) => value.emitted = false,
+            Self::Drive(value) => {
+                value.pending = false;
+                value.admitted = false;
+            }
         }
     }
 }
 
 pub(super) type DriveScheduler = FixedScheduler<
-    OperationDriver<DriveKernelOperation, PORTS>,
+    DriveKernelOperation,
     FixedValueStore<3, { REQUEST_BYTES as usize }>,
     FixedSignLog<SIGNS>,
     3,
@@ -220,7 +170,7 @@ pub(super) fn prepare_drive_scheduler(
         .install(
             DRIVE_NODE,
             HostCallBinding {
-                operation: DRIVE_OPERATION,
+                call: DRIVE_OPERATION,
                 maximum_input_bytes: REQUEST_BYTES,
                 maximum_output_bytes: 0,
             },
@@ -233,15 +183,15 @@ pub(super) fn prepare_drive_scheduler(
         [
             NodeSpec {
                 input_cords: [None, None],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [None, None],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0)), Some(CordId(1))],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
         ],
         [
@@ -271,23 +221,20 @@ pub(super) fn prepare_drive_scheduler(
         routes,
         bindings,
         [
-            OperationDriver::new(DriveKernelOperation::Source(ScalarSource {
+            DriveKernelOperation::Source(ScalarSource {
                 value: linear_value,
                 emitted: false,
-            }))
-            .map_err(|_| "linear source preparation failed")?,
-            OperationDriver::new(DriveKernelOperation::Source(ScalarSource {
+            }),
+            DriveKernelOperation::Source(ScalarSource {
                 value: angular_value,
                 emitted: false,
-            }))
-            .map_err(|_| "angular source preparation failed")?,
-            OperationDriver::new(DriveKernelOperation::Drive(CreateDriveOperation {
+            }),
+            DriveKernelOperation::Drive(CreateDriveOperation {
                 request,
                 seen: [false; 2],
                 pending: false,
                 admitted: false,
-            }))
-            .map_err(|_| "drive operation preparation failed")?,
+            }),
         ],
         values,
         signs,
@@ -297,7 +244,7 @@ pub(super) fn prepare_drive_scheduler(
 
 pub(super) fn drive_is_admitted(scheduler: &DriveScheduler) -> bool {
     matches!(
-        scheduler.drivers()[usize::from(DRIVE_NODE.0)].operation(),
+        &scheduler.drivers()[usize::from(DRIVE_NODE.0)],
         DriveKernelOperation::Drive(CreateDriveOperation { admitted: true, .. })
     )
 }

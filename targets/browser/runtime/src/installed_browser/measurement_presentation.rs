@@ -3,7 +3,7 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostCallContractId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
@@ -74,19 +74,19 @@ fn offer(contract: Kind, implementation: &str, operation: &str) -> CapabilityOff
 fn prepare_plot(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     prepare(placement, plot_offer())
 }
 fn prepare_threshold(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     prepare(placement, threshold_offer())
 }
 
-fn prepare(placement: &PlannedGear, offered: CapabilityOffer) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, offered: CapabilityOffer) -> Result<BrowserBack, String> {
     validate_placement(placement, &offered)?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         MAXIMUM_BROWSER_VALUE_BYTES as u32,
         1,
     ))

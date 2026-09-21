@@ -1,10 +1,10 @@
 //! Shared finite table installation for the existing std execution kernel.
 //! Partitions retain their own provenance; this module creates no Plan or Play.
 use super::{
-    InstalledOperation, InstalledScheduler, HOST_BINDING_SLOTS, HOST_CALLS_PER_NODE, MAX_CORDS,
+    InstalledBack, InstalledScheduler, HOST_BINDING_SLOTS, HOST_CALLS_PER_NODE, MAX_CORDS,
     MAX_NODES, PORTS, ROUTE_SLOTS, ROUTE_TARGETS,
 };
-use conduit_kernel::scheduler::{CordSpec, NodeSpec, OperationDriver};
+use conduit_kernel::scheduler::{CordSpec, NodeSpec};
 use conduit_kernel::{
     CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
     NodeId, PortId,
@@ -27,7 +27,7 @@ impl KernelTables {
             active_cords: 0,
             nodes: [NodeSpec {
                 input_cords: [None; PORTS],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             }; MAX_NODES],
             cords: [CordSpec {
                 cord: CordId(u16::MAX),
@@ -97,7 +97,7 @@ impl KernelTables {
 
     pub(super) fn install(
         self,
-        drivers: [OperationDriver<InstalledOperation, PORTS>; MAX_NODES],
+        drivers: [InstalledBack; MAX_NODES],
         values: HostedValueStore,
         sign: HostedSignLog,
     ) -> Result<InstalledScheduler, String> {

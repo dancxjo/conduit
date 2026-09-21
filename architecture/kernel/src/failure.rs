@@ -1,11 +1,11 @@
-//! Machine-readable operation failures, distinct from semantic completion.
+//! Machine-readable call failures, distinct from semantic completion.
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FailureCode {
     InvalidInput,
     InvalidPort,
     InvalidLifecycle,
-    /// Non-State storage needed by the operation cannot admit the value.
+    /// Non-State storage needed by the call cannot admit the value.
     StorageExhausted,
     /// A retained value does not fit the admitted State cell.
     StateCapacityExhausted,

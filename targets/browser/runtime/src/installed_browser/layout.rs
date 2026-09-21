@@ -1,7 +1,7 @@
 //! Browser installation for the portable finite viewport source.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_kernel::{HostedValueStore, ValueStorage};
 use conduit_presentation::LayoutFrame;
 
@@ -34,14 +34,14 @@ fn offer() -> conduit_core::CapabilityOffer {
 fn prepare(
     placement: &conduit_core::PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     let frame: LayoutFrame = conduit_semantic_catalog::execute_layout_source(placement)?;
     let encoded = frame.encode();
     let value = values
         .store(&encoded[..frame.encoded_len()])
         .map_err(|error| format!("store browser viewport: {error:?}"))?;
-    Ok(BrowserOperation::source(value))
+    Ok(BrowserBack::source(value))
 }
 
 #[cfg(test)]

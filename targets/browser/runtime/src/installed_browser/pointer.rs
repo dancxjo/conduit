@@ -1,10 +1,10 @@
 //! Existing browser pointer offer installed in the ordinary form runner.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_kernel::{
-    BoundedValueRef, HostCallDisposition, HostCallId, Operation, OperationAction, OperationInput,
-    PortId, RequestId, ValueRef, ValueStorage,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(crate) const HOST_CALL: &str = "browser.host/pointer-source@1";
@@ -35,12 +35,12 @@ fn offer() -> conduit_core::CapabilityOffer {
 fn prepare(
     placement: &conduit_core::PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     let empty = values
         .store(&[])
         .map_err(|error| format!("pointer request: {error:?}"))?;
-    Ok(BrowserOperation::installed(PointerSource {
+    Ok(BrowserBack::installed_step(PointerSource {
         empty,
         pending: false,
         next: 0,
@@ -53,59 +53,68 @@ struct PointerSource {
     next: u32,
 }
 
-impl Operation for PointerSource {
-    fn start(&mut self) -> OperationAction {
-        if self.pending {
-            return fail();
-        }
+impl PointerSource {
+    fn request<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) {
         self.pending = true;
-        OperationAction::RequestHostCall {
-            request: RequestId(self.next),
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(self.empty, 0).expect("empty pointer request"),
-        }
+        io.request_host_call(
+            RequestId(self.next),
+            HostCallId(0),
+            BoundedValueRef::new(self.empty, 0).expect("empty pointer request"),
+        )
+        .expect("pointer Host Call");
     }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        if let OperationInput::HostCallCompleted { request, outcome } = input {
+}
+
+impl<const PORTS: usize> StepBack<PORTS> for PointerSource {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
             if !self.pending || request != RequestId(self.next) {
                 return fail();
             }
-            self.pending = false;
-            return match (outcome.disposition, outcome.output, outcome.failure) {
+            match (outcome.disposition, outcome.output, outcome.failure) {
                 (HostCallDisposition::Completed, Some(output), None)
                     if output.admitted_bytes == super::MAXIMUM_BROWSER_VALUE_BYTES as u32 =>
                 {
-                    OperationAction::Emit {
-                        port: PortId(0),
-                        value: output.value,
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
                     }
+                    let Some(next) = self.next.checked_add(1) else {
+                        return identity_exhausted();
+                    };
+                    io.consume_host_completion()
+                        .expect("observed pointer completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready pointer output");
+                    self.pending = false;
+                    self.next = next;
+                    self.request(io);
+                    StepOutcome::Progress
                 }
-                (HostCallDisposition::Failed, None, Some(failure)) => {
-                    OperationAction::Fail(failure)
-                }
+                (HostCallDisposition::Failed, None, Some(failure)) => StepOutcome::Fail(failure),
                 _ => fail(),
-            };
+            }
+        } else if self.pending {
+            StepOutcome::Await
+        } else {
+            self.request(io);
+            StepOutcome::Progress
         }
-        fail()
-    }
-    fn advance(&mut self) -> OperationAction {
-        let Some(next) = self.next.checked_add(1) else {
-            return OperationAction::Fail(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::IdentityCapacityExhausted,
-                detail: 21,
-            });
-        };
-        self.next = next;
-        self.start()
     }
     fn cancel(&mut self) {
         self.pending = false;
     }
 }
 
-fn fail() -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+fn fail() -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidInput,
+        detail: 21,
+    })
+}
+
+fn identity_exhausted() -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::IdentityCapacityExhausted,
         detail: 21,
     })
 }
@@ -126,18 +135,39 @@ mod tests {
             pending: false,
             next: 0,
         };
-        let mut action = operation.start();
+        let mut io = StepIo::test_frame(
+            [None; super::super::BROWSER_PORTS_PER_GEAR],
+            [false; super::super::BROWSER_PORTS_PER_GEAR],
+            [Some(super::super::MAXIMUM_BROWSER_VALUE_BYTES as u32);
+                super::super::BROWSER_PORTS_PER_GEAR],
+            None,
+            4,
+        );
+        assert_eq!(
+            operation.step(
+                &mut io,
+                &StepInputBytes::test_frame([None; super::super::BROWSER_PORTS_PER_GEAR], None,),
+            ),
+            StepOutcome::Progress
+        );
         for slot in 1..=3 {
-            assert!(matches!(action, OperationAction::RequestHostCall { .. }));
+            assert_eq!(
+                io.test_host_request().map(|request| request.0),
+                Some(RequestId((slot - 1).into()))
+            );
             let value = ValueRef {
                 slot,
                 generation: 1,
                 byte_len: 16,
             };
-            assert_eq!(
-                operation.resume(OperationInput::HostCallCompleted {
-                    request: RequestId((slot - 1).into()),
-                    outcome: HostCallOutcome {
+            io = StepIo::test_frame(
+                [None; super::super::BROWSER_PORTS_PER_GEAR],
+                [false; super::super::BROWSER_PORTS_PER_GEAR],
+                [Some(super::super::MAXIMUM_BROWSER_VALUE_BYTES as u32);
+                    super::super::BROWSER_PORTS_PER_GEAR],
+                Some((
+                    RequestId((slot - 1).into()),
+                    HostCallOutcome {
                         disposition: HostCallDisposition::Completed,
                         output: Some(
                             BoundedValueRef::new(
@@ -148,14 +178,24 @@ mod tests {
                         ),
                         failure: None,
                     },
-                }),
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
-                }
+                )),
+                4,
             );
-            action = operation.advance();
+            assert_eq!(
+                operation.step(
+                    &mut io,
+                    &StepInputBytes::test_frame(
+                        [None; super::super::BROWSER_PORTS_PER_GEAR],
+                        None,
+                    ),
+                ),
+                StepOutcome::Progress
+            );
+            assert_eq!(io.test_output(PortId(0)), Some(value));
         }
-        assert!(matches!(action, OperationAction::RequestHostCall { .. }));
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(3))
+        );
     }
 }
