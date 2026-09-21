@@ -117,74 +117,33 @@ export async function openRemoteRendezvousCandidates(decoded, {
   openRelayLine,
   now = () => Date.now(),
 } = {}) {
-  if (!Array.isArray(decoded?.candidates) || decoded.candidates.length < 1) {
-    refuse("InvalidDescriptor", "remote rendezvous omitted its finite candidate schedule");
-  }
-  const evidence = [];
-  for (const candidate of decoded.candidates) {
-    if (candidate.expires_at_millis <= now()) {
-      evidence.push(attemptEvidence(candidate, 0, "expired"));
-      continue;
-    }
-    const opener = candidate.carrier === "websocket"
-      ? (current, currentSignal) => openWebSocketLine(
-        current, WebSocketClass, currentSignal, current.attempt_timeout_millis,
-      )
-      : candidate.carrier === "webrtc" ? openWebRtcLine
-        : candidate.carrier === "relay" ? openRelayLine : undefined;
-    if (!candidate.supported || typeof opener !== "function") {
-      evidence.push(attemptEvidence(candidate, 0, "unsupported-line-family"));
-      continue;
-    }
-    for (let attempt = 1; attempt <= candidate.maximum_attempts; attempt += 1) {
-      requireCurrent(signal);
-      try {
-        const line = await waitForBoundedPromise(
-          Promise.resolve(opener(candidate, signal)),
-          signal,
-          candidate.attempt_timeout_millis,
-        );
-        if (!line || typeof line.sendBytes !== "function"
-          || typeof line.receiveBytes !== "function" || typeof line.close !== "function") {
-          throw new CrecheRendezvousRefusal(
-            "LineFailed", "rendezvous candidate did not provide the bounded Line contract",
+  try {
+    return await openOrderedRemoteCandidates(decoded, {
+      signal,
+      now,
+      openCandidate(candidate, currentSignal) {
+        if (candidate.carrier === "websocket") {
+          return openWebSocketLine(
+            candidate, WebSocketClass, currentSignal, candidate.attempt_timeout_millis,
           );
         }
-        evidence.push(attemptEvidence(candidate, attempt, "connected"));
-        return Object.freeze({
-          line,
-          selected: candidate,
-          evidence: Object.freeze(evidence),
-        });
-      } catch (error) {
-        evidence.push(attemptEvidence(candidate, attempt, attemptOutcome(error)));
-      }
-      if (candidate.expires_at_millis <= now()) break;
+        if (candidate.carrier === "webrtc" && typeof openWebRtcLine === "function") {
+          return openWebRtcLine(candidate, currentSignal);
+        }
+        if (candidate.carrier === "relay" && typeof openRelayLine === "function") {
+          return openRelayLine(candidate, currentSignal);
+        }
+        throw new RemoteCandidateScheduleError(
+          "UnsupportedLineFamily", "browser has no admitted implementation for candidate",
+        );
+      },
+    });
+  } catch (error) {
+    if (error instanceof RemoteCandidateScheduleError) {
+      refuse(error.code, error.message, error);
     }
+    throw error;
   }
-  refuse(
-    "LineUnavailable",
-    `remote rendezvous candidates exhausted: ${JSON.stringify(evidence)}`,
-  );
-}
-
-function attemptEvidence(candidate, attempt, outcome) {
-  return Object.freeze({
-    candidate_id: candidate.candidate_id,
-    attempt,
-    timeout_millis: candidate.attempt_timeout_millis ?? 0,
-    outcome,
-  });
-}
-
-function attemptOutcome(error) {
-  if (error instanceof CrecheRendezvousRefusal) {
-    if (error.code === "LineTimeout") return "timed-out";
-    if (error.code === "TransportAuthentication") return "authentication-refused";
-    if (error.code === "PeerBinding") return "peer-binding-refused";
-    if (error.code === "LinePressure") return "pressure-refused";
-  }
-  return "route-unavailable";
 }
 
 export async function connectRendezvousHost(code, {
@@ -594,14 +553,8 @@ function waitForSocket(socket, signal, wanted, timeoutMillis = MAXIMUM_WAIT_MILL
 }
 
 function waitForPromise(promise, signal) {
-  return waitForBoundedPromise(promise, signal, MAXIMUM_WAIT_MILLIS);
-}
-
-function waitForBoundedPromise(promise, signal, timeoutMillis) {
   return new Promise((resolve, reject) => {
     let settled = false;
-    const aborted = () => finish(reject, signal.reason ?? new DOMException("Aborted", "AbortError"));
-    const timer = setTimeout(() => finish(reject, new CrecheRendezvousRefusal("LineTimeout", "rendezvous Line did not answer within its admitted time")), timeoutMillis);
     const finish = (callback, value) => {
       if (settled) return;
       settled = true;
@@ -609,6 +562,15 @@ function waitForBoundedPromise(promise, signal, timeoutMillis) {
       signal?.removeEventListener("abort", aborted);
       callback(value);
     };
+    const aborted = () => finish(
+      reject, signal.reason ?? new DOMException("Aborted", "AbortError"),
+    );
+    const timer = setTimeout(() => finish(
+      reject,
+      new CrecheRendezvousRefusal(
+        "LineTimeout", "rendezvous Line did not answer within its admitted time",
+      ),
+    ), MAXIMUM_WAIT_MILLIS);
     promise.then((value) => finish(resolve, value), (error) => finish(reject, error));
     signal?.addEventListener("abort", aborted, { once: true });
     if (signal?.aborted) aborted();
@@ -694,3 +656,7 @@ export const CRECHE_RENDEZVOUS_BOUNDS = Object.freeze({
   maximumSessions: 1,
 });
 import { decodeRendezvousManifestation } from "./rendezvous-cbor.mjs";
+import {
+  openOrderedRemoteCandidates,
+  RemoteCandidateScheduleError,
+} from "./rendezvous-candidate-schedule.mjs";
