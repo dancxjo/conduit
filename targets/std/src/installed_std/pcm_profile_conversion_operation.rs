@@ -4,6 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId,
 };
@@ -23,6 +24,78 @@ pub(super) struct PcmProfileConversionOperation {
     next_request: u32,
     emitted: bool,
     closed: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for PcmProfileConversionOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            self.emitted = false;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_failure(FailureCode::InvalidLifecycle, 3);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed PCM conversion completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready PCM conversion output");
+                    self.pending = None;
+                    self.emitted = true;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Completed, None, None) => {
+                    io.consume_host_completion()
+                        .expect("observed empty PCM conversion completion");
+                    self.pending = None;
+                    return StepOutcome::Progress;
+                }
+                (_, _, Some(failure)) => return StepOutcome::Fail(failure),
+                _ => return step_failure(FailureCode::InvalidLifecycle, 2),
+            }
+        }
+
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() || self.closed {
+                return step_failure(FailureCode::InvalidLifecycle, 3);
+            }
+            let Ok(input) = BoundedValueRef::new(value, conduit_std_offers::PIPER_PCM_BLOCK_BYTES)
+            else {
+                return step_failure(FailureCode::InvalidInput, 1);
+            };
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_failure(FailureCode::WorkBudgetExhausted, 1);
+            };
+            io.consume(PortId(0)).expect("present PCM conversion input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("PCM conversion Host Call");
+            self.next_request = next;
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+
+        if io.input_closed(PortId(0)) && self.pending.is_none() && !self.closed {
+            io.consume_closed(PortId(0))
+                .expect("observed PCM conversion closure");
+            self.closed = true;
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.closed = true;
+    }
+}
+
+const fn step_failure(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl PcmProfileConversionOperation {

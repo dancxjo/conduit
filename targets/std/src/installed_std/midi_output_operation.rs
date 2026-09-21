@@ -1,8 +1,9 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
-    RequestId,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId,
 };
 
 pub(super) static MIDI_OUTPUT_FACTORY: InstalledFactory = InstalledFactory {
@@ -15,6 +16,93 @@ pub(super) struct MidiOutputOperation {
     pending: Option<RequestId>,
     next_request: u32,
     closed: [bool; 2],
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for MidiOutputOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(81);
+            }
+            if let Some(failure) = outcome.failure {
+                return StepOutcome::Fail(failure);
+            }
+            if outcome.disposition != HostCallDisposition::Completed || outcome.output.is_some() {
+                return step_fail(83);
+            }
+            io.consume_host_completion()
+                .expect("observed MIDI output completion");
+            self.pending = None;
+            return StepOutcome::Progress;
+        }
+
+        for port in [PortId(0), PortId(1)] {
+            let Some(value) = io.input(port) else {
+                continue;
+            };
+            let index = usize::from(port.0);
+            if self.pending.is_some()
+                || self.closed[index]
+                || self.next_request
+                    >= u32::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS)
+            {
+                return step_fail(81);
+            }
+            let maximum = if port == PortId(0) {
+                conduit_audio::NOTE_EVENT_ENCODED_LEN as u32
+            } else {
+                conduit_audio::CONTROL_EVENT_ENCODED_LEN as u32
+            };
+            let Ok(input) = BoundedValueRef::new(value, maximum) else {
+                return step_fail(82);
+            };
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_fail(82);
+            };
+            io.consume(port).expect("present MIDI output event");
+            io.request_host_call(
+                request,
+                if port == PortId(0) {
+                    HostCallId(1)
+                } else {
+                    HostCallId(0)
+                },
+                input,
+            )
+            .expect("MIDI output Host Call");
+            self.next_request = next;
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+
+        for port in [PortId(0), PortId(1)] {
+            let index = usize::from(port.0);
+            if io.input_closed(port) && !self.closed[index] {
+                io.consume_closed(port)
+                    .expect("observed MIDI input closure");
+                self.closed[index] = true;
+                return if self.closed.into_iter().all(|closed| closed) {
+                    StepOutcome::Complete
+                } else {
+                    StepOutcome::Progress
+                };
+            }
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.closed = [true; 2];
+    }
+}
+
+const fn step_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidLifecycle,
+        detail,
+    })
 }
 
 impl MidiOutputOperation {
