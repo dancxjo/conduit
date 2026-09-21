@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { connectRendezvousHost, decodeRendezvousCode } from "../../products/creche/browser/creche-rendezvous.mjs";
+import {
+  connectRendezvousHost,
+  decodeRendezvousCode,
+  openRemoteRendezvousCandidates,
+} from "../../products/creche/browser/creche-rendezvous.mjs";
 import { decodeRendezvousCoseSign1, decodeRendezvousManifestation } from "../../products/creche/browser/rendezvous-cbor.mjs";
 
 test("browser decodes the exact canonical Rust and ConduitOS rendezvous vector", () => {
@@ -33,6 +37,99 @@ test("browser decodes the shared bounded WebRTC candidate without retaining sign
   assert.equal(decoded.candidates[0].reachability, "webrtc-bootstrap:operator/negotiation-7");
   assert.equal("sdp" in decoded.candidates[0], false);
   assert.equal("ice_credentials" in decoded.candidates[0], false);
+});
+
+test("browser records ordered direct failure before WebRTC selection", async () => {
+  const line = Object.freeze({
+    sendBytes() {},
+    async receiveBytes() { return new Uint8Array([1]); },
+    async close() {},
+    closed: Promise.resolve(),
+  });
+  const candidates = [
+    Object.freeze({
+      supported: true,
+      candidate_id: "candidate/direct",
+      carrier: "websocket",
+      line_id: "conduit-line/authenticated-tls-stream@1",
+      url: "wss://direct.test/conduit",
+      expires_at_millis: 2_000,
+      maximum_attempts: 1,
+      attempt_timeout_millis: 100,
+    }),
+    Object.freeze({
+      supported: true,
+      candidate_id: "candidate/webrtc",
+      carrier: "webrtc",
+      line_id: "conduit-line/webrtc-data-channel@1",
+      reachability: "webrtc-bootstrap:operator/negotiation-7",
+      expires_at_millis: 2_000,
+      maximum_attempts: 1,
+      attempt_timeout_millis: 100,
+    }),
+    Object.freeze({
+      supported: true,
+      candidate_id: "candidate/relay",
+      carrier: "relay",
+      line_id: "conduit-line/authenticated-conduit@1",
+      reachability: "relay:operator/route-7",
+      expires_at_millis: 2_000,
+      maximum_attempts: 1,
+      attempt_timeout_millis: 100,
+    }),
+  ];
+  class RefusingWebSocket {
+    constructor() { throw new Error("direct route unavailable"); }
+  }
+  let relayOpened = false;
+  const opened = await openRemoteRendezvousCandidates({ candidates }, {
+    WebSocketClass: RefusingWebSocket,
+    openWebRtcLine: async () => line,
+    openRelayLine: async () => { relayOpened = true; return line; },
+    now: () => 1_000,
+  });
+  assert.equal(opened.selected.candidate_id, "candidate/webrtc");
+  assert.equal(relayOpened, false);
+  assert.deepEqual(opened.evidence, [
+    { candidate_id: "candidate/direct", attempt: 1, timeout_millis: 100, outcome: "route-unavailable" },
+    { candidate_id: "candidate/webrtc", attempt: 1, timeout_millis: 100, outcome: "connected" },
+  ]);
+  assert.equal(JSON.stringify(opened.evidence).includes("negotiation-7"), false);
+});
+
+test("browser records direct and WebRTC failure before protected relay fallback", async () => {
+  const line = Object.freeze({
+    sendBytes() {}, async receiveBytes() { return new Uint8Array([1]); }, async close() {},
+  });
+  const candidate = (candidateId, carrier, lineId) => Object.freeze({
+    supported: true,
+    candidate_id: candidateId,
+    carrier,
+    line_id: lineId,
+    url: carrier === "websocket" ? "wss://direct.test/conduit" : undefined,
+    reachability: carrier === "webrtc" ? "webrtc-bootstrap:operator/negotiation-7"
+      : carrier === "relay" ? "relay:operator/route-7" : undefined,
+    expires_at_millis: 2_000,
+    maximum_attempts: 1,
+    attempt_timeout_millis: 100,
+  });
+  class RefusingWebSocket { constructor() { throw new Error("direct unavailable"); } }
+  const opened = await openRemoteRendezvousCandidates({ candidates: [
+    candidate("candidate/direct", "websocket", "conduit-line/authenticated-tls-stream@1"),
+    candidate("candidate/webrtc", "webrtc", "conduit-line/webrtc-data-channel@1"),
+    candidate("candidate/relay", "relay", "conduit-line/authenticated-conduit@1"),
+  ] }, {
+    WebSocketClass: RefusingWebSocket,
+    openWebRtcLine: async () => { throw new Error("ICE exhausted"); },
+    openRelayLine: async () => line,
+    now: () => 1_000,
+  });
+  assert.equal(opened.selected.candidate_id, "candidate/relay");
+  assert.deepEqual(opened.evidence.map(({ candidate_id, outcome }) => [candidate_id, outcome]), [
+    ["candidate/direct", "route-unavailable"],
+    ["candidate/webrtc", "route-unavailable"],
+    ["candidate/relay", "connected"],
+  ]);
 });
 test("browser verifies the exact RFC 9052 Sign1 vector under caller-owned policy", async () => {
   const hex = readFileSync(new URL("../../architecture/body/schemas/running-host-rendezvous-sign1-v1.hex", import.meta.url), "utf8").trim();
