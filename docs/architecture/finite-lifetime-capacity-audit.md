@@ -36,11 +36,11 @@ The classifications are:
 | Kernel Cord/value queues | Planned item and byte capacity | B | Dequeue/ack retires occupancy; atomic fan-out must still refuse genuine pressure without partial delivery. | kernel queue, fan-out, and long-session tests | classified correct |
 | Bounded Line transcripts | Fixed retained item/byte history plus gap | D | Old retention may be superseded only with explicit gap evidence; active Line delivery capacity is separate. | multihost transcript evidence and retention-gap tests | classified correct |
 | Browser WebRTC sessions | Four current/creating sessions and four pending signals | B | These are simultaneous bounds; closed sessions release their slots. | #3609 / #3619 session lifecycle proof | classified correct |
-| Browser WebRTC grant generations and retired negotiation set | `u32` generation plus one retirement-batch count | A/D/E | Signals carry their exact generation, stale generations are rejected, and retirement retains only a bounded count rather than identities. The native provider still requires a replacement Plan before it can issue a nonzero generation. | #3609; 100,000 browser replans, stale-generation rejection, and pinned-browser session proof | capacity defect corrected on `dev`; broader native owner open |
+| Browser WebRTC grant generations and retired negotiation set | `u32` generation plus one retirement-batch count | A/D/E | Signals carry their exact generation, stale generations are rejected, and retirement retains only a bounded count rather than identities. Native and browser endpoints now consume the same bounded bootstrap configuration; Plan replacement remains a distinct provider lifecycle decision rather than reusable-capacity ownership. | #3609; 100,000 browser replans, stale-generation rejection, and pinned-browser session proof | capacity defect corrected on `dev` |
 | Timers and interval sources | Concurrent arms plus typed tick/value domains | B/E | Completion releases an arm; checked tick/value overflow remains real. Proof fixture tick counts do not constrain production lifetime. | timer nucleus and standing timer tests | classified correct |
 | Audio synthesis/playback buffers | Fixed frames, voices, channels, and interval output | B/C | Frames are reused per interval; voice/channel saturation is simultaneous; authored render lengths remain transaction bounds. | synth/OPL2/PC-speaker stress and cancellation tests | classified correct |
 | Camera/image resources | Planned frame byte/item bounds and current-frame ownership | B/C | Frame storage is reusable after consumer retirement; typed dimensions and one-frame payload size remain semantic resource bounds. | browser camera realization tests; #3551 owns continuous Vision expansion | classified / owner open |
-| Patchbay browser presence/return workers | Fixed simultaneous worker, decision, and proof slots | B/D | Completed workers release execution slots; retained proof stays bounded and must disclose omission rather than grow. | #3619 / #3620 owner paths and existing capacity tests | classified / owner open |
+| Patchbay browser presence/return workers | Fixed simultaneous worker, decision, and proof slots | B/D | Completed workers release execution slots; retained proof stays bounded and must disclose omission rather than grow. | #3620 owner paths and existing capacity tests | classified correct |
 | Front-door candidates, Forms, and topology | Fixed current inventory and visible topology slots | B/C | These bound one current reviewed workset/topology, not elapsed interactions. Removal/review creates a new current revision rather than silently overwriting it. | front-door capacity and revision tests | classified correct |
 
 ## Search record
@@ -55,8 +55,7 @@ remain governed by classes E and F; they are not candidates merely because
 they are finite.
 
 Every finite-lifetime defect found by this audit and every corresponding stress
-proof was admitted together on `dev` by PR #3645. The native WebRTC provider's
-replacement-Plan limitation remains explicit under #3609, but it is a missing
-provider capability rather than an unowned monotonic reusable-capacity defect.
-Future finite-lifetime findings should receive a focused owner and a new ledger
-entry rather than reopening these completed classifications.
+proof was admitted together on `dev` by PR #3645. Later native WebRTC work added
+bounded bootstrap and selected-path truth without changing these capacity
+classifications. Future finite-lifetime findings should receive a focused owner
+and a new ledger entry rather than reopening these completed classifications.
