@@ -7,8 +7,9 @@ use conduit_core::{
     TIMER_RESOURCE_CLASS,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 const IMPLEMENTATION: &str = "browser/kernel-time-delay-bool@1";
@@ -60,17 +61,15 @@ fn prepare(
                 .map_err(debug_error)
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(BrowserOperation::installed(DelayOperation {
+    Ok(BrowserOperation::installed_step(DelayOperation {
         durations,
         queued: Vec::with_capacity(maximum_values),
-        released: Vec::with_capacity(maximum_values),
         maximum_values,
         accepted: 0,
         next: 0,
         pending: None,
-        retained: false,
         closing: false,
-        continue_after_emit: false,
+        next_request: 0,
     }))
 }
 
@@ -88,111 +87,122 @@ fn configured(placement: &PlannedGear, key: &str) -> Result<u64, String> {
 struct DelayOperation {
     durations: Vec<ValueRef>,
     queued: Vec<ValueRef>,
-    released: Vec<ValueRef>,
     maximum_values: usize,
     accepted: usize,
     next: usize,
     pending: Option<RequestId>,
-    retained: bool,
     closing: bool,
-    continue_after_emit: bool,
+    next_request: usize,
 }
 
 impl DelayOperation {
-    fn request(&mut self) -> OperationAction {
-        let Some(duration) = self.durations.get(self.next).copied() else {
-            return fail(40);
+    fn request<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) -> Result<(), StepOutcome> {
+        let Some(duration) = self.durations.get(self.next_request).copied() else {
+            return Err(fail(40));
         };
-        let Ok(raw) = u32::try_from(self.next + 1) else {
-            return fail(40);
+        let Ok(raw) = u32::try_from(self.next_request + 1) else {
+            return Err(fail(40));
         };
         let request = RequestId(raw);
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
+        io.request_host_call(
             request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(duration, 8).expect("duration is exactly eight bytes"),
+            HostCallId(0),
+            BoundedValueRef::new(duration, 8).expect("duration is exactly eight bytes"),
+        )
+        .expect("delay timer Host Call");
+        self.next_request += 1;
+        self.pending = Some(request);
+        Ok(())
+    }
+
+    fn discard_unused_durations<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) {
+        for value in self.durations.drain(self.next_request..) {
+            io.discard(value).expect("unused delay duration");
         }
     }
 }
 
-impl Operation for DelayOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        self.retained = false;
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.closing && self.accepted < self.maximum_values => {
-                self.accepted += 1;
-                self.retained = true;
-                self.queued.push(value);
-                if self.pending.is_none() && self.next + 1 == self.queued.len() {
-                    self.request()
-                } else {
-                    OperationAction::Await
-                }
+impl<const PORTS: usize> StepOperation<PORTS> for DelayOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return fail(40);
             }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+            if outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
             {
-                self.pending = None;
-                let Some(value) = self.queued.get(self.next).copied() else {
-                    return fail(40);
-                };
-                self.next += 1;
-                self.continue_after_emit = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
+                return outcome.failure.map_or_else(|| fail(40), StepOutcome::Fail);
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(value) = self.queued.get(self.next).copied() else {
+                return fail(40);
+            };
+            io.consume_host_completion()
+                .expect("observed delay completion");
+            io.send(PortId(0), value).expect("ready delayed output");
+            self.pending = None;
+            self.next += 1;
+            if self.next < self.queued.len() {
+                if let Err(outcome) = self.request(io) {
+                    return outcome;
+                }
+            } else if self.closing {
+                self.discard_unused_durations(io);
+                return StepOutcome::Complete;
+            }
+            return StepOutcome::Progress;
+        }
+
+        if let Some(value) = io.input(PortId(0)) {
+            if self.closing || self.accepted >= self.maximum_values {
+                return fail(40);
+            }
+            let retained = io.take_input(PortId(0)).expect("present delay input");
+            debug_assert_eq!(retained, value);
+            self.queued.push(retained);
+            self.accepted += 1;
+            if self.pending.is_none() && self.next + 1 == self.queued.len() {
+                if let Err(outcome) = self.request(io) {
+                    return outcome;
                 }
             }
-            OperationInput::Closed { port: PortId(0) } if !self.closing => {
-                self.closing = true;
-                if self.pending.is_some() {
-                    OperationAction::Await
-                } else if self.next < self.queued.len() {
-                    self.request()
+            return StepOutcome::Progress;
+        }
+
+        if io.input_closed(PortId(0)) && !self.closing {
+            io.consume_closed(PortId(0))
+                .expect("observed delay input closure");
+            self.closing = true;
+            if self.pending.is_none() {
+                if self.next < self.queued.len() {
+                    if let Err(outcome) = self.request(io) {
+                        return outcome;
+                    }
                 } else {
-                    OperationAction::Complete
+                    self.discard_unused_durations(io);
+                    return StepOutcome::Complete;
                 }
             }
-            _ => fail(40),
+            return StepOutcome::Progress;
         }
+        StepOutcome::Await
     }
-    fn advance(&mut self) -> OperationAction {
-        if !self.continue_after_emit {
-            return OperationAction::Await;
-        }
-        self.continue_after_emit = false;
-        if self.next < self.queued.len() {
-            self.request()
-        } else if self.closing {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
+
+    fn accepts_input_while_host_call_pending(&self) -> bool {
+        true
     }
-    fn retains_resumed_value(&self) -> bool {
-        self.retained
-    }
-    fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.released.pop()
-    }
+
     fn cancel(&mut self) {
         self.pending = None;
         self.queued.clear();
     }
 }
 
-fn fail(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
+fn fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::InvalidLifecycle,
         detail,
     })
@@ -219,63 +229,64 @@ mod tests {
         let mut operation = DelayOperation {
             durations: vec![value(10, 8), value(11, 8)],
             queued: Vec::with_capacity(2),
-            released: Vec::with_capacity(2),
             maximum_values: 2,
             accepted: 0,
             next: 0,
             pending: None,
-            retained: false,
             closing: false,
-            continue_after_emit: false,
+            next_request: 0,
         };
         let first = value(1, 1);
         let second = value(2, 1);
-        assert!(matches!(
-            operation.resume(OperationInput::Value {
-                port: PortId(0),
-                value: first
-            }),
-            OperationAction::RequestHostCall {
-                request: RequestId(1),
-                ..
-            }
-        ));
+        let mut first_io = StepIo::test_frame([Some(first)], [false], [Some(1)], None, 4);
         assert_eq!(
-            operation.resume(OperationInput::Value {
-                port: PortId(0),
-                value: second
-            }),
-            OperationAction::Await
+            operation.step(&mut first_io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
         );
+        assert!(first_io.test_retained(PortId(0)));
         assert_eq!(
-            operation.resume(OperationInput::Closed { port: PortId(0) }),
-            OperationAction::Await
+            first_io.test_host_request().map(|request| request.0),
+            Some(RequestId(1))
+        );
+        let mut second_io = StepIo::test_frame([Some(second)], [false], [Some(1)], None, 4);
+        assert_eq!(
+            operation.step(&mut second_io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert!(second_io.test_retained(PortId(0)));
+        let mut close_io = StepIo::test_frame([None], [true], [Some(1)], None, 4);
+        assert_eq!(
+            operation.step(&mut close_io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
         );
         for (request, expected) in [(1, first), (2, second)] {
+            let completion = HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: None,
+                failure: None,
+            };
+            let mut io = StepIo::test_frame(
+                [None],
+                [false],
+                [Some(1)],
+                Some((RequestId(request), completion)),
+                5,
+            );
             assert_eq!(
-                operation.resume(OperationInput::HostCallCompleted {
-                    request: RequestId(request),
-                    outcome: HostCallOutcome {
-                        disposition: HostCallDisposition::Completed,
-                        output: None,
-                        failure: None
-                    },
-                }),
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: expected
+                operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+                if request == 1 {
+                    StepOutcome::Progress
+                } else {
+                    StepOutcome::Complete
                 }
             );
+            assert_eq!(io.test_output(PortId(0)), Some(expected));
             if request == 1 {
-                assert!(matches!(
-                    operation.advance(),
-                    OperationAction::RequestHostCall {
-                        request: RequestId(2),
-                        ..
-                    }
-                ));
+                assert_eq!(
+                    io.test_host_request().map(|request| request.0),
+                    Some(RequestId(2))
+                );
             }
         }
-        assert_eq!(operation.advance(), OperationAction::Complete);
     }
 }
