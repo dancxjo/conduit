@@ -4,6 +4,7 @@ use super::audio_play_operation::DRAIN_MARKER;
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
     HostedValueStore, OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -22,6 +23,89 @@ pub(super) struct WavArtifactOperation {
     drain_marker: ValueRef,
     draining: bool,
     closed: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for WavArtifactOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(181);
+            }
+            if let Some(failure) = outcome.failure {
+                return StepOutcome::Fail(failure);
+            }
+            if outcome.disposition != HostCallDisposition::Completed || outcome.output.is_some() {
+                return step_fail(182);
+            }
+            io.consume_host_completion()
+                .expect("observed WAV artifact completion");
+            self.pending = None;
+            return if self.draining {
+                StepOutcome::Complete
+            } else {
+                StepOutcome::Progress
+            };
+        }
+
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some()
+                || self.closed
+                || self.next_request
+                    >= u32::from(conduit_semantic_catalog::AUDIO_PLAY_ALSA_MAXIMUM_BLOCKS)
+            {
+                return step_fail(181);
+            }
+            let Ok(input) = BoundedValueRef::new(
+                value,
+                conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+            ) else {
+                return step_fail(183);
+            };
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_fail(183);
+            };
+            io.consume(PortId(0)).expect("present WAV artifact block");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("WAV artifact Host Call");
+            self.next_request = next;
+            self.pending = Some(request);
+            self.draining = false;
+            return StepOutcome::Progress;
+        }
+
+        if io.input_closed(PortId(0)) && self.pending.is_none() && !self.closed {
+            let request = RequestId(self.next_request);
+            let Ok(input) = BoundedValueRef::new(
+                self.drain_marker,
+                conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
+            ) else {
+                return step_fail(183);
+            };
+            io.consume_closed(PortId(0))
+                .expect("observed WAV artifact closure");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("WAV artifact finish Host Call");
+            self.next_request = self.next_request.saturating_add(1);
+            self.pending = Some(request);
+            self.draining = true;
+            self.closed = true;
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.closed = true;
+    }
+}
+
+const fn step_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidLifecycle,
+        detail,
+    })
 }
 
 impl WavArtifactOperation {
