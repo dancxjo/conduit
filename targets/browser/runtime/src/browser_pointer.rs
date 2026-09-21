@@ -9,11 +9,12 @@ use conduit_core::{
     PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
+use conduit_kernel::scheduler::{
+    FixedScheduler, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+};
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, HostCallDisposition,
-    HostCallId, HostCallOutcome, HostedValueStore, Operation, OperationAction, OperationInput,
-    PortId, RequestId, ValueStorage,
+    HostCallId, HostCallOutcome, HostedValueStore, PortId, RequestId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
@@ -44,7 +45,7 @@ const SIGNS: usize = 32;
 const HOST_BINDINGS: usize = NODES * NODES;
 
 type PointerScheduler = FixedScheduler<
-    OperationDriver<PointerOperation, PORTS>,
+    PointerBack,
     HostedValueStore,
     FixedSignLog<SIGNS>,
     NODES,
@@ -57,7 +58,7 @@ type PointerScheduler = FixedScheduler<
     NODES,
 >;
 
-enum PointerOperation {
+enum PointerBack {
     Source {
         empty: conduit_kernel::ValueRef,
         pending: bool,
@@ -71,113 +72,108 @@ enum PointerOperation {
     },
 }
 
-impl Operation for PointerOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for PointerBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
             Self::Source {
                 empty,
                 pending,
-                maximum_output_bytes: _maximum_output_bytes,
+                emitted,
+                maximum_output_bytes,
                 ..
-            } if !*pending => {
+            } => {
+                if *emitted {
+                    return StepOutcome::Complete;
+                }
+                if *pending {
+                    let Some((RequestId(0), outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    if outcome.disposition != HostCallDisposition::Completed
+                        || outcome.failure.is_some()
+                    {
+                        return fail(1);
+                    }
+                    let Some(output) = outcome.output else {
+                        return fail(1);
+                    };
+                    if output.admitted_bytes != *maximum_output_bytes {
+                        return fail(2);
+                    }
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    if io.consume_host_completion().is_err()
+                        || io.send(PortId(0), output.value).is_err()
+                    {
+                        return fail(3);
+                    }
+                    *pending = false;
+                    *emitted = true;
+                    return StepOutcome::Complete;
+                }
+                let input = BoundedValueRef::new(*empty, 0)
+                    .expect("empty browser pointer request is exactly bounded");
+                if io
+                    .request_host_call(RequestId(0), HostCallId(0), input)
+                    .is_err()
+                {
+                    return fail(3);
+                }
                 *pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(*empty, 0)
-                        .expect("empty browser pointer request is exactly bounded"),
-                }
+                StepOutcome::Progress
             }
-            Self::Source { .. } | Self::Sink { .. } => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Source {
-                    pending,
-                    emitted,
-                    maximum_output_bytes,
-                    ..
-                },
-                OperationInput::HostCallCompleted {
-                    request: RequestId(0),
-                    outcome,
-                },
-            ) if *pending
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return fail(1);
-                };
-                if output.admitted_bytes != *maximum_output_bytes {
-                    return fail(2);
+            Self::Sink {
+                pending,
+                complete,
+                maximum_input_bytes,
+            } => {
+                if *pending {
+                    let Some((RequestId(0), outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    if outcome.disposition != HostCallDisposition::Completed
+                        || outcome.output.is_some()
+                        || outcome.failure.is_some()
+                        || io.consume_host_completion().is_err()
+                    {
+                        return fail(3);
+                    }
+                    *pending = false;
+                    *complete = true;
+                    return StepOutcome::Progress;
                 }
-                *pending = false;
-                *emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
+                if let Some(value) = io.input(PortId(0)) {
+                    let input = BoundedValueRef::new(value, *maximum_input_bytes)
+                        .expect("pointer presentation input is admitted");
+                    if io.consume(PortId(0)).is_err()
+                        || io
+                            .request_host_call(RequestId(0), HostCallId(0), input)
+                            .is_err()
+                    {
+                        return fail(3);
+                    }
+                    *pending = true;
+                    return StepOutcome::Progress;
                 }
-            }
-            (
-                Self::Sink {
-                    pending,
-                    maximum_input_bytes,
-                    ..
-                },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if !*pending => {
-                *pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(value, *maximum_input_bytes)
-                        .expect("pointer presentation input is admitted"),
+                if io.input_closed(PortId(0)) && *complete {
+                    if io.consume_closed(PortId(0)).is_err() {
+                        return fail(3);
+                    }
+                    return StepOutcome::Complete;
                 }
+                StepOutcome::Await
             }
-            (
-                Self::Sink {
-                    pending, complete, ..
-                },
-                OperationInput::HostCallCompleted {
-                    request: RequestId(0),
-                    outcome,
-                },
-            ) if *pending
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                *pending = false;
-                *complete = true;
-                OperationAction::Await
-            }
-            (
-                Self::Sink {
-                    pending, complete, ..
-                },
-                OperationInput::Closed { port: PortId(0) },
-            ) if !*pending && *complete => OperationAction::Complete,
-            _ => fail(3),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source { emitted: true, .. } => OperationAction::Complete,
-            _ => OperationAction::Await,
         }
     }
 }
 
-fn fail(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+fn fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
         detail,
     })
@@ -475,25 +471,25 @@ fn scheduler(
     )
     .map_err(debug)?;
     let empty = values.store(&[]).map_err(debug)?;
-    let mut drivers = Vec::with_capacity(NODES);
+    let mut backs = Vec::with_capacity(NODES);
     for placement in &fragment.placements {
-        let operation = match placement.kind_id.as_str() {
-            POINTER_SOURCE_KIND => PointerOperation::Source {
+        let back = match placement.kind_id.as_str() {
+            POINTER_SOURCE_KIND => PointerBack::Source {
                 empty,
                 pending: false,
                 emitted: false,
                 maximum_output_bytes: placement.host_calls[0].maximum_output_bytes,
             },
-            STRUCTURED_PRESENTATION_KIND => PointerOperation::Sink {
+            STRUCTURED_PRESENTATION_KIND => PointerBack::Sink {
                 pending: false,
                 complete: false,
                 maximum_input_bytes: placement.host_calls[0].maximum_input_bytes,
             },
             _ => return Err("unsupported browser pointer placement".into()),
         };
-        drivers.push(OperationDriver::new(operation).map_err(debug)?);
+        backs.push(back);
     }
-    let drivers = drivers.try_into().map_err(|_| "pointer drivers")?;
+    let backs = backs.try_into().map_err(|_| "pointer Backs")?;
     let required_sign_bytes = usize::from(lowered.sign_items)
         .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>())
         .and_then(|bytes| u32::try_from(bytes).ok())
@@ -502,7 +498,7 @@ fn scheduler(
         return Err("browser pointer Plan underadmits physical Signs".into());
     }
     let signs = FixedSignLog::<SIGNS>::new(lowered.sign_bytes).map_err(debug)?;
-    PointerScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
+    PointerScheduler::new_with_host_calls(nodes, cords, routes, bindings, backs, values, signs)
         .map_err(debug)
 }
 
