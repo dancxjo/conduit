@@ -207,7 +207,7 @@ fn drive_with_boundary<'a>(
         }
         if scheduler.has_ready_work() {
             match scheduler.step().map_err(|error| {
-                if let conduit_kernel::scheduler::SchedulerError::OperationFailed(detail) = &error {
+                if let conduit_kernel::scheduler::SchedulerError::BackFailed(detail) = &error {
                     scheduler.failure = Some(*detail);
                 }
                 debug_error(error)
@@ -373,7 +373,7 @@ fn drive_with_boundary<'a>(
             continue;
         }
         let status = scheduler.step().map_err(|error| {
-            if let conduit_kernel::scheduler::SchedulerError::OperationFailed(detail) = &error {
+            if let conduit_kernel::scheduler::SchedulerError::BackFailed(detail) = &error {
                 scheduler.failure = Some(*detail);
             }
             debug_error(error)

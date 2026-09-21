@@ -393,7 +393,7 @@ impl PicoUsbSource {
             || !self
                 .scheduler
                 .signs()
-                .contains_kind(KernelEventKind::OperationCompleted)
+                .contains_kind(KernelEventKind::BackCompleted)
             || self.capacity_seal() != self.seal
         {
             return Err("source kernel terminal/capacity invariants failed".to_owned());

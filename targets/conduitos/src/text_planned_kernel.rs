@@ -429,7 +429,7 @@ mod tests {
                 outcome => {
                     assert_eq!(
                         outcome,
-                        Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
+                        Err(SchedulerError::BackFailed(conduit_kernel::Failure {
                             code: conduit_kernel::FailureCode::HostCallFailed,
                             detail: 23
                         }))

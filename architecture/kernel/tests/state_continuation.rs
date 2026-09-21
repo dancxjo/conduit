@@ -195,7 +195,7 @@ fn a_larger_transition_allowance_executes_the_same_input_without_hiding_exhausti
             if sequence == allowance {
                 assert_eq!(
                     play.step(),
-                    Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(
+                    Err(conduit_kernel::scheduler::SchedulerError::BackFailed(
                         conduit_kernel::Failure {
                             code: conduit_kernel::FailureCode::WorkBudgetExhausted,
                             detail: 2

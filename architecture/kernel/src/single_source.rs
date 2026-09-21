@@ -1,15 +1,14 @@
-//! Fixed one-operation source profile for tiny assigned fragments.
+//! Fixed one-Back source profile for tiny assigned fragments.
 //!
-//! This is a specialization of the same [`Operation`] protocol used by the
+//! This is a specialization of the same [`StepOperation`] protocol used by the
 //! full scheduler. It is valid only for a fragment containing one source, one
 //! Host Call, one output Port, and no local or remote Cords. Any other
 //! shape must be refused before construction.
 
-use crate::scheduler::HostCallRequest;
+use crate::scheduler::{HostCallRequest, StepInputBytes, StepIo, StepOperation, StepOutcome};
 use crate::{
-    BoundedValueRef, HostCallId, HostCallOutcome, KernelEventKind, NodeId, Operation,
-    OperationAction, OperationInput, PortId, RemoteLifecycleIdentity, RequestId, SignError,
-    SignSink, StorageError, ValueRef,
+    BoundedValueRef, HostCallId, HostCallOutcome, KernelEventKind, NodeId, PortId,
+    RemoteLifecycleIdentity, RequestId, SignError, SignSink, StorageError, ValueRef,
 };
 
 /// Exact three-Sign storage required by the single-source execution profile.
@@ -152,14 +151,14 @@ pub enum SingleSourceRefusal {
     InvalidStart,
     WrongRequest,
     InvalidCompletion,
-    OperationFailed(u16),
+    BackFailed(u16),
     SignCapacity,
     AlreadyStarted,
     AlreadyTerminal,
 }
 
-pub struct SingleSourceExecutor<O, E> {
-    operation: O,
+pub struct SingleSourceExecutor<B, E> {
+    back: B,
     signs: E,
     node: NodeId,
     operation_id: HostCallId,
@@ -170,9 +169,9 @@ pub struct SingleSourceExecutor<O, E> {
     terminal: bool,
 }
 
-impl<O: Operation, E: SignSink> SingleSourceExecutor<O, E> {
+impl<B: StepOperation<1>, E: SignSink> SingleSourceExecutor<B, E> {
     pub fn new(
-        operation: O,
+        back: B,
         signs: E,
         node: NodeId,
         operation_id: HostCallId,
@@ -184,7 +183,7 @@ impl<O: Operation, E: SignSink> SingleSourceExecutor<O, E> {
             return Err(SingleSourceRefusal::InvalidBound);
         }
         Ok(Self {
-            operation,
+            back,
             signs,
             node,
             operation_id,
@@ -203,12 +202,12 @@ impl<O: Operation, E: SignSink> SingleSourceExecutor<O, E> {
         if self.request.is_some() {
             return Err(SingleSourceRefusal::AlreadyStarted);
         }
-        let OperationAction::RequestHostCall {
-            request,
-            operation,
-            input,
-        } = self.operation.start()
-        else {
+        let mut io = StepIo::single_source(self.maximum_output_bytes, self.maximum_step_work, None);
+        let input_bytes = StepInputBytes::single_source();
+        if self.back.step(&mut io, &input_bytes) != StepOutcome::Progress {
+            return Err(SingleSourceRefusal::InvalidStart);
+        }
+        let Some((request, operation, input)) = io.single_source_start_request() else {
             return Err(SingleSourceRefusal::InvalidStart);
         };
         if operation != self.operation_id || input.value.byte_len > self.maximum_input_bytes {
@@ -256,32 +255,30 @@ impl<O: Operation, E: SignSink> SingleSourceExecutor<O, E> {
                 KernelEventKind::HostCallCompleted,
             )
             .map_err(|_| SingleSourceRefusal::SignCapacity)?;
-        let first = self
-            .operation
-            .resume(OperationInput::HostCallCompleted { request, outcome });
-        let OperationAction::Emit { port, value } = first else {
-            return match first {
-                OperationAction::Fail(failure) => {
-                    self.terminal = true;
-                    Err(SingleSourceRefusal::OperationFailed(failure.detail))
-                }
-                _ => Err(SingleSourceRefusal::InvalidCompletion),
-            };
-        };
-        let bounded = BoundedValueRef::new(value, self.maximum_output_bytes)
-            .map_err(|_| SingleSourceRefusal::InvalidCompletion)?;
-        if !matches!(self.operation.advance(), OperationAction::Complete) {
+        let mut io = StepIo::single_source(
+            self.maximum_output_bytes,
+            self.maximum_step_work,
+            Some((request, outcome)),
+        );
+        let input_bytes = StepInputBytes::single_source();
+        let outcome = self.back.step(&mut io, &input_bytes);
+        if let StepOutcome::Fail(failure) = outcome {
+            self.terminal = true;
+            return Err(SingleSourceRefusal::BackFailed(failure.detail));
+        }
+        if outcome != StepOutcome::Complete {
             return Err(SingleSourceRefusal::InvalidCompletion);
         }
-        let _ = self.maximum_step_work;
+        let Some(value) = io.single_source_completion_output() else {
+            return Err(SingleSourceRefusal::InvalidCompletion);
+        };
+        let port = PortId(0);
+        let bounded = BoundedValueRef::new(value, self.maximum_output_bytes)
+            .map_err(|_| SingleSourceRefusal::InvalidCompletion)?;
+        self.back.step_committed();
         self.terminal = true;
         self.signs
-            .record(
-                self.node,
-                Some(port),
-                None,
-                KernelEventKind::OperationCompleted,
-            )
+            .record(self.node, Some(port), None, KernelEventKind::BackCompleted)
             .map_err(|_| SingleSourceRefusal::SignCapacity)?;
         Ok(SingleSourceOutput {
             port,
@@ -302,53 +299,59 @@ mod tests {
     #[derive(Clone, Copy)]
     struct Source;
 
-    impl Operation for Source {
-        fn start(&mut self) -> OperationAction {
-            OperationAction::RequestHostCall {
-                request: RequestId(4),
-                operation: HostCallId(2),
-                input: BoundedValueRef::new(
-                    ValueRef {
-                        slot: 0,
-                        generation: 1,
-                        byte_len: 0,
-                    },
-                    0,
-                )
-                .unwrap(),
+    impl StepOperation<1> for Source {
+        fn step(
+            &mut self,
+            io: &mut StepIo<1>,
+            _input_bytes: &StepInputBytes<'_, 1>,
+        ) -> StepOutcome {
+            if let Some((RequestId(4), outcome)) = io.host_completion() {
+                let HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
+                    output: Some(output),
+                    failure: None,
+                } = outcome
+                else {
+                    return StepOutcome::Fail(Failure {
+                        code: FailureCode::InvalidLifecycle,
+                        detail: 9,
+                    });
+                };
+                if io.consume_host_completion().is_err()
+                    || io.send(PortId(0), output.value).is_err()
+                {
+                    return StepOutcome::Fail(Failure {
+                        code: FailureCode::InvalidLifecycle,
+                        detail: 9,
+                    });
+                }
+                return StepOutcome::Complete;
             }
-        }
-
-        fn resume(&mut self, input: OperationInput) -> OperationAction {
-            match input {
-                OperationInput::HostCallCompleted {
-                    request: RequestId(4),
-                    outcome:
-                        HostCallOutcome {
-                            disposition: HostCallDisposition::Completed,
-                            output: Some(output),
-                            failure: None,
-                        },
-                } => OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
+            let input = BoundedValueRef::new(
+                ValueRef {
+                    slot: 0,
+                    generation: 1,
+                    byte_len: 0,
                 },
-                _ => OperationAction::Fail(Failure {
+                0,
+            )
+            .unwrap();
+            if io
+                .request_host_call(RequestId(4), HostCallId(2), input)
+                .is_err()
+            {
+                StepOutcome::Fail(Failure {
                     code: FailureCode::InvalidLifecycle,
                     detail: 9,
-                }),
+                })
+            } else {
+                StepOutcome::Progress
             }
         }
-
-        fn advance(&mut self) -> OperationAction {
-            OperationAction::Complete
-        }
-
-        fn cancel(&mut self) {}
     }
 
     #[test]
-    fn exact_single_source_uses_the_shared_operation_and_sign_contracts() {
+    fn exact_single_source_uses_the_shared_step_and_sign_contracts() {
         let signs = SingleSourceSignLog::new();
         let mut executor =
             SingleSourceExecutor::new(Source, signs, NodeId(0), HostCallId(2), 0, 1, 3).unwrap();

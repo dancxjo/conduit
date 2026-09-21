@@ -162,7 +162,7 @@ fn canonical_example_executes_the_hosted_reference_through_the_production_kernel
         .contains_kind(KernelEventKind::HostCallCompleted));
     assert!(scheduler
         .signs()
-        .contains_kind(KernelEventKind::OperationCompleted));
+        .contains_kind(KernelEventKind::BackCompleted));
 }
 
 fn assert_canonical_example_checks_and_plans() {

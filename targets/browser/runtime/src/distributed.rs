@@ -7,13 +7,13 @@ use super::{
 };
 use conduit_core::{bind_active_play, bind_presentation, bind_sign, BootId, HostId, PlanFragment};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
+    FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus, StepInputBytes, StepIo,
+    StepOperation, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
     HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore,
-    KernelEventKind, Operation, OperationAction, OperationInput, PortId, RemoteEndpointId,
-    RequestId, SignError, SignQuery, ValueStorage,
+    KernelEventKind, PortId, RemoteEndpointId, RequestId, SignError, SignQuery, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -44,19 +44,8 @@ const ERROR_CAPACITY: i32 = -108;
 const ROUTE_SLOTS: usize = 1;
 const SIGN_ITEMS: u16 = 256;
 
-type SinkScheduler = FixedScheduler<
-    OperationDriver<ShowOperation, PORTS>,
-    HostedValueStore,
-    HostedSignLog,
-    1,
-    1,
-    PORTS,
-    1,
-    ROUTE_SLOTS,
-    1,
-    1,
-    1,
->;
+type SinkScheduler =
+    FixedScheduler<ShowBack, HostedValueStore, HostedSignLog, 1, 1, PORTS, 1, ROUTE_SLOTS, 1, 1, 1>;
 
 thread_local! {
     static DISTRIBUTED: RefCell<Option<DistributedSink>> = const { RefCell::new(None) };
@@ -73,60 +62,64 @@ struct CapacitySeal {
     projections: usize,
 }
 
-struct ShowOperation {
+struct ShowBack {
     next: usize,
     pending: Option<RequestId>,
 }
 
-impl ShowOperation {
-    fn fail(detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure {
+impl ShowBack {
+    fn fail(detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             detail,
         })
     }
 }
 
-impl Operation for ShowOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => {
-                let Ok(sequence) = u32::try_from(self.next) else {
-                    return Self::fail(1);
-                };
-                let request = RequestId(0x8000_0000 | sequence);
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
-                        .expect("remote Signal was admitted at its exact byte bound"),
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+impl StepOperation<PORTS> for ShowBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if let Some(expected) = self.pending {
+            let Some((request, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            if request != expected
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+                || io.consume_host_completion().is_err()
             {
-                self.pending = None;
-                self.next += 1;
-                OperationAction::Await
+                return Self::fail(2);
             }
-            OperationInput::Closed { port: PortId(0) }
-                if self.pending.is_none() && self.next == MAXIMUM_RECEIPTS =>
-            {
-                OperationAction::Complete
-            }
-            _ => Self::fail(2),
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
         }
+        if let Some(value) = io.input(PortId(0)) {
+            let Ok(sequence) = u32::try_from(self.next) else {
+                return Self::fail(1);
+            };
+            let request = RequestId(0x8000_0000 | sequence);
+            let input = BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
+                .expect("remote Signal was admitted at its exact byte bound");
+            if io.consume(PortId(0)).is_err()
+                || io.request_host_call(request, HostCallId(0), input).is_err()
+            {
+                return Self::fail(2);
+            }
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.next == MAXIMUM_RECEIPTS {
+            if io.consume_closed(PortId(0)).is_err() {
+                return Self::fail(2);
+            }
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 }
 
@@ -224,11 +217,10 @@ impl DistributedSink {
             remote_sign_bytes,
         )
         .map_err(|_| ERROR_PREPARE)?;
-        let driver = OperationDriver::new(ShowOperation {
+        let back = ShowBack {
             next: 0,
             pending: None,
-        })
-        .map_err(|_| ERROR_PREPARE)?;
+        };
         let scheduler = SinkScheduler::new_with_host_calls(
             lowered
                 .node_specs
@@ -244,7 +236,7 @@ impl DistributedSink {
                 .map_err(|_| ERROR_PREPARE)?,
             routes,
             host_bindings,
-            [driver],
+            [back],
             values,
             sign,
         )
@@ -524,7 +516,7 @@ impl DistributedSink {
                         || !self
                             .scheduler
                             .signs()
-                            .contains_kind(KernelEventKind::OperationCompleted)
+                            .contains_kind(KernelEventKind::BackCompleted)
                         || self.capacity_seal() != self.seal
                         || self.pressure_retries != 1
                     {

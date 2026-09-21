@@ -386,7 +386,7 @@ impl PicoWifiBootstrapSource {
             || !self
                 .scheduler
                 .signs()
-                .contains_kind(KernelEventKind::OperationCompleted)
+                .contains_kind(KernelEventKind::BackCompleted)
         {
             return Err("credential source terminal signs missing".to_owned());
         }

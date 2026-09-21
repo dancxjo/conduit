@@ -1,11 +1,14 @@
+//! Exact canonical bytes borrowed by a bounded Step.
+
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver, SchedulerError,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, StepInputBytes, StepIo,
+    StepOperation, StepOutcome,
 };
 #[cfg(feature = "alloc")]
 use conduit_kernel::HostedValueStore;
 use conduit_kernel::{
-    CordId, FixedRoutes, FixedSignLog, FixedValueStore, NodeId, Operation, OperationAction,
-    OperationInput, PortId, RouteRange, RouteTarget, ValueRef, ValueStorage,
+    CordId, FixedRoutes, FixedSignLog, FixedValueStore, NodeId, PortId, RouteRange, RouteTarget,
+    ValueRef, ValueStorage,
 };
 
 const PORTS: usize = 1;
@@ -24,9 +27,10 @@ enum Observed {
     Scalar(i64),
 }
 
-enum ProbeOperation {
+enum ProbeBack {
     Source {
         value: ValueRef,
+        sent: bool,
     },
     Sink {
         kind: DecodeKind,
@@ -34,57 +38,51 @@ enum ProbeOperation {
     },
 }
 
-impl Operation for ProbeOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for ProbeBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
-            Self::Source { value } => OperationAction::Emit {
-                port: PortId(0),
-                value: *value,
-            },
-            Self::Sink { .. } => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (Self::Sink { .. }, OperationInput::Closed { port: PortId(0) }) => {
-                OperationAction::Complete
+            Self::Source { value, sent: false } if io.output_ready(PortId(0)) => {
+                io.send(PortId(0), *value).unwrap();
+                if let Self::Source { sent, .. } = self {
+                    *sent = true;
+                }
+                StepOutcome::Progress
             }
-            _ => panic!("probe received an invalid opaque input"),
-        }
-    }
-
-    fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
-        let Self::Sink { kind, observed } = self else {
-            panic!("source cannot receive a value");
-        };
-        assert_eq!(port, PortId(0));
-        assert_eq!(value.byte_len as usize, canonical.len());
-        *observed = match kind {
-            DecodeKind::Bool => Observed::Bool(match canonical {
-                [0] => false,
-                [1] => true,
-                _ => panic!("kernel supplied noncanonical bool fixture bytes"),
-            }),
-            DecodeKind::Scalar => Observed::Scalar(i64::from_le_bytes(
-                canonical
-                    .try_into()
-                    .expect("kernel supplied exact scalar fixture bytes"),
-            )),
-        };
-        OperationAction::Await
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source { .. } => OperationAction::Complete,
-            Self::Sink { .. } => OperationAction::Await,
+            Self::Source { sent: true, .. } => StepOutcome::Complete,
+            Self::Source { .. } => StepOutcome::Await,
+            Self::Sink { kind, observed } => {
+                if let Some(value) = io.input(PortId(0)) {
+                    let canonical = input_bytes.input(PortId(0)).expect("admitted input bytes");
+                    assert_eq!(value.byte_len as usize, canonical.len());
+                    *observed = match kind {
+                        DecodeKind::Bool => Observed::Bool(match canonical {
+                            [0] => false,
+                            [1] => true,
+                            _ => panic!("kernel supplied noncanonical bool fixture bytes"),
+                        }),
+                        DecodeKind::Scalar => Observed::Scalar(i64::from_le_bytes(
+                            canonical.try_into().expect("exact scalar fixture bytes"),
+                        )),
+                    };
+                    io.consume(PortId(0)).unwrap();
+                    StepOutcome::Progress
+                } else if io.input_closed(PortId(0)) {
+                    io.consume_closed(PortId(0)).unwrap();
+                    StepOutcome::Complete
+                } else {
+                    StepOutcome::Await
+                }
+            }
         }
     }
 }
 
 #[test]
-fn fixed_and_hosted_stores_expose_the_same_exact_resumed_bytes() {
+fn fixed_and_hosted_stores_expose_the_same_exact_step_input_bytes() {
     let fixed_bool = run_case(
         FixedValueStore::<4, 8>::new(24).unwrap(),
         &[1],
@@ -124,7 +122,7 @@ fn fixed_and_hosted_stores_expose_the_same_exact_resumed_bytes() {
 }
 
 #[test]
-fn stale_identity_fails_before_a_payload_decision() {
+fn stale_identity_fails_before_a_step_payload_decision() {
     let mut values = FixedValueStore::<4, 8>::new(24).unwrap();
     let stale = values.store(&[1]).unwrap();
     values.release(stale).unwrap();
@@ -134,39 +132,6 @@ fn stale_identity_fails_before_a_payload_decision() {
             conduit_kernel::StorageError::StaleReference
         ))
     );
-}
-
-#[test]
-fn the_default_hook_preserves_opaque_operation_behavior() {
-    struct Opaque {
-        seen: Option<(PortId, ValueRef)>,
-    }
-
-    impl Operation for Opaque {
-        fn start(&mut self) -> OperationAction {
-            OperationAction::Await
-        }
-
-        fn resume(&mut self, input: OperationInput) -> OperationAction {
-            let OperationInput::Value { port, value } = input else {
-                panic!("opaque fixture expects a value");
-            };
-            self.seen = Some((port, value));
-            OperationAction::Await
-        }
-    }
-
-    let value = ValueRef {
-        slot: 7,
-        generation: 3,
-        byte_len: 1,
-    };
-    let mut opaque = Opaque { seen: None };
-    assert_eq!(
-        opaque.resume_value(PortId(2), value, &[1]),
-        OperationAction::Await
-    );
-    assert_eq!(opaque.seen, Some((PortId(2), value)));
 }
 
 fn run_case<S: ValueStorage>(
@@ -216,11 +181,11 @@ fn run_with_value<S: ValueStorage>(
     )?;
     routes.seal()?;
     let drivers = [
-        OperationDriver::new(ProbeOperation::Source { value })?,
-        OperationDriver::new(ProbeOperation::Sink {
+        ProbeBack::Source { value, sent: false },
+        ProbeBack::Sink {
             kind,
             observed: Observed::None,
-        })?,
+        },
     ];
     let sign_bytes = (SIGN_EVENTS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32;
     let signs = FixedSignLog::<SIGN_EVENTS>::new(sign_bytes).unwrap();
@@ -228,8 +193,8 @@ fn run_with_value<S: ValueStorage>(
         node_specs, cord_specs, routes, drivers, values, signs,
     )?;
     scheduler.run(16)?;
-    let ProbeOperation::Sink { observed, .. } = scheduler.drivers()[1].operation() else {
-        panic!("sink driver identity changed");
+    let ProbeBack::Sink { observed, .. } = scheduler.drivers()[1] else {
+        panic!("sink Back identity changed");
     };
-    Ok(*observed)
+    Ok(observed)
 }

@@ -5,8 +5,7 @@ use conduit_ai::{
 };
 use conduit_core::{kind_id, port_id, verify_plan, PlacementId, PlanId};
 use conduit_kernel::{
-    BoundedValueRef, FixedHostCallBindings, HostCallBinding, HostCallId, NodeId, OperationAction,
-    RequestId, ValueRef,
+    BoundedValueRef, FixedHostCallBindings, HostCallBinding, HostCallId, NodeId, ValueRef,
 };
 use model_effect_common::{proposal, reseal, wired_plan, EFFECT_KIND};
 
@@ -54,14 +53,7 @@ fn exact_plan_wiring_derives_authority_and_reaches_kernel_admission() {
         .unwrap();
     bindings.seal().unwrap();
     assert!(bindings
-        .admit(
-            NodeId(0),
-            OperationAction::RequestHostCall {
-                request: RequestId(1),
-                operation: HostCallId(0),
-                input,
-            },
-        )
+        .admit_request(NodeId(0), HostCallId(0), input,)
         .is_ok());
 }
 

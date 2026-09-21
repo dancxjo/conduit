@@ -8,9 +8,8 @@ use crate::{
         DebugObserverControl, DebugRuntimeControl, DebugRuntimeEvent, DebugSuspension,
     },
     BoundedValueRef, CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostCallBinding,
-    HostCallId, HostCallOutcome, KernelEventKind, NodeId, OperationAction, PortId, ProtocolError,
-    RemoteEndpointId, RequestId, RouteTarget, SignError, SignSink, StorageError, ValueRef,
-    ValueStorage,
+    HostCallId, HostCallOutcome, KernelEventKind, NodeId, PortId, ProtocolError, RemoteEndpointId,
+    RequestId, RouteTarget, SignError, SignSink, StorageError, ValueRef, ValueStorage,
 };
 pub use conduit_assigned_plan::AssignedPressurePolicy;
 
@@ -211,6 +210,15 @@ impl<const PORTS: usize> StepInputBytes<'_, PORTS> {
     }
 }
 
+impl StepInputBytes<'static, 1> {
+    pub(crate) const fn single_source() -> Self {
+        Self {
+            inputs: [None],
+            host_output: None,
+        }
+    }
+}
+
 pub struct StepIo<const PORTS: usize> {
     inputs: [Option<ValueRef>; PORTS],
     input_closed: [bool; PORTS],
@@ -398,11 +406,9 @@ impl<const PORTS: usize> StepIo<PORTS> {
         {
             return self.fail(SchedulerError::InvalidPortAccess);
         }
-        let slot = self
-            .discards
-            .iter_mut()
-            .find(|discard| discard.is_none())
-            .ok_or(SchedulerError::InvalidPortAccess)?;
+        let Some(slot) = self.discards.iter_mut().find(|discard| discard.is_none()) else {
+            return self.fail(SchedulerError::InvalidPortAccess);
+        };
         *slot = Some(value);
         Ok(())
     }
@@ -455,6 +461,64 @@ impl<const PORTS: usize> StepIo<PORTS> {
     }
 }
 
+impl StepIo<1> {
+    pub(crate) fn single_source(
+        maximum_output_bytes: u32,
+        maximum_work: u16,
+        host_completion: Option<(RequestId, HostCallOutcome)>,
+    ) -> Self {
+        Self {
+            inputs: [None],
+            input_closed: [false],
+            output_maximum_bytes: [Some(maximum_output_bytes)],
+            consumed: [false],
+            retained_inputs: [false],
+            consumed_closed: [false],
+            outputs: [None],
+            canonical_output: None,
+            discards: [None],
+            host_completion,
+            consumed_host_completion: false,
+            host_request: None,
+            host_cancellation: None,
+            maximum_work,
+            work: 0,
+            fault: None,
+        }
+    }
+
+    pub(crate) fn single_source_start_request(
+        &self,
+    ) -> Option<(RequestId, HostCallId, BoundedValueRef)> {
+        if self.fault.is_none()
+            && self.host_request.is_some()
+            && !self.consumed_host_completion
+            && self.outputs[0].is_none()
+            && self.canonical_output.is_none()
+            && self.discards[0].is_none()
+            && self.host_cancellation.is_none()
+        {
+            self.host_request
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn single_source_completion_output(&self) -> Option<ValueRef> {
+        if self.fault.is_none()
+            && self.consumed_host_completion
+            && self.host_request.is_none()
+            && self.canonical_output.is_none()
+            && self.discards[0].is_none()
+            && self.host_cancellation.is_none()
+        {
+            self.outputs[0]
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SchedulerStatus {
     Progress {
@@ -485,7 +549,7 @@ pub enum SchedulerError {
     StepWorkExceeded,
     FalseProgress,
     DecisionLimitExceeded,
-    OperationFailed(crate::Failure),
+    BackFailed(crate::Failure),
     OperationProtocolViolation,
     HostCallCapacityExceeded,
     HostCallRequestDuplicate,
@@ -1480,7 +1544,7 @@ where
                     value: None,
                     fault_code: Some(code.detail),
                 });
-                return Err(SchedulerError::OperationFailed(code));
+                return Err(SchedulerError::BackFailed(code));
             }
             _ => {}
         }
@@ -1550,7 +1614,7 @@ where
                     NodeId(as_u16(node)?),
                     None,
                     None,
-                    KernelEventKind::OperationCompleted,
+                    KernelEventKind::BackCompleted,
                 )?;
                 self.signs.observe_debug(DebugRuntimeEvent {
                     node: NodeId(as_u16(node)?),
@@ -1910,14 +1974,7 @@ where
                 .host_bindings
                 .as_ref()
                 .ok_or(SchedulerError::InvalidHostCallAccess)?;
-            Some(bindings.admit(
-                NodeId(as_u16(node)?),
-                OperationAction::RequestHostCall {
-                    request,
-                    operation,
-                    input,
-                },
-            )?)
+            Some(bindings.admit_request(NodeId(as_u16(node)?), operation, input)?)
         } else {
             None
         };

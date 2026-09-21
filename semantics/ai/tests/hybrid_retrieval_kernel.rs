@@ -422,7 +422,7 @@ fn exact_policy_fuses_four_canonical_inputs_through_the_production_kernel_and_si
     scheduler.run(128).unwrap();
     assert!(scheduler
         .signs()
-        .contains_kind(KernelEventKind::OperationCompleted));
+        .contains_kind(KernelEventKind::BackCompleted));
     assert!(scheduler.signs().events().any(|event| {
         event.node == FUSION_NODE && event.kind == KernelEventKind::ValueConsumed
     }));
@@ -460,7 +460,7 @@ fn cancellation_and_malformed_stage_are_distinct_kernel_terminals() {
     let mut malformed = scheduler(&wrong, &expected);
     assert_eq!(
         malformed.run(128),
-        Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(
+        Err(conduit_kernel::scheduler::SchedulerError::BackFailed(
             conduit_kernel::Failure {
                 code: conduit_kernel::FailureCode::InvalidLifecycle,
                 detail: 6

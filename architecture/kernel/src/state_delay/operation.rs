@@ -69,7 +69,7 @@ impl<const BYTES: usize> StateOperation<BYTES> {
     }
 
     fn state_refusal(&mut self, error: StateError) -> OperationAction {
-        // Stable profile details retain exhaustion causes through OperationFailed.
+        // Stable profile details retain exhaustion causes through BackFailed.
         let (code, detail) = match error {
             StateError::ValueTooLarge => (FailureCode::StateCapacityExhausted, 1),
             StateError::TransitionLimitReached => (FailureCode::WorkBudgetExhausted, 2),

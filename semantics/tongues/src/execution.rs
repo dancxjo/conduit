@@ -308,7 +308,7 @@ pub fn run_speech_text(
             Ok(SchedulerStatus::Drained | SchedulerStatus::Cancelled) => break,
             Ok(SchedulerStatus::Progress { .. }) => {}
             Ok(SchedulerStatus::Idle) => return Err("speech kernel became idle".into()),
-            Err(SchedulerError::OperationFailed(_)) if outcome.is_some() => break,
+            Err(SchedulerError::BackFailed(_)) if outcome.is_some() => break,
             Err(error) => return Err(debug(error)),
         }
     }

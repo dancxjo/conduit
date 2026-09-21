@@ -89,7 +89,7 @@ fn prove(inputs: &mut HotplugProofInputs<'_>) -> Result<(), &'static str> {
     }
     x.fail_keyboard_device_removed(pending)
         .map_err(|_| "device-loss-not-delivered")?;
-    let failed = (0..64).any(|_| matches!(x.step(), Err(SchedulerError::OperationFailed(_))));
+    let failed = (0..64).any(|_| matches!(x.step(), Err(SchedulerError::BackFailed(_))));
     if !failed || p1.plan != immutable_p1 {
         return Err("d1-play-not-terminal-or-plan-mutated");
     }

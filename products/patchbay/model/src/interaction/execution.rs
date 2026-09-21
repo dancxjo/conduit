@@ -371,7 +371,7 @@ impl PatchbayInteraction {
                     disposition = Some(InteractionDisposition::Failed);
                     break;
                 }
-                Err(SchedulerError::OperationFailed(_)) if disposition.is_some() => break,
+                Err(SchedulerError::BackFailed(_)) if disposition.is_some() => break,
                 Err(error) => return Err(scheduler_error("step interaction kernel")(error)),
             }
         }

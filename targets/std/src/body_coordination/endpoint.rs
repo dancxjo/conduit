@@ -390,7 +390,7 @@ impl CoordinationEndpoint {
             || !self
                 .scheduler
                 .signs()
-                .contains_kind(KernelEventKind::OperationCompleted)
+                .contains_kind(KernelEventKind::BackCompleted)
         {
             return Err("coordination kernel lacks delivered/terminal Signs".into());
         }

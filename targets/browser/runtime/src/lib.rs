@@ -6,12 +6,13 @@ use conduit_core::{
     PROTOCOL_VERSION,
 };
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, OperationDriver, SchedulerError, SchedulerStatus,
+    FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus, StepInputBytes, StepIo,
+    StepOperation, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
-    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, NodeId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, SignError, ValueRef, ValueStorage,
+    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, NodeId, PortId, RequestId,
+    SignError, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment,
@@ -98,7 +99,7 @@ const ERROR_CAPACITY_GROWTH: i32 = -14;
 const ERROR_KERNEL: i32 = -15;
 
 type BrowserScheduler = FixedScheduler<
-    OperationDriver<SignalOperation, PORTS>,
+    SignalBack,
     HostedValueStore,
     HostedSignLog,
     2,
@@ -150,7 +151,7 @@ struct PreparedKernel {
 struct CapacitySeal {
     value: (usize, usize),
     sign: usize,
-    driver_values: usize,
+    back_values: usize,
     identity: (usize, usize, usize),
     projections: usize,
 }
@@ -178,7 +179,7 @@ struct BrowserSession {
     seal: CapacitySeal,
 }
 
-enum SignalOperation {
+enum SignalBack {
     Pulse {
         values: Vec<ValueRef>,
         waits: Vec<ValueRef>,
@@ -192,7 +193,7 @@ enum SignalOperation {
     },
 }
 
-impl SignalOperation {
+impl SignalBack {
     fn pulse(values: Vec<ValueRef>, waits: Vec<ValueRef>) -> Self {
         Self::Pulse {
             values,
@@ -210,8 +211,8 @@ impl SignalOperation {
         }
     }
 
-    fn fail(code: FailureCode, detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure { code, detail })
+    fn fail(code: FailureCode, detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure { code, detail })
     }
 
     fn allocation_capacity(&self) -> usize {
@@ -222,95 +223,12 @@ impl SignalOperation {
     }
 }
 
-impl Operation for SignalOperation {
-    fn start(&mut self) -> OperationAction {
-        match self {
-            Self::Pulse { values, .. } => {
-                values
-                    .first()
-                    .copied()
-                    .map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    })
-            }
-            Self::Show { .. } => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Pulse {
-                    values,
-                    next,
-                    pending,
-                    ..
-                },
-                OperationInput::HostCallCompleted { request, outcome },
-            ) if *pending == Some(request)
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                *pending = None;
-                values.get(*next).copied().map_or_else(
-                    || Self::fail(FailureCode::InvalidLifecycle, 1),
-                    |value| OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    },
-                )
-            }
-            (
-                Self::Show {
-                    expected,
-                    next,
-                    pending,
-                },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if pending.is_none() && expected.get(*next) == Some(&value) => {
-                let Ok(sequence) = u32::try_from(*next) else {
-                    return Self::fail(FailureCode::InvalidLifecycle, 2);
-                };
-                let request = RequestId(0x8000_0000 | sequence);
-                *pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
-                        .expect("sealed signal value is exactly admitted"),
-                }
-            }
-            (
-                Self::Show { next, pending, .. },
-                OperationInput::HostCallCompleted { request, outcome },
-            ) if *pending == Some(request)
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                *pending = None;
-                *next += 1;
-                OperationAction::Await
-            }
-            (
-                Self::Show {
-                    expected,
-                    next,
-                    pending,
-                },
-                OperationInput::Closed { port: PortId(0) },
-            ) if pending.is_none() && *next == expected.len() => OperationAction::Complete,
-            (Self::Pulse { .. }, _) => Self::fail(FailureCode::InvalidLifecycle, 3),
-            (Self::Show { .. }, _) => Self::fail(FailureCode::InvalidInput, 4),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for SignalBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
             Self::Pulse {
                 values,
@@ -318,26 +236,94 @@ impl Operation for SignalOperation {
                 next,
                 pending,
             } => {
+                if let Some(expected) = *pending {
+                    let Some((request, outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    if request != expected
+                        || outcome.disposition != HostCallDisposition::Completed
+                        || outcome.output.is_some()
+                        || outcome.failure.is_some()
+                        || io.consume_host_completion().is_err()
+                    {
+                        return Self::fail(FailureCode::InvalidLifecycle, 3);
+                    }
+                    *pending = None;
+                } else if *next > 0 && *next < values.len() {
+                    let Some(wait) = waits.get(*next - 1).copied() else {
+                        return Self::fail(FailureCode::InvalidLifecycle, 5);
+                    };
+                    let Ok(sequence) = u32::try_from(*next) else {
+                        return Self::fail(FailureCode::InvalidLifecycle, 6);
+                    };
+                    let request = RequestId(sequence);
+                    let input = BoundedValueRef::new(wait, 8)
+                        .expect("sealed wait value is exactly admitted");
+                    if io.request_host_call(request, HostCallId(0), input).is_err() {
+                        return Self::fail(FailureCode::InvalidLifecycle, 3);
+                    }
+                    *pending = Some(request);
+                    return StepOutcome::Progress;
+                }
+                let Some(value) = values.get(*next).copied() else {
+                    return StepOutcome::Complete;
+                };
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                if io.send(PortId(0), value).is_err() {
+                    return Self::fail(FailureCode::InvalidLifecycle, 1);
+                }
                 *next += 1;
-                if *next >= values.len() {
-                    return OperationAction::Complete;
-                }
-                let Some(wait) = waits.get(*next - 1).copied() else {
-                    return Self::fail(FailureCode::InvalidLifecycle, 5);
-                };
-                let Ok(sequence) = u32::try_from(*next) else {
-                    return Self::fail(FailureCode::InvalidLifecycle, 6);
-                };
-                let request = RequestId(sequence);
-                *pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(wait, 8)
-                        .expect("sealed wait value is exactly admitted"),
-                }
+                StepOutcome::Progress
             }
-            Self::Show { .. } => OperationAction::Await,
+            Self::Show {
+                expected,
+                next,
+                pending,
+            } => {
+                if let Some(expected_request) = *pending {
+                    let Some((request, outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    if request != expected_request
+                        || outcome.disposition != HostCallDisposition::Completed
+                        || outcome.output.is_some()
+                        || outcome.failure.is_some()
+                        || io.consume_host_completion().is_err()
+                    {
+                        return Self::fail(FailureCode::InvalidInput, 4);
+                    }
+                    *pending = None;
+                    *next += 1;
+                    return StepOutcome::Progress;
+                }
+                if let Some(value) = io.input(PortId(0)) {
+                    if expected.get(*next) != Some(&value) {
+                        return Self::fail(FailureCode::InvalidInput, 4);
+                    }
+                    let Ok(sequence) = u32::try_from(*next) else {
+                        return Self::fail(FailureCode::InvalidLifecycle, 2);
+                    };
+                    let request = RequestId(0x8000_0000 | sequence);
+                    let input = BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
+                        .expect("sealed signal value is exactly admitted");
+                    if io.consume(PortId(0)).is_err()
+                        || io.request_host_call(request, HostCallId(0), input).is_err()
+                    {
+                        return Self::fail(FailureCode::InvalidInput, 4);
+                    }
+                    *pending = Some(request);
+                    return StepOutcome::Progress;
+                }
+                if io.input_closed(PortId(0)) && *next == expected.len() {
+                    if io.consume_closed(PortId(0)).is_err() {
+                        return Self::fail(FailureCode::InvalidInput, 4);
+                    }
+                    return StepOutcome::Complete;
+                }
+                StepOutcome::Await
+            }
         }
     }
 }
@@ -398,10 +384,10 @@ impl BrowserSession {
         let seal = CapacitySeal {
             value: scheduler.values().allocation_capacities(),
             sign: scheduler.signs().allocation_capacity(),
-            driver_values: scheduler
+            back_values: scheduler
                 .drivers()
                 .iter()
-                .map(|driver| driver.operation().allocation_capacity())
+                .map(SignalBack::allocation_capacity)
                 .sum(),
             identity: identity.allocation_capacities(),
             projections: projections.capacity(),
@@ -439,11 +425,11 @@ impl BrowserSession {
         CapacitySeal {
             value: self.scheduler.values().allocation_capacities(),
             sign: self.scheduler.signs().allocation_capacity(),
-            driver_values: self
+            back_values: self
                 .scheduler
                 .drivers()
                 .iter()
-                .map(|driver| driver.operation().allocation_capacity())
+                .map(SignalBack::allocation_capacity)
                 .sum(),
             identity: self.identity.allocation_capacities(),
             projections: self.projections.capacity(),
@@ -651,7 +637,7 @@ impl BrowserSession {
             loop {
                 match self.scheduler.step() {
                     Ok(SchedulerStatus::Progress { .. }) => continue,
-                    Ok(SchedulerStatus::Cancelled) | Err(SchedulerError::OperationFailed(_)) => {
+                    Ok(SchedulerStatus::Cancelled) | Err(SchedulerError::BackFailed(_)) => {
                         return self.fail(ERROR_TERMINAL_FAILURE)
                     }
                     Ok(SchedulerStatus::Drained | SchedulerStatus::Idle) | Err(_) => {
@@ -800,16 +786,11 @@ fn prepare_kernel(
             .map_err(|_| ERROR_START)?;
     }
     host_bindings.seal().map_err(|_| ERROR_START)?;
-    let mut operations: [Option<SignalOperation>; 2] = core::array::from_fn(|_| None);
-    operations[usize::from(pulse_node.0)] =
-        Some(SignalOperation::pulse(signal_values.clone(), wait_values));
-    operations[usize::from(show_node.0)] = Some(SignalOperation::show(signal_values.clone()));
-    let drivers: [OperationDriver<SignalOperation, PORTS>; 2] = operations
-        .map(|operation| {
-            operation
-                .ok_or(ERROR_START)
-                .and_then(|operation| OperationDriver::new(operation).map_err(|_| ERROR_START))
-        })
+    let mut backs: [Option<SignalBack>; 2] = core::array::from_fn(|_| None);
+    backs[usize::from(pulse_node.0)] = Some(SignalBack::pulse(signal_values.clone(), wait_values));
+    backs[usize::from(show_node.0)] = Some(SignalBack::show(signal_values.clone()));
+    let backs: [SignalBack; 2] = backs
+        .map(|back| back.ok_or(ERROR_START))
         .into_iter()
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
@@ -842,7 +823,7 @@ fn prepare_kernel(
         cord_specs,
         routes,
         host_bindings,
-        drivers,
+        backs,
         values,
         sign,
     )
@@ -1020,7 +1001,7 @@ fn map_scheduler_error(error: SchedulerError) -> i32 {
         SchedulerError::Sign(SignError::ItemCapacityExceeded | SignError::ByteCapacityExceeded) => {
             ERROR_SIGN_EXHAUSTED
         }
-        SchedulerError::OperationFailed(_) | SchedulerError::Cancelled => ERROR_TERMINAL_FAILURE,
+        SchedulerError::BackFailed(_) | SchedulerError::Cancelled => ERROR_TERMINAL_FAILURE,
         _ => ERROR_KERNEL,
     }
 }

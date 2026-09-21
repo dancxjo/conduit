@@ -9,9 +9,9 @@ use conduit_core::{
     PortDirection, ValuePayload, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindProjection, ProfileCatalog};
-use conduit_kernel::{
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId as KernelPortId,
-};
+use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::{HostedValueStore, PortId as KernelPortId};
+use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use std::collections::BTreeMap;
 
@@ -165,7 +165,8 @@ impl KernelOperationFactory for EchoFactory {
         &self,
         _placement: &PlannedGear,
         _values: &mut HostedValueStore,
-    ) -> Result<Box<dyn Operation + Send>, String> {
+    ) -> Result<Box<dyn StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String>
+    {
         if self.fail {
             Ok(Box::new(Fail))
         } else {
@@ -178,32 +179,46 @@ struct Echo;
 
 struct Fail;
 
-impl Operation for Fail {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Fail(conduit_kernel::Failure {
+impl StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for Fail {
+    fn step(
+        &mut self,
+        _io: &mut StepIo<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+        _input_bytes: &StepInputBytes<'_, { FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+    ) -> StepOutcome {
+        StepOutcome::Fail(conduit_kernel::Failure {
             code: conduit_kernel::FailureCode::InvalidLifecycle,
             detail: 17,
         })
     }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        OperationAction::Await
-    }
 }
 
-impl Operation for Echo {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value { value, .. } => OperationAction::Emit {
-                port: KernelPortId(0),
-                value,
-            },
-            OperationInput::Closed { .. } => OperationAction::Complete,
-            _ => OperationAction::Await,
+impl StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for Echo {
+    fn step(
+        &mut self,
+        io: &mut StepIo<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+        _input_bytes: &StepInputBytes<'_, { FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+    ) -> StepOutcome {
+        if let Some(value) = io.input(KernelPortId(0)) {
+            if !io.output_ready(KernelPortId(0)) {
+                return StepOutcome::Await;
+            }
+            if io.consume(KernelPortId(0)).is_err() || io.send(KernelPortId(0), value).is_err() {
+                return StepOutcome::Fail(conduit_kernel::Failure {
+                    code: conduit_kernel::FailureCode::InvalidLifecycle,
+                    detail: 18,
+                });
+            }
+            StepOutcome::Progress
+        } else if io.input_closed(KernelPortId(0)) {
+            if io.consume_closed(KernelPortId(0)).is_err() {
+                return StepOutcome::Fail(conduit_kernel::Failure {
+                    code: conduit_kernel::FailureCode::InvalidLifecycle,
+                    detail: 19,
+                });
+            }
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Await
         }
     }
 }

@@ -1,11 +1,11 @@
 use super::{
     debug_error,
     offers::{text_advertisement, text_fixture_catalog, text_fixture_startup_catalog},
-    operation::NucleusOperation,
+    operation::NucleusBack,
     FIXTURE_TEXT_KIND, PORTS,
 };
 use conduit_core::BaseImplementationId;
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
+use conduit_kernel::scheduler::{FixedScheduler, SchedulerStatus};
 use conduit_kernel::{
     FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, HostCallDisposition,
     HostCallOutcome, ValueStorage,
@@ -22,7 +22,7 @@ const TEXT_FORM: &str = r#"form browser-text-nucleus {
 }"#;
 
 type TextScheduler = FixedScheduler<
-    OperationDriver<NucleusOperation, PORTS>,
+    NucleusBack,
     FixedValueStore<6, { conduit_text::MAX_TEXT_BYTES as usize }>,
     FixedSignLog<32>,
     3,
@@ -103,33 +103,33 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
     )
     .map_err(debug_error)?;
     let source = values.store("Straße".as_bytes()).map_err(debug_error)?;
-    let mut drivers = Vec::with_capacity(3);
+    let mut backs = Vec::with_capacity(3);
     for (index, placement) in fragment.placements.iter().enumerate() {
         let operation = match placement.kind_id.as_str() {
-            FIXTURE_TEXT_KIND => NucleusOperation::Source {
+            FIXTURE_TEXT_KIND => NucleusBack::Source {
                 value: source,
                 emitted: false,
             },
-            conduit_text::TEXT_UPPER_KIND => NucleusOperation::Transform {
+            conduit_text::TEXT_UPPER_KIND => NucleusBack::Transform {
                 maximum_input_bytes: placement.host_calls[0].maximum_input_bytes,
                 pending: false,
                 emitted: false,
             },
-            conduit_semantic_catalog::TEXT_PRESENTATION_KIND => NucleusOperation::Sink {
+            conduit_semantic_catalog::TEXT_PRESENTATION_KIND => NucleusBack::Sink {
                 maximum_input_bytes: placement.host_calls[0].maximum_input_bytes,
                 pending: false,
                 complete: false,
             },
             _ => return Err("browser text Plan selected an unsupported Kind".into()),
         };
-        if index != drivers.len() {
+        if index != backs.len() {
             return Err("browser text placements are not in lowered node order".into());
         }
-        drivers.push(OperationDriver::new(operation).map_err(debug_error)?);
+        backs.push(operation);
     }
-    let drivers = drivers
+    let backs = backs
         .try_into()
-        .map_err(|_| "browser text driver table is incomplete".to_string())?;
+        .map_err(|_| "browser text Back table is incomplete".to_string())?;
     let signs = FixedSignLog::<32>::new(
         lowered
             .sign_bytes
@@ -137,7 +137,7 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
     )
     .map_err(debug_error)?;
     let mut scheduler =
-        TextScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
+        TextScheduler::new_with_host_calls(nodes, cords, routes, bindings, backs, values, signs)
             .map_err(debug_error)?;
     let mut manifested = None;
     loop {

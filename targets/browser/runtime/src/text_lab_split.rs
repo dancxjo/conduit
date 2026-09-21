@@ -1,11 +1,13 @@
 //! Browser production-kernel half of the exact split Text Lab Plan.
 
 use crate::presentation_nucleus::uppercase_utf8;
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
+use conduit_kernel::scheduler::{
+    FixedScheduler, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+};
 use conduit_kernel::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
-    HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, Operation,
-    OperationAction, OperationInput, PortId, RemoteEndpointId, RequestId,
+    HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, PortId,
+    RemoteEndpointId, RequestId,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
@@ -19,76 +21,76 @@ use conduit_text::{MAX_TEXT_BYTES, TEXT_UPPER_KIND};
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const SIGN_ITEMS: u16 = 128;
 
-type BrowserTextLabScheduler = FixedScheduler<
-    OperationDriver<UpperOperation, PORTS>,
-    HostedValueStore,
-    HostedSignLog,
-    1,
-    2,
-    PORTS,
-    2,
-    1,
-    1,
-    1,
-    1,
->;
+type BrowserTextLabScheduler =
+    FixedScheduler<UpperBack, HostedValueStore, HostedSignLog, 1, 2, PORTS, 2, 1, 1, 1, 1>;
 
-struct UpperOperation {
+struct UpperBack {
     pending: Option<RequestId>,
     next: u32,
 }
 
-impl UpperOperation {
-    fn fail(detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure {
+impl UpperBack {
+    fn fail(detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             detail,
         })
     }
 }
 
-impl Operation for UpperOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() && self.next < TEXT_LAB_MAXIMUM_VALUES as u32 => {
-                let request = RequestId(self.next);
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(value, MAX_TEXT_BYTES) {
-                        Ok(value) => value,
-                        Err(_) => return Self::fail(1),
-                    },
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.failure.is_none() =>
+impl StepOperation<PORTS> for UpperBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if let Some(expected) = self.pending {
+            let Some((request, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            if request != expected
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
             {
-                let Some(output) = outcome.output else {
-                    return Self::fail(2);
-                };
-                self.pending = None;
-                self.next += 1;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
+                return Self::fail(3);
             }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
+            let Some(output) = outcome.output else {
+                return Self::fail(2);
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
             }
-            _ => Self::fail(3),
+            if io.consume_host_completion().is_err() || io.send(PortId(0), output.value).is_err() {
+                return Self::fail(3);
+            }
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
         }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.next >= TEXT_LAB_MAXIMUM_VALUES as u32 {
+                return Self::fail(3);
+            }
+            let request = RequestId(self.next);
+            let input = match BoundedValueRef::new(value, MAX_TEXT_BYTES) {
+                Ok(value) => value,
+                Err(_) => return Self::fail(1),
+            };
+            if io.consume(PortId(0)).is_err()
+                || io.request_host_call(request, HostCallId(0), input).is_err()
+            {
+                return Self::fail(3);
+            }
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            if io.consume_closed(PortId(0)).is_err() {
+                return Self::fail(3);
+            }
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 }
 
@@ -164,11 +166,10 @@ impl BrowserTextLabFragment {
             remote_sign_bytes,
         )
         .map_err(|error| format!("{error:?}"))?;
-        let driver = OperationDriver::new(UpperOperation {
+        let back = UpperBack {
             pending: None,
             next: 0,
-        })
-        .map_err(|error| format!("{error:?}"))?;
+        };
         let scheduler = BrowserTextLabScheduler::new_with_host_calls(
             lowered
                 .node_specs
@@ -184,7 +185,7 @@ impl BrowserTextLabFragment {
                 .map_err(|_| "split Text Lab browser Cord width".to_string())?,
             routes,
             bindings,
-            [driver],
+            [back],
             values,
             signs,
         )
