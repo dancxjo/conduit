@@ -1,6 +1,6 @@
-use super::operation::{CopyOperation, CopyResultSink, CopyTaskOperation};
+use super::operation::{CopyBack, CopyResultBack, CopyTaskBack};
 use conduit_core::PlanFragment;
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver};
+use conduit_kernel::scheduler::FixedScheduler;
 use conduit_kernel::{
     FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore, ValueStorage,
 };
@@ -10,7 +10,7 @@ const MAX_SIGN_ITEMS: u16 = 20_000;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 
 pub(super) type CopyScheduler = FixedScheduler<
-    OperationDriver<CopyTaskOperation, PORTS>,
+    CopyTaskBack,
     HostedValueStore,
     HostedSignLog,
     2,
@@ -42,26 +42,23 @@ pub(super) fn prepare_copy_scheduler(
     let success_encoded = success
         .canonical_bytes()
         .map_err(|error| format!("encode admitted copy result: {error:?}"))?;
-    let mut drivers = Vec::with_capacity(2);
+    let mut backs = Vec::with_capacity(2);
     for node in &lowered.nodes {
         let placement = &fragment.placements[usize::from(node.node.0)];
-        let operation = if placement.kind_id.as_str() == conduit_semantic_catalog::COPY_FILE_KIND {
-            CopyTaskOperation::Copy(CopyOperation::new(command))
+        let back = if placement.kind_id.as_str() == conduit_semantic_catalog::COPY_FILE_KIND {
+            CopyTaskBack::Copy(CopyBack::new(command))
         } else if placement.implementation_id.as_str()
             == conduit_std_offers::COPY_RESULT_PRESENTATION_IMPLEMENTATION
         {
-            CopyTaskOperation::Sink(CopyResultSink::new())
+            CopyTaskBack::Sink(CopyResultBack::new())
         } else {
-            return Err("copy Plan selected an unsupported operation".into());
+            return Err("copy Plan selected an unsupported Back".into());
         };
-        drivers.push(
-            OperationDriver::new(operation)
-                .map_err(|error| format!("prepare copy operation: {error:?}"))?,
-        );
+        backs.push(back);
     }
-    let drivers = drivers
+    let backs = backs
         .try_into()
-        .map_err(|_| "copy driver table is incomplete")?;
+        .map_err(|_| "copy Back table is incomplete")?;
     let mut routes = FixedRoutes::<{ 2 * PORTS }, 1>::new(PORTS as u16);
     for route in &lowered.routes {
         routes
@@ -101,7 +98,7 @@ pub(super) fn prepare_copy_scheduler(
         [lowered.cords[0].spec],
         routes,
         bindings,
-        drivers,
+        backs,
         values,
         sign,
     )
