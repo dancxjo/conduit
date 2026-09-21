@@ -192,7 +192,7 @@ fn documentary_placement(contract: &conduit_ai::LlmSemanticContract) -> PlannedG
         },
         inputs: contract.inputs.clone(),
         outputs: contract.outputs.clone(),
-        host_operations: vec![],
+        host_calls: vec![],
         resources: vec![],
         authority: vec![],
         pool_references: vec![],

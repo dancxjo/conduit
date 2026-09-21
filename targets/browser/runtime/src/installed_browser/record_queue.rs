@@ -4,12 +4,12 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PlannedGear, StructuredInfoValue, StructuredInfoValueShape,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
+    StructuredInfoValue, StructuredInfoValueShape,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-ordered-record-queue@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-ordered-record-queue@1";
 const IMPLEMENTATION: &str = "browser/ordered-record-queue@1";
 const MAXIMUM: u32 = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
 
@@ -30,8 +30,8 @@ fn offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from("browser/ordered-record-queue@1"),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-net/ordered-record-queue@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM,
@@ -132,7 +132,7 @@ mod tests {
             limits: offer.limits,
             inputs: offer.inputs,
             outputs: offer.outputs,
-            host_operations: offer.host_operations,
+            host_calls: offer.host_calls,
             resources: Vec::new(),
             authority: Vec::new(),
             pool_references: Vec::new(),

@@ -4,7 +4,7 @@ use super::{
 };
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement, HostProfileId,
+    HostAdvertisement, HostCallContractId, HostCallRequirement, HostId, HostProfileId,
     ImplementationId, KindIdentity, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
     PROTOCOL_VERSION,
 };
@@ -119,7 +119,7 @@ fn text_source_offer() -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -149,8 +149,8 @@ fn fixture_offer(kind: &str, value_kind: &str, maximum_bytes: u32) -> Capability
             temporal: PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(FIXTURE_PRESENT_OPERATION),
+        host_calls: vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(FIXTURE_PRESENT_OPERATION),
             target_kind: Some(kind_id(kind)),
             maximum_in_flight: 1,
             maximum_input_bytes: maximum_bytes,

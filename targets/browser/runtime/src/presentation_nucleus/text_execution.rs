@@ -7,8 +7,8 @@ use super::{
 use conduit_core::BaseImplementationId;
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
 use conduit_kernel::{
-    FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, ValueStorage,
+    FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, HostCallDisposition,
+    HostCallOutcome, ValueStorage,
 };
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
@@ -91,8 +91,8 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
             .map_err(debug_error)?;
     }
     routes.seal().map_err(debug_error)?;
-    let mut bindings = FixedHostOperationBindings::<4>::new(1);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<4>::new(1);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(debug_error)?;
@@ -111,12 +111,12 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
                 emitted: false,
             },
             conduit_text::TEXT_UPPER_KIND => NucleusOperation::Transform {
-                maximum_input_bytes: placement.host_operations[0].maximum_input_bytes,
+                maximum_input_bytes: placement.host_calls[0].maximum_input_bytes,
                 pending: false,
                 emitted: false,
             },
             conduit_semantic_catalog::TEXT_PRESENTATION_KIND => NucleusOperation::Sink {
-                maximum_input_bytes: placement.host_operations[0].maximum_input_bytes,
+                maximum_input_bytes: placement.host_calls[0].maximum_input_bytes,
                 pending: false,
                 complete: false,
             },
@@ -136,10 +136,9 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
             .max((32 * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
     )
     .map_err(debug_error)?;
-    let mut scheduler = TextScheduler::new_with_host_operations(
-        nodes, cords, routes, bindings, drivers, values, signs,
-    )
-    .map_err(debug_error)?;
+    let mut scheduler =
+        TextScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
+            .map_err(debug_error)?;
     let mut manifested = None;
     loop {
         if let Some(request) = scheduler.next_host_request() {
@@ -154,7 +153,7 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
                 Some(
                     conduit_kernel::BoundedValueRef::new(
                         value,
-                        placement.host_operations[0].maximum_output_bytes,
+                        placement.host_calls[0].maximum_output_bytes,
                     )
                     .map_err(|_| "uppercase output exceeded its planned bound")?,
                 )
@@ -168,11 +167,11 @@ pub(super) fn execute_text_form() -> Result<(String, conduit_core::PlanId), Stri
                 return Err("browser text host request has an unsupported Kind".into());
             };
             scheduler
-                .complete_host_operation(
+                .complete_host_call(
                     request.node,
                     request.request,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: outcome,
                         failure: None,
                     },

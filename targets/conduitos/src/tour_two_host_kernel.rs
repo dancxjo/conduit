@@ -2,11 +2,10 @@
 
 use conduit_core::{ConfigurationValue, PlanFragment};
 use conduit_kernel::{
-    FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, KernelEvent, RemoteEndpointId, SignSink,
-    ValueStorage,
+    FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, HostCallDisposition,
+    HostCallOutcome, KernelEvent, RemoteEndpointId, SignSink, ValueStorage,
     scheduler::{
-        FixedScheduler, HostOperationRequest, RemoteIngressOutcome, SchedulerError, SchedulerStatus,
+        FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerError, SchedulerStatus,
     },
 };
 use conduit_plan_lowering::lowering::{
@@ -69,7 +68,7 @@ impl SourceKernel {
             || lowered.node_specs.len() != 1
             || lowered.cords.len() != 1
             || lowered.routes.len() != 1
-            || !lowered.host_operations.is_empty()
+            || !lowered.host_calls.is_empty()
         {
             return Err(SchedulerError::InvalidPlan);
         }
@@ -161,17 +160,17 @@ impl SinkKernel {
             || lowered.node_specs.len() != 1
             || lowered.cords.len() != 1
             || !lowered.routes.is_empty()
-            || lowered.host_operations.len() != 1
+            || lowered.host_calls.len() != 1
         {
             return Err(SchedulerError::InvalidPlan);
         }
         let mut routes = FixedRoutes::<1, 1>::new(PORTS as u16);
         routes.seal()?;
-        let mut bindings = FixedHostOperationBindings::<1>::new(1);
-        let operation = &lowered.host_operations[0];
+        let mut bindings = FixedHostCallBindings::<1>::new(1);
+        let operation = &lowered.host_calls[0];
         bindings.install(operation.node, operation.binding)?;
         bindings.seal()?;
-        let scheduler = FixedScheduler::new_with_host_operations(
+        let scheduler = FixedScheduler::new_with_host_calls(
             [lowered.node_specs[0]],
             [lowered.cords[0].spec],
             routes,
@@ -208,18 +207,18 @@ impl SinkKernel {
     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
         self.scheduler.step()
     }
-    pub fn request(&mut self) -> Option<HostOperationRequest> {
+    pub fn request(&mut self) -> Option<HostCallRequest> {
         self.scheduler.next_host_request()
     }
-    pub fn value(&self, request: HostOperationRequest) -> Result<&[u8], SchedulerError> {
+    pub fn value(&self, request: HostCallRequest) -> Result<&[u8], SchedulerError> {
         self.scheduler.host_value(request.input.value)
     }
-    pub fn complete(&mut self, request: HostOperationRequest) -> Result<(), SchedulerError> {
-        self.scheduler.complete_host_operation(
+    pub fn complete(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },

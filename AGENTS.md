@@ -50,7 +50,7 @@ to the canon; changing an invariant requires an explicit architecture issue.
    port-specific; fan-out is explicit and atomic under pressure.
 6. All runtime storage and mandatory work are finite and admitted before play.
    Hosted profiles may allocate during preparation; play must not hide growth.
-7. Platform effects cross the generic admitted host-operation boundary.
+7. Platform effects cross the generic admitted Host Call boundary.
    Adapters do not become schedulers, planners, policy engines, or runtime truth.
 8. Availability, reachability, membership, trust, and authority remain distinct.
    Seeing an external subject is not permission to use it.

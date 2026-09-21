@@ -296,7 +296,7 @@ async fn run_prepared_signal_sink(
                 .map_err(UsbLinkError::Codec)?;
             link_session.send_frame(&accepted_frame).await?;
 
-            // Delivered is emitted only after the kernel-owned host operation has
+            // Delivered is emitted only after the kernel-owned Host Call has
             // completed the physical LED effect and its mandatory receipt.
             if let Err(error) = kernel
                 .present_accepted(sequence, control, sign_cdc, runtime)

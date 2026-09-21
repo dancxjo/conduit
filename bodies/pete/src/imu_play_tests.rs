@@ -124,7 +124,7 @@ fn cancellation_provider_loss_and_wrong_plan_remain_distinct() {
         .iter_mut()
         .find(|placement| placement.implementation_id.as_str() == crate::MPU6050_IMPLEMENTATION)
         .unwrap()
-        .host_operations[0]
+        .host_calls[0]
         .maximum_output_bytes = 1;
     assert_eq!(
         prepare_mpu6050_execution(&pressure, &evidence).err(),

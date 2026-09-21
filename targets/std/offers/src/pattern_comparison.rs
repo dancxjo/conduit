@@ -2,8 +2,7 @@
 
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    HostCallContractId, HostCallRequirement, ImplementationId, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const COMPARE_PATTERN_STD_PROFILE: &str = "std/compare-normalized-pattern-kernel-hosted@1";
@@ -22,9 +21,9 @@ pub fn compare_pattern_std_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(COMPARE_PATTERN_STD_PROFILE),
             implementation_id: ImplementationId::from(COMPARE_PATTERN_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(COMPARE_PATTERN_STD_ARTIFACT),
-            host_operations: vec![
-                host_operation(COMPARE_PATTERN_CANDIDATE_OPERATION, &kind_id),
-                host_operation(COMPARE_PATTERN_TEMPLATE_OPERATION, &kind_id),
+            host_calls: vec![
+                host_call(COMPARE_PATTERN_CANDIDATE_OPERATION, &kind_id),
+                host_call(COMPARE_PATTERN_TEMPLATE_OPERATION, &kind_id),
             ],
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
@@ -33,9 +32,9 @@ pub fn compare_pattern_std_offer() -> CapabilityOffer {
     .build()
 }
 
-fn host_operation(contract: &str, kind: &conduit_core::KindId) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(contract),
+fn host_call(contract: &str, kind: &conduit_core::KindId) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(contract),
         target_kind: Some(kind.clone()),
         maximum_in_flight: 1,
         maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
@@ -54,7 +53,7 @@ mod tests {
         assert_eq!(offer.kind_id, definition.kind_id);
         assert_eq!(offer.inputs, definition.inputs);
         assert_eq!(offer.outputs, definition.outputs);
-        assert_eq!(offer.host_operations.len(), 2);
+        assert_eq!(offer.host_calls.len(), 2);
         assert!(offer.resource_requirements.is_empty());
         assert!(offer.authority_requirements.is_empty());
     }

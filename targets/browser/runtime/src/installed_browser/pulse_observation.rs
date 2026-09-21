@@ -17,7 +17,7 @@ fn offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations: vec![],
+            host_calls: vec![],
             resource_requirements: vec![],
             authority_requirements: vec![],
         },
@@ -78,7 +78,7 @@ mod tests {
             limits: offer.limits,
             inputs: offer.inputs,
             outputs: offer.outputs,
-            host_operations: offer.host_operations,
+            host_calls: offer.host_calls,
             resources: vec![],
             authority: vec![],
             pool_references: vec![],
@@ -118,7 +118,7 @@ mod tests {
     fn browser_offer_and_preparation_fail_closed_on_identity_and_bounds() {
         let installed = offer();
         assert_eq!(installed.kind_id.as_str(), conduit_time::PULSE_OBSERVE_KIND);
-        assert!(installed.host_operations.is_empty());
+        assert!(installed.host_calls.is_empty());
         assert!(installed.resource_requirements.is_empty());
         let mut values = HostedValueStore::new(64, 8, 512).unwrap();
         let mut wrong = placement();

@@ -77,7 +77,7 @@ fn separate_rhythm_lesson_is_hardware_neutral_and_expands_with_portable_music() 
         comparison.implementation_id.as_str(),
         RHYTHM_COMPARE_PROOF_IMPLEMENTATION
     );
-    assert_eq!(comparison.host_operations.len(), 3);
+    assert_eq!(comparison.host_calls.len(), 3);
 
     let meaning = LESSON_SOURCE
         .lines()
@@ -256,7 +256,7 @@ fn proof_offer(kind: &str, implementation: &str) -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from("proof/music@1"),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from("proof/music@1"),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -269,10 +269,10 @@ fn proof_rhythm_offer() -> CapabilityOffer {
         conduit_semantic_catalog::RHYTHM_COMPARE_KIND,
         RHYTHM_COMPARE_PROOF_IMPLEMENTATION,
     );
-    offer.host_operations = ["drain", "performance", "reference"]
+    offer.host_calls = ["drain", "performance", "reference"]
         .into_iter()
-        .map(|operation| conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(format!(
+        .map(|operation| conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(format!(
                 "proof/music-rhythm-{operation}@1"
             )),
             target_kind: Some(offer.kind_id.clone()),

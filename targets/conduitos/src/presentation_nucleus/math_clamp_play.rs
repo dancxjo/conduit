@@ -3,17 +3,17 @@
 use alloc::{collections::BTreeMap, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, KindIdentity, OfferGeneration,
-    PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection, PortTemporal, Scalar, kind_id, port_id,
+    ExecutionProfileId, HostAdvertisement, HostCallContractId, HostCallRequirement, HostId,
+    HostProfileId, ImplementationId, KindIdentity, OfferGeneration, PROTOCOL_VERSION, Plan,
+    PortDescriptor, PortDirection, PortTemporal, Scalar, kind_id, port_id,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    CordSpec, FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, NodeId, ValueStorage,
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallOutcome, NodeId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
@@ -25,7 +25,7 @@ const SOURCE_IMPLEMENTATION: &str = "conduitos.fixture/clamp-source@1";
 const SINK_KIND: &str = "conduitos/fixture-clamp-sink";
 const SINK_REVISION: &str = "conduitos/fixture-clamp-sink@1";
 const SINK_IMPLEMENTATION: &str = "conduitos.fixture/clamp-sink@1";
-const SINK_HOST_OPERATION: &str = "conduitos.fixture/capture-scalar@1";
+const SINK_HOST_CALL: &str = "conduitos.fixture/capture-scalar@1";
 const FORM: &str = "form clamp_play {\n source: conduitos/fixture-clamp-source\n clamp: math/clamp(minimum = -1000000, maximum = 1000000)\n sink: conduitos/fixture-clamp-sink\n source > clamp\n clamp > sink\n}\n";
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const NODES: usize = 3;
@@ -251,7 +251,7 @@ fn source_offer(input: Scalar) -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -283,8 +283,8 @@ fn sink_offer() -> CapabilityOffer {
             temporal: PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(SINK_HOST_OPERATION),
+        host_calls: vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(SINK_HOST_CALL),
             target_kind: Some(kind_id(SINK_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
@@ -354,8 +354,8 @@ fn scheduler(
             .map_err(|_| MathClampError::Kernel)?;
     }
     routes.seal().map_err(|_| MathClampError::Kernel)?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(|_| MathClampError::Kernel)?;
@@ -406,10 +406,9 @@ fn scheduler(
             .max((SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
     )
     .map_err(|_| MathClampError::Kernel)?;
-    let kernel = FixedScheduler::new_with_host_operations(
-        nodes, cords, routes, bindings, drivers, values, signs,
-    )
-    .map_err(|_| MathClampError::Kernel)?;
+    let kernel =
+        FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
+            .map_err(|_| MathClampError::Kernel)?;
     Ok(Scheduler {
         kernel,
         transform: transform.ok_or(MathClampError::Shape)?,
@@ -419,7 +418,7 @@ fn scheduler(
 
 fn complete_transform(
     kernel: &mut Kernel,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     output: Scalar,
 ) -> Result<(), MathClampError> {
     let value = kernel
@@ -428,11 +427,11 @@ fn complete_transform(
     let output = BoundedValueRef::new(value, conduit_core::SCALAR_ENCODED_LEN as u32)
         .map_err(|_| MathClampError::Value)?;
     kernel
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(output),
                 failure: None,
             },
@@ -440,13 +439,13 @@ fn complete_transform(
         .map_err(|_| MathClampError::Kernel)
 }
 
-fn complete_sink(kernel: &mut Kernel, request: HostOperationRequest) -> Result<(), MathClampError> {
+fn complete_sink(kernel: &mut Kernel, request: HostCallRequest) -> Result<(), MathClampError> {
     kernel
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },

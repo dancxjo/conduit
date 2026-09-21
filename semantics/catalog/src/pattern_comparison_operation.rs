@@ -1,7 +1,7 @@
 //! Shared finite two-input normalized-pattern comparison operation.
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId,
 };
 
 pub struct PatternComparisonOperation {
@@ -47,18 +47,18 @@ impl PatternComparisonOperation {
                     self.pending = None;
                     return fail(FailureCode::InvalidInput, 254);
                 };
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(port),
+                    operation: HostCallId(port),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None)
+                    (HostCallDisposition::Completed, Some(output), None)
                         if self.received == [true, true] && !self.emitted =>
                     {
                         self.emitted = true;
@@ -67,9 +67,9 @@ impl PatternComparisonOperation {
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Completed, None, None) => OperationAction::Await,
-                    (HostOperationDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 0),
-                    (HostOperationDisposition::Failed, None, Some(failure)) => {
+                    (HostCallDisposition::Completed, None, None) => OperationAction::Await,
+                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 0),
+                    (HostCallDisposition::Failed, None, Some(failure)) => {
                         OperationAction::Fail(failure)
                     }
                     _ => fail(FailureCode::InvalidLifecycle, 250),

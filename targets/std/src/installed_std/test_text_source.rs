@@ -55,7 +55,7 @@ pub(super) fn offer() -> CapabilityOffer {
         },
         inputs: Vec::new(),
         outputs: outputs(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {

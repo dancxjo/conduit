@@ -2,8 +2,8 @@
 
 use conduit_core::{
     bind_active_play, kind_id, resource_offer, resource_requirement, ActivePlayId, ArtifactId,
-    BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId,
-    HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
+    BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
+    HostCallContractId, HostCallRequirement, HostId, HostProfileId, ImplementationId,
     OfferGeneration, PlacementId, Plan, SignId, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, ProfileCatalog};
@@ -269,8 +269,8 @@ pub(crate) fn renderer_host(
             execution_profile_id: ExecutionProfileId::from("presentation/renderer-hosted@1"),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operation: HostOperationRequirement {
-                contract_id: HostOperationContractId::from("conduit.host/present@1"),
+            host_call: HostCallRequirement {
+                contract_id: HostCallContractId::from("conduit.host/present@1"),
                 target_kind: Some(kind_id(target_kind)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,

@@ -3,15 +3,15 @@ extern crate std;
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, AuthorityGrant, AuthorityGrantId, BaseImplementationId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId,
-    HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
-    ImplementationOffer, KindIdentity, OfferGeneration, PROTOCOL_VERSION, PortDescriptor,
-    PortDirection, PortTemporal, kind_id, port_id, resource_offer,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostCallContractId,
+    HostCallRequirement, HostId, HostProfileId, ImplementationId, ImplementationOffer,
+    KindIdentity, OfferGeneration, PROTOCOL_VERSION, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, resource_offer,
 };
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, KernelEvent, Operation,
-    OperationAction, OperationInput, PortId, RequestId, SignSink, ValueRef, ValueStorage,
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, Operation, OperationAction,
+    OperationInput, PortId, RequestId, SignSink, ValueRef, ValueStorage,
     scheduler::{FixedScheduler, OperationDriver, SchedulerStatus},
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
@@ -76,17 +76,17 @@ impl Operation for Client {
                 value,
             } if !self.pending && !self.emitted => {
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, REQUEST_BYTES as u32).unwrap(),
                 }
             }
-            OperationInput::HostOperationCompleted {
+            OperationInput::HostCallCompleted {
                 request: RequestId(0),
                 outcome,
             } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.failure.is_none()
                 && outcome.output.is_some() =>
             {
@@ -125,17 +125,17 @@ impl Operation for Sink {
                 value,
             } if !self.pending => {
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, RESPONSE_BYTES as u32).unwrap(),
                 }
             }
-            OperationInput::HostOperationCompleted {
+            OperationInput::HostCallCompleted {
                 request: RequestId(0),
                 outcome,
             } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -222,8 +222,8 @@ fn fixture_offer(
         direction,
         temporal: PortTemporal::Flow { closes: true },
     };
-    let observe = (direction == PortDirection::Input).then(|| HostOperationRequirement {
-        contract_id: HostOperationContractId::from(OBSERVE_OPERATION),
+    let observe = (direction == PortDirection::Input).then(|| HostCallRequirement {
+        contract_id: HostCallContractId::from(OBSERVE_OPERATION),
         target_kind: Some(
             conduit_web::http_response_type()
                 .profile()
@@ -252,7 +252,7 @@ fn fixture_offer(
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from("test/http-fixture@1"),
         },
-        host_operations: observe.into_iter().collect(),
+        host_calls: observe.into_iter().collect(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -363,7 +363,7 @@ fn run_ordinary_form() {
     let grant = AuthorityGrant {
         grant_id: AuthorityGrantId::from("grant/conduitos-http-local"),
         contract_id: requirement.contract_id.clone(),
-        host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+        host_call_contract_id: requirement.host_call_contract_id.clone(),
         subject_kind: requirement.subject_kind.clone(),
         host_id: host.host_id.clone(),
         boot_id: host.boot_id.clone(),
@@ -414,7 +414,7 @@ fn run_ordinary_form() {
         .unwrap();
     assert_eq!(http.authority.len(), 1);
     assert_eq!(http.resources.len(), 1);
-    assert_eq!(http.host_operations[0].maximum_in_flight, 1);
+    assert_eq!(http.host_calls[0].maximum_in_flight, 1);
     let lowered = lower_plan_fragment(fragment).unwrap();
 
     let request = conduit_web::encode_request(&conduit_web::HttpRequest {
@@ -445,8 +445,8 @@ fn run_ordinary_form() {
             .unwrap();
     }
     routes.seal().unwrap();
-    let mut bindings = FixedHostOperationBindings::<9>::new(MAX_NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<9>::new(MAX_NODES as u16);
+    for operation in &lowered.host_calls {
         bindings.install(operation.node, operation.binding).unwrap();
     }
     bindings.seal().unwrap();
@@ -488,7 +488,7 @@ fn run_ordinary_form() {
         2,
         9,
         3,
-    >::new_with_host_operations(
+    >::new_with_host_calls(
         nodes,
         cords,
         routes,
@@ -505,24 +505,24 @@ fn run_ordinary_form() {
     for _ in 0..64 {
         while let Some(request) = kernel.next_host_request() {
             let binding = lowered
-                .host_operations
+                .host_calls
                 .iter()
                 .find(|item| {
                     item.node == request.node && item.binding.operation == request.operation
                 })
                 .unwrap();
             let input = kernel.host_value(request.input.value).unwrap();
-            if binding.contract_id.as_str() == HOST_OPERATION {
+            if binding.contract_id.as_str() == HOST_CALL {
                 native
                     .exchange(input, true, &mut endpoint, &mut output)
                     .unwrap();
                 let value = kernel.store_host_value(output.as_bytes()).unwrap();
                 kernel
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: Some(
                                 BoundedValueRef::new(value, RESPONSE_BYTES as u32).unwrap(),
                             ),
@@ -534,11 +534,11 @@ fn run_ordinary_form() {
                 assert_eq!(binding.contract_id.as_str(), OBSERVE_OPERATION);
                 observed.extend_from_slice(input);
                 kernel
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: None,
                             failure: None,
                         },

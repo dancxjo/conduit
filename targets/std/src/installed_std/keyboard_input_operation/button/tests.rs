@@ -30,9 +30,9 @@ fn transition(pressed: bool, sequence: u64) -> Vec<u8> {
         .unwrap()
 }
 
-fn completed(output: ValueRef) -> HostOperationOutcome {
-    HostOperationOutcome {
-        disposition: HostOperationDisposition::Completed,
+fn completed(output: ValueRef) -> HostCallOutcome {
+    HostCallOutcome {
+        disposition: HostCallDisposition::Completed,
         output: Some(
             BoundedValueRef::new(
                 output,
@@ -47,9 +47,9 @@ fn completed(output: ValueRef) -> HostOperationOutcome {
 fn request(action: OperationAction, expected: u32) {
     assert!(matches!(
         action,
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(id),
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             ..
         } if id == expected
     ));
@@ -66,11 +66,7 @@ fn transitions_continue_in_one_play_until_explicit_stop() {
         let canonical = transition(pressed, index as u64);
         let output = value(2 + index as u16, canonical.len() as u32);
         assert_eq!(
-            source.resume_host_operation(
-                RequestId(index as u32),
-                completed(output),
-                Some(&canonical),
-            ),
+            source.resume_host_call(RequestId(index as u32), completed(output), Some(&canonical),),
             OperationAction::Emit {
                 port: PortId(0),
                 value: output,
@@ -87,21 +83,21 @@ fn malformed_failure_and_late_completion_remain_distinct() {
     let mut source = source();
     request(source.start(), 0);
     assert_eq!(
-        source.resume_host_operation(RequestId(0), completed(value(2, 3)), Some(b"bad")),
+        source.resume_host_call(RequestId(0), completed(value(2, 3)), Some(b"bad")),
         fail(FailureCode::InvalidInput, 5)
     );
 
     let mut source = self::source();
     request(source.start(), 0);
     let failure = Failure {
-        code: FailureCode::HostOperationFailed,
+        code: FailureCode::HostCallFailed,
         detail: 42,
     };
     assert_eq!(
-        source.resume_host_operation(
+        source.resume_host_call(
             RequestId(0),
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 failure: Some(failure),
                 output: None,
             },
@@ -111,7 +107,7 @@ fn malformed_failure_and_late_completion_remain_distinct() {
     );
     source.cancel();
     assert_eq!(
-        source.resume_host_operation(RequestId(0), completed(value(3, 3)), Some(b"bad")),
+        source.resume_host_call(RequestId(0), completed(value(3, 3)), Some(b"bad")),
         fail(FailureCode::InvalidLifecycle, 3)
     );
 }

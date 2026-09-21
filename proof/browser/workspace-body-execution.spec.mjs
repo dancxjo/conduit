@@ -137,9 +137,9 @@ test("a Workspace-born canonical workset continues as the same executing Body", 
     expect(signs.boot_id).toBe(terminal.body_planning.execution_claims[0].boot_id);
     expect(signs.events.length).toBeGreaterThan(0);
     expect(signs.events.length).toBeLessThanOrEqual(signs.item_capacity);
-    expect(signs.events.some(event => event.kind === "HostOperationCompleted")).toBe(true);
-    for (const completion of signs.events.filter(event => event.kind === "HostOperationCompleted")) {
-      expect(signs.events.some(request => request.kind === "HostOperationRequested"
+    expect(signs.events.some(event => event.kind === "HostCallCompleted")).toBe(true);
+    for (const completion of signs.events.filter(event => event.kind === "HostCallCompleted")) {
+      expect(signs.events.some(request => request.kind === "HostCallRequested"
         && request.node === completion.node && request.request === completion.request
         && request.sequence < completion.sequence)).toBe(true);
     }
@@ -162,7 +162,7 @@ test("a Workspace-born canonical workset continues as the same executing Body", 
             await expect(gear).toContainText(identity);
           }
           await expect(gear).toContainText(JSON.stringify(placement.resources));
-          await expect(gear).toContainText(JSON.stringify(placement.host_operations));
+          await expect(gear).toContainText(JSON.stringify(placement.host_calls));
         }
       }
     }

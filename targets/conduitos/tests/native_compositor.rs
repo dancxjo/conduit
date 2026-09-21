@@ -1,9 +1,9 @@
 use conduit_body::Body;
 use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
-    HostBaseId, HostId, HostOperationContractId, HostOperationRequirement, HostProfileId,
-    ImplementationId, OfferGeneration, PROTOCOL_VERSION, SignId, bind_active_play, kind_id,
-    resource_offer, resource_requirement,
+    HostBaseId, HostCallContractId, HostCallRequirement, HostId, HostProfileId, ImplementationId,
+    OfferGeneration, PROTOCOL_VERSION, SignId, bind_active_play, kind_id, resource_offer,
+    resource_requirement,
 };
 use conduit_form::{ProfileCatalog, parse};
 use conduit_planner::{default_placements, plan};
@@ -464,8 +464,8 @@ fn native_host() -> HostAdvertisement {
             execution_profile_id: ExecutionProfileId::from("conduitos/native@1"),
             implementation_id: ImplementationId::from(NATIVE_PRESENTER_IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduitos/native-image@1"),
-            host_operation: HostOperationRequirement {
-                contract_id: HostOperationContractId::from("conduit.host/present@1"),
+            host_call: HostCallRequirement {
+                contract_id: HostCallContractId::from("conduit.host/present@1"),
                 target_kind: Some(kind_id("presentation/base/native-compositor@1")),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,

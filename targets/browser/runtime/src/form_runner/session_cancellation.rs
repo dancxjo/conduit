@@ -48,11 +48,11 @@ impl TourSession {
             .ok_or("cancelled effect is not pending")?;
         self.host_outcomes.check_capacity()?;
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 cancellation.node,
                 cancellation.request,
-                conduit_kernel::HostOperationOutcome {
-                    disposition: conduit_kernel::HostOperationDisposition::Cancelled,
+                conduit_kernel::HostCallOutcome {
+                    disposition: conduit_kernel::HostCallDisposition::Cancelled,
                     output: None,
                     failure: None,
                 },
@@ -61,8 +61,8 @@ impl TourSession {
         self.host_outcomes.record(
             cancellation.node,
             cancellation.request,
-            conduit_kernel::HostOperationOutcome {
-                disposition: conduit_kernel::HostOperationDisposition::Cancelled,
+            conduit_kernel::HostCallOutcome {
+                disposition: conduit_kernel::HostCallDisposition::Cancelled,
                 output: None,
                 failure: None,
             },

@@ -2,7 +2,7 @@
 
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId,
+    HostCallContractId, HostCallRequirement, ImplementationId,
 };
 
 pub const ARTIFACT: &str = "conduit-std-host/morse-composition@1";
@@ -47,8 +47,8 @@ fn offer(contract: conduit_text::MorseKindContract, implementation: &str) -> Cap
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(implementation),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(implementation),
                 target_kind: Some(kind_id(implementation)),
                 maximum_in_flight: 1,
                 maximum_input_bytes,

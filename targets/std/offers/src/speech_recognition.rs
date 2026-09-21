@@ -2,8 +2,8 @@
 
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, Back, BackOfferBuilder, CapabilityId,
-    CapabilityOffer, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, ResourceRequirement,
+    CapabilityOffer, ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId,
+    ResourceRequirement,
 };
 
 pub const WHISPER_SPEECH_PROFILE: &str = "std/whisper-s16le-16000-mono@1";
@@ -25,8 +25,8 @@ pub fn whisper_speech_offer() -> CapabilityOffer {
             implementation: WHISPER_SPEECH_IMPLEMENTATION,
             artifact: WHISPER_SPEECH_ARTIFACT,
         },
-        HostOperationRequirement {
-            contract_id: HostOperationContractId::from(WHISPER_SPEECH_OPERATION),
+        HostCallRequirement {
+            contract_id: HostCallContractId::from(WHISPER_SPEECH_OPERATION),
             target_kind: Some(kind_id(conduit_tongues::SPEECH_RECOGNITION_RESULT_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_tongues::MAXIMUM_RECOGNITION_AUDIO_BYTES as u32,
@@ -45,8 +45,8 @@ pub fn whisper_clip_speech_offer() -> CapabilityOffer {
             implementation: WHISPER_CLIP_SPEECH_IMPLEMENTATION,
             artifact: WHISPER_CLIP_SPEECH_ARTIFACT,
         },
-        HostOperationRequirement {
-            contract_id: HostOperationContractId::from(WHISPER_CLIP_SPEECH_OPERATION),
+        HostCallRequirement {
+            contract_id: HostCallContractId::from(WHISPER_CLIP_SPEECH_OPERATION),
             target_kind: Some(kind_id(conduit_tongues::SPEECH_RECOGNITION_RESULT_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
@@ -71,8 +71,8 @@ pub fn recognition_to_text_std_offer() -> CapabilityOffer {
             implementation: RECOGNITION_TO_TEXT_STD_IMPLEMENTATION,
             artifact: RECOGNITION_TO_TEXT_STD_ARTIFACT,
         },
-        HostOperationRequirement {
-            contract_id: HostOperationContractId::from(RECOGNITION_TO_TEXT_OPERATION),
+        HostCallRequirement {
+            contract_id: HostCallContractId::from(RECOGNITION_TO_TEXT_OPERATION),
             target_kind: Some(kind_id(conduit_tongues::SPEECH_RECOGNITION_TO_TEXT_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32,
@@ -91,8 +91,8 @@ pub fn committed_turn_to_text_std_offer() -> CapabilityOffer {
             implementation: RECOGNITION_TO_TEXT_STD_IMPLEMENTATION,
             artifact: RECOGNITION_TO_TEXT_STD_ARTIFACT,
         },
-        HostOperationRequirement {
-            contract_id: HostOperationContractId::from(COMMITTED_TURN_TO_TEXT_OPERATION),
+        HostCallRequirement {
+            contract_id: HostCallContractId::from(COMMITTED_TURN_TO_TEXT_OPERATION),
             target_kind: Some(kind_id(conduit_tongues::COMMITTED_TURN_TO_TEXT_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_tongues::MAXIMUM_COMMITTED_USER_MESSAGE_BYTES as u32,
@@ -113,7 +113,7 @@ struct Identity<'a> {
 fn offer(
     contract: conduit_tongues::SpeechRecognitionContract,
     identity: Identity<'_>,
-    host_operation: HostOperationRequirement,
+    host_call: HostCallRequirement,
     resources: Vec<ResourceRequirement>,
 ) -> CapabilityOffer {
     BackOfferBuilder::new(
@@ -123,7 +123,7 @@ fn offer(
             execution_profile_id: ExecutionProfileId::from(identity.profile),
             implementation_id: ImplementationId::from(identity.implementation),
             artifact_id: ArtifactId::from(identity.artifact),
-            host_operations: vec![host_operation],
+            host_calls: vec![host_call],
             resource_requirements: resources,
             authority_requirements: Vec::new(),
         },
@@ -143,7 +143,7 @@ mod tests {
         assert_eq!(offer.inputs, contract.inputs);
         assert_eq!(offer.outputs, contract.outputs);
         assert_eq!(offer.limits, contract.limits);
-        assert_eq!(offer.host_operations.len(), 1);
+        assert_eq!(offer.host_calls.len(), 1);
     }
 
     #[test]
@@ -154,7 +154,7 @@ mod tests {
         assert_eq!(offer.inputs, contract.inputs);
         assert_eq!(offer.outputs, contract.outputs);
         assert_eq!(offer.limits, contract.limits);
-        assert_eq!(offer.host_operations.len(), 1);
+        assert_eq!(offer.host_calls.len(), 1);
     }
 
     #[test]
@@ -166,7 +166,7 @@ mod tests {
         assert_eq!(offer.outputs, contract.outputs);
         assert_eq!(offer.limits, contract.limits);
         assert_eq!(offer.resource_requirements.len(), 1);
-        assert_eq!(offer.host_operations[0].maximum_in_flight, 1);
+        assert_eq!(offer.host_calls[0].maximum_in_flight, 1);
     }
 
     #[test]
@@ -179,7 +179,7 @@ mod tests {
         assert_eq!(offer.limits, contract.limits);
         assert_eq!(offer.resource_requirements.len(), 1);
         assert_eq!(
-            offer.host_operations[0].maximum_input_bytes,
+            offer.host_calls[0].maximum_input_bytes,
             conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
         );
     }

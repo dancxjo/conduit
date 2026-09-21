@@ -50,7 +50,7 @@ export async function sealConduitOsCrecheRelease({ buildRoot, output }) {
       boot_assets: build.boot_assets,
       artifact: { role: build.image.role, format: "hybrid-iso", path: product.output, bytes: bytes.byteLength, sha256: digest },
       spore_region: sporeRegion,
-      expected_offers: build.resolved_build.host_operations,
+      expected_offers: build.resolved_build.host_calls,
       bounds: build.resolved_build.bounds,
       boot_claimed: false,
       physical_proof_claimed: false,

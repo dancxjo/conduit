@@ -6,7 +6,7 @@ use conduit_core::{
     StructuredInfoValue,
 };
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, HostedValueStore, OperationAction,
+    BoundedValueRef, HostCallDisposition, HostCallId, HostedValueStore, OperationAction,
     OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
@@ -53,9 +53,9 @@ impl SourceOperation {
 
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -86,9 +86,9 @@ impl SourceOperation {
             return InstalledOperation::fail(155);
         };
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(value, 8).expect("fixture wait is exactly eight bytes"),
         }
     }
@@ -175,7 +175,7 @@ pub(crate) fn offer_named(
             vec![port.clone()]
         },
         outputs: if source { vec![port] } else { Vec::new() },
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {

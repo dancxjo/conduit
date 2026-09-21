@@ -37,7 +37,7 @@ pub(crate) fn topic(id: &str, name: &str, direction: InteropDirection) -> RosTop
 }
 
 pub(crate) fn authority(mapping_id: &str, operation: &str) -> RosTopicAuthority {
-    let operation = HostOperationContractId::from(operation);
+    let operation = HostCallContractId::from(operation);
     let scope = BaseCapabilityScope {
         host_id: HostId::from("host/ros2"),
         boot_id: BootId::from("boot/current"),
@@ -65,7 +65,7 @@ pub(crate) fn authority(mapping_id: &str, operation: &str) -> RosTopicAuthority 
             grant: AuthorityGrant {
                 grant_id: scope.authority_grant_id.clone(),
                 contract_id: scope.authority_contract_id.clone(),
-                host_operation_contract_id: operation.clone(),
+                host_call_contract_id: operation.clone(),
                 subject_kind: scope.subject_kind.clone(),
                 host_id: scope.host_id.clone(),
                 boot_id: scope.boot_id.clone(),

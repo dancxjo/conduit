@@ -25,7 +25,7 @@ fn capability(id: &str) -> CapabilityOffer {
             implementation_id: ImplementationId::from(format!("implementation/{id}")),
             artifact_id: ArtifactId::from("artifact/reviewed"),
         },
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: CapabilityLimits {

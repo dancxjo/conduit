@@ -3,7 +3,7 @@
 use alloc::vec::Vec;
 use conduit_kernel::scheduler::{CordSpec, FixedScheduler, OperationDriver, SchedulerStatus};
 use conduit_kernel::{
-    FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore, NodeId, ValueStorage,
+    FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, NodeId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 
@@ -142,8 +142,8 @@ fn scheduler(
     routes.seal().map_err(|_| {
         RoboticsError::Kernel(conduit_kernel::scheduler::SchedulerError::InvalidPlan)
     })?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(|_| {
@@ -206,9 +206,8 @@ fn scheduler(
         (SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
     )
     .map_err(|_| RoboticsError::Kernel(conduit_kernel::scheduler::SchedulerError::InvalidPlan))?;
-    let kernel = FixedScheduler::new_with_host_operations(
-        nodes, cords, routes, bindings, drivers, values, signs,
-    )
-    .map_err(RoboticsError::Kernel)?;
+    let kernel =
+        FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
+            .map_err(RoboticsError::Kernel)?;
     Ok((kernel, drive.ok_or(RoboticsError::Shape)?))
 }

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use conduit_core::{
     authority_grant, kind_id, port_id, ArtifactId, AuthorityContractId, AuthorityGrant,
     AuthorityRequirement, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement,
+    CapabilityOffer, HostAdvertisement, HostCallContractId, HostCallRequirement, HostId,
     HostProfileId, ImplementationId, KindIdentity, LineId, LinkBindingId, LinkEndpointId,
     OfferGeneration, PortDescriptor, PortDirection, PortTemporal, ResourceClassId, ResourceHealth,
     ResourceObservation, ResourceOffer, ResourcePoolId, ResourceRequirement, SignId,
@@ -87,9 +87,9 @@ fn offer(kind: &str, host: &str) -> CapabilityOffer {
             implementation_id: ImplementationId::from(format!("test/{host}/{kind}@1")),
             artifact_id: ArtifactId::from(format!("test/{host}-image@1")),
         },
-        host_operations: sink
-            .then(|| HostOperationRequirement {
-                contract_id: HostOperationContractId::from(OPERATION),
+        host_calls: sink
+            .then(|| HostCallRequirement {
+                contract_id: HostCallContractId::from(OPERATION),
                 target_kind: Some(kind_id(SINK)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: 64,
@@ -110,7 +110,7 @@ fn offer(kind: &str, host: &str) -> CapabilityOffer {
         authority_requirements: sink
             .then(|| AuthorityRequirement {
                 contract_id: AuthorityContractId::from(AUTHORITY),
-                host_operation_contract_id: HostOperationContractId::from(OPERATION),
+                host_call_contract_id: HostCallContractId::from(OPERATION),
                 subject_kind: kind_id(SINK),
             })
             .into_iter()

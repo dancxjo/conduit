@@ -139,8 +139,7 @@ fn duration_and_selected_wait_contract_fail_before_tick_presentation() {
         .iter_mut()
         .find(|placement| placement.kind_id.as_str() == "time/every")
         .unwrap();
-    every.host_operations[0].contract_id =
-        conduit_core::HostOperationContractId::from("wrong/wait@1");
+    every.host_calls[0].contract_id = conduit_core::HostCallContractId::from("wrong/wait@1");
     let mut output = Vec::with_capacity(256);
     let mut timer = RecordingTimer::default();
     assert!(host

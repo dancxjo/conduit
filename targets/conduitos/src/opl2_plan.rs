@@ -28,7 +28,7 @@ const NOTE_SOURCE_PROFILE: &str = "conduitos/proof-note-source@1";
 const NOTE_SOURCE_IMPLEMENTATION: &str = "conduitos.fixture/note-source@1";
 const EMPTY_CONTROL_SOURCE_KIND: &str = "conduitos-fixture/empty-control-source";
 const EMPTY_CONTROL_SOURCE_REVISION: &str = "conduitos.fixture/empty-control-source@1";
-pub const NOTE_SOURCE_HOST_OPERATION: &str = "conduitos.fixture/note-sequence-step@1";
+pub const NOTE_SOURCE_HOST_CALL: &str = "conduitos.fixture/note-sequence-step@1";
 pub const OPL2_FORM_SOURCE: &str = "form conduitos-opl2-music {\n source: conduitos-fixture/note-source\n controls: conduitos-fixture/empty-control-source\n output: music/play\n source.notes > output.notes\n controls.controls > output.controls\n}\n";
 pub const FIXTURE_EVENT_COUNT: u16 = 24;
 
@@ -137,8 +137,8 @@ pub fn validate(
         || sink.artifact_id.as_str() != format!("conduitos-build/{build_id}")
         || sink.inputs != conduit_semantic_catalog::music_play_contract().inputs
         || !sink.outputs.is_empty()
-        || sink.host_operations.len() != 1
-        || sink.host_operations[0].contract_id.as_str() != crate::opl2_offer::OPL2_HOST_OPERATION
+        || sink.host_calls.len() != 1
+        || sink.host_calls[0].contract_id.as_str() != crate::opl2_offer::OPL2_HOST_CALL
         || sink.realization_characteristics
             != conduit_semantic_catalog::sound_profile_characteristics(
                 &crate::opl2_offer::compatibility_profile(),
@@ -235,7 +235,7 @@ fn empty_control_source_offer(build_id: &str) -> CapabilityOffer {
             implementation_id: ImplementationId::from("conduitos.fixture/empty-control-source@1"),
             artifact_id: ArtifactId::from(format!("conduitos-build/{build_id}")),
         },
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -266,8 +266,8 @@ fn note_source_offer(build_id: &str) -> CapabilityOffer {
             implementation_id: ImplementationId::from(NOTE_SOURCE_IMPLEMENTATION),
             artifact_id: ArtifactId::from(format!("conduitos-build/{build_id}")),
         },
-        host_operations: vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(NOTE_SOURCE_HOST_OPERATION),
+        host_calls: vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(NOTE_SOURCE_HOST_CALL),
             target_kind: None,
             maximum_in_flight: 1,
             maximum_input_bytes: 8,

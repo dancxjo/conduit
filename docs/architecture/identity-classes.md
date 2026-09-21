@@ -9,7 +9,7 @@ must choose the identity class before choosing its spelling.
 | Kind and Info | portable semantic meaning | Meaningful canonical name; compatibility change belongs in the separate checked contract or profile identity. |
 | Resource class | the kind of finite resource required | Meaningful name without an edit counter; quantity and exact binding remain separate. |
 | Authority contract | the authority being granted | Meaningful name without an edit counter; the grant binds the exact operation, subject, Host, Boot, and lifecycle. |
-| Host operation contract | one platform-effect boundary | Meaningful name without an edit counter; typed subject and finite input/output limits are part of the contract. |
+| Host Call contract | one platform-effect boundary | Meaningful name without an edit counter; typed subject and finite input/output limits are part of the contract. |
 | Base kind | one reusable platform mechanism family | Meaningful name; an initialized Base has separate boot-local identity and resource truth. |
 | Execution profile | the realization constraints selected by planning | Meaningful profile name; exact limits and characteristics remain structured data. |
 | Implementation | which implementation family realizes a contract | Meaningful implementation name; coexistence requires a genuinely distinct implementation identity, not a source-edit count. |
@@ -28,7 +28,7 @@ Real semantic contract revisions, wire-version fields, persisted schema
 versions, and release/fabrication versions remain explicit.
 
 The HTTP vertical slice demonstrates the separation. Its resource, authority,
-Host-operation, execution-profile, implementation, and artifact-family names
+Host Call, execution-profile, implementation, and artifact-family names
 are clean. `conduit.http/client@1` and `conduit.http/server@1` remain separate
 semantic contract revisions. The isolated provider's `PROTOCOL_VERSION`
 remains the decoder discriminator. Plans still bind the exact implementation,

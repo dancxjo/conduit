@@ -83,7 +83,7 @@ pub fn ordinary_rag_answer_offer(
             implementation_id: ImplementationId::from(RAG_ANSWER_IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-ai/grounded-answer@1"),
         },
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: contract.limits,

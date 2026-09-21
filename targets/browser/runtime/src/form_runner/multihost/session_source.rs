@@ -143,22 +143,20 @@ impl Session {
                     .placements
                     .get(usize::from(request.node.0))
                     .and_then(|placement| {
-                        placement
-                            .host_operations
-                            .get(usize::from(request.operation.0))
+                        placement.host_calls.get(usize::from(request.operation.0))
                     })
                     .is_some_and(|operation| {
                         !matches!(
                             operation.contract_id.as_str(),
-                            conduit_core::WAIT_HOST_OPERATION_CONTRACT
-                                | conduit_core::MONOTONIC_TIMER_HOST_OPERATION_CONTRACT
+                            conduit_core::WAIT_HOST_CALL_CONTRACT
+                                | conduit_core::MONOTONIC_TIMER_HOST_CALL_CONTRACT
                                 | crate::installed_browser::BUTTON_EVENT_OPERATION
                                 | crate::installed_browser::KEY_EVENT_OPERATION
                         )
                     })
             }) {
                 let placement = &self.fragment.placements[usize::from(request.node.0)];
-                let operation = &placement.host_operations[usize::from(request.operation.0)];
+                let operation = &placement.host_calls[usize::from(request.operation.0)];
                 if engine::transforms::complete_transform(
                     &mut self.scheduler,
                     placement,
@@ -176,9 +174,9 @@ impl Session {
                     .get(usize::from(request.node.0))
                     .ok_or("multi-host input has no planned placement")?;
                 let operation = placement
-                    .host_operations
+                    .host_calls
                     .get(usize::from(request.operation.0))
-                    .ok_or("multi-host input has no planned host operation")?;
+                    .ok_or("multi-host input has no planned Host Call")?;
                 if engine::transforms::complete_transform(
                     &mut self.scheduler,
                     placement,
@@ -189,8 +187,8 @@ impl Session {
                 }
                 if matches!(
                     operation.contract_id.as_str(),
-                    conduit_core::WAIT_HOST_OPERATION_CONTRACT
-                        | conduit_core::MONOTONIC_TIMER_HOST_OPERATION_CONTRACT
+                    conduit_core::WAIT_HOST_CALL_CONTRACT
+                        | conduit_core::MONOTONIC_TIMER_HOST_CALL_CONTRACT
                 ) {
                     let input = self
                         .scheduler

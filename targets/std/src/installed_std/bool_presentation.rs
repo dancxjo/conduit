@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection, PortTemporal, BOOL_ENCODED_LEN};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId,
+    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
+    RequestId,
 };
 
 pub(super) fn present_stdout(output: &mut impl std::io::Write, input: &[u8]) -> Result<(), String> {
@@ -46,21 +46,21 @@ impl BoolPresentationOperation {
                 let Ok(input) = BoundedValueRef::new(value, BOOL_ENCODED_LEN as u32) else {
                     return InstalledOperation::fail(47);
                 };
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) && outcome.failure.is_some() =>
             {
                 self.pending = None;
                 OperationAction::Fail(outcome.failure.expect("checked failure"))
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -95,7 +95,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.inputs[0].port_id.as_str() != "value"
         || placement.inputs[0].direction != PortDirection::Input
         || placement.inputs[0].temporal != PortTemporal::Current
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.resources.len() != 1
     {
         return Err("planned Boolean presentation identity does not match its installation".into());

@@ -8,7 +8,7 @@ use alloc::{
 use conduit_core::{
     kind_id, port_id, resource_offer, resource_requirement, ArtifactId, Back, BackOfferBuilder,
     CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer, Kind,
+    HostCallContractId, HostCallRequirement, ImplementationId, ImplementationOffer, Kind,
     KindIdentity, PortDescriptor, PortDirection, PortTemporal, ResourceOffer,
 };
 use conduit_presentation::{
@@ -23,20 +23,20 @@ pub const CHAT_STATE_KIND: &str = "chat/state";
 pub const CHAT_SUBMIT_KIND: &str = "chat/submit";
 pub const CHAT_STATE_REVISION: &str = "conduit.chat/state@1";
 pub const CHAT_SUBMIT_REVISION: &str = "conduit.chat/submit@1";
-pub const CHAT_STATE_MESSAGE_HOST_OPERATION: &str = "conduit.chat/state-message@1";
-pub const CHAT_STATE_CONNECTION_HOST_OPERATION: &str = "conduit.chat/state-connection@1";
-pub const CHAT_SUBMIT_HOST_OPERATION: &str = "conduit.chat/submit@1";
+pub const CHAT_STATE_MESSAGE_HOST_CALL: &str = "conduit.chat/state-message@1";
+pub const CHAT_STATE_CONNECTION_HOST_CALL: &str = "conduit.chat/state-connection@1";
+pub const CHAT_SUBMIT_HOST_CALL: &str = "conduit.chat/submit@1";
 pub const CHAT_FROM_WEBSOCKET_KIND: &str = "chat/from-websocket";
 pub const CHAT_TO_WEBSOCKET_KIND: &str = "chat/to-websocket";
 pub const CHAT_CONNECTION_FROM_WEBSOCKET_KIND: &str = "chat/connection-from-websocket";
 pub const CHAT_CURRENT_CONNECTION_KIND: &str = "chat/current-connection";
-pub const CHAT_FROM_WEBSOCKET_HOST_OPERATION: &str = "conduit.chat/from-websocket@1";
-pub const CHAT_TO_WEBSOCKET_HOST_OPERATION: &str = "conduit.chat/to-websocket@1";
-pub const CHAT_CONNECTION_FROM_WEBSOCKET_HOST_OPERATION: &str =
+pub const CHAT_FROM_WEBSOCKET_HOST_CALL: &str = "conduit.chat/from-websocket@1";
+pub const CHAT_TO_WEBSOCKET_HOST_CALL: &str = "conduit.chat/to-websocket@1";
+pub const CHAT_CONNECTION_FROM_WEBSOCKET_HOST_CALL: &str =
     "conduit.chat/connection-from-websocket@1";
-pub const CHAT_CURRENT_CONNECTION_HOST_OPERATION: &str = "conduit.chat/current-connection@1";
-pub const BROWSER_RENDER_HOST_OPERATION: &str = "conduit.browser/present@1";
-pub const BROWSER_INTERACTION_HOST_OPERATION: &str = "conduit.browser/interaction@1";
+pub const CHAT_CURRENT_CONNECTION_HOST_CALL: &str = "conduit.chat/current-connection@1";
+pub const BROWSER_RENDER_HOST_CALL: &str = "conduit.browser/present@1";
+pub const BROWSER_INTERACTION_HOST_CALL: &str = "conduit.browser/interaction@1";
 pub const BROWSER_DOCUMENT_RESOURCE: &str = "conduit.resource/browser-document@1";
 pub const BROWSER_INPUT_RESOURCE: &str = "conduit.resource/browser-human-input@1";
 
@@ -82,8 +82,8 @@ pub fn browser_chat_family() -> BrowserChatFamily {
                 ),
                 implementation_id: ImplementationId::from("presentation/browser-semantic-dom@1"),
                 artifact_id: ArtifactId::from("conduit-browser-runtime/semantic-dom@1"),
-                host_operation: host_operation(
-                    BROWSER_RENDER_HOST_OPERATION,
+                host_call: host_call(
+                    BROWSER_RENDER_HOST_CALL,
                     MAX_PRESENTATION_TOTAL_BYTES as u32,
                     16 * 1024,
                 ),
@@ -97,8 +97,8 @@ pub fn browser_chat_family() -> BrowserChatFamily {
                 ),
                 implementation_id: ImplementationId::from("presentation/browser-human-input@1"),
                 artifact_id: ArtifactId::from("conduit-browser-runtime/human-input@1"),
-                host_operation: HostOperationRequirement {
-                    contract_id: HostOperationContractId::from(BROWSER_INTERACTION_HOST_OPERATION),
+                host_call: HostCallRequirement {
+                    contract_id: HostCallContractId::from(BROWSER_INTERACTION_HOST_CALL),
                     target_kind: Some(kind_id(
                         conduit_presentation::PRESENTATION_INTERACTION_VALUE_KIND,
                     )),
@@ -116,7 +116,7 @@ pub fn browser_chat_family() -> BrowserChatFamily {
             chat_submit_offer(),
             chat_transport_adapter_offer(
                 CHAT_FROM_WEBSOCKET_KIND,
-                CHAT_FROM_WEBSOCKET_HOST_OPERATION,
+                CHAT_FROM_WEBSOCKET_HOST_CALL,
                 conduit_net::WEBSOCKET_MESSAGE_VALUE_KIND,
                 conduit_text::TEXT_VALUE_KIND,
                 PortTemporal::Flow { closes: true },
@@ -124,7 +124,7 @@ pub fn browser_chat_family() -> BrowserChatFamily {
             ),
             chat_transport_adapter_offer(
                 CHAT_CONNECTION_FROM_WEBSOCKET_KIND,
-                CHAT_CONNECTION_FROM_WEBSOCKET_HOST_OPERATION,
+                CHAT_CONNECTION_FROM_WEBSOCKET_HOST_CALL,
                 conduit_net::BOOLEAN_VALUE_KIND,
                 conduit_core::BOOL_INFO_ID,
                 PortTemporal::Current,
@@ -132,7 +132,7 @@ pub fn browser_chat_family() -> BrowserChatFamily {
             ),
             chat_transport_adapter_offer(
                 CHAT_CURRENT_CONNECTION_KIND,
-                CHAT_CURRENT_CONNECTION_HOST_OPERATION,
+                CHAT_CURRENT_CONNECTION_HOST_CALL,
                 conduit_core::BOOL_INFO_ID,
                 conduit_core::BOOL_INFO_ID,
                 PortTemporal::Value,
@@ -140,7 +140,7 @@ pub fn browser_chat_family() -> BrowserChatFamily {
             ),
             chat_transport_adapter_offer(
                 CHAT_TO_WEBSOCKET_KIND,
-                CHAT_TO_WEBSOCKET_HOST_OPERATION,
+                CHAT_TO_WEBSOCKET_HOST_CALL,
                 conduit_text::TEXT_VALUE_KIND,
                 conduit_net::WEBSOCKET_MESSAGE_VALUE_KIND,
                 PortTemporal::Flow { closes: true },
@@ -165,7 +165,7 @@ fn chat_transport_adapter_offer(
             execution_profile_id: ExecutionProfileId::from("conduit.chat/transport-text-adapter@1"),
             implementation_id: ImplementationId::from("chat/transport-text-adapter@1"),
             artifact_id: ArtifactId::from("conduit-browser-runtime/chat-transport-text-adapter@1"),
-            host_operations: vec![host_operation(
+            host_calls: vec![host_call(
                 operation,
                 MAXIMUM_CHAT_MESSAGE_BYTES,
                 MAXIMUM_CHAT_MESSAGE_BYTES,
@@ -210,14 +210,14 @@ pub fn chat_state_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from("conduit.chat/state-kernel@1"),
             implementation_id: ImplementationId::from("chat/portable-state@1"),
             artifact_id: ArtifactId::from("conduit-browser-runtime/chat-state@1"),
-            host_operations: vec![
-                host_operation(
-                    CHAT_STATE_CONNECTION_HOST_OPERATION,
+            host_calls: vec![
+                host_call(
+                    CHAT_STATE_CONNECTION_HOST_CALL,
                     1,
                     MAX_PRESENTATION_TOTAL_BYTES as u32,
                 ),
-                host_operation(
-                    CHAT_STATE_MESSAGE_HOST_OPERATION,
+                host_call(
+                    CHAT_STATE_MESSAGE_HOST_CALL,
                     MAXIMUM_CHAT_MESSAGE_BYTES,
                     MAX_PRESENTATION_TOTAL_BYTES as u32,
                 ),
@@ -270,8 +270,8 @@ pub fn chat_submit_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from("conduit.chat/submit-kernel@1"),
             implementation_id: ImplementationId::from("chat/typed-submit@1"),
             artifact_id: ArtifactId::from("conduit-browser-runtime/chat-submit@1"),
-            host_operations: vec![host_operation(
-                CHAT_SUBMIT_HOST_OPERATION,
+            host_calls: vec![host_call(
+                CHAT_SUBMIT_HOST_CALL,
                 MAX_PRESENTATION_INTERACTION_BYTES as u32,
                 MAXIMUM_CHAT_MESSAGE_BYTES,
             )],
@@ -348,9 +348,9 @@ fn port(
     }
 }
 
-fn host_operation(contract: &str, input: u32, output: u32) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(contract),
+fn host_call(contract: &str, input: u32, output: u32) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(contract),
         target_kind: None,
         maximum_in_flight: 1,
         maximum_input_bytes: input,

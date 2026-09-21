@@ -4,14 +4,13 @@ use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation}
 use super::BrowserOperation;
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PlannedGear,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::HostedValueStore;
 
 pub(super) const DIRECT_IMPLEMENTATION: &str = "browser/kernel-text-morse-direct@1";
 const ARTIFACT: &str = "conduit-browser-runtime/installed-morse@1";
-const HOST_OPERATION: &str = "conduit.host/browser-text-to-morse@1";
+const HOST_CALL: &str = "conduit.host/browser-text-to-morse@1";
 
 pub(super) static DIRECT: BrowserInstallation = BrowserInstallation {
     implementation_id: DIRECT_IMPLEMENTATION,
@@ -28,8 +27,8 @@ fn direct_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from("browser/kernel-text-morse-direct@1"),
             implementation_id: ImplementationId::from(DIRECT_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
                 target_kind: Some(kind_id("text/morse-pattern")),
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_text::MAXIMUM_MORSE_INPUT_BYTES as u32,
@@ -49,7 +48,7 @@ fn prepare(
     validate_placement(placement, &direct_offer())?;
     unit_millis(placement)?;
     Ok(BrowserOperation::unary(
-        placement.host_operations[0].maximum_input_bytes,
+        placement.host_calls[0].maximum_input_bytes,
         1,
     ))
 }
@@ -100,6 +99,6 @@ mod tests {
         assert_eq!(offer.inputs, semantic.inputs);
         assert_eq!(offer.outputs, semantic.outputs);
         assert_eq!(offer.limits, semantic.limits);
-        assert_eq!(offer.host_operations.len(), 1);
+        assert_eq!(offer.host_calls.len(), 1);
     }
 }

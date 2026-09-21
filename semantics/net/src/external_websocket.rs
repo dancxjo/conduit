@@ -4,8 +4,8 @@ use alloc::vec;
 use conduit_core::{
     kind_id, port_id, resource_offer, resource_requirement, ArtifactId, Back, BackOfferBuilder,
     CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind, KindIdentity,
-    PortDescriptor, PortDirection, PortTemporal, ResourceOffer,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal, ResourceOffer,
 };
 
 /// Authored external WebSocket semantics. This is not a Conduit session line.
@@ -15,19 +15,19 @@ pub const EXTERNAL_WEBSOCKET_CLIENT_REVISION: &str = "conduit.net/websocket-clie
 pub const EXTERNAL_WEBSOCKET_LISTENER_REVISION: &str = "conduit.net/websocket-listener@1";
 pub const EXTERNAL_WEBSOCKET_CLIENT_PROFILE: &str = "conduit.net/websocket-client-hosted@1";
 pub const EXTERNAL_WEBSOCKET_LISTENER_PROFILE: &str = "conduit.net/websocket-listener-hosted@1";
-pub const EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_OPERATION: &str =
+pub const EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_CALL: &str =
     "conduit.host/external-websocket-client-open@1";
-pub const EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_OPERATION: &str =
+pub const EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_CALL: &str =
     "conduit.host/external-websocket-client-send@1";
-pub const EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_OPERATION: &str =
+pub const EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_CALL: &str =
     "conduit.host/external-websocket-client-receive@1";
-pub const EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_OPERATION: &str =
+pub const EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_CALL: &str =
     "conduit.host/external-websocket-client-close@1";
-pub const EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_OPERATION: &str =
+pub const EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_CALL: &str =
     "conduit.host/external-websocket-listener-accept@1";
-pub const EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_OPERATION: &str =
+pub const EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_CALL: &str =
     "conduit.host/external-websocket-listener-receive@1";
-pub const EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_OPERATION: &str =
+pub const EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_CALL: &str =
     "conduit.host/external-websocket-listener-send@1";
 pub const EXTERNAL_WEBSOCKET_CLIENT_RESOURCE: &str =
     "conduit.resource/network/external-websocket-client@1";
@@ -64,16 +64,16 @@ pub fn external_websocket_client_offer(
             execution_profile_id: ExecutionProfileId::from(EXTERNAL_WEBSOCKET_CLIENT_PROFILE),
             implementation_id,
             artifact_id,
-            host_operations: vec![
-                host_operation(EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_OPERATION, 1, 0),
-                host_operation(EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_OPERATION, 256, 1),
-                host_operation(
-                    EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_OPERATION,
+            host_calls: vec![
+                host_call(EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_CALL, 1, 0),
+                host_call(EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_CALL, 256, 1),
+                host_call(
+                    EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_CALL,
                     MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
                     MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
                 ),
-                host_operation(
-                    EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_OPERATION,
+                host_call(
+                    EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_CALL,
                     MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
                     MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES,
                 ),
@@ -132,15 +132,15 @@ pub fn external_websocket_listener_offer(
             execution_profile_id: ExecutionProfileId::from(EXTERNAL_WEBSOCKET_LISTENER_PROFILE),
             implementation_id,
             artifact_id,
-            host_operations: vec![
-                host_operation(EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_OPERATION, 64, 8),
-                host_operation(
-                    EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_OPERATION,
+            host_calls: vec![
+                host_call(EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_CALL, 64, 8),
+                host_call(
+                    EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_CALL,
                     MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
                     MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
                 ),
-                host_operation(
-                    EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_OPERATION,
+                host_call(
+                    EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_CALL,
                     MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
                     MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
                 ),
@@ -305,9 +305,9 @@ fn port(
     }
 }
 
-fn host_operation(contract: &str, input: u32, output: u32) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(contract),
+fn host_call(contract: &str, input: u32, output: u32) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(contract),
         target_kind: None,
         maximum_in_flight: 1,
         maximum_input_bytes: input,

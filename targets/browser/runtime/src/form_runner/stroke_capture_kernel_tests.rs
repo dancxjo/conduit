@@ -48,7 +48,7 @@ fn fragment() -> PlanFragment {
     source_offer.outputs = source_offer.inputs.clone();
     source_offer.outputs[0].direction = PortDirection::Output;
     source_offer.inputs.clear();
-    source_offer.host_operations.clear();
+    source_offer.host_calls.clear();
     source_offer.startup_parameters.clear();
     source_offer.implementation.implementation_id = "fixture/point-flow@1".into();
     source_offer.implementation.artifact_id = "fixture/point-flow@1".into();
@@ -223,7 +223,7 @@ fn planned_browser_capture_retains_four_ordered_points_without_new_allocations()
         scheduler
             .signs()
             .events()
-            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted)
+            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostCallCompleted)
             .count(),
         6
     );

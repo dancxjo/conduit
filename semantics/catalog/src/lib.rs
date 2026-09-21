@@ -10,9 +10,9 @@ extern crate alloc;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_requirement,
-    wait_host_operation_requirement, HostOperationRequirement, KindId, ResourceRequirement,
-    PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
+    kind_id, present_host_call_requirement, resource_requirement, wait_host_call_requirement,
+    HostCallRequirement, KindId, ResourceRequirement, PRESENTATION_RESOURCE_CLASS,
+    TIMER_RESOURCE_CLASS,
 };
 
 mod functional_front;
@@ -401,13 +401,13 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
     catalog
 }
 
-pub fn standard_host_operation_requirements(
+pub fn standard_host_call_requirements(
     operation_kind: &KindId,
     maximum_value_bytes: u32,
-) -> Vec<HostOperationRequirement> {
+) -> Vec<HostCallRequirement> {
     match operation_kind.as_str() {
-        PULSE_KIND | TICK_KIND => vec![wait_host_operation_requirement()],
-        SHOW_KIND => vec![present_host_operation_requirement(
+        PULSE_KIND | TICK_KIND => vec![wait_host_call_requirement()],
+        SHOW_KIND => vec![present_host_call_requirement(
             kind_id("presentation/stdout"),
             maximum_value_bytes,
         )],

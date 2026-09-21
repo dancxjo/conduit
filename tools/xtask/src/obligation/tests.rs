@@ -18,11 +18,11 @@ fn checked_planned_play_completes_the_exact_specimen() {
     assert!(record.attempts[0]
         .signs
         .iter()
-        .any(|sign| sign == "HostOperationRequested"));
+        .any(|sign| sign == "HostCallRequested"));
     assert!(record.attempts[0]
         .signs
         .iter()
-        .any(|sign| sign == "HostOperationCompleted"));
+        .any(|sign| sign == "HostCallCompleted"));
     assert_eq!(record.basis.command, SPECIMEN_COMMAND);
     assert_eq!(
         record.basis.proof_class,

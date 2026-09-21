@@ -6,8 +6,8 @@ use conduit_audio::{
 };
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, Back,
-    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostCallContractId,
+    HostCallRequirement, ImplementationId, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const MUSIC_PLAY_MIDI_PROFILE: &str = "std/midi1-channel-12tet-a440-output@1";
@@ -21,7 +21,7 @@ pub const MIDI_OUTPUT_AUTHORITY_CONTRACT: &str = "conduit.authority/midi-output@
 pub const MUSIC_SYNTH_REFERENCE_PROFILE: &str = "conduit.reference/music-synth-fixed-q16@1";
 pub const MUSIC_SYNTH_REFERENCE_IMPLEMENTATION: &str = "std/kernel-music-synth-fixed-q16@1";
 pub const MUSIC_SYNTH_REFERENCE_ARTIFACT: &str = "conduit-std-host/music-synth-fixed-q16@1";
-pub const MUSIC_SYNTH_HOST_OPERATION: &str = "conduit.host/music-synth-render-fixed-q16@1";
+pub const MUSIC_SYNTH_HOST_CALL: &str = "conduit.host/music-synth-render-fixed-q16@1";
 
 pub const AUDIO_PLAY_ALSA_HW_PROFILE: &str = "std/alsa-hw-s16le-48000-stereo-p256-b1024@1";
 pub const AUDIO_PLAY_ALSA_HW_IMPLEMENTATION: &str = "std/kernel-audio-play-alsa-hw@1";
@@ -65,9 +65,9 @@ pub const INSTRUMENT_MAP_STD_ARTIFACT: &str = "conduit-std-host/music-instrument
 pub const RHYTHM_COMPARE_STD_PROFILE: &str = "std/music-rhythm-compare-kernel-hosted@1";
 pub const RHYTHM_COMPARE_STD_IMPLEMENTATION: &str = "std/kernel-music-rhythm-compare@1";
 pub const RHYTHM_COMPARE_STD_ARTIFACT: &str = "conduit-std-host/music-rhythm-compare@1";
-pub const RHYTHM_PERFORMANCE_HOST_OPERATION: &str = "conduit.host/music-rhythm-performance@1";
-pub const RHYTHM_REFERENCE_HOST_OPERATION: &str = "conduit.host/music-rhythm-reference@1";
-pub const RHYTHM_DRAIN_HOST_OPERATION: &str = "conduit.host/music-rhythm-drain@1";
+pub const RHYTHM_PERFORMANCE_HOST_CALL: &str = "conduit.host/music-rhythm-performance@1";
+pub const RHYTHM_REFERENCE_HOST_CALL: &str = "conduit.host/music-rhythm-reference@1";
+pub const RHYTHM_DRAIN_HOST_CALL: &str = "conduit.host/music-rhythm-drain@1";
 
 pub fn music_play_midi_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::music_play_contract();
@@ -94,8 +94,8 @@ pub fn music_play_midi_offer() -> CapabilityOffer {
         ),
         operations
             .iter()
-            .map(|(id, kind, bytes)| HostOperationRequirement {
-                contract_id: HostOperationContractId::from(*id),
+            .map(|(id, kind, bytes)| HostCallRequirement {
+                contract_id: HostCallContractId::from(*id),
                 target_kind: Some(kind_id(kind)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: *bytes as u32,
@@ -107,7 +107,7 @@ pub fn music_play_midi_offer() -> CapabilityOffer {
             .iter()
             .map(|(id, kind, _)| AuthorityRequirement {
                 contract_id: AuthorityContractId::from(MIDI_OUTPUT_AUTHORITY_CONTRACT),
-                host_operation_contract_id: HostOperationContractId::from(*id),
+                host_call_contract_id: HostCallContractId::from(*id),
                 subject_kind: kind_id(kind),
             })
             .collect(),
@@ -125,8 +125,8 @@ pub fn music_synth_reference_offer() -> CapabilityOffer {
             MUSIC_SYNTH_REFERENCE_IMPLEMENTATION,
             MUSIC_SYNTH_REFERENCE_ARTIFACT,
         ),
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(MUSIC_SYNTH_HOST_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(MUSIC_SYNTH_HOST_CALL),
             target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: NOTE_EVENT_ENCODED_LEN.max(CONTROL_EVENT_ENCODED_LEN) as u32,
@@ -148,8 +148,8 @@ pub fn audio_play_alsa_hw_offer() -> CapabilityOffer {
             AUDIO_PLAY_ALSA_HW_IMPLEMENTATION,
             AUDIO_PLAY_ALSA_HW_ARTIFACT,
         ),
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(AUDIO_PLAY_ALSA_HW_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(AUDIO_PLAY_ALSA_HW_OPERATION),
             target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
@@ -158,7 +158,7 @@ pub fn audio_play_alsa_hw_offer() -> CapabilityOffer {
         vec![resource_requirement(AUDIO_PLAYBACK_RESOURCE_CLASS, 1)],
         vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(AUDIO_PLAYBACK_AUTHORITY_CONTRACT),
-            host_operation_contract_id: HostOperationContractId::from(AUDIO_PLAY_ALSA_HW_OPERATION),
+            host_call_contract_id: HostCallContractId::from(AUDIO_PLAY_ALSA_HW_OPERATION),
             subject_kind: kind_id(AUDIO_PCM_INFO_ID),
         }],
     )
@@ -175,8 +175,8 @@ pub fn audio_write_wav_artifact_offer() -> CapabilityOffer {
             AUDIO_WAV_ARTIFACT_IMPLEMENTATION,
             AUDIO_WAV_ARTIFACT_ARTIFACT,
         ),
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(AUDIO_WAV_ARTIFACT_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(AUDIO_WAV_ARTIFACT_OPERATION),
             target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES,
@@ -185,7 +185,7 @@ pub fn audio_write_wav_artifact_offer() -> CapabilityOffer {
         vec![resource_requirement(AUDIO_WAV_ARTIFACT_RESOURCE_CLASS, 1)],
         vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(AUDIO_WAV_ARTIFACT_AUTHORITY_CONTRACT),
-            host_operation_contract_id: HostOperationContractId::from(AUDIO_WAV_ARTIFACT_OPERATION),
+            host_call_contract_id: HostCallContractId::from(AUDIO_WAV_ARTIFACT_OPERATION),
             subject_kind: kind_id(AUDIO_PCM_INFO_ID),
         }],
     )
@@ -202,8 +202,8 @@ pub fn audio_convert_pcm_profile_offer() -> CapabilityOffer {
             AUDIO_CONVERT_PCM_IMPLEMENTATION,
             AUDIO_CONVERT_PCM_ARTIFACT,
         ),
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(AUDIO_CONVERT_PCM_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(AUDIO_CONVERT_PCM_OPERATION),
             target_kind: Some(kind_id(AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: AUDIO_CONVERT_PCM_MAXIMUM_INPUT_BYTES,
@@ -216,8 +216,8 @@ pub fn audio_convert_pcm_profile_offer() -> CapabilityOffer {
 
 pub fn music_input_midi_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::music_input_contract();
-    let operation = HostOperationRequirement {
-        contract_id: HostOperationContractId::from(MUSIC_INPUT_MIDI_OPERATION),
+    let operation = HostCallRequirement {
+        contract_id: HostCallContractId::from(MUSIC_INPUT_MIDI_OPERATION),
         target_kind: Some(kind_id(conduit_midi::MIDI_INPUT_OBSERVATION_INFO_ID)),
         maximum_in_flight: 1,
         maximum_input_bytes: 0,
@@ -236,7 +236,7 @@ pub fn music_input_midi_offer() -> CapabilityOffer {
         vec![resource_requirement(MIDI_INPUT_RESOURCE_CLASS, 1)],
         vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(MIDI_INPUT_AUTHORITY_CONTRACT),
-            host_operation_contract_id: operation.contract_id,
+            host_call_contract_id: operation.contract_id,
             subject_kind: kind_id(conduit_midi::MIDI_INPUT_OBSERVATION_INFO_ID),
         }],
     )
@@ -252,17 +252,17 @@ pub fn rhythm_compare_std_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(RHYTHM_COMPARE_STD_PROFILE),
             implementation_id: ImplementationId::from(RHYTHM_COMPARE_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(RHYTHM_COMPARE_STD_ARTIFACT),
-            host_operations: [
-                RHYTHM_DRAIN_HOST_OPERATION,
-                RHYTHM_PERFORMANCE_HOST_OPERATION,
-                RHYTHM_REFERENCE_HOST_OPERATION,
+            host_calls: [
+                RHYTHM_DRAIN_HOST_CALL,
+                RHYTHM_PERFORMANCE_HOST_CALL,
+                RHYTHM_REFERENCE_HOST_CALL,
             ]
             .into_iter()
-            .map(|id| HostOperationRequirement {
-                contract_id: HostOperationContractId::from(id),
+            .map(|id| HostCallRequirement {
+                contract_id: HostCallContractId::from(id),
                 target_kind: Some(target_kind.clone()),
                 maximum_in_flight: 1,
-                maximum_input_bytes: if id == RHYTHM_DRAIN_HOST_OPERATION {
+                maximum_input_bytes: if id == RHYTHM_DRAIN_HOST_CALL {
                     0
                 } else {
                     MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
@@ -287,7 +287,7 @@ pub fn instrument_map_std_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(INSTRUMENT_MAP_STD_PROFILE),
             implementation_id: ImplementationId::from(INSTRUMENT_MAP_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(INSTRUMENT_MAP_STD_ARTIFACT),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -320,7 +320,7 @@ mod tests {
             midi.inputs,
             conduit_semantic_catalog::music_play_contract().inputs
         );
-        assert_eq!(midi.host_operations.len(), 2);
+        assert_eq!(midi.host_calls.len(), 2);
         assert_eq!(midi.authority_requirements.len(), 2);
         let input = music_input_midi_offer();
         assert_eq!(
@@ -331,7 +331,7 @@ mod tests {
         assert_eq!(input.authority_requirements.len(), 1);
         let audio = audio_play_alsa_hw_offer();
         assert_eq!(
-            audio.host_operations[0].maximum_input_bytes,
+            audio.host_calls[0].maximum_input_bytes,
             conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES
         );
         assert_eq!(audio.resource_requirements.len(), 1);
@@ -346,7 +346,7 @@ mod tests {
             conversion.inputs,
             conduit_semantic_catalog::audio_convert_pcm_profile_contract().inputs
         );
-        assert_eq!(conversion.host_operations.len(), 1);
+        assert_eq!(conversion.host_calls.len(), 1);
 
         for (offer, contract) in [
             (

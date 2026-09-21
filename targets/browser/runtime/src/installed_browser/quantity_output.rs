@@ -5,7 +5,7 @@ use super::factory::{
 };
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, Back,
+    kind_id, present_host_call_requirement, resource_requirement, ArtifactId, Back,
     BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, ImplementationId,
     PlannedGear, Quantity, StructuredInfoValue, StructuredInfoValueShape,
     PRESENTATION_RESOURCE_CLASS,
@@ -52,7 +52,7 @@ fn wrap_offer() -> CapabilityOffer {
             implementation: WRAP_IMPLEMENTATION,
             artifact: "conduit-browser-runtime/wrap-quantity@1",
         },
-        vec![conduit_core::HostOperationRequirement {
+        vec![conduit_core::HostCallRequirement {
             contract_id: WRAP_OPERATION.into(),
             target_kind,
             maximum_in_flight: 1,
@@ -85,7 +85,7 @@ pub(super) fn direct_presentation_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(DIRECT_PRESENTATION_IMPLEMENTATION),
             implementation_id: ImplementationId::from(DIRECT_PRESENTATION_IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-browser-runtime/quantity-presentation@1"),
-            host_operations: vec![present_host_operation_requirement(
+            host_calls: vec![present_host_call_requirement(
                 kind_id(conduit_semantic_catalog::QUANTITY_PRESENTATION_KIND),
                 conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
             )],
@@ -201,7 +201,7 @@ mod tests {
         assert_eq!(offer.inputs, contract.inputs);
         assert_eq!(offer.outputs, contract.outputs);
         assert_eq!(offer.limits, contract.limits);
-        assert_eq!(offer.host_operations.len(), 1);
+        assert_eq!(offer.host_calls.len(), 1);
         assert_eq!(offer.resource_requirements.len(), 1);
     }
 }

@@ -1,10 +1,10 @@
 //! Exact protected-file copy realization offers owned by the hosted std Host.
 
 use conduit_core::{
-    kind_id, present_host_operation_requirement, protected_resource_requirement,
-    resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, Back,
-    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, PRESENTATION_RESOURCE_CLASS,
+    kind_id, present_host_call_requirement, protected_resource_requirement, resource_requirement,
+    ArtifactId, AuthorityContractId, AuthorityRequirement, Back, BackOfferBuilder, CapabilityId,
+    CapabilityOffer, ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId,
+    PRESENTATION_RESOURCE_CLASS,
 };
 
 pub const COPY_FILE_EXECUTION_PROFILE: &str = "conduit.std/file-copy-kernel-hosted@1";
@@ -15,7 +15,7 @@ pub const ISOLATED_COPY_FILE_EXECUTION_PROFILE: &str =
 pub const ISOLATED_COPY_FILE_IMPLEMENTATION: &str = "std/isolated-file-copy@1";
 pub const ISOLATED_COPY_FILE_ARTIFACT: &str = "conduit-base-files/linux-file-copy@1";
 pub const COPY_FILE_CAPABILITY: &str = "file-copy-v1";
-pub const COPY_FILE_HOST_OPERATION_CONTRACT: &str = "conduit.host/file-copy-step@1";
+pub const COPY_FILE_HOST_CALL_CONTRACT: &str = "conduit.host/file-copy-step@1";
 pub const ISOLATED_COPY_FILE_AUTHORITY_CONTRACT: &str = "conduit.authority/file-copy@1";
 pub const COPY_COMMAND_BYTES: u32 = 1;
 pub const COPY_RESULT_PRESENTATION_IMPLEMENTATION: &str =
@@ -55,8 +55,8 @@ fn copy_file_offer_for(
             implementation,
             artifact,
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(COPY_FILE_HOST_OPERATION_CONTRACT),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(COPY_FILE_HOST_CALL_CONTRACT),
             target_kind: Some(kind_id(conduit_semantic_catalog::COPY_FILE_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: COPY_COMMAND_BYTES,
@@ -77,9 +77,7 @@ fn copy_file_offer_for(
         if isolated {
             vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(ISOLATED_COPY_FILE_AUTHORITY_CONTRACT),
-                host_operation_contract_id: HostOperationContractId::from(
-                    COPY_FILE_HOST_OPERATION_CONTRACT,
-                ),
+                host_call_contract_id: HostCallContractId::from(COPY_FILE_HOST_CALL_CONTRACT),
                 subject_kind: kind_id(conduit_semantic_catalog::COPY_FILE_KIND),
             }]
         } else {
@@ -100,7 +98,7 @@ pub fn copy_result_presentation_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(COPY_FILE_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(COPY_RESULT_PRESENTATION_IMPLEMENTATION),
             artifact_id: ArtifactId::from(COPY_FILE_ARTIFACT),
-            host_operations: vec![present_host_operation_requirement(
+            host_calls: vec![present_host_call_requirement(
                 kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET),
                 conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
             )],
@@ -135,9 +133,9 @@ mod tests {
                 .map(|role| role.as_str()),
             Some(conduit_semantic_catalog::COPY_SOURCE_ROLE)
         );
-        assert_eq!(offer.host_operations[0].maximum_input_bytes, 1);
+        assert_eq!(offer.host_calls[0].maximum_input_bytes, 1);
         assert_eq!(
-            offer.host_operations[0].maximum_output_bytes,
+            offer.host_calls[0].maximum_output_bytes,
             conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
         );
     }
@@ -158,7 +156,7 @@ mod tests {
         assert_eq!(offer.inputs, contract.inputs);
         assert_eq!(offer.outputs, contract.outputs);
         assert_eq!(offer.limits, contract.limits);
-        assert_eq!(offer.host_operations.len(), 1);
+        assert_eq!(offer.host_calls.len(), 1);
         assert_eq!(offer.resource_requirements.len(), 1);
     }
 }

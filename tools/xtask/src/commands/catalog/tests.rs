@@ -108,7 +108,7 @@ fn profile_offer_removal_cannot_leave_a_stale_positive() {
     assert!(matches!(
         entry.classification,
         GapClassification::PortableImplementationMissing
-            | GapClassification::MissingHostOperation
+            | GapClassification::MissingHostCall
             | GapClassification::MissingResource
     ));
 }

@@ -1,7 +1,7 @@
 use super::{DebounceOperation, TimeoutOperation};
 use conduit_kernel::{
-    HostOperationDisposition, HostOperationOutcome, OperationAction, OperationInput, PortId,
-    RequestId, ValueRef,
+    HostCallDisposition, HostCallOutcome, OperationAction, OperationInput, PortId, RequestId,
+    ValueRef,
 };
 
 fn value(slot: u16, byte_len: u32) -> ValueRef {
@@ -12,10 +12,10 @@ fn value(slot: u16, byte_len: u32) -> ValueRef {
     }
 }
 
-fn completion(request: u32, disposition: HostOperationDisposition) -> OperationInput {
-    OperationInput::HostOperationCompleted {
+fn completion(request: u32, disposition: HostCallDisposition) -> OperationInput {
+    OperationInput::HostCallCompleted {
         request: RequestId(request),
-        outcome: HostOperationOutcome {
+        outcome: HostCallOutcome {
             disposition,
             output: None,
             failure: None,
@@ -70,7 +70,7 @@ fn debounce_burst_resets_exact_request_and_flushes_pending_value_on_close() {
             port: PortId(0),
             value: first
         }),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(1),
             ..
         }
@@ -84,13 +84,10 @@ fn debounce_burst_resets_exact_request_and_flushes_pending_value_on_close() {
         OperationAction::Await
     );
     assert_eq!(operation.take_released_value(), Some(first));
-    assert_eq!(
-        operation.take_host_operation_cancellation(),
-        Some(RequestId(1))
-    );
+    assert_eq!(operation.take_host_call_cancellation(), Some(RequestId(1)));
     assert!(matches!(
-        operation.resume(completion(1, HostOperationDisposition::Cancelled)),
-        OperationAction::RequestHostOperation {
+        operation.resume(completion(1, HostCallDisposition::Cancelled)),
+        OperationAction::RequestHostCall {
             request: RequestId(2),
             ..
         }
@@ -99,13 +96,10 @@ fn debounce_burst_resets_exact_request_and_flushes_pending_value_on_close() {
         operation.resume(OperationInput::Closed { port: PortId(0) }),
         OperationAction::Await
     );
-    assert_eq!(
-        operation.take_host_operation_cancellation(),
-        Some(RequestId(2))
-    );
+    assert_eq!(operation.take_host_call_cancellation(), Some(RequestId(2)));
     assert_eq!(operation.take_released_value(), Some(value(12, 8)));
     assert_eq!(
-        operation.resume(completion(2, HostOperationDisposition::Cancelled)),
+        operation.resume(completion(2, HostCallDisposition::Cancelled)),
         OperationAction::Emit {
             port: PortId(0),
             value: last
@@ -126,13 +120,13 @@ fn timeout_distinguishes_expiry_recovery_reset_and_terminal_cancellation() {
     );
     assert!(matches!(
         operation.advance(),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(1),
             ..
         }
     ));
     assert_eq!(
-        operation.resume(completion(1, HostOperationDisposition::Completed)),
+        operation.resume(completion(1, HostCallDisposition::Completed)),
         OperationAction::Emit {
             port: PortId(0),
             value: value(40, 1)
@@ -151,7 +145,7 @@ fn timeout_distinguishes_expiry_recovery_reset_and_terminal_cancellation() {
     );
     assert!(matches!(
         operation.advance(),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(2),
             ..
         }
@@ -160,12 +154,9 @@ fn timeout_distinguishes_expiry_recovery_reset_and_terminal_cancellation() {
         operation.resume(OperationInput::Closed { port: PortId(0) }),
         OperationAction::Await
     );
+    assert_eq!(operation.take_host_call_cancellation(), Some(RequestId(2)));
     assert_eq!(
-        operation.take_host_operation_cancellation(),
-        Some(RequestId(2))
-    );
-    assert_eq!(
-        operation.resume(completion(2, HostOperationDisposition::Cancelled)),
+        operation.resume(completion(2, HostCallDisposition::Cancelled)),
         OperationAction::Complete
     );
     let mut released = Vec::new();

@@ -132,7 +132,7 @@ fn source_host(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
             },
             inputs: Vec::new(),
             outputs: vec![output],
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
             limits: CapabilityLimits {

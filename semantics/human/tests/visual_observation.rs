@@ -173,7 +173,7 @@ fn observation_records_contain_no_action_or_acquisition_authority() {
     for forbidden in [
         "MediaAcquisition",
         "AuthorityGrantId",
-        "HostOperationId",
+        "HostCallId",
         "PresentationAction",
         "BodyLifecycleEvent",
     ] {

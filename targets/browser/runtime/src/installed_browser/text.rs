@@ -6,7 +6,7 @@ use super::factory::{
 use super::BrowserOperation;
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, FrontStartupParameter, HostOperationContractId, HostOperationRequirement,
+    ExecutionProfileId, FrontStartupParameter, HostCallContractId, HostCallRequirement,
     ImplementationId, PlannedGear, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
@@ -74,7 +74,7 @@ fn upper_offer() -> CapabilityOffer {
         Vec::new(),
         Some((port_id("text"), port_id("text"))),
     );
-    offer.host_operations.push(operation(
+    offer.host_calls.push(operation(
         UPPER_OPERATION,
         "text/uppercase-utf8",
         conduit_text::MAX_TEXT_BYTES,
@@ -97,7 +97,7 @@ fn join_offer() -> CapabilityOffer {
         }],
         Some((port_id("text"), port_id("text"))),
     );
-    offer.host_operations.push(operation(
+    offer.host_calls.push(operation(
         JOIN_OPERATION,
         "text/prefix-concat-utf8",
         conduit_text::MAX_TEXT_BYTES,
@@ -127,7 +127,7 @@ fn presentation_offer() -> CapabilityOffer {
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
-        host_operations: vec![operation(
+        host_calls: vec![operation(
             PRESENT_OPERATION,
             "presentation/browser-text",
             conduit_text::MAX_TEXT_BYTES,
@@ -165,7 +165,7 @@ fn offer(
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: contract.limits,
@@ -179,9 +179,9 @@ fn operation(
     target: &str,
     maximum_input_bytes: u32,
     maximum_output_bytes: u32,
-) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(contract),
+) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(contract),
         target_kind: Some(kind_id(target)),
         maximum_in_flight: 1,
         maximum_input_bytes,
@@ -210,7 +210,7 @@ fn prepare_unary(
     };
     validate_placement(placement, &offer)?;
     Ok(BrowserOperation::unary(
-        placement.host_operations[0].maximum_input_bytes,
+        placement.host_calls[0].maximum_input_bytes,
         1,
     ))
 }
@@ -221,7 +221,7 @@ fn prepare_presentation(
 ) -> Result<BrowserOperation, String> {
     validate_placement(placement, &presentation_offer())?;
     Ok(BrowserOperation::presentation(
-        placement.host_operations[0].maximum_input_bytes,
+        placement.host_calls[0].maximum_input_bytes,
         maximum_values(placement)?,
     ))
 }

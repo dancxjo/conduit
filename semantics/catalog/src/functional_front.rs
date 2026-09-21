@@ -2,7 +2,7 @@ use crate::KindConfigurationField;
 use alloc::vec::Vec;
 use conduit_core::{
     ArtifactId, AuthorityRequirement, Back, BackOfferBuilder, CapabilityId, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, FrontStartupParameter, HostOperationRequirement,
+    ConfigurationValue, ExecutionProfileId, FrontStartupParameter, HostCallRequirement,
     ImplementationId, Kind, KindIdentity, ResourceRequirement,
 };
 
@@ -21,7 +21,7 @@ pub fn realization_offer(
     contract: crate::StandardKindContract,
     revision: &str,
     identity: RealizationOfferIdentity<'_>,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
     resource_requirements: Vec<ResourceRequirement>,
     authority_requirements: Vec<AuthorityRequirement>,
 ) -> CapabilityOffer {
@@ -44,7 +44,7 @@ pub fn realization_offer(
             execution_profile_id: ExecutionProfileId::from(identity.execution_profile),
             implementation_id: ImplementationId::from(identity.implementation),
             artifact_id: ArtifactId::from(identity.artifact),
-            host_operations,
+            host_calls,
             resource_requirements,
             authority_requirements,
         },

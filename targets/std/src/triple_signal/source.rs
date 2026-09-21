@@ -6,12 +6,12 @@ use conduit_core::{
     PlanFragment, PresentationId, SignId,
 };
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition,
-    HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEventKind, NodeId,
-    RemoteEndpointId, SignQuery, ValueStorage,
+    CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition, HostCallOutcome,
+    HostedSignLog, HostedValueStore, KernelEventKind, NodeId, RemoteEndpointId, SignQuery,
+    ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -185,7 +185,7 @@ impl TripleSource {
                 (None, None) => {}
             }
             if let Some(request) = self.scheduler.next_host_request() {
-                self.complete_host_operation(request)?;
+                self.complete_host_call(request)?;
                 continue;
             }
             match self
@@ -235,7 +235,7 @@ impl TripleSource {
                 return Ok(receipt.clone());
             }
             if let Some(request) = self.scheduler.next_host_request() {
-                self.complete_host_operation(request)?;
+                self.complete_host_call(request)?;
                 continue;
             }
             match self
@@ -261,7 +261,7 @@ impl TripleSource {
 
     pub fn finish_kernel(&mut self) -> Result<u64, String> {
         while let Some(request) = self.scheduler.next_host_request() {
-            self.complete_host_operation(request)?;
+            self.complete_host_call(request)?;
         }
         loop {
             match self
@@ -271,7 +271,7 @@ impl TripleSource {
             {
                 SchedulerStatus::Progress { .. } => {
                     while let Some(request) = self.scheduler.next_host_request() {
-                        self.complete_host_operation(request)?;
+                        self.complete_host_call(request)?;
                     }
                 }
                 SchedulerStatus::Drained => break,
@@ -337,7 +337,7 @@ impl TripleSource {
         Ok(Some((offer.sequence, payload)))
     }
 
-    fn complete_host_operation(&mut self, request: HostOperationRequest) -> Result<(), String> {
+    fn complete_host_call(&mut self, request: HostCallRequest) -> Result<(), String> {
         let input = self
             .scheduler
             .host_value(request.input.value)
@@ -397,11 +397,11 @@ impl TripleSource {
             return Err("host request came from an uninstalled triple node".to_owned());
         }
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },

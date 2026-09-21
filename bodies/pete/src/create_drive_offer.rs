@@ -4,9 +4,9 @@ use crate::{IndependentWatchdogObservation, LocalHazard, OiMode, SafetyObservati
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId,
     AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FrontStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindIdentity, OfferGeneration,
-    PROTOCOL_VERSION, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
+    ExecutionProfileId, FrontStartupParameter, HostAdvertisement, HostCallContractId,
+    HostCallRequirement, HostId, ImplementationId, ImplementationOffer, KindIdentity,
+    OfferGeneration, PROTOCOL_VERSION, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
 
 pub const CREATE_DRIVE_PROFILE: &str = "pete/create1-differential-drive@1";
@@ -124,8 +124,8 @@ pub fn live_create_drive_advertisement(
             },
             inputs: contract.inputs,
             outputs: contract.outputs,
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(CREATE_DRIVE_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(CREATE_DRIVE_OPERATION),
                 target_kind: Some(kind_id(SCALAR_INFO_ID)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: (2 * SCALAR_ENCODED_LEN) as u32,
@@ -134,7 +134,7 @@ pub fn live_create_drive_advertisement(
             resource_requirements: requirements,
             authority_requirements: vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(authority_contract),
-                host_operation_contract_id: HostOperationContractId::from(CREATE_DRIVE_OPERATION),
+                host_call_contract_id: HostCallContractId::from(CREATE_DRIVE_OPERATION),
                 subject_kind: kind_id(SCALAR_INFO_ID),
             }],
             limits: CapabilityLimits {

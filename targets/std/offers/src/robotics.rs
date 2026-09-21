@@ -83,7 +83,7 @@ fn offer(contract: Kind, slug: &str, implementation: &str) -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(ROBOTICS_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(ROBOTICS_ARTIFACT),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -112,7 +112,7 @@ mod tests {
             robotics_drive_differential_offer(),
         ] {
             assert_eq!(offer.limits.max_queue_items, 1);
-            assert!(offer.host_operations.is_empty());
+            assert!(offer.host_calls.is_empty());
             assert!(offer.resource_requirements.is_empty());
             assert!(offer.authority_requirements.is_empty());
             assert!(offer

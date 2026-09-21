@@ -3,11 +3,11 @@
 use alloc::vec::Vec;
 use conduit_core::Scalar;
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    CordSpec, FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, NodeId, ValueStorage,
+    FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, HostCallDisposition,
+    HostCallOutcome, NodeId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 
@@ -113,7 +113,7 @@ pub fn run_flow_state(prepared: &PreparedFlowState) -> Result<FlowStateProof, Fl
 
 fn capture(
     scheduler: &mut Scheduler,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     left: &mut Option<Scalar>,
     right: &mut Option<Scalar>,
 ) -> Result<(), FlowStateError> {
@@ -136,11 +136,11 @@ fn capture(
     }
     scheduler
         .kernel
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -177,8 +177,8 @@ fn scheduler(
             .map_err(|_| FlowStateError::Kernel)?;
     }
     routes.seal().map_err(|_| FlowStateError::Kernel)?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(|_| FlowStateError::Kernel)?;
@@ -231,10 +231,9 @@ fn scheduler(
         (SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
     )
     .map_err(|_| FlowStateError::Kernel)?;
-    let kernel = FixedScheduler::new_with_host_operations(
-        nodes, cords, routes, bindings, drivers, values, signs,
-    )
-    .map_err(|_| FlowStateError::Kernel)?;
+    let kernel =
+        FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
+            .map_err(|_| FlowStateError::Kernel)?;
     Ok(Scheduler {
         kernel,
         left: left.ok_or(FlowStateError::Shape)?,

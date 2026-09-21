@@ -68,9 +68,9 @@ fn initialized_offer_exposes_eight_exact_finite_l0_capabilities() {
     assert_eq!(offers[6].kind_id.as_str(), "llm/interpret");
     assert_eq!(offers[7].kind_id.as_str(), "llm/present");
     for capability in offers {
-        assert_eq!(capability.host_operations.len(), 1);
+        assert_eq!(capability.host_calls.len(), 1);
         assert_eq!(
-            capability.host_operations[0].contract_id.as_str(),
+            capability.host_calls[0].contract_id.as_str(),
             LOCAL_MODEL_OPERATION
         );
         assert_eq!(capability.resource_requirements.len(), 5);

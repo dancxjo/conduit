@@ -5,7 +5,7 @@ The first network capability slice keeps five facts distinct:
 ```text
 finite Wi-Fi station resource
   -> optional equal-front network/join capability
-  -> admitted base host operation under exact authority
+  -> admitted base Host Call under exact authority
   -> boot-scoped NetworkAttachment runtime fact
   != WebSocket base or Conduit link
 ```

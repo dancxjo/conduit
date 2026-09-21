@@ -2,11 +2,11 @@
 
 use conduit_core::BaseImplementationId;
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, ValueStorage,
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallOutcome, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
@@ -246,11 +246,9 @@ fn execute_form(source: &str, sink_kind: &str) -> Result<(Vec<u8>, conduit_core:
                 let bounded = BoundedValueRef::new(
                     value,
                     placement
-                        .host_operations
+                        .host_calls
                         .first()
-                        .ok_or_else(|| {
-                            "browser transform has no planned host operation".to_string()
-                        })?
+                        .ok_or_else(|| "browser transform has no planned Host Call".to_string())?
                         .maximum_output_bytes,
                 )
                 .map_err(|_| "browser host output exceeded its admitted bound".to_string())?;
@@ -311,8 +309,8 @@ fn prepare_scheduler(
             .map_err(debug_error)?;
     }
     routes.seal().map_err(debug_error)?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(MAX_NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(MAX_NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(debug_error)?;
@@ -344,12 +342,12 @@ fn prepare_scheduler(
                 }
             }
             FIXTURE_GRAPHICS_KIND | FIXTURE_LAYOUT_KIND => NucleusOperation::Sink {
-                maximum_input_bytes: placement.host_operations[0].maximum_input_bytes,
+                maximum_input_bytes: placement.host_calls[0].maximum_input_bytes,
                 pending: false,
                 complete: false,
             },
             _ => NucleusOperation::Transform {
-                maximum_input_bytes: placement.host_operations[0].maximum_input_bytes,
+                maximum_input_bytes: placement.host_calls[0].maximum_input_bytes,
                 pending: false,
                 emitted: false,
             },
@@ -365,7 +363,7 @@ fn prepare_scheduler(
             .max((SIGN_ITEMS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
     )
     .map_err(debug_error)?;
-    FixedScheduler::new_with_host_operations(nodes, cords, routes, bindings, drivers, values, signs)
+    FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
         .map_err(debug_error)
 }
 
@@ -418,15 +416,15 @@ fn encode_scene(scene: GraphicsScene) -> Result<Vec<u8>, String> {
 
 fn complete(
     scheduler: &mut NucleusScheduler,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     output: Option<BoundedValueRef>,
 ) -> Result<(), String> {
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output,
                 failure: None,
             },

@@ -4,8 +4,8 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, PlannedGear,
-    StructuredInfoValue, StructuredInfoValueShape,
+    HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear, StructuredInfoValue,
+    StructuredInfoValueShape,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
@@ -67,8 +67,8 @@ fn offer(index: usize) -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from("browser/typed-record-codec@1"),
             implementation_id: ImplementationId::from(IMPLEMENTATIONS[index]),
             artifact_id: ArtifactId::from("conduit-browser-runtime/typed-record-codecs@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(OPERATIONS[index]),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(OPERATIONS[index]),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM,

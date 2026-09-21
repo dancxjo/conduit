@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use conduit_core::{
     resource_offer, resource_requirement, ArtifactId, Back, BackOfferBuilder, BaseImplementationId,
     BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement,
-    HostId, HostOperationContractId, HostOperationRequirement, ImplementationId, OfferGeneration,
+    HostCallContractId, HostCallRequirement, HostId, ImplementationId, OfferGeneration,
     ResourceHealth, ResourceObservation, SignId, PROTOCOL_VERSION,
 };
 use conduit_mpu6050::{
@@ -227,11 +227,10 @@ pub fn validate_mpu6050_plan(
     if placement.host_id != evidence.host_id
         || placement.boot_id != evidence.boot_id
         || placement.offer_generation != evidence.offer_generation
-        || placement.host_operations.len() != 1
-        || placement.host_operations[0].contract_id.as_str() != MPU6050_OPERATION
-        || placement.host_operations[0].maximum_input_bytes != 0
-        || placement.host_operations[0].maximum_output_bytes
-            != ROBOTICS_ORIENTATION_ENCODED_LEN as u32
+        || placement.host_calls.len() != 1
+        || placement.host_calls[0].contract_id.as_str() != MPU6050_OPERATION
+        || placement.host_calls[0].maximum_input_bytes != 0
+        || placement.host_calls[0].maximum_output_bytes != ROBOTICS_ORIENTATION_ENCODED_LEN as u32
         || placement.resources.len() != 3
     {
         return Err("Plan does not seal the exact MPU-6050 realization");
@@ -266,8 +265,8 @@ fn mpu6050_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(MPU6050_PROFILE),
             implementation_id: ImplementationId::from(MPU6050_IMPLEMENTATION),
             artifact_id: ArtifactId::from(MPU6050_ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(MPU6050_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(MPU6050_OPERATION),
                 target_kind: Some(conduit_core::kind_id(
                     conduit_robotics::ROBOTICS_ORIENTATION_INFO_ID,
                 )),

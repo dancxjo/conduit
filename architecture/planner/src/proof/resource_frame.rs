@@ -135,11 +135,11 @@ pub fn frame_resource_plan(
                 },
                 inputs: definition.inputs.clone(),
                 outputs: definition.outputs.clone(),
-                host_operations: if source {
+                host_calls: if source {
                     vec![]
                 } else {
-                    vec![HostOperationRequirement {
-                        contract_id: HostOperationContractId::from(FRAME_OPERATION),
+                    vec![HostCallRequirement {
+                        contract_id: HostCallContractId::from(FRAME_OPERATION),
                         target_kind: Some(definition.kind_id.clone()),
                         maximum_in_flight: 1,
                         maximum_input_bytes: 512,
@@ -171,7 +171,7 @@ pub fn frame_resource_plan(
                 } else {
                     vec![AuthorityRequirement {
                         contract_id: AuthorityContractId::from(FRAME_AUTHORITY),
-                        host_operation_contract_id: HostOperationContractId::from(FRAME_OPERATION),
+                        host_call_contract_id: HostCallContractId::from(FRAME_OPERATION),
                         subject_kind: definition.kind_id.clone(),
                     }]
                 },

@@ -6,20 +6,20 @@ use super::factory::{
 use super::BrowserOperation;
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PlannedGear, PRESENTATION_RESOURCE_CLASS,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
+    PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::HostedValueStore;
 
 const INDICATOR_IMPLEMENTATION: &str = "browser/dom-indicator@2";
 const ARTIFACT: &str = "conduit-browser-runtime/installed-presentation@1";
-const HOST_OPERATION: &str = "conduit.host/browser-present-indicator@1";
+const HOST_CALL: &str = "conduit.host/browser-present-indicator@1";
 const BOOL_IMPLEMENTATION: &str = "browser/presentation-bool@1";
-const BOOL_HOST_OPERATION: &str = "conduit.host/browser-present-current-bool@1";
+const BOOL_HOST_CALL: &str = "conduit.host/browser-present-current-bool@1";
 const PATCHBAY_IMPLEMENTATION: &str = "browser/patchbay-surface@1";
-const PATCHBAY_HOST_OPERATION: &str = "conduit.host/browser-present-patchbay@1";
+const PATCHBAY_HOST_CALL: &str = "conduit.host/browser-present-patchbay@1";
 const GARDEN_IMPLEMENTATION: &str = "browser/presentation-garden-state@1";
-const GARDEN_HOST_OPERATION: &str = "conduit.host/browser-present-garden-state@1";
+const GARDEN_HOST_CALL: &str = "conduit.host/browser-present-garden-state@1";
 
 pub(super) static INDICATOR: BrowserInstallation = BrowserInstallation {
     implementation_id: INDICATOR_IMPLEMENTATION,
@@ -54,8 +54,8 @@ fn garden_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(GARDEN_IMPLEMENTATION),
             implementation_id: ImplementationId::from(GARDEN_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(GARDEN_HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(GARDEN_HOST_CALL),
                 target_kind: Some(kind_id("presentation/browser-garden-state")),
                 maximum_in_flight: 1,
                 maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
@@ -115,8 +115,8 @@ fn patchbay_offer() -> CapabilityOffer {
             implementation: PATCHBAY_IMPLEMENTATION,
             artifact: ARTIFACT,
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(PATCHBAY_HOST_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(PATCHBAY_HOST_CALL),
             target_kind: Some(kind_id("presentation/patchbay-surface")),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_semantic_catalog::MAX_PATCHBAY_PRESENTATION_BYTES,
@@ -164,8 +164,8 @@ fn bool_offer() -> CapabilityOffer {
             implementation: BOOL_IMPLEMENTATION,
             artifact: ARTIFACT,
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(BOOL_HOST_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(BOOL_HOST_CALL),
             target_kind: Some(kind_id("presentation/browser-current-bool")),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
@@ -210,8 +210,8 @@ fn indicator_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from("browser/presentation-indicator@2"),
             implementation_id: ImplementationId::from(INDICATOR_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
                 target_kind: Some(kind_id("presentation/browser-indicator")),
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
@@ -233,7 +233,7 @@ fn prepare(
 ) -> Result<BrowserOperation, String> {
     validate_placement(placement, &indicator_offer())?;
     Ok(BrowserOperation::presentation(
-        placement.host_operations[0].maximum_input_bytes,
+        placement.host_calls[0].maximum_input_bytes,
         4,
     ))
 }

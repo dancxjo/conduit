@@ -2,13 +2,13 @@
 
 use conduit_kernel::{
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver,
+        CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, OperationDriver,
         SchedulerStatus,
     },
-    BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, KernelEvent, NodeId, Operation, OperationAction, OperationInput, PortId,
-    RequestId, RouteRange, RouteTarget, SignSink, ValueRef, ValueStorage,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, NodeId,
+    Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
+    SignSink, ValueRef, ValueStorage,
 };
 
 use crate::{
@@ -18,7 +18,7 @@ use crate::{
 
 const SOURCE_NODE: NodeId = NodeId(0);
 const SPEAKER_NODE: NodeId = NodeId(1);
-const OPERATION: HostOperationId = HostOperationId(0);
+const OPERATION: HostCallId = HostCallId(0);
 const PORTS: usize = 1;
 const SIGNS: usize = 64;
 
@@ -71,17 +71,17 @@ impl Operation for SpeakerOperation {
                 else {
                     return invalid(2);
                 };
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(1),
                     operation: OPERATION,
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted {
+            OperationInput::HostCallCompleted {
                 request: RequestId(1),
                 outcome,
             } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -159,7 +159,7 @@ type Scheduler = FixedScheduler<
 
 pub struct PreparedSpeakerExecution {
     scheduler: Scheduler,
-    pending_request: Option<HostOperationRequest>,
+    pending_request: Option<HostCallRequest>,
     dispatched: bool,
     song_number: u8,
     define_bytes: u16,
@@ -237,21 +237,21 @@ pub fn prepare_speaker_execution(
         )
         .map_err(|_| "route admission failed")?;
     routes.seal().map_err(|_| "route seal failed")?;
-    let mut bindings = FixedHostOperationBindings::<2>::new(1);
+    let mut bindings = FixedHostCallBindings::<2>::new(1);
     bindings
         .install(
             SPEAKER_NODE,
-            HostOperationBinding {
+            HostCallBinding {
                 operation: OPERATION,
                 maximum_input_bytes: MAXIMUM_ADMITTED_SERIAL_BYTES as u32,
                 maximum_output_bytes: 0,
             },
         )
-        .map_err(|_| "host operation admission failed")?;
-    bindings.seal().map_err(|_| "host operation seal failed")?;
+        .map_err(|_| "Host Call admission failed")?;
+    bindings.seal().map_err(|_| "Host Call seal failed")?;
     let signs = FixedSignLog::new((SIGNS * core::mem::size_of::<KernelEvent>()) as u32)
         .map_err(|_| "sign admission failed")?;
-    let scheduler = FixedScheduler::new_with_host_operations(
+    let scheduler = FixedScheduler::new_with_host_calls(
         [
             NodeSpec {
                 input_cords: [None],
@@ -435,8 +435,8 @@ fn validate_plan(plan: &conduit_core::Plan) -> Result<(), &'static str> {
         .find(|placement| placement.capability_id.as_str() == SPEAKER_CAPABILITY)
         .ok_or("Plan has no Create speaker placement")?;
     if placement.implementation_id.as_str() != SPEAKER_IMPLEMENTATION
-        || placement.host_operations.len() != 1
-        || placement.host_operations[0].contract_id.as_str() != SPEAKER_OPERATION
+        || placement.host_calls.len() != 1
+        || placement.host_calls[0].contract_id.as_str() != SPEAKER_OPERATION
         || placement.authority.len() != 1
     {
         return Err("Plan does not seal the exact Create speaker contract");
@@ -444,12 +444,12 @@ fn validate_plan(plan: &conduit_core::Plan) -> Result<(), &'static str> {
     Ok(())
 }
 
-fn complete_request(execution: &mut PreparedSpeakerExecution, request: HostOperationRequest) {
-    let _ = execution.scheduler.complete_host_operation(
+fn complete_request(execution: &mut PreparedSpeakerExecution, request: HostCallRequest) {
+    let _ = execution.scheduler.complete_host_call(
         request.node,
         request.request,
-        HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output: None,
             failure: None,
         },
@@ -458,19 +458,19 @@ fn complete_request(execution: &mut PreparedSpeakerExecution, request: HostOpera
 
 fn fail_request(
     execution: &mut PreparedSpeakerExecution,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     failure: SerialFailure,
     define_bytes: u16,
     play_bytes: u16,
 ) -> SpeakerPlayReport {
-    let _ = execution.scheduler.complete_host_operation(
+    let _ = execution.scheduler.complete_host_call(
         request.node,
         request.request,
-        HostOperationOutcome {
-            disposition: HostOperationDisposition::Failed,
+        HostCallOutcome {
+            disposition: HostCallDisposition::Failed,
             output: None,
             failure: Some(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::HostOperationFailed,
+                code: conduit_kernel::FailureCode::HostCallFailed,
                 detail: failure as u16,
             }),
         },

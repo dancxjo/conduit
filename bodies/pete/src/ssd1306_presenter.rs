@@ -2,8 +2,8 @@
 
 use conduit_core::{
     bind_active_play, resource_offer, resource_requirement, ArtifactId, BootId, CapabilityId,
-    CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, OfferGeneration, Plan, SignId,
+    CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostCallContractId,
+    HostCallRequirement, HostId, HostProfileId, ImplementationId, OfferGeneration, Plan, SignId,
     PROTOCOL_VERSION,
 };
 use conduit_form::{parse, ProfileCatalog};
@@ -214,8 +214,8 @@ pub fn validate_ssd1306_plan(
     if placement.host_id != evidence.host_id
         || placement.boot_id != evidence.boot_id
         || placement.offer_generation != evidence.offer_generation
-        || placement.host_operations.len() != 1
-        || placement.host_operations[0].contract_id.as_str() != SSD1306_PRESENT_OPERATION
+        || placement.host_calls.len() != 1
+        || placement.host_calls[0].contract_id.as_str() != SSD1306_PRESENT_OPERATION
         || placement.resources.len() != 3
     {
         return Err(Ssd1306PresenterError::WrongPlan);
@@ -255,8 +255,8 @@ fn advertisement(evidence: &Ssd1306PresenterEvidence) -> HostAdvertisement {
         execution_profile_id: ExecutionProfileId::from(SSD1306_PRESENTER_PROFILE),
         implementation_id: ImplementationId::from(SSD1306_PRESENTER_IMPLEMENTATION),
         artifact_id: ArtifactId::from(SSD1306_PRESENTER_ARTIFACT),
-        host_operation: HostOperationRequirement {
-            contract_id: HostOperationContractId::from(SSD1306_PRESENT_OPERATION),
+        host_call: HostCallRequirement {
+            contract_id: HostCallContractId::from(SSD1306_PRESENT_OPERATION),
             target_kind: Some(conduit_core::kind_id("presentation/base/ssd1306-128x32@1")),
             maximum_in_flight: 1,
             maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,

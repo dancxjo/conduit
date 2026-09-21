@@ -1,6 +1,6 @@
 use conduit_core::{
-    AuthorityBinding, AuthorityContractId, AuthorityGrantId, BootId, CapabilityId, HostId,
-    HostOperationContractId, KindId,
+    AuthorityBinding, AuthorityContractId, AuthorityGrantId, BootId, CapabilityId,
+    HostCallContractId, HostId, KindId,
 };
 use conduit_semantic_catalog::{REMINDER_DELIVERY_AUTHORITY, REMINDER_DELIVER_KIND};
 use conduit_std_host::hosted_reminder::{
@@ -69,7 +69,7 @@ fn civil_reminder_fires_once_without_executing_or_mutating_the_event() {
     let grant = AuthorityBinding {
         grant_id: AuthorityGrantId::from("grant/reminder/local"),
         contract_id: AuthorityContractId::from(REMINDER_DELIVERY_AUTHORITY),
-        host_operation_contract_id: HostOperationContractId::from(REMINDER_DELIVER_OPERATION),
+        host_call_contract_id: HostCallContractId::from(REMINDER_DELIVER_OPERATION),
         subject_kind: KindId::from(REMINDER_DELIVER_KIND),
         host_id: HostId::from("host/reminder"),
         boot_id: BootId::from("boot/reminder"),

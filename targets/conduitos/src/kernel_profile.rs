@@ -1,20 +1,20 @@
 //! Fenced P2/P3 hand-lowered regression fixture; production uses `planned_kernel`.
 
 use conduit_kernel::{
-    BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, KernelEvent, NodeId, Operation, OperationAction, OperationInput, PortId,
-    RequestId, RouteRange, RouteTarget, SignSink, ValueRef,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, NodeId,
+    Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
+    SignSink, ValueRef,
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver,
+        CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, OperationDriver,
         SchedulerError, SchedulerStatus,
     },
 };
 
 use crate::machine::KernelInterest;
 
-pub const WAIT_OPERATION: HostOperationId = HostOperationId(0);
-pub const PRESENT_OPERATION: HostOperationId = HostOperationId(0);
+pub const WAIT_OPERATION: HostCallId = HostCallId(0);
+pub const PRESENT_OPERATION: HostCallId = HostCallId(0);
 pub const TIMER_REQUEST: RequestId = RequestId(1);
 pub const PRESENT_REQUEST: RequestId = RequestId(2);
 pub const TIMER_VALUE: &[u8] = &0_u64.to_le_bytes();
@@ -74,7 +74,7 @@ impl TimerOperation {
 
 impl Operation for TimerOperation {
     fn start(&mut self) -> OperationAction {
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: TIMER_REQUEST,
             operation: WAIT_OPERATION,
             input: self.wait,
@@ -83,9 +83,9 @@ impl Operation for TimerOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == TIMER_REQUEST
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none() =>
             {
                 self.state = TimerOperationState::Emitting(self.tick);
@@ -94,18 +94,18 @@ impl Operation for TimerOperation {
                     value: self.tick,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == TIMER_REQUEST
-                    && outcome.disposition == HostOperationDisposition::Cancelled =>
+                    && outcome.disposition == HostCallDisposition::Cancelled =>
             {
                 OperationAction::Fail(conduit_kernel::Failure {
                     code: conduit_kernel::FailureCode::Cancelled,
                     detail: 10,
                 })
             }
-            OperationInput::HostOperationCompleted { request, .. } if request == TIMER_REQUEST => {
+            OperationInput::HostCallCompleted { request, .. } if request == TIMER_REQUEST => {
                 OperationAction::Fail(conduit_kernel::Failure {
-                    code: conduit_kernel::FailureCode::HostOperationFailed,
+                    code: conduit_kernel::FailureCode::HostCallFailed,
                     detail: 11,
                 })
             }
@@ -162,23 +162,23 @@ impl Operation for SerialOperation {
                     });
                 };
                 self.state = SerialOperationState::Presenting;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: PRESENT_REQUEST,
                     operation: PRESENT_OPERATION,
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == PRESENT_REQUEST
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none() =>
             {
                 self.state = SerialOperationState::Complete;
                 OperationAction::Complete
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == PRESENT_REQUEST
-                    && outcome.disposition == HostOperationDisposition::Cancelled =>
+                    && outcome.disposition == HostCallDisposition::Cancelled =>
             {
                 OperationAction::Fail(conduit_kernel::Failure {
                     code: conduit_kernel::FailureCode::Cancelled,
@@ -191,7 +191,7 @@ impl Operation for SerialOperation {
                 OperationAction::Complete
             }
             _ => OperationAction::Fail(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::HostOperationFailed,
+                code: conduit_kernel::FailureCode::HostCallFailed,
                 detail: 22,
             }),
         }
@@ -260,10 +260,10 @@ impl KernelProfile {
         )?;
         routes.seal()?;
 
-        let mut bindings = FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(NODE_COUNT as u16);
+        let mut bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(NODE_COUNT as u16);
         bindings.install(
             NodeId(0),
-            HostOperationBinding {
+            HostCallBinding {
                 operation: WAIT_OPERATION,
                 maximum_input_bytes: 16,
                 maximum_output_bytes: 16,
@@ -271,7 +271,7 @@ impl KernelProfile {
         )?;
         bindings.install(
             NodeId(1),
-            HostOperationBinding {
+            HostCallBinding {
                 operation: PRESENT_OPERATION,
                 maximum_input_bytes: 16,
                 maximum_output_bytes: 0,
@@ -317,7 +317,7 @@ impl KernelProfile {
             .map_err(|_| SchedulerError::InvalidPlan)?;
         let signs = FixedSignLog::<SIGN_CAPACITY>::new(sign_bytes)?;
         Ok(Self {
-            scheduler: FixedScheduler::new_with_host_operations(
+            scheduler: FixedScheduler::new_with_host_calls(
                 nodes, cords, routes, bindings, drivers, values, signs,
             )?,
         })
@@ -327,7 +327,7 @@ impl KernelProfile {
         self.scheduler.step()
     }
 
-    pub fn next_host_request(&mut self) -> Option<HostOperationRequest> {
+    pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
         self.scheduler.next_host_request()
     }
 
@@ -335,12 +335,12 @@ impl KernelProfile {
         self.scheduler.host_value(value)
     }
 
-    pub fn timer_interest(request: HostOperationRequest) -> Result<KernelInterest, SchedulerError> {
+    pub fn timer_interest(request: HostCallRequest) -> Result<KernelInterest, SchedulerError> {
         if request.node != NodeId(0)
             || request.request != TIMER_REQUEST
             || request.operation != WAIT_OPERATION
         {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
         Ok(KernelInterest {
             node: request.node,
@@ -350,11 +350,11 @@ impl KernelProfile {
     }
 
     pub fn complete_timer(&mut self, interest: KernelInterest) -> Result<(), SchedulerError> {
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             interest.node,
             interest.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -362,32 +362,32 @@ impl KernelProfile {
     }
 
     pub fn fail_timer(&mut self, interest: KernelInterest) -> Result<(), SchedulerError> {
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             interest.node,
             interest.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(conduit_kernel::Failure {
-                    code: conduit_kernel::FailureCode::HostOperationFailed,
+                    code: conduit_kernel::FailureCode::HostCallFailed,
                     detail: 1,
                 }),
             },
         )
     }
 
-    pub fn complete_serial(&mut self, request: HostOperationRequest) -> Result<(), SchedulerError> {
+    pub fn complete_serial(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
         if request.node != NodeId(1)
             || request.request != PRESENT_REQUEST
             || request.operation != PRESENT_OPERATION
         {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -406,8 +406,8 @@ impl KernelProfile {
         self.scheduler.signs().len()
     }
 
-    pub fn pending_host_operations(&self) -> usize {
-        self.scheduler.pending_host_operation_count()
+    pub fn pending_host_calls(&self) -> usize {
+        self.scheduler.pending_host_call_count()
     }
 }
 

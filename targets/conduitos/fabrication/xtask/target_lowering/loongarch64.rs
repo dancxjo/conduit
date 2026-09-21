@@ -26,7 +26,7 @@ pub(crate) fn lower_loongarch64_virt(
         || bases != [UART_BASE]
         || drivers != [UART_DRIVER]
         || manifest.base_selections[0].driver != UART_DRIVER
-        || manifest.host_operations.as_slice() != [PRESENT_OPERATION]
+        || manifest.host_calls.as_slice() != [PRESENT_OPERATION]
         || !manifest.facilities.is_empty()
         || !manifest.resource_budgets.is_empty()
         || !manifest.profile_fragments.is_empty()

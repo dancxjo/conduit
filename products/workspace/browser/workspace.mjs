@@ -10,7 +10,7 @@ import { acquireBrowserBodyContinuity } from "../../../targets/browser/host/asse
 import { createBodyInvitationReceiver, openWorkspaceMembership, readBodyInvitation, readSharedBodyInvitation } from "./workspace-membership.mjs";
 import { prepareWorkspaceVoicePlay } from "./workspace-voice-play.mjs";
 import { createMemoryReleaseCache, openReleaseCatalog } from "../../creche/browser/creche-release-catalog.mjs";
-import { browserHostOperationLimits, createBrowserHostOperations } from "../../../targets/browser/host/assets/browser-host-operations.mjs";
+import { browserHostCallLimits, createBrowserHostCalls } from "../../../targets/browser/host/assets/browser-host-calls.mjs";
 
 export async function startApplication(application) {
   const root = document.querySelector('.workspace-shell');
@@ -50,16 +50,16 @@ export async function startApplication(application) {
         return catalog.resolve(profile, signal);
       },
     });
-    const operations = createBrowserHostOperations({ hostId: host.hostId, bootId: host.bootId,
+    const calls = createBrowserHostCalls({ hostId: host.hostId, bootId: host.bootId,
       applicationId: application.manifest.applicationId, applicationGeneration: 1, authorityGeneration: 1 });
     let artifactSequence = 0;
-    const hostOperations = Object.freeze({
+    const hostCalls = Object.freeze({
       handoffArtifact(artifact) {
         artifactSequence += 1;
-        return operations.handoffArtifact({
-          contract: browserHostOperationLimits.contract,
+        return calls.handoffArtifact({
+          contract: browserHostCallLimits.contract,
           kind: 'artifact-handoff',
-          operationId: `workspace/artifact-${artifactSequence}`,
+          callId: `workspace/artifact-${artifactSequence}`,
           hostId: host.hostId,
           bootId: host.bootId,
           applicationId: application.manifest.applicationId,
@@ -347,7 +347,7 @@ export async function startApplication(application) {
       onClose() { library.hide(); render(); root.querySelector('[data-open-library]')?.focus(); },
     });
     globalThis.__conduitWorkspace = Object.freeze({ host, current: session.current, evidence: session.evidence, state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
-    membership = openWorkspaceMembership({ root, session, host, hostOperations, invitation, presentationFor: application.presentationFor,
+    membership = openWorkspaceMembership({ root, session, host, hostCalls, invitation, presentationFor: application.presentationFor,
       invitationLabel: () => catalog.forms.find(form => form.checked_form_id === selected)?.name === 'firefly-choir'
         ? 'Invite another phone' : 'Invite another host',
       async beforeAdmission() {

@@ -6,8 +6,8 @@ use conduit_body::{
     BodyPresenterTopology, ResidentForm,
 };
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId,
-    HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
+    ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
+    HostCallContractId, HostCallRequirement, HostId, HostProfileId, ImplementationId,
     OfferGeneration, PROTOCOL_VERSION, PlacementId, Plan, SignId, kind_id, resource_offer,
     resource_requirement,
 };
@@ -342,8 +342,8 @@ fn renderer_host(
             execution_profile_id: ExecutionProfileId::from("conduitos/bounded-presenter@1"),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operation: HostOperationRequirement {
-                contract_id: HostOperationContractId::from("conduit.host/present@1"),
+            host_call: HostCallRequirement {
+                contract_id: HostCallContractId::from("conduit.host/present@1"),
                 target_kind: Some(kind_id(target_kind)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,

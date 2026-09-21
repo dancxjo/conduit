@@ -13,13 +13,13 @@ use conduit_create_oi::{
 };
 use crate::assigned_receiver::ValidatedContactPlan;
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, NodeId, Operation, OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId,
+    HostCallOutcome, NodeId, Operation, OperationAction, OperationInput, PortId, RequestId,
     SingleSourceExecutor, SingleSourceSignLog, SingleSourceValues, ValueRef,
 };
 
 const CONTACT_PORT: PortId = PortId(0);
-const HOST_OPERATION: HostOperationId = HostOperationId(0);
+const HOST_CALL: HostCallId = HostCallId(0);
 const REQUEST: RequestId = RequestId(1);
 const VALUE_BYTES: usize = 1;
 
@@ -66,9 +66,9 @@ impl Operation for ContactSource {
             Ok(input) => input,
             Err(_) => return invalid(0),
         };
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: REQUEST,
-            operation: HOST_OPERATION,
+            operation: HOST_CALL,
             input,
         }
     }
@@ -76,10 +76,10 @@ impl Operation for ContactSource {
     #[inline(never)]
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 self.pending = false;
@@ -94,12 +94,12 @@ impl Operation for ContactSource {
                     None => invalid(1),
                 }
             }
-            OperationInput::HostOperationCompleted { outcome, .. }
-                if self.pending && outcome.disposition == HostOperationDisposition::Failed =>
+            OperationInput::HostCallCompleted { outcome, .. }
+                if self.pending && outcome.disposition == HostCallDisposition::Failed =>
             {
                 self.pending = false;
                 OperationAction::Fail(outcome.failure.unwrap_or(Failure {
-                    code: FailureCode::HostOperationFailed,
+                    code: FailureCode::HostCallFailed,
                     detail: 2,
                 }))
             }
@@ -189,14 +189,14 @@ fn execute<P: CreateUartProvider>(
         source,
         signs,
         NodeId(0),
-        HOST_OPERATION,
+        HOST_CALL,
         0,
         plan.maximum_output_bytes,
         plan.maximum_step_work,
     )
     .map_err(|_| ExecutionRefusal::Kernel)?;
     let request = kernel.start().map_err(|_| ExecutionRefusal::Kernel)?;
-    if request.request != REQUEST || request.operation != HOST_OPERATION {
+    if request.request != REQUEST || request.operation != HOST_CALL {
         return Err(ExecutionRefusal::Kernel);
     }
     let observed = transition_oi_mode(provider, CreateOiModeRequest::Full, deadline_tick)
@@ -217,8 +217,8 @@ fn execute<P: CreateUartProvider>(
     let completed = kernel
         .complete(
             REQUEST,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(stored, plan.maximum_output_bytes)
                         .map_err(|_| ExecutionRefusal::Kernel)?,

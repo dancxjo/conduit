@@ -3,7 +3,7 @@
 use conduit_core::{
     resource_offer, resource_requirement, ArtifactId, AuthorityContractId, AuthorityGrant,
     AuthorityGrantId, AuthorityRequirement, Back, BackOfferBuilder, BootId, CapabilityId,
-    CapabilityOffer, ExecutionProfileId, HostId, HostOperationContractId, HostOperationRequirement,
+    CapabilityOffer, ExecutionProfileId, HostCallContractId, HostCallRequirement, HostId,
     ImplementationId, ResourceOffer,
 };
 
@@ -136,7 +136,7 @@ pub fn google_calendar_authority_grant(
     Ok(AuthorityGrant {
         grant_id: AuthorityGrantId::from(grant_id),
         contract_id: requirement.contract_id.clone(),
-        host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+        host_call_contract_id: requirement.host_call_contract_id.clone(),
         subject_kind: requirement.subject_kind.clone(),
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),
@@ -155,8 +155,8 @@ fn offer(
         .expect("reviewed calendar request profile")
         .value_kind()
         .clone();
-    let host_operation = HostOperationRequirement {
-        contract_id: HostOperationContractId::from(operation.contract()),
+    let host_call = HostCallRequirement {
+        contract_id: HostCallContractId::from(operation.contract()),
         target_kind: Some(subject_kind.clone()),
         maximum_in_flight: 1,
         maximum_input_bytes: if contract.input_type.is_some() {
@@ -168,17 +168,13 @@ fn offer(
     };
     let mut authority_requirements = vec![authority(
         operation.authority(),
-        &host_operation,
+        &host_call,
         subject_kind.clone(),
     )];
     if operation == CalendarHostedOperation::Invite {
         authority_requirements.insert(
             0,
-            authority(
-                UPDATE_CANCEL_AUTHORITY,
-                &host_operation,
-                subject_kind.clone(),
-            ),
+            authority(UPDATE_CANCEL_AUTHORITY, &host_call, subject_kind.clone()),
         );
     }
     BackOfferBuilder::new(
@@ -191,7 +187,7 @@ fn offer(
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(operation.implementation()),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations: vec![host_operation],
+            host_calls: vec![host_call],
             resource_requirements: vec![resource_requirement(GOOGLE_CALENDAR_RESOURCE_CLASS, 1)],
             authority_requirements,
         },
@@ -201,12 +197,12 @@ fn offer(
 
 fn authority(
     contract: &str,
-    operation: &HostOperationRequirement,
+    operation: &HostCallRequirement,
     subject_kind: conduit_core::KindId,
 ) -> AuthorityRequirement {
     AuthorityRequirement {
         contract_id: AuthorityContractId::from(contract),
-        host_operation_contract_id: operation.contract_id.clone(),
+        host_call_contract_id: operation.contract_id.clone(),
         subject_kind,
     }
 }
@@ -232,7 +228,7 @@ mod tests {
             assert_eq!(offer.inputs, contract.inputs);
             assert_eq!(offer.outputs, contract.outputs);
             assert_eq!(offer.limits, contract.limits);
-            assert_eq!(offer.host_operations.len(), 1);
+            assert_eq!(offer.host_calls.len(), 1);
             assert_eq!(offer.resource_requirements.len(), 1);
             assert!(!offer.authority_requirements.is_empty());
         }

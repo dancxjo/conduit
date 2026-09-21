@@ -132,9 +132,9 @@ pub(crate) fn generate_text_capability_offer(
         .ok_or_else(|| "local-model offer does not include generation".to_string())?;
     let contract = conduit_ai::generate_text_contract();
     let maximum_input_bytes = u32::try_from(offer.limits.work.maximum_input_bytes)
-        .map_err(|_| "local-model input bound exceeds the canonical Host operation".to_string())?;
+        .map_err(|_| "local-model input bound exceeds the canonical Host Call".to_string())?;
     let maximum_output_bytes = u32::try_from(offer.limits.work.maximum_output_bytes)
-        .map_err(|_| "local-model output bound exceeds the canonical Host operation".to_string())?;
+        .map_err(|_| "local-model output bound exceeds the canonical Host Call".to_string())?;
     Ok(conduit_core::CapabilityOffer {
         startup_parameters: [
             "maximum-input-bytes",
@@ -162,9 +162,9 @@ pub(crate) fn generate_text_capability_offer(
             implementation_id: generate.implementation.implementation_id,
             artifact_id: generate.implementation.artifact_id,
         },
-        host_operations: vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(
-                conduit_ai::GENERATE_TEXT_HOST_OPERATION,
+        host_calls: vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(
+                conduit_ai::GENERATE_TEXT_HOST_CALL,
             ),
             target_kind: Some(conduit_core::KindId::from(conduit_ai::GENERATE_TEXT_KIND)),
             maximum_in_flight: offer.limits.maximum_in_flight,

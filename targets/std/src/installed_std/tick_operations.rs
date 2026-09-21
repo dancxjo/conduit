@@ -10,8 +10,8 @@ use super::contract::{
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
-    BoundedValueRef, CanonicalValue, Failure, FailureCode, HostOperationDisposition,
-    HostOperationId, OperationAction, OperationInput, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, CanonicalValue, Failure, FailureCode, HostCallDisposition, HostCallId,
+    OperationAction, OperationInput, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static TICK_FACTORY: InstalledFactory = InstalledFactory {
@@ -46,9 +46,9 @@ impl TickOperation {
 
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -111,9 +111,9 @@ impl TickOperation {
             RequestId(u32::try_from(self.next).ok()?)
         };
         self.pending = Some(request);
-        Some(OperationAction::RequestHostOperation {
+        Some(OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(wait, TICK_ENCODED_LEN)
                 .expect("wait duration is exactly eight bytes"),
         })
@@ -301,16 +301,16 @@ impl TestObserverOperation {
             } if self.pending.is_none() => {
                 let request = RequestId(0x8000_0000 | self.next);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, TICK_ENCODED_LEN)
                         .expect("typed tick is exactly eight bytes"),
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -358,7 +358,7 @@ fn prepare_test_observer(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::{Failure, FailureCode, HostOperationOutcome};
+    use conduit_kernel::{Failure, FailureCode, HostCallOutcome};
 
     fn value(slot: u16) -> ValueRef {
         ValueRef {
@@ -380,18 +380,18 @@ mod tests {
         };
         assert!(matches!(
             operation.start(),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(0),
-                operation: HostOperationId(0),
+                operation: HostCallId(0),
                 ..
             }
         ));
         operation.cancel();
         assert!(matches!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(0),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },
@@ -418,15 +418,15 @@ mod tests {
         for sequence in 0..7_u64 {
             assert!(matches!(
                 action,
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(found),
                     ..
                 } if u64::from(found) == sequence
             ));
-            let emitted = operation.resume(OperationInput::HostOperationCompleted {
+            let emitted = operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(sequence as u32),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },
@@ -438,10 +438,7 @@ mod tests {
             assert_eq!(value.as_slice(), encode_tick(sequence));
             action = operation.advance();
         }
-        assert!(matches!(
-            action,
-            OperationAction::RequestHostOperation { .. }
-        ));
+        assert!(matches!(action, OperationAction::RequestHostCall { .. }));
         assert_eq!(operation.allocation_capacity(), 1);
     }
 }

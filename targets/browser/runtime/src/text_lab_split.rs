@@ -3,10 +3,9 @@
 use crate::presentation_nucleus::uppercase_utf8;
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
 use conduit_kernel::{
-    BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RemoteEndpointId,
-    RequestId,
+    BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
+    HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, Operation,
+    OperationAction, OperationInput, PortId, RemoteEndpointId, RequestId,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
@@ -61,18 +60,18 @@ impl Operation for UpperOperation {
             } if self.pending.is_none() && self.next < TEXT_LAB_MAXIMUM_VALUES as u32 => {
                 let request = RequestId(self.next);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: match BoundedValueRef::new(value, MAX_TEXT_BYTES) {
                         Ok(value) => value,
                         Err(_) => return Self::fail(1),
                     },
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -119,7 +118,7 @@ impl BrowserTextLabFragment {
         if lowered.nodes.len() != 1
             || lowered.cords.len() != 2
             || lowered.remote_endpoints.len() != 2
-            || lowered.host_operations.len() != 1
+            || lowered.host_calls.len() != 1
             || fragment.placements[0].kind_id.as_str() != TEXT_UPPER_KIND
         {
             return Err("split Text Lab browser fragment has the wrong exact shape".into());
@@ -146,12 +145,9 @@ impl BrowserTextLabFragment {
                 .map_err(|error| format!("{error:?}"))?;
         }
         routes.seal().map_err(|error| format!("{error:?}"))?;
-        let mut bindings = FixedHostOperationBindings::<1>::new(1);
+        let mut bindings = FixedHostCallBindings::<1>::new(1);
         bindings
-            .install(
-                lowered.host_operations[0].node,
-                lowered.host_operations[0].binding,
-            )
+            .install(lowered.host_calls[0].node, lowered.host_calls[0].binding)
             .map_err(|error| format!("{error:?}"))?;
         bindings.seal().map_err(|error| format!("{error:?}"))?;
         let values = HostedValueStore::new(2, MAX_TEXT_BYTES, MAX_TEXT_BYTES * 2)
@@ -173,7 +169,7 @@ impl BrowserTextLabFragment {
             next: 0,
         })
         .map_err(|error| format!("{error:?}"))?;
-        let scheduler = BrowserTextLabScheduler::new_with_host_operations(
+        let scheduler = BrowserTextLabScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()
@@ -228,11 +224,11 @@ impl BrowserTextLabFragment {
                     .store_host_value(&output)
                     .map_err(|error| format!("{error:?}"))?;
                 self.scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: Some(
                                 BoundedValueRef::new(value, MAX_TEXT_BYTES)
                                     .map_err(|error| format!("{error:?}"))?,

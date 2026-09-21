@@ -3,8 +3,8 @@
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, ConfigurationValue, HostOperationContractId, HostOperationRequirement, PlannedGear,
-    Scalar, SCALAR_ENCODED_LEN,
+    kind_id, ConfigurationValue, HostCallContractId, HostCallRequirement, PlannedGear, Scalar,
+    SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -69,8 +69,8 @@ fn offer(
             implementation,
             artifact: ARTIFACT,
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(implementation),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(implementation),
             target_kind: Some(kind_id(implementation)),
             maximum_in_flight: 1,
             maximum_input_bytes: SCALAR_ENCODED_LEN as u32,

@@ -3,8 +3,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef,
 };
 use std::collections::VecDeque;
 
@@ -34,38 +34,38 @@ impl GeneratedSpeechCommitOperation {
                 value,
             } if self.pending.is_none() && !self.closing => {
                 self.trigger = Some(value);
-                self.request(HostOperationId(0), value)
+                self.request(HostCallId(0), value)
             }
             OperationInput::Closed { port: PortId(0) }
                 if self.pending.is_none() && !self.closing =>
             {
                 self.closing = true;
                 match self.trigger {
-                    Some(value) => self.request(HostOperationId(2), value),
+                    Some(value) => self.request(HostCallId(2), value),
                     None => OperationAction::Complete,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.drain_after_emit = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Completed, None, None) if self.closing => {
+                    (HostCallDisposition::Completed, None, None) if self.closing => {
                         OperationAction::Complete
                     }
-                    (HostOperationDisposition::Completed, None, None) => OperationAction::Await,
-                    (HostOperationDisposition::Cancelled, _, _) => OperationAction::Fail(Failure {
+                    (HostCallDisposition::Completed, None, None) => OperationAction::Await,
+                    (HostCallDisposition::Cancelled, _, _) => OperationAction::Fail(Failure {
                         code: FailureCode::Cancelled,
                         detail: 0,
                     }),
-                    (HostOperationDisposition::Failed, None, Some(failure)) => {
+                    (HostCallDisposition::Failed, None, Some(failure)) => {
                         OperationAction::Fail(failure)
                     }
                     _ => fail(1),
@@ -79,7 +79,7 @@ impl GeneratedSpeechCommitOperation {
         if self.drain_after_emit {
             self.drain_after_emit = false;
             if let Some(value) = self.trigger {
-                return self.request(HostOperationId(1), value);
+                return self.request(HostCallId(1), value);
             }
         }
         OperationAction::Await
@@ -92,7 +92,7 @@ impl GeneratedSpeechCommitOperation {
         self.drain_after_emit = false;
     }
 
-    fn request(&mut self, operation: HostOperationId, value: ValueRef) -> OperationAction {
+    fn request(&mut self, operation: HostCallId, value: ValueRef) -> OperationAction {
         let request = RequestId(self.next_request);
         let Some(next) = self.next_request.checked_add(1) else {
             return fail(3);
@@ -102,7 +102,7 @@ impl GeneratedSpeechCommitOperation {
         };
         self.next_request = next;
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
             operation,
             input,
@@ -206,7 +206,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.execution_profile_id != offer.implementation.execution_profile_id
         || placement.implementation_id != offer.implementation.implementation_id
         || placement.artifact_id != offer.implementation.artifact_id
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || !placement.configuration.is_empty()
     {
         return Err("planned generated-speech commit differs from installed realization".into());

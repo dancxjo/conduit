@@ -1,8 +1,8 @@
 //! Shared finite kernel lifecycle for named-template commands.
 
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId,
 };
 
 pub struct TemplateStorageOperation {
@@ -49,26 +49,26 @@ impl TemplateStorageOperation {
                     self.pending = None;
                     return fail(FailureCode::InvalidInput, 264);
                 };
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.completed_commands += 1;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 0),
-                    (HostOperationDisposition::Failed, None, Some(failure)) => {
+                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 0),
+                    (HostCallDisposition::Failed, None, Some(failure)) => {
                         OperationAction::Fail(failure)
                     }
                     _ => fail(FailureCode::InvalidLifecycle, 260),

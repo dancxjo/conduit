@@ -2,18 +2,18 @@ import { expect, test } from "@playwright/test";
 
 test("artifact handoff requires activation and carries exact admitted bytes", async ({ page }) => {
   await page.addInitScript(() => { delete globalThis.showSaveFilePicker; });
-  await page.goto("/proof/browser/browser-host-operations.test.html");
+  await page.goto("/proof/browser/browser-host-calls.test.html");
   await expect(page.locator("#result")).toHaveText("ready");
-  expect(await page.evaluate(() => globalThis.__browserHostOperationProof.absentActivation))
+  expect(await page.evaluate(() => globalThis.__browserHostCallProof.absentActivation))
     .toBe("user-activation-required");
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#artifact").click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("proof.bin");
   await expect(page.locator("#result")).toHaveText("handoff-offered");
-  const outcome = await page.evaluate(() => globalThis.__browserHostOperationProof.outcomes[0]);
+  const outcome = await page.evaluate(() => globalThis.__browserHostCallProof.outcomes[0]);
   expect(outcome).toMatchObject({
-    operationId: "artifact/download",
+    callId: "artifact/download",
     hostId: "host/browser-proof",
     bootId: "boot/browser-proof",
     applicationId: "application/browser-proof",
@@ -24,12 +24,12 @@ test("artifact handoff requires activation and carries exact admitted bytes", as
 });
 
 test("history movement is presentation-scoped and exactly correlated", async ({ page }) => {
-  await page.goto("/proof/browser/browser-host-operations.test.html");
+  await page.goto("/proof/browser/browser-host-calls.test.html");
   await page.locator("#location").click();
   await expect(page).toHaveURL(/\/proof\/browser\/presented-place\/$/);
-  const outcome = await page.evaluate(() => globalThis.__browserHostOperationProof.outcomes[0]);
+  const outcome = await page.evaluate(() => globalThis.__browserHostCallProof.outcomes[0]);
   expect(outcome).toMatchObject({
-    operationId: "location/proof",
+    callId: "location/proof",
     kind: "location",
     disposition: "completed",
     path: "/proof/browser/presented-place/",
@@ -39,12 +39,12 @@ test("history movement is presentation-scoped and exactly correlated", async ({ 
 });
 
 test("profile-gated device choice returns bounded browser-visible resource truth only", async ({ page }) => {
-  await page.goto("/proof/browser/browser-host-operations.test.html");
+  await page.goto("/proof/browser/browser-host-calls.test.html");
   await page.locator("#device").click();
   await expect(page.locator("#result")).toHaveText("completed");
-  const state = await page.evaluate(() => globalThis.__browserHostOperationProof);
+  const state = await page.evaluate(() => globalThis.__browserHostCallProof);
   expect(state.outcomes[0]).toMatchObject({
-    operationId: "device/proof",
+    callId: "device/proof",
     disposition: "completed",
     resource: {
       handle: "browser-resource/device/proof",
@@ -55,5 +55,5 @@ test("profile-gated device choice returns bounded browser-visible resource truth
   });
   expect(state.outcomes[0].resource.membership).toBeUndefined();
   expect(state.outcomes[0].resource.planId).toBeUndefined();
-  expect(await page.evaluate(() => globalThis.__browserHostOperationProof.active())).toBe(0);
+  expect(await page.evaluate(() => globalThis.__browserHostCallProof.active())).toBe(0);
 });

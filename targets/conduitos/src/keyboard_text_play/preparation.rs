@@ -50,8 +50,8 @@ pub(super) fn prepare(
     routes
         .seal()
         .map_err(|_| PreparationError::KernelRejected)?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(MAX_NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(MAX_NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(|_| PreparationError::KernelRejected)?;
@@ -94,7 +94,7 @@ pub(super) fn prepare(
     let minimum_sign_bytes = (SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32;
     let signs = FixedSignLog::<SIGN_CAPACITY>::new(lowered.sign_bytes.max(minimum_sign_bytes))
         .map_err(|_| PreparationError::KernelRejected)?;
-    let scheduler = FixedScheduler::new_with_host_operations(
+    let scheduler = FixedScheduler::new_with_host_calls(
         nodes,
         cords,
         routes,

@@ -21,7 +21,7 @@ pub const ASSIGNED_CONFIGURATION: u8 = 3;
 pub const ASSIGNED_CORD: u8 = 4;
 pub const ASSIGNED_ROUTE: u8 = 5;
 pub const ASSIGNED_ROUTE_TARGET: u8 = 6;
-pub const ASSIGNED_HOST_OPERATION: u8 = 7;
+pub const ASSIGNED_HOST_CALL: u8 = 7;
 pub const ASSIGNED_RESOURCE: u8 = 8;
 pub const ASSIGNED_SIGN: u8 = 9;
 pub const ASSIGNED_REMOTE_ENDPOINT: u8 = 10;
@@ -221,7 +221,7 @@ pub fn decode_assigned_plan(
             ASSIGNED_CORD => length == 36,
             ASSIGNED_ROUTE => length == 8,
             ASSIGNED_ROUTE_TARGET => length == 6 || length == 7,
-            ASSIGNED_HOST_OPERATION => length == 46,
+            ASSIGNED_HOST_CALL => length == 46,
             ASSIGNED_RESOURCE => length == 8,
             ASSIGNED_SIGN => length == 37,
             ASSIGNED_REMOTE_ENDPOINT => length == 250,
@@ -261,7 +261,7 @@ pub fn decode_assigned_plan(
             .checked_add(1)
             .ok_or(AssignedPlanRefusal::ExtraRecords)?;
         match tag {
-            ASSIGNED_HOST_OPERATION => {
+            ASSIGNED_HOST_CALL => {
                 let identity = read_identity(payload, 4)?;
                 let index = requirements
                     .operations

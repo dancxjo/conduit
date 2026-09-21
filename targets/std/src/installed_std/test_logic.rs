@@ -97,7 +97,7 @@ pub(super) fn offer() -> CapabilityOffer {
             .into_iter()
             .map(scalar_output)
             .collect(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -127,7 +127,7 @@ pub(super) fn sink_offer() -> CapabilityOffer {
             temporal: PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {

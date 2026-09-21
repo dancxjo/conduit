@@ -370,7 +370,7 @@ fn validate(run: &A3Run, paths: &Paths) -> Result<(), ConduitosError> {
         || kernel.timer_irq_wakes != 1
         || kernel.idle_entries == 0
         || kernel.serial_presentations != 2
-        || kernel.pending_host_operations != 0
+        || kernel.pending_host_calls != 0
         || !kernel.overlap_witness
         || !kernel.timer_pending_during_text_progress
         || kernel.physical_parallelism

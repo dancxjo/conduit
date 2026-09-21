@@ -3,7 +3,7 @@
 use conduit_core::Scalar;
 use conduit_kernel::ValueStorage;
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
     OperationAction, OperationInput, PortId, RequestId, ValueRef,
 };
 
@@ -135,9 +135,9 @@ impl ApplicationStateOperation {
         let request = RequestId(self.next);
         self.pending = Some(request);
         match BoundedValueRef::new(value, bound) {
-            Ok(input) => OperationAction::RequestHostOperation {
+            Ok(input) => OperationAction::RequestHostCall {
                 request,
-                operation: HostOperationId(0),
+                operation: HostCallId(0),
                 input,
             },
             Err(_) => fail(5),
@@ -156,9 +156,9 @@ impl Operation for ApplicationStateOperation {
                 port: PortId(0),
                 value,
             } if self.pending.is_none() => self.request(value, self.maximum_input_bytes),
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 self.pending = None;
@@ -199,9 +199,9 @@ impl HostSourceOperation {
     fn request(&mut self) -> OperationAction {
         let request = RequestId(self.next);
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(self.request, 0).expect("source request is empty"),
         }
     }
@@ -214,9 +214,9 @@ impl Operation for HostSourceOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 self.pending = None;
@@ -257,29 +257,29 @@ impl Operation for BrowserOperation {
         self.0.resume(input)
     }
 
-    fn accepts_input_while_host_operation_pending(&self) -> bool {
-        self.0.accepts_input_while_host_operation_pending()
+    fn accepts_input_while_host_call_pending(&self) -> bool {
+        self.0.accepts_input_while_host_call_pending()
     }
 
-    fn retains_host_operation_input(&self, request: RequestId, value: ValueRef) -> bool {
-        self.0.retains_host_operation_input(request, value)
+    fn retains_host_call_input(&self, request: RequestId, value: ValueRef) -> bool {
+        self.0.retains_host_call_input(request, value)
     }
 
-    fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {
-        self.0.take_host_operation_cancellation()
+    fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
+        self.0.take_host_call_cancellation()
     }
 
     fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
         self.0.resume_value(port, value, canonical)
     }
 
-    fn resume_host_operation(
+    fn resume_host_call(
         &mut self,
         request: RequestId,
-        outcome: conduit_kernel::HostOperationOutcome,
+        outcome: conduit_kernel::HostCallOutcome,
         canonical: Option<&[u8]>,
     ) -> OperationAction {
-        self.0.resume_host_operation(request, outcome, canonical)
+        self.0.resume_host_call(request, outcome, canonical)
     }
 
     fn advance(&mut self) -> OperationAction {
@@ -435,15 +435,15 @@ impl Operation for UnaryOperation {
                 let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
                     return fail(2);
                 };
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 self.pending = None;
@@ -459,9 +459,9 @@ impl Operation for UnaryOperation {
                     None => OperationAction::Await,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Failed
+                    && outcome.disposition == HostCallDisposition::Failed
                     && outcome.output.is_none() =>
             {
                 self.pending = None;
@@ -469,9 +469,9 @@ impl Operation for UnaryOperation {
                     .failure
                     .map_or_else(|| fail(2), OperationAction::Fail)
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Cancelled
+                    && outcome.disposition == HostCallDisposition::Cancelled
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -515,15 +515,15 @@ impl Operation for PresentationOperation {
                 let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
                     return fail(3);
                 };
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -534,11 +534,11 @@ impl Operation for PresentationOperation {
                 self.next_request = next;
                 OperationAction::Await
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
                     && matches!(
                         outcome.disposition,
-                        HostOperationDisposition::Failed | HostOperationDisposition::Denied
+                        HostCallDisposition::Failed | HostCallDisposition::Denied
                     )
                     && outcome.output.is_none() =>
             {

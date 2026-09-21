@@ -3,10 +3,9 @@ use super::*;
 use conduit_core::bind_active_play;
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerError, SchedulerStatus};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
-    ValueStorage,
+    BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
+    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, Operation, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 pub(super) const VALUE_BYTES: u32 = 1024;
@@ -58,9 +57,9 @@ impl Operation for ObligationOperation {
             ) if !*pending => {
                 *pending = true;
                 match BoundedValueRef::new(value, VALUE_BYTES) {
-                    Ok(input) => OperationAction::RequestHostOperation {
+                    Ok(input) => OperationAction::RequestHostCall {
                         request: RequestId(0),
-                        operation: HostOperationId(0),
+                        operation: HostCallId(0),
                         input,
                     },
                     Err(_) => failed(FailureCode::InvalidInput, 1),
@@ -68,19 +67,19 @@ impl Operation for ObligationOperation {
             }
             (
                 Self::Execute { pending },
-                OperationInput::HostOperationCompleted {
+                OperationInput::HostCallCompleted {
                     request: RequestId(0),
                     outcome,
                 },
             ) if *pending => {
                 *pending = false;
-                if outcome.disposition == HostOperationDisposition::Completed
+                if outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none()
                 {
                     OperationAction::Complete
                 } else {
-                    failed(FailureCode::HostOperationFailed, 2)
+                    failed(FailureCode::HostCallFailed, 2)
                 }
             }
             _ => failed(FailureCode::InvalidLifecycle, 3),
@@ -139,7 +138,7 @@ where
     if lowered.nodes.len() != NODES
         || lowered.cords.len() != CORDS
         || lowered.routes.len() != 1
-        || lowered.host_operations.len() != 1
+        || lowered.host_calls.len() != 1
     {
         return Err(ObligationRefusal::StepFailed);
     }
@@ -190,7 +189,7 @@ where
                 step_succeeded = Some(success);
                 let outcome = if success { completed() } else { host_failed() };
                 scheduler
-                    .complete_host_operation(request.node, request.request, outcome)
+                    .complete_host_call(request.node, request.request, outcome)
                     .map_err(|_| ObligationRefusal::StepFailed)?;
                 if !success {
                     break 'run ObligationVerdict::Failed;
@@ -322,8 +321,8 @@ fn scheduler(
             .map_err(|_| ObligationRefusal::StepFailed)?;
     }
     routes.seal().map_err(|_| ObligationRefusal::StepFailed)?;
-    let mut bindings = FixedHostOperationBindings::<NODES>::new(1);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<NODES>::new(1);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(|_| ObligationRefusal::StepFailed)?;
@@ -333,7 +332,7 @@ fn scheduler(
         .map_err(|_| ObligationRefusal::StepFailed)?;
     let signs = HostedSignLog::new(MAX_SIGNS as u16, sign_bytes)
         .map_err(|_| ObligationRefusal::StepFailed)?;
-    Scheduler::new_with_host_operations(
+    Scheduler::new_with_host_calls(
         lowered
             .node_specs
             .clone()
@@ -349,20 +348,20 @@ fn scheduler(
     .map_err(|_| ObligationRefusal::StepFailed)
 }
 
-fn completed() -> HostOperationOutcome {
-    HostOperationOutcome {
-        disposition: HostOperationDisposition::Completed,
+fn completed() -> HostCallOutcome {
+    HostCallOutcome {
+        disposition: HostCallDisposition::Completed,
         output: None,
         failure: None,
     }
 }
 
-fn host_failed() -> HostOperationOutcome {
-    HostOperationOutcome {
-        disposition: HostOperationDisposition::Failed,
+fn host_failed() -> HostCallOutcome {
+    HostCallOutcome {
+        disposition: HostCallDisposition::Failed,
         output: None,
         failure: Some(Failure {
-            code: FailureCode::HostOperationFailed,
+            code: FailureCode::HostCallFailed,
             detail: 1,
         }),
     }

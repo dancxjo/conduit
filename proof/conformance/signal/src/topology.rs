@@ -53,7 +53,7 @@ pub fn pico_local_advertisement() -> HostAdvertisement {
                 },
                 inputs: Vec::new(),
                 outputs: pulse_outputs(),
-                host_operations: pulse_host_operation_requirements(),
+                host_calls: pulse_host_call_requirements(),
                 resource_requirements: pulse_resource_requirements(),
                 authority_requirements: Vec::new(),
                 limits: CapabilityLimits {
@@ -75,7 +75,7 @@ pub fn pico_local_advertisement() -> HostAdvertisement {
                 },
                 inputs: show_inputs(),
                 outputs: Vec::new(),
-                host_operations: show_host_operation_requirements(),
+                host_calls: show_host_call_requirements(),
                 resource_requirements: show_resource_requirements(),
                 authority_requirements: Vec::new(),
                 limits: CapabilityLimits {
@@ -111,7 +111,7 @@ pub fn distributed_std_source_advertisement() -> HostAdvertisement {
             },
             inputs: Vec::new(),
             outputs: pulse_outputs(),
-            host_operations: pulse_host_operation_requirements(),
+            host_calls: pulse_host_call_requirements(),
             resource_requirements: pulse_resource_requirements(),
             authority_requirements: Vec::new(),
             limits: CapabilityLimits {
@@ -151,7 +151,7 @@ pub fn distributed_browser_sink_advertisement() -> HostAdvertisement {
                 },
                 inputs: show_inputs(),
                 outputs: Vec::new(),
-                host_operations: show_host_operation_requirements(),
+                host_calls: show_host_call_requirements(),
                 resource_requirements: show_resource_requirements(),
                 authority_requirements: Vec::new(),
                 limits: CapabilityLimits {

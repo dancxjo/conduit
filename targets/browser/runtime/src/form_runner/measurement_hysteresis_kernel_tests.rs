@@ -54,7 +54,7 @@ fn fragment() -> PlanFragment {
         output.direction = PortDirection::Output;
     }
     source_offer.inputs.clear();
-    source_offer.host_operations.clear();
+    source_offer.host_calls.clear();
     source_offer.implementation.implementation_id =
         "fixture/measurement-hysteresis-inputs@1".into();
     source_offer.implementation.artifact_id = "fixture/measurement-hysteresis-inputs@1".into();

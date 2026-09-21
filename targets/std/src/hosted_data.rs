@@ -2,7 +2,7 @@
 
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_data::*;
@@ -10,10 +10,10 @@ use conduit_finance::*;
 
 pub const FINANCE_PROFILE: &str = "std/finance-kernel-hosted@1";
 pub const FINANCE_ARTIFACT: &str = "conduit-std-host/finance@1";
-pub const FINANCE_HOST_OPERATION: &str = "conduit.host/finance-exact@1";
+pub const FINANCE_HOST_CALL: &str = "conduit.host/finance-exact@1";
 pub const TABULAR_PROFILE: &str = "std/tabular-kernel-hosted@1";
 pub const TABULAR_ARTIFACT: &str = "conduit-std-host/tabular@1";
-pub const TABULAR_HOST_OPERATION: &str = "conduit.host/tabular@1";
+pub const TABULAR_HOST_CALL: &str = "conduit.host/tabular@1";
 
 pub fn finance_std_offers() -> Vec<CapabilityOffer> {
     finance_semantic_contracts()
@@ -23,7 +23,7 @@ pub fn finance_std_offers() -> Vec<CapabilityOffer> {
                 contract,
                 FINANCE_PROFILE,
                 FINANCE_ARTIFACT,
-                FINANCE_HOST_OPERATION,
+                FINANCE_HOST_CALL,
             )
         })
         .collect()
@@ -37,7 +37,7 @@ pub fn tabular_std_offers() -> Vec<CapabilityOffer> {
                 contract,
                 TABULAR_PROFILE,
                 TABULAR_ARTIFACT,
-                TABULAR_HOST_OPERATION,
+                TABULAR_HOST_CALL,
             )
         })
         .collect()
@@ -52,8 +52,8 @@ fn offer(contract: Kind, profile: &str, artifact: &str, operation: &str) -> Capa
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(format!("std/{kind}@1")),
             artifact_id: ArtifactId::from(artifact),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(operation),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(operation),
                 target_kind: Some(conduit_core::kind_id(&kind)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,

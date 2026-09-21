@@ -180,8 +180,8 @@ fn graph_plan(stage: usize) -> Plan {
             "llm/proposal-result@1",
             PortDirection::Input,
         )];
-        effect.host_operations = vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from("conduit.host/present-value@1"),
+        effect.host_calls = vec![HostCallRequirement {
+            contract_id: HostCallContractId::from("conduit.host/present-value@1"),
             target_kind: Some(kind_id("effect/indicator-set@1")),
             maximum_in_flight: 1,
             maximum_input_bytes: 1_024,
@@ -190,9 +190,7 @@ fn graph_plan(stage: usize) -> Plan {
         effect.authority = vec![AuthorityBinding {
             grant_id: AuthorityGrantId::from("grant/indicator-only"),
             contract_id: AuthorityContractId::from("authority/indicator-set@1"),
-            host_operation_contract_id: HostOperationContractId::from(
-                "conduit.host/present-value@1",
-            ),
+            host_call_contract_id: HostCallContractId::from("conduit.host/present-value@1"),
             subject_kind: kind_id("effect/indicator-set@1"),
             host_id: HostId::from("host/a"),
             boot_id: BootId::from("boot/a"),
@@ -270,7 +268,7 @@ fn gear(id: &str, kind: &str) -> PlannedGear {
         },
         inputs: vec![],
         outputs: vec![],
-        host_operations: vec![],
+        host_calls: vec![],
         resources: vec![],
         authority: vec![],
         pool_references: vec![],

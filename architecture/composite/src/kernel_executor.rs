@@ -3,8 +3,8 @@ use crate::{KernelCompositeDefinition, KernelOperationRegistry};
 use conduit_core::{
     bind_active_play, ActivePlayId, ConnectionId, HostId, Plan, PortDirection, PortId, ValuePayload,
 };
-use conduit_kernel::scheduler::{HostOperationRequest, RemoteIngressOutcome, SchedulerStatus};
-use conduit_kernel::{HostOperationOutcome, KernelEvent, RemoteEndpointId};
+use conduit_kernel::scheduler::{HostCallRequest, RemoteIngressOutcome, SchedulerStatus};
+use conduit_kernel::{HostCallOutcome, KernelEvent, RemoteEndpointId};
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, LoweringError, RemoteCordDirection,
 };
@@ -92,7 +92,7 @@ struct InternalLink {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelCompositeHostRequest {
     pub child: HostId,
-    pub request: HostOperationRequest,
+    pub request: HostCallRequest,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -305,16 +305,16 @@ impl KernelCompositeHost {
         })
     }
 
-    pub fn complete_host_operation(
+    pub fn complete_host_call(
         &mut self,
         request: &KernelCompositeHostRequest,
-        outcome: HostOperationOutcome,
+        outcome: HostCallOutcome,
     ) -> Result<(), KernelCompositeError> {
         self.require_started()?;
         self.children
             .get_mut(&request.child)
             .ok_or_else(|| KernelCompositeError::StaleChild(request.child.clone()))?
-            .complete_host_operation(request.request.node, request.request.request, outcome)
+            .complete_host_call(request.request.node, request.request.request, outcome)
             .map_err(|reason| execution(&request.child, reason))
     }
 

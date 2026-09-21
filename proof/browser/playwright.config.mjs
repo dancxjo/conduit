@@ -34,7 +34,7 @@ export default defineConfig({
     "triple-signal.spec.mjs",
     "presentation-nucleus.spec.mjs",
     "fourth-product-conformance.spec.mjs",
-    "browser-host-operations.spec.mjs",
+    "browser-host-calls.spec.mjs",
     "browser-pointer.spec.mjs",
     "browser-human-input.spec.mjs",
     "browser-host-entrance.spec.mjs",

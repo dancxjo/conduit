@@ -15,19 +15,19 @@ state-machine contract:
 OperationInput
   Value { port, value }
   Closed { port }
-  HostOperationCompleted { request, outcome }
+  HostCallCompleted { request, outcome }
 
 OperationAction
   Await
   Emit { port, value }
-  RequestHostOperation { request, operation, input }
+  RequestHostCall { request, operation, input }
   Complete
   Fail
 ```
 
-ports, nodes, cords, requests, and host operations are compact numeric
+ports, nodes, cords, requests, and Host Calls are compact numeric
 identities produced by lowering before play start. `FixedRoutes` and
-`FixedHostOperationBindings` are sealed lookup tables: emitting on one output
+`FixedHostCallBindings` are sealed lookup tables: emitting on one output
 cannot broadcast to another output, and an operation cannot invoke an
 unplanned host boundary.
 
@@ -67,16 +67,16 @@ and leaves the first cord untouched until both sides can commit. The fixed and
 hosted storage/sign profiles produce identical normalized decisions,
 outputs, closure, join rollback, and cancellation sign.
 
-## host-operation scheduler slice
+## Host Call scheduler slice
 
 A host-enabled scheduler is constructed with a sealed
-`FixedHostOperationBindings` table and a const-generic pending-request array.
+`FixedHostCallBindings` table and a const-generic pending-request array.
 An operation can atomically consume inputs and stage one bounded host request.
 Admission happens before queue/reference mutation; an absent binding, duplicate
 or retired request identity, full pending table, or oversized input rejects the
 step without consuming its inputs.
 
-The host pulls a numeric `HostOperationRequest`, reads only its bounded stored
+The host pulls a numeric `HostCallRequest`, reads only its bounded stored
 input, stores a budgeted outcome value, and completes the exact request. The
 scheduler validates the output byte bound, keeps the waiting node asleep until
 completion, then wakes it with the correlated outcome. Completion storage owns
@@ -104,7 +104,7 @@ value and release one superseded value.
 
 The fixed and hosted profiles match for a public-operation source/tee/two-sink
 vector, including two tee emits committed from one input. A separate
-host-enabled adapter vector proves that a public `RequestHostOperation` action
+host-enabled adapter vector proves that a public `RequestHostCall` action
 waits for and resumes from the exact correlated completion.
 
 The final conformance vector drives four bounded host-generated tick values

@@ -2,7 +2,7 @@
 
 use alloc::format;
 
-use conduit_kernel::scheduler::{HostOperationRequest, SchedulerError, SchedulerStatus};
+use conduit_kernel::scheduler::{HostCallRequest, SchedulerError, SchedulerStatus};
 
 use crate::{
     arch::{self, HidError, HidKeyboardSession, UsbDevice, XhciReady},
@@ -187,9 +187,7 @@ fn prove(inputs: &mut HotplugProofInputs<'_>) -> Result<(), &'static str> {
     Ok(())
 }
 
-fn drive_to_keyboard(
-    kernel: &mut KeyboardTextKernel,
-) -> Result<HostOperationRequest, &'static str> {
+fn drive_to_keyboard(kernel: &mut KeyboardTextKernel) -> Result<HostCallRequest, &'static str> {
     for _ in 0..128 {
         while let Some(request) = kernel.next_host_request() {
             match kernel

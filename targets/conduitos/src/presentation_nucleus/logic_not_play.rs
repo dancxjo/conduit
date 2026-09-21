@@ -3,18 +3,17 @@
 use alloc::{collections::BTreeMap, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, InfoBool, KindIdentity,
-    OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection, PortTemporal, kind_id,
-    port_id,
+    ExecutionProfileId, HostAdvertisement, HostCallContractId, HostCallRequirement, HostId,
+    HostProfileId, ImplementationId, InfoBool, KindIdentity, OfferGeneration, PROTOCOL_VERSION,
+    Plan, PortDescriptor, PortDirection, PortTemporal, kind_id, port_id,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    CordSpec, FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, NodeId, ValueStorage,
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallOutcome, NodeId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
@@ -26,7 +25,7 @@ const SOURCE_IMPLEMENTATION: &str = "conduitos.fixture/not-source@1";
 const SINK_KIND: &str = "conduitos/fixture-not-sink";
 const SINK_REVISION: &str = "conduitos/fixture-not-sink@1";
 const SINK_IMPLEMENTATION: &str = "conduitos.fixture/not-sink@1";
-const SINK_HOST_OPERATION: &str = "conduitos.fixture/capture-bool@1";
+const SINK_HOST_CALL: &str = "conduitos.fixture/capture-bool@1";
 const FORM: &str = "form not_play {\n source: conduitos/fixture-not-source\n invert: logic/not\n sink: conduitos/fixture-not-sink\n source > invert\n invert > sink\n}\n";
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const NODES: usize = 3;
@@ -241,7 +240,7 @@ fn source_offer(input: InfoBool) -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -273,8 +272,8 @@ fn sink_offer() -> CapabilityOffer {
             temporal: PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(SINK_HOST_OPERATION),
+        host_calls: vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(SINK_HOST_CALL),
             target_kind: Some(kind_id(SINK_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
@@ -327,8 +326,8 @@ fn scheduler(
             .map_err(|_| LogicNotError::Kernel)?;
     }
     routes.seal().map_err(|_| LogicNotError::Kernel)?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(|_| LogicNotError::Kernel)?;
@@ -379,10 +378,9 @@ fn scheduler(
             .max((SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
     )
     .map_err(|_| LogicNotError::Kernel)?;
-    let kernel = FixedScheduler::new_with_host_operations(
-        nodes, cords, routes, bindings, drivers, values, signs,
-    )
-    .map_err(|_| LogicNotError::Kernel)?;
+    let kernel =
+        FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
+            .map_err(|_| LogicNotError::Kernel)?;
     Ok(Scheduler {
         kernel,
         transform: transform.ok_or(LogicNotError::Shape)?,
@@ -392,7 +390,7 @@ fn scheduler(
 
 fn complete_transform(
     kernel: &mut Kernel,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     output: InfoBool,
 ) -> Result<(), LogicNotError> {
     let value = kernel
@@ -401,11 +399,11 @@ fn complete_transform(
     let output = BoundedValueRef::new(value, conduit_core::BOOL_ENCODED_LEN as u32)
         .map_err(|_| LogicNotError::Value)?;
     kernel
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(output),
                 failure: None,
             },
@@ -413,13 +411,13 @@ fn complete_transform(
         .map_err(|_| LogicNotError::Kernel)
 }
 
-fn complete_sink(kernel: &mut Kernel, request: HostOperationRequest) -> Result<(), LogicNotError> {
+fn complete_sink(kernel: &mut Kernel, request: HostCallRequest) -> Result<(), LogicNotError> {
     kernel
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },

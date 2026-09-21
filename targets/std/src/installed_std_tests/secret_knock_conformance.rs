@@ -408,7 +408,7 @@ fn sequence_source_offer(
 ) -> conduit_core::CapabilityOffer {
     let mut offer = fixture_offer(value, PortDirection::Output, kind);
     offer.startup_parameters[0].name = "values".into();
-    offer.host_operations = vec![conduit_core::wait_host_operation_requirement()];
+    offer.host_calls = vec![conduit_core::wait_host_call_requirement()];
     offer.resource_requirements = vec![conduit_core::resource_requirement(
         conduit_core::TIMER_RESOURCE_CLASS,
         1,

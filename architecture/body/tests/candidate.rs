@@ -48,7 +48,7 @@ fn capability(index: usize) -> CapabilityOffer {
             implementation_id: ImplementationId::from(format!("claimed/implementation/{index}")),
             artifact_id: ArtifactId::from("claimed/artifact"),
         },
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {

@@ -1,5 +1,5 @@
 use super::*;
-use conduit_kernel::{BoundedValueRef, HostOperationOutcome, OperationAction, OperationInput};
+use conduit_kernel::{BoundedValueRef, HostCallOutcome, OperationAction, OperationInput};
 
 fn value(slot: u16, byte_len: u32) -> ValueRef {
     ValueRef {
@@ -10,10 +10,10 @@ fn value(slot: u16, byte_len: u32) -> ValueRef {
 }
 
 fn complete(request: u32, output: Option<BoundedValueRef>) -> OperationInput {
-    OperationInput::HostOperationCompleted {
+    OperationInput::HostCallCompleted {
         request: RequestId(request),
-        outcome: HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        outcome: HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output,
             failure: None,
         },
@@ -28,9 +28,9 @@ fn initialized_operation() -> LeniaStepOperation {
     let mut operation = LeniaStepOperation::new();
     assert!(matches!(
         operation.resume_value(PortId(0), value(1, seed.len() as u32), &seed),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(0),
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             ..
         }
     ));
@@ -49,9 +49,9 @@ fn value_closure_then_ordered_tick_is_the_only_accepted_lifecycle() {
     let tick_ref = value(2, tick.len() as u32);
     assert!(matches!(
         operation.resume_value(PortId(1), tick_ref, &tick),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(1),
-            operation: HostOperationId(1),
+            operation: HostCallId(1),
             ..
         }
     ));

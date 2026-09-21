@@ -4,11 +4,11 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId,
 };
 
-pub(super) const HOST_OPERATION: &str = conduit_std_offers::AUDIO_CONVERT_PCM_OPERATION;
+pub(super) const HOST_CALL: &str = conduit_std_offers::AUDIO_CONVERT_PCM_OPERATION;
 const SOURCE_RATE: u64 = 22_050;
 const TARGET_RATE: u64 = 48_000;
 
@@ -44,25 +44,25 @@ impl PcmProfileConversionOperation {
                 let request = RequestId(self.next_request);
                 self.next_request = self.next_request.saturating_add(1);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Completed, None, None) => OperationAction::Await,
+                    (HostCallDisposition::Completed, None, None) => OperationAction::Await,
                     (_, _, Some(failure)) => OperationAction::Fail(failure),
                     _ => fail(FailureCode::InvalidLifecycle, 2),
                 }
@@ -238,7 +238,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.inputs.len() != 1
         || placement.outputs.len() != 1
         || placement.inputs[0].direction != PortDirection::Input

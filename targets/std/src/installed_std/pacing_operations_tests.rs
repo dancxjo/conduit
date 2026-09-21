@@ -1,7 +1,7 @@
 use super::{DelayOperation, ThrottleOperation};
 use conduit_kernel::{
-    HostOperationDisposition, HostOperationOutcome, OperationAction, OperationInput, PortId,
-    RequestId, ValueRef,
+    HostCallDisposition, HostCallOutcome, OperationAction, OperationInput, PortId, RequestId,
+    ValueRef,
 };
 
 fn value(slot: u16, byte_len: u32) -> ValueRef {
@@ -13,10 +13,10 @@ fn value(slot: u16, byte_len: u32) -> ValueRef {
 }
 
 fn completed(request: u32) -> OperationInput {
-    OperationInput::HostOperationCompleted {
+    OperationInput::HostCallCompleted {
         request: RequestId(request),
-        outcome: HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        outcome: HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output: None,
             failure: None,
         },
@@ -24,10 +24,10 @@ fn completed(request: u32) -> OperationInput {
 }
 
 fn cancelled(request: u32) -> OperationInput {
-    OperationInput::HostOperationCompleted {
+    OperationInput::HostCallCompleted {
         request: RequestId(request),
-        outcome: HostOperationOutcome {
-            disposition: HostOperationDisposition::Cancelled,
+        outcome: HostCallOutcome {
+            disposition: HostCallDisposition::Cancelled,
             output: None,
             failure: None,
         },
@@ -56,7 +56,7 @@ fn delay_retains_finite_values_and_drains_them_in_order_after_close() {
             port: PortId(0),
             value: first
         }),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(1),
             ..
         }
@@ -82,7 +82,7 @@ fn delay_retains_finite_values_and_drains_them_in_order_after_close() {
     );
     assert!(matches!(
         operation.advance(),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(2),
             ..
         }
@@ -122,7 +122,7 @@ fn leading_throttle_drops_during_interval_and_cancels_exact_timer_on_close() {
     );
     assert!(matches!(
         operation.advance(),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(1),
             ..
         }
@@ -138,10 +138,7 @@ fn leading_throttle_drops_during_interval_and_cancels_exact_timer_on_close() {
         operation.resume(OperationInput::Closed { port: PortId(0) }),
         OperationAction::Await
     );
-    assert_eq!(
-        operation.take_host_operation_cancellation(),
-        Some(RequestId(1))
-    );
+    assert_eq!(operation.take_host_call_cancellation(), Some(RequestId(1)));
     assert_eq!(operation.resume(cancelled(1)), OperationAction::Complete);
     assert_eq!(operation.take_released_value(), Some(value(11, 8)));
 }
@@ -170,7 +167,7 @@ fn leading_throttle_reopens_only_after_correlated_completion() {
     ));
     assert!(matches!(
         operation.advance(),
-        OperationAction::RequestHostOperation { .. }
+        OperationAction::RequestHostCall { .. }
     ));
     assert_eq!(operation.resume(completed(1)), OperationAction::Await);
     assert_eq!(

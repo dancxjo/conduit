@@ -548,7 +548,7 @@ fn validate_kernel(boot: &GuestBootSign, sign: &GuestKernelSign) -> Result<(), C
         || sign.timer_irq_wakes != 1
         || sign.serial_presentations != 2
         || !sign.clock_monotonic
-        || sign.pending_host_operations != 0
+        || sign.pending_host_calls != 0
         || !sign.overlap_witness
         || !sign.timer_pending_during_text_progress
         || sign.physical_parallelism
@@ -599,9 +599,8 @@ fn validate_observatory(
                                 resource.class_id.as_str() == "conduit.resource/timer-slot@1"
                                     && resource.units == 1
                             })
-                            && placement.host_operations.len() == 1
-                            && placement.host_operations[0].contract_id.as_str()
-                                == "conduit.host/wait@1"
+                            && placement.host_calls.len() == 1
+                            && placement.host_calls[0].contract_id.as_str() == "conduit.host/wait@1"
                     }
                     "presentation/tick" => {
                         placement.resources.len() == 2
@@ -609,21 +608,21 @@ fn validate_observatory(
                                 resource.class_id.as_str() == "conduit.resource/presentation-slot@1"
                                     && resource.units == 1
                             })
-                            && placement.host_operations.len() == 1
-                            && placement.host_operations[0].contract_id.as_str()
+                            && placement.host_calls.len() == 1
+                            && placement.host_calls[0].contract_id.as_str()
                                 == "conduit.host/present@1"
                     }
                     "text/literal" => {
-                        placement.resources.len() == 1 && placement.host_operations.is_empty()
+                        placement.resources.len() == 1 && placement.host_calls.is_empty()
                     }
                     "text/upper" => {
                         placement.resources.len() == 1
-                            && placement.host_operations.len() == 1
-                            && placement.host_operations[0].contract_id.as_str()
+                            && placement.host_calls.len() == 1
+                            && placement.host_calls[0].contract_id.as_str()
                                 == "conduit.host/text-upper@1"
-                            && placement.host_operations[0].maximum_in_flight == 1
-                            && placement.host_operations[0].maximum_input_bytes == 256
-                            && placement.host_operations[0].maximum_output_bytes == 256
+                            && placement.host_calls[0].maximum_in_flight == 1
+                            && placement.host_calls[0].maximum_input_bytes == 256
+                            && placement.host_calls[0].maximum_output_bytes == 256
                     }
                     "presentation/text" => {
                         placement.resources.len() == 2
@@ -631,11 +630,11 @@ fn validate_observatory(
                                 resource.class_id.as_str() == "conduit.resource/presentation-slot@1"
                                     && resource.units == 1
                             })
-                            && placement.host_operations.len() == 1
-                            && placement.host_operations[0].contract_id.as_str()
+                            && placement.host_calls.len() == 1
+                            && placement.host_calls[0].contract_id.as_str()
                                 == "conduit.host/present@1"
-                            && placement.host_operations[0].maximum_in_flight == 1
-                            && placement.host_operations[0].maximum_input_bytes == 256
+                            && placement.host_calls[0].maximum_in_flight == 1
+                            && placement.host_calls[0].maximum_input_bytes == 256
                     }
                     _ => false,
                 };

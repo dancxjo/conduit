@@ -48,7 +48,7 @@ struct KernelSign {
     timer_irq_wakes: u32,
     idle_entries: u32,
     serial_presentations: u32,
-    pending_host_operations: u32,
+    pending_host_calls: u32,
     overlap_witness: bool,
     timer_pending_during_text_progress: bool,
     physical_parallelism: bool,
@@ -312,7 +312,7 @@ fn validate(
         || kernel.timer_irq_wakes != 1
         || kernel.idle_entries == 0
         || kernel.serial_presentations != 2
-        || kernel.pending_host_operations != 0
+        || kernel.pending_host_calls != 0
         || !kernel.overlap_witness
         || !kernel.timer_pending_during_text_progress
         || kernel.physical_parallelism

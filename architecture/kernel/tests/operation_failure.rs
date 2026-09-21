@@ -45,8 +45,8 @@ fn identical_detail_codes_do_not_erase_distinct_operation_failures() {
         FailureCode::StateCapacityExhausted,
         FailureCode::WorkBudgetExhausted,
         FailureCode::IdentityCapacityExhausted,
-        FailureCode::HostOperationDenied,
-        FailureCode::HostOperationFailed,
+        FailureCode::HostCallDenied,
+        FailureCode::HostCallFailed,
         FailureCode::Cancelled,
     ] {
         let failure = Failure { code, detail: 42 };

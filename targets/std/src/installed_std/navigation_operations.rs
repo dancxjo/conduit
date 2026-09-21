@@ -3,8 +3,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef,
 };
 
 pub(super) static ROUTE_FACTORY: InstalledFactory = InstalledFactory {
@@ -30,7 +30,7 @@ pub(super) struct NavigationOperation {
     pending: Option<RequestId>,
     next_request: u32,
     emitted: bool,
-    operation_by_port: [HostOperationId; 4],
+    operation_by_port: [HostCallId; 4],
 }
 
 impl NavigationOperation {
@@ -52,19 +52,19 @@ impl NavigationOperation {
                     self.request(port, value)
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Completed, None, None) => self
+                    (HostCallDisposition::Completed, None, None) => self
                         .deferred
                         .iter_mut()
                         .enumerate()
@@ -72,10 +72,8 @@ impl NavigationOperation {
                         .map_or(OperationAction::Await, |(port, value)| {
                             self.request(port as u16, value)
                         }),
-                    (HostOperationDisposition::Denied, _, _) => {
-                        fail(FailureCode::HostOperationDenied, 1)
-                    }
-                    _ => fail(FailureCode::HostOperationFailed, 2),
+                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 1),
+                    _ => fail(FailureCode::HostCallFailed, 2),
                 }
             }
             OperationInput::Closed { port: PortId(port) }
@@ -108,7 +106,7 @@ impl NavigationOperation {
         else {
             return fail(FailureCode::InvalidInput, 4);
         };
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
             operation: self.operation_by_port[usize::from(port)],
             input,
@@ -170,7 +168,7 @@ impl NavigationHost {
                         time,
                         conduit_semantic_catalog::decode_navigation_time(input).map_err(codec)?,
                     )?,
-                    _ => return Err("unknown route host operation".into()),
+                    _ => return Err("unknown route Host Call".into()),
                 }
                 let (Some(pose), Some(goal), Some(traversability), Some(time)) = (
                     pose.as_ref(),
@@ -196,7 +194,7 @@ impl NavigationHost {
                         time,
                         conduit_semantic_catalog::decode_navigation_time(input).map_err(codec)?,
                     )?,
-                    _ => return Err("unknown trajectory host operation".into()),
+                    _ => return Err("unknown trajectory Host Call".into()),
                 }
                 let (Some(route), Some(time)) = (route.as_ref(), time.as_ref()) else {
                     return Ok(None);
@@ -226,7 +224,7 @@ impl NavigationHost {
                         time,
                         conduit_semantic_catalog::decode_navigation_time(input).map_err(codec)?,
                     )?,
-                    _ => return Err("unknown local-control host operation".into()),
+                    _ => return Err("unknown local-control Host Call".into()),
                 }
                 let (Some(pose), Some(trajectory), Some(time)) =
                     (pose.as_ref(), trajectory.as_ref(), time.as_ref())
@@ -295,7 +293,7 @@ pub(super) fn prepare_hosts(
     })
 }
 
-pub(super) fn is_host_operation(contract: &str) -> bool {
+pub(super) fn is_host_call(contract: &str) -> bool {
     matches!(
         contract,
         conduit_std_offers::NAVIGATION_ROUTE_GRID4_GOAL_OPERATION
@@ -325,7 +323,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || !placement.configuration.is_empty()
         || !placement.resources.is_empty()
         || !placement.authority.is_empty()
@@ -359,24 +357,15 @@ fn prepare(
         next_request: 0,
         emitted: false,
         operation_by_port: match placement.implementation_id.as_str() {
-            conduit_std_offers::NAVIGATION_ROUTE_GRID4_IMPLEMENTATION => [
-                HostOperationId(1),
-                HostOperationId(0),
-                HostOperationId(3),
-                HostOperationId(2),
-            ],
-            conduit_std_offers::NAVIGATION_TIME_PARAMETERIZE_IMPLEMENTATION => [
-                HostOperationId(0),
-                HostOperationId(1),
-                HostOperationId(0),
-                HostOperationId(0),
-            ],
-            conduit_std_offers::NAVIGATION_LOCAL_CONTROL_IMPLEMENTATION => [
-                HostOperationId(0),
-                HostOperationId(2),
-                HostOperationId(1),
-                HostOperationId(0),
-            ],
+            conduit_std_offers::NAVIGATION_ROUTE_GRID4_IMPLEMENTATION => {
+                [HostCallId(1), HostCallId(0), HostCallId(3), HostCallId(2)]
+            }
+            conduit_std_offers::NAVIGATION_TIME_PARAMETERIZE_IMPLEMENTATION => {
+                [HostCallId(0), HostCallId(1), HostCallId(0), HostCallId(0)]
+            }
+            conduit_std_offers::NAVIGATION_LOCAL_CONTROL_IMPLEMENTATION => {
+                [HostCallId(0), HostCallId(2), HostCallId(1), HostCallId(0)]
+            }
             _ => return Err("unknown installed navigation implementation".into()),
         },
     }))

@@ -143,7 +143,7 @@ fn offer(definition: &KindProjection) -> CapabilityOffer {
         },
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: CapabilityLimits {
@@ -173,7 +173,7 @@ fn host() -> HostAdvertisement {
 }
 
 #[test]
-fn nested_form_terminates_only_in_exact_planned_host_operation_leaves() {
+fn nested_form_terminates_only_in_exact_planned_host_call_leaves() {
     let expanded = expanded();
     assert_eq!(
         expanded

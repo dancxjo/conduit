@@ -1,13 +1,13 @@
 use conduit_core::{
     ArtifactId, AuthorityContractId, AuthorityRequirement, Back, BackOfferBuilder, CapabilityId,
-    CapabilityOffer, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, resource_requirement,
+    CapabilityOffer, ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId,
+    resource_requirement,
 };
 
 pub const IMPLEMENTATION: &str = "conduitos/kernel-http-client-http1-literal";
 pub const PROFILE: &str = "conduitos/http1-literal-plain-fixed";
 pub const ARTIFACT: &str = "conduitos/native-http1-fixed";
-pub const HOST_OPERATION: &str = "conduit.host/http-client-exchange";
+pub const HOST_CALL: &str = "conduit.host/http-client-exchange";
 pub const RESOURCE_CLASS: &str = "conduit.resource/network/http-client";
 pub const AUTHORITY: &str = "conduit.authority/http-outbound";
 pub const NETWORK_BASE: &str = "network/ipv4-tcp";
@@ -27,8 +27,8 @@ pub fn offer() -> CapabilityOffer {
         .expect("finite HTTP request profile")
         .value_kind()
         .clone();
-    let operation = HostOperationRequirement {
-        contract_id: HostOperationContractId::from(HOST_OPERATION),
+    let operation = HostCallRequirement {
+        contract_id: HostCallContractId::from(HOST_CALL),
         target_kind: Some(request_kind.clone()),
         maximum_in_flight: 1,
         maximum_input_bytes: REQUEST_BYTES as u32,
@@ -41,11 +41,11 @@ pub fn offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations: alloc::vec![operation.clone()],
+            host_calls: alloc::vec![operation.clone()],
             resource_requirements: alloc::vec![resource_requirement(RESOURCE_CLASS, 1)],
             authority_requirements: alloc::vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(AUTHORITY),
-                host_operation_contract_id: operation.contract_id,
+                host_call_contract_id: operation.contract_id,
                 subject_kind: request_kind,
             }],
         },

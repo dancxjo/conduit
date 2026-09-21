@@ -48,7 +48,7 @@ fn one_portable_presentation_plans_to_distinct_real_renderer_executions() {
         "presentation/renderer-wayland@1"
     );
     assert_eq!(
-        native_placement.host_operations[0]
+        native_placement.host_calls[0]
             .target_kind
             .as_ref()
             .unwrap()
@@ -63,7 +63,7 @@ fn one_portable_presentation_plans_to_distinct_real_renderer_executions() {
         "presentation/renderer-dom-svg@1"
     );
     assert_eq!(
-        html_placement.host_operations[0]
+        html_placement.host_calls[0]
             .target_kind
             .as_ref()
             .unwrap()
@@ -355,7 +355,7 @@ fn self_inspection_is_the_exact_renderer_plan_placement_and_sign_chain() {
     assert_eq!(placement.inputs, conduit_presentation::renderer_inputs());
     assert_eq!(placement.outputs, conduit_presentation::renderer_outputs());
     assert_eq!(placement.resources.len(), 1);
-    assert_eq!(placement.host_operations.len(), 1);
+    assert_eq!(placement.host_calls.len(), 1);
     assert_eq!(inspection.manifestation.signs.len(), 2);
 }
 

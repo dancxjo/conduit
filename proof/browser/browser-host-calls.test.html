@@ -1,15 +1,15 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>Conduit browser host operations proof</title>
+<title>Conduit browser Host Calls proof</title>
 <button id="artifact">Hand off artifact</button>
 <button id="location">Move presentation location</button>
 <button id="device">Choose device</button>
 <output id="result">ready</output>
 <script type="module">
 import {
-  browserHostOperationLimits,
-  createBrowserHostOperations,
-} from "../../targets/browser/host/assets/browser-host-operations.mjs";
+  browserHostCallLimits,
+  createBrowserHostCalls,
+} from "../../targets/browser/host/assets/browser-host-calls.mjs";
 
 const context = {
   hostId: "host/browser-proof",
@@ -18,14 +18,14 @@ const context = {
   applicationGeneration: 3,
   authorityGeneration: 7,
 };
-const operation = (kind, operationId, fields) => ({
-  contract: browserHostOperationLimits.contract,
+const call = (kind, callId, fields) => ({
+  contract: browserHostCallLimits.contract,
   kind,
-  operationId,
+  callId,
   ...context,
   ...fields,
 });
-const operations = createBrowserHostOperations({
+const calls = createBrowserHostCalls({
   ...context,
   selectedImplementations: ["browser/web-serial@1"],
   initializedImplementations: ["browser/web-serial@1"],
@@ -37,9 +37,9 @@ const operations = createBrowserHostOperations({
   },
 });
 const result = document.querySelector("#result");
-globalThis.__browserHostOperationProof = { outcomes: [], active: () => operations.activeOperations() };
+globalThis.__browserHostCallProof = { outcomes: [], active: () => calls.activeCalls() };
 
-const absentActivation = await operations.handoffArtifact(operation("artifact-handoff", "artifact/no-activation", {
+const absentActivation = await calls.handoffArtifact(call("artifact-handoff", "artifact/no-activation", {
   userActivation: true,
   artifactId: "artifact/proof",
   bytes: Uint8Array.of(1),
@@ -47,10 +47,10 @@ const absentActivation = await operations.handoffArtifact(operation("artifact-ha
   filename: "proof.bin",
   mediaType: "application/octet-stream",
 }));
-globalThis.__browserHostOperationProof.absentActivation = absentActivation.disposition;
+globalThis.__browserHostCallProof.absentActivation = absentActivation.disposition;
 
 document.querySelector("#artifact").addEventListener("click", async () => {
-  const outcome = await operations.handoffArtifact(operation("artifact-handoff", "artifact/download", {
+  const outcome = await calls.handoffArtifact(call("artifact-handoff", "artifact/download", {
     userActivation: true,
     artifactId: "artifact/proof",
     bytes: Uint8Array.of(0x43, 0x4e, 0x44),
@@ -58,20 +58,20 @@ document.querySelector("#artifact").addEventListener("click", async () => {
     filename: "proof.bin",
     mediaType: "application/octet-stream",
   }));
-  globalThis.__browserHostOperationProof.outcomes.push(outcome);
+  globalThis.__browserHostCallProof.outcomes.push(outcome);
   result.value = outcome.disposition;
 });
 document.querySelector("#location").addEventListener("click", async () => {
-  const outcome = await operations.moveLocation(operation("location", "location/proof", {
+  const outcome = await calls.moveLocation(call("location", "location/proof", {
     presentationRevision: 4,
     mode: "push",
     path: "/proof/browser/presented-place/",
   }));
-  globalThis.__browserHostOperationProof.outcomes.push(outcome);
+  globalThis.__browserHostCallProof.outcomes.push(outcome);
   result.value = outcome.disposition;
 });
 document.querySelector("#device").addEventListener("click", async () => {
-  const outcome = await operations.chooseDevice(operation("device-choice", "device/proof", {
+  const outcome = await calls.chooseDevice(call("device-choice", "device/proof", {
     implementationId: "browser/web-serial@1",
     authorized: true,
     userActivation: true,
@@ -79,7 +79,7 @@ document.querySelector("#device").addEventListener("click", async () => {
     maximumResults: 1,
     maximumResourceIdentityBytes: 256,
   }));
-  globalThis.__browserHostOperationProof.outcomes.push(outcome);
+  globalThis.__browserHostCallProof.outcomes.push(outcome);
   result.value = outcome.disposition;
 });
 </script>

@@ -12,11 +12,11 @@ pub(in crate::form_runner) fn complete_host_effect(
         return resource_effect::complete(scheduler, pending, Ok(None));
     }
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             pending.request.node,
             pending.request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -76,11 +76,11 @@ pub(in crate::form_runner) fn complete_host_effect_with_output(
     };
     let value = scheduler.store_host_value(output).map_err(debug_error)?;
     let result = scheduler
-        .complete_host_operation(
+        .complete_host_call(
             pending.request.node,
             pending.request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(value, maximum_output_bytes)
                         .map_err(|_| "browser input exceeded its planned bound")?,

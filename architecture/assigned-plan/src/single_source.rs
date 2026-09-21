@@ -2,12 +2,12 @@
 //!
 //! This consumes the same assigned-Plan schema as [`crate::decode_assigned_plan`].
 //! It only admits the shape executed by [`conduit_kernel::SingleSourceExecutor`]:
-//! one node, one output Port, one host operation, no Cords or remote endpoints,
+//! one node, one output Port, one Host Call, no Cords or remote endpoints,
 //! and an exact finite inventory supplied by planning.
 
 use crate::{
     sha256, AssignedIdentity, AssignedPlanMaxima, AssignedPlanRefusal, AssignedPlanView,
-    ASSIGNED_CONFIGURATION, ASSIGNED_CORD, ASSIGNED_HOST_OPERATION, ASSIGNED_NODE,
+    ASSIGNED_CONFIGURATION, ASSIGNED_CORD, ASSIGNED_HOST_CALL, ASSIGNED_NODE,
     ASSIGNED_PLAN_COUNT_KINDS, ASSIGNED_PLAN_HEADER_BYTES, ASSIGNED_PLAN_SCHEMA, ASSIGNED_PORT,
     ASSIGNED_REMOTE_ENDPOINT, ASSIGNED_RESOURCE, ASSIGNED_ROUTE, ASSIGNED_ROUTE_TARGET,
     ASSIGNED_SIGN, ASSIGNED_STARTUP, ASSIGNED_TERMINAL, MAGIC,
@@ -141,7 +141,7 @@ fn decode_records(
                     && payload[4] == 1
                     && output_port.replace(u16_at(payload, 2)?).is_none()
             }
-            ASSIGNED_HOST_OPERATION => {
+            ASSIGNED_HOST_CALL => {
                 let identity = identity_at(payload, 4)?;
                 let unique = !operation_seen;
                 operation_seen = true;
@@ -307,11 +307,11 @@ mod tests {
         let mut port = [0; 37];
         port[4] = 1;
         record(&mut records, ASSIGNED_PORT, &port);
-        let mut host_operation = [0; 46];
-        host_operation[4..20].copy_from_slice(&operation.0);
-        host_operation[36..38].copy_from_slice(&1_u16.to_le_bytes());
-        host_operation[42..46].copy_from_slice(&1_u32.to_le_bytes());
-        record(&mut records, ASSIGNED_HOST_OPERATION, &host_operation);
+        let mut host_call = [0; 46];
+        host_call[4..20].copy_from_slice(&operation.0);
+        host_call[36..38].copy_from_slice(&1_u16.to_le_bytes());
+        host_call[42..46].copy_from_slice(&1_u32.to_le_bytes());
+        record(&mut records, ASSIGNED_HOST_CALL, &host_call);
         for resource in 0_u16..3 {
             let mut payload = [0; 8];
             payload[2..4].copy_from_slice(&resource.to_le_bytes());

@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
+    RequestId, ValueRef, ValueStorage,
 };
 use conduit_presentation::{LayoutFrame, MAX_LAYOUT_FRAME_BYTES};
 
@@ -67,20 +67,20 @@ impl LayoutOperation {
                 value,
             } if self.pending.is_none() && !self.emitted => {
                 self.pending = Some(RequestId(0));
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: match BoundedValueRef::new(value, MAX_LAYOUT_FRAME_BYTES as u32) {
                         Ok(value) => value,
                         Err(_) => return InstalledOperation::fail(40),
                     },
                 }
             }
-            OperationInput::HostOperationCompleted {
+            OperationInput::HostCallCompleted {
                 request: RequestId(0),
                 outcome,
             } if self.pending == Some(RequestId(0))
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -166,7 +166,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || !placement.resources.is_empty()
         || !placement.authority.is_empty()
         || !placement.pool_references.is_empty()

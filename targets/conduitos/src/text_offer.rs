@@ -17,7 +17,7 @@ pub(super) fn literal(build_id: &str) -> CapabilityOffer<'_> {
         contract_revision: "conduit.std/text-literal@1",
         implementation: TEXT_LITERAL_IMPLEMENTATION,
         artifact_build: build_id,
-        host_operation: None,
+        host_call: None,
         required_base: BaseKind::Memory,
         secondary_base: None,
         input: None,
@@ -39,7 +39,7 @@ pub(super) fn upper(build_id: &str) -> CapabilityOffer<'_> {
         contract_revision: conduit_text::TEXT_UPPER_CONTRACT_REVISION,
         implementation: TEXT_UPPER_IMPLEMENTATION,
         artifact_build: build_id,
-        host_operation: Some(crate::functional_offers::TEXT_UPPER_HOST_OPERATION),
+        host_call: Some(crate::functional_offers::TEXT_UPPER_HOST_CALL),
         required_base: BaseKind::Memory,
         secondary_base: None,
         input: Some(PortOffer {
@@ -66,7 +66,7 @@ pub(super) fn presentation(build_id: &str) -> CapabilityOffer<'_> {
         contract_revision: "conduit.std/presentation-text@1",
         implementation: TEXT_PRESENTATION_IMPLEMENTATION,
         artifact_build: build_id,
-        host_operation: Some("conduit.host/present@1"),
+        host_call: Some("conduit.host/present@1"),
         required_base: BaseKind::Serial,
         secondary_base: None,
         input: Some(PortOffer {
@@ -88,7 +88,7 @@ pub(super) fn morse(build_id: &str) -> CapabilityOffer<'_> {
         contract_revision: conduit_text::TEXT_MORSE_CONTRACT_REVISION,
         implementation: TEXT_MORSE_IMPLEMENTATION,
         artifact_build: build_id,
-        host_operation: Some("conduit.host/text-to-morse@1"),
+        host_call: Some("conduit.host/text-to-morse@1"),
         required_base: BaseKind::Memory,
         secondary_base: None,
         input: Some(PortOffer {
@@ -115,7 +115,7 @@ pub(super) fn indicator(build_id: &str) -> CapabilityOffer<'_> {
         contract_revision: conduit_semantic_catalog::INDICATOR_PRESENTATION_CONTRACT_REVISION,
         implementation: INDICATOR_PRESENTATION_IMPLEMENTATION,
         artifact_build: build_id,
-        host_operation: Some("conduit.host/present-indicator@1"),
+        host_call: Some("conduit.host/present-indicator@1"),
         required_base: BaseKind::Serial,
         secondary_base: None,
         input: Some(PortOffer {
@@ -225,7 +225,7 @@ fn composition_leaf<'a>(
         contract_revision: conduit_text::MORSE_COMPOSITION_CONTRACT_REVISION,
         implementation,
         artifact_build: build_id,
-        host_operation: Some(implementation),
+        host_call: Some(implementation),
         required_base: BaseKind::Memory,
         secondary_base: None,
         input: Some(PortOffer {

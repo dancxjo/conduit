@@ -1,9 +1,9 @@
 use crate::{plan_speech_text, OutputCondition, SPECIMEN_TEXT};
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerError, SchedulerStatus};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEvent,
-    NodeId, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
+    HostCallOutcome, HostedSignLog, HostedValueStore, KernelEvent, NodeId, Operation,
+    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use serde::{Deserialize, Serialize};
@@ -78,13 +78,13 @@ enum SpeechOperation {
     Synthesize {
         stage: u8,
         input: Option<ValueRef>,
-        operation: conduit_kernel::HostOperationId,
+        operation: conduit_kernel::HostCallId,
         maximum_input_bytes: u32,
     },
     Present {
         stage: u8,
         input: Option<ValueRef>,
-        operation: conduit_kernel::HostOperationId,
+        operation: conduit_kernel::HostCallId,
         maximum_input_bytes: u32,
     },
 }
@@ -125,45 +125,39 @@ impl Operation for SpeechOperation {
             ) => {
                 *stage = 1;
                 *input = Some(value);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(1),
                     operation: *operation,
                     input: BoundedValueRef::new(value, *maximum_input_bytes).unwrap(),
                 }
             }
-            (
-                Self::Synthesize { stage, .. },
-                OperationInput::HostOperationCompleted { outcome, .. },
-            ) => {
+            (Self::Synthesize { stage, .. }, OperationInput::HostCallCompleted { outcome, .. }) => {
                 *stage = 2;
                 match (outcome.disposition, outcome.output) {
-                    (HostOperationDisposition::Completed, Some(output)) => OperationAction::Emit {
+                    (HostCallDisposition::Completed, Some(output)) => OperationAction::Emit {
                         port: PortId(0),
                         value: output.value,
                     },
-                    (HostOperationDisposition::Cancelled, _) => OperationAction::Fail(Failure {
+                    (HostCallDisposition::Cancelled, _) => OperationAction::Fail(Failure {
                         code: FailureCode::Cancelled,
                         detail: 1,
                     }),
                     _ => OperationAction::Fail(Failure {
-                        code: FailureCode::HostOperationFailed,
+                        code: FailureCode::HostCallFailed,
                         detail: 2,
                     }),
                 }
             }
-            (
-                Self::Present { stage, .. },
-                OperationInput::HostOperationCompleted { outcome, .. },
-            ) => {
+            (Self::Present { stage, .. }, OperationInput::HostCallCompleted { outcome, .. }) => {
                 *stage = 2;
                 match outcome.disposition {
-                    HostOperationDisposition::Completed => OperationAction::Complete,
-                    HostOperationDisposition::Cancelled => OperationAction::Fail(Failure {
+                    HostCallDisposition::Completed => OperationAction::Complete,
+                    HostCallDisposition::Cancelled => OperationAction::Fail(Failure {
                         code: FailureCode::Cancelled,
                         detail: 3,
                     }),
                     _ => OperationAction::Fail(Failure {
-                        code: FailureCode::HostOperationFailed,
+                        code: FailureCode::HostCallFailed,
                         detail: 4,
                     }),
                 }
@@ -237,27 +231,27 @@ pub fn run_speech_text(
             if node_kind == crate::SPEECH_SYNTHESIZE_KIND {
                 let host_outcome = if fault == SpeechFault::Underrun {
                     outcome = Some(SpeechOutcome::Underrun);
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Failed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Failed,
                         output: None,
                         failure: Some(Failure {
-                            code: FailureCode::HostOperationFailed,
+                            code: FailureCode::HostCallFailed,
                             detail: 6,
                         }),
                     }
                 } else if fault == SpeechFault::BaseLost {
                     outcome = Some(SpeechOutcome::BaseLost);
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Denied,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Denied,
                         output: None,
                         failure: Some(Failure {
-                            code: FailureCode::HostOperationDenied,
+                            code: FailureCode::HostCallDenied,
                             detail: 7,
                         }),
                     }
                 } else {
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: Some(
                             BoundedValueRef::new(pcm_ref, crate::MAXIMUM_PCM_BYTES).unwrap(),
                         ),
@@ -265,7 +259,7 @@ pub fn run_speech_text(
                     }
                 };
                 scheduler
-                    .complete_host_operation(request.node, request.request, host_outcome)
+                    .complete_host_call(request.node, request.request, host_outcome)
                     .map_err(debug)?;
             } else {
                 let failed = fault == SpeechFault::DeviceFailure;
@@ -273,18 +267,18 @@ pub fn run_speech_text(
                     outcome = Some(SpeechOutcome::DeviceFailure);
                 }
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition: if failed {
-                                HostOperationDisposition::Failed
+                                HostCallDisposition::Failed
                             } else {
-                                HostOperationDisposition::Completed
+                                HostCallDisposition::Completed
                             },
                             output: None,
                             failure: failed.then_some(Failure {
-                                code: FailureCode::HostOperationFailed,
+                                code: FailureCode::HostCallFailed,
                                 detail: 8,
                             }),
                         },
@@ -352,13 +346,13 @@ fn scheduler(
                     stage: 0,
                     input: None,
                     operation: lowered
-                        .host_operations
+                        .host_calls
                         .iter()
                         .find(|op| op.node == node.node)
                         .ok_or("synthesis operation missing")?
                         .operation,
                     maximum_input_bytes: lowered
-                        .host_operations
+                        .host_calls
                         .iter()
                         .find(|op| op.node == node.node)
                         .unwrap()
@@ -369,13 +363,13 @@ fn scheduler(
                     stage: 0,
                     input: None,
                     operation: lowered
-                        .host_operations
+                        .host_calls
                         .iter()
                         .find(|op| op.node == node.node)
                         .ok_or("presentation operation missing")?
                         .operation,
                     maximum_input_bytes: lowered
-                        .host_operations
+                        .host_calls
                         .iter()
                         .find(|op| op.node == node.node)
                         .unwrap()
@@ -399,8 +393,8 @@ fn scheduler(
             .map_err(debug)?;
     }
     routes.seal().map_err(debug)?;
-    let mut bindings = FixedHostOperationBindings::<6>::new(2);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<6>::new(2);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(debug)?;
@@ -411,7 +405,7 @@ fn scheduler(
         u32::from(MAX_SIGNS) * core::mem::size_of::<KernelEvent>() as u32,
     )
     .map_err(debug)?;
-    let scheduler = SpeechScheduler::new_with_active_counts_and_host_operations(
+    let scheduler = SpeechScheduler::new_with_active_counts_and_host_calls(
         3,
         2,
         lowered

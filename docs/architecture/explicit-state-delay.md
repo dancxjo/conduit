@@ -84,7 +84,7 @@ state obligation.
 These are concrete hosted implementation and conformance surfaces:
 
 - [lowering admission](../../architecture/plan-lowering/src/lowering/admission.rs);
-- [typed-state host operation](../../targets/std/src/state_value.rs);
+- [typed-state Host Call](../../targets/std/src/state_value.rs);
 - [owned continuation](../../targets/std/src/state_value/continuity.rs);
 - [installed-state conformance](../../targets/std/src/installed_std_tests/typed_state_conformance.rs);
 - [ownership and forgery tests](../../targets/std/tests/owned_state_continuity.rs).

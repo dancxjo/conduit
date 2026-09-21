@@ -19,7 +19,7 @@ pub fn final_normalized_pattern_std_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(FINAL_NORMALIZED_PATTERN_STD_PROFILE),
             implementation_id: ImplementationId::from(FINAL_NORMALIZED_PATTERN_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(FINAL_NORMALIZED_PATTERN_STD_ARTIFACT),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -37,7 +37,7 @@ mod tests {
         let offer = final_normalized_pattern_std_offer();
         assert_eq!(offer.inputs, definition.inputs);
         assert_eq!(offer.outputs, definition.outputs);
-        assert!(offer.host_operations.is_empty());
+        assert!(offer.host_calls.is_empty());
         assert!(offer.resource_requirements.is_empty());
         assert!(offer.authority_requirements.is_empty());
     }

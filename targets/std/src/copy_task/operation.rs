@@ -1,5 +1,5 @@
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
     OperationAction, OperationInput, RequestId, ValueRef,
 };
 
@@ -27,9 +27,9 @@ impl CopyOperation {
         };
         self.next_request = next_request;
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(self.command, conduit_std_offers::COPY_COMMAND_BYTES)
                 .expect("copy command has one admitted byte"),
         }
@@ -37,7 +37,7 @@ impl CopyOperation {
 
     fn fail(detail: u16) -> OperationAction {
         OperationAction::Fail(Failure {
-            code: FailureCode::HostOperationFailed,
+            code: FailureCode::HostCallFailed,
             detail,
         })
     }
@@ -49,7 +49,7 @@ impl Operation for CopyOperation {
     }
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
-        let OperationInput::HostOperationCompleted { request, outcome } = input else {
+        let OperationInput::HostCallCompleted { request, outcome } = input else {
             return Self::fail(1);
         };
         if self.pending != Some(request) {
@@ -57,22 +57,22 @@ impl Operation for CopyOperation {
         }
         self.pending = None;
         match (outcome.disposition, outcome.output, outcome.failure) {
-            (HostOperationDisposition::Completed, Some(output), None)
+            (HostCallDisposition::Completed, Some(output), None)
                 if output.value == self.command =>
             {
                 self.request()
             }
-            (HostOperationDisposition::Completed, Some(output), None) if !self.emitted => {
+            (HostCallDisposition::Completed, Some(output), None) if !self.emitted => {
                 self.emitted = true;
                 OperationAction::Emit {
                     port: conduit_kernel::PortId(0),
                     value: output.value,
                 }
             }
-            (HostOperationDisposition::Completed, None, None) => OperationAction::Complete,
-            (HostOperationDisposition::Denied, None, _) => Self::fail(3),
-            (HostOperationDisposition::Cancelled, None, _) => Self::fail(4),
-            (HostOperationDisposition::Failed, None, _) => Self::fail(5),
+            (HostCallDisposition::Completed, None, None) => OperationAction::Complete,
+            (HostCallDisposition::Denied, None, _) => Self::fail(3),
+            (HostCallDisposition::Cancelled, None, _) => Self::fail(4),
+            (HostCallDisposition::Failed, None, _) => Self::fail(5),
             _ => Self::fail(6),
         }
     }
@@ -116,9 +116,9 @@ impl Operation for CopyResultSink {
                 value,
             } if !self.pending => {
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(
                         value,
                         conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
@@ -126,11 +126,11 @@ impl Operation for CopyResultSink {
                     .expect("copy result is bounded"),
                 }
             }
-            OperationInput::HostOperationCompleted {
+            OperationInput::HostCallCompleted {
                 request: RequestId(0),
                 outcome,
             } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {

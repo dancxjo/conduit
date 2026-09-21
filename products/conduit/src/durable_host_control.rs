@@ -657,16 +657,16 @@ where
         if let Some(request) = admitted.runtime_mut().next_host_request() {
             if admitted
                 .runtime_mut()
-                .complete_portable_host_operation(request)?
+                .complete_portable_host_call(request)?
             {
                 continue;
             }
-            if host.complete_remote_voice_host_operation(admitted, request, cancelled)? {
+            if host.complete_remote_voice_host_call(admitted, request, cancelled)? {
                 continue;
             }
             let work = admitted.runtime().describe_host_request(request)?;
             return Err(format!(
-                "remote-host-operation-unsupported:{}",
+                "remote-host-call-unsupported:{}",
                 work.contract_id.as_str()
             ));
         }

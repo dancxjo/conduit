@@ -5,10 +5,9 @@ use super::*;
 use conduit_core::{bind_active_play, BaseImplementationId};
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerError, SchedulerStatus};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
-    ValueStorage,
+    BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
+    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, Operation, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use std::collections::BTreeMap;
@@ -64,9 +63,9 @@ impl Operation for InteractionOperation {
                 },
             ) if !*pending => {
                 *pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: match BoundedValueRef::new(value, MAX_INTERACTION_VALUE_BYTES) {
                         Ok(input) => input,
                         Err(_) => return failed(FailureCode::InvalidInput, 1),
@@ -75,21 +74,21 @@ impl Operation for InteractionOperation {
             }
             (
                 Self::Apply { pending },
-                OperationInput::HostOperationCompleted {
+                OperationInput::HostCallCompleted {
                     request: RequestId(0),
                     outcome,
                 },
             ) if *pending => {
                 *pending = false;
                 match outcome.disposition {
-                    HostOperationDisposition::Completed
+                    HostCallDisposition::Completed
                         if outcome.output.is_none() && outcome.failure.is_none() =>
                     {
                         OperationAction::Complete
                     }
-                    HostOperationDisposition::Denied => failed(FailureCode::HostOperationDenied, 2),
-                    HostOperationDisposition::Cancelled => failed(FailureCode::Cancelled, 3),
-                    _ => failed(FailureCode::HostOperationFailed, 4),
+                    HostCallDisposition::Denied => failed(FailureCode::HostCallDenied, 2),
+                    HostCallDisposition::Cancelled => failed(FailureCode::Cancelled, 3),
+                    _ => failed(FailureCode::HostCallFailed, 4),
                 }
             }
             _ => failed(FailureCode::InvalidLifecycle, 5),
@@ -257,15 +256,13 @@ impl PatchbayInteraction {
                 .map_err(protocol_error("install route"))?;
         }
         routes.seal().map_err(protocol_error("seal routes"))?;
-        let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(1);
-        for operation in &lowered.host_operations {
+        let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(1);
+        for operation in &lowered.host_calls {
             bindings
                 .install(operation.node, operation.binding)
-                .map_err(protocol_error("install host operation"))?;
+                .map_err(protocol_error("install Host Call"))?;
         }
-        bindings
-            .seal()
-            .map_err(protocol_error("seal host operations"))?;
+        bindings.seal().map_err(protocol_error("seal Host Calls"))?;
         let sign_bytes = u32::from(SIGN_ITEMS)
             * u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>())
                 .map_err(|_| InteractionError::Execution("Sign size overflow".into()))?;
@@ -276,7 +273,7 @@ impl PatchbayInteraction {
                 InteractionError::Execution("interaction node count changed".into())
             })?;
         let cord_specs = [lowered.cords[0].spec];
-        let mut scheduler = InteractionScheduler::new_with_host_operations(
+        let mut scheduler = InteractionScheduler::new_with_host_calls(
             node_specs, cord_specs, routes, bindings, drivers, values, signs,
         )
         .map_err(scheduler_error("prepare scheduler"))?;
@@ -359,8 +356,8 @@ impl PatchbayInteraction {
                     }
                 };
                 scheduler
-                    .complete_host_operation(host_request.node, host_request.request, outcome)
-                    .map_err(scheduler_error("complete interaction host operation"))?;
+                    .complete_host_call(host_request.node, host_request.request, outcome)
+                    .map_err(scheduler_error("complete interaction Host Call"))?;
             }
             match scheduler.step() {
                 Ok(SchedulerStatus::Drained) => break,
@@ -408,15 +405,15 @@ fn validate_shape(
     if lowered.nodes.len() != NODES
         || lowered.cords.len() != CORDS
         || lowered.routes.len() != 1
-        || lowered.host_operations.len() != 1
+        || lowered.host_calls.len() != 1
         || lowered.cord_value_slots != QUEUE_SLOTS as u16
     {
         return Err(InteractionError::Execution(format!(
-            "interaction shape changed: nodes={} cords={} routes={} host-operations={} slots={}",
+            "interaction shape changed: nodes={} cords={} routes={} Host Calls={} slots={}",
             lowered.nodes.len(),
             lowered.cords.len(),
             lowered.routes.len(),
-            lowered.host_operations.len(),
+            lowered.host_calls.len(),
             lowered.cord_value_slots
         )));
     }
@@ -453,31 +450,31 @@ fn operations(
         .map_err(|_| InteractionError::Execution("interaction operation count changed".into()))
 }
 
-fn completed_outcome() -> HostOperationOutcome {
-    HostOperationOutcome {
-        disposition: HostOperationDisposition::Completed,
+fn completed_outcome() -> HostCallOutcome {
+    HostCallOutcome {
+        disposition: HostCallDisposition::Completed,
         output: None,
         failure: None,
     }
 }
 
-fn denied_outcome() -> HostOperationOutcome {
-    HostOperationOutcome {
-        disposition: HostOperationDisposition::Denied,
+fn denied_outcome() -> HostCallOutcome {
+    HostCallOutcome {
+        disposition: HostCallDisposition::Denied,
         output: None,
         failure: Some(Failure {
-            code: FailureCode::HostOperationDenied,
+            code: FailureCode::HostCallDenied,
             detail: 1,
         }),
     }
 }
 
-fn failed_outcome() -> HostOperationOutcome {
-    HostOperationOutcome {
-        disposition: HostOperationDisposition::Failed,
+fn failed_outcome() -> HostCallOutcome {
+    HostCallOutcome {
+        disposition: HostCallDisposition::Failed,
         output: None,
         failure: Some(Failure {
-            code: FailureCode::HostOperationFailed,
+            code: FailureCode::HostCallFailed,
             detail: 1,
         }),
     }

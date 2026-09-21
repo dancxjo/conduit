@@ -3,17 +3,17 @@
 use conduit_core::{
     bind_active_play, bind_sign, kind_id, resource_offer, ArtifactId, Back, BackOfferBuilder,
     BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    DeliveryContract, ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, OfferGeneration,
+    DeliveryContract, ExecutionProfileId, HostAdvertisement, HostCallContractId,
+    HostCallRequirement, HostId, HostProfileId, ImplementationId, OfferGeneration,
     ResourceRequirement, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
     PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedValueStore, Operation,
-    OperationAction, OperationInput, PortId, RequestId, ValueStorage,
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, HostCallDisposition,
+    HostCallId, HostCallOutcome, HostedValueStore, Operation, OperationAction, OperationInput,
+    PortId, RequestId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
@@ -81,9 +81,9 @@ impl Operation for PointerOperation {
                 ..
             } if !*pending => {
                 *pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(*empty, 0)
                         .expect("empty browser pointer request is exactly bounded"),
                 }
@@ -101,12 +101,12 @@ impl Operation for PointerOperation {
                     maximum_output_bytes,
                     ..
                 },
-                OperationInput::HostOperationCompleted {
+                OperationInput::HostCallCompleted {
                     request: RequestId(0),
                     outcome,
                 },
             ) if *pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -134,9 +134,9 @@ impl Operation for PointerOperation {
                 },
             ) if !*pending => {
                 *pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, *maximum_input_bytes)
                         .expect("pointer presentation input is admitted"),
                 }
@@ -145,12 +145,12 @@ impl Operation for PointerOperation {
                 Self::Sink {
                     pending, complete, ..
                 },
-                OperationInput::HostOperationCompleted {
+                OperationInput::HostCallCompleted {
                     request: RequestId(0),
                     outcome,
                 },
             ) if *pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -240,11 +240,11 @@ pub fn execute_browser_pointer(
                     .store_host_value(&canonical)
                     .map_err(|error| format!("store browser pointer value: {error:?}"))?;
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: Some(
                                 BoundedValueRef::new(
                                     output,
@@ -265,11 +265,11 @@ pub fn execute_browser_pointer(
                     return Err("browser pointer was presented more than once".into());
                 }
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: None,
                             failure: None,
                         },
@@ -416,8 +416,8 @@ pub(crate) fn pointer_source_offer(
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(SOURCE_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(SOURCE_OPERATION),
                 target_kind: Some(kind_id(POINTER_SOURCE_KIND)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: 0,
@@ -461,8 +461,8 @@ fn scheduler(
             .map_err(debug)?;
     }
     routes.seal().map_err(debug)?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(debug)?;
@@ -482,12 +482,12 @@ fn scheduler(
                 empty,
                 pending: false,
                 emitted: false,
-                maximum_output_bytes: placement.host_operations[0].maximum_output_bytes,
+                maximum_output_bytes: placement.host_calls[0].maximum_output_bytes,
             },
             STRUCTURED_PRESENTATION_KIND => PointerOperation::Sink {
                 pending: false,
                 complete: false,
-                maximum_input_bytes: placement.host_operations[0].maximum_input_bytes,
+                maximum_input_bytes: placement.host_calls[0].maximum_input_bytes,
             },
             _ => return Err("unsupported browser pointer placement".into()),
         };
@@ -502,10 +502,8 @@ fn scheduler(
         return Err("browser pointer Plan underadmits physical Signs".into());
     }
     let signs = FixedSignLog::<SIGNS>::new(lowered.sign_bytes).map_err(debug)?;
-    PointerScheduler::new_with_host_operations(
-        nodes, cords, routes, bindings, drivers, values, signs,
-    )
-    .map_err(debug)
+    PointerScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
+        .map_err(debug)
 }
 
 fn debug(value: impl core::fmt::Debug) -> String {

@@ -5,7 +5,7 @@ use conduit_kernel::scheduler::{
 };
 use conduit_kernel::{
     remote_sign_storage_bytes, BoundedValueRef, Failure, FailureCode, FixedSignLog,
-    FixedValueStore, HostOperationDisposition, HostOperationOutcome, Operation, OperationAction,
+    FixedValueStore, HostCallDisposition, HostCallOutcome, Operation, OperationAction,
     OperationInput, PortId, RequestId, SignQuery, ValueStorage,
 };
 use conduit_signal::{decode_signal_bytes, Signal, SIGNAL_ENCODED_LEN, SIGNAL_ENCODED_LEN_USIZE};
@@ -39,7 +39,7 @@ type SinkScheduler = FixedScheduler<
 
 struct ShowOperation {
     input_port: PortId,
-    present_operation: conduit_kernel::HostOperationId,
+    present_operation: conduit_kernel::HostCallId,
     pending: Option<RequestId>,
     presented: usize,
 }
@@ -65,16 +65,16 @@ impl Operation for ShowOperation {
             {
                 let request = RequestId(self.presented as u32);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
                     operation: self.present_operation,
                     input: BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
                         .expect("generated remote Signal is exactly bounded"),
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -97,7 +97,7 @@ pub struct RemoteSignalKernel {
     endpoint: conduit_kernel::RemoteEndpointId,
     cord: conduit_kernel::CordId,
     show_node: conduit_kernel::NodeId,
-    present_operation: conduit_kernel::HostOperationId,
+    present_operation: conduit_kernel::HostCallId,
     presented: usize,
     closed: bool,
     identity: SignalExecutionIdentity,
@@ -140,7 +140,7 @@ impl RemoteSignalKernel {
             presented: 0,
         })
         .map_err(UsbLinkError::Kernel)?;
-        let scheduler = SinkScheduler::new_with_host_operations(
+        let scheduler = SinkScheduler::new_with_host_calls(
             generated_nodes(),
             generated_cords(),
             generated_routes(),
@@ -199,11 +199,11 @@ impl RemoteSignalKernel {
                 sign.write_receipt(signal.sequence, signal.level, identity, runtime)
                     .await?;
                 self.scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: None,
                             failure: None,
                         },

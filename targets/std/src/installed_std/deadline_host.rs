@@ -1,7 +1,7 @@
 use super::InstalledScheduler;
 use crate::{DeadlineReactor, DeadlineWake, TimerAdapter};
-use conduit_kernel::scheduler::{HostOperationCancellation, HostOperationRequest};
-use conduit_kernel::{HostOperationDisposition, HostOperationOutcome};
+use conduit_kernel::scheduler::{HostCallCancellation, HostCallRequest};
+use conduit_kernel::{HostCallDisposition, HostCallOutcome};
 
 pub(super) struct InstalledDeadlineHost<const SLOTS: usize> {
     reactor: DeadlineReactor<SLOTS>,
@@ -18,7 +18,7 @@ impl<const SLOTS: usize> InstalledDeadlineHost<SLOTS> {
 
     pub(super) fn arm(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         duration_ms: u64,
         now_ms: u64,
     ) -> Result<(), String> {
@@ -30,18 +30,18 @@ impl<const SLOTS: usize> InstalledDeadlineHost<SLOTS> {
 
     pub(super) fn cancel(
         &mut self,
-        cancellation: HostOperationCancellation,
+        cancellation: HostCallCancellation,
         scheduler: &mut InstalledScheduler,
     ) -> Result<(), String> {
         self.reactor
             .cancel(cancellation.into())
             .map_err(|error| format!("cancel admitted deadline: {error:?}"))?;
         scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 cancellation.node,
                 cancellation.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Cancelled,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Cancelled,
                     output: None,
                     failure: None,
                 },
@@ -84,11 +84,11 @@ impl<const SLOTS: usize> InstalledDeadlineHost<SLOTS> {
             };
         };
         scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 key.node,
                 key.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },

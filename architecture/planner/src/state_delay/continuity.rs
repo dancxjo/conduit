@@ -6,7 +6,7 @@ use conduit_core::{
 
 /// A decision supplied by the lifecycle owner, not authority minted by planning.
 /// It approves only State continuity between these exact candidates. Destination
-/// host operations/resources still require their ordinary fresh admission.
+/// Host Calls/resources still require their ordinary fresh admission.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StateContinuityApproval {
     pub source_plan: PlanId,

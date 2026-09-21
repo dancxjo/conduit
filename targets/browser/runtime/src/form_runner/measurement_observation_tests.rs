@@ -192,7 +192,7 @@ fn deterministic_control_runs_the_authored_measurement_form_in_the_production_ke
     assert!(scheduler
         .signs()
         .events()
-        .any(|event| { event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted }));
+        .any(|event| { event.kind == conduit_kernel::KernelEventKind::HostCallCompleted }));
 }
 
 #[test]
@@ -237,5 +237,5 @@ fn browser_pointer_and_deterministic_control_share_the_exact_measurement_form() 
     assert!(scheduler
         .signs()
         .events()
-        .any(|event| { event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted }));
+        .any(|event| { event.kind == conduit_kernel::KernelEventKind::HostCallCompleted }));
 }

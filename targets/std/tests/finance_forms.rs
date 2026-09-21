@@ -13,7 +13,7 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     structured_selector_definition, CheckedCordStage, ProfileCatalog, StartupCatalog,
 };
-use conduit_std_host::hosted_data::{finance_std_offers, FINANCE_HOST_OPERATION};
+use conduit_std_host::hosted_data::{finance_std_offers, FINANCE_HOST_CALL};
 use core::cmp::Ordering;
 
 const SOURCE: &str = include_str!("../../../forms/money-quote/main.conduit");
@@ -74,8 +74,8 @@ fn canonical_form_flows_money_quotes_events_and_exact_comparison() {
             .find(|placement| placement.kind_id.as_str() == kind)
             .unwrap();
         assert_eq!(
-            placement.host_operations[0].contract_id.as_str(),
-            FINANCE_HOST_OPERATION
+            placement.host_calls[0].contract_id.as_str(),
+            FINANCE_HOST_CALL
         );
     }
 }

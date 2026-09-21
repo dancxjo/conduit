@@ -4,15 +4,15 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PlannedGear, ResourceRequirement, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
+    ResourceRequirement, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
     Failure, FailureCode, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
     ValueRef, ValueStorage,
 };
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-named-pattern-storage@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-named-pattern-storage@1";
 pub(crate) const IMPLEMENTATION: &str = "browser/kernel-named-pattern-storage@1";
 pub(crate) const RESOURCE_CLASS: &str = "conduit.resource/named-pattern-storage-slot@1";
 const INITIALIZER_IMPLEMENTATION: &str = "browser/kernel-named-pattern-template-initializer@1";
@@ -62,8 +62,8 @@ fn offer() -> CapabilityOffer {
             ),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-browser-runtime/named-pattern-storage@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
@@ -94,7 +94,7 @@ fn initializer_offer() -> CapabilityOffer {
             artifact_id: ArtifactId::from(
                 "conduit-browser-runtime/named-pattern-template-initializer@1",
             ),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },

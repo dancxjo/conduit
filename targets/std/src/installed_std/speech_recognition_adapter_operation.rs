@@ -7,8 +7,8 @@ use conduit_audio::{
 };
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 const TARGET_RATE_HZ: u32 = 16_000;
@@ -57,19 +57,19 @@ impl SpeechWindowToClipOperation {
                 };
                 self.next_request = next;
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) && !self.closing =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, None, None) => OperationAction::Await,
-                    (HostOperationDisposition::Cancelled, _, _) => cancelled(),
+                    (HostCallDisposition::Completed, None, None) => OperationAction::Await,
+                    (HostCallDisposition::Cancelled, _, _) => cancelled(),
                     (_, _, Some(failure)) => OperationAction::Fail(failure),
                     _ => fail(3),
                 }
@@ -83,25 +83,25 @@ impl SpeechWindowToClipOperation {
                     return fail(4);
                 };
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(1),
+                    operation: HostCallId(1),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) && self.closing =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Cancelled, _, _) => cancelled(),
+                    (HostCallDisposition::Cancelled, _, _) => cancelled(),
                     (_, _, Some(failure)) => OperationAction::Fail(failure),
                     _ => fail(5),
                 }
@@ -147,25 +147,25 @@ impl SpeechResultToEventStreamOperation {
                     return fail(20);
                 };
                 self.pending = Some(RequestId(0));
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Cancelled, _, _) => cancelled(),
+                    (HostCallDisposition::Cancelled, _, _) => cancelled(),
                     (_, _, Some(failure)) => OperationAction::Fail(failure),
                     _ => fail(21),
                 }
@@ -460,7 +460,7 @@ fn validate(placement: &PlannedGear, offer: &conduit_core::CapabilityOffer) -> R
         || placement.execution_profile_id != offer.implementation.execution_profile_id
         || placement.implementation_id != offer.implementation.implementation_id
         || placement.artifact_id != offer.implementation.artifact_id
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.limits != offer.limits
         || !placement.configuration.is_empty()
         || !placement.resources.is_empty()

@@ -6,7 +6,7 @@ use super::factory::{
 use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind, PlannedGear,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
     StructuredInfoValue, StructuredInfoValueShape, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::HostedValueStore;
@@ -54,8 +54,8 @@ fn offer(contract: Kind, implementation: &str, operation: &str) -> CapabilityOff
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(operation),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(operation),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
@@ -160,7 +160,7 @@ mod tests {
             assert_eq!(offer.inputs, semantic.inputs);
             assert_eq!(offer.outputs, semantic.outputs);
             assert_eq!(offer.limits, semantic.limits);
-            assert_eq!(offer.host_operations[0].target_kind, Some(offer.kind_id));
+            assert_eq!(offer.host_calls[0].target_kind, Some(offer.kind_id));
         }
         let wrong = StructuredInfoValue::leaf(conduit_data::measurement_summary_type(), vec![])
             .unwrap()

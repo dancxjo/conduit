@@ -1,5 +1,5 @@
 use super::*;
-use conduit_kernel::{HostOperationOutcome, HostedValueStore, ValueStorage};
+use conduit_kernel::{HostCallOutcome, HostedValueStore, ValueStorage};
 
 fn make_value_store() -> HostedValueStore {
     // 32 items × 9 bytes max = 288 bytes capacity
@@ -75,7 +75,7 @@ fn canonical_toggle_emits_initial_then_flips_and_rejects_wrong_identity() {
     );
 }
 
-/// Trigger host-operation completion with wrong request ID fails.
+/// Trigger Host Call completion with wrong request ID fails.
 #[test]
 fn trigger_rejects_wrong_request_id() {
     let mut store = make_value_store();
@@ -89,10 +89,10 @@ fn trigger_rejects_wrong_request_id() {
         pending: None,
     };
     op.start();
-    let action = op.resume(OperationInput::HostOperationCompleted {
+    let action = op.resume(OperationInput::HostCallCompleted {
         request: RequestId(1),
-        outcome: HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        outcome: HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output: None,
             failure: None,
         },
@@ -136,7 +136,7 @@ fn trigger_full_sixteen_cycles_reach_complete() {
     assert!(
         matches!(
             action,
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(0),
                 ..
             }
@@ -145,10 +145,10 @@ fn trigger_full_sixteen_cycles_reach_complete() {
     );
 
     for cycle in 0..N {
-        let complete_action = op.resume(OperationInput::HostOperationCompleted {
+        let complete_action = op.resume(OperationInput::HostCallCompleted {
             request: RequestId(cycle as u32),
-            outcome: HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            outcome: HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -171,7 +171,7 @@ fn trigger_full_sixteen_cycles_reach_complete() {
             );
         } else {
             match advance_action {
-                OperationAction::RequestHostOperation { request, input, .. } => {
+                OperationAction::RequestHostCall { request, input, .. } => {
                     assert_eq!(
                         request,
                         RequestId((cycle + 1) as u32),
@@ -186,7 +186,7 @@ fn trigger_full_sixteen_cycles_reach_complete() {
                     );
                 }
                 other => {
-                    panic!("cycle {cycle}: advance should RequestHostOperation, got {other:?}")
+                    panic!("cycle {cycle}: advance should RequestHostCall, got {other:?}")
                 }
             }
         }

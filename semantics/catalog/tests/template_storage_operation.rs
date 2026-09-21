@@ -1,7 +1,7 @@
 #![cfg(feature = "kernel-operation")]
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
+    OperationAction, OperationInput, PortId, RequestId, ValueRef,
 };
 use conduit_semantic_catalog::TemplateStorageOperation;
 
@@ -19,10 +19,10 @@ fn input(bytes: u32) -> OperationInput {
     }
 }
 fn completed(request: u32) -> OperationInput {
-    OperationInput::HostOperationCompleted {
+    OperationInput::HostCallCompleted {
         request: RequestId(request),
-        outcome: HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        outcome: HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output: Some(BoundedValueRef::new(value(10), 4096).unwrap()),
             failure: None,
         },
@@ -38,9 +38,9 @@ fn exact_host_bounds_accept_and_oversize_refuses() {
         let mut operation = TemplateStorageOperation::new(2, bound);
         assert_eq!(
             operation.resume(input(bound)),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(0),
-                operation: HostOperationId(0),
+                operation: HostCallId(0),
                 input: BoundedValueRef::new(value(bound), bound).unwrap(),
             }
         );
@@ -58,8 +58,8 @@ fn finite_commands_emit_exactly_then_refuse_excess_and_allow_closure() {
     assert_eq!(operation.start(), OperationAction::Await);
     for request in 0..2 {
         assert!(
-            matches!(operation.resume(input(10)), OperationAction::RequestHostOperation {
-            request: RequestId(actual), operation: HostOperationId(0), ..
+            matches!(operation.resume(input(10)), OperationAction::RequestHostCall {
+            request: RequestId(actual), operation: HostCallId(0), ..
         } if actual == request)
         );
         assert_eq!(
@@ -97,10 +97,10 @@ fn cancellation_invalidates_pending_completion_and_host_failures_remain_exact() 
         detail: 4,
     };
     assert_eq!(
-        operation.resume(OperationInput::HostOperationCompleted {
+        operation.resume(OperationInput::HostCallCompleted {
             request: RequestId(0),
-            outcome: HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            outcome: HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(reason),
             }

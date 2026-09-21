@@ -60,7 +60,7 @@ fn portable_drive_meaning_has_one_effect_free_prewake_projection() {
         .iter()
         .filter(|placement| placement.kind_id.as_str().starts_with("robotics/"))
         .all(|placement| {
-            placement.host_operations.is_empty()
+            placement.host_calls.is_empty()
                 && placement.resources.is_empty()
                 && placement.authority.is_empty()
                 && placement.implementation_id.as_str().contains("prewake")

@@ -28,7 +28,7 @@ fn offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from("browser/bounded-record-transcript@1"),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-net/bounded-record-transcript@1"),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },

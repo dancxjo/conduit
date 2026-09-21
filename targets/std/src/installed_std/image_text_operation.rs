@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId,
+    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
+    RequestId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -34,18 +34,18 @@ impl ImageTextOperation {
                 } else {
                     conduit_human::MAXIMUM_IMAGE_TEXT_CAPTION_BYTES as u32
                 };
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(if port == PortId(0) { 1 } else { 0 }),
+                    operation: HostCallId(if port == PortId(0) { 1 } else { 0 }),
                     input: match BoundedValueRef::new(value, maximum) {
                         Ok(value) => value,
                         Err(_) => return InstalledOperation::fail(157),
                     },
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 self.pending = None;
@@ -141,7 +141,7 @@ impl ImageTextHost {
                 self.caption.extend_from_slice(input);
                 self.has_caption = true;
             }
-            _ => return Err("unknown image-text host operation".into()),
+            _ => return Err("unknown image-text Host Call".into()),
         }
         let Some((width, height)) = self.dimensions else {
             return Ok(None);
@@ -297,7 +297,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || !placement.configuration.is_empty()
         || !placement.resources.is_empty()
     {

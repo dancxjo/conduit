@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId,
 };
 use conduit_web::{JsonRefusal, JsonValue};
 use std::vec::Vec;
@@ -45,9 +45,9 @@ impl JsonHost {
         contract: &str,
         input: &[u8],
     ) -> Result<&'a [u8], u16> {
-        let encoded = if contract == conduit_std_offers::JSON_COLLECTION_STEP_HOST_OPERATION {
+        let encoded = if contract == conduit_std_offers::JSON_COLLECTION_STEP_HOST_CALL {
             conduit_web::json_collection_step_bytes(input).map_err(collection_failure_detail)?
-        } else if contract == conduit_std_offers::JSON_BOOLEAN_SUMMARY_HOST_OPERATION {
+        } else if contract == conduit_std_offers::JSON_BOOLEAN_SUMMARY_HOST_CALL {
             let field = self
                 .summary_fields
                 .get(node)
@@ -103,9 +103,9 @@ impl JsonOperation {
             } if self.pending.is_none() && self.next < 4 => {
                 let request = RequestId(self.next);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: match BoundedValueRef::new(
                         value,
                         conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
@@ -115,23 +115,23 @@ impl JsonOperation {
                     },
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.next += 1;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Cancelled, _, _) => OperationAction::Fail(Failure {
+                    (HostCallDisposition::Cancelled, _, _) => OperationAction::Fail(Failure {
                         code: FailureCode::Cancelled,
                         detail: 0,
                     }),
-                    (HostOperationDisposition::Failed, None, Some(failure)) => {
+                    (HostCallDisposition::Failed, None, Some(failure)) => {
                         OperationAction::Fail(failure)
                     }
                     _ => InstalledOperation::fail(102),
@@ -155,12 +155,8 @@ impl JsonOperation {
 
 pub(super) fn transform(contract: &str, input: &[u8]) -> Result<Vec<u8>, JsonRefusal> {
     match contract {
-        conduit_std_offers::JSON_ENCODE_HOST_OPERATION => {
-            JsonValue::decode_info(input)?.encode_text()
-        }
-        conduit_std_offers::JSON_DECODE_HOST_OPERATION => {
-            JsonValue::decode_text(input)?.encode_info()
-        }
+        conduit_std_offers::JSON_ENCODE_HOST_CALL => JsonValue::decode_info(input)?.encode_text(),
+        conduit_std_offers::JSON_DECODE_HOST_CALL => JsonValue::decode_text(input)?.encode_info(),
         _ => Err(JsonRefusal::NonCanonicalValue),
     }
 }
@@ -176,7 +172,7 @@ pub(super) fn budget(
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
     {
         return Err("planned JSON identity differs from installed realization".into());
     }
@@ -235,10 +231,10 @@ fn collection_failure_detail(error: conduit_web::JsonCollectionRefusal) -> u16 {
 pub(super) fn matches(contract: &str) -> bool {
     matches!(
         contract,
-        conduit_std_offers::JSON_ENCODE_HOST_OPERATION
-            | conduit_std_offers::JSON_DECODE_HOST_OPERATION
-            | conduit_std_offers::JSON_COLLECTION_STEP_HOST_OPERATION
-            | conduit_std_offers::JSON_BOOLEAN_SUMMARY_HOST_OPERATION
+        conduit_std_offers::JSON_ENCODE_HOST_CALL
+            | conduit_std_offers::JSON_DECODE_HOST_CALL
+            | conduit_std_offers::JSON_COLLECTION_STEP_HOST_CALL
+            | conduit_std_offers::JSON_BOOLEAN_SUMMARY_HOST_CALL
     )
 }
 

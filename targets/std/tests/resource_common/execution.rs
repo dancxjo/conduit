@@ -1,11 +1,11 @@
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, Operation, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, HostCallDisposition, HostCallId, Operation, OperationAction, OperationInput,
+    PortId, RequestId, ValueRef,
 };
 pub struct FrameOperation {
     pub input: Option<PortId>,
     pub output: Option<(PortId, ValueRef)>,
-    pub operation: Option<HostOperationId>,
+    pub operation: Option<HostCallId>,
 }
 impl Operation for FrameOperation {
     fn start(&mut self) -> OperationAction {
@@ -21,16 +21,16 @@ impl Operation for FrameOperation {
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
             OperationInput::Value { port, value } if Some(port) == self.input => {
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(1),
                     operation: self.operation.unwrap(),
                     input: BoundedValueRef::new(value, 512).unwrap(),
                 }
             }
-            OperationInput::HostOperationCompleted {
+            OperationInput::HostCallCompleted {
                 request: RequestId(1),
                 outcome,
-            } if outcome.disposition == HostOperationDisposition::Completed => self.emit(),
+            } if outcome.disposition == HostCallDisposition::Completed => self.emit(),
             _ => OperationAction::Fail(conduit_kernel::Failure {
                 code: conduit_kernel::FailureCode::InvalidInput,
                 detail: 1,

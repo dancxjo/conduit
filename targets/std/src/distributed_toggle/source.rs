@@ -4,7 +4,7 @@
 //! and drives the WebSocket session to the browser sink host.
 //!
 //! Stdin reads are performed exclusively inside `complete_trigger_wait`,
-//! i.e. within the admitted await-trigger host-operation lifecycle.
+//! i.e. within the admitted await-trigger Host Call lifecycle.
 //!
 //! Session/line transport lives in `line.rs`; tests live in `source_tests.rs`.
 
@@ -13,12 +13,11 @@ use super::plan::exact_distributed_toggle_plan;
 use crate::websocket::NativeWebSocketListener;
 use conduit_core::{bind_active_play, PlanFragment};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedSignLog, HostedValueStore, RemoteEndpointId, RequestId,
-    ValueStorage,
+    CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition, HostCallId, HostCallOutcome,
+    HostedSignLog, HostedValueStore, RemoteEndpointId, RequestId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -86,11 +85,11 @@ impl DistributedToggleSource {
             || lowered.cords.len() != 2
             || lowered.remote_endpoints.len() != 1
             || lowered.remote_endpoints[0].direction != RemoteCordDirection::Egress
-            || lowered.host_operations.len() != 1
+            || lowered.host_calls.len() != 1
         {
             return Err(format!(
                 "source fragment did not lower to two nodes with one local and one remote cord: nodes={} cords={} remote_endpoints={} host_ops={}",
-                lowered.nodes.len(), lowered.cords.len(), lowered.remote_endpoints.len(), lowered.host_operations.len()
+                lowered.nodes.len(), lowered.cords.len(), lowered.remote_endpoints.len(), lowered.host_calls.len()
             ));
         }
 
@@ -165,12 +164,9 @@ impl DistributedToggleSource {
         }
         routes.seal().map_err(|error| format!("{error:?}"))?;
 
-        let mut host_bindings = FixedHostOperationBindings::<2>::new(1);
+        let mut host_bindings = FixedHostCallBindings::<2>::new(1);
         host_bindings
-            .install(
-                lowered.host_operations[0].node,
-                lowered.host_operations[0].binding,
-            )
+            .install(lowered.host_calls[0].node, lowered.host_calls[0].binding)
             .map_err(|error| format!("{error:?}"))?;
         host_bindings.seal().map_err(|error| format!("{error:?}"))?;
 
@@ -243,7 +239,7 @@ impl DistributedToggleSource {
         )
         .map_err(|error| format!("{error:?}"))?;
 
-        let scheduler = ToggleScheduler::new_with_host_operations(
+        let scheduler = ToggleScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()
@@ -279,7 +275,7 @@ impl DistributedToggleSource {
                     &lowered.identity,
                     trigger_node,
                     RequestId(sequence as u32),
-                    HostOperationId(0),
+                    HostCallId(0),
                 )
                 .map_err(|error| format!("{error:?}"))?;
         }
@@ -329,7 +325,7 @@ impl DistributedToggleSource {
 
     fn complete_trigger_wait<R: BufRead>(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         report: &mut impl Write,
         stdin: &mut R,
         trigger_index: usize,
@@ -357,11 +353,11 @@ impl DistributedToggleSource {
             );
         }
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },

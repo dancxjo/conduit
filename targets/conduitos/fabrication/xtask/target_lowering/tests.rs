@@ -149,7 +149,7 @@ fn http_lowering_rejects_each_missing_prerequisite_and_every_leak() {
     for missing in 0..8 {
         let mut incomplete = http.clone();
         match missing {
-            0 => incomplete.host_operations.clear(),
+            0 => incomplete.host_calls.clear(),
             1..=4 => {
                 incomplete.resource_budgets.remove(missing - 1);
             }
@@ -168,7 +168,7 @@ fn http_lowering_rejects_each_missing_prerequisite_and_every_leak() {
         "../../../profiles/conduitos-headless.profile.json"
     ));
     let mut leaked = headless.clone();
-    leaked.host_operations.push(http.host_operations[0].clone());
+    leaked.host_calls.push(http.host_calls[0].clone());
     assert!(lower(&leaked)
         .unwrap_err()
         .to_string()
@@ -183,7 +183,7 @@ fn lowering_rejects_missing_and_leaked_graphical_closure() {
     for remove in 0..5 {
         let mut incomplete = native.clone();
         match remove {
-            0 => incomplete.host_operations.clear(),
+            0 => incomplete.host_calls.clear(),
             1 => incomplete.facilities.clear(),
             2 => incomplete.resource_budgets.clear(),
             3 => incomplete.base_selections.clear(),
@@ -202,7 +202,7 @@ fn lowering_rejects_missing_and_leaked_graphical_closure() {
     for leak in 0..5 {
         let mut leaked = headless.clone();
         match leak {
-            0 => leaked.host_operations.push(PRESENT_OPERATION.into()),
+            0 => leaked.host_calls.push(PRESENT_OPERATION.into()),
             1 => leaked.facilities.push(NATIVE_COMPOSITOR.into()),
             2 => leaked
                 .resource_budgets

@@ -13,17 +13,16 @@ use conduit_form::{
 };
 use conduit_kernel::{
     scheduler::{CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver},
-    BoundedValueRef, CordEndpoint, CordId, Failure, FailureCode, FixedHostOperationBindings,
-    FixedRoutes, HostOperationBinding, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEvent, KernelEventKind, NodeId,
-    Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
-    SignQuery, ValueRef, ValueStorage,
+    BoundedValueRef, CordEndpoint, CordId, Failure, FailureCode, FixedHostCallBindings,
+    FixedRoutes, HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog,
+    HostedValueStore, KernelEvent, KernelEventKind, NodeId, Operation, OperationAction,
+    OperationInput, PortId, RequestId, RouteRange, RouteTarget, SignQuery, ValueRef, ValueStorage,
 };
 use conduit_std_host::{evolve_reaction_diffusion_hosted, reaction_diffusion_std_offer};
 
 const SOURCE_NODE: NodeId = NodeId(0);
 const EVOLVE_NODE: NodeId = NodeId(1);
-const OPERATION: HostOperationId = HostOperationId(0);
+const OPERATION: HostCallId = HostCallId(0);
 const REQUEST: RequestId = RequestId(1);
 const MAX_INPUT_BYTES: u32 =
     4 + REACTION_DIFFUSION_MAXIMUM_STATE_BYTES + REACTION_DIFFUSION_REQUEST_BYTES;
@@ -68,17 +67,17 @@ impl Operation for TestOperation {
             return invalid(3);
         }
         *pending = true;
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: REQUEST,
             operation: OPERATION,
             input: BoundedValueRef::new(value, MAX_INPUT_BYTES).unwrap(),
         }
     }
 
-    fn resume_host_operation(
+    fn resume_host_call(
         &mut self,
         request: RequestId,
-        outcome: HostOperationOutcome,
+        outcome: HostCallOutcome,
         canonical: Option<&[u8]>,
     ) -> OperationAction {
         let Self::Evolve {
@@ -88,9 +87,7 @@ impl Operation for TestOperation {
         else {
             return invalid(4);
         };
-        if request != REQUEST
-            || !*pending
-            || outcome.disposition != HostOperationDisposition::Completed
+        if request != REQUEST || !*pending || outcome.disposition != HostCallDisposition::Completed
         {
             return invalid(5);
         }
@@ -141,11 +138,11 @@ fn canonical_example_executes_the_hosted_reference_through_the_production_kernel
     let encoded = output.encode().unwrap();
     let output_ref = scheduler.store_host_value(&encoded).unwrap();
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(output_ref, REACTION_DIFFUSION_MAXIMUM_STATE_BYTES)
                         .unwrap(),
@@ -162,7 +159,7 @@ fn canonical_example_executes_the_hosted_reference_through_the_production_kernel
     assert_eq!(*generation, Some(3));
     assert!(scheduler
         .signs()
-        .contains_kind(KernelEventKind::HostOperationCompleted));
+        .contains_kind(KernelEventKind::HostCallCompleted));
     assert!(scheduler
         .signs()
         .contains_kind(KernelEventKind::OperationCompleted));
@@ -203,22 +200,22 @@ fn assert_canonical_example_checks_and_plans() {
 }
 
 #[test]
-fn cancellation_prevents_the_admitted_host_operation_from_becoming_evolution() {
+fn cancellation_prevents_the_admitted_host_call_from_becoming_evolution() {
     let mut scheduler = scheduler();
     let request = next_request(&mut scheduler);
     scheduler.cancel().unwrap();
-    assert_eq!(scheduler.pending_host_operation_count(), 0);
+    assert_eq!(scheduler.pending_host_call_count(), 0);
     assert_eq!(
-        scheduler.complete_host_operation(
+        scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
         ),
-        Err(conduit_kernel::scheduler::SchedulerError::HostOperationCompletionRejected)
+        Err(conduit_kernel::scheduler::SchedulerError::HostCallCompletionRejected)
     );
     assert_eq!(
         scheduler.run(16),
@@ -249,11 +246,11 @@ fn scheduler() -> Scheduler {
         )
         .unwrap();
     routes.seal().unwrap();
-    let mut bindings = FixedHostOperationBindings::<2>::new(1);
+    let mut bindings = FixedHostCallBindings::<2>::new(1);
     bindings
         .install(
             EVOLVE_NODE,
-            HostOperationBinding {
+            HostCallBinding {
                 operation: OPERATION,
                 maximum_input_bytes: MAX_INPUT_BYTES,
                 maximum_output_bytes: REACTION_DIFFUSION_MAXIMUM_STATE_BYTES,
@@ -262,7 +259,7 @@ fn scheduler() -> Scheduler {
         .unwrap();
     bindings.seal().unwrap();
     let signs = HostedSignLog::new(32, (32 * core::mem::size_of::<KernelEvent>()) as u32).unwrap();
-    FixedScheduler::new_with_host_operations(
+    FixedScheduler::new_with_host_calls(
         [
             NodeSpec {
                 input_cords: [None],
@@ -304,14 +301,14 @@ fn scheduler() -> Scheduler {
     .unwrap()
 }
 
-fn next_request(scheduler: &mut Scheduler) -> conduit_kernel::scheduler::HostOperationRequest {
+fn next_request(scheduler: &mut Scheduler) -> conduit_kernel::scheduler::HostCallRequest {
     for _ in 0..8 {
         if let Some(request) = scheduler.next_host_request() {
             return request;
         }
         scheduler.step().unwrap();
     }
-    panic!("reaction-diffusion host operation was not dispatched")
+    panic!("reaction-diffusion Host Call was not dispatched")
 }
 
 fn encode_input() -> Vec<u8> {

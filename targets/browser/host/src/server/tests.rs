@@ -118,9 +118,7 @@ fn bare_host_serves_the_bounded_generic_operation_adapter() {
         });
         let mut stream = TcpStream::connect(address).unwrap();
         stream
-            .write_all(
-                b"GET /assets/browser-host-operations.mjs HTTP/1.1\r\nHost: localhost\r\n\r\n",
-            )
+            .write_all(b"GET /assets/browser-host-calls.mjs HTTP/1.1\r\nHost: localhost\r\n\r\n")
             .unwrap();
         let mut response = Vec::new();
         stream.read_to_end(&mut response).unwrap();
@@ -128,7 +126,7 @@ fn bare_host_serves_the_bounded_generic_operation_adapter() {
         assert!(response.starts_with("HTTP/1.1 200 OK"));
         assert!(response.contains("Content-Type: text/javascript; charset=utf-8"));
         assert!(response.contains("conduit.host/browser-effects@1"));
-        assert!(response.contains("createBrowserHostOperations"));
+        assert!(response.contains("createBrowserHostCalls"));
     });
     std::fs::remove_file(runtime).unwrap();
 }

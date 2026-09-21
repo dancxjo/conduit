@@ -1,12 +1,12 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, Back,
-    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, PlannedGear,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostCallContractId,
+    HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) const CLIENT_IMPLEMENTATION: &str = "std/kernel-http-client-http1";
@@ -56,7 +56,7 @@ pub(crate) fn client_offer_for(
         .unwrap()
         .value_kind()
         .clone();
-    let operation = host_operation(
+    let operation = host_call(
         CLIENT_OPERATION,
         request_kind.as_str(),
         conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
@@ -69,7 +69,7 @@ pub(crate) fn client_offer_for(
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operations: vec![operation.clone()],
+            host_calls: vec![operation.clone()],
             resource_requirements: vec![resource_requirement(CLIENT_RESOURCE, 1)],
             authority_requirements: vec![authority(
                 CLIENT_AUTHORITY,
@@ -93,13 +93,13 @@ pub(crate) fn server_offer() -> CapabilityOffer {
         .unwrap()
         .value_kind()
         .clone();
-    let accept = host_operation(
+    let accept = host_call(
         SERVER_ACCEPT_OPERATION,
         request_kind.as_str(),
         0,
         conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
     );
-    let respond = host_operation(
+    let respond = host_call(
         SERVER_RESPOND_OPERATION,
         response_kind.as_str(),
         conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
@@ -112,7 +112,7 @@ pub(crate) fn server_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(SERVER_PROFILE),
             implementation_id: ImplementationId::from(SERVER_IMPLEMENTATION),
             artifact_id: ArtifactId::from(SERVER_ARTIFACT),
-            host_operations: vec![accept.clone(), respond.clone()],
+            host_calls: vec![accept.clone(), respond.clone()],
             resource_requirements: vec![resource_requirement(SERVER_RESOURCE, 1)],
             authority_requirements: vec![
                 authority(SERVER_AUTHORITY, &accept, request_kind.as_str()),
@@ -123,14 +123,9 @@ pub(crate) fn server_offer() -> CapabilityOffer {
     .build()
 }
 
-fn host_operation(
-    contract: &str,
-    subject: &str,
-    input: u32,
-    output: u32,
-) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(contract),
+fn host_call(contract: &str, subject: &str, input: u32, output: u32) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(contract),
         target_kind: Some(kind_id(subject)),
         maximum_in_flight: 1,
         maximum_input_bytes: input,
@@ -140,12 +135,12 @@ fn host_operation(
 
 fn authority(
     contract: &str,
-    operation: &HostOperationRequirement,
+    operation: &HostCallRequirement,
     subject: &str,
 ) -> AuthorityRequirement {
     AuthorityRequirement {
         contract_id: AuthorityContractId::from(contract),
-        host_operation_contract_id: operation.contract_id.clone(),
+        host_call_contract_id: operation.contract_id.clone(),
         subject_kind: kind_id(subject),
     }
 }
@@ -167,9 +162,9 @@ impl HttpClientOperation {
                 value,
             } if !self.pending => {
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(u32::from(self.completed)),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(
                         value,
                         conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
@@ -177,23 +172,21 @@ impl HttpClientOperation {
                     .expect("planned HTTP request is bounded"),
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending && request == RequestId(u32::from(self.completed)) =>
             {
                 self.pending = false;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.completed += 1;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Denied, _, _) => {
-                        fail(FailureCode::HostOperationDenied, 1)
-                    }
-                    (HostOperationDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 2),
-                    (HostOperationDisposition::Failed, _, Some(failure)) => {
+                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 1),
+                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 2),
+                    (HostCallDisposition::Failed, _, Some(failure)) => {
                         OperationAction::Fail(failure)
                     }
                     _ => fail(FailureCode::InvalidLifecycle, 3),
@@ -241,9 +234,9 @@ impl HttpServerOperation {
                 value,
             } if self.pending.is_none() && self.accepted > 0 => {
                 self.pending = Some(ServerPending::Respond);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(u32::from(self.accepted) * 2 - 1),
-                    operation: HostOperationId(1),
+                    operation: HostCallId(1),
                     input: BoundedValueRef::new(
                         value,
                         conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
@@ -251,7 +244,7 @@ impl HttpServerOperation {
                     .expect("planned HTTP response is bounded"),
                 }
             }
-            OperationInput::HostOperationCompleted { outcome, .. } => {
+            OperationInput::HostCallCompleted { outcome, .. } => {
                 let Some(pending) = self.pending.take() else {
                     return fail(FailureCode::InvalidLifecycle, 10);
                 };
@@ -261,19 +254,14 @@ impl HttpServerOperation {
                     outcome.output,
                     outcome.failure,
                 ) {
-                    (
-                        ServerPending::Accept,
-                        HostOperationDisposition::Completed,
-                        Some(output),
-                        None,
-                    ) => {
+                    (ServerPending::Accept, HostCallDisposition::Completed, Some(output), None) => {
                         self.accepted += 1;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (ServerPending::Respond, HostOperationDisposition::Completed, None, None) => {
+                    (ServerPending::Respond, HostCallDisposition::Completed, None, None) => {
                         if self.accepted == conduit_web::HTTP_MAXIMUM_IN_FLIGHT {
                             self.released = Some(self.empty);
                             OperationAction::Complete
@@ -281,13 +269,9 @@ impl HttpServerOperation {
                             self.request_accept()
                         }
                     }
-                    (_, HostOperationDisposition::Denied, _, _) => {
-                        fail(FailureCode::HostOperationDenied, 11)
-                    }
-                    (_, HostOperationDisposition::Cancelled, _, _) => {
-                        fail(FailureCode::Cancelled, 12)
-                    }
-                    (_, HostOperationDisposition::Failed, _, Some(failure)) => {
+                    (_, HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 11),
+                    (_, HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 12),
+                    (_, HostCallDisposition::Failed, _, Some(failure)) => {
                         OperationAction::Fail(failure)
                     }
                     _ => fail(FailureCode::InvalidLifecycle, 13),
@@ -315,9 +299,9 @@ impl HttpServerOperation {
 
     fn request_accept(&mut self) -> OperationAction {
         self.pending = Some(ServerPending::Accept);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(u32::from(self.accepted) * 2),
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(self.empty, 0)
                 .expect("empty HTTP accept command is bounded"),
         }
@@ -384,7 +368,7 @@ fn validate(placement: &PlannedGear, offer: &CapabilityOffer) -> Result<(), Stri
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
     {
         return Err("planned HTTP identity differs from the installed realization".into());
     }
@@ -421,7 +405,7 @@ mod tests {
             assert_eq!(offer.inputs, contract.inputs);
             assert_eq!(offer.outputs, contract.outputs);
             assert_eq!(offer.limits, contract.limits);
-            assert!(!offer.host_operations.is_empty());
+            assert!(!offer.host_calls.is_empty());
             assert_eq!(offer.resource_requirements.len(), 1);
             assert!(!offer.authority_requirements.is_empty());
         }

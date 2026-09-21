@@ -4,7 +4,7 @@ use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
 use super::BrowserOperation;
-use conduit_core::{resource_requirement, CapabilityOffer, HostOperationRequirement, PlannedGear};
+use conduit_core::{resource_requirement, CapabilityOffer, HostCallRequirement, PlannedGear};
 use conduit_kernel::HostedValueStore;
 
 pub(crate) const EVENT_IMPLEMENTATION: &str = "browser/application-event-source@1";
@@ -84,7 +84,7 @@ fn offer(
             implementation,
             artifact: ARTIFACT,
         },
-        vec![HostOperationRequirement {
+        vec![HostCallRequirement {
             contract_id: operation.into(),
             target_kind: None,
             maximum_in_flight: 1,

@@ -1,5 +1,5 @@
 use super::*;
-use conduit_kernel::{HostOperationOutcome, ValueRef};
+use conduit_kernel::{HostCallOutcome, ValueRef};
 
 fn value(slot: u16) -> ValueRef {
     ValueRef {
@@ -36,10 +36,10 @@ fn quantity_completion_checks_output_bound_and_preserves_failure_detail() {
         detail: 4,
     };
     assert_eq!(
-        active.resume(OperationInput::HostOperationCompleted {
+        active.resume(OperationInput::HostCallCompleted {
             request: RequestId(0),
-            outcome: HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            outcome: HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
@@ -58,10 +58,10 @@ fn quantity_completion_checks_output_bound_and_preserves_failure_detail() {
         value: value(1),
     });
     assert!(matches!(
-        active.resume(OperationInput::HostOperationCompleted {
+        active.resume(OperationInput::HostCallCompleted {
             request: RequestId(0),
-            outcome: HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            outcome: HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(BoundedValueRef::new(value(2), SCALAR_ENCODED_LEN as u32).unwrap()),
                 failure: None,
             },
@@ -106,16 +106,16 @@ fn operation_requires_one_exact_completion_and_closure_is_terminal() {
             port: PortId(0),
             value: value(1),
         }),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(0),
             ..
         }
     ));
     assert!(matches!(
-        active.resume(OperationInput::HostOperationCompleted {
+        active.resume(OperationInput::HostCallCompleted {
             request: RequestId(0),
-            outcome: HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            outcome: HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(BoundedValueRef::new(value(2), SCALAR_ENCODED_LEN as u32).unwrap()),
                 failure: None,
             },
@@ -144,10 +144,10 @@ fn cancellation_clears_pending_transform_without_inventing_output() {
     assert!(operation.pending.is_none());
     assert!(operation.completed);
     assert!(matches!(
-        operation.resume(OperationInput::HostOperationCompleted {
+        operation.resume(OperationInput::HostCallCompleted {
             request: RequestId(0),
-            outcome: HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            outcome: HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(BoundedValueRef::new(value(2), SCALAR_ENCODED_LEN as u32).unwrap()),
                 failure: None,
             },

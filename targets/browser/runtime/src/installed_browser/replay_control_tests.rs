@@ -35,9 +35,9 @@ fn value(slot: u16) -> ValueRef {
     }
 }
 
-fn completed(value: Option<ValueRef>) -> HostOperationOutcome {
-    HostOperationOutcome {
-        disposition: HostOperationDisposition::Completed,
+fn completed(value: Option<ValueRef>) -> HostCallOutcome {
+    HostCallOutcome {
+        disposition: HostCallDisposition::Completed,
         output: value.map(|value| BoundedValueRef::new(value, 4096).unwrap()),
         failure: None,
     }
@@ -68,7 +68,7 @@ fn placement() -> PlannedGear {
         limits: offer.limits,
         inputs: offer.inputs,
         outputs: offer.outputs,
-        host_operations: offer.host_operations,
+        host_calls: offer.host_calls,
         resources: Vec::new(),
         authority: Vec::new(),
         pool_references: Vec::new(),
@@ -146,7 +146,7 @@ fn prepared_step_preserves_historical_and_playback_time_as_distinct_values() {
         .unwrap();
     let timeline = leaf("history/replay-timeline@1", replay_timeline());
     let initial = prepared
-        .execute(HOST_OPERATION, &timeline)
+        .execute(HOST_CALL, &timeline)
         .unwrap()
         .unwrap()
         .to_vec();
@@ -154,34 +154,28 @@ fn prepared_step_preserves_historical_and_playback_time_as_distinct_values() {
         conduit_time::decode_replay_state(payload(&initial, "history/replay-state@1")),
         Ok(conduit_time::ReplayState::Stopped)
     );
-    assert!(prepared
-        .execute(HOST_OPERATION, &initial)
-        .unwrap()
-        .is_none());
+    assert!(prepared.execute(HOST_CALL, &initial).unwrap().is_none());
 
     let start = leaf(
         "history/replay-control@1",
         replay_command(conduit_time::ReplayCommand::Start),
     );
     let started = prepared
-        .execute(HOST_OPERATION, &start)
+        .execute(HOST_CALL, &start)
         .unwrap()
         .unwrap()
         .to_vec();
-    assert!(prepared
-        .execute(HOST_OPERATION, &started)
-        .unwrap()
-        .is_none());
+    assert!(prepared.execute(HOST_CALL, &started).unwrap().is_none());
     let step = leaf(
         "history/replay-control@1",
         replay_command(conduit_time::ReplayCommand::Step),
     );
     let state = prepared
-        .execute(HOST_OPERATION, &step)
+        .execute(HOST_CALL, &step)
         .unwrap()
         .unwrap()
         .to_vec();
-    let event = prepared.execute(HOST_OPERATION, &state).unwrap().unwrap();
+    let event = prepared.execute(HOST_CALL, &state).unwrap().unwrap();
     let event =
         conduit_time::decode_replay_event(payload(event, "history/replay-event@1")).unwrap();
     assert_eq!(event.historical_identity, "memory/amber");
@@ -192,21 +186,21 @@ fn prepared_step_preserves_historical_and_playback_time_as_distinct_values() {
 #[test]
 fn state_output_becomes_the_owned_event_request_token() {
     let mut operation = ReplayControlOperation::new();
-    let OperationAction::RequestHostOperation {
+    let OperationAction::RequestHostCall {
         request,
-        operation: host_operation,
+        operation: host_call,
         ..
     } = operation.resume(OperationInput::Value {
         port: PortId(0),
         value: value(1),
     })
     else {
-        panic!("timeline input must request its exact host operation");
+        panic!("timeline input must request its exact Host Call");
     };
-    assert_eq!(host_operation, HostOperationId(0));
+    assert_eq!(host_call, HostCallId(0));
     let state = value(2);
     assert_eq!(
-        operation.resume(OperationInput::HostOperationCompleted {
+        operation.resume(OperationInput::HostCallCompleted {
             request,
             outcome: completed(Some(state)),
         }),
@@ -215,19 +209,19 @@ fn state_output_becomes_the_owned_event_request_token() {
             value: state,
         }
     );
-    let OperationAction::RequestHostOperation {
+    let OperationAction::RequestHostCall {
         request,
-        operation: host_operation,
+        operation: host_call,
         input,
     } = operation.advance()
     else {
         panic!("state emission must request the correlated event");
     };
-    assert_eq!(host_operation, HostOperationId(0));
+    assert_eq!(host_call, HostCallId(0));
     assert_eq!(input.value, state);
     let event = value(3);
     assert_eq!(
-        operation.resume(OperationInput::HostOperationCompleted {
+        operation.resume(OperationInput::HostCallCompleted {
             request,
             outcome: completed(Some(event)),
         }),
@@ -242,16 +236,16 @@ fn state_output_becomes_the_owned_event_request_token() {
 #[test]
 fn absent_event_and_closed_inputs_remain_explicit() {
     let mut operation = ReplayControlOperation::new();
-    let OperationAction::RequestHostOperation { request, .. } =
+    let OperationAction::RequestHostCall { request, .. } =
         operation.resume(OperationInput::Value {
             port: PortId(2),
             value: value(1),
         })
     else {
-        panic!("clock input must request its exact host operation");
+        panic!("clock input must request its exact Host Call");
     };
     assert_eq!(
-        operation.resume(OperationInput::HostOperationCompleted {
+        operation.resume(OperationInput::HostCallCompleted {
             request,
             outcome: completed(None),
         }),
@@ -275,7 +269,7 @@ fn absent_event_and_closed_inputs_remain_explicit() {
 fn completed_requests_reuse_two_fixed_stage_identities_for_long_lived_replay() {
     let mut operation = ReplayControlOperation::new();
     for sequence in 0..100_000 {
-        let OperationAction::RequestHostOperation { request, .. } =
+        let OperationAction::RequestHostCall { request, .. } =
             operation.resume(OperationInput::Value {
                 port: PortId(2),
                 value: value(1),
@@ -285,7 +279,7 @@ fn completed_requests_reuse_two_fixed_stage_identities_for_long_lived_replay() {
         };
         assert_eq!(request, RequestId(0), "processing request {sequence}");
         assert!(matches!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request,
                 outcome: completed(Some(value(2))),
             }),
@@ -294,12 +288,12 @@ fn completed_requests_reuse_two_fixed_stage_identities_for_long_lived_replay() {
                 ..
             }
         ));
-        let OperationAction::RequestHostOperation { request, .. } = operation.advance() else {
+        let OperationAction::RequestHostCall { request, .. } = operation.advance() else {
             panic!("state emission must request its event");
         };
         assert_eq!(request, RequestId(1), "event request {sequence}");
         assert_eq!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request,
                 outcome: completed(None),
             }),
@@ -312,7 +306,7 @@ fn completed_requests_reuse_two_fixed_stage_identities_for_long_lived_replay() {
 #[test]
 fn a_noncurrent_reused_identity_cannot_complete_the_pending_stage() {
     let mut operation = ReplayControlOperation::new();
-    let OperationAction::RequestHostOperation { request, .. } =
+    let OperationAction::RequestHostCall { request, .. } =
         operation.resume(OperationInput::Value {
             port: PortId(0),
             value: value(1),
@@ -322,14 +316,14 @@ fn a_noncurrent_reused_identity_cannot_complete_the_pending_stage() {
     };
     assert_eq!(request, RequestId(0));
     assert_eq!(
-        operation.resume(OperationInput::HostOperationCompleted {
+        operation.resume(OperationInput::HostCallCompleted {
             request: RequestId(1),
             outcome: completed(None),
         }),
         fail(14)
     );
     assert_eq!(
-        operation.resume(OperationInput::HostOperationCompleted {
+        operation.resume(OperationInput::HostCallCompleted {
             request,
             outcome: completed(None),
         }),

@@ -10,8 +10,8 @@ use conduit_human::{
     CHORD_INFO_ID, KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 const SOURCE_KIND: &str = "conduit-test/key-event-source";
@@ -56,9 +56,9 @@ impl TestKeyEventSourceOperation {
 
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -88,9 +88,9 @@ impl TestKeyEventSourceOperation {
         let input = self.waits.get(self.next).copied()?;
         let request = RequestId(u32::try_from(self.next).ok()?);
         self.pending = Some(request);
-        Some(OperationAction::RequestHostOperation {
+        Some(OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(input, 8).ok()?,
         })
     }
@@ -177,8 +177,8 @@ fn offer(
         },
         inputs,
         outputs,
-        host_operations: if kind == SOURCE_KIND {
-            vec![conduit_core::wait_host_operation_requirement()]
+        host_calls: if kind == SOURCE_KIND {
+            vec![conduit_core::wait_host_call_requirement()]
         } else {
             Vec::new()
         },

@@ -1,8 +1,8 @@
 //! Operations owned only by the bounded `state/latest > flow/tee` proof.
 
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, Operation, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, HostCallDisposition, HostCallId, Operation, OperationAction, OperationInput,
+    PortId, RequestId, ValueRef,
 };
 
 pub(super) enum FlowStateOperation {
@@ -101,20 +101,20 @@ impl Operation for FlowStateOperation {
                     return invalid(51);
                 };
                 *pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
             (
                 Self::Sink { pending, complete },
-                OperationInput::HostOperationCompleted {
+                OperationInput::HostCallCompleted {
                     request: RequestId(0),
                     outcome,
                 },
             ) if *pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {

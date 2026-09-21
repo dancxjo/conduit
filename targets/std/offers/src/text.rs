@@ -2,7 +2,7 @@
 
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
 };
 
 pub const TEXT_LITERAL_EXECUTION_PROFILE: &str = "conduit.std/text-literal-kernel-hosted@1";
@@ -13,20 +13,20 @@ pub const TEXT_UPPER_EXECUTION_PROFILE: &str = "conduit.std/text-upper-kernel-ho
 pub const TEXT_UPPER_IMPLEMENTATION: &str = "std/kernel-text-upper@1";
 pub const TEXT_UPPER_ARTIFACT: &str = "conduit-std-host/text-upper@1";
 pub const TEXT_UPPER_CAPABILITY: &str = "text-upper-v1";
-pub const TEXT_UPPER_HOST_OPERATION_CONTRACT: &str = "conduit.host/text-upper@1";
-pub const TEXT_UPPER_HOST_OPERATION_TARGET: &str = "text/uppercase-utf8";
+pub const TEXT_UPPER_HOST_CALL_CONTRACT: &str = "conduit.host/text-upper@1";
+pub const TEXT_UPPER_HOST_CALL_TARGET: &str = "text/uppercase-utf8";
 pub const TEXT_JOIN_EXECUTION_PROFILE: &str = "conduit.std/text-join-kernel-hosted@1";
 pub const TEXT_JOIN_IMPLEMENTATION: &str = "std/kernel-text-join@1";
 pub const TEXT_JOIN_ARTIFACT: &str = "conduit-std-host/text-join@1";
 pub const TEXT_JOIN_CAPABILITY: &str = "text-join-v1";
-pub const TEXT_JOIN_HOST_OPERATION_CONTRACT: &str = "conduit.host/text-join@1";
-pub const TEXT_JOIN_HOST_OPERATION_TARGET: &str = "text/prefix-concat-utf8";
+pub const TEXT_JOIN_HOST_CALL_CONTRACT: &str = "conduit.host/text-join@1";
+pub const TEXT_JOIN_HOST_CALL_TARGET: &str = "text/prefix-concat-utf8";
 pub const TEXT_MORSE_EXECUTION_PROFILE: &str = "conduit.std/text-morse-kernel-hosted@1";
 pub const TEXT_MORSE_IMPLEMENTATION: &str = "std/kernel-text-morse@1";
 pub const TEXT_MORSE_ARTIFACT: &str = "conduit-std-host/text-morse@1";
 pub const TEXT_MORSE_CAPABILITY: &str = "text-morse-v1";
-pub const TEXT_MORSE_HOST_OPERATION_CONTRACT: &str = "conduit.host/text-to-morse@1";
-pub const TEXT_MORSE_HOST_OPERATION_TARGET: &str = "text/morse-pattern";
+pub const TEXT_MORSE_HOST_CALL_CONTRACT: &str = "conduit.host/text-to-morse@1";
+pub const TEXT_MORSE_HOST_CALL_TARGET: &str = "text/morse-pattern";
 pub const ADDRESS_DETECT_EXECUTION_PROFILE: &str = "conduit.std/address-detect-kernel-hosted@1";
 pub const ADDRESS_DETECT_IMPLEMENTATION: &str = "std/kernel-address-detect@1";
 pub const ADDRESS_DETECT_ARTIFACT: &str = "conduit-std-host/address-detect@1";
@@ -52,9 +52,9 @@ pub fn text_upper_offer() -> CapabilityOffer {
         TEXT_UPPER_EXECUTION_PROFILE,
         TEXT_UPPER_IMPLEMENTATION,
         TEXT_UPPER_ARTIFACT,
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(TEXT_UPPER_HOST_OPERATION_CONTRACT),
-            target_kind: Some(kind_id(TEXT_UPPER_HOST_OPERATION_TARGET)),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(TEXT_UPPER_HOST_CALL_CONTRACT),
+            target_kind: Some(kind_id(TEXT_UPPER_HOST_CALL_TARGET)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
             maximum_output_bytes: conduit_text::MAX_TEXT_BYTES,
@@ -69,9 +69,9 @@ pub fn text_join_offer() -> CapabilityOffer {
         TEXT_JOIN_EXECUTION_PROFILE,
         TEXT_JOIN_IMPLEMENTATION,
         TEXT_JOIN_ARTIFACT,
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(TEXT_JOIN_HOST_OPERATION_CONTRACT),
-            target_kind: Some(kind_id(TEXT_JOIN_HOST_OPERATION_TARGET)),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(TEXT_JOIN_HOST_CALL_CONTRACT),
+            target_kind: Some(kind_id(TEXT_JOIN_HOST_CALL_TARGET)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
             maximum_output_bytes: conduit_text::MAX_TEXT_BYTES,
@@ -86,9 +86,9 @@ pub fn text_morse_offer() -> CapabilityOffer {
         TEXT_MORSE_EXECUTION_PROFILE,
         TEXT_MORSE_IMPLEMENTATION,
         TEXT_MORSE_ARTIFACT,
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(TEXT_MORSE_HOST_OPERATION_CONTRACT),
-            target_kind: Some(kind_id(TEXT_MORSE_HOST_OPERATION_TARGET)),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(TEXT_MORSE_HOST_CALL_CONTRACT),
+            target_kind: Some(kind_id(TEXT_MORSE_HOST_CALL_TARGET)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_text::MAXIMUM_MORSE_INPUT_BYTES as u32,
             maximum_output_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
@@ -104,15 +104,15 @@ pub fn address_detect_offer() -> CapabilityOffer {
         ADDRESS_DETECT_IMPLEMENTATION,
         ADDRESS_DETECT_ARTIFACT,
         vec![
-            HostOperationRequirement {
-                contract_id: HostOperationContractId::from(ADDRESS_DETECT_ADDRESSES_OPERATION),
+            HostCallRequirement {
+                contract_id: HostCallContractId::from(ADDRESS_DETECT_ADDRESSES_OPERATION),
                 target_kind: Some(kind_id(conduit_text::ADDRESS_DETECT_KIND)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_text::MAX_ADDRESS_SET_VALUE_BYTES as u32,
                 maximum_output_bytes: conduit_text::MAX_ADDRESS_DETECTION_VALUE_BYTES as u32,
             },
-            HostOperationRequirement {
-                contract_id: HostOperationContractId::from(ADDRESS_DETECT_RECOGNIZED_OPERATION),
+            HostCallRequirement {
+                contract_id: HostCallContractId::from(ADDRESS_DETECT_RECOGNIZED_OPERATION),
                 target_kind: Some(kind_id(conduit_text::ADDRESS_DETECT_KIND)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
@@ -129,7 +129,7 @@ fn offer(
     profile: &str,
     implementation: &str,
     artifact: &str,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
 ) -> CapabilityOffer {
     offer_semantic(
         contract.into_semantic_contract(),
@@ -137,7 +137,7 @@ fn offer(
         profile,
         implementation,
         artifact,
-        host_operations,
+        host_calls,
     )
 }
 
@@ -147,7 +147,7 @@ fn offer_semantic(
     profile: &str,
     implementation: &str,
     artifact: &str,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
 ) -> CapabilityOffer {
     BackOfferBuilder::new(
         contract,
@@ -156,7 +156,7 @@ fn offer_semantic(
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operations,
+            host_calls,
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },

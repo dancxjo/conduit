@@ -8,8 +8,8 @@ use alloc::{
 };
 use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, Kind, KindIdentity, PortDescriptor, PortDirection,
+    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostCallContractId,
+    HostCallRequirement, ImplementationId, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_core::{Back, BackOfferBuilder};
@@ -147,8 +147,8 @@ fn offer(
     resource: Option<&str>,
     authority: Option<&str>,
 ) -> CapabilityOffer {
-    let operation = HostOperationRequirement {
-        contract_id: HostOperationContractId::from(operation),
+    let operation = HostCallRequirement {
+        contract_id: HostCallContractId::from(operation),
         target_kind: Some(kind_id(kind)),
         maximum_in_flight: 1,
         maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
@@ -161,7 +161,7 @@ fn offer(
             execution_profile_id: ExecutionProfileId::from(APPLICATION_NETWORK_PROFILE),
             implementation_id: ImplementationId::from(format!("std/{kind}@1")),
             artifact_id: ArtifactId::from(APPLICATION_NETWORK_ARTIFACT),
-            host_operations: vec![operation.clone()],
+            host_calls: vec![operation.clone()],
             resource_requirements: resource
                 .map(|class| resource_requirement(class, 1))
                 .into_iter()
@@ -169,7 +169,7 @@ fn offer(
             authority_requirements: authority
                 .map(|contract| AuthorityRequirement {
                     contract_id: AuthorityContractId::from(contract),
-                    host_operation_contract_id: operation.contract_id,
+                    host_call_contract_id: operation.contract_id,
                     subject_kind: kind_id(kind),
                 })
                 .into_iter()

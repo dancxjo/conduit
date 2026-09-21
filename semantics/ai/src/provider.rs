@@ -9,9 +9,8 @@ use alloc::{
 use conduit_core::{
     kind_id, port_id, protected_resource_requirement, resource_requirement, ArtifactId,
     AuthorityContractId, AuthorityRequirement, Back, BackOfferBuilder, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, Kind, KindIdentity, PortDescriptor, PortDirection,
-    PortTemporal,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostCallContractId, HostCallRequirement,
+    ImplementationId, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{
     check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindProjection,
@@ -203,8 +202,8 @@ pub fn provider_offers() -> Vec<CapabilityOffer> {
 
 pub fn provider_http_offer() -> CapabilityOffer {
     let contract = conduit_web::http_client_semantics().into_semantic_contract();
-    let operation = HostOperationRequirement {
-        contract_id: HostOperationContractId::from(PROVIDER_HTTP_OPERATION),
+    let operation = HostCallRequirement {
+        contract_id: HostCallContractId::from(PROVIDER_HTTP_OPERATION),
         target_kind: Some(kind_id(conduit_web::HTTP_CLIENT_KIND)),
         maximum_in_flight: 1,
         maximum_input_bytes: conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
@@ -217,7 +216,7 @@ pub fn provider_http_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from("provider/http-hosted@1"),
             implementation_id: ImplementationId::from(PROVIDER_HTTP_IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-ai/provider-http-adapter@1"),
-            host_operations: vec![operation.clone()],
+            host_calls: vec![operation.clone()],
             resource_requirements: vec![
                 resource_requirement(PROVIDER_HTTP_RESOURCE, 1),
                 protected_resource_requirement(
@@ -228,7 +227,7 @@ pub fn provider_http_offer() -> CapabilityOffer {
             ],
             authority_requirements: vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(PROVIDER_ENDPOINT_AUTHORITY),
-                host_operation_contract_id: operation.contract_id,
+                host_call_contract_id: operation.contract_id,
                 subject_kind: kind_id(conduit_web::HTTP_CLIENT_KIND),
             }],
         },
@@ -344,7 +343,7 @@ fn adapter_offer(definition: KindProjection) -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from("provider/bounded-protocol@1"),
             implementation_id: ImplementationId::from(format!("provider/{slug}@1")),
             artifact_id: ArtifactId::from("conduit-ai/provider-protocol@1"),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },

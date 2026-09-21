@@ -334,7 +334,7 @@ pub fn check_host_configuration(
         host_core: descriptor.host_core.clone(),
         fragments: Vec::new(),
         capabilities: Vec::new(),
-        host_operations: descriptor.host_operations.clone(),
+        host_calls: descriptor.host_calls.clone(),
         resources: configuration.resources.clone(),
         bases: resolved_bases
             .iter()

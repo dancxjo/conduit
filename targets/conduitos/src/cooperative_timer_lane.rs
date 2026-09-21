@@ -5,12 +5,12 @@
 //! terminal progress.
 
 use conduit_kernel::{
-    BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, KernelEvent, NodeId, Operation, OperationAction, OperationInput, PortId,
-    RequestId, RouteRange, RouteTarget, SignSink, ValueStorage,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, NodeId,
+    Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
+    SignSink, ValueStorage,
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver,
+        CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, OperationDriver,
         SchedulerError, SchedulerStatus,
     },
 };
@@ -19,7 +19,7 @@ use crate::machine::KernelInterest;
 
 pub const TIMER_NODE: NodeId = NodeId(0);
 pub const TIMER_REQUEST: RequestId = RequestId(1);
-pub const TIMER_OPERATION: HostOperationId = HostOperationId(0);
+pub const TIMER_OPERATION: HostCallId = HostCallId(0);
 #[cfg(target_arch = "aarch64")]
 pub const LANE_ID: &str = "lane/aarch64/cooperative/0";
 #[cfg(target_arch = "x86")]
@@ -41,7 +41,7 @@ struct WaitOperation {
 
 impl Operation for WaitOperation {
     fn start(&mut self) -> OperationAction {
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: TIMER_REQUEST,
             operation: TIMER_OPERATION,
             input: self.duration,
@@ -50,9 +50,9 @@ impl Operation for WaitOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == TIMER_REQUEST
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -60,7 +60,7 @@ impl Operation for WaitOperation {
                 OperationAction::Complete
             }
             _ => OperationAction::Fail(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::HostOperationFailed,
+                code: conduit_kernel::FailureCode::HostCallFailed,
                 detail: 0xa2,
             }),
         }
@@ -102,10 +102,10 @@ impl AdmittedLane {
             }],
         )?;
         routes.seal()?;
-        let mut bindings = FixedHostOperationBindings::<1>::new(1);
+        let mut bindings = FixedHostCallBindings::<1>::new(1);
         bindings.install(
             TIMER_NODE,
-            HostOperationBinding {
+            HostCallBinding {
                 operation: TIMER_OPERATION,
                 maximum_input_bytes: 8,
                 maximum_output_bytes: 0,
@@ -118,7 +118,7 @@ impl AdmittedLane {
         })?;
         let sign_bytes = (SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32;
         Ok(Self {
-            scheduler: FixedScheduler::new_with_host_operations(
+            scheduler: FixedScheduler::new_with_host_calls(
                 [NodeSpec {
                     input_cords: [Some(CordId(0)); PORTS],
                     maximum_step_work: 1,
@@ -151,18 +151,16 @@ impl AdmittedLane {
         let request = self
             .scheduler
             .next_host_request()
-            .ok_or(SchedulerError::InvalidHostOperationAccess)?;
+            .ok_or(SchedulerError::InvalidHostCallAccess)?;
         Self::validate_timer_request(request)
     }
 
-    fn validate_timer_request(
-        request: HostOperationRequest,
-    ) -> Result<KernelInterest, SchedulerError> {
+    fn validate_timer_request(request: HostCallRequest) -> Result<KernelInterest, SchedulerError> {
         if request.node != TIMER_NODE
             || request.request != TIMER_REQUEST
             || request.operation != TIMER_OPERATION
         {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
         Ok(KernelInterest {
             node: request.node,
@@ -173,13 +171,13 @@ impl AdmittedLane {
 
     pub fn complete_timer(&mut self, interest: KernelInterest) -> Result<(), SchedulerError> {
         if interest.node != TIMER_NODE || interest.request != TIMER_REQUEST {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             interest.node,
             interest.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -193,7 +191,7 @@ impl AdmittedLane {
         self.scheduler.signs().len()
     }
     pub fn pending(&self) -> usize {
-        self.scheduler.pending_host_operation_count()
+        self.scheduler.pending_host_call_count()
     }
 }
 
@@ -215,7 +213,7 @@ mod tests {
         };
         assert_eq!(
             lane.complete_timer(stale),
-            Err(SchedulerError::InvalidHostOperationAccess)
+            Err(SchedulerError::InvalidHostCallAccess)
         );
         lane.complete_timer(interest).unwrap();
         assert!(matches!(lane.step().unwrap(), SchedulerStatus::Drained));

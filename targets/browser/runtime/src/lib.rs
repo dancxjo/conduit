@@ -1,18 +1,17 @@
 use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, kind_id, ArtifactId, BaseImplementationId,
-    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, HostAdvertisement, HostId,
-    HostOperationContractId, HostProfileId, ImplementationId, OfferGeneration, PlacementId,
-    PlanFragment, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PresentationIdentity,
-    SignIdentity, PROTOCOL_VERSION,
+    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, HostAdvertisement, HostCallContractId,
+    HostId, HostProfileId, ImplementationId, OfferGeneration, PlacementId, PlanFragment,
+    PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PresentationIdentity, SignIdentity,
+    PROTOCOL_VERSION,
 };
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
+    FixedScheduler, HostCallRequest, OperationDriver, SchedulerError, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, NodeId, Operation, OperationAction, OperationInput, PortId, RequestId,
-    SignError, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
+    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, NodeId, Operation,
+    OperationAction, OperationInput, PortId, RequestId, SignError, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment,
@@ -23,11 +22,10 @@ use conduit_planner::{
 };
 use conduit_signal::{
     decode_signal_bytes, encode_signal, parse_pulse_configuration, pulse_contract_revision,
-    pulse_execution_profile, pulse_host_operation_requirements, pulse_outputs,
+    pulse_execution_profile, pulse_host_call_requirements, pulse_outputs,
     pulse_resource_requirements, show_contract_revision, show_execution_profile,
-    show_host_operation_requirements, show_inputs, show_resource_requirements,
-    signal_profile_catalog, signal_resource_offers, Signal, PULSE_KIND, SHOW_KIND,
-    SIGNAL_ENCODED_LEN,
+    show_host_call_requirements, show_inputs, show_resource_requirements, signal_profile_catalog,
+    signal_resource_offers, Signal, PULSE_KIND, SHOW_KIND, SIGNAL_ENCODED_LEN,
 };
 use std::{cell::RefCell, collections::BTreeMap};
 
@@ -123,10 +121,10 @@ thread_local! {
 #[derive(Clone, Copy)]
 enum PendingEffect {
     Wait {
-        request: HostOperationRequest,
+        request: HostCallRequest,
     },
     Present {
-        request: HostOperationRequest,
+        request: HostCallRequest,
         projection: usize,
     },
 }
@@ -249,9 +247,9 @@ impl Operation for SignalOperation {
                     pending,
                     ..
                 },
-                OperationInput::HostOperationCompleted { request, outcome },
+                OperationInput::HostCallCompleted { request, outcome },
             ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -280,18 +278,18 @@ impl Operation for SignalOperation {
                 };
                 let request = RequestId(0x8000_0000 | sequence);
                 *pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
                         .expect("sealed signal value is exactly admitted"),
                 }
             }
             (
                 Self::Show { next, pending, .. },
-                OperationInput::HostOperationCompleted { request, outcome },
+                OperationInput::HostCallCompleted { request, outcome },
             ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -332,9 +330,9 @@ impl Operation for SignalOperation {
                 };
                 let request = RequestId(sequence);
                 *pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(wait, 8)
                         .expect("sealed wait value is exactly admitted"),
                 }
@@ -497,7 +495,7 @@ impl BrowserSession {
         }
     }
 
-    fn prepare_effect(&mut self, request: HostOperationRequest) -> Result<(), i32> {
+    fn prepare_effect(&mut self, request: HostCallRequest) -> Result<(), i32> {
         let request_identity = self
             .identity
             .request(request.node, request.request)
@@ -617,24 +615,24 @@ impl BrowserSession {
             PendingEffect::Wait { request } | PendingEffect::Present { request, .. } => request,
         };
         let outcome = if success {
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             }
         } else {
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(Failure {
-                    code: FailureCode::HostOperationFailed,
+                    code: FailureCode::HostCallFailed,
                     detail: 1,
                 }),
             }
         };
         if let Err(error) =
             self.scheduler
-                .complete_host_operation(request.node, request.request, outcome)
+                .complete_host_call(request.node, request.request, outcome)
         {
             return self.fail(map_scheduler_error(error));
         }
@@ -719,7 +717,7 @@ fn prepare_kernel(
             .map(|route| route.targets.len())
             .sum::<usize>()
             != 1
-        || lowered.host_operations.len() != 2
+        || lowered.host_calls.len() != 2
     {
         return Err(ERROR_START);
     }
@@ -795,8 +793,8 @@ fn prepare_kernel(
             .map_err(|_| ERROR_START)?;
     }
     routes.seal().map_err(|_| ERROR_START)?;
-    let mut host_bindings = FixedHostOperationBindings::<2>::new(1);
-    for operation in &lowered.host_operations {
+    let mut host_bindings = FixedHostCallBindings::<2>::new(1);
+    for operation in &lowered.host_calls {
         host_bindings
             .install(operation.node, operation.binding)
             .map_err(|_| ERROR_START)?;
@@ -839,7 +837,7 @@ fn prepare_kernel(
         .collect::<Vec<_>>()
         .try_into()
         .map_err(|_| ERROR_START)?;
-    let scheduler = BrowserScheduler::new_with_host_operations(
+    let scheduler = BrowserScheduler::new_with_host_calls(
         node_specs,
         cord_specs,
         routes,
@@ -872,7 +870,7 @@ fn prepare_kernel(
                 &lowered.identity,
                 pulse_node,
                 RequestId(u32::try_from(sequence).map_err(|_| ERROR_START)?),
-                HostOperationId(0),
+                HostCallId(0),
             )
             .map_err(|_| ERROR_START)?;
     }
@@ -881,7 +879,7 @@ fn prepare_kernel(
     for sequence in 0..count {
         let request = RequestId(0x8000_0000 | u32::try_from(sequence).map_err(|_| ERROR_START)?);
         identity
-            .bind_request(&lowered.identity, show_node, request, HostOperationId(0))
+            .bind_request(&lowered.identity, show_node, request, HostCallId(0))
             .map_err(|_| ERROR_START)?;
         let sequence = u64::try_from(sequence).map_err(|_| ERROR_START)?;
         let signal = Signal {
@@ -949,8 +947,8 @@ fn write_common_frame(
     kind: u8,
     fragment: &PlanFragment,
     active_play_id: &conduit_core::ActivePlayId,
-    request: HostOperationRequest,
-    contract_id: &HostOperationContractId,
+    request: HostCallRequest,
+    contract_id: &HostCallContractId,
     placement_id: &PlacementId,
 ) -> Result<(), i32> {
     writer.byte(kind)?;
@@ -1113,7 +1111,7 @@ fn build_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
                 },
                 inputs: vec![],
                 outputs: pulse_outputs(),
-                host_operations: pulse_host_operation_requirements(),
+                host_calls: pulse_host_call_requirements(),
                 resource_requirements: pulse_resource_requirements(),
                 authority_requirements: vec![],
                 limits: CapabilityLimits {
@@ -1135,7 +1133,7 @@ fn build_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
                 },
                 inputs: show_inputs(),
                 outputs: vec![],
-                host_operations: show_host_operation_requirements(),
+                host_calls: show_host_call_requirements(),
                 resource_requirements: show_resource_requirements(),
                 authority_requirements: vec![],
                 limits: CapabilityLimits {

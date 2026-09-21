@@ -13,8 +13,8 @@ pub enum FailureCode {
     WorkBudgetExhausted,
     /// The next exact generation cannot be represented without wrapping.
     IdentityCapacityExhausted,
-    HostOperationDenied,
-    HostOperationFailed,
+    HostCallDenied,
+    HostCallFailed,
     Cancelled,
 }
 
@@ -35,8 +35,8 @@ impl FailureCode {
             Self::StateCapacityExhausted => "state_capacity_exhausted",
             Self::WorkBudgetExhausted => "work_budget_exhausted",
             Self::IdentityCapacityExhausted => "identity_capacity_exhausted",
-            Self::HostOperationDenied => "host_operation_denied",
-            Self::HostOperationFailed => "host_operation_failed",
+            Self::HostCallDenied => "host_call_denied",
+            Self::HostCallFailed => "host_call_failed",
             Self::Cancelled => "cancelled",
         }
     }

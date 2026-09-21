@@ -1,11 +1,11 @@
 //! Stateful semantic selection and terminal drive operation for the capstone.
 
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, Operation, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, HostCallDisposition, HostCallId, Operation, OperationAction, OperationInput,
+    PortId, RequestId, ValueRef,
 };
 
-const OPERATION: HostOperationId = HostOperationId(0);
+const OPERATION: HostCallId = HostCallId(0);
 pub(super) const DRIVE_REQUEST: RequestId = RequestId(1);
 const SCALAR_BYTES: u32 = conduit_core::SCALAR_ENCODED_LEN as u32;
 
@@ -96,11 +96,11 @@ impl Operation for DriveSink {
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         self.retain_resumed = false;
         match input {
-            OperationInput::HostOperationCompleted {
+            OperationInput::HostCallCompleted {
                 request: DRIVE_REQUEST,
                 outcome,
             } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -120,9 +120,9 @@ impl Operation for DriveSink {
                     OperationAction::Await
                 }
             }
-            OperationInput::HostOperationCompleted { outcome, .. }
+            OperationInput::HostCallCompleted { outcome, .. }
                 if self.pending
-                    && outcome.disposition == HostOperationDisposition::Failed
+                    && outcome.disposition == HostCallDisposition::Failed
                     && outcome.failure.is_some() =>
             {
                 self.pending = false;
@@ -155,7 +155,7 @@ impl Operation for DriveSink {
         };
         self.retain_resumed = false;
         self.pending = true;
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: DRIVE_REQUEST,
             operation: OPERATION,
             input: BoundedValueRef::new(linear, 2 * SCALAR_BYTES)

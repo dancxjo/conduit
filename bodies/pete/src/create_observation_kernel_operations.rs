@@ -1,14 +1,14 @@
 use conduit_kernel::{
     scheduler::{CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver},
-    BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId, KernelEvent,
-    NodeId, Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
-    ValueRef, ValueStorage,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallBinding, HostCallDisposition, HostCallId, KernelEvent, NodeId, Operation,
+    OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget, ValueRef,
+    ValueStorage,
 };
 
 const SOURCE_NODE: NodeId = NodeId(0);
 const SINK_NODE: NodeId = NodeId(1);
-const OPERATION: HostOperationId = HostOperationId(0);
+const OPERATION: HostCallId = HostCallId(0);
 const PORTS: usize = 1;
 const SIGNS: usize = 64;
 const MAXIMUM_VALUE_BYTES: usize = conduit_robotics::ROBOTICS_CHARGING_ENCODED_LEN;
@@ -24,7 +24,7 @@ impl Operation for ObservationSource {
     fn start(&mut self) -> OperationAction {
         let input = BoundedValueRef::new(self.empty, 0).expect("empty request is exact");
         self.pending = true;
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(1),
             operation: OPERATION,
             input,
@@ -33,11 +33,11 @@ impl Operation for ObservationSource {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted {
+            OperationInput::HostCallCompleted {
                 request: RequestId(1),
                 outcome,
             } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.failure.is_none() =>
             {
                 self.pending = false;
@@ -52,9 +52,9 @@ impl Operation for ObservationSource {
                     None => OperationAction::Complete,
                 }
             }
-            OperationInput::HostOperationCompleted { outcome, .. }
+            OperationInput::HostCallCompleted { outcome, .. }
                 if self.pending
-                    && outcome.disposition == HostOperationDisposition::Failed
+                    && outcome.disposition == HostCallDisposition::Failed
                     && outcome.output.is_none()
                     && outcome.failure.is_some() =>
             {
@@ -181,21 +181,21 @@ pub(super) fn prepare_scheduler(maximum_output_bytes: u32) -> Result<Scheduler, 
         )
         .map_err(|_| "route admission failed")?;
     routes.seal().map_err(|_| "route seal failed")?;
-    let mut bindings = FixedHostOperationBindings::<1>::new(1);
+    let mut bindings = FixedHostCallBindings::<1>::new(1);
     bindings
         .install(
             SOURCE_NODE,
-            HostOperationBinding {
+            HostCallBinding {
                 operation: OPERATION,
                 maximum_input_bytes: 0,
                 maximum_output_bytes,
             },
         )
-        .map_err(|_| "host operation admission failed")?;
-    bindings.seal().map_err(|_| "host operation seal failed")?;
+        .map_err(|_| "Host Call admission failed")?;
+    bindings.seal().map_err(|_| "Host Call seal failed")?;
     let signs = FixedSignLog::new((SIGNS * core::mem::size_of::<KernelEvent>()) as u32)
         .map_err(|_| "sign admission failed")?;
-    FixedScheduler::new_with_host_operations(
+    FixedScheduler::new_with_host_calls(
         [
             NodeSpec {
                 input_cords: [None],

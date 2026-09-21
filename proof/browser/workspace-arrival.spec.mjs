@@ -333,7 +333,7 @@ test("unavailable audio is omitted by default and an explicitly installed cue ca
   await page.keyboard.press('a');
   await expect(page.locator('[data-form-output] output:visible')).toHaveText('a');
   const evidence = await liveEvidence(page);
-  expect(evidence.host_completions.records.some(record => record.disposition === 'failed' && record.failure_code === 'host_operation_failed' && record.failure_detail === 1)).toBe(true);
+  expect(evidence.host_completions.records.some(record => record.disposition === 'failed' && record.failure_code === 'host_call_failed' && record.failure_detail === 1)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('chime-unavailable-body-listening.png'), fullPage: true });
 });
 
@@ -351,7 +351,7 @@ test("a suspended real audio context reports denial while the body keeps listeni
   await page.keyboard.press('b');
   await expect(page.locator('[data-form-output] output:visible')).toHaveText('b');
   const evidence = await liveEvidence(page);
-  expect(evidence.host_completions.records.some(record => record.disposition === 'denied' && record.failure_code === 'host_operation_denied' && record.failure_detail === 2)).toBe(true);
+  expect(evidence.host_completions.records.some(record => record.disposition === 'denied' && record.failure_code === 'host_call_denied' && record.failure_detail === 2)).toBe(true);
 });
 
 test("Workspace Birth binds naming, search, exact selection, review, and receipt", async ({ page }) => {

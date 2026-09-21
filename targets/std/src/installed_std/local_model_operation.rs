@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId,
 };
 
 pub(super) static LOCAL_MODEL_FACTORY: InstalledFactory = InstalledFactory {
@@ -50,35 +50,31 @@ impl LocalModelOperation {
                 if self.stream {
                     self.input = Some(value);
                 }
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Completed, None, None) if self.stream => {
+                    (HostCallDisposition::Completed, None, None) if self.stream => {
                         self.stream_complete = true;
                         OperationAction::Complete
                     }
-                    (HostOperationDisposition::Denied, _, _) => {
-                        fail(FailureCode::HostOperationDenied, 2)
-                    }
-                    (HostOperationDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 3),
-                    (HostOperationDisposition::Failed, _, _) => {
-                        fail(FailureCode::HostOperationFailed, 4)
-                    }
+                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 2),
+                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 3),
+                    (HostCallDisposition::Failed, _, _) => fail(FailureCode::HostCallFailed, 4),
                     _ => fail(FailureCode::InvalidLifecycle, 5),
                 }
             }
@@ -104,9 +100,9 @@ impl LocalModelOperation {
             let request = RequestId(self.next_request);
             self.next_request = self.next_request.saturating_add(1);
             self.pending = Some(request);
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request,
-                operation: HostOperationId(0),
+                operation: HostCallId(0),
                 input,
             }
         } else if self.emitted && !self.flow {
@@ -143,8 +139,8 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
             .starts_with(conduit_ai::LOCAL_MODEL_ARTIFACT)
         || placement.inputs != contract.inputs
         || placement.outputs != contract.outputs
-        || placement.host_operations.len() != 1
-        || placement.host_operations[0].contract_id.as_str() != conduit_ai::LOCAL_MODEL_OPERATION
+        || placement.host_calls.len() != 1
+        || placement.host_calls[0].contract_id.as_str() != conduit_ai::LOCAL_MODEL_OPERATION
     {
         return Err("planned local-model identity does not match its installation".to_string());
     }
@@ -233,7 +229,7 @@ fn fail(code: FailureCode, detail: u16) -> OperationAction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::{HostOperationOutcome, ValueRef};
+    use conduit_kernel::{HostCallOutcome, ValueRef};
 
     fn value(slot: u16, bytes: u32) -> ValueRef {
         ValueRef {
@@ -262,15 +258,15 @@ mod tests {
         });
         assert!(matches!(
             request,
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(0),
                 ..
             }
         ));
-        let emitted = operation.resume(OperationInput::HostOperationCompleted {
+        let emitted = operation.resume(OperationInput::HostCallCompleted {
             request: RequestId(0),
-            outcome: HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            outcome: HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(BoundedValueRef::new(value(2, 20), 64).unwrap()),
                 failure: None,
             },
@@ -284,16 +280,16 @@ mod tests {
         ));
         assert!(matches!(
             operation.advance(),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(1),
                 ..
             }
         ));
         assert!(matches!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(1),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },

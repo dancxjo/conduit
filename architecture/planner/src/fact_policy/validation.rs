@@ -24,7 +24,7 @@ impl PlannerFactRef {
                 performance_class_id,
             } => resource_class_id.as_str().is_empty() || performance_class_id.as_str().is_empty(),
             Self::RequiresAuthority(id) => id.as_str().is_empty(),
-            Self::RequiresHostOperation(id) => id.as_str().is_empty(),
+            Self::RequiresHostCall(id) => id.as_str().is_empty(),
             Self::HostIdentity | Self::OfferQueueItems | Self::OfferQueueBytes => false,
         }
     }

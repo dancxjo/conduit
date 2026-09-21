@@ -3,8 +3,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -39,27 +39,25 @@ impl RhythmCompareOperation {
                     && matches!(port, PortId(0) | PortId(1))
                     && !self.closed[usize::from(port.0)] =>
             {
-                self.request(HostOperationId(port.0 + 1), value)
+                self.request(HostCallId(port.0 + 1), value)
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostOperationDisposition::Completed, None, None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => OperationAction::Emit {
+                        port: PortId(0),
+                        value: output.value,
+                    },
+                    (HostCallDisposition::Completed, None, None) => {
                         if self.draining_missed {
                             self.draining_missed = false;
                         }
                         self.complete_or_await()
                     }
-                    (HostOperationDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 0),
-                    (HostOperationDisposition::Failed, None, Some(failure)) => {
+                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 0),
+                    (HostCallDisposition::Failed, None, Some(failure)) => {
                         OperationAction::Fail(failure)
                     }
                     _ => fail(FailureCode::InvalidLifecycle, 220),
@@ -71,7 +69,7 @@ impl RhythmCompareOperation {
                 self.closed[usize::from(port)] = true;
                 if port == 0 {
                     self.draining_missed = true;
-                    self.request(HostOperationId(0), self.drain_marker)
+                    self.request(HostCallId(0), self.drain_marker)
                 } else {
                     self.complete_or_await()
                 }
@@ -82,7 +80,7 @@ impl RhythmCompareOperation {
 
     pub(super) fn advance(&mut self) -> OperationAction {
         if self.draining_missed {
-            self.request(HostOperationId(0), self.drain_marker)
+            self.request(HostCallId(0), self.drain_marker)
         } else {
             OperationAction::Await
         }
@@ -105,14 +103,14 @@ impl RhythmCompareOperation {
         })
     }
 
-    fn request(&mut self, operation: HostOperationId, value: ValueRef) -> OperationAction {
+    fn request(&mut self, operation: HostCallId, value: ValueRef) -> OperationAction {
         let request = RequestId(self.next_request);
         let Some(next) = self.next_request.checked_add(1) else {
             return fail(FailureCode::StorageExhausted, 223);
         };
         self.next_request = next;
         self.pending = Some(request);
-        let maximum = if operation == HostOperationId(0) {
+        let maximum = if operation == HostCallId(0) {
             0
         } else {
             MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
@@ -121,7 +119,7 @@ impl RhythmCompareOperation {
             self.pending = None;
             return fail(FailureCode::InvalidInput, 224);
         };
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
             operation,
             input,
@@ -147,7 +145,7 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(i64, u64), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.limits != offer.limits
     {
         return Err("planned rhythm comparison differs from installed realization".into());

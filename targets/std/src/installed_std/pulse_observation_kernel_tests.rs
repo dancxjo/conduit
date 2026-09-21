@@ -6,8 +6,8 @@ use conduit_kernel::scheduler::{
     StepOperation, StepOutcome,
 };
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, HostOperationBinding, HostOperationDisposition,
-    HostOperationId, HostOperationOutcome, RequestId,
+    BoundedValueRef, FixedHostCallBindings, HostCallBinding, HostCallDisposition, HostCallId,
+    HostCallOutcome, RequestId,
 };
 use conduit_kernel::{
     CordEndpoint, CordId, FixedRoutes, FixedSignLog, NodeId, RouteRange, RouteTarget,
@@ -21,9 +21,9 @@ impl Operation for Fixture {
     fn start(&mut self) -> OperationAction {
         match self {
             Self::Pulse(operation) => operation.start(),
-            Self::Sink { wait, .. } => OperationAction::RequestHostOperation {
+            Self::Sink { wait, .. } => OperationAction::RequestHostCall {
                 request: RequestId(0),
-                operation: HostOperationId(0),
+                operation: HostCallId(0),
                 input: BoundedValueRef::new(*wait, 1).unwrap(),
             },
         }
@@ -34,7 +34,7 @@ impl Operation for Fixture {
             Self::Sink { .. }
                 if matches!(
                     input,
-                    OperationInput::HostOperationCompleted {
+                    OperationInput::HostCallCompleted {
                         request: RequestId(0),
                         ..
                     }
@@ -122,58 +122,57 @@ fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
             .unwrap();
     }
     routes.seal().unwrap();
-    let mut bindings = FixedHostOperationBindings::<3>::new(1);
+    let mut bindings = FixedHostCallBindings::<3>::new(1);
     bindings
         .install(
             NodeId(2),
-            HostOperationBinding {
-                operation: HostOperationId(0),
+            HostCallBinding {
+                operation: HostCallId(0),
                 maximum_input_bytes: 1,
                 maximum_output_bytes: 1,
             },
         )
         .unwrap();
     bindings.seal().unwrap();
-    let mut scheduler =
-        FixedScheduler::<_, _, _, 3, 2, 1, 2, 3, 2, 3, 1>::new_with_host_operations(
-            [None, Some(CordId(0)), Some(CordId(1))].map(|input| NodeSpec {
-                input_cords: [input],
-                maximum_step_work: 3,
-            }),
-            [0, 1].map(|index| {
-                CordSpec::local(
-                    CordId(index),
-                    (NodeId(index), PortId(0)),
-                    (NodeId(index + 1), PortId(0)),
-                    CordCapacity {
-                        slot_start: index,
-                        item_capacity: 1,
-                        byte_capacity: 8,
-                        pressure_policy: Default::default(),
-                    },
-                )
-            }),
-            routes,
-            bindings,
-            [
-                Driver::Source {
-                    values: ticks,
-                    next: 0,
+    let mut scheduler = FixedScheduler::<_, _, _, 3, 2, 1, 2, 3, 2, 3, 1>::new_with_host_calls(
+        [None, Some(CordId(0)), Some(CordId(1))].map(|input| NodeSpec {
+            input_cords: [input],
+            maximum_step_work: 3,
+        }),
+        [0, 1].map(|index| {
+            CordSpec::local(
+                CordId(index),
+                (NodeId(index), PortId(0)),
+                (NodeId(index + 1), PortId(0)),
+                CordCapacity {
+                    slot_start: index,
+                    item_capacity: 1,
+                    byte_capacity: 8,
+                    pressure_policy: Default::default(),
                 },
-                Driver::Installed(Box::new(
-                    OperationDriver::new(Fixture::Pulse(pulse)).unwrap(),
-                )),
-                Driver::Installed(Box::new(
-                    OperationDriver::new(Fixture::Sink { next: 0, wait }).unwrap(),
-                )),
-            ],
-            values,
-            FixedSignLog::<256>::new(
-                (core::mem::size_of::<conduit_kernel::KernelEvent>() * 256) as u32,
             )
-            .unwrap(),
+        }),
+        routes,
+        bindings,
+        [
+            Driver::Source {
+                values: ticks,
+                next: 0,
+            },
+            Driver::Installed(Box::new(
+                OperationDriver::new(Fixture::Pulse(pulse)).unwrap(),
+            )),
+            Driver::Installed(Box::new(
+                OperationDriver::new(Fixture::Sink { next: 0, wait }).unwrap(),
+            )),
+        ],
+        values,
+        FixedSignLog::<256>::new(
+            (core::mem::size_of::<conduit_kernel::KernelEvent>() * 256) as u32,
         )
-        .unwrap();
+        .unwrap(),
+    )
+    .unwrap();
     for _ in 0..32 {
         scheduler.step().unwrap();
     }
@@ -202,11 +201,11 @@ fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
     let request = scheduler.next_host_request().unwrap();
     assert_eq!(request.node, NodeId(2));
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },

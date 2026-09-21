@@ -404,7 +404,7 @@ fn validate(
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || !placement.resources.is_empty()
         || !placement.authority.is_empty()
         || !placement.pool_references.is_empty()

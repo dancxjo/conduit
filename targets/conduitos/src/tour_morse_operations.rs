@@ -2,7 +2,7 @@
 
 use crate::text_kernel_operations::{LiteralOperation, PresentationOperation, UpperOperation};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, Operation, OperationAction, OperationInput, PortId,
+    BoundedValueRef, HostCallDisposition, Operation, OperationAction, OperationInput, PortId,
     RequestId,
 };
 
@@ -33,16 +33,16 @@ impl Operation for MorseOperation {
                     return invalid(60);
                 };
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: MORSE_REQUEST,
-                    operation: conduit_kernel::HostOperationId(0),
+                    operation: conduit_kernel::HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == MORSE_REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -55,10 +55,10 @@ impl Operation for MorseOperation {
                     value: output.value,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == MORSE_REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Cancelled =>
+                    && outcome.disposition == HostCallDisposition::Cancelled =>
             {
                 failure(conduit_kernel::FailureCode::Cancelled, 62)
             }
@@ -102,16 +102,16 @@ impl Operation for LeafOperation {
                     return invalid(80);
                 };
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: LEAF_REQUEST,
-                    operation: conduit_kernel::HostOperationId(0),
+                    operation: conduit_kernel::HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == LEAF_REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -124,10 +124,10 @@ impl Operation for LeafOperation {
                     value: output.value,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == LEAF_REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Cancelled =>
+                    && outcome.disposition == HostCallDisposition::Cancelled =>
             {
                 failure(conduit_kernel::FailureCode::Cancelled, 82)
             }
@@ -160,16 +160,16 @@ impl Operation for IndicatorOperation {
                     return invalid(70);
                 };
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: INDICATOR_REQUEST,
-                    operation: conduit_kernel::HostOperationId(0),
+                    operation: conduit_kernel::HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == INDICATOR_REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -177,10 +177,10 @@ impl Operation for IndicatorOperation {
                 self.complete = true;
                 OperationAction::Await
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == INDICATOR_REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Cancelled =>
+                    && outcome.disposition == HostCallDisposition::Cancelled =>
             {
                 failure(conduit_kernel::FailureCode::Cancelled, 71)
             }

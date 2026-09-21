@@ -66,8 +66,8 @@ pub enum EffectAuthorityDerivationError {
     EffectWiringMissing,
     EffectWiringAmbiguous,
     EffectPlacementMissing,
-    HostOperationMissing,
-    HostOperationAmbiguous,
+    HostCallMissing,
+    HostCallAmbiguous,
     AuthorityMissing,
     AuthorityAmbiguous,
     InvalidArgumentType,
@@ -134,19 +134,19 @@ impl EffectAuthority {
             return Err(EffectAuthorityDerivationError::EffectPlacementMissing);
         }
 
-        let mut operations = effect.host_operations.iter().filter(|requirement| {
+        let mut operations = effect.host_calls.iter().filter(|requirement| {
             requirement.target_kind.as_ref() == Some(operation_kind)
                 && requirement.maximum_in_flight > 0
         });
         let operation = operations
             .next()
-            .ok_or(EffectAuthorityDerivationError::HostOperationMissing)?;
+            .ok_or(EffectAuthorityDerivationError::HostCallMissing)?;
         if operations.next().is_some() {
-            return Err(EffectAuthorityDerivationError::HostOperationAmbiguous);
+            return Err(EffectAuthorityDerivationError::HostCallAmbiguous);
         }
 
         let mut bindings = effect.authority.iter().filter(|binding| {
-            binding.host_operation_contract_id == operation.contract_id
+            binding.host_call_contract_id == operation.contract_id
                 && &binding.subject_kind == operation_kind
                 && binding.host_id == effect.host_id
                 && binding.boot_id == effect.boot_id

@@ -77,7 +77,7 @@ fn real_partition_operations_use_global_slots_and_original_placement_identity() 
 fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_installation() {
     use crate::installed_std::kernel_preparation::KernelTables;
     use conduit_kernel::scheduler::SchedulerStatus;
-    use conduit_kernel::{HostOperationDisposition, HostOperationOutcome, HostedSignLog};
+    use conduit_kernel::{HostCallDisposition, HostCallOutcome, HostedSignLog};
 
     let plans = plans();
     let snapshot = plans.clone();
@@ -114,7 +114,7 @@ fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_ins
     let mut output = Vec::with_capacity(256);
     let mut waits = [0; 2];
     let mut drained = false;
-    // Deterministic Host-operation completions, not wall-clock or OS proof.
+    // Deterministic Host Call completions, not wall-clock or OS proof.
     // All operation state machines and scheduling are the installed production path.
     for _ in 0..256 {
         while let Some(request) = kernel.next_host_request() {
@@ -129,12 +129,11 @@ fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_ins
                 })
                 .unwrap();
             let operation = lowered.partitions[partition]
-                .host_operations
+                .host_calls
                 .iter()
                 .find(|op| op.node == request.node && op.operation == request.operation)
                 .unwrap();
-            if operation.contract_id == conduit_core::wait_host_operation_requirement().contract_id
-            {
+            if operation.contract_id == conduit_core::wait_host_call_requirement().contract_id {
                 waits[partition] += 1;
             } else {
                 assert_eq!(
@@ -155,11 +154,11 @@ fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_ins
                 .unwrap());
             }
             kernel
-                .complete_host_operation(
+                .complete_host_call(
                     request.node,
                     request.request,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: None,
                         failure: None,
                     },

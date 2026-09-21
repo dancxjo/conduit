@@ -32,7 +32,7 @@ fn validate(placement: &PlannedGear) -> Result<(u64, u64, u64), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.limits != offer.limits
         || !placement.authority.is_empty()
     {

@@ -196,7 +196,7 @@ fn generated_for(fragment: &conduit_core::PlanFragment) -> GeneratedEmbeddedPlan
 }
 
 fn operation_requirements(plan: &GeneratedEmbeddedPlan) -> Vec<AssignedIdentity> {
-    plan.host_operations
+    plan.host_calls
         .iter()
         .map(|item| AssignedIdentity::from_text(&item.contract_id))
         .collect()

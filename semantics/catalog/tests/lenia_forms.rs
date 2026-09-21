@@ -2,7 +2,7 @@ use conduit_alife::{
     install_lenia_catalogs, LENIA_STEP_KIND, SCALAR_FIELD2_INFO_ID, SCALAR_FIELD_PRESENTATION_KIND,
 };
 use conduit_core::{
-    resource_requirement, wait_host_operation_requirement, BaseImplementationId, BootId,
+    resource_requirement, wait_host_call_requirement, BaseImplementationId, BootId,
     HostAdvertisement, HostId, HostProfileId, OfferGeneration, PortTemporal, PROTOCOL_VERSION,
     TIMER_RESOURCE_CLASS,
 };
@@ -85,7 +85,7 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
             implementation: "proof/lenia-tick@1",
             artifact: "proof/lenia-tick@1",
         },
-        vec![wait_host_operation_requirement()],
+        vec![wait_host_call_requirement()],
         vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
         Vec::new(),
     ));

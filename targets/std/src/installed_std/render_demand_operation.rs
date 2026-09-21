@@ -4,8 +4,8 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_audio::AudioRenderDemand;
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, RequestId,
+    ValueRef, ValueStorage,
 };
 
 pub(super) static AUDIO_RENDER_DEMAND_FACTORY: InstalledFactory = InstalledFactory {
@@ -28,9 +28,9 @@ impl AudioRenderDemandOperation {
 
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -64,9 +64,9 @@ impl AudioRenderDemandOperation {
         let wait = self.waits.get(self.next).copied()?;
         let request = RequestId(u32::try_from(self.next).ok()?);
         self.pending = Some(request);
-        Some(OperationAction::RequestHostOperation {
+        Some(OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(wait, 8).expect("render wait is exactly eight bytes"),
         })
     }
@@ -155,7 +155,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.limits != offer.limits
         || placement.outputs.len() != 1
         || placement.outputs[0].port_id.as_str() != "demand"

@@ -143,9 +143,8 @@ fn isolated_capability(
     if placement.authority.len() != 1 {
         return Err(CopyResult::Denied);
     }
-    let operation = conduit_core::HostOperationContractId::from(
-        conduit_std_offers::COPY_FILE_HOST_OPERATION_CONTRACT,
-    );
+    let operation =
+        conduit_core::HostCallContractId::from(conduit_std_offers::COPY_FILE_HOST_CALL_CONTRACT);
     let base = placement.base.as_ref().ok_or(CopyResult::Denied)?;
     if base.provider_instance_id != provider.base_instance_id
         || base.provider_generation != provider.provider_generation
@@ -195,7 +194,7 @@ fn isolated_capability(
     let grant = AuthorityGrant {
         grant_id: authority.grant_id.clone(),
         contract_id: authority.contract_id.clone(),
-        host_operation_contract_id: authority.host_operation_contract_id.clone(),
+        host_call_contract_id: authority.host_call_contract_id.clone(),
         subject_kind: authority.subject_kind.clone(),
         host_id: authority.host_id.clone(),
         boot_id: authority.boot_id.clone(),

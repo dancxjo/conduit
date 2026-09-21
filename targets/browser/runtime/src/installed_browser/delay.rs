@@ -7,7 +7,7 @@ use conduit_core::{
     TIMER_RESOURCE_CLASS,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
     OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
@@ -31,7 +31,7 @@ fn offer() -> conduit_core::CapabilityOffer {
             implementation: IMPLEMENTATION,
             artifact: ARTIFACT,
         },
-        vec![conduit_core::wait_host_operation_requirement()],
+        vec![conduit_core::wait_host_call_requirement()],
         vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
         Vec::new(),
     )
@@ -108,9 +108,9 @@ impl DelayOperation {
         };
         let request = RequestId(raw);
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(duration, 8).expect("duration is exactly eight bytes"),
         }
     }
@@ -136,9 +136,9 @@ impl Operation for DelayOperation {
                     OperationAction::Await
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -204,7 +204,7 @@ fn debug_error(error: impl core::fmt::Debug) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::{HostOperationOutcome, ValueRef};
+    use conduit_kernel::{HostCallOutcome, ValueRef};
 
     fn value(slot: u16, byte_len: u32) -> ValueRef {
         ValueRef {
@@ -235,7 +235,7 @@ mod tests {
                 port: PortId(0),
                 value: first
             }),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(1),
                 ..
             }
@@ -253,10 +253,10 @@ mod tests {
         );
         for (request, expected) in [(1, first), (2, second)] {
             assert_eq!(
-                operation.resume(OperationInput::HostOperationCompleted {
+                operation.resume(OperationInput::HostCallCompleted {
                     request: RequestId(request),
-                    outcome: HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    outcome: HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: None,
                         failure: None
                     },
@@ -269,7 +269,7 @@ mod tests {
             if request == 1 {
                 assert!(matches!(
                     operation.advance(),
-                    OperationAction::RequestHostOperation {
+                    OperationAction::RequestHostCall {
                         request: RequestId(2),
                         ..
                     }

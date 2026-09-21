@@ -3,14 +3,14 @@ use super::{
     factory::{validate_placement, BrowserInstallation},
     BrowserOperation,
 };
-use conduit_core::{kind_id, HostOperationRequirement, PlannedGear};
+use conduit_core::{kind_id, HostCallRequirement, PlannedGear};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
+    Operation, OperationAction, OperationInput, PortId, RequestId,
 };
 
 pub(crate) const IMPLEMENTATION: &str = "browser/startup-chime@1";
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-startup-chime@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-startup-chime@1";
 pub(crate) const RESOURCE: &str = "conduit.resource/browser-audio-cue-slot@1";
 pub(crate) const POOL: &str = "browser/audio-cue";
 pub(crate) static INSTALLATION: BrowserInstallation = BrowserInstallation {
@@ -29,8 +29,8 @@ fn offer() -> conduit_core::CapabilityOffer {
             implementation: IMPLEMENTATION,
             artifact: "conduit-browser-runtime/startup-chime@1",
         },
-        vec![HostOperationRequirement {
-            contract_id: HOST_OPERATION.into(),
+        vec![HostCallRequirement {
+            contract_id: HOST_CALL.into(),
             target_kind: Some(kind_id("sound/optional-audible-cue")),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
@@ -73,24 +73,24 @@ impl Operation for Chime {
                 };
                 let request = RequestId(self.next);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) && outcome.output.is_none() =>
             {
                 let valid = match outcome.disposition {
-                    HostOperationDisposition::Completed => outcome.failure.is_none(),
-                    HostOperationDisposition::Denied => outcome
+                    HostCallDisposition::Completed => outcome.failure.is_none(),
+                    HostCallDisposition::Denied => outcome
                         .failure
-                        .is_some_and(|failure| failure.code == FailureCode::HostOperationDenied),
-                    HostOperationDisposition::Failed => outcome
+                        .is_some_and(|failure| failure.code == FailureCode::HostCallDenied),
+                    HostCallDisposition::Failed => outcome
                         .failure
-                        .is_some_and(|failure| failure.code == FailureCode::HostOperationFailed),
-                    HostOperationDisposition::Cancelled => false,
+                        .is_some_and(|failure| failure.code == FailureCode::HostCallFailed),
+                    HostCallDisposition::Cancelled => false,
                 };
                 if !valid {
                     return invalid();

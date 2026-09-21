@@ -6,8 +6,8 @@ use conduit_core::{
 };
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
+    RequestId, ValueRef, ValueStorage,
 };
 
 const KIND: &str = "test/timing-bool-sink";
@@ -72,9 +72,9 @@ impl TestTimingSourceOperation {
 
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -104,9 +104,9 @@ impl TestTimingSourceOperation {
         let input = self.waits.get(self.next).copied()?;
         let request = RequestId(u32::try_from(self.next).ok()?);
         self.pending = Some(request);
-        Some(OperationAction::RequestHostOperation {
+        Some(OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(input, 8).ok()?,
         })
     }
@@ -131,7 +131,7 @@ pub(super) fn offer() -> CapabilityOffer {
             temporal: PortTemporal::Current,
         }],
         outputs: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -161,7 +161,7 @@ pub(super) fn source_offer() -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
         }],
-        host_operations: vec![conduit_core::wait_host_operation_requirement()],
+        host_calls: vec![conduit_core::wait_host_call_requirement()],
         resource_requirements: vec![conduit_core::resource_requirement(
             conduit_core::TIMER_RESOURCE_CLASS,
             1,
@@ -270,7 +270,7 @@ fn validate_exact(placement: &PlannedGear, offer: &CapabilityOffer) -> Result<()
         || placement.limits != offer.limits
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || (offer.resource_requirements.is_empty() != placement.resources.is_empty())
         || placement.resources.iter().any(|binding| {
             binding.class_id.as_str() != conduit_core::TIMER_RESOURCE_CLASS || binding.units != 1

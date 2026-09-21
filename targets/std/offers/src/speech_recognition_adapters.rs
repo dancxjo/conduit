@@ -2,7 +2,7 @@
 
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
 };
 
 pub const SPEECH_WINDOW_TO_CLIP_STD_IMPLEMENTATION: &str = "std/speech-window-to-clip@1";
@@ -21,16 +21,16 @@ pub fn speech_window_to_clip_std_offer() -> CapabilityOffer {
         SPEECH_WINDOW_TO_CLIP_STD_IMPLEMENTATION,
         "conduit-std-host/speech-window-to-clip@1",
         vec![
-            HostOperationRequirement {
-                contract_id: HostOperationContractId::from(SPEECH_WINDOW_PUSH_OPERATION),
+            HostCallRequirement {
+                contract_id: HostCallContractId::from(SPEECH_WINDOW_PUSH_OPERATION),
                 target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_audio::MAXIMUM_PCM_FRAME_BYTES
                     + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32,
                 maximum_output_bytes: 0,
             },
-            HostOperationRequirement {
-                contract_id: HostOperationContractId::from(SPEECH_WINDOW_CLOSE_OPERATION),
+            HostCallRequirement {
+                contract_id: HostCallContractId::from(SPEECH_WINDOW_CLOSE_OPERATION),
                 target_kind: Some(kind_id(conduit_tongues::SPEECH_WINDOW_TO_CLIP_KIND)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: 1,
@@ -47,8 +47,8 @@ pub fn speech_result_to_event_stream_std_offer() -> CapabilityOffer {
         "std/speech-result-event-kernel@1",
         SPEECH_RESULT_TO_EVENT_STREAM_STD_IMPLEMENTATION,
         "conduit-std-host/speech-result-to-event-stream@1",
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(SPEECH_RESULT_TO_EVENT_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(SPEECH_RESULT_TO_EVENT_OPERATION),
             target_kind: Some(kind_id(conduit_tongues::SPEECH_RESULT_TO_EVENT_STREAM_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_tongues::MAXIMUM_RECOGNITION_RESULT_BYTES as u32,
@@ -63,7 +63,7 @@ fn offer(
     profile: &str,
     implementation: &str,
     artifact: &str,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
 ) -> CapabilityOffer {
     BackOfferBuilder::new(
         contract,
@@ -72,7 +72,7 @@ fn offer(
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operations,
+            host_calls,
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -91,13 +91,13 @@ mod tests {
         assert_eq!(window.kind_id, window_definition.kind_id);
         assert_eq!(window.inputs, window_definition.inputs);
         assert_eq!(window.outputs, window_definition.outputs);
-        assert_eq!(window.host_operations.len(), 2);
+        assert_eq!(window.host_calls.len(), 2);
 
         let stream = speech_result_to_event_stream_std_offer();
         let stream_definition = conduit_tongues::speech_result_to_event_stream_definition();
         assert_eq!(stream.kind_id, stream_definition.kind_id);
         assert_eq!(stream.inputs, stream_definition.inputs);
         assert_eq!(stream.outputs, stream_definition.outputs);
-        assert_eq!(stream.host_operations.len(), 1);
+        assert_eq!(stream.host_calls.len(), 1);
     }
 }

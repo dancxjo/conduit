@@ -50,7 +50,7 @@ not semantic or runtime identities.
 | Application/model | Meaning, application state, actions, projections, and content | DOM nodes, browser event listeners, device APIs, or generic rendering |
 | Renderer-neutral presentation | Finite component descriptions, stable presentation keys, theme roles, and finite application-event values | HTML strings, selectors, browser handles, semantic authority, or runtime scheduling |
 | Browser host presentation mechanism | Description validation, DOM manifestation, event capture, focus, and bounded event delivery | Application meaning, action policy, target fabrication, or execution truth |
-| Browser base/device mechanism | Exact browser-provided effects such as WebUSB and media access behind admitted host operations | Application presentation policy or authority inference |
+| Browser base/device mechanism | Exact browser-provided effects such as WebUSB and media access behind admitted Host Calls | Application presentation policy or authority inference |
 | Target-owned adapter | Exact target descriptors, tooling, artifacts, loading, and flashing behavior | Generic application rendering or host scheduling |
 | Temporary compatibility shell | Existing page bootstrap, routing, DOM assembly, and duplicated controls needed during migration | A second permanent renderer or new public contract |
 

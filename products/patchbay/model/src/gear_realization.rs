@@ -28,7 +28,7 @@ pub struct GearRealizationAlternative {
     pub implementation_id: ImplementationId,
     pub artifact_id: ArtifactId,
     pub execution_profile_id: conduit_core::ExecutionProfileId,
-    pub host_operation_contracts: Vec<String>,
+    pub host_call_contracts: Vec<String>,
     pub resource_classes: Vec<String>,
 }
 
@@ -122,8 +122,8 @@ impl GearRealizationInspection {
                     implementation_id: offer.implementation.implementation_id.clone(),
                     artifact_id: offer.implementation.artifact_id.clone(),
                     execution_profile_id: offer.implementation.execution_profile_id.clone(),
-                    host_operation_contracts: offer
-                        .host_operations
+                    host_call_contracts: offer
+                        .host_calls
                         .iter()
                         .map(|operation| operation.contract_id.as_str().to_owned())
                         .collect(),

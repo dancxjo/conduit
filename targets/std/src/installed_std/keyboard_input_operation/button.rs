@@ -5,9 +5,8 @@ mod tests;
 use super::super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PreparedStructuredValueValidator};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedValueStore, OperationAction, PortId, RequestId, ValueRef,
-    ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
+    HostedValueStore, OperationAction, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(crate) static FACTORY: InstalledFactory = InstalledFactory {
@@ -57,18 +56,18 @@ impl ButtonOperation {
         let request = RequestId(self.next);
         self.next = next;
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(self.empty, 0)
                 .expect("pre-admitted empty keyboard request"),
         }
     }
 
-    pub(crate) fn resume_host_operation(
+    pub(crate) fn resume_host_call(
         &mut self,
         request: RequestId,
-        outcome: HostOperationOutcome,
+        outcome: HostCallOutcome,
         canonical: Option<&[u8]>,
     ) -> OperationAction {
         if self.terminal || self.pending != Some(request) {
@@ -80,7 +79,7 @@ impl ButtonOperation {
             return OperationAction::Fail(failure);
         }
         match outcome.disposition {
-            HostOperationDisposition::Completed => {
+            HostCallDisposition::Completed => {
                 let (Some(output), Some(canonical)) = (outcome.output, canonical) else {
                     return fail(FailureCode::InvalidInput, 4);
                 };
@@ -92,7 +91,7 @@ impl ButtonOperation {
                     value: output.value,
                 }
             }
-            HostOperationDisposition::Cancelled if outcome.output.is_none() => {
+            HostCallDisposition::Cancelled if outcome.output.is_none() => {
                 self.terminal = true;
                 fail(FailureCode::Cancelled, 0)
             }
@@ -114,7 +113,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.limits != offer.limits
         || !placement.authority.is_empty()
         || placement

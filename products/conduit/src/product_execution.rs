@@ -296,15 +296,15 @@ impl ProductExecutionContext {
 
     /// Finite value storage from the exact implementation offer.
     ///
-    /// A directional host-operation bound is authoritative when present. Pure
+    /// A directional Host Call bound is authoritative when present. Pure
     /// kernel directions fall back to the capability's finite per-item share;
     /// the opposite endpoint independently narrows the connection intersection.
     fn directional_value_bytes(
         capability: &conduit_core::CapabilityOffer,
-        operation_bytes: impl Fn(&conduit_core::HostOperationRequirement) -> u32,
+        operation_bytes: impl Fn(&conduit_core::HostCallRequirement) -> u32,
     ) -> u32 {
         let directional = capability
-            .host_operations
+            .host_calls
             .iter()
             .map(operation_bytes)
             .filter(|bytes| *bytes > 0)

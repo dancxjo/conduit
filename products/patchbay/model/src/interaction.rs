@@ -15,9 +15,9 @@ use conduit_core::ConfigurationValue;
 use conduit_core::{
     kind_id, port_id, ActivePlayId, ArtifactId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, CheckedFormId, ExecutionProfileId, ExpandedFormId, FrontStartupParameter,
-    HostAdvertisement, HostOperationContractId, HostOperationRequirement, HostProfileId,
-    ImplementationId, KindIdentity, OfferGeneration, PlanId, PortDescriptor, PortDirection,
-    PortTemporal, SourceDocumentId, PROTOCOL_VERSION,
+    HostAdvertisement, HostCallContractId, HostCallRequirement, HostProfileId, ImplementationId,
+    KindIdentity, OfferGeneration, PlanId, PortDescriptor, PortDirection, PortTemporal,
+    SourceDocumentId, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
@@ -36,7 +36,7 @@ const INVOKE_KIND: &str = "interaction/invoke";
 const EDIT_KIND: &str = "interaction/edit";
 const APPLY_KIND: &str = "interaction/apply";
 const REQUEST_VALUE_KIND: &str = "interaction/request@1";
-const APPLY_HOST_OPERATION: &str = "conduit.patchbay/apply-interaction@1";
+const APPLY_HOST_CALL: &str = "conduit.patchbay/apply-interaction@1";
 const CONTRACT_REVISION: &str = "conduit.patchbay/interaction@1";
 const EXECUTION_PROFILE: &str = "conduit.patchbay/kernel-hosted@1";
 
@@ -438,7 +438,7 @@ fn source_offer(
         },
         inputs: vec![],
         outputs: vec![request_port(PortDirection::Output)],
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: interaction_limits(),
@@ -459,8 +459,8 @@ fn apply_offer() -> CapabilityOffer {
         },
         inputs: vec![request_port(PortDirection::Input)],
         outputs: vec![],
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(APPLY_HOST_OPERATION),
+        host_calls: vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(APPLY_HOST_CALL),
             target_kind: Some(kind_id("interaction/patchbay-state")),
             maximum_in_flight: 1,
             maximum_input_bytes: MAX_INTERACTION_VALUE_BYTES,

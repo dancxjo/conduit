@@ -3,7 +3,7 @@
 //! Port-aware, allocation-independent execution-kernel contract.
 //!
 //! This crate is the forward S1 kernel. It does not adapt the reboot runtime:
-//! callers lower exact plans into numeric port, host-operation, and route
+//! callers lower exact plans into numeric port, Host Call, and route
 //! bindings before Play start. The fixed and hosted storage profiles implement
 //! the same value/sign contracts.
 
@@ -54,7 +54,7 @@ pub struct RequestId(pub u32);
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(transparent)]
-pub struct HostOperationId(pub u16);
+pub struct HostCallId(pub u16);
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(transparent)]
@@ -85,7 +85,7 @@ pub struct ValueRef {
     pub byte_len: u32,
 }
 
-/// A value reference carried across a plan-admitted host-operation boundary.
+/// A value reference carried across a plan-admitted Host Call boundary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BoundedValueRef {
     pub value: ValueRef,
@@ -95,7 +95,7 @@ pub struct BoundedValueRef {
 impl BoundedValueRef {
     pub const fn new(value: ValueRef, admitted_bytes: u32) -> Result<Self, ProtocolError> {
         if value.byte_len > admitted_bytes {
-            return Err(ProtocolError::HostOperationInputExceeded);
+            return Err(ProtocolError::HostCallInputExceeded);
         }
         Ok(Self {
             value,
@@ -105,7 +105,7 @@ impl BoundedValueRef {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum HostOperationDisposition {
+pub enum HostCallDisposition {
     Completed,
     Denied,
     Cancelled,
@@ -113,8 +113,8 @@ pub enum HostOperationDisposition {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct HostOperationOutcome {
-    pub disposition: HostOperationDisposition,
+pub struct HostCallOutcome {
+    pub disposition: HostCallDisposition,
     pub output: Option<BoundedValueRef>,
     pub failure: Option<Failure>,
 }
@@ -129,9 +129,9 @@ pub enum OperationInput {
     Closed {
         port: PortId,
     },
-    HostOperationCompleted {
+    HostCallCompleted {
         request: RequestId,
-        outcome: HostOperationOutcome,
+        outcome: HostCallOutcome,
     },
 }
 
@@ -147,9 +147,9 @@ pub enum OperationAction {
         port: PortId,
         value: CanonicalValue,
     },
-    RequestHostOperation {
+    RequestHostCall {
         request: RequestId,
-        operation: HostOperationId,
+        operation: HostCallId,
         input: BoundedValueRef,
     },
     Complete,
@@ -162,10 +162,10 @@ pub use scheduler::CanonicalValue;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProtocolError {
-    HostOperationInputExceeded,
-    HostOperationMissing,
-    HostOperationTableInvalid,
-    HostOperationTableSealed,
+    HostCallInputExceeded,
+    HostCallMissing,
+    HostCallTableInvalid,
+    HostCallTableSealed,
     RouteTableInvalid,
     RouteTableSealed,
     RouteMissing,
@@ -185,20 +185,20 @@ impl CordEndpoint {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct HostOperationBinding {
-    pub operation: HostOperationId,
+pub struct HostCallBinding {
+    pub operation: HostCallId,
     pub maximum_input_bytes: u32,
     pub maximum_output_bytes: u32,
 }
 
-/// Plan-lowered, numeric host-operation admission table.
-pub struct FixedHostOperationBindings<const SLOTS: usize> {
+/// Plan-lowered, numeric Host Call admission table.
+pub struct FixedHostCallBindings<const SLOTS: usize> {
     maximum_gears_per_node: u16,
-    bindings: [Option<HostOperationBinding>; SLOTS],
+    bindings: [Option<HostCallBinding>; SLOTS],
     sealed: bool,
 }
 
-impl<const SLOTS: usize> FixedHostOperationBindings<SLOTS> {
+impl<const SLOTS: usize> FixedHostCallBindings<SLOTS> {
     pub const fn new(maximum_gears_per_node: u16) -> Self {
         Self {
             maximum_gears_per_node,
@@ -207,17 +207,13 @@ impl<const SLOTS: usize> FixedHostOperationBindings<SLOTS> {
         }
     }
 
-    pub fn install(
-        &mut self,
-        node: NodeId,
-        binding: HostOperationBinding,
-    ) -> Result<(), ProtocolError> {
+    pub fn install(&mut self, node: NodeId, binding: HostCallBinding) -> Result<(), ProtocolError> {
         if self.sealed {
-            return Err(ProtocolError::HostOperationTableSealed);
+            return Err(ProtocolError::HostCallTableSealed);
         }
         let slot = self.slot(node, binding.operation)?;
         if self.bindings[slot].is_some() {
-            return Err(ProtocolError::HostOperationTableInvalid);
+            return Err(ProtocolError::HostCallTableInvalid);
         }
         self.bindings[slot] = Some(binding);
         Ok(())
@@ -225,7 +221,7 @@ impl<const SLOTS: usize> FixedHostOperationBindings<SLOTS> {
 
     pub fn seal(&mut self) -> Result<(), ProtocolError> {
         if self.maximum_gears_per_node == 0 {
-            return Err(ProtocolError::HostOperationTableInvalid);
+            return Err(ProtocolError::HostCallTableInvalid);
         }
         self.sealed = true;
         Ok(())
@@ -235,22 +231,22 @@ impl<const SLOTS: usize> FixedHostOperationBindings<SLOTS> {
         &self,
         node: NodeId,
         action: OperationAction,
-    ) -> Result<HostOperationBinding, ProtocolError> {
+    ) -> Result<HostCallBinding, ProtocolError> {
         if !self.sealed {
-            return Err(ProtocolError::HostOperationTableInvalid);
+            return Err(ProtocolError::HostCallTableInvalid);
         }
-        let OperationAction::RequestHostOperation {
+        let OperationAction::RequestHostCall {
             operation, input, ..
         } = action
         else {
-            return Err(ProtocolError::HostOperationMissing);
+            return Err(ProtocolError::HostCallMissing);
         };
-        let binding = self.bindings[self.slot(node, operation)?]
-            .ok_or(ProtocolError::HostOperationMissing)?;
+        let binding =
+            self.bindings[self.slot(node, operation)?].ok_or(ProtocolError::HostCallMissing)?;
         if input.value.byte_len > binding.maximum_input_bytes
             || input.admitted_bytes > binding.maximum_input_bytes
         {
-            return Err(ProtocolError::HostOperationInputExceeded);
+            return Err(ProtocolError::HostCallInputExceeded);
         }
         Ok(binding)
     }
@@ -261,26 +257,26 @@ impl<const SLOTS: usize> FixedHostOperationBindings<SLOTS> {
 
     pub(crate) fn validate_active_nodes(&self, active_nodes: usize) -> Result<(), ProtocolError> {
         if !self.sealed || self.maximum_gears_per_node == 0 {
-            return Err(ProtocolError::HostOperationTableInvalid);
+            return Err(ProtocolError::HostCallTableInvalid);
         }
         let operations_per_node = usize::from(self.maximum_gears_per_node);
         for (slot, binding) in self.bindings.iter().enumerate() {
             if binding.is_some() && slot / operations_per_node >= active_nodes {
-                return Err(ProtocolError::HostOperationTableInvalid);
+                return Err(ProtocolError::HostCallTableInvalid);
             }
         }
         Ok(())
     }
 
-    fn slot(&self, node: NodeId, operation: HostOperationId) -> Result<usize, ProtocolError> {
+    fn slot(&self, node: NodeId, operation: HostCallId) -> Result<usize, ProtocolError> {
         if operation.0 >= self.maximum_gears_per_node {
-            return Err(ProtocolError::HostOperationMissing);
+            return Err(ProtocolError::HostCallMissing);
         }
         usize::from(node.0)
             .checked_mul(usize::from(self.maximum_gears_per_node))
             .and_then(|base| base.checked_add(usize::from(operation.0)))
             .filter(|slot| *slot < SLOTS)
-            .ok_or(ProtocolError::HostOperationMissing)
+            .ok_or(ProtocolError::HostCallMissing)
     }
 }
 
@@ -657,9 +653,9 @@ pub enum KernelEventKind {
     RemoteInputAdmitted,
     RemoteInputClosed,
     InputClosed,
-    HostOperationRequested,
-    HostOperationCancellationRequested,
-    HostOperationCompleted,
+    HostCallRequested,
+    HostCallCancellationRequested,
+    HostCallCompleted,
     OperationCompleted,
     OperationFailed,
     CancellationRequested,

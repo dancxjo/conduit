@@ -11,7 +11,7 @@ use alloc::boxed::Box;
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyTransition};
 use conduit_kernel::{
     FixedSignLog, FixedValueStore, KernelEvent, NodeId,
-    scheduler::{FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus},
+    scheduler::{FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus},
 };
 use conduit_semantic_catalog::BoundedTextState;
 
@@ -106,7 +106,7 @@ pub struct NativeWorksetPlay {
     bindings: [Option<Binding>; NODES],
     keymaps: [ConduitIntlKeymap; FORMS],
     editors: [Option<BoundedTextState>; FORMS],
-    pending: [Option<HostOperationRequest>; FORMS],
+    pending: [Option<HostCallRequest>; FORMS],
     held: [Option<u8>; 256],
     presentations: [Option<NativePresentation>; FORMS],
     application_views: [Option<conduit_presentation::ApplicationView>; FORMS],
@@ -119,7 +119,7 @@ pub struct NativeWorksetPlay {
 
 impl NativeWorksetPlay {
     #[cfg(test)]
-    pub(crate) fn pending_requests(&self) -> [Option<HostOperationRequest>; FORMS] {
+    pub(crate) fn pending_requests(&self) -> [Option<HostCallRequest>; FORMS] {
         self.pending
     }
     pub fn prepare(prepared: &PreparedNativeWorkset) -> Result<Self, WorksetRefusal> {

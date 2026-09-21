@@ -3,7 +3,7 @@ use alloc::vec;
 use conduit_core::{
     bind_sign, kind_id, ArtifactId, AuthorityContractId, AuthorityGrantId, AuthorityRequirement,
     Back, BackOfferBuilder, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFront,
-    ExecutionProfileId, HostAdvertisement, HostOperationContractId, HostOperationRequirement,
+    ExecutionProfileId, HostAdvertisement, HostCallContractId, HostCallRequirement,
     ImplementationId, Kind, KindIdentity, LineId, PortDescriptor, PortDirection, PortId,
     PortTemporal, SignId, PROTOCOL_VERSION,
 };
@@ -15,7 +15,7 @@ use crate::{DelegatedTransitionGrant, HostInstance};
 
 pub const REBOOT_OPERATION: &str = "lifecycle/reboot";
 pub const REBOOT_CONTRACT_REVISION: &str = "conduit.lifecycle/reboot@1";
-pub const REBOOT_HOST_OPERATION: &str = "conduit.host/lifecycle-reboot@1";
+pub const REBOOT_HOST_CALL: &str = "conduit.host/lifecycle-reboot@1";
 pub const REBOOT_AUTHORITY_CONTRACT: &str = "conduit.authority/lifecycle-reboot@1";
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -47,8 +47,8 @@ pub fn delegated_reboot_offer(
             execution_profile_id: ExecutionProfileId::from("lifecycle/reboot-bounded@1"),
             implementation_id,
             artifact_id,
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(REBOOT_HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(REBOOT_HOST_CALL),
                 target_kind: None,
                 maximum_in_flight: 1,
                 maximum_input_bytes: 0,
@@ -57,7 +57,7 @@ pub fn delegated_reboot_offer(
             resource_requirements: vec![],
             authority_requirements: vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(REBOOT_AUTHORITY_CONTRACT),
-                host_operation_contract_id: HostOperationContractId::from(REBOOT_HOST_OPERATION),
+                host_call_contract_id: HostCallContractId::from(REBOOT_HOST_CALL),
                 subject_kind: kind_id("authority/peer"),
             }],
         },

@@ -126,8 +126,8 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_u32(&mut canonical, gear.limits.max_queue_bytes);
         push_ports(&mut canonical, &gear.inputs);
         push_ports(&mut canonical, &gear.outputs);
-        push_u32(&mut canonical, gear.host_operations.len() as u32);
-        for requirement in &gear.host_operations {
+        push_u32(&mut canonical, gear.host_calls.len() as u32);
+        for requirement in &gear.host_calls {
             push_string(&mut canonical, requirement.contract_id.as_str());
             match &requirement.target_kind {
                 Some(target_kind) => {
@@ -148,7 +148,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         for binding in &gear.authority {
             push_string(&mut canonical, binding.grant_id.as_str());
             push_string(&mut canonical, binding.contract_id.as_str());
-            push_string(&mut canonical, binding.host_operation_contract_id.as_str());
+            push_string(&mut canonical, binding.host_call_contract_id.as_str());
             push_string(&mut canonical, binding.subject_kind.as_str());
             push_string(&mut canonical, binding.host_id.as_str());
             push_string(&mut canonical, binding.boot_id.as_str());

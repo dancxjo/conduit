@@ -3,7 +3,7 @@ use conduit_core::*;
 
 pub const EFFECT_KIND: &str = "effect/send-message@1";
 pub const ARGUMENT_KIND: &str = "llm/proposal-result@1";
-pub const EFFECT_OPERATION: &str = PRESENT_HOST_OPERATION_CONTRACT;
+pub const EFFECT_OPERATION: &str = PRESENT_HOST_CALL_CONTRACT;
 
 fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
@@ -42,7 +42,7 @@ fn placement(
         },
         inputs,
         outputs,
-        host_operations: vec![],
+        host_calls: vec![],
         resources: vec![],
         authority: vec![],
         pool_references: vec![],
@@ -62,8 +62,8 @@ pub fn wired_plan() -> Plan {
         )],
         vec![port("result", ARGUMENT_KIND, PortDirection::Output)],
     );
-    proposer.host_operations.push(HostOperationRequirement {
-        contract_id: HostOperationContractId::from("conduit.host/local-model-inference@1"),
+    proposer.host_calls.push(HostCallRequirement {
+        contract_id: HostCallContractId::from("conduit.host/local-model-inference@1"),
         target_kind: Some(kind_id(LLM_PROPOSE_KIND)),
         maximum_in_flight: 1,
         maximum_input_bytes: 1_024,
@@ -80,18 +80,18 @@ pub fn wired_plan() -> Plan {
             PortDirection::Output,
         )],
     );
-    let operation = HostOperationRequirement {
-        contract_id: HostOperationContractId::from(EFFECT_OPERATION),
+    let operation = HostCallRequirement {
+        contract_id: HostCallContractId::from(EFFECT_OPERATION),
         target_kind: Some(kind_id(EFFECT_KIND)),
         maximum_in_flight: 1,
         maximum_input_bytes: 512,
         maximum_output_bytes: 512,
     };
-    effect.host_operations.push(operation.clone());
+    effect.host_calls.push(operation.clone());
     effect.authority.push(AuthorityBinding {
         grant_id: AuthorityGrantId::from("grant/send-message"),
         contract_id: AuthorityContractId::from("authority/send-message@1"),
-        host_operation_contract_id: operation.contract_id,
+        host_call_contract_id: operation.contract_id,
         subject_kind: kind_id(EFFECT_KIND),
         host_id: effect.host_id.clone(),
         boot_id: effect.boot_id.clone(),

@@ -2,7 +2,7 @@
 
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId,
+    HostCallContractId, HostCallRequirement, ImplementationId,
 };
 
 pub const COMPARE_PATTERN_BROWSER_PROFILE: &str =
@@ -24,9 +24,9 @@ pub fn offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(COMPARE_PATTERN_BROWSER_PROFILE),
             implementation_id: ImplementationId::from(COMPARE_PATTERN_BROWSER_IMPLEMENTATION),
             artifact_id: ArtifactId::from(COMPARE_PATTERN_BROWSER_ARTIFACT),
-            host_operations: vec![
-                host_operation(COMPARE_PATTERN_CANDIDATE_OPERATION, &kind_id),
-                host_operation(COMPARE_PATTERN_TEMPLATE_OPERATION, &kind_id),
+            host_calls: vec![
+                host_call(COMPARE_PATTERN_CANDIDATE_OPERATION, &kind_id),
+                host_call(COMPARE_PATTERN_TEMPLATE_OPERATION, &kind_id),
             ],
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
@@ -35,9 +35,9 @@ pub fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn host_operation(contract: &str, kind: &conduit_core::KindId) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(contract),
+fn host_call(contract: &str, kind: &conduit_core::KindId) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(contract),
         target_kind: Some(kind.clone()),
         maximum_in_flight: 1,
         maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,

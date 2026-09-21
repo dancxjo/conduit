@@ -2,7 +2,7 @@
 
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId,
+    HostCallContractId, HostCallRequirement, ImplementationId,
 };
 
 pub const TYPED_RECORD_FRAME_STD_IMPLEMENTATION: &str = "std/typed-record-frame@1";
@@ -10,17 +10,17 @@ pub const TYPED_RECORD_DEFRAME_STD_IMPLEMENTATION: &str = "std/typed-record-defr
 pub const TEXT_TO_TYPED_RECORD_STD_IMPLEMENTATION: &str = "std/text-to-typed-record@1";
 pub const TYPED_RECORD_TO_TEXT_STD_IMPLEMENTATION: &str = "std/typed-record-to-text@1";
 
-pub const TYPED_RECORD_FRAME_HOST_OPERATION: &str = "conduit.host/typed-record-frame@1";
-pub const TYPED_RECORD_DEFRAME_HOST_OPERATION: &str = "conduit.host/typed-record-deframe@1";
-pub const TEXT_TO_TYPED_RECORD_HOST_OPERATION: &str = "conduit.host/text-to-typed-record@1";
-pub const TYPED_RECORD_TO_TEXT_HOST_OPERATION: &str = "conduit.host/typed-record-to-text@1";
+pub const TYPED_RECORD_FRAME_HOST_CALL: &str = "conduit.host/typed-record-frame@1";
+pub const TYPED_RECORD_DEFRAME_HOST_CALL: &str = "conduit.host/typed-record-deframe@1";
+pub const TEXT_TO_TYPED_RECORD_HOST_CALL: &str = "conduit.host/text-to-typed-record@1";
+pub const TYPED_RECORD_TO_TEXT_HOST_CALL: &str = "conduit.host/typed-record-to-text@1";
 
 pub fn typed_record_frame_std_offer() -> CapabilityOffer {
     codec_offer(
         conduit_net::TYPED_RECORD_FRAME_KIND,
         "std-typed-record-frame-v1",
         TYPED_RECORD_FRAME_STD_IMPLEMENTATION,
-        TYPED_RECORD_FRAME_HOST_OPERATION,
+        TYPED_RECORD_FRAME_HOST_CALL,
     )
 }
 
@@ -29,7 +29,7 @@ pub fn typed_record_deframe_std_offer() -> CapabilityOffer {
         conduit_net::TYPED_RECORD_DEFRAME_KIND,
         "std-typed-record-deframe-v1",
         TYPED_RECORD_DEFRAME_STD_IMPLEMENTATION,
-        TYPED_RECORD_DEFRAME_HOST_OPERATION,
+        TYPED_RECORD_DEFRAME_HOST_CALL,
     )
 }
 
@@ -38,7 +38,7 @@ pub fn text_to_typed_record_std_offer() -> CapabilityOffer {
         conduit_net::TEXT_TO_TYPED_RECORD_KIND,
         "std-text-to-typed-record-v1",
         TEXT_TO_TYPED_RECORD_STD_IMPLEMENTATION,
-        TEXT_TO_TYPED_RECORD_HOST_OPERATION,
+        TEXT_TO_TYPED_RECORD_HOST_CALL,
     )
 }
 
@@ -47,7 +47,7 @@ pub fn typed_record_to_text_std_offer() -> CapabilityOffer {
         conduit_net::TYPED_RECORD_TO_TEXT_KIND,
         "std-typed-record-to-text-v1",
         TYPED_RECORD_TO_TEXT_STD_IMPLEMENTATION,
-        TYPED_RECORD_TO_TEXT_HOST_OPERATION,
+        TYPED_RECORD_TO_TEXT_HOST_CALL,
     )
 }
 
@@ -76,8 +76,8 @@ fn codec_offer(
             execution_profile_id: ExecutionProfileId::from("std/typed-record-codec-hosted@1"),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from("conduit-net/typed-record-codecs@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(operation),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(operation),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,

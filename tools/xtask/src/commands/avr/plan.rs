@@ -70,7 +70,7 @@ pub(super) fn plan_contact(boot_id: &str) -> Result<PlannedContact, Box<dyn std:
         .map_err(|error| format!("AVR assigned fragment lowering refused: {error:?}"))?;
     let generated = generate_embedded_plan(fragment, &lowered, EmbeddedImageBounds::HOST_TOOLING)?;
     let assigned = encode_assigned_plan(&generated, AssignedPlanMaxima::SINGLE_SOURCE)?;
-    if generated.output_ports.len() != 1 || generated.host_operations.len() != 1 {
+    if generated.output_ports.len() != 1 || generated.host_calls.len() != 1 {
         return Err("AVR contact fragment is not the admitted one-source shape".into());
     }
     let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
@@ -85,7 +85,7 @@ pub(super) fn plan_contact(boot_id: &str) -> Result<PlannedContact, Box<dyn std:
         assigned,
         activation: encode_assigned_activation(activation),
         expected_output_port: generated.output_ports[0].port,
-        expected_value_bytes: generated.host_operations[0].maximum_output_bytes as usize,
+        expected_value_bytes: generated.host_calls[0].maximum_output_bytes as usize,
         plan: activation.plan,
         fragment: activation.fragment,
         host: activation.host,

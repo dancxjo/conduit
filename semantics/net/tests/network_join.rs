@@ -1,13 +1,13 @@
 use conduit_core::{
     kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, CapabilityId,
-    HostOperationContractId, ResourceBinding, ResourceClassId, ResourcePoolId,
+    HostCallContractId, ResourceBinding, ResourceClassId, ResourcePoolId,
 };
 use conduit_net::{
     decode_network_attachment, decode_network_join_request, encode_network_attachment,
     encode_network_join_request, execute_fixture_join, network_capable_advertisement,
     network_join_offer, network_omitting_advertisement, NetworkAttachmentId, NetworkAttachmentInfo,
     NetworkJoinError, NetworkJoinRequest, MAXIMUM_JOIN_OUTPUT_BYTES, NETWORK_CONFIG_AUTHORITY,
-    NETWORK_CONFIG_SUBJECT, NETWORK_JOIN_HOST_OPERATION, WIFI_STATION_RESOURCE_CLASS,
+    NETWORK_CONFIG_SUBJECT, NETWORK_JOIN_HOST_CALL, WIFI_STATION_RESOURCE_CLASS,
 };
 
 fn resource() -> ResourceBinding {
@@ -25,7 +25,7 @@ fn grant(advertisement: &conduit_core::HostAdvertisement) -> AuthorityGrant {
     AuthorityGrant {
         grant_id: AuthorityGrantId::from("grant/network-config-once"),
         contract_id: AuthorityContractId::from(NETWORK_CONFIG_AUTHORITY),
-        host_operation_contract_id: HostOperationContractId::from(NETWORK_JOIN_HOST_OPERATION),
+        host_call_contract_id: HostCallContractId::from(NETWORK_JOIN_HOST_CALL),
         subject_kind: kind_id(NETWORK_CONFIG_SUBJECT),
         host_id: advertisement.host_id.clone(),
         boot_id: advertisement.boot_id.clone(),

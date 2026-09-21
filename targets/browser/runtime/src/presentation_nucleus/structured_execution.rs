@@ -14,8 +14,8 @@ use conduit_form::{
 };
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
 use conduit_kernel::{
-    FixedHostOperationBindings, FixedRoutes, FixedSignLog, HostOperationDisposition,
-    HostOperationOutcome, HostedValueStore, ValueStorage,
+    FixedHostCallBindings, FixedRoutes, FixedSignLog, HostCallDisposition, HostCallOutcome,
+    HostedValueStore, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
@@ -143,8 +143,8 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
             .map_err(debug_error)?;
     }
     routes.seal().map_err(debug_error)?;
-    let mut bindings = FixedHostOperationBindings::<4>::new(NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<4>::new(NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(debug_error)?;
@@ -176,7 +176,7 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
                 }
             }
             conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND => NucleusOperation::Sink {
-                maximum_input_bytes: placement.host_operations[0].maximum_input_bytes,
+                maximum_input_bytes: placement.host_calls[0].maximum_input_bytes,
                 pending: false,
                 complete: false,
             },
@@ -193,7 +193,7 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
             .max((32 * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
     )
     .map_err(debug_error)?;
-    let mut scheduler = StructuredScheduler::new_with_host_operations(
+    let mut scheduler = StructuredScheduler::new_with_host_calls(
         nodes, cords, routes, bindings, drivers, values, signs,
     )
     .map_err(debug_error)?;
@@ -209,11 +209,11 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
             );
             capture_identity = Some(request);
             scheduler
-                .complete_host_operation(
+                .complete_host_call(
                     request.node,
                     request.request,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: None,
                         failure: None,
                     },

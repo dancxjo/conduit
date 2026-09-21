@@ -56,7 +56,7 @@ mean uppercase and redact and must not substitute for each other.
 
 Terminal, liveness, effect, and domain laws that affect substitutability belong
 to the semantic contract identity even when they do not alter the callable
-Front. Resource, authority, and Host-operation requirements remain later exact
+Front. Resource, authority, and Host Call requirements remain later exact
 admission gates; they do not define the operation's meaning.
 
 ## forms and kinds share the same compatibility law

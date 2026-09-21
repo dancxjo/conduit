@@ -2,15 +2,15 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_audio::{
     AUDIO_RENDER_DEMAND_ENCODED_LEN, CONTROL_EVENT_ENCODED_LEN, NOTE_EVENT_ENCODED_LEN,
 };
-use conduit_core::{CapabilityOffer, ConfigurationValue, HostOperationRequirement, PlannedGear};
+use conduit_core::{CapabilityOffer, ConfigurationValue, HostCallRequirement, PlannedGear};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId,
+    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
+    RequestId,
 };
 
 pub(super) use super::synth_render::{execute, InstalledSynthState};
 
-pub(super) const SYNTH_HOST_OPERATION: &str = conduit_std_offers::MUSIC_SYNTH_HOST_OPERATION;
+pub(super) const SYNTH_HOST_CALL: &str = conduit_std_offers::MUSIC_SYNTH_HOST_CALL;
 pub(super) const PCM_BLOCK_BYTES: u32 = conduit_semantic_catalog::MUSIC_SYNTH_PCM_BLOCK_BYTES;
 
 pub(super) static MUSIC_SYNTH_FACTORY: InstalledFactory = InstalledFactory {
@@ -19,8 +19,8 @@ pub(super) static MUSIC_SYNTH_FACTORY: InstalledFactory = InstalledFactory {
     prepare,
 };
 
-pub(super) fn host_requirement() -> HostOperationRequirement {
-    conduit_std_offers::music_synth_reference_offer().host_operations[0].clone()
+pub(super) fn host_requirement() -> HostCallRequirement {
+    conduit_std_offers::music_synth_reference_offer().host_calls[0].clone()
 }
 
 pub(crate) fn offer() -> CapabilityOffer {
@@ -55,9 +55,9 @@ impl MusicSynthOperation {
                 self.next_request = self.next_request.wrapping_add(1);
                 self.pending = Some(request);
                 self.input = Some(value);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: match BoundedValueRef::new(
                         value,
                         NOTE_EVENT_ENCODED_LEN
@@ -69,9 +69,9 @@ impl MusicSynthOperation {
                     },
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 self.pending = None;
@@ -176,7 +176,7 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id.as_str() != conduit_synth::REFERENCE_SYNTH_ARTIFACT_ID
         || placement.inputs != offer().inputs
         || placement.outputs != offer().outputs
-        || placement.host_operations != [host_requirement()]
+        || placement.host_calls != [host_requirement()]
         || !placement.resources.is_empty()
         || !placement.authority.is_empty()
         || !configuration_is_exact

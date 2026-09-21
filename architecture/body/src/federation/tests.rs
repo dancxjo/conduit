@@ -5,7 +5,7 @@ use alloc::{format, string::ToString};
 use conduit_core::{
     ActivePlayId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseCapabilityAuthority,
     BaseCapabilityScope, BaseInstanceId, CapabilityEnvelopeId, CapabilityId,
-    CapabilityIssueRequest, HostOperationContractId, ImplementationId, KindId, PlanId,
+    CapabilityIssueRequest, HostCallContractId, ImplementationId, KindId, PlanId,
     ResourceGenerationId, ResourcePoolId,
 };
 use ed25519_dalek::{Signer, SigningKey};
@@ -87,7 +87,7 @@ fn scope(receiver: &FederationPeer, base: &str) -> BaseCapabilityScope {
         authority_contract_id: AuthorityContractId::from("authority/remote-effect@1"),
         capability_id: CapabilityId::from("remote/effect"),
         implementation_id: ImplementationId::from("base/remote-effect@1"),
-        operation_contract_id: HostOperationContractId::from("host/remote-effect@1"),
+        operation_contract_id: HostCallContractId::from("host/remote-effect@1"),
         subject_kind: KindId::from("effect/exact"),
         resource_pool_id: ResourcePoolId::from("resource/exact"),
         resource_generation_id: ResourceGenerationId("resource/generation/3".into()),
@@ -114,7 +114,7 @@ fn capability(
         grant: AuthorityGrant {
             grant_id: scope.authority_grant_id.clone(),
             contract_id: scope.authority_contract_id.clone(),
-            host_operation_contract_id: scope.operation_contract_id.clone(),
+            host_call_contract_id: scope.operation_contract_id.clone(),
             subject_kind: scope.subject_kind.clone(),
             host_id: scope.host_id.clone(),
             boot_id: scope.boot_id.clone(),
@@ -219,8 +219,7 @@ fn authentication_membership_and_effect_authority_remain_independent() {
         Err(FederationRefusal::CapabilityRefused)
     );
     let mut wrong_operation = frame(&challenge, 1, exact_claim.clone());
-    wrong_operation.claim.operation_contract_id =
-        HostOperationContractId::from("host/sibling-effect@1");
+    wrong_operation.claim.operation_contract_id = HostCallContractId::from("host/sibling-effect@1");
     let wrong_operation_signature = a_key
         .sign(&operation_transcript(&wrong_operation))
         .to_bytes();

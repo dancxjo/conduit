@@ -50,8 +50,8 @@ fn coverage(host_profile: &str, plan: &conduit_core::Plan) -> Vec<Coverage> {
                     implementation_id: placement.implementation_id.as_str().to_owned(),
                     artifact_id: placement.artifact_id.as_str().to_owned(),
                     execution_profile_id: placement.execution_profile_id.as_str().to_owned(),
-                    host_operation_families: placement
-                        .host_operations
+                    host_call_families: placement
+                        .host_calls
                         .iter()
                         .map(|operation| operation.contract_id.as_str().to_owned())
                         .collect(),

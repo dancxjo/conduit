@@ -4,7 +4,7 @@ use conduit_kernel::scheduler::{
     FixedScheduler, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, FixedSignLog, FixedValueStore, HostOperationDisposition, HostOperationOutcome,
+    BoundedValueRef, FixedSignLog, FixedValueStore, HostCallDisposition, HostCallOutcome,
 };
 use conduit_wire::{SessionMachine, SessionMessage, SessionRole};
 use embassy_executor::Spawner;
@@ -58,9 +58,9 @@ struct JoinKernel {
     endpoint: conduit_kernel::RemoteEndpointId,
     cord: conduit_kernel::CordId,
     node: conduit_kernel::NodeId,
-    operation: conduit_kernel::HostOperationId,
+    operation: conduit_kernel::HostCallId,
     sign_node: conduit_kernel::NodeId,
-    sign_operation: conduit_kernel::HostOperationId,
+    sign_operation: conduit_kernel::HostCallId,
 }
 
 impl JoinKernel {
@@ -95,7 +95,7 @@ impl JoinKernel {
         let host_bindings =
             generated_host_bindings().map_err(|_| UsbLinkError::InvalidGeneratedEndpoint)?;
         crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelScheduler);
-        let scheduler = JoinScheduler::new_with_host_operations(
+        let scheduler = JoinScheduler::new_with_host_calls(
             nodes,
             cords,
             routes,
@@ -154,11 +154,11 @@ impl JoinKernel {
                     }
                     sign.write_network_attachment(expected).await?;
                     self.scheduler
-                        .complete_host_operation(
+                        .complete_host_call(
                             request.node,
                             request.request,
-                            HostOperationOutcome {
-                                disposition: HostOperationDisposition::Completed,
+                            HostCallOutcome {
+                                disposition: HostCallDisposition::Completed,
                                 output: None,
                                 failure: None,
                             },
@@ -237,11 +237,11 @@ impl JoinKernel {
                     .store_host_value(&attachment[..attachment_len])
                     .map_err(UsbLinkError::Kernel)?;
                 self.scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: Some(
                                 BoundedValueRef::new(
                                     output,

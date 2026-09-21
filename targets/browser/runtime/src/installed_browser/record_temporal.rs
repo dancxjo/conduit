@@ -47,7 +47,7 @@ fn offer(contract: Kind, implementation: &str) -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from("browser/record-temporal@1"),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from("conduit-net/record-temporal@1"),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },

@@ -12,7 +12,7 @@ pub enum RealizationRejection {
     QueueItemBound,
     QueueByteBound,
     ResourceUnitCeiling,
-    HostOperationAllowlist,
+    HostCallAllowlist,
     AuthorityContractAllowlist,
     MinimumCharacteristicCount(CharacteristicId),
     MaximumCharacteristicCount(CharacteristicId),

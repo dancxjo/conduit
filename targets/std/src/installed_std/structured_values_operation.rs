@@ -6,8 +6,8 @@ use conduit_core::{
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
+    RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static LITERAL_FACTORY: InstalledFactory = InstalledFactory {
@@ -68,15 +68,15 @@ impl StructuredPresentationOperation {
                 else {
                     return InstalledOperation::fail(155);
                 };
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -128,7 +128,7 @@ fn validate_literal(placement: &PlannedGear) -> Result<(), String> {
         || output.port_id.as_str() != "value"
         || output.direction != PortDirection::Output
         || output.temporal != PortTemporal::Value
-        || !placement.host_operations.is_empty()
+        || !placement.host_calls.is_empty()
         || !placement.resources.is_empty()
     {
         return Err("planned structured literal differs from its installation".into());
@@ -154,8 +154,8 @@ fn validate_presentation(placement: &PlannedGear) -> Result<(), String> {
         || input.direction != PortDirection::Input
         || input.temporal != PortTemporal::Value
         || !placement.outputs.is_empty()
-        || placement.host_operations.len() != 1
-        || placement.host_operations[0].target_kind.as_ref()
+        || placement.host_calls.len() != 1
+        || placement.host_calls[0].target_kind.as_ref()
             != Some(&kind_id(
                 conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET,
             ))

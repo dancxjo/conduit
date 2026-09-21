@@ -4,13 +4,13 @@ use conduit_chat::{delivery_request_type, messaging_semantic_contracts, MESSAGIN
 use conduit_core::{
     authority_grant, kind_id, resource_offer, resource_requirement, ArtifactId,
     AuthorityContractId, AuthorityGrant, AuthorityRequirement, Back, BackOfferBuilder,
-    CapabilityId, CapabilityOffer, ExecutionProfileId, HostId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ResourceOffer, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    CapabilityId, CapabilityOffer, ExecutionProfileId, HostCallContractId, HostCallRequirement,
+    HostId, ImplementationId, ResourceOffer, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const MESSAGING_PROFILE: &str = "std/messaging-deterministic-hosted@1";
 pub const MESSAGING_ARTIFACT: &str = "conduit-std-host/messaging-deterministic@1";
-pub const MESSAGING_HOST_OPERATION: &str = "conduit.host/messaging-deterministic@1";
+pub const MESSAGING_HOST_CALL: &str = "conduit.host/messaging-deterministic@1";
 pub const MESSAGING_DELIVERY_AUTHORITY: &str = "conduit.authority/messaging-deliver@1";
 
 pub const GITHUB_MESSAGING_RESOURCE_CLASS: &str =
@@ -49,16 +49,14 @@ pub fn github_messaging_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations: vec![host_operation(
+            host_calls: vec![host_call(
                 GITHUB_MESSAGING_OPERATION,
                 operation_target.clone(),
             )],
             resource_requirements: vec![resource_requirement(GITHUB_MESSAGING_RESOURCE_CLASS, 1)],
             authority_requirements: vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(GITHUB_MESSAGING_AUTHORITY),
-                host_operation_contract_id: HostOperationContractId::from(
-                    GITHUB_MESSAGING_OPERATION,
-                ),
+                host_call_contract_id: HostCallContractId::from(GITHUB_MESSAGING_OPERATION),
                 subject_kind: operation_target,
             }],
         },
@@ -81,15 +79,12 @@ fn deterministic_realization(kind: &str) -> Back {
         execution_profile_id: ExecutionProfileId::from(MESSAGING_PROFILE),
         implementation_id: ImplementationId::from(format!("std/{kind}@1")),
         artifact_id: ArtifactId::from(MESSAGING_ARTIFACT),
-        host_operations: vec![host_operation(
-            MESSAGING_HOST_OPERATION,
-            operation_target.clone(),
-        )],
+        host_calls: vec![host_call(MESSAGING_HOST_CALL, operation_target.clone())],
         resource_requirements: vec![],
         authority_requirements: (kind == MESSAGING_DELIVERY_KIND)
             .then(|| AuthorityRequirement {
                 contract_id: AuthorityContractId::from(MESSAGING_DELIVERY_AUTHORITY),
-                host_operation_contract_id: HostOperationContractId::from(MESSAGING_HOST_OPERATION),
+                host_call_contract_id: HostCallContractId::from(MESSAGING_HOST_CALL),
                 subject_kind: operation_target,
             })
             .into_iter()
@@ -97,9 +92,9 @@ fn deterministic_realization(kind: &str) -> Back {
     }
 }
 
-fn host_operation(contract: &str, target_kind: conduit_core::KindId) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(contract),
+fn host_call(contract: &str, target_kind: conduit_core::KindId) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(contract),
         target_kind: Some(target_kind),
         maximum_in_flight: 1,
         maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,

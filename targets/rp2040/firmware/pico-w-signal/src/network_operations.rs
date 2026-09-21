@@ -1,12 +1,12 @@
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, Operation, OperationAction,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, Operation, OperationAction,
     OperationInput, PortId, RequestId,
 };
 
 pub(crate) struct JoinOperation {
     input_port: PortId,
     output_port: PortId,
-    operation: conduit_kernel::HostOperationId,
+    operation: conduit_kernel::HostCallId,
     pending: Option<RequestId>,
     completed: bool,
 }
@@ -23,16 +23,16 @@ impl Operation for JoinOperation {
             {
                 let request = RequestId(0);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
                     operation: self.operation,
                     input: BoundedValueRef::new(value, conduit_net::MAXIMUM_JOIN_INPUT_BYTES)
                         .expect("planned join input is exactly bounded"),
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_some()
                     && outcome.failure.is_none() =>
             {
@@ -58,7 +58,7 @@ impl Operation for JoinOperation {
 
 pub(crate) struct AttachmentSignOperation {
     input_port: PortId,
-    operation: conduit_kernel::HostOperationId,
+    operation: conduit_kernel::HostCallId,
     pending: Option<RequestId>,
     completed: bool,
 }
@@ -75,16 +75,16 @@ impl Operation for AttachmentSignOperation {
             {
                 let request = RequestId(0);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
                     operation: self.operation,
                     input: BoundedValueRef::new(value, conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES)
                         .expect("planned attachment Info is exactly bounded"),
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -114,7 +114,7 @@ impl NetworkOperation {
     pub fn join(
         input_port: PortId,
         output_port: PortId,
-        operation: conduit_kernel::HostOperationId,
+        operation: conduit_kernel::HostCallId,
     ) -> Self {
         Self::Join(JoinOperation {
             input_port,
@@ -125,7 +125,7 @@ impl NetworkOperation {
         })
     }
 
-    pub fn attachment_sign(input_port: PortId, operation: conduit_kernel::HostOperationId) -> Self {
+    pub fn attachment_sign(input_port: PortId, operation: conduit_kernel::HostCallId) -> Self {
         Self::AttachmentSign(AttachmentSignOperation {
             input_port,
             operation,

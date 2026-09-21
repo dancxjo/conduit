@@ -13,7 +13,7 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     structured_selector_definition, CheckedCordStage, ProfileCatalog, StartupCatalog,
 };
-use conduit_std_host::hosted_data::{tabular_std_offers, TABULAR_HOST_OPERATION};
+use conduit_std_host::hosted_data::{tabular_std_offers, TABULAR_HOST_CALL};
 
 const SOURCE: &str = include_str!("../../../forms/tabular-query/main.conduit");
 
@@ -67,10 +67,7 @@ fn canonical_form_filters_and_projects_rows_without_sql_or_json() {
         .iter()
         .find(|placement| placement.kind_id.as_str() == TABULAR_FILTER_KIND)
         .unwrap();
-    assert_eq!(
-        filter.host_operations[0].contract_id.as_str(),
-        TABULAR_HOST_OPERATION
-    );
+    assert_eq!(filter.host_calls[0].contract_id.as_str(), TABULAR_HOST_CALL);
     assert!(plan.fragments[0]
         .placements
         .iter()

@@ -69,7 +69,7 @@ fn deadband_scale_and_clamp_execute_together_through_the_production_kernel() {
             .find(|placement| placement.kind_id.as_str() == kind)
             .expect("math placement exists");
         assert_eq!(placement.implementation_id.as_str(), implementation);
-        assert_eq!(placement.host_operations.len(), 1);
+        assert_eq!(placement.host_calls.len(), 1);
     }
 
     let mut output = Vec::with_capacity(1_024);
@@ -141,8 +141,8 @@ fn quantity_range_and_quantization_refusals_reach_the_production_kernel() {
             mapping.implementation_id.as_str(),
             conduit_std_offers::QUANTITY_MAP_IMPLEMENTATION
         );
-        assert_eq!(mapping.host_operations[0].maximum_input_bytes, 8);
-        assert_eq!(mapping.host_operations[0].maximum_output_bytes, 9);
+        assert_eq!(mapping.host_calls[0].maximum_input_bytes, 8);
+        assert_eq!(mapping.host_calls[0].maximum_output_bytes, 9);
         let mut output = Vec::new();
         let mut timer = RecordingTimer { waits: Vec::new() };
         let report = host
@@ -313,7 +313,7 @@ fn quantity_mapping_completes_one_admitted_kernel_request() {
             .unwrap()
             .kernel_sign
             .iter()
-            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted)
+            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostCallCompleted)
             .count(),
         3
     );
@@ -408,7 +408,7 @@ fn quantity_refusals_do_not_fabricate_a_connected_presentation() {
             .unwrap();
         assert_eq!(
             request.contract_id.as_str(),
-            conduit_std_offers::QUANTITY_MAP_HOST_OPERATION
+            conduit_std_offers::QUANTITY_MAP_HOST_CALL
         );
         assert_eq!(
             failure.active_play_id.as_ref(),

@@ -1,17 +1,17 @@
-//! Exact, bounded Scalar-to-Quantity work through the browser host-operation waist.
+//! Exact, bounded Scalar-to-Quantity work through the browser Host Call waist.
 
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{ConfigurationValue, PlannedGear, QuantityUnit, Scalar};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
     OperationAction, OperationInput, PortId, RequestId,
 };
 use conduit_semantic_catalog::{
     QuantityMapping, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
 };
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/map-quantity@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/map-quantity@1";
 const IMPLEMENTATION: &str = "browser/kernel-map-quantity@1";
 pub(super) static MAP: BrowserInstallation = BrowserInstallation {
     implementation_id: IMPLEMENTATION,
@@ -33,8 +33,8 @@ fn offer() -> conduit_core::CapabilityOffer {
             implementation: IMPLEMENTATION,
             artifact: "conduit-browser-runtime/map-quantity@1",
         },
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: HOST_OPERATION.into(),
+        vec![conduit_core::HostCallRequirement {
+            contract_id: HOST_CALL.into(),
             target_kind,
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
@@ -164,19 +164,19 @@ impl Operation for QuantityOperation {
                 };
                 self.next_request = next_request;
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, conduit_core::SCALAR_ENCODED_LEN as u32)
                         .expect("exact Scalar"),
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending && request.0.checked_add(1) == Some(self.next_request) =>
             {
                 self.pending = false;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None)
+                    (HostCallDisposition::Completed, Some(output), None)
                         if output.admitted_bytes == conduit_core::QUANTITY_ENCODED_LEN as u32
                             && output.value.byte_len
                                 == conduit_core::QUANTITY_ENCODED_LEN as u32 =>
@@ -186,7 +186,7 @@ impl Operation for QuantityOperation {
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Failed, None, Some(reason)) => {
+                    (HostCallDisposition::Failed, None, Some(reason)) => {
                         OperationAction::Fail(reason)
                     }
                     _ => OperationAction::Fail(failure(1)),
@@ -208,7 +208,7 @@ impl Operation for QuantityOperation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::{HostOperationOutcome, ValueRef};
+    use conduit_kernel::{HostCallOutcome, ValueRef};
 
     #[test]
     fn browser_quantity_operation_requires_exact_ports_requests_and_output() {
@@ -227,7 +227,7 @@ mod tests {
                 port: PortId(0),
                 value: input
             }),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(0),
                 ..
             }
@@ -238,10 +238,10 @@ mod tests {
             byte_len: 9,
         };
         assert_eq!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(0),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(BoundedValueRef::new(output, 9).unwrap()),
                     failure: None,
                 },
@@ -265,13 +265,13 @@ mod tests {
                 next_request: 1,
                 cancelled: false,
             };
-            let outcome = HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            let outcome = HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure(detail)),
             };
             assert_eq!(
-                operation.resume(OperationInput::HostOperationCompleted {
+                operation.resume(OperationInput::HostCallCompleted {
                     request: RequestId(0),
                     outcome
                 }),
@@ -285,10 +285,10 @@ mod tests {
         };
         operation.cancel();
         assert!(matches!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(0),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(
                         BoundedValueRef::new(
                             ValueRef {

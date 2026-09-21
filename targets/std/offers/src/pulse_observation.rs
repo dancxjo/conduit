@@ -15,7 +15,7 @@ pub fn pulse_observe_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(PULSE_OBSERVE_PROFILE),
             implementation_id: ImplementationId::from(PULSE_OBSERVE_IMPLEMENTATION),
             artifact_id: ArtifactId::from(PULSE_OBSERVE_ARTIFACT),
-            host_operations: vec![],
+            host_calls: vec![],
             resource_requirements: vec![],
             authority_requirements: vec![],
         },

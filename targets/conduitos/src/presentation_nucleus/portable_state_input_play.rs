@@ -4,11 +4,11 @@ use alloc::vec::Vec;
 use conduit_core::InfoBool;
 use conduit_human::KeyEvent;
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    CordSpec, FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, NodeId, ValueStorage,
+    FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, HostCallDisposition,
+    HostCallOutcome, NodeId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 
@@ -141,7 +141,7 @@ pub fn run_portable_state_input(
 #[allow(clippy::too_many_arguments)]
 fn capture(
     scheduler: &mut Scheduler,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     counts: &mut [Option<u64>; 2],
     count_len: &mut usize,
     toggles: &mut [Option<bool>; 2],
@@ -175,11 +175,11 @@ fn capture(
     }
     scheduler
         .kernel
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -216,8 +216,8 @@ fn scheduler(
             .map_err(|_| PortableStateInputError::Kernel)?;
     }
     routes.seal().map_err(|_| PortableStateInputError::Kernel)?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(|_| PortableStateInputError::Kernel)?;
@@ -349,10 +349,9 @@ fn scheduler(
         (SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
     )
     .map_err(|_| PortableStateInputError::Kernel)?;
-    let kernel = FixedScheduler::new_with_host_operations(
-        nodes, cords, routes, bindings, drivers, values, signs,
-    )
-    .map_err(|_| PortableStateInputError::Kernel)?;
+    let kernel =
+        FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
+            .map_err(|_| PortableStateInputError::Kernel)?;
     Ok(Scheduler {
         kernel,
         count_sink: count_sink.ok_or(PortableStateInputError::Shape)?,

@@ -4,10 +4,10 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
     kind_id, resource_requirement, AuthorityContractId, AuthorityRequirement, CapabilityOffer,
-    HostOperationContractId, HostOperationRequirement, PlannedGear,
+    HostCallContractId, HostCallRequirement, PlannedGear,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
     OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
@@ -53,8 +53,8 @@ pub(crate) fn capture_offer() -> CapabilityOffer {
             implementation: CAPTURE_IMPLEMENTATION,
             artifact: ARTIFACT,
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(CAPTURE_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(CAPTURE_OPERATION),
             target_kind: Some(kind_id(
                 conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_KIND,
             )),
@@ -66,7 +66,7 @@ pub(crate) fn capture_offer() -> CapabilityOffer {
         vec![resource_requirement(CAPTURE_RESOURCE, 1)],
         vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(CAPTURE_AUTHORITY),
-            host_operation_contract_id: HostOperationContractId::from(CAPTURE_OPERATION),
+            host_call_contract_id: HostCallContractId::from(CAPTURE_OPERATION),
             subject_kind: kind_id(conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_KIND),
         }],
     )
@@ -83,8 +83,8 @@ pub(crate) fn playback_offer() -> CapabilityOffer {
             implementation: PLAY_IMPLEMENTATION,
             artifact: ARTIFACT,
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(PLAY_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(PLAY_OPERATION),
             target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_audio::MAXIMUM_PCM_FRAME_BYTES
@@ -94,7 +94,7 @@ pub(crate) fn playback_offer() -> CapabilityOffer {
         vec![resource_requirement(PLAY_RESOURCE, 1)],
         vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(PLAY_AUTHORITY),
-            host_operation_contract_id: HostOperationContractId::from(PLAY_OPERATION),
+            host_call_contract_id: HostCallContractId::from(PLAY_OPERATION),
             subject_kind: kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
         }],
     )
@@ -138,9 +138,9 @@ struct CaptureOperation {
 impl CaptureOperation {
     fn request(&mut self) -> OperationAction {
         self.pending = true;
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(self.next),
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(self.request, 1).expect("capture request is one byte"),
         }
     }
@@ -153,11 +153,11 @@ impl Operation for CaptureOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending && request == RequestId(self.next) =>
             {
                 self.pending = false;
-                if outcome.disposition != HostOperationDisposition::Completed
+                if outcome.disposition != HostCallDisposition::Completed
                     || outcome.failure.is_some()
                 {
                     return host_failure(outcome.disposition);
@@ -215,11 +215,11 @@ impl Operation for PlaybackOperation {
                 self.input_closed = true;
                 OperationAction::Complete
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
-                if outcome.disposition != HostOperationDisposition::Completed
+                if outcome.disposition != HostCallDisposition::Completed
                     || outcome.failure.is_some()
                     || outcome.output.is_some()
                 {
@@ -246,9 +246,9 @@ impl Operation for PlaybackOperation {
         }
         let request = RequestId(self.next);
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(
                 value,
                 conduit_audio::MAXIMUM_PCM_FRAME_BYTES
@@ -283,11 +283,11 @@ fn invalid(detail: u16) -> OperationAction {
     })
 }
 
-fn host_failure(disposition: HostOperationDisposition) -> OperationAction {
+fn host_failure(disposition: HostCallDisposition) -> OperationAction {
     let code = match disposition {
-        HostOperationDisposition::Denied => FailureCode::HostOperationDenied,
-        HostOperationDisposition::Cancelled => FailureCode::Cancelled,
-        _ => FailureCode::HostOperationFailed,
+        HostCallDisposition::Denied => FailureCode::HostCallDenied,
+        HostCallDisposition::Cancelled => FailureCode::Cancelled,
+        _ => FailureCode::HostCallFailed,
     };
     OperationAction::Fail(Failure { code, detail: 7 })
 }
@@ -311,7 +311,7 @@ mod tests {
             conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_KIND
         );
         assert_eq!(
-            capture.host_operations[0].contract_id.as_str(),
+            capture.host_calls[0].contract_id.as_str(),
             CAPTURE_OPERATION
         );
         assert_eq!(
@@ -323,7 +323,7 @@ mod tests {
             CAPTURE_AUTHORITY
         );
         assert_eq!(
-            capture.host_operations[0].target_kind,
+            capture.host_calls[0].target_kind,
             Some(capture.authority_requirements[0].subject_kind.clone())
         );
         assert_eq!(
@@ -336,10 +336,7 @@ mod tests {
             playback.kind_id.as_str(),
             conduit_semantic_catalog::AUDIO_PLAY_KIND
         );
-        assert_eq!(
-            playback.host_operations[0].contract_id.as_str(),
-            PLAY_OPERATION
-        );
+        assert_eq!(playback.host_calls[0].contract_id.as_str(), PLAY_OPERATION);
         assert_eq!(
             playback.resource_requirements[0].class_id.as_str(),
             PLAY_RESOURCE

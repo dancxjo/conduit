@@ -312,14 +312,14 @@ Before a play starts, the host knows and admits the finite shape needed for exec
 - values and bytes;
 - cords and routes;
 - queue items and buffered bytes;
-- timers and host-operation concurrency;
+- timers and Host Call concurrency;
 - resource reservations;
 - mandatory sign storage;
 - cancellation and terminal bookkeeping.
 
 Hosted profiles may use heap-backed storage before play start. Constrained profiles may use fixed arenas. Neither may conceal unbounded growth, discovery, retry, string lookup, graph scanning, or queue creation in an admitted hot path.
 
-### Generic host operations
+### Generic Host Calls
 
 Operations request exact admitted host work such as waiting, presenting a value, reading a resource, writing a resource, or later invoking a device action.
 
@@ -530,7 +530,7 @@ These ideas are current, load-bearing direction and have executable implementati
 - source, checked, expanded, plan, play, sign, and presentation identity separation;
 - typed named ports and explicit fan-out;
 - bounded port-aware `conduit-kernel` execution;
-- generic host operations;
+- generic Host Calls;
 - exact resource, authority, and observed-link planning contracts;
 - lossless source retention and located diagnostics;
 - inline nested forms and named composite fronts;

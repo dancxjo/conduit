@@ -107,7 +107,7 @@ impl StdHost {
             limits: capability.limits.clone(),
             inputs: capability.inputs.clone(),
             outputs: capability.outputs.clone(),
-            host_operations: capability.host_operations.clone(),
+            host_calls: capability.host_calls.clone(),
             resources: realization.resources.clone(),
             authority: Vec::new(),
             pool_references: Vec::new(),

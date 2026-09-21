@@ -50,7 +50,7 @@ pub fn fragment() -> PlanFragment {
             },
             inputs: vec![port("next", PortDirection::Input)],
             outputs: vec![port("current", PortDirection::Output)],
-            host_operations: vec![],
+            host_calls: vec![],
             resources: vec![],
             authority: vec![],
             pool_references: vec![],

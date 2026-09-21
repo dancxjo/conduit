@@ -27,7 +27,7 @@ cp targets/browser/host/assets/application-syntax-presentation.mjs "$destination
 cp targets/browser/host/assets/browser-host-bootstrap.mjs "$destination/browser-host-bootstrap.mjs"
 cp targets/browser/host/assets/browser-host-membership.mjs "$destination/browser-host-membership.mjs"
 cp targets/browser/host/assets/browser-host-identity.mjs "$destination/browser-host-identity.mjs"
-cp targets/browser/host/assets/browser-host-operations.mjs "$destination/browser-host-operations.mjs"
+cp targets/browser/host/assets/browser-host-calls.mjs "$destination/browser-host-calls.mjs"
 cp targets/browser/host/assets/browser-application-loader.mjs "$destination/browser-application-loader.mjs"
 cp targets/browser/host/assets/browser-application-storage.mjs "$destination/browser-application-storage.mjs"
 cp targets/browser/host/assets/application-presentation.mjs "$destination/application-presentation.mjs"

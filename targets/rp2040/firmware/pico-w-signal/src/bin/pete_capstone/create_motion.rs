@@ -9,8 +9,8 @@ use conduit_create_oi::{
     SafetyInputObservation, SafetyInputs,
 };
 use conduit_kernel::{
-    scheduler::{HostOperationRequest, SchedulerStatus},
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationOutcome,
+    scheduler::{HostCallRequest, SchedulerStatus},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallOutcome,
     SignSink,
 };
 use portable_atomic::{AtomicI32, Ordering};
@@ -30,7 +30,7 @@ pub struct Runtime {
     observation_generation: u32,
     latest_safety: Option<conduit_create_oi::SafetyObservation>,
     scheduler: Option<CapstoneScheduler>,
-    drive_request: Option<HostOperationRequest>,
+    drive_request: Option<HostCallRequest>,
 }
 
 impl Runtime {
@@ -239,11 +239,11 @@ impl Runtime {
             }
         };
         if scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 observation.node,
                 observation.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(
                         BoundedValueRef::new(
                             observation_value,
@@ -338,11 +338,11 @@ impl Runtime {
             return;
         };
         let completed = scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },
@@ -362,14 +362,14 @@ impl Runtime {
         if let (Some(mut scheduler), Some(request)) =
             (self.scheduler.take(), self.drive_request.take())
         {
-            let _ = scheduler.complete_host_operation(
+            let _ = scheduler.complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Failed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Failed,
                     output: None,
                     failure: Some(Failure {
-                        code: FailureCode::HostOperationFailed,
+                        code: FailureCode::HostCallFailed,
                         detail: u16::from(code),
                     }),
                 },
@@ -407,7 +407,7 @@ impl Runtime {
     }
 }
 
-fn next_kernel_request(scheduler: &mut CapstoneScheduler) -> Result<HostOperationRequest, ()> {
+fn next_kernel_request(scheduler: &mut CapstoneScheduler) -> Result<HostCallRequest, ()> {
     for _ in 0..128 {
         if let Some(request) = scheduler.next_host_request() {
             return Ok(request);

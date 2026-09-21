@@ -5,12 +5,12 @@ use super::factory::{
 };
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, resource_requirement, wait_host_operation_requirement, ConfigurationValue,
-    PlannedGear, PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
+    kind_id, resource_requirement, wait_host_call_requirement, ConfigurationValue, PlannedGear,
+    PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 use conduit_kernel::{
-    BoundedValueRef, CanonicalValue, HostOperationDisposition, HostOperationId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, CanonicalValue, HostCallDisposition, HostCallId, Operation, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 const ARTIFACT: &str = "conduit-browser-runtime/installed-state-time@1";
@@ -46,7 +46,7 @@ fn time_every_offer() -> conduit_core::CapabilityOffer {
         conduit_semantic_catalog::time_every_contract(),
         conduit_time::TIME_EVERY_CONTRACT_REVISION,
         identity(TIME_EVERY_IMPLEMENTATION),
-        vec![wait_host_operation_requirement()],
+        vec![wait_host_call_requirement()],
         vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
         Vec::new(),
     );
@@ -70,8 +70,8 @@ fn count_presentation_offer() -> conduit_core::CapabilityOffer {
         conduit_semantic_catalog::count_presentation_contract(),
         conduit_semantic_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
         identity(COUNT_PRESENTATION_IMPLEMENTATION),
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(COUNT_PRESENTATION_OPERATION),
+        vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(COUNT_PRESENTATION_OPERATION),
             target_kind: Some(kind_id("presentation/browser-count")),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_semantic_catalog::COUNT_ENCODED_LEN,
@@ -204,9 +204,9 @@ impl TimeEveryOperation {
     fn request_wait(&mut self) -> OperationAction {
         let request = RequestId(self.next_request);
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(self.wait, conduit_time::TICK_ENCODED_LEN)
                 .expect("browser timer duration is exactly eight bytes"),
         }
@@ -220,9 +220,9 @@ impl Operation for TimeEveryOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -322,7 +322,7 @@ fn debug_error(error: impl core::fmt::Debug) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::HostOperationOutcome;
+    use conduit_kernel::HostCallOutcome;
 
     #[test]
     fn time_every_offer_keeps_the_canonical_quantity_startup_contract() {
@@ -352,15 +352,15 @@ mod tests {
         for sequence in 0..7_u64 {
             assert!(matches!(
                 action,
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(found),
                     ..
                 } if u64::from(found) == sequence
             ));
-            let emitted = operation.resume(OperationInput::HostOperationCompleted {
+            let emitted = operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(sequence as u32),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },
@@ -372,9 +372,6 @@ mod tests {
             assert_eq!(value.as_slice(), conduit_time::encode_tick(sequence));
             action = operation.advance();
         }
-        assert!(matches!(
-            action,
-            OperationAction::RequestHostOperation { .. }
-        ));
+        assert!(matches!(action, OperationAction::RequestHostCall { .. }));
     }
 }

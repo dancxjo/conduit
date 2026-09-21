@@ -5,10 +5,10 @@ use conduit_form::{
     StartupCatalog,
 };
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver,
+    CordSpec, FixedScheduler, HostCallRequest, NodeSpec, OperationDriver,
 };
 use conduit_kernel::{
-    CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes, HostedSignLog, HostedValueStore,
+    CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
     NodeId, PortId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
@@ -41,7 +41,7 @@ const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const QUEUE_SLOTS: usize = 44;
 const ROUTE_SLOTS: usize = NODES * PORTS;
 const ROUTE_TARGETS: usize = CORDS;
-const ACTIVE_HOST_OPERATIONS: usize = 12;
+const ACTIVE_HOST_CALLS: usize = 12;
 const HOST_BINDINGS: usize = NODES * 4;
 const PENDING_REQUESTS: usize = 8;
 const VALUE_ITEMS: u16 = 64;
@@ -78,9 +78,9 @@ pub(crate) struct BrowserChatSession {
     pub(super) scheduler: ChatScheduler,
     pub(super) lowered_identity: KernelIdentityMap,
     pub(super) identity: KernelExecutionIdentityMap,
-    pub(super) current: Option<HostOperationRequest>,
-    pub(super) parked_input: Option<HostOperationRequest>,
-    pub(super) parked_receive: Option<HostOperationRequest>,
+    pub(super) current: Option<HostCallRequest>,
+    pub(super) parked_input: Option<HostCallRequest>,
+    pub(super) parked_receive: Option<HostCallRequest>,
     pub(super) complete: bool,
     pub(super) disconnected: bool,
     pub(super) error: i32,
@@ -158,7 +158,7 @@ impl BrowserChatSession {
         if lowered.nodes.len() != NODES
             || lowered.cords.len() != CORDS
             || lowered.cord_value_slots as usize > QUEUE_SLOTS
-            || lowered.host_operations.len() != ACTIVE_HOST_OPERATIONS
+            || lowered.host_calls.len() != ACTIVE_HOST_CALLS
         {
             return Err(-209);
         }
@@ -284,8 +284,8 @@ impl BrowserChatSession {
                 .map_err(|_| -215)?;
         }
         routes.seal().map_err(|_| -215)?;
-        let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(4);
-        for operation in &lowered.host_operations {
+        let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(4);
+        for operation in &lowered.host_calls {
             bindings
                 .install(operation.node, operation.binding)
                 .map_err(|_| -216)?;
@@ -295,7 +295,7 @@ impl BrowserChatSession {
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or(-217)?;
         let sign = HostedSignLog::new(SIGN_ITEMS, sign_bytes).map_err(|_| -217)?;
-        let scheduler = ChatScheduler::new_with_active_counts_and_host_operations(
+        let scheduler = ChatScheduler::new_with_active_counts_and_host_calls(
             NODES, CORDS, node_specs, cord_specs, routes, bindings, drivers, values, sign,
         )
         .map_err(|_| -218)?;
@@ -335,10 +335,10 @@ impl BrowserChatSession {
                 placement.implementation_id.as_str(),
             )
             .map_err(|_| -234)?;
-            for requirement in &placement.host_operations {
+            for requirement in &placement.host_calls {
                 write!(
                     identity_text,
-                    ":host-operation={}",
+                    ":host-call={}",
                     requirement.contract_id.as_str(),
                 )
                 .map_err(|_| -234)?;

@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, HostOperationOutcome,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, HostCallOutcome, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_semantic_catalog::{
     MAX_TEXT_VALUES, TEXT_PRESENTATION_CONTRACT_REVISION, TEXT_PRESENTATION_KIND,
@@ -110,18 +110,18 @@ impl TextTransformOperation {
             } if self.pending.is_none() && self.next < self.maximum_values => {
                 let request = RequestId(self.next);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: match BoundedValueRef::new(value, self.maximum_input_bytes) {
                         Ok(input) => input,
                         Err(_) => return InstalledOperation::fail(8),
                     },
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -167,18 +167,18 @@ impl TextPresentationOperation {
             } if self.pending.is_none() && self.next < self.maximum_values => {
                 let request = RequestId(self.next);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: match BoundedValueRef::new(value, MAX_TEXT_BYTES) {
                         Ok(input) => input,
                         Err(_) => return InstalledOperation::fail(5),
                     },
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -448,9 +448,9 @@ pub(super) fn prefix_utf8(prefix: &str, input: &[u8], output: &mut Vec<u8>) -> R
     Ok(())
 }
 
-pub(super) fn completed_with_output(value: ValueRef) -> HostOperationOutcome {
-    HostOperationOutcome {
-        disposition: HostOperationDisposition::Completed,
+pub(super) fn completed_with_output(value: ValueRef) -> HostCallOutcome {
+    HostCallOutcome {
+        disposition: HostCallDisposition::Completed,
         output: Some(
             BoundedValueRef::new(value, MAX_TEXT_BYTES)
                 .expect("text transform output was checked against the admitted bound"),

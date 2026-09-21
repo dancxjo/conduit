@@ -1,9 +1,9 @@
 //! Browser realization of the shared finite timed-attempt operation.
 
 use conduit_core::{
-    monotonic_timer_host_operation_requirement, monotonic_timer_resource_requirement, ArtifactId,
-    Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, TIMER_RESOURCE_CLASS,
+    monotonic_timer_host_call_requirement, monotonic_timer_resource_requirement, ArtifactId, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostCallContractId,
+    HostCallRequirement, ImplementationId, TIMER_RESOURCE_CLASS,
 };
 
 pub const TIMED_BUTTON_ATTEMPT_BROWSER_PROFILE: &str =
@@ -12,12 +12,12 @@ pub const TIMED_BUTTON_ATTEMPT_BROWSER_IMPLEMENTATION: &str =
     "browser/kernel-pressed-button-attempt@1";
 pub const TIMED_BUTTON_ATTEMPT_BROWSER_ARTIFACT: &str =
     "conduit-browser-runtime/pressed-button-attempt@1";
-pub const TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_OPERATION: &str =
+pub const TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_CALL: &str =
     "conduit.host/observe-pressed-button-instant@1";
 
 pub fn offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::timed_button_attempt_semantic_contract();
-    let mut deadline = monotonic_timer_host_operation_requirement();
+    let mut deadline = monotonic_timer_host_call_requirement();
     deadline.target_kind = Some(contract.kind_id.clone());
     let target_kind = contract.kind_id.clone();
     BackOfferBuilder::new(
@@ -27,12 +27,10 @@ pub fn offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(TIMED_BUTTON_ATTEMPT_BROWSER_PROFILE),
             implementation_id: ImplementationId::from(TIMED_BUTTON_ATTEMPT_BROWSER_IMPLEMENTATION),
             artifact_id: ArtifactId::from(TIMED_BUTTON_ATTEMPT_BROWSER_ARTIFACT),
-            host_operations: vec![
+            host_calls: vec![
                 deadline,
-                HostOperationRequirement {
-                    contract_id: HostOperationContractId::from(
-                        TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_OPERATION,
-                    ),
+                HostCallRequirement {
+                    contract_id: HostCallContractId::from(TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_CALL),
                     target_kind: Some(target_kind),
                     maximum_in_flight: 1,
                     maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,

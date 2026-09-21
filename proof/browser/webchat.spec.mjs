@@ -124,7 +124,7 @@ test("two native browser clients exchange bounded chat through planned kernels",
     expect(proof.requestCount).toBeGreaterThan(4);
     for (const identity of [
       "source=", "checked=", "expanded=", "plan=", "fragment=", "play=",
-      "placement=", "operation=", "implementation=", "host-operation=",
+      "placement=", "operation=", "implementation=", "host-call=",
     ]) {
       expect(proof.identity).toContain(identity);
     }

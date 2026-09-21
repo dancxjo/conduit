@@ -12,11 +12,10 @@ use conduit_core::{
 };
 use conduit_form::parse_with_startup;
 use conduit_signal::{
-    pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
-    pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
-    show_host_operation_requirements, show_inputs, show_resource_requirements,
-    signal_profile_catalog, signal_resource_offers, PULSE_KIND, SHOW_KIND, SIGNAL_ENCODED_LEN,
-    SIGNAL_PRESENTATION_KIND,
+    pulse_contract_revision, pulse_execution_profile, pulse_host_call_requirements, pulse_outputs,
+    pulse_resource_requirements, show_contract_revision, show_execution_profile,
+    show_host_call_requirements, show_inputs, show_resource_requirements, signal_profile_catalog,
+    signal_resource_offers, PULSE_KIND, SHOW_KIND, SIGNAL_ENCODED_LEN, SIGNAL_PRESENTATION_KIND,
 };
 use conduit_signal_conformance::{
     pico_local_advertisement, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, PICO_LOCAL_HOST_ID,
@@ -58,7 +57,7 @@ fn host() -> HostAdvertisement {
                 },
                 inputs: vec![],
                 outputs: pulse_outputs(),
-                host_operations: pulse_host_operation_requirements(),
+                host_calls: pulse_host_call_requirements(),
                 resource_requirements: pulse_resource_requirements(),
                 authority_requirements: vec![],
                 limits: CapabilityLimits {
@@ -80,7 +79,7 @@ fn host() -> HostAdvertisement {
                 },
                 inputs: show_inputs(),
                 outputs: vec![],
-                host_operations: show_host_operation_requirements(),
+                host_calls: show_host_call_requirements(),
                 resource_requirements: show_resource_requirements(),
                 authority_requirements: vec![],
                 limits: CapabilityLimits {
@@ -177,7 +176,7 @@ fn planning_binds_exact_contract_profile_and_every_port() {
         );
         assert_eq!(placement.inputs, gear.inputs);
         assert_eq!(placement.outputs, gear.outputs);
-        assert_eq!(placement.host_operations, capability.host_operations);
+        assert_eq!(placement.host_calls, capability.host_calls);
         assert_eq!(
             placement.resources.len(),
             capability.resource_requirements.len()
@@ -194,7 +193,7 @@ fn planning_binds_exact_contract_profile_and_every_port() {
     assert!(plan.fragments[0]
         .placements
         .iter()
-        .all(|placement| !placement.host_operations.is_empty()));
+        .all(|placement| !placement.host_calls.is_empty()));
     let fragment = &plan.fragments[0];
     assert_eq!(
         fragment.startup_dependencies,
@@ -337,7 +336,7 @@ fn unchanged_signal_form_plans_entirely_onto_pico_local_advertisement() {
     assert_eq!(lowered.nodes.len(), 2);
     assert_eq!(lowered.cords.len(), 1);
     assert!(lowered.remote_endpoints.is_empty());
-    assert_eq!(lowered.host_operations.len(), 2);
+    assert_eq!(lowered.host_calls.len(), 2);
     assert_eq!(
         lowered.cord_value_slots,
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS
@@ -387,9 +386,9 @@ fn admitted_host_input_source_breaks_only_its_runtime_response_cycle() {
         .iter_mut()
         .find(|placement| placement.gear_id.as_str() == "signal-demo/pulse")
         .unwrap();
-    source.host_operations[0].maximum_input_bytes = 0;
-    source.host_operations[0].maximum_output_bytes = SIGNAL_ENCODED_LEN;
-    source.host_operations[0].target_kind = Some(source.outputs[0].value_kind.clone());
+    source.host_calls[0].maximum_input_bytes = 0;
+    source.host_calls[0].maximum_output_bytes = SIGNAL_ENCODED_LEN;
+    source.host_calls[0].target_kind = Some(source.outputs[0].value_kind.clone());
     let source_placement_id = source.placement_id.clone();
     let mut connections = fragment.connections.clone();
     let mut reverse = connections[0].clone();
@@ -423,10 +422,10 @@ fn a_self_cord_is_runtime_routing_not_a_startup_cycle() {
 }
 
 #[test]
-fn planning_rejects_invalid_host_operation_requirements() {
+fn planning_rejects_invalid_host_call_requirements() {
     let form = form();
     let mut host = host();
-    host.capabilities[0].host_operations[0].maximum_in_flight = 0;
+    host.capabilities[0].host_calls[0].maximum_in_flight = 0;
     let placements =
         default_placements(&form, std::slice::from_ref(&host)).expect("placements still resolve");
     assert!(matches!(
@@ -436,7 +435,7 @@ fn planning_rejects_invalid_host_operation_requirements() {
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
         ),
-        Err(PlannerError::InvalidHostOperationRequirement(_))
+        Err(PlannerError::InvalidHostCallRequirement(_))
     ));
 }
 
@@ -532,8 +531,8 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
         contract_id: conduit_core::AuthorityContractId::from(
             conduit_core::PRESENT_AUTHORITY_CONTRACT,
         ),
-        host_operation_contract_id: conduit_core::HostOperationContractId::from(
-            conduit_core::WAIT_HOST_OPERATION_CONTRACT,
+        host_call_contract_id: conduit_core::HostCallContractId::from(
+            conduit_core::WAIT_HOST_CALL_CONTRACT,
         ),
         subject_kind: kind_id(SIGNAL_PRESENTATION_KIND),
     }];

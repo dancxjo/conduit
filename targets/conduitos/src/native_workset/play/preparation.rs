@@ -5,7 +5,7 @@ use crate::keyboard_text_operations::{
 };
 use alloc::vec::Vec;
 use conduit_kernel::{
-    CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes, PortId, ValueStorage,
+    CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, PortId, ValueStorage,
     scheduler::{CordSpec, NodeSpec},
 };
 
@@ -181,8 +181,8 @@ pub(super) fn prepare(
             .map_err(|_| WorksetRefusal::Kernel)?;
     }
     routes.seal().map_err(|_| WorksetRefusal::Kernel)?;
-    let mut host_bindings = FixedHostOperationBindings::<NODES>::new(1);
-    for operation in parts.iter().flat_map(|part| &part.host_operations) {
+    let mut host_bindings = FixedHostCallBindings::<NODES>::new(1);
+    for operation in parts.iter().flat_map(|part| &part.host_calls) {
         host_bindings
             .install(operation.node, operation.binding)
             .map_err(|_| WorksetRefusal::Kernel)?;
@@ -191,7 +191,7 @@ pub(super) fn prepare(
     let signs =
         FixedSignLog::<SIGN_ITEMS>::new((SIGN_ITEMS * core::mem::size_of::<KernelEvent>()) as u32)
             .map_err(|_| WorksetRefusal::Kernel)?;
-    let scheduler = Scheduler::new_with_active_counts_and_host_operations(
+    let scheduler = Scheduler::new_with_active_counts_and_host_calls(
         usize::from(prepared.lowered.nodes),
         usize::from(prepared.lowered.cords),
         nodes,

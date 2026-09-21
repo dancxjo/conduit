@@ -2,7 +2,7 @@
 
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId,
+    HostCallContractId, HostCallRequirement, ImplementationId,
 };
 
 pub const RECOGNIZED_TURN_COMMIT_PROFILE: &str = "std/recognized-turn-commit-kernel@1";
@@ -25,8 +25,8 @@ pub fn recognized_turn_commit_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(RECOGNIZED_TURN_COMMIT_PROFILE),
             implementation_id: ImplementationId::from(RECOGNIZED_TURN_COMMIT_IMPLEMENTATION),
             artifact_id: ArtifactId::from(RECOGNIZED_TURN_COMMIT_ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(RECOGNIZED_TURN_COMMIT_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(RECOGNIZED_TURN_COMMIT_OPERATION),
                 target_kind: Some(kind_id(conduit_tongues::CHAT_MESSAGE_VALUE_KIND)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_tongues::MAXIMUM_RECOGNITION_EVENT_BYTES as u32,
@@ -40,8 +40,8 @@ pub fn recognized_turn_commit_offer() -> CapabilityOffer {
 }
 
 pub fn generated_speech_commit_offer() -> CapabilityOffer {
-    let operation = |id, input| HostOperationRequirement {
-        contract_id: HostOperationContractId::from(id),
+    let operation = |id, input| HostCallRequirement {
+        contract_id: HostCallContractId::from(id),
         target_kind: Some(kind_id(conduit_tongues::SPEAKABLE_TEXT_VALUE_KIND)),
         maximum_in_flight: 1,
         maximum_input_bytes: input,
@@ -54,7 +54,7 @@ pub fn generated_speech_commit_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(GENERATED_SPEECH_COMMIT_PROFILE),
             implementation_id: ImplementationId::from(GENERATED_SPEECH_COMMIT_IMPLEMENTATION),
             artifact_id: ArtifactId::from(GENERATED_SPEECH_COMMIT_ARTIFACT),
-            host_operations: vec![
+            host_calls: vec![
                 operation(
                     GENERATED_SPEECH_PUSH_OPERATION,
                     conduit_tongues::MAXIMUM_TEXT_BYTES,
@@ -87,16 +87,16 @@ mod tests {
         assert_eq!(recognized.inputs, recognized_contract.inputs);
         assert_eq!(recognized.outputs, recognized_contract.outputs);
         assert_eq!(recognized.limits, recognized_contract.limits);
-        assert_eq!(recognized.host_operations.len(), 1);
+        assert_eq!(recognized.host_calls.len(), 1);
         let generated = generated_speech_commit_offer();
         let generated_contract = conduit_tongues::speech_commit_contract();
         assert_eq!(generated.kind_id, generated_contract.kind_id);
         assert_eq!(generated.inputs, generated_contract.inputs);
         assert_eq!(generated.outputs, generated_contract.outputs);
         assert_eq!(generated.limits, generated_contract.limits);
-        assert_eq!(generated.host_operations.len(), 3);
+        assert_eq!(generated.host_calls.len(), 3);
         assert!(generated
-            .host_operations
+            .host_calls
             .iter()
             .all(|operation| operation.maximum_in_flight == 1));
     }

@@ -18,7 +18,7 @@ pub struct MachineRunReceipt {
     pub idle_entries: u32,
     pub serial_presentations: u32,
     pub clock_monotonic: bool,
-    pub pending_host_operations: u8,
+    pub pending_host_calls: u8,
     pub overlap_witness: bool,
     pub timer_pending_during_text_progress: bool,
     pub physical_parallelism: bool,
@@ -30,7 +30,7 @@ pub enum MachineRunError {
     KernelFailure,
     TextMalformedUtf8,
     TextOutputOverflow,
-    UnexpectedHostOperation,
+    UnexpectedHostCall,
     TimerBaseFailure,
     SerialBaseFailure,
     InterruptBaseFailure,
@@ -45,7 +45,7 @@ impl MachineRunError {
             Self::KernelFailure => "production-kernel-failed",
             Self::TextMalformedUtf8 => "text-upper-malformed-utf8",
             Self::TextOutputOverflow => "text-upper-output-overflow",
-            Self::UnexpectedHostOperation => "unadmitted-host-operation",
+            Self::UnexpectedHostCall => "unadmitted-host-call",
             Self::TimerBaseFailure => "timer-base-failed",
             Self::SerialBaseFailure => "serial-base-failed",
             Self::InterruptBaseFailure => "interrupt-base-failed",
@@ -94,7 +94,7 @@ where
         while let Some(request) = kernel.next_host_request() {
             if request.node == TIMER_NODE {
                 let interest = PlannedKernel::timer_interest(request)
-                    .map_err(|_| MachineRunError::UnexpectedHostOperation)?;
+                    .map_err(|_| MachineRunError::UnexpectedHostCall)?;
                 timer
                     .arm(interest)
                     .map_err(|_| MachineRunError::TimerBaseFailure)?;
@@ -111,14 +111,14 @@ where
                     .complete_presentation(request)
                     .map_err(|_| MachineRunError::KernelFailure)?;
             } else {
-                return Err(MachineRunError::UnexpectedHostOperation);
+                return Err(MachineRunError::UnexpectedHostCall);
             }
         }
 
         match kernel.step().map_err(|_| MachineRunError::KernelFailure)? {
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Idle => {
-                if kernel.pending_host_operations() == 0 {
+                if kernel.pending_host_calls() == 0 {
                     return Err(MachineRunError::FalseIdle);
                 }
                 idle.wait_for_interrupt()
@@ -134,7 +134,7 @@ where
                     idle_entries: idle.idle_count(),
                     serial_presentations: serial.presentation_count(),
                     clock_monotonic: ended >= started,
-                    pending_host_operations: kernel.pending_host_operations() as u8,
+                    pending_host_calls: kernel.pending_host_calls() as u8,
                     overlap_witness: false,
                     timer_pending_during_text_progress: false,
                     physical_parallelism: false,

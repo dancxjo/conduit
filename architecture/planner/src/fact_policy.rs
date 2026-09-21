@@ -2,7 +2,7 @@ use crate::prelude::*;
 use conduit_core::{
     AuthorityContractId, CapabilityOffer, CharacteristicId, CharacteristicUnit,
     CharacteristicValue, ComputeServiceGuarantee, ComputeTopologyGroupId, HostAdvertisement,
-    HostOperationContractId, RealizationAdvertisement, ResourceClassId, ResourceObservation,
+    HostCallContractId, RealizationAdvertisement, ResourceClassId, ResourceObservation,
 };
 use core::cmp::Ordering;
 
@@ -32,7 +32,7 @@ pub enum PlannerFactRef {
     OfferQueueItems,
     OfferQueueBytes,
     RequiresAuthority(AuthorityContractId),
-    RequiresHostOperation(HostOperationContractId),
+    RequiresHostCall(HostCallContractId),
     ObservationUnreservedUnits(ResourceClassId),
     ObservationUtilizedUnits(ResourceClassId),
 }
@@ -341,10 +341,10 @@ fn fact_value(
                 .iter()
                 .any(|item| &item.contract_id == contract),
         )),
-        PlannerFactRef::RequiresHostOperation(contract) => Some(PlannerFactValue::Boolean(
+        PlannerFactRef::RequiresHostCall(contract) => Some(PlannerFactValue::Boolean(
             candidate
                 .offer
-                .host_operations
+                .host_calls
                 .iter()
                 .any(|item| &item.contract_id == contract),
         )),

@@ -82,7 +82,7 @@ Their presence is not an additional physical or release acceptance claim:
   [The roadmap](docs/roadmap.md#reusable-forms) names those remaining slices.
 
 The current `cargo xtask conduitos std-gap` report also identifies missing
-ConduitOS host operations for `math/map-quantity` and
+ConduitOS Host Calls for `math/map-quantity` and
 `structured-info/wrap-quantity`, alongside the missing storage base for
 `file/copy`. Run the report for the current profile instead of relying on a
 frozen catalog count.

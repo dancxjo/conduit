@@ -2,7 +2,7 @@ use super::operation::{CopyOperation, CopyResultSink, CopyTaskOperation};
 use conduit_core::PlanFragment;
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver};
 use conduit_kernel::{
-    FixedHostOperationBindings, FixedRoutes, HostedSignLog, HostedValueStore, ValueStorage,
+    FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 
@@ -29,8 +29,8 @@ pub(super) fn prepare_copy_scheduler(
 ) -> Result<(CopyScheduler, Vec<u8>), String> {
     let lowered =
         lower_plan_fragment(fragment).map_err(|error| format!("lower copy: {error:?}"))?;
-    if lowered.nodes.len() != 2 || lowered.cords.len() != 1 || lowered.host_operations.len() != 2 {
-        return Err("lowered copy shape is not two nodes, one Cord, two host operations".into());
+    if lowered.nodes.len() != 2 || lowered.cords.len() != 1 || lowered.host_calls.len() != 2 {
+        return Err("lowered copy shape is not two nodes, one Cord, two Host Calls".into());
     }
     let maximum = conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32;
     let mut values = HostedValueStore::new(3, maximum, maximum * 2 + 1)
@@ -76,21 +76,21 @@ pub(super) fn prepare_copy_scheduler(
     routes
         .seal()
         .map_err(|error| format!("seal copy routes: {error:?}"))?;
-    let mut bindings = FixedHostOperationBindings::<4>::new(2);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<4>::new(2);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
-            .map_err(|error| format!("install copy host operation: {error:?}"))?;
+            .map_err(|error| format!("install copy host-call: {error:?}"))?;
     }
     bindings
         .seal()
-        .map_err(|error| format!("seal copy host operation: {error:?}"))?;
+        .map_err(|error| format!("seal copy host-call: {error:?}"))?;
     let sign_bytes = u32::from(MAX_SIGN_ITEMS)
         .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
         .ok_or_else(|| "copy sign byte budget overflow".to_string())?;
     let sign = HostedSignLog::new(MAX_SIGN_ITEMS, sign_bytes)
         .map_err(|error| format!("prepare copy sign: {error:?}"))?;
-    let scheduler = CopyScheduler::new_with_active_counts_and_host_operations(
+    let scheduler = CopyScheduler::new_with_active_counts_and_host_calls(
         2,
         1,
         lowered

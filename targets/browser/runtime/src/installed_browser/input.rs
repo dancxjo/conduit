@@ -3,10 +3,10 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, resource_requirement, HostOperationContractId, HostOperationRequirement, PlannedGear,
+    kind_id, resource_requirement, HostCallContractId, HostCallRequirement, PlannedGear,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
     OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
@@ -40,8 +40,8 @@ fn button_offer() -> conduit_core::CapabilityOffer {
             implementation: BUTTON_IMPLEMENTATION,
             artifact: ARTIFACT,
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(BUTTON_EVENT_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(BUTTON_EVENT_OPERATION),
             target_kind: Some(kind_id("input/button-transition@1")),
             maximum_in_flight: 1,
             maximum_input_bytes: 1,
@@ -64,8 +64,8 @@ fn offer() -> conduit_core::CapabilityOffer {
             implementation: KEYBOARD_IMPLEMENTATION,
             artifact: ARTIFACT,
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(KEY_EVENT_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(KEY_EVENT_OPERATION),
             target_kind: Some(kind_id(conduit_human::KEY_EVENT_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: 1,
@@ -117,9 +117,9 @@ struct ButtonOperation {
 impl ButtonOperation {
     fn request(&mut self) -> OperationAction {
         self.pending = true;
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(self.next),
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(self.request, 1).expect("button request is one byte"),
         }
     }
@@ -132,10 +132,10 @@ impl Operation for ButtonOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending
                     && request == RequestId(self.next)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -173,18 +173,18 @@ struct KeyboardOperation {
 impl Operation for KeyboardOperation {
     fn start(&mut self) -> OperationAction {
         self.pending = true;
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(self.next),
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(self.request, 1).expect("keyboard request is one byte"),
         }
     }
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending
                     && request == RequestId(self.next)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -228,7 +228,7 @@ fn identity_exhausted() -> OperationAction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::{HostOperationOutcome, ValueRef};
+    use conduit_kernel::{HostCallOutcome, ValueRef};
 
     #[test]
     fn button_rearms_one_fixed_request_after_each_transition() {
@@ -246,7 +246,7 @@ mod tests {
         for sequence in 0..6 {
             assert!(matches!(
                 action,
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(found),
                     ..
                 } if found == u32::from(sequence)
@@ -257,10 +257,10 @@ mod tests {
                 byte_len: 1,
             };
             assert_eq!(
-                operation.resume(OperationInput::HostOperationCompleted {
+                operation.resume(OperationInput::HostCallCompleted {
                     request: RequestId(sequence.into()),
-                    outcome: HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    outcome: HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: Some(BoundedValueRef::new(value, 1).unwrap()),
                         failure: None,
                     },
@@ -272,10 +272,7 @@ mod tests {
             );
             action = operation.advance();
         }
-        assert!(matches!(
-            action,
-            OperationAction::RequestHostOperation { .. }
-        ));
+        assert!(matches!(action, OperationAction::RequestHostCall { .. }));
     }
 
     #[test]
@@ -291,7 +288,7 @@ mod tests {
         };
         assert!(matches!(
             operation.start(),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(0),
                 ..
             }
@@ -302,10 +299,10 @@ mod tests {
             byte_len: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
         };
         assert_eq!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(0),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(
                         BoundedValueRef::new(key, conduit_human::KEY_EVENT_ENCODED_LEN as u32)
                             .unwrap()
@@ -320,7 +317,7 @@ mod tests {
         );
         assert!(matches!(
             operation.advance(),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(1),
                 ..
             }

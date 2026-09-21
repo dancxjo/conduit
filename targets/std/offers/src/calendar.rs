@@ -44,7 +44,7 @@ fn offer(
             execution_profile_id: ExecutionProfileId::from(execution_profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -62,7 +62,7 @@ mod tests {
             assert_eq!(offer.startup_parameters.len(), 1);
             assert!(offer.inputs.is_empty());
             assert_eq!(offer.outputs.len(), 1);
-            assert!(offer.host_operations.is_empty());
+            assert!(offer.host_calls.is_empty());
             assert!(offer.resource_requirements.is_empty());
             assert!(offer.authority_requirements.is_empty());
             assert!(offer.limits.max_queue_items > 0);

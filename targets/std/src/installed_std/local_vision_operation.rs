@@ -3,8 +3,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId,
+    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
+    RequestId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -35,17 +35,17 @@ impl LocalVisionOperation {
                 else {
                     return InstalledOperation::fail(330);
                 };
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted {
+            OperationInput::HostCallCompleted {
                 request: RequestId(0),
                 outcome,
             } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -91,7 +91,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.limits != offer.limits
         || placement.resources.len() != 1
         || placement.resources[0].protected.is_none()
@@ -128,7 +128,7 @@ fn prepare(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::{HostOperationOutcome, ValueRef};
+    use conduit_kernel::{HostCallOutcome, ValueRef};
 
     fn value() -> ValueRef {
         ValueRef {
@@ -148,15 +148,12 @@ mod tests {
             port: PortId(0),
             value: value(),
         });
-        assert!(matches!(
-            request,
-            OperationAction::RequestHostOperation { .. }
-        ));
+        assert!(matches!(request, OperationAction::RequestHostCall { .. }));
         assert_eq!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(0),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(BoundedValueRef::new(value(), 64).unwrap()),
                     failure: None,
                 },
@@ -171,7 +168,7 @@ mod tests {
                 port: PortId(0),
                 value: value(),
             }),
-            OperationAction::RequestHostOperation { .. }
+            OperationAction::RequestHostCall { .. }
         ));
         operation.cancel();
         assert!(operation.closed);

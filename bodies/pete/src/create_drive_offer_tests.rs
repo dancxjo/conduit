@@ -70,7 +70,7 @@ fn grant(host: &HostAdvertisement, contract: &str) -> AuthorityGrant {
     AuthorityGrant {
         grant_id: AuthorityGrantId::from("grant/create-motion"),
         contract_id: AuthorityContractId::from(contract),
-        host_operation_contract_id: HostOperationContractId::from(CREATE_DRIVE_OPERATION),
+        host_call_contract_id: HostCallContractId::from(CREATE_DRIVE_OPERATION),
         subject_kind: kind_id(SCALAR_INFO_ID),
         host_id: host.host_id.clone(),
         boot_id: host.boot_id.clone(),

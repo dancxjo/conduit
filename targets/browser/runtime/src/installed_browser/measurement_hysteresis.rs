@@ -4,11 +4,11 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationRequirement, ImplementationId, PlannedGear,
+    HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
+    Operation, OperationAction, OperationInput, PortId, RequestId,
 };
 
 pub(crate) const OPERATIONS: [&str; 2] = [
@@ -103,10 +103,10 @@ fn offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-hysteresis@2"),
-            host_operations: OPERATIONS
+            host_calls: OPERATIONS
                 .iter()
                 .enumerate()
-                .map(|(index, contract_id)| HostOperationRequirement {
+                .map(|(index, contract_id)| HostCallRequirement {
                     contract_id: (*contract_id).into(),
                     target_kind: Some(kind.clone()),
                     maximum_in_flight: 1,
@@ -133,7 +133,7 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserO
 
 struct HysteresisOperation {
     profile_ready: bool,
-    pending: Option<(RequestId, HostOperationId)>,
+    pending: Option<(RequestId, HostCallId)>,
     emitted: bool,
 }
 
@@ -161,10 +161,10 @@ impl Operation for HysteresisOperation {
                 else {
                     return OperationAction::Fail(failure(20));
                 };
-                self.pending = Some((RequestId(0), HostOperationId(0)));
-                OperationAction::RequestHostOperation {
+                self.pending = Some((RequestId(0), HostCallId(0)));
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
@@ -176,14 +176,14 @@ impl Operation for HysteresisOperation {
                 else {
                     return OperationAction::Fail(failure(21));
                 };
-                self.pending = Some((RequestId(1), HostOperationId(1)));
-                OperationAction::RequestHostOperation {
+                self.pending = Some((RequestId(1), HostCallId(1)));
+                OperationAction::RequestHostCall {
                     request: RequestId(1),
-                    operation: HostOperationId(1),
+                    operation: HostCallId(1),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending.map(|pending| pending.0) == Some(request) =>
             {
                 let Some((_, operation)) = self.pending.take() else {
@@ -195,23 +195,18 @@ impl Operation for HysteresisOperation {
                     outcome.output,
                     outcome.failure,
                 ) {
-                    (HostOperationId(0), HostOperationDisposition::Completed, None, None) => {
+                    (HostCallId(0), HostCallDisposition::Completed, None, None) => {
                         self.profile_ready = true;
                         OperationAction::Await
                     }
-                    (
-                        HostOperationId(1),
-                        HostOperationDisposition::Completed,
-                        Some(output),
-                        None,
-                    ) => {
+                    (HostCallId(1), HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (_, HostOperationDisposition::Failed, None, Some(reason)) => {
+                    (_, HostCallDisposition::Failed, None, Some(reason)) => {
                         OperationAction::Fail(reason)
                     }
                     _ => OperationAction::Fail(failure(22)),
@@ -284,7 +279,7 @@ mod tests {
             limits: offered.limits,
             inputs: offered.inputs,
             outputs: offered.outputs,
-            host_operations: offered.host_operations,
+            host_calls: offered.host_calls,
             resources: Vec::new(),
             authority: Vec::new(),
             pool_references: Vec::new(),

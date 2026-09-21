@@ -1,6 +1,6 @@
 use super::*;
 use crate::FormEditor;
-use conduit_core::{AuthorityContractId, AuthorityRequirement, HostOperationContractId, KindId};
+use conduit_core::{AuthorityContractId, AuthorityRequirement, HostCallContractId, KindId};
 use conduit_std_host::{StdHost, ThreadTimer};
 
 fn planned_hello() -> (FormEditor, StdHost, Plan) {
@@ -70,7 +70,7 @@ fn stale_source_boot_realization_and_authority_are_distinct_rejections() {
         .authority_requirements
         .push(AuthorityRequirement {
             contract_id: AuthorityContractId::from("authority/test"),
-            host_operation_contract_id: HostOperationContractId::from("host/test"),
+            host_call_contract_id: HostCallContractId::from("host/test"),
             subject_kind: KindId::from("subject/test"),
         });
     assert_eq!(

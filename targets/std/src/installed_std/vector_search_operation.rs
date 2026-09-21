@@ -3,8 +3,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId,
 };
 
 pub(super) static EXACT_FACTORY: InstalledFactory = InstalledFactory {
@@ -40,31 +40,27 @@ impl VectorSearchOperation {
                     return fail(FailureCode::InvalidInput, 61);
                 };
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending && request == RequestId(0) =>
             {
                 self.pending = false;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Denied, _, _) => {
-                        fail(FailureCode::HostOperationDenied, 62)
-                    }
-                    (HostOperationDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 63),
-                    (HostOperationDisposition::Failed, _, _) => {
-                        fail(FailureCode::HostOperationFailed, 64)
-                    }
+                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 62),
+                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 63),
+                    (HostCallDisposition::Failed, _, _) => fail(FailureCode::HostCallFailed, 64),
                     _ => fail(FailureCode::InvalidLifecycle, 65),
                 }
             }
@@ -96,8 +92,8 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
         )
         || placement.inputs != contract.inputs
         || placement.outputs != contract.outputs
-        || placement.host_operations.len() != 1
-        || placement.host_operations[0].contract_id.as_str() != conduit_ai::VECTOR_SEARCH_OPERATION
+        || placement.host_calls.len() != 1
+        || placement.host_calls[0].contract_id.as_str() != conduit_ai::VECTOR_SEARCH_OPERATION
     {
         return Err("planned vector-search identity does not match its installation".into());
     }

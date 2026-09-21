@@ -15,7 +15,7 @@ canonical .conduit source
     -> plan over current host offers, resources, authority and lines
     -> prepared host-assigned fragments and numeric kernel tables
     -> play through the shared execution kernel
-    -> admitted host operations and correlated signs
+    -> admitted Host Calls and correlated signs
     -> presentation and a host-specific Manifestation
 ```
 
@@ -51,7 +51,7 @@ in an unbounded callback stream. Unsupported profiles refuse before execution.
 
 The [execution kernel](../../architecture/kernel/) owns scheduling, typed port
 traffic, atomic fan-out, pressure, operation correlation, closure, cancellation,
-and terminal evidence. Platform adapters perform admitted host operations and
+and terminal evidence. Platform adapters perform admitted Host Calls and
 return their exact completions. They do not become a second scheduler.
 
 A protected effect also needs current authority at its trusted provider.

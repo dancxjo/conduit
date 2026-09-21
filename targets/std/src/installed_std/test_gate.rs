@@ -7,8 +7,8 @@ use conduit_core::{
 };
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
+    RequestId, ValueRef, ValueStorage,
 };
 
 const SOURCE_KIND: &str = "conduit-test/gate-script";
@@ -58,9 +58,9 @@ impl TestGateScriptOperation {
 
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -87,9 +87,9 @@ impl TestGateScriptOperation {
         let wait = self.waits.get(self.next).copied()?;
         let request = RequestId(u32::try_from(self.next).ok()?);
         self.pending = Some(request);
-        Some(OperationAction::RequestHostOperation {
+        Some(OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(wait, 8).ok()?,
         })
     }
@@ -111,16 +111,16 @@ impl TestSlowScalarSinkOperation {
             {
                 let request = RequestId(u32::try_from(self.next).unwrap_or(u32::MAX));
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(self.waits[self.next], 8)
                         .expect("slow sink wait is exactly eight bytes"),
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -206,7 +206,7 @@ fn offer(
         },
         inputs,
         outputs,
-        host_operations: vec![conduit_core::wait_host_operation_requirement()],
+        host_calls: vec![conduit_core::wait_host_call_requirement()],
         resource_requirements: vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -354,7 +354,7 @@ fn validate(placement: &PlannedGear, offer: &CapabilityOffer) -> Result<(), Stri
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || !placement.configuration.is_empty()
     {
         return Err("planned gate fixture identity does not match its installation".into());

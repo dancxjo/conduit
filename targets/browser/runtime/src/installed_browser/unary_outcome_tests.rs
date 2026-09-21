@@ -1,5 +1,5 @@
 use super::*;
-use conduit_kernel::HostOperationOutcome;
+use conduit_kernel::HostCallOutcome;
 
 fn pending() -> UnaryOperation {
     UnaryOperation {
@@ -17,19 +17,19 @@ fn unary_failure_preserves_exact_matched_host_failure_and_cancellation() {
     };
     let mut operation = pending();
     assert!(
-        matches!(operation.resume(OperationInput::HostOperationCompleted {
-        request: RequestId(3), outcome: HostOperationOutcome {
-            disposition: HostOperationDisposition::Failed, output: None, failure: Some(failure),
+        matches!(operation.resume(OperationInput::HostCallCompleted {
+        request: RequestId(3), outcome: HostCallOutcome {
+            disposition: HostCallDisposition::Failed, output: None, failure: Some(failure),
         },
     }), OperationAction::Fail(found) if found == failure)
     );
     assert!(operation.pending.is_none());
     let mut operation = pending();
     assert!(matches!(
-        operation.resume(OperationInput::HostOperationCompleted {
+        operation.resume(OperationInput::HostCallCompleted {
             request: RequestId(3),
-            outcome: HostOperationOutcome {
-                disposition: HostOperationDisposition::Cancelled,
+            outcome: HostCallOutcome {
+                disposition: HostCallDisposition::Cancelled,
                 output: None,
                 failure: None,
             },
@@ -55,10 +55,10 @@ fn unary_stale_completion_and_malformed_failure_do_not_claim_the_supplied_failur
     ] {
         let mut operation = pending();
         assert!(matches!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request,
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Failed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Failed,
                     output: None,
                     failure,
                 },
@@ -90,7 +90,7 @@ fn unary_transform_reuses_one_host_slot_for_later_open_flow_values() {
                 port: PortId(0),
                 value: input,
             }),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(found),
                 ..
             } if found == u32::from(slot - 1)
@@ -101,10 +101,10 @@ fn unary_transform_reuses_one_host_slot_for_later_open_flow_values() {
             byte_len: 8,
         };
         assert_eq!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(u32::from(slot - 1)),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(BoundedValueRef::new(output, 16).unwrap()),
                     failure: None,
                 },

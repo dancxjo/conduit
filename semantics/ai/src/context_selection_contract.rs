@@ -121,7 +121,7 @@ fn offer(
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
         },
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: contract.limits,

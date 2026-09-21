@@ -59,7 +59,7 @@ fn source_offer() -> CapabilityOffer {
             implementation_id: SOURCE_KIND.into(),
             artifact_id: SOURCE_KIND.into(),
         },
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {

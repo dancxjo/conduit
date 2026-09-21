@@ -1,7 +1,7 @@
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, Back,
-    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, Kind,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostCallContractId,
+    HostCallRequirement, ImplementationId, Kind,
 };
 use conduit_semantic_catalog::{
     CAMERA_ACQUIRE_KIND, CAMERA_FRAME_KIND, CAMERA_RESOURCE_CLASS, MAXIMUM_MEDIA_REQUEST_BYTES,
@@ -21,12 +21,12 @@ pub fn browser_media_acquisition_offers() -> Vec<CapabilityOffer> {
 
 /// Camera source made available only with post-acquisition resource truth.
 pub fn acquired_camera_source_offer() -> CapabilityOffer {
-    let operation = HostOperationContractId::from(MEDIA_USE_OPERATION);
+    let operation = HostCallContractId::from(MEDIA_USE_OPERATION);
     realization_offer(
         conduit_semantic_catalog::camera_source_semantic_contract(),
         "browser/acquired-camera-source@1",
         "browser/acquired-camera-source@1",
-        vec![HostOperationRequirement {
+        vec![HostCallRequirement {
             contract_id: operation.clone(),
             target_kind: Some(kind_id(CAMERA_FRAME_KIND)),
             maximum_in_flight: 1,
@@ -36,7 +36,7 @@ pub fn acquired_camera_source_offer() -> CapabilityOffer {
         vec![resource_requirement(CAMERA_RESOURCE_CLASS, 1)],
         vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(MEDIA_USE_AUTHORITY),
-            host_operation_contract_id: operation,
+            host_call_contract_id: operation,
             subject_kind: kind_id(CAMERA_FRAME_KIND),
         }],
     )
@@ -52,7 +52,7 @@ pub fn browser_camera_frame_sink_offer() -> CapabilityOffer {
             ),
             implementation_id: ImplementationId::from("std/kernel-camera-frame-sink@1"),
             artifact_id: ArtifactId::from(BROWSER_MEDIA_ARTIFACT),
-            host_operations: vec![],
+            host_calls: vec![],
             resource_requirements: vec![],
             authority_requirements: vec![],
         },
@@ -61,13 +61,13 @@ pub fn browser_camera_frame_sink_offer() -> CapabilityOffer {
 }
 
 fn acquisition_offer(kind: &str) -> CapabilityOffer {
-    let operation = HostOperationContractId::from(MEDIA_ACQUIRE_OPERATION);
+    let operation = HostCallContractId::from(MEDIA_ACQUIRE_OPERATION);
     realization_offer(
         conduit_semantic_catalog::media_acquisition_semantic_contract(kind)
             .expect("browser offers only registered human-media acquisition Kinds"),
         &format!("browser/{kind}-capability"),
         &format!("browser/{kind}"),
-        vec![HostOperationRequirement {
+        vec![HostCallRequirement {
             contract_id: operation.clone(),
             target_kind: Some(kind_id(kind)),
             maximum_in_flight: 1,
@@ -77,7 +77,7 @@ fn acquisition_offer(kind: &str) -> CapabilityOffer {
         vec![],
         vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(MEDIA_REQUEST_AUTHORITY),
-            host_operation_contract_id: operation,
+            host_call_contract_id: operation,
             subject_kind: kind_id(kind),
         }],
     )
@@ -87,7 +87,7 @@ fn realization_offer(
     contract: Kind,
     capability: &str,
     implementation: &str,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
     resource_requirements: Vec<conduit_core::ResourceRequirement>,
     authority_requirements: Vec<AuthorityRequirement>,
 ) -> CapabilityOffer {
@@ -98,7 +98,7 @@ fn realization_offer(
             execution_profile_id: ExecutionProfileId::from(BROWSER_MEDIA_PROFILE),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(BROWSER_MEDIA_ARTIFACT),
-            host_operations,
+            host_calls,
             resource_requirements,
             authority_requirements,
         },
@@ -136,12 +136,12 @@ mod tests {
             assert_eq!(offer.outputs.len(), 1);
             assert_eq!(offer.outputs[0].port_id.as_str(), "result");
             assert_eq!(offer.authority_requirements.len(), 1);
-            assert_eq!(offer.host_operations.len(), 1);
+            assert_eq!(offer.host_calls.len(), 1);
             assert!(offer.limits.max_active_instances > 0);
             assert!(offer.limits.max_queue_items > 0);
             assert!(offer.limits.max_queue_bytes > 0);
-            assert!(offer.host_operations[0].maximum_input_bytes > 0);
-            assert!(offer.host_operations[0].maximum_output_bytes > 0);
+            assert!(offer.host_calls[0].maximum_input_bytes > 0);
+            assert!(offer.host_calls[0].maximum_output_bytes > 0);
         }
         assert_exact_semantics(
             &acquired_camera_source_offer(),

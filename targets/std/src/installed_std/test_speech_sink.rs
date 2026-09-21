@@ -61,7 +61,7 @@ pub(crate) fn offer() -> CapabilityOffer {
         },
         inputs: inputs(),
         outputs: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -103,7 +103,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id.as_str() != ARTIFACT
         || placement.inputs != offer.inputs
         || !placement.outputs.is_empty()
-        || !placement.host_operations.is_empty()
+        || !placement.host_calls.is_empty()
         || !placement.resources.is_empty()
         || !placement.authority.is_empty()
         || !placement.configuration.is_empty()

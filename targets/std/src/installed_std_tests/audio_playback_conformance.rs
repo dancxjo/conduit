@@ -225,31 +225,31 @@ fn busy_open_underrun_provider_loss_and_drain_remain_distinct() {
     for (behavior, expected) in [
         (
             FakePlaybackBehavior::DeviceBusy,
-            "OperationFailed(Failure { code: HostOperationDenied, detail: 71 })",
+            "OperationFailed(Failure { code: HostCallDenied, detail: 71 })",
         ),
         (
             FakePlaybackBehavior::OpenFailure,
-            "OperationFailed(Failure { code: HostOperationFailed, detail: 72 })",
+            "OperationFailed(Failure { code: HostCallFailed, detail: 72 })",
         ),
         (
             FakePlaybackBehavior::UnderrunOnFirstBlock,
-            "OperationFailed(Failure { code: HostOperationFailed, detail: 74 })",
+            "OperationFailed(Failure { code: HostCallFailed, detail: 74 })",
         ),
         (
             FakePlaybackBehavior::ProviderLossOnFirstBlock,
-            "OperationFailed(Failure { code: HostOperationFailed, detail: 75 })",
+            "OperationFailed(Failure { code: HostCallFailed, detail: 75 })",
         ),
         (
             FakePlaybackBehavior::ProviderLossAfterFirstBlock,
-            "OperationFailed(Failure { code: HostOperationFailed, detail: 75 })",
+            "OperationFailed(Failure { code: HostCallFailed, detail: 75 })",
         ),
         (
             FakePlaybackBehavior::ProviderLossOnDrain,
-            "OperationFailed(Failure { code: HostOperationFailed, detail: 75 })",
+            "OperationFailed(Failure { code: HostCallFailed, detail: 75 })",
         ),
         (
             FakePlaybackBehavior::DrainFailure,
-            "OperationFailed(Failure { code: HostOperationFailed, detail: 77 })",
+            "OperationFailed(Failure { code: HostCallFailed, detail: 77 })",
         ),
     ] {
         let mut host = host(behavior);

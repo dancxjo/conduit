@@ -87,11 +87,11 @@ fn exact_selection_is_checked_planned_and_played_before_state_changes() {
     assert!(receipt
         .signs
         .iter()
-        .any(|event| event.kind == KernelEventKind::HostOperationRequested));
+        .any(|event| event.kind == KernelEventKind::HostCallRequested));
     assert!(receipt
         .signs
         .iter()
-        .any(|event| event.kind == KernelEventKind::HostOperationCompleted));
+        .any(|event| event.kind == KernelEventKind::HostCallCompleted));
     let inspection = interaction.lines().join("\n");
     assert!(inspection.contains("kind=interaction/select"));
     assert!(inspection.contains("gears=request,apply"));
@@ -216,11 +216,11 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
     assert!(receipt
         .signs
         .iter()
-        .any(|event| event.kind == KernelEventKind::HostOperationCompleted));
+        .any(|event| event.kind == KernelEventKind::HostCallCompleted));
 }
 
 #[test]
-fn semantic_invocation_refusals_are_exact_and_do_not_reach_the_host_operation() {
+fn semantic_invocation_refusals_are_exact_and_do_not_reach_the_host_call() {
     let mut interaction = interaction();
     let presentation = invocation_presentation(PatchbayAction::OpenBack, "seed/example");
     let action_id = presentation.actions[0].identity.clone();
@@ -308,12 +308,12 @@ fn semantic_invocation_refusals_are_exact_and_do_not_reach_the_host_operation() 
             InteractionDisposition::Refused(expected),
             "mutation {mutation}"
         );
-        assert!(!invoked, "mutation {mutation} reached the host operation");
+        assert!(!invoked, "mutation {mutation} reached the Host Call");
     }
 }
 
 #[test]
-fn duplicate_semantic_delivery_is_refused_before_a_second_host_operation() {
+fn duplicate_semantic_delivery_is_refused_before_a_second_host_call() {
     let mut interaction = interaction();
     let presentation = invocation_presentation(PatchbayAction::OpenBack, "seed/example");
     let request = PatchbayInteractionRequest::invoke(

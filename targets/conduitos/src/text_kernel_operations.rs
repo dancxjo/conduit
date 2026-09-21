@@ -1,7 +1,7 @@
 //! Fixed operation state machines for the ordinary bounded text pipeline.
 
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, Operation, OperationAction, OperationInput, PortId,
+    BoundedValueRef, HostCallDisposition, Operation, OperationAction, OperationInput, PortId,
     RequestId, ValueRef,
 };
 
@@ -27,18 +27,18 @@ pub(super) struct TimerOperation {
 
 impl Operation for TimerOperation {
     fn start(&mut self) -> OperationAction {
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: TIMER_REQUEST,
-            operation: conduit_kernel::HostOperationId(0),
+            operation: conduit_kernel::HostCallId(0),
             input: self.wait,
         }
     }
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == TIMER_REQUEST
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -48,13 +48,13 @@ impl Operation for TimerOperation {
                     value: self.tick,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == TIMER_REQUEST
-                    && outcome.disposition == HostOperationDisposition::Cancelled =>
+                    && outcome.disposition == HostCallDisposition::Cancelled =>
             {
                 failure(conduit_kernel::FailureCode::Cancelled, 40)
             }
-            _ => failure(conduit_kernel::FailureCode::HostOperationFailed, 41),
+            _ => failure(conduit_kernel::FailureCode::HostCallFailed, 41),
         }
     }
 
@@ -93,16 +93,16 @@ impl Operation for TickPresentationOperation {
                     return invalid(50);
                 };
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: TICK_PRESENT_REQUEST,
-                    operation: conduit_kernel::HostOperationId(0),
+                    operation: conduit_kernel::HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == TICK_PRESENT_REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -110,10 +110,10 @@ impl Operation for TickPresentationOperation {
                 self.complete = true;
                 OperationAction::Await
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == TICK_PRESENT_REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Cancelled =>
+                    && outcome.disposition == HostCallDisposition::Cancelled =>
             {
                 failure(conduit_kernel::FailureCode::Cancelled, 51)
             }
@@ -190,16 +190,16 @@ impl Operation for UpperOperation {
                     return invalid(30);
                 };
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: UPPER_REQUEST,
-                    operation: conduit_kernel::HostOperationId(0),
+                    operation: conduit_kernel::HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == UPPER_REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -212,19 +212,19 @@ impl Operation for UpperOperation {
                     value: output.value,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == UPPER_REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Cancelled =>
+                    && outcome.disposition == HostCallDisposition::Cancelled =>
             {
                 failure(conduit_kernel::FailureCode::Cancelled, 32)
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == UPPER_REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Failed =>
+                    && outcome.disposition == HostCallDisposition::Failed =>
             {
-                failure(conduit_kernel::FailureCode::HostOperationFailed, 33)
+                failure(conduit_kernel::FailureCode::HostCallFailed, 33)
             }
             OperationInput::Closed { port: PortId(0) } if self.emitted && !self.pending => {
                 OperationAction::Complete
@@ -259,16 +259,16 @@ impl Operation for PresentationOperation {
                     return invalid(20);
                 };
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: PRESENT_REQUEST,
-                    operation: conduit_kernel::HostOperationId(0),
+                    operation: conduit_kernel::HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == PRESENT_REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -276,19 +276,19 @@ impl Operation for PresentationOperation {
                 self.complete = true;
                 OperationAction::Await
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == PRESENT_REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Cancelled =>
+                    && outcome.disposition == HostCallDisposition::Cancelled =>
             {
                 failure(conduit_kernel::FailureCode::Cancelled, 22)
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == PRESENT_REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Failed =>
+                    && outcome.disposition == HostCallDisposition::Failed =>
             {
-                failure(conduit_kernel::FailureCode::HostOperationFailed, 23)
+                failure(conduit_kernel::FailureCode::HostCallFailed, 23)
             }
             OperationInput::Closed { port: PortId(0) } if self.complete && !self.pending => {
                 OperationAction::Complete

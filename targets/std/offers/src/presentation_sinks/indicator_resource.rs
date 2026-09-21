@@ -1,5 +1,5 @@
 //! Ordinary indicator output over an acquired provider resource, not stdout.
-use conduit_core::{kind_id, resource_requirement, CapabilityOffer, HostOperationRequirement};
+use conduit_core::{kind_id, resource_requirement, CapabilityOffer, HostCallRequirement};
 use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity};
 pub const IMPLEMENTATION: &str = "std/kernel-indicator-resource@1";
 pub const ARTIFACT: &str = "conduit-std-host/indicator-resource@1";
@@ -17,7 +17,7 @@ pub fn offer() -> CapabilityOffer {
             implementation: IMPLEMENTATION,
             artifact: ARTIFACT,
         },
-        vec![HostOperationRequirement {
+        vec![HostCallRequirement {
             contract_id: OPERATION.into(),
             target_kind: Some(kind_id(
                 conduit_semantic_catalog::INDICATOR_STATE_PRESENTATION_KIND,

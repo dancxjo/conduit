@@ -236,7 +236,7 @@ fn host(name: &str, kinds: &[&str], profile: &ProfileCatalog) -> HostAdvertiseme
                         implementation_id: ImplementationId::from(format!("std/{name}/{kind}@1")),
                         artifact_id: ArtifactId::from(format!("std/a2-{name}-image@1")),
                     },
-                    host_operations: vec![],
+                    host_calls: vec![],
                     resource_requirements: vec![],
                     authority_requirements: vec![],
                     limits: CapabilityLimits {

@@ -29,7 +29,7 @@ fn identity() -> FirmwareIdentity {
             offer_generation: 1,
             nodes: 1,
             cords: 1,
-            host_operations: 1,
+            host_calls: 1,
             cord_value_slots: 1,
             cord_value_bytes: conduit_net::MAXIMUM_JOIN_INPUT_BYTES,
             sign_items: 16,

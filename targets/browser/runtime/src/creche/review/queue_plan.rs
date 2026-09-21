@@ -251,7 +251,7 @@ mod tests {
             },
             inputs: definition.inputs.clone(),
             outputs: definition.outputs.clone(),
-            host_operations: vec![],
+            host_calls: vec![],
             resource_requirements: vec![],
             authority_requirements: vec![],
             limits: CapabilityLimits {

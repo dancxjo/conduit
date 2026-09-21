@@ -5,8 +5,8 @@ use super::factory::{
 };
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, HostOperationContractId, HostOperationRequirement, InfoBool, PlannedGear,
-    BOOL_ENCODED_LEN, PRESENTATION_RESOURCE_CLASS,
+    kind_id, HostCallContractId, HostCallRequirement, InfoBool, PlannedGear, BOOL_ENCODED_LEN,
+    PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::{
     CanonicalValue, Failure, FailureCode, HostedValueStore, Operation, OperationAction,
@@ -58,8 +58,8 @@ fn indicator_offer() -> conduit_core::CapabilityOffer {
             implementation: INDICATOR_IMPLEMENTATION,
             artifact: ARTIFACT,
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(INDICATOR_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(INDICATOR_OPERATION),
             target_kind: Some(kind_id(
                 conduit_semantic_catalog::INDICATOR_STATE_PRESENTATION_KIND,
             )),

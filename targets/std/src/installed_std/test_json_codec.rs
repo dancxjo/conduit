@@ -1,13 +1,13 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
-    kind_id, port_id, present_host_operation_requirement, ArtifactId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, ImplementationId, KindIdentity,
-    PlannedGear, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, present_host_call_requirement, ArtifactId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear,
+    PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
+    RequestId, ValueRef, ValueStorage,
 };
 
 const SOURCE_KIND: &str = "conduit-test/json-text-source";
@@ -87,9 +87,9 @@ impl TestJsonSinkOperation {
                 value,
             } if !self.pending => {
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(
                         value,
                         conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
@@ -97,11 +97,11 @@ impl TestJsonSinkOperation {
                     .unwrap(),
                 }
             }
-            OperationInput::HostOperationCompleted {
+            OperationInput::HostCallCompleted {
                 request: RequestId(0),
                 outcome,
             } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -131,7 +131,7 @@ pub(crate) fn sink_offer() -> CapabilityOffer {
         SINK_REVISION,
         SINK_IMPLEMENTATION,
         PortDirection::Input,
-        vec![present_host_operation_requirement(
+        vec![present_host_call_requirement(
             kind_id("presentation/stdout-text"),
             conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
         )],
@@ -143,7 +143,7 @@ fn offer(
     revision: &str,
     implementation: &str,
     direction: PortDirection,
-    host_operations: Vec<conduit_core::HostOperationRequirement>,
+    host_calls: Vec<conduit_core::HostCallRequirement>,
 ) -> CapabilityOffer {
     let descriptor = PortDescriptor {
         port_id: port_id("value"),
@@ -172,7 +172,7 @@ fn offer(
         } else {
             Vec::new()
         },
-        host_operations,
+        host_calls,
         resource_requirements: if direction == PortDirection::Input {
             vec![conduit_core::resource_requirement(
                 conduit_core::PRESENTATION_RESOURCE_CLASS,
@@ -211,7 +211,7 @@ fn validate(placement: &PlannedGear, offer: CapabilityOffer) -> Result<(), Strin
         || placement.implementation_id != offer.implementation.implementation_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
     {
         Err("planned JSON fixture differs".into())
     } else {

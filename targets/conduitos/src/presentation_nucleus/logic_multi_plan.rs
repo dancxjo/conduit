@@ -20,7 +20,7 @@ pub(super) const SINK_KIND: &str = "conduitos/fixture-logic-sink";
 const SOURCE_REVISION: &str = "conduitos/fixture-logic-scalar-source@1";
 const SINK_REVISION: &str = "conduitos/fixture-logic-scalar-sink@1";
 const FIXTURE_ARTIFACT: &str = "conduitos/logic-multi-fixture@1";
-pub(super) const SINK_HOST_OPERATION: &str = "conduitos.fixture/capture-scalar@1";
+pub(super) const SINK_HOST_CALL: &str = "conduitos.fixture/capture-scalar@1";
 
 pub struct PreparedLogicMulti {
     pub advertisement: HostAdvertisement,
@@ -169,7 +169,7 @@ fn source_offer(kind: &str, value: Scalar) -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: limits(),
@@ -189,8 +189,8 @@ fn sink_offer() -> CapabilityOffer {
         temporal: PortTemporal::Value,
     }];
     offer.outputs.clear();
-    offer.host_operations = vec![conduit_core::HostOperationRequirement {
-        contract_id: conduit_core::HostOperationContractId::from(SINK_HOST_OPERATION),
+    offer.host_calls = vec![conduit_core::HostCallRequirement {
+        contract_id: conduit_core::HostCallContractId::from(SINK_HOST_CALL),
         target_kind: Some(kind_id(SINK_KIND)),
         maximum_in_flight: 1,
         maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,

@@ -236,7 +236,7 @@ fn current_experience_contains_no_host_placement_or_effect_authority() {
         "HostId",
         "BootId",
         "AuthorityGrantId",
-        "HostOperationId",
+        "HostCallId",
         "BodyLifecycleEvent",
         "PresentationAction",
     ] {

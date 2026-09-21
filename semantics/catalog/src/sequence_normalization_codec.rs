@@ -1,7 +1,7 @@
 //! Preallocated canonical timing transform shared by Host realizations.
 //! Prepare before Play; execution reuses the admitted output buffer.
 //! The calling Host enforces its planned input-byte bound before execution,
-//! as it does for every admitted structured Host-operation request.
+//! as it does for every admitted structured Host Call request.
 
 use alloc::vec::Vec;
 use conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES;

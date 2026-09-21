@@ -75,7 +75,7 @@ pub(crate) use factory::{
 pub(crate) use input::{BUTTON_EVENT_OPERATION, KEY_EVENT_OPERATION};
 pub(crate) use inventory::inventory;
 pub(crate) use limits::{
-    envelope_limits, BROWSER_HOST_OPERATIONS_PER_GEAR, BROWSER_HOST_OPERATION_BINDINGS,
+    envelope_limits, BROWSER_HOST_CALLS_PER_GEAR, BROWSER_HOST_CALL_BINDINGS,
     BROWSER_PENDING_REQUESTS, BROWSER_PORTS_PER_GEAR, BROWSER_QUEUE_SLOTS, BROWSER_ROUTE_SLOTS,
     BROWSER_ROUTE_TARGETS, BROWSER_SIGN_ITEMS, BROWSER_TOTAL_VALUE_BYTES, BROWSER_VALUE_ITEMS,
     MAXIMUM_BROWSER_CORDS, MAXIMUM_BROWSER_FORM_CORDS, MAXIMUM_BROWSER_FORM_GEARS,
@@ -83,7 +83,7 @@ pub(crate) use limits::{
 };
 pub(crate) use membership_offer::advertisement as membership_advertisement;
 pub(crate) use normalized_quantity::{
-    transform as normalize_quantity, HOST_OPERATION as NORMALIZE_QUANTITY_OPERATION,
+    transform as normalize_quantity, HOST_CALL as NORMALIZE_QUANTITY_OPERATION,
 };
 pub(crate) use operation::BrowserOperation;
 
@@ -103,10 +103,10 @@ fn record_delivery_refusal_detail(refusal: conduit_net::RecordDeliveryRefusal) -
         ObservationIdentityMismatch => 11,
     }
 }
-pub(crate) use pointer::HOST_OPERATION as POINTER_EVENT_OPERATION;
+pub(crate) use pointer::HOST_CALL as POINTER_EVENT_OPERATION;
 pub(crate) use quantity::{
     configuration as prepare_quantity_mapping, transform as transform_quantity,
-    HOST_OPERATION as QUANTITY_HOST_OPERATION,
+    HOST_CALL as QUANTITY_HOST_CALL,
 };
 pub(crate) use quantity_output::{
     decode as decode_quantity_leaf, wrap as wrap_quantity,

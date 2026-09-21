@@ -36,7 +36,7 @@ pub(crate) fn placement(
     let authority = AuthorityBinding {
         grant_id: format!("grant/{operation}").into(),
         contract_id: "authority/resource-snapshot@1".into(),
-        host_operation_contract_id: operation.into(),
+        host_call_contract_id: operation.into(),
         subject_kind: kind.clone(),
         host_id: host.clone(),
         boot_id: boot.clone(),
@@ -65,7 +65,7 @@ pub(crate) fn placement(
             },
             inputs: Vec::new(),
             outputs: Vec::new(),
-            host_operations: vec![HostOperationRequirement {
+            host_calls: vec![HostCallRequirement {
                 contract_id: operation.into(),
                 target_kind: Some(kind),
                 maximum_in_flight: 1,
@@ -148,12 +148,12 @@ fn snapshot_record_preserves_generation_across_new_boot_but_requires_new_authori
 #[test]
 fn snapshot_binding_refuses_wrong_bounds_authority_and_lifetime() {
     let (mut write, reference) = placement("boot/one", true, 2);
-    write.host_operations[0].maximum_input_bytes = 1;
+    write.host_calls[0].maximum_input_bytes = 1;
     assert!(matches!(
         PreparedSnapshotRecord::prepare(&write, &reference),
         Err(SnapshotRefusal::InvalidBinding)
     ));
-    write.host_operations[0].maximum_input_bytes = 4096;
+    write.host_calls[0].maximum_input_bytes = 4096;
     write.authority[0].capability_id = "wrong".into();
     assert!(matches!(
         PreparedSnapshotRecord::prepare(&write, &reference),

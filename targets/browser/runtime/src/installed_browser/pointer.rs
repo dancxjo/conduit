@@ -3,11 +3,11 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, Operation, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, Operation, OperationAction, OperationInput,
+    PortId, RequestId, ValueRef, ValueStorage,
 };
 
-pub(crate) const HOST_OPERATION: &str = "browser.host/pointer-source@1";
+pub(crate) const HOST_CALL: &str = "browser.host/pointer-source@1";
 pub(super) static POINTER: BrowserInstallation = BrowserInstallation {
     implementation_id: "browser/form-pointer-source@1",
     offer,
@@ -59,20 +59,20 @@ impl Operation for PointerSource {
             return fail();
         }
         self.pending = true;
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(self.next),
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(self.empty, 0).expect("empty pointer request"),
         }
     }
     fn resume(&mut self, input: OperationInput) -> OperationAction {
-        if let OperationInput::HostOperationCompleted { request, outcome } = input {
+        if let OperationInput::HostCallCompleted { request, outcome } = input {
             if !self.pending || request != RequestId(self.next) {
                 return fail();
             }
             self.pending = false;
             return match (outcome.disposition, outcome.output, outcome.failure) {
-                (HostOperationDisposition::Completed, Some(output), None)
+                (HostCallDisposition::Completed, Some(output), None)
                     if output.admitted_bytes == super::MAXIMUM_BROWSER_VALUE_BYTES as u32 =>
                 {
                     OperationAction::Emit {
@@ -80,7 +80,7 @@ impl Operation for PointerSource {
                         value: output.value,
                     }
                 }
-                (HostOperationDisposition::Failed, None, Some(failure)) => {
+                (HostCallDisposition::Failed, None, Some(failure)) => {
                     OperationAction::Fail(failure)
                 }
                 _ => fail(),
@@ -113,7 +113,7 @@ fn fail() -> OperationAction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::HostOperationOutcome;
+    use conduit_kernel::HostCallOutcome;
 
     #[test]
     fn pointer_rearms_after_multiple_separated_observations() {
@@ -128,20 +128,17 @@ mod tests {
         };
         let mut action = operation.start();
         for slot in 1..=3 {
-            assert!(matches!(
-                action,
-                OperationAction::RequestHostOperation { .. }
-            ));
+            assert!(matches!(action, OperationAction::RequestHostCall { .. }));
             let value = ValueRef {
                 slot,
                 generation: 1,
                 byte_len: 16,
             };
             assert_eq!(
-                operation.resume(OperationInput::HostOperationCompleted {
+                operation.resume(OperationInput::HostCallCompleted {
                     request: RequestId((slot - 1).into()),
-                    outcome: HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    outcome: HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: Some(
                             BoundedValueRef::new(
                                 value,
@@ -159,9 +156,6 @@ mod tests {
             );
             action = operation.advance();
         }
-        assert!(matches!(
-            action,
-            OperationAction::RequestHostOperation { .. }
-        ));
+        assert!(matches!(action, OperationAction::RequestHostCall { .. }));
     }
 }
