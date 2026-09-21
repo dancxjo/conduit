@@ -1,6 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection, PortTemporal, BOOL_ENCODED_LEN};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
     RequestId,
 };
@@ -9,6 +10,59 @@ pub(super) fn present_stdout(output: &mut impl std::io::Write, input: &[u8]) -> 
     let value = conduit_core::InfoBool::decode(input)
         .map_err(|error| format!("Boolean presentation input is invalid: {error:?}"))?;
     writeln!(output, "bool value={}", value.get()).map_err(|error| error.to_string())
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for BoolPresentationOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return StepOutcome::Fail(step_failure());
+            }
+            io.consume_host_completion()
+                .expect("observed Boolean Presentation completion");
+            self.pending = None;
+            if let Some(failure) = outcome.failure {
+                return StepOutcome::Fail(failure);
+            }
+            if outcome.disposition != HostCallDisposition::Completed || outcome.output.is_some() {
+                return StepOutcome::Fail(step_failure());
+            }
+            self.next = self.next.saturating_add(1);
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() || u64::from(self.next) >= self.maximum {
+                return StepOutcome::Fail(step_failure());
+            }
+            let Ok(input) = BoundedValueRef::new(value, BOOL_ENCODED_LEN as u32) else {
+                return StepOutcome::Fail(step_failure());
+            };
+            let request = RequestId(self.next);
+            io.consume(PortId(0))
+                .expect("present Boolean Presentation input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("single Boolean Presentation Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed Boolean Presentation closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+fn step_failure() -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail: 47,
+    }
 }
 
 pub(super) static BOOL_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
