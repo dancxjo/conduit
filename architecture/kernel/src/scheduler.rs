@@ -406,11 +406,9 @@ impl<const PORTS: usize> StepIo<PORTS> {
         {
             return self.fail(SchedulerError::InvalidPortAccess);
         }
-        let slot = self
-            .discards
-            .iter_mut()
-            .find(|discard| discard.is_none())
-            .ok_or(SchedulerError::InvalidPortAccess)?;
+        let Some(slot) = self.discards.iter_mut().find(|discard| discard.is_none()) else {
+            return self.fail(SchedulerError::InvalidPortAccess);
+        };
         *slot = Some(value);
         Ok(())
     }
