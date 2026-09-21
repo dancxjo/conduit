@@ -6,6 +6,7 @@ edition = "2021"
 [features]
 default = []
 alloc = []
+step-test-support = []
 
 [dependencies]
 conduit-assigned-plan = { path = "../assigned-plan" }

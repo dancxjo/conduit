@@ -243,34 +243,39 @@ mod tests {
             pending: false,
             next_request: 0,
         };
-        assert!(matches!(
-            operation.start(),
-            OperationAction::RequestHostCall {
-                request: RequestId(0),
-                ..
-            }
-        ));
+        let mut io = StepIo::test_frame([None], [false], [Some(12)], None, 8);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(0))
+        );
         let output = BoundedValueRef::new(value(12), 12).unwrap();
-        assert!(matches!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome: HostCallOutcome {
+        let mut io = StepIo::test_frame(
+            [None],
+            [false],
+            [Some(12)],
+            Some((
+                RequestId(0),
+                HostCallOutcome {
                     disposition: HostCallDisposition::Completed,
                     output: Some(output),
                     failure: None,
                 },
-            }),
-            OperationAction::Emit {
-                port: PortId(0),
-                ..
-            }
-        ));
-        assert!(matches!(
-            operation.advance(),
-            OperationAction::RequestHostCall {
-                request: RequestId(1),
-                ..
-            }
-        ));
+            )),
+            8,
+        );
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert!(io.test_host_completion_consumed());
+        assert_eq!(io.test_output(PortId(0)), Some(value(12)));
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(1))
+        );
     }
 }

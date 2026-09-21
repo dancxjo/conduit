@@ -146,7 +146,10 @@ fn validate(
 mod tests {
     use super::*;
     use conduit_core::{kind_id, SCALAR_ENCODED_LEN, SCALAR_INFO_ID};
-    use conduit_kernel::{OperationAction, ValueRef};
+    use conduit_kernel::{
+        scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+        ValueRef,
+    };
 
     #[test]
     fn flow_pressure_operation_passes_values_and_closure() {
@@ -156,21 +159,25 @@ mod tests {
             generation: 1,
             byte_len: SCALAR_ENCODED_LEN as u32,
         };
-        assert_eq!(
-            operation.resume(OperationInput::Value {
-                port: PortId(0),
-                value,
-            }),
-            OperationAction::Emit {
-                port: PortId(0),
-                value,
-            }
+        let mut io = StepIo::test_frame(
+            [Some(value)],
+            [false],
+            [Some(SCALAR_ENCODED_LEN as u32)],
+            None,
+            8,
         );
-        assert_eq!(operation.advance(), OperationAction::Await);
         assert_eq!(
-            operation.resume(OperationInput::Closed { port: PortId(0) }),
-            OperationAction::Complete
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
         );
+        assert!(io.test_consumed(PortId(0)));
+        assert_eq!(io.test_output(PortId(0)), Some(value));
+        let mut io = StepIo::test_frame([None], [true], [None], None, 8);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Complete
+        );
+        assert!(io.test_consumed_closed(PortId(0)));
         let offer = conduit_std_offers::flow_coalesce_latest_std_offer(
             &kind_id(SCALAR_INFO_ID),
             SCALAR_ENCODED_LEN as u32,

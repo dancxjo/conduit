@@ -150,7 +150,7 @@ fn validate_state_toggle(placement: &PlannedGear) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::{Failure, FailureCode};
+    use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
 
     fn value(slot: u16, byte_len: u32) -> ValueRef {
         ValueRef {
@@ -179,72 +179,74 @@ mod tests {
     #[test]
     fn emits_exact_initial_value_then_alternates_until_input_closes() {
         let mut toggle = operation(true);
+        let mut io = StepIo::test_frame([None], [false], [Some(BOOL_ENCODED_LEN as u32)], None, 8);
         assert_eq!(
-            toggle.start(),
-            OperationAction::Emit {
-                port: PortId(0),
-                value: value(11, BOOL_ENCODED_LEN as u32),
-            }
+            toggle.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
         );
-        assert_eq!(toggle.advance(), OperationAction::Await);
+        assert_eq!(
+            io.test_output(PortId(0)),
+            Some(value(11, BOOL_ENCODED_LEN as u32))
+        );
 
         for expected in [10, 11, 10] {
-            assert_eq!(
-                toggle.resume(OperationInput::Value {
-                    port: PortId(0),
-                    value: value(20, conduit_time::TICK_ENCODED_LEN),
-                }),
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: value(expected, BOOL_ENCODED_LEN as u32),
-                }
+            let tick = value(20, conduit_time::TICK_ENCODED_LEN);
+            let encoded = conduit_time::encode_tick(1);
+            let mut io = StepIo::test_frame(
+                [Some(tick)],
+                [false],
+                [Some(BOOL_ENCODED_LEN as u32)],
+                None,
+                8,
             );
-            assert_eq!(toggle.advance(), OperationAction::Await);
+            assert_eq!(
+                toggle.step(&mut io, &StepInputBytes::test_frame([Some(&encoded)], None)),
+                StepOutcome::Progress
+            );
+            assert!(io.test_consumed(PortId(0)));
+            assert_eq!(
+                io.test_output(PortId(0)),
+                Some(value(expected, BOOL_ENCODED_LEN as u32))
+            );
         }
+        let mut io = StepIo::test_frame([None], [true], [None], None, 8);
         assert_eq!(
-            toggle.resume(OperationInput::Closed { port: PortId(0) }),
-            OperationAction::Complete
+            toggle.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Complete
         );
+        assert!(io.test_consumed_closed(PortId(0)));
     }
 
     #[test]
-    fn refuses_input_before_initial_delivery_and_malformed_tick_identity() {
-        for input in [
-            OperationInput::Value {
-                port: PortId(0),
-                value: value(20, conduit_time::TICK_ENCODED_LEN),
-            },
-            OperationInput::Closed { port: PortId(0) },
-        ] {
-            assert_eq!(
-                operation(false).resume(input),
-                OperationAction::Fail(Failure {
-                    code: FailureCode::InvalidLifecycle,
-                    detail: 34,
-                })
-            );
-        }
-
+    fn stages_initial_delivery_before_input_and_refuses_malformed_ticks() {
         let mut toggle = operation(false);
-        assert!(matches!(toggle.start(), OperationAction::Emit { .. }));
-        assert_eq!(toggle.advance(), OperationAction::Await);
-        for input in [
-            OperationInput::Value {
-                port: PortId(1),
-                value: value(20, conduit_time::TICK_ENCODED_LEN),
-            },
-            OperationInput::Value {
-                port: PortId(0),
-                value: value(20, conduit_time::TICK_ENCODED_LEN - 1),
-            },
-        ] {
-            assert_eq!(
-                toggle.resume(input),
-                OperationAction::Fail(Failure {
-                    code: FailureCode::InvalidLifecycle,
-                    detail: 34,
-                })
-            );
-        }
+        let tick = value(20, conduit_time::TICK_ENCODED_LEN);
+        let encoded = conduit_time::encode_tick(1);
+        let mut io = StepIo::test_frame(
+            [Some(tick)],
+            [false],
+            [Some(BOOL_ENCODED_LEN as u32)],
+            None,
+            8,
+        );
+        assert_eq!(
+            toggle.step(&mut io, &StepInputBytes::test_frame([Some(&encoded)], None)),
+            StepOutcome::Progress
+        );
+        assert!(!io.test_consumed(PortId(0)));
+        assert_eq!(
+            io.test_output(PortId(0)),
+            Some(value(10, BOOL_ENCODED_LEN as u32))
+        );
+
+        let malformed = value(20, conduit_time::TICK_ENCODED_LEN - 1);
+        let mut io = StepIo::test_frame([Some(malformed)], [false], [Some(1)], None, 8);
+        assert_eq!(
+            toggle.step(
+                &mut io,
+                &StepInputBytes::test_frame([Some(&encoded[..7])], None)
+            ),
+            StepOutcome::Fail(toggle_failure(34))
+        );
     }
 }

@@ -288,7 +288,10 @@ fn failure_outcome(error: crate::hosted_audio::PlaybackFailure) -> conduit_kerne
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::HostCallOutcome;
+    use conduit_kernel::{
+        scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+        HostCallOutcome,
+    };
 
     #[test]
     fn input_is_serialized_and_close_requests_exact_drain() {
@@ -303,35 +306,51 @@ mod tests {
             draining: false,
             closed: false,
         };
-        assert_eq!(operation.start(), OperationAction::Await);
         let value = ValueRef {
             slot: 2,
             generation: 1,
             byte_len: 100,
         };
-        assert!(matches!(
-            operation.resume(OperationInput::Value {
-                port: PortId(0),
-                value
-            }),
-            OperationAction::RequestHostCall { request: RequestId(0), input, .. }
-                if input.value == value
-        ));
+        let mut io = StepIo::test_frame([Some(value)], [false], [None], None, 8);
         assert_eq!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome: HostCallOutcome {
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert_eq!(
+            io.test_host_request()
+                .map(|request| (request.0, request.2.value)),
+            Some((RequestId(0), value))
+        );
+        assert!(io.test_consumed(PortId(0)));
+        let mut io = StepIo::test_frame(
+            [None],
+            [false],
+            [None],
+            Some((
+                RequestId(0),
+                HostCallOutcome {
                     disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },
-            }),
-            OperationAction::Await
+            )),
+            8,
         );
-        assert!(matches!(
-            operation.resume(OperationInput::Closed { port: PortId(0) }),
-            OperationAction::RequestHostCall { request: RequestId(1), input, .. }
-                if input.value == operation.drain_marker
-        ));
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert!(io.test_host_completion_consumed());
+        let mut io = StepIo::test_frame([None], [true], [None], None, 8);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert_eq!(
+            io.test_host_request()
+                .map(|request| (request.0, request.2.value)),
+            Some((RequestId(1), operation.drain_marker))
+        );
+        assert!(io.test_consumed_closed(PortId(0)));
     }
 }
