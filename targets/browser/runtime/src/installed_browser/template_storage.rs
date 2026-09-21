@@ -8,8 +8,8 @@ use conduit_core::{
     ResourceRequirement, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
-    Failure, FailureCode, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
-    ValueRef, ValueStorage,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    Failure, FailureCode, HostedValueStore, PortId, ValueRef, ValueStorage,
 };
 
 pub(crate) const HOST_CALL: &str = "conduit.host/browser-named-pattern-storage@1";
@@ -169,10 +169,12 @@ fn prepare_initializer(
                 .map_err(|error| format!("template command: {error:?}"))?,
         )
         .map_err(|error| format!("store template command: {error:?}"))?;
-    Ok(BrowserOperation::installed(TemplateInitializerOperation {
-        command: stored,
-        emitted: false,
-    }))
+    Ok(BrowserOperation::installed_step(
+        TemplateInitializerOperation {
+            command: stored,
+            emitted: false,
+        },
+    ))
 }
 
 struct TemplateInitializerOperation {
@@ -180,26 +182,18 @@ struct TemplateInitializerOperation {
     emitted: bool,
 }
 
-impl Operation for TemplateInitializerOperation {
-    fn start(&mut self) -> OperationAction {
-        self.emitted = true;
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.command,
+impl<const PORTS: usize> StepOperation<PORTS> for TemplateInitializerOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
         }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        let _ = input;
-        OperationAction::Fail(Failure {
-            code: FailureCode::InvalidLifecycle,
-            detail: 265,
-        })
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        debug_assert!(self.emitted);
-        OperationAction::Complete
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), self.command)
+            .expect("ready template initializer output");
+        self.emitted = true;
+        StepOutcome::Progress
     }
 }
 
