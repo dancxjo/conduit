@@ -1,7 +1,7 @@
 use super::{DelayOperation, ThrottleOperation};
 use conduit_kernel::{
-    HostCallDisposition, HostCallOutcome, OperationAction, OperationInput, PortId, RequestId,
-    ValueRef,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    HostCallDisposition, HostCallOutcome, PortId, RequestId, ValueRef,
 };
 
 fn value(slot: u16, byte_len: u32) -> ValueRef {
@@ -10,6 +10,27 @@ fn value(slot: u16, byte_len: u32) -> ValueRef {
         generation: 1,
         byte_len,
     }
+}
+
+fn completion(request: u32, disposition: HostCallDisposition) -> (RequestId, HostCallOutcome) {
+    (
+        RequestId(request),
+        HostCallOutcome {
+            disposition,
+            output: None,
+            failure: None,
+        },
+    )
+}
+
+fn input_step<O: StepOperation<1>>(
+    operation: &mut O,
+    value: ValueRef,
+    output_ready: bool,
+) -> (StepOutcome, StepIo<1>) {
+    let mut io = StepIo::test_frame([Some(value)], [false], [output_ready.then_some(8)], None, 8);
+    let outcome = operation.step(&mut io, &StepInputBytes::test_frame([None], None));
+    (outcome, io)
 }
 
 #[test]
@@ -23,56 +44,54 @@ fn delay_retains_finite_values_and_drains_them_in_order_after_close() {
         maximum_values: 2,
         pending: None,
         accepted_values: 0,
-        retain_resumed: false,
         closing: false,
         continue_after_emit: false,
     };
     let first = value(1, 1);
     let second = value(2, 1);
-    assert!(matches!(
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: first
-        }),
-        OperationAction::RequestHostCall {
-            request: RequestId(1),
-            ..
-        }
-    ));
-    assert!(operation.retains_resumed_value());
+    let (outcome, io) = input_step(&mut operation, first, true);
+    assert_eq!(outcome, StepOutcome::Progress);
+    assert!(io.test_retained(PortId(0)));
     assert_eq!(
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: second
-        }),
-        OperationAction::Await
+        io.test_host_request().map(|request| request.0),
+        Some(RequestId(1))
+    );
+    let (outcome, io) = input_step(&mut operation, second, true);
+    assert_eq!(outcome, StepOutcome::Progress);
+    assert!(io.test_retained(PortId(0)));
+    let mut io = StepIo::test_frame([None], [true], [None], None, 8);
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
+    let mut io = StepIo::test_frame(
+        [None],
+        [false],
+        [Some(8)],
+        Some(completion(1, HostCallDisposition::Completed)),
+        8,
     );
     assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::Await
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
+    assert_eq!(io.test_output(PortId(0)), Some(first));
+    assert_eq!(
+        io.test_host_request().map(|request| request.0),
+        Some(RequestId(2))
+    );
+    let mut io = StepIo::test_frame(
+        [None],
+        [false],
+        [Some(8)],
+        Some(completion(2, HostCallDisposition::Completed)),
+        8,
     );
     assert_eq!(
-        operation.resume(completed(1)),
-        OperationAction::Emit {
-            port: PortId(0),
-            value: first
-        }
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Complete
     );
-    assert!(matches!(
-        operation.advance(),
-        OperationAction::RequestHostCall {
-            request: RequestId(2),
-            ..
-        }
-    ));
-    assert_eq!(
-        operation.resume(completed(2)),
-        OperationAction::Emit {
-            port: PortId(0),
-            value: second
-        }
-    );
-    assert_eq!(operation.advance(), OperationAction::Complete);
+    assert_eq!(io.test_output(PortId(0)), Some(second));
 }
 
 #[test]
@@ -88,37 +107,35 @@ fn leading_throttle_drops_during_interval_and_cancels_exact_timer_on_close() {
         arm_after_emit: false,
         closing: false,
     };
+    let (outcome, io) = input_step(&mut operation, value(1, 1), true);
+    assert_eq!(outcome, StepOutcome::Progress);
+    assert_eq!(io.test_output(PortId(0)), Some(value(1, 1)));
     assert_eq!(
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: value(1, 1)
-        }),
-        OperationAction::Emit {
-            port: PortId(0),
-            value: value(1, 1)
-        }
+        io.test_host_request().map(|request| request.0),
+        Some(RequestId(1))
     );
-    assert!(matches!(
-        operation.advance(),
-        OperationAction::RequestHostCall {
-            request: RequestId(1),
-            ..
-        }
-    ));
+    let (outcome, io) = input_step(&mut operation, value(2, 1), true);
+    assert_eq!(outcome, StepOutcome::Progress);
+    assert!(io.test_consumed(PortId(0)));
+    assert!(io.test_output(PortId(0)).is_none());
+    let mut io = StepIo::test_frame([None], [true], [None], None, 8);
     assert_eq!(
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: value(2, 1)
-        }),
-        OperationAction::Await
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
+    assert_eq!(io.test_host_cancellation(), Some(RequestId(1)));
+    let mut io = StepIo::test_frame(
+        [None],
+        [false],
+        [None],
+        Some(completion(1, HostCallDisposition::Cancelled)),
+        8,
     );
     assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::Await
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Complete
     );
-    assert_eq!(operation.take_host_call_cancellation(), Some(RequestId(1)));
-    assert_eq!(operation.resume(cancelled(1)), OperationAction::Complete);
-    assert_eq!(operation.take_released_value(), Some(value(11, 8)));
+    assert!(io.test_discards().contains(&Some(value(11, 8))));
 }
 
 #[test]
@@ -136,26 +153,21 @@ fn leading_throttle_reopens_only_after_correlated_completion() {
     };
     let first = value(1, 1);
     let second = value(2, 1);
-    assert!(matches!(
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: first
-        }),
-        OperationAction::Emit { .. }
-    ));
-    assert!(matches!(
-        operation.advance(),
-        OperationAction::RequestHostCall { .. }
-    ));
-    assert_eq!(operation.resume(completed(1)), OperationAction::Await);
-    assert_eq!(
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: second
-        }),
-        OperationAction::Emit {
-            port: PortId(0),
-            value: second
-        }
+    let (outcome, io) = input_step(&mut operation, first, true);
+    assert_eq!(outcome, StepOutcome::Progress);
+    assert_eq!(io.test_output(PortId(0)), Some(first));
+    let mut io = StepIo::test_frame(
+        [None],
+        [false],
+        [Some(8)],
+        Some(completion(1, HostCallDisposition::Completed)),
+        8,
     );
+    assert_eq!(
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
+    let (outcome, io) = input_step(&mut operation, second, true);
+    assert_eq!(outcome, StepOutcome::Progress);
+    assert_eq!(io.test_output(PortId(0)), Some(second));
 }
