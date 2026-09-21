@@ -97,7 +97,7 @@ pub(super) fn prepare(
                 .map_err(|error| format!("admit timed attempt duration: {error:?}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(super::BrowserOperation::installed(
+    Ok(super::BrowserOperation::installed_step(
         conduit_time::TimedButtonAttemptOperation::from_prepared_durations(
             durations,
             transitions,
