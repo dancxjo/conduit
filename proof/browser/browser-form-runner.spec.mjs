@@ -187,7 +187,7 @@ test("a released timed attempt reports bounded failure and leaves the runner reu
     await page.mouse.down();
     await expect(status).toContainText("Waiting for planned tick");
     await page.mouse.up();
-    await expect(status).toContainText("StepFuelExceeded", { timeout: 3000 });
+    await expect(status).toContainText("HostCallFailed", { timeout: 3000 });
     await expect(runner.getByRole("button", { name: "Run", exact: true })).toBeEnabled();
     await runner.locator("textarea").fill(FORM);
     await runner.getByRole("button", { name: "Run", exact: true }).click();
