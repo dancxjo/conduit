@@ -1,17 +1,15 @@
-//! Pre-admitted canonical encoding for local Vision object observations.
+//! Pre-admitted canonical encoding for provenance-bearing local Vision objects.
 
-use super::{
-    local_vision_object_observations_type, validate_component, validate_identity,
-    MAXIMUM_LOCAL_VISION_OBJECT_OBSERVATIONS,
-};
+use super::{validate_component, validate_identity, MAXIMUM_LOCAL_VISION_OBJECT_OBSERVATIONS};
 use crate::{
-    image_resource_type, ContinuousLocalVisionObservation, LocalVisionObservationRefusal,
-    PixelRegion,
+    image_observation_reference_type, vision_objects_type, ContinuousLocalVisionObservation,
+    LocalVisionObservationRefusal, PixelRegion,
 };
 use alloc::{string::String, vec::Vec};
 use conduit_core::{
     PreparedStructuredValueValidator, StructuredInfoRefusal, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
+use core::fmt::Write;
 
 /// Owns all schema, identity, and output storage required before Play starts.
 pub struct PreparedLocalVisionObjectEncoder {
@@ -23,6 +21,7 @@ pub struct PreparedLocalVisionObjectEncoder {
     artifact_id: String,
     image_width: u16,
     image_height: u16,
+    observation_sign: String,
     output: Vec<u8>,
 }
 
@@ -43,19 +42,20 @@ impl PreparedLocalVisionObjectEncoder {
         if image_width == 0 || image_height == 0 {
             return Err(LocalVisionObservationRefusal::InvalidObservation);
         }
-        let image_type = image_resource_type();
+        let image_type = image_observation_reference_type();
         Ok(Self {
             image_validator: PreparedStructuredValueValidator::new(
                 &image_type,
                 MAXIMUM_STRUCTURED_CANONICAL_BYTES,
             )?,
             image_type_prefix: image_type.canonical_bytes()?,
-            output_type_prefix: local_vision_object_observations_type().canonical_bytes()?,
+            output_type_prefix: vision_objects_type().canonical_bytes()?,
             implementation_id,
             provider_instance_id,
             artifact_id,
             image_width,
             image_height,
+            observation_sign: String::with_capacity(conduit_human::MAXIMUM_VISUAL_IDENTITY_BYTES),
             output: Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
         })
     }
@@ -65,8 +65,11 @@ impl PreparedLocalVisionObjectEncoder {
         source_image: &[u8],
         observation: &ContinuousLocalVisionObservation,
         run_id: &str,
+        observed_at_micros: u64,
+        clock_basis: &str,
     ) -> Result<&[u8], LocalVisionObservationRefusal> {
         validate_identity(run_id)?;
+        validate_identity(clock_basis)?;
         self.image_validator.validate(source_image)?;
         let source_node = source_image
             .strip_prefix(self.image_type_prefix.as_slice())
@@ -77,69 +80,64 @@ impl PreparedLocalVisionObjectEncoder {
         preflight_capacity(self.output_type_prefix.len(), source_node.len())?;
         self.output.clear();
         self.output.extend_from_slice(&self.output_type_prefix);
-        wire_record(&mut self.output, 7);
-        count_field(&mut self.output, "emitted_count", u64::from(emitted_count));
-        wire_text(&mut self.output, "items");
-        wire_collection(&mut self.output, MAXIMUM_LOCAL_VISION_OBJECT_OBSERVATIONS);
+        wire_collection(&mut self.output, u16::from(emitted_count));
         for index in 0..usize::from(emitted_count) {
             let region = observation.components[index]
                 .ok_or(LocalVisionObservationRefusal::InvalidObservation)?;
             let area = observation.component_areas[index];
             validate_component(region, area, self.image_width, self.image_height)?;
-            wire_variant(&mut self.output, "observation");
-            wire_record(&mut self.output, 4);
-            count_field(&mut self.output, "area_pixels", u64::from(area));
-            text_field(&mut self.output, "classification", "bright-component");
-            wire_text(&mut self.output, "confidence");
-            wire_variant(&mut self.output, "not_estimated");
-            wire_leaf(&mut self.output, &[]);
+            let suffix_bytes = "/observation-".len() + decimal_digits(index);
+            if run_id.len().saturating_add(suffix_bytes) > self.observation_sign.capacity() {
+                return Err(LocalVisionObservationRefusal::InvalidIdentity);
+            }
+            self.observation_sign.clear();
+            write!(self.observation_sign, "{run_id}/observation-{index}")
+                .map_err(|_| LocalVisionObservationRefusal::InvalidIdentity)?;
+            validate_identity(&self.observation_sign)?;
+
+            wire_record(&mut self.output, 5);
+            text_field(&mut self.output, "candidate_label", "bright-component");
+            count_field(&mut self.output, "confidence_permille", 1_000);
+            wire_text(&mut self.output, "provenance");
+            encode_provenance(
+                &mut self.output,
+                &self.artifact_id,
+                &self.implementation_id,
+                &self.observation_sign,
+                observed_at_micros,
+                clock_basis,
+                &self.provider_instance_id,
+                run_id,
+            );
             wire_text(&mut self.output, "region");
             encode_region(&mut self.output, region);
+            wire_text(&mut self.output, "source_image");
+            self.output.extend_from_slice(source_node);
         }
-        for _ in emitted_count..MAXIMUM_LOCAL_VISION_OBJECT_OBSERVATIONS as u8 {
-            wire_variant(&mut self.output, "unused");
-            wire_leaf(&mut self.output, &[]);
-        }
-        count_field(
-            &mut self.output,
-            "observed_count",
-            u64::from(observation.observed_component_count),
-        );
-        wire_text(&mut self.output, "provenance");
-        encode_provenance(
-            &mut self.output,
-            &self.artifact_id,
-            &self.implementation_id,
-            &self.provider_instance_id,
-            run_id,
-        );
-        count_field(&mut self.output, "sequence", observation.sequence);
-        wire_text(&mut self.output, "source_image");
-        self.output.extend_from_slice(source_node);
-        wire_text(&mut self.output, "truncation");
-        wire_variant(
-            &mut self.output,
-            if observation.components_truncated
-                || observation.component_count > emitted_count
-                || observation.observed_component_count > u32::from(emitted_count)
-            {
-                "truncated"
-            } else {
-                "complete"
-            },
-        );
-        wire_leaf(&mut self.output, &[]);
         Ok(&self.output)
     }
+}
+
+fn decimal_digits(mut value: usize) -> usize {
+    let mut digits = 1;
+    while value >= 10 {
+        value /= 10;
+        digits += 1;
+    }
+    digits
 }
 
 fn preflight_capacity(
     output_type_bytes: usize,
     source_node_bytes: usize,
 ) -> Result<(), LocalVisionObservationRefusal> {
-    const MAXIMUM_OBJECT_NODE_BYTES: usize = 8_192;
+    const MAXIMUM_OBJECT_NODE_BYTES: usize = 12_288;
     let required = output_type_bytes
-        .checked_add(source_node_bytes)
+        .checked_add(
+            source_node_bytes
+                .checked_mul(usize::from(MAXIMUM_LOCAL_VISION_OBJECT_OBSERVATIONS))
+                .ok_or(LocalVisionObservationRefusal::InvalidObservation)?,
+        )
         .and_then(|length| length.checked_add(MAXIMUM_OBJECT_NODE_BYTES))
         .ok_or(LocalVisionObservationRefusal::Structured(
             StructuredInfoRefusal::CanonicalEncodingTooLarge,
@@ -160,17 +158,31 @@ fn encode_region(output: &mut Vec<u8>, region: PixelRegion) {
     count_field(output, "y", u64::from(region.y));
 }
 
+#[allow(clippy::too_many_arguments)]
 fn encode_provenance(
     output: &mut Vec<u8>,
     artifact: &str,
     implementation: &str,
+    observation_sign: &str,
+    observed_at_micros: u64,
+    clock_basis: &str,
     provider_instance: &str,
     run: &str,
 ) {
-    wire_record(output, 5);
+    wire_record(output, 7);
     text_field(output, "artifact", artifact);
-    text_field(output, "evidence_class", "deterministic-derived");
+    wire_text(output, "evidence_class");
+    wire_variant(output, "deterministic_derived");
+    wire_leaf(output, &[]);
     text_field(output, "implementation", implementation);
+    text_field(output, "observation_sign", observation_sign);
+    wire_text(output, "observed_at");
+    wire_record(output, 5);
+    text_field(output, "clock_basis", clock_basis);
+    count_field(output, "resolution_ticks", 1);
+    text_field(output, "scale", "microseconds");
+    count_field(output, "ticks", observed_at_micros);
+    count_field(output, "uncertainty_ticks", 0);
     text_field(output, "provider_instance", provider_instance);
     text_field(output, "run", run);
 }
@@ -211,9 +223,5 @@ fn text_field(output: &mut Vec<u8>, name: &str, value: &str) {
 
 fn count_field(output: &mut Vec<u8>, name: &str, value: u64) {
     wire_text(output, name);
-    count(output, value);
-}
-
-fn count(output: &mut Vec<u8>, value: u64) {
     wire_leaf(output, &conduit_core::encode_count(value));
 }

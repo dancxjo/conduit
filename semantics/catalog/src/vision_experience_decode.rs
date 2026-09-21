@@ -51,6 +51,23 @@ pub fn track_observations_from_value(
         .collect()
 }
 
+pub fn object_observations_from_value(
+    value: &StructuredInfoValue,
+    image_profile: &KindId,
+) -> Result<Vec<ObjectObservation>, VisualValueRefusal> {
+    require_type(value, &crate::vision_objects_type())?;
+    collection(value)?
+        .iter()
+        .map(|value| {
+            let observation = object_from_value(value)?;
+            observation
+                .validate(image_profile)
+                .map_err(|_| VisualValueRefusal::InvalidObservation)?;
+            Ok(observation)
+        })
+        .collect()
+}
+
 pub fn visual_impression_from_value(
     value: &StructuredInfoValue,
     image_profile: &KindId,

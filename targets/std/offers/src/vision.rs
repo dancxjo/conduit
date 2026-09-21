@@ -95,7 +95,7 @@ mod tests {
         );
         assert_eq!(
             offers[1].outputs[0].value_kind,
-            conduit_semantic_catalog::local_vision_object_observations_type()
+            conduit_semantic_catalog::vision_objects_type()
                 .profile()
                 .unwrap()
                 .value_kind()
