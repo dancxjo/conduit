@@ -4,7 +4,10 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     InfoBool, PlannedGear, PortDirection, Scalar, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN,
 };
-use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    CanonicalValue, Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef,
+};
 
 pub(super) static STATE_SELECT_SCALAR_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::STATE_SELECT_SCALAR_IMPLEMENTATION,
@@ -16,6 +19,101 @@ pub(super) struct StateSelectScalarOperation {
     selector: Option<bool>,
     candidates: [Option<[u8; SCALAR_ENCODED_LEN]>; 2],
     closed: [bool; 3],
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for StateSelectScalarOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        for index in 0..3 {
+            let port = PortId(index);
+            let Some(value) = io.input(port) else {
+                continue;
+            };
+            let Some(canonical) = input_bytes.input(port) else {
+                return StepOutcome::Fail(select_failure());
+            };
+            let emits = match port {
+                PortId(0) if value.byte_len == BOOL_ENCODED_LEN as u32 && !self.closed[0] => {
+                    if InfoBool::decode(canonical).is_err() {
+                        return StepOutcome::Fail(select_failure());
+                    }
+                    self.candidates.iter().all(Option::is_some)
+                }
+                PortId(1) | PortId(2)
+                    if value.byte_len == SCALAR_ENCODED_LEN as u32
+                        && !self.closed[usize::from(port.0)] =>
+                {
+                    if Scalar::decode(canonical).is_err() {
+                        return StepOutcome::Fail(select_failure());
+                    }
+                    let candidate = usize::from(port.0 - 1);
+                    self.selector.is_some() && self.candidates[1 - candidate].is_some()
+                }
+                _ => return StepOutcome::Fail(select_failure()),
+            };
+            if emits && !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume(port).expect("present State selector input");
+            match port {
+                PortId(0) => {
+                    self.selector = Some(
+                        InfoBool::decode(canonical)
+                            .expect("validated Boolean selector")
+                            .get(),
+                    );
+                }
+                PortId(1) | PortId(2) => {
+                    self.candidates[usize::from(port.0 - 1)] = Some(
+                        canonical
+                            .try_into()
+                            .expect("validated Scalar has exact canonical length"),
+                    );
+                }
+                _ => unreachable!("validated State selector Port"),
+            }
+            if emits {
+                let selector = self.selector.expect("emitting selector is present");
+                let selected =
+                    self.candidates[usize::from(selector)].expect("emitting candidate is present");
+                io.send_canonical(
+                    PortId(0),
+                    CanonicalValue::new(&selected).expect("Scalar fits derived-value bound"),
+                )
+                .expect("ready State selector output");
+            }
+            return StepOutcome::Progress;
+        }
+        for index in 0..3 {
+            let port = PortId(index);
+            if io.input_closed(port) && !self.closed[usize::from(index)] {
+                io.consume_closed(port)
+                    .expect("observed State selector closure");
+                self.closed[usize::from(index)] = true;
+                return if self.closed.into_iter().all(|closed| closed) {
+                    StepOutcome::Complete
+                } else {
+                    StepOutcome::Progress
+                };
+            }
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.selector = None;
+        self.candidates = [None; 2];
+    }
+}
+
+fn select_failure() -> Failure {
+    Failure {
+        code: FailureCode::InvalidLifecycle,
+        detail: 14,
+    }
 }
 
 impl StateSelectScalarOperation {
