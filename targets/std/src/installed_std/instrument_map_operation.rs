@@ -10,6 +10,7 @@ use conduit_core::{
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     CanonicalValue, Failure, FailureCode, OperationAction, OperationInput, PortId,
 };
 
@@ -30,6 +31,69 @@ struct InstrumentMapping {
     sustain_button: u64,
     modulation_control: u64,
     expression_control: u64,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for InstrumentMapOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if io.input(PortId(0)).is_some() {
+            if self.next_order >= u32::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS) {
+                return step_fail(FailureCode::StorageExhausted, 172);
+            }
+            let Some(next_order) = self.next_order.checked_add(1) else {
+                return step_fail(FailureCode::StorageExhausted, 173);
+            };
+            let Some(bytes) = input_bytes.input(PortId(0)) else {
+                return step_fail(FailureCode::InvalidInput, 174);
+            };
+            if bytes.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+                return step_fail(FailureCode::InvalidInput, 174);
+            }
+            let Ok(control) = StructuredInfoValue::from_canonical_bytes(bytes) else {
+                return step_fail(FailureCode::InvalidInput, 175);
+            };
+            if control.value_type() != &conduit_semantic_catalog::instrument_control_type() {
+                return step_fail(FailureCode::InvalidInput, 176);
+            }
+            let action = match map_control(&self.mapping, &control, self.next_order) {
+                Ok(action) => action,
+                Err(detail) => return step_fail(FailureCode::InvalidInput, detail),
+            };
+            let OperationAction::EmitCanonical {
+                port,
+                value: output,
+            } = action
+            else {
+                return step_fail(FailureCode::InvalidLifecycle, 171);
+            };
+            if !io.output_ready(port) {
+                return StepOutcome::Await;
+            }
+            io.consume(PortId(0))
+                .expect("present instrument control input");
+            io.send_canonical(port, output)
+                .expect("ready instrument event output");
+            self.next_order = next_order;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed instrument control closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.emitted = false;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl InstrumentMapOperation {
