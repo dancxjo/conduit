@@ -16,6 +16,7 @@ mod firmware;
 mod firmware_tests;
 mod flash;
 mod indicator_build;
+mod physical_emergency;
 mod prove_appliance;
 mod prove_appliance_hil;
 mod prove_usb;
@@ -190,6 +191,18 @@ pub enum PicoSubcommand {
         #[arg(long)]
         wheels_clear: bool,
     },
+    /// Arm and prove Pete's dedicated GPIO22 physical emergency switch.
+    PhysicalEmergency {
+        /// Exact admitted Body identity for this attended run.
+        #[arg(long)]
+        body_id: String,
+        /// Exact Pete Host identity for this attended run.
+        #[arg(long)]
+        host_id: String,
+        /// Exact current Pete boot identity for this attended run.
+        #[arg(long)]
+        boot_id: String,
+    },
     /// Prove explicit Body admission against an already-provisioned Pico.
     ProveBodyAdmission,
     /// Full local workflow: doctor + build + flash + verify.
@@ -212,6 +225,7 @@ impl PicoSubcommand {
             Self::WakeCreate { .. } => "pico wake-create",
             Self::PresentCreate { .. } => "pico present-create",
             Self::ReadCreateBattery { .. } => "pico read-create-battery",
+            Self::PhysicalEmergency { .. } => "pico physical-emergency",
             Self::ProveBodyAdmission => "pico prove-body-admission",
             Self::Local => "pico local",
         }
@@ -228,6 +242,7 @@ impl PicoSubcommand {
                 | Self::WakeCreate { .. }
                 | Self::PresentCreate { .. }
                 | Self::ReadCreateBattery { .. }
+                | Self::PhysicalEmergency { .. }
                 | Self::ProveBodyAdmission
         )
     }
@@ -335,6 +350,11 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
         Some(PicoSubcommand::ReadCreateBattery { wheels_clear }) => {
             create_battery_rx::run(&args, *wheels_clear)
         }
+        Some(PicoSubcommand::PhysicalEmergency {
+            body_id,
+            host_id,
+            boot_id,
+        }) => physical_emergency::run(&args, body_id, host_id, boot_id),
         Some(PicoSubcommand::ProveBodyAdmission) => body_admission::run(&args),
     }
 }
