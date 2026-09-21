@@ -32,6 +32,7 @@ fn authored_motion_runs_through_protected_finite_base_and_production_kernel() {
         "motions",
         conduit_std_offers::LOCAL_VISION_MOTION_OPERATION,
         conduit_semantic_catalog::vision_motions_type(),
+        false,
     );
 }
 
@@ -42,7 +43,8 @@ fn authored_objects_run_through_protected_finite_base_and_production_kernel() {
         "objects",
         "detections",
         conduit_std_offers::LOCAL_VISION_OBJECTS_OPERATION,
-        conduit_semantic_catalog::vision_objects_type(),
+        conduit_semantic_catalog::vision_tracks_type(),
+        true,
     );
 }
 
@@ -52,6 +54,7 @@ fn authored_local_vision_runs(
     output_port: &str,
     expected_operation: &str,
     output_type: conduit_core::StructuredInfoType,
+    track_objects: bool,
 ) {
     let image = conduit_semantic_catalog::deterministic_vision_fixture()
         .unwrap()
@@ -93,10 +96,17 @@ fn authored_local_vision_runs(
         .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
     host.kernel_resources =
         crate::kernel_preparation::KernelResourceLedger::new(&host.advertisement).unwrap();
-    let source = format!(
-        "form proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n {gear_name}: {vision_kind}\n sink: conduit-test/local-model-result\n source.image > {gear_name}.image\n {gear_name}.{output_port} > sink.value\n}}\n",
-        hex(&encoded),
-    );
+    let source = if track_objects {
+        format!(
+            "form proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n {gear_name}: {vision_kind}\n track: vision/local-track\n sink: conduit-test/local-model-result\n source.image > {gear_name}.image\n {gear_name}.{output_port} > track.detections\n track.tracks > sink.value\n}}\n",
+            hex(&encoded),
+        )
+    } else {
+        format!(
+            "form proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n {gear_name}: {vision_kind}\n sink: conduit-test/local-model-result\n source.image > {gear_name}.image\n {gear_name}.{output_port} > sink.value\n}}\n",
+            hex(&encoded),
+        )
+    };
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "proof", &profile).unwrap();
     let hosts = [host.advertisement().clone()];
@@ -169,6 +179,21 @@ fn authored_local_vision_runs(
         vision.host_calls[0].contract_id.as_str(),
         expected_operation
     );
+    if track_objects {
+        let track = plan.fragments[0]
+            .placements
+            .iter()
+            .find(|placement| {
+                placement.kind_id.as_str() == conduit_semantic_catalog::VISION_TRACK_KIND
+            })
+            .unwrap();
+        assert!(track.resources.is_empty());
+        assert!(track.authority.is_empty());
+        assert_eq!(
+            track.host_calls[0].contract_id.as_str(),
+            conduit_std_offers::LOCAL_VISION_TRACK_OPERATION
+        );
+    }
 
     let report = host
         .run_fragment_to(

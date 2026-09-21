@@ -12,6 +12,11 @@ pub(super) static FACTORY: BackFactory = BackFactory {
     budget,
     prepare,
 };
+pub(super) static TRACK_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::LOCAL_VISION_TRACK_IMPLEMENTATION,
+    budget,
+    prepare,
+};
 
 pub(super) struct LocalVisionBack {
     pending: bool,
@@ -107,12 +112,20 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.outputs != offer.outputs
         || placement.host_calls != offer.host_calls
         || placement.limits != offer.limits
-        || placement.resources.len() != 1
-        || placement.resources[0].protected.is_none()
-        || placement.authority.len() != 1
         || !placement.configuration.is_empty()
     {
         return Err("planned local Vision operation differs from installed realization".into());
+    }
+    let is_track = placement.kind_id.as_str() == conduit_semantic_catalog::VISION_TRACK_KIND;
+    if is_track {
+        if !placement.resources.is_empty() || !placement.authority.is_empty() {
+            return Err("planned local tracker acquired unrelated authority".into());
+        }
+    } else if placement.resources.len() != 1
+        || placement.resources[0].protected.is_none()
+        || placement.authority.len() != 1
+    {
+        return Err("planned local Vision detector lacks sealed image authority".into());
     }
     Ok(())
 }

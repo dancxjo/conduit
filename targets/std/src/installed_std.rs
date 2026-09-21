@@ -447,6 +447,21 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut vision_request_sequence = 0_u64;
     let mut vision_run_id = String::with_capacity(active_play.active_play_id.as_str().len() + 64);
     let vision_clock_basis = format!("{}/monotonic", fragment.boot_id.as_str());
+    let mut vision_tracker = if fragment.placements.iter().any(|placement| {
+        placement.implementation_id.as_str()
+            == conduit_std_offers::LOCAL_VISION_TRACK_IMPLEMENTATION
+    }) {
+        Some(crate::vision_tracker::LocalVisionTracker::prepare(
+            format!(
+                "{}/{}",
+                fragment.host_id.as_str(),
+                fragment.boot_id.as_str()
+            ),
+            format!("{}/vision-track", active_play.active_play_id.as_str()),
+        )?)
+    } else {
+        None
+    };
     let mut address_detect_hosts = address_detect_back::prepare_hosts(fragment);
     #[cfg(any(test, feature = "local-model-proof"))]
     let mut recorded_speech_hosts = recorded_speech_back::prepare_hosts(fragment)?;
@@ -908,6 +923,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 contract.as_str(),
                 conduit_std_offers::LOCAL_VISION_MOTION_OPERATION
                     | conduit_std_offers::LOCAL_VISION_OBJECTS_OPERATION
+                    | conduit_std_offers::LOCAL_VISION_TRACK_OPERATION
             ) {
                 vision_request_sequence = vision_request_sequence
                     .checked_add(1)
@@ -922,23 +938,35 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     ),
                 )
                 .map_err(|_| "local Vision run identity exceeded admitted storage".to_string())?;
-                let vision = vision
-                    .as_deref_mut()
-                    .ok_or_else(|| "local Vision request has no admitted Base".to_string())?;
+                let observed_at_micros = timer.monotonic_now_micros().ok_or_else(|| {
+                    "local Vision observation requires admitted monotonic time".to_string()
+                })?;
                 let encoded =
-                    if contract.as_str() == conduit_std_offers::LOCAL_VISION_MOTION_OPERATION {
-                        vision.execute_motion(input, &vision_run_id)
+                    if contract.as_str() == conduit_std_offers::LOCAL_VISION_TRACK_OPERATION {
+                        vision_tracker
+                            .as_mut()
+                            .ok_or("local Vision tracker was not prepared")?
+                            .process(
+                                input,
+                                observed_at_micros,
+                                &vision_clock_basis,
+                                &vision_run_id,
+                            )
+                            .map_err(|_| crate::hosted_vision::HostedVisionRefusal::InvalidOutput)
                     } else {
-                        let observed_at_micros = timer.monotonic_now_micros().ok_or_else(|| {
-                            "local Vision object observation requires admitted monotonic time"
-                                .to_string()
+                        let vision = vision.as_deref_mut().ok_or_else(|| {
+                            "local Vision request has no admitted Base".to_string()
                         })?;
-                        vision.execute_objects(
-                            input,
-                            &vision_run_id,
-                            observed_at_micros,
-                            &vision_clock_basis,
-                        )
+                        if contract.as_str() == conduit_std_offers::LOCAL_VISION_MOTION_OPERATION {
+                            vision.execute_motion(input, &vision_run_id)
+                        } else {
+                            vision.execute_objects(
+                                input,
+                                &vision_run_id,
+                                observed_at_micros,
+                                &vision_clock_basis,
+                            )
+                        }
                     };
                 let (disposition, output, failure) = match encoded {
                     Ok(encoded) => {
