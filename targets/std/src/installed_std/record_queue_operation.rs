@@ -2,7 +2,10 @@
 
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
-use conduit_kernel::{Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef,
+};
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::ORDERED_RECORD_QUEUE_STD_IMPLEMENTATION,
@@ -15,6 +18,54 @@ pub(super) struct RecordQueueOperation {
     maximum_frame_bytes: usize,
     accepted: u64,
     framed_type: Vec<u8>,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for RecordQueueOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if let Some(value) = io.input(PortId(0)) {
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            if value.byte_len > MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 {
+                return step_fail(FailureCode::InvalidInput, 251);
+            }
+            if self.accepted >= self.maximum_items {
+                return step_fail(FailureCode::StorageExhausted, 252);
+            }
+            let Some(canonical) = input_bytes.input(PortId(0)) else {
+                return step_fail(FailureCode::InvalidInput, 251);
+            };
+            let frame =
+                match super::typed_record_operation::typed_leaf(canonical, &self.framed_type) {
+                    Ok(frame) => frame,
+                    Err(_) => return step_fail(FailureCode::InvalidInput, 253),
+                };
+            if frame.len() > self.maximum_frame_bytes
+                || conduit_net::decode_typed_record(frame).is_err()
+            {
+                return step_fail(FailureCode::InvalidInput, 254);
+            }
+            io.consume(PortId(0)).expect("present queued record");
+            io.send(PortId(0), value)
+                .expect("ready ordered-record output");
+            self.accepted += 1;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed ordered-record closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl RecordQueueOperation {
