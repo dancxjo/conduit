@@ -27,9 +27,7 @@ pub(super) struct DebounceOperation {
     pending: Option<RequestId>,
     cancellation: Option<RequestId>,
     candidate: Option<ValueRef>,
-    released: Option<ValueRef>,
     terminal_releases: Vec<ValueRef>,
-    retain_resumed: bool,
     closing: bool,
     complete_after_emit: bool,
 }
@@ -115,7 +113,6 @@ impl<const PORTS: usize> StepOperation<PORTS> for DebounceOperation {
                 io.discard(previous).expect("superseded debounce candidate");
             }
             self.accepted_values += 1;
-            self.retain_resumed = false;
             if let Some(request) = self.pending {
                 io.cancel_host_call(request)
                     .expect("debounce deadline cancellation");
@@ -171,7 +168,6 @@ impl<const PORTS: usize> StepOperation<PORTS> for DebounceOperation {
         self.pending = None;
         self.cancellation = None;
         self.candidate = None;
-        self.released = None;
     }
 }
 
@@ -445,11 +441,9 @@ fn prepare_debounce(
         pending: None,
         cancellation: None,
         candidate: None,
-        released: None,
         terminal_releases: Vec::with_capacity(
             conduit_semantic_catalog::TIME_MAXIMUM_VALUES as usize,
         ),
-        retain_resumed: false,
         closing: false,
         complete_after_emit: false,
     }))
