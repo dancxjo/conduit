@@ -5,9 +5,9 @@ use conduit_kernel::scheduler::{
     StepOutcome,
 };
 use conduit_kernel::{
-    remote_sign_storage_bytes, BoundedValueRef, CordId, Failure, FailureCode,
-    FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, HostCallDisposition,
-    HostCallOutcome, PortId, RemoteEndpointId, RequestId, SignQuery, ValueStorage,
+    BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
+    FixedSignLog, FixedValueStore, HostCallDisposition, HostCallOutcome, PortId, RemoteEndpointId,
+    RequestId, SignQuery, ValueStorage, remote_sign_storage_bytes,
 };
 use conduit_signal::{SIGNAL_ENCODED_LEN, Signal, decode_signal_bytes};
 
