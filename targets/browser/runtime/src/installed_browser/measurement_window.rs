@@ -7,9 +7,9 @@ use conduit_core::{
     HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
-    ValueStorage,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
+    PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(crate) const OPERATIONS: [&str; 2] = [
@@ -150,160 +150,155 @@ fn prepare(
     let finalize = values
         .store(FINALIZE_INPUT)
         .map_err(|error| format!("prepare measurement window finalizer: {error:?}"))?;
-    Ok(BrowserOperation::installed(WindowOperation::new(finalize)))
+    Ok(BrowserOperation::installed_step(WindowOperation::new(
+        finalize,
+    )))
 }
 
 struct WindowOperation {
     profile_ready: bool,
+    profile_closed: bool,
     sample_closed: bool,
     pending: Option<(RequestId, HostCallId)>,
     next_sample: u32,
     finalize: Option<ValueRef>,
-    released: Option<ValueRef>,
-    emitted: bool,
 }
 
 impl WindowOperation {
     const fn new(finalize: ValueRef) -> Self {
         Self {
             profile_ready: false,
+            profile_closed: false,
             sample_closed: false,
             pending: None,
             next_sample: 0,
             finalize: Some(finalize),
-            released: None,
-            emitted: false,
-        }
-    }
-
-    fn complete_host(&mut self, request: RequestId, outcome: HostCallOutcome) -> OperationAction {
-        let Some((expected, operation)) = self.pending else {
-            return OperationAction::Fail(failure(30));
-        };
-        if request != expected {
-            return OperationAction::Fail(failure(30));
-        }
-        self.pending = None;
-        if let (HostCallDisposition::Failed, None, Some(failure)) =
-            (outcome.disposition, outcome.output, outcome.failure)
-        {
-            return OperationAction::Fail(failure);
-        }
-        match (
-            operation,
-            outcome.disposition,
-            outcome.output,
-            outcome.failure,
-        ) {
-            (HostCallId(0), HostCallDisposition::Completed, None, None) => {
-                self.profile_ready = true;
-                OperationAction::Await
-            }
-            (HostCallId(1), HostCallDisposition::Completed, None, None)
-                if request != FINALIZE_REQUEST =>
-            {
-                self.next_sample = self.next_sample.saturating_add(1);
-                OperationAction::Await
-            }
-            (HostCallId(1), HostCallDisposition::Completed, Some(output), None)
-                if request == FINALIZE_REQUEST =>
-            {
-                self.emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            _ => OperationAction::Fail(failure(30)),
         }
     }
 }
 
-impl Operation for WindowOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.profile_ready && self.pending.is_none() => {
-                let Ok(input) = BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32)
-                else {
-                    return OperationAction::Fail(failure(31));
-                };
-                let request = RequestId(0);
-                let operation = HostCallId(0);
-                self.pending = Some((request, operation));
-                OperationAction::RequestHostCall {
-                    request,
-                    operation,
-                    input,
-                }
+impl<const PORTS: usize> StepOperation<PORTS> for WindowOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            let Some((expected, operation)) = self.pending else {
+                return StepOutcome::Fail(failure(30));
+            };
+            if request != expected {
+                return StepOutcome::Fail(failure(30));
             }
-            OperationInput::Value {
-                port: PortId(1),
-                value,
-            } if self.profile_ready
-                && self.pending.is_none()
-                && self.next_sample < conduit_data::MAXIMUM_MEASUREMENT_WINDOW_SAMPLES as u32 =>
+            if let (HostCallDisposition::Failed, None, Some(reason)) =
+                (outcome.disposition, outcome.output, outcome.failure)
             {
-                let Ok(input) = BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32)
-                else {
-                    return OperationAction::Fail(failure(32));
-                };
-                let request = RequestId(self.next_sample + 1);
-                let operation = HostCallId(1);
-                self.pending = Some((request, operation));
-                OperationAction::RequestHostCall {
-                    request,
-                    operation,
-                    input,
+                return StepOutcome::Fail(reason);
+            }
+            match (
+                operation,
+                outcome.disposition,
+                outcome.output,
+                outcome.failure,
+            ) {
+                (HostCallId(0), HostCallDisposition::Completed, None, None) => {
+                    io.consume_host_completion()
+                        .expect("observed measurement window profile completion");
+                    self.pending = None;
+                    self.profile_ready = true;
+                    return StepOutcome::Progress;
                 }
-            }
-            OperationInput::HostCallCompleted { request, outcome } => {
-                self.complete_host(request, outcome)
-            }
-            OperationInput::Closed { port: PortId(0) } if self.profile_ready => {
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(1) } if self.pending.is_none() => {
-                self.sample_closed = true;
-                let Some(value) = self.finalize.take() else {
-                    return OperationAction::Fail(failure(33));
-                };
-                let Ok(input) = BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32)
-                else {
-                    return OperationAction::Fail(failure(33));
-                };
-                self.pending = Some((FINALIZE_REQUEST, HostCallId(1)));
-                OperationAction::RequestHostCall {
-                    request: FINALIZE_REQUEST,
-                    operation: HostCallId(1),
-                    input,
+                (HostCallId(1), HostCallDisposition::Completed, None, None)
+                    if request != FINALIZE_REQUEST =>
+                {
+                    io.consume_host_completion()
+                        .expect("observed measurement sample completion");
+                    self.pending = None;
+                    self.next_sample = self.next_sample.saturating_add(1);
+                    return StepOutcome::Progress;
                 }
+                (HostCallId(1), HostCallDisposition::Completed, Some(output), None)
+                    if request == FINALIZE_REQUEST =>
+                {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed measurement window finalization");
+                    io.send(PortId(0), output.value)
+                        .expect("ready measurement window output");
+                    self.pending = None;
+                    return StepOutcome::Complete;
+                }
+                _ => return StepOutcome::Fail(failure(30)),
             }
-            _ => OperationAction::Fail(failure(34)),
         }
-    }
 
-    fn advance(&mut self) -> OperationAction {
-        if self.emitted && self.sample_closed {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
+        if let Some(value) = io.input(PortId(0)) {
+            if self.profile_ready || self.pending.is_some() {
+                return StepOutcome::Fail(failure(34));
+            }
+            let input = match BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32) {
+                Ok(input) => input,
+                Err(_) => return StepOutcome::Fail(failure(31)),
+            };
+            io.consume(PortId(0))
+                .expect("present measurement window profile");
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("measurement window profile Host Call");
+            self.pending = Some((RequestId(0), HostCallId(0)));
+            return StepOutcome::Progress;
         }
-    }
-
-    fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.released.take()
+        if let Some(value) = io.input(PortId(1)) {
+            if !self.profile_ready
+                || self.pending.is_some()
+                || self.sample_closed
+                || self.next_sample >= conduit_data::MAXIMUM_MEASUREMENT_WINDOW_SAMPLES as u32
+            {
+                return StepOutcome::Fail(failure(34));
+            }
+            let input = match BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32) {
+                Ok(input) => input,
+                Err(_) => return StepOutcome::Fail(failure(32)),
+            };
+            let request = RequestId(self.next_sample + 1);
+            io.consume(PortId(1))
+                .expect("present measurement window sample");
+            io.request_host_call(request, HostCallId(1), input)
+                .expect("measurement window sample Host Call");
+            self.pending = Some((request, HostCallId(1)));
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && !self.profile_closed {
+            if !self.profile_ready {
+                return StepOutcome::Fail(failure(34));
+            }
+            io.consume_closed(PortId(0))
+                .expect("observed measurement window profile closure");
+            self.profile_closed = true;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(1)) && !self.sample_closed {
+            if self.pending.is_some() {
+                return StepOutcome::Await;
+            }
+            let Some(value) = self.finalize.take() else {
+                return StepOutcome::Fail(failure(33));
+            };
+            let input = match BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32) {
+                Ok(input) => input,
+                Err(_) => return StepOutcome::Fail(failure(33)),
+            };
+            io.consume_closed(PortId(1))
+                .expect("observed measurement sample closure");
+            io.request_host_call(FINALIZE_REQUEST, HostCallId(1), input)
+                .expect("measurement window finalization Host Call");
+            self.sample_closed = true;
+            self.pending = Some((FINALIZE_REQUEST, HostCallId(1)));
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
         self.pending = None;
-        self.released = self.finalize.take();
+        self.finalize = None;
     }
 }
 
