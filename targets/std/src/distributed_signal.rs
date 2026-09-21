@@ -5,13 +5,13 @@ use conduit_core::{bind_active_play, Observation, PlanFragment};
 #[cfg(test)]
 use conduit_core::{BaseImplementationId, CapabilityId, GearId};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
+    FixedScheduler, HostCallRequest, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
+    StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
     HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore,
-    KernelEventKind, Operation, OperationAction, OperationInput, PortId, RemoteEndpointId,
-    RequestId, SignQuery, ValueRef, ValueStorage,
+    KernelEventKind, PortId, RemoteEndpointId, RequestId, SignQuery, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -53,7 +53,7 @@ const MAXIMUM_STORED_BYTES: u32 =
 const SIGN_ITEMS: u16 = 256;
 
 type SourceScheduler = FixedScheduler<
-    OperationDriver<PulseOperation, PORTS>,
+    PulseBack,
     HostedValueStore,
     HostedSignLog,
     1,
@@ -74,76 +74,90 @@ struct CapacitySeal {
     identity: (usize, usize, usize),
 }
 
-struct PulseOperation {
+struct PulseBack {
     values: Vec<ValueRef>,
     waits: Vec<ValueRef>,
     next: usize,
     pending: Option<RequestId>,
+    emitted: bool,
 }
 
-impl PulseOperation {
+impl PulseBack {
     fn allocation_capacity(&self) -> usize {
         self.values.capacity() + self.waits.capacity()
     }
 
-    fn fail(detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure {
+    fn fail(detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             detail,
         })
     }
 }
 
-impl Operation for PulseOperation {
-    fn start(&mut self) -> OperationAction {
-        self.values
-            .first()
-            .copied()
-            .map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                port: PortId(0),
-                value,
-            })
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+impl StepOperation<PORTS> for PulseBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if let Some(expected) = self.pending {
+            let Some((request, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            let Some(value) = self.values.get(self.next).copied() else {
+                return Self::fail(1);
+            };
+            if request != expected
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+                || !io.output_ready(PortId(0))
+                || io.consume_host_completion().is_err()
+                || io.send(PortId(0), value).is_err()
             {
-                self.pending = None;
-                self.values.get(self.next).copied().map_or_else(
-                    || Self::fail(1),
-                    |value| OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    },
-                )
+                return Self::fail(2);
             }
-            _ => Self::fail(2),
+            self.pending = None;
+            self.emitted = true;
+            return StepOutcome::Progress;
         }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        if self.next >= self.values.len() {
-            return OperationAction::Complete;
+        if !self.emitted {
+            let Some(value) = self.values.get(self.next).copied() else {
+                return StepOutcome::Complete;
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            if io.send(PortId(0), value).is_err() {
+                return Self::fail(2);
+            }
+            self.emitted = true;
+            return StepOutcome::Progress;
         }
-        let Some(wait) = self.waits.get(self.next - 1).copied() else {
+        let next = self.next + 1;
+        if next >= self.values.len() {
+            return StepOutcome::Complete;
+        }
+        let Some(wait) = self.waits.get(self.next).copied() else {
             return Self::fail(3);
         };
-        let Ok(sequence) = u32::try_from(self.next) else {
+        let Ok(sequence) = u32::try_from(next) else {
             return Self::fail(4);
         };
         let request = RequestId(sequence);
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(wait, 8).expect("sealed wait value is exactly admitted"),
+        let input = BoundedValueRef::new(wait, 8).expect("sealed wait value is exactly admitted");
+        if io.request_host_call(request, HostCallId(0), input).is_err() {
+            return Self::fail(2);
         }
+        self.next = next;
+        self.pending = Some(request);
+        self.emitted = false;
+        StepOutcome::Progress
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
     }
 }
 
@@ -281,13 +295,13 @@ impl DistributedSource {
             .install(lowered.host_calls[0].node, lowered.host_calls[0].binding)
             .map_err(|error| format!("{error:?}"))?;
         host_bindings.seal().map_err(|error| format!("{error:?}"))?;
-        let driver = OperationDriver::new(PulseOperation {
+        let back = PulseBack {
             values: signal_values,
             waits,
             next: 0,
             pending: None,
-        })
-        .map_err(|error| format!("{error:?}"))?;
+            emitted: false,
+        };
         let sign_bytes = u32::from(SIGN_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or_else(|| "source sign budget overflow".to_string())?;
@@ -315,7 +329,7 @@ impl DistributedSource {
                 .map_err(|_| "source cord table width".to_string())?,
             routes,
             host_bindings,
-            [driver],
+            [back],
             values,
             sign,
         )
@@ -343,7 +357,7 @@ impl DistributedSource {
         let seal = CapacitySeal {
             values: scheduler.values().allocation_capacities(),
             sign: scheduler.signs().allocation_capacity(),
-            driver: scheduler.drivers()[0].operation().allocation_capacity(),
+            driver: scheduler.drivers()[0].allocation_capacity(),
             identity: identity.allocation_capacities(),
         };
         Ok(Self {
@@ -363,9 +377,7 @@ impl DistributedSource {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
             sign: self.scheduler.signs().allocation_capacity(),
-            driver: self.scheduler.drivers()[0]
-                .operation()
-                .allocation_capacity(),
+            driver: self.scheduler.drivers()[0].allocation_capacity(),
             identity: self.identity.allocation_capacities(),
         }
     }
