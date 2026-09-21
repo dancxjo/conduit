@@ -6,6 +6,13 @@ use conduit_core::{
 };
 use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_kernel::{PortId, ValueRef, ValueStorage};
+#[cfg(feature = "local-model-proof")]
+use std::cell::RefCell;
+
+#[cfg(feature = "local-model-proof")]
+thread_local! {
+    static GENERATIVE_PRESENTER_REQUEST: RefCell<Option<Vec<u8>>> = const { RefCell::new(None) };
+}
 
 const SOURCE_KIND: &str = "conduit-test/local-model-request";
 const SOURCE_REVISION: &str = "conduit-test/local-model-request@1";
@@ -258,6 +265,15 @@ fn offer(
     value_kind: &str,
     direction: PortDirection,
 ) -> CapabilityOffer {
+    let maximum_bytes = match value_kind {
+        conduit_presentation::GENERATIVE_PRESENTER_INPUT_KIND => {
+            conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
+        }
+        conduit_presentation::GENERATED_MANIFESTATION_KIND => {
+            conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
+        }
+        _ => 16_384,
+    };
     let port = PortDescriptor {
         port_id: port_id("value"),
         value_kind: kind_id(value_kind),
@@ -291,7 +307,7 @@ fn offer(
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 4,
-            max_queue_bytes: 16_384,
+            max_queue_bytes: maximum_bytes,
         },
     }
 }
@@ -498,20 +514,21 @@ fn validate(placement: &PlannedGear, direction: PortDirection) -> Result<(), Str
 fn source_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, PortDirection::Output)?;
     let hosted_clip = placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND;
+    let maximum_bytes = if hosted_clip {
+        conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
+    } else if placement.outputs[0].value_kind.as_str()
+        == conduit_presentation::GENERATIVE_PRESENTER_INPUT_KIND
+    {
+        conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
+    } else {
+        4_096
+    };
     Ok(BackBudget {
         value_items: 1,
-        value_bytes: if hosted_clip {
-            conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
-        } else {
-            4_096
-        },
+        value_bytes: maximum_bytes,
         host_requests: usize::from(hosted_clip),
         sign_items: 16,
-        maximum_value_bytes: if hosted_clip {
-            conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
-        } else {
-            4_096
-        },
+        maximum_value_bytes: maximum_bytes,
     })
 }
 
@@ -522,7 +539,13 @@ fn sink_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
         value_bytes: 0,
         host_requests: 0,
         sign_items: 16,
-        maximum_value_bytes: 4_096,
+        maximum_value_bytes: if placement.inputs[0].value_kind.as_str()
+            == conduit_presentation::GENERATED_MANIFESTATION_KIND
+        {
+            conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32
+        } else {
+            4_096
+        },
     })
 }
 
@@ -643,12 +666,44 @@ fn source_request(placement: &PlannedGear) -> Result<Vec<u8>, String> {
     } else if placement.outputs[0].value_kind.as_str()
         == conduit_presentation::GENERATIVE_PRESENTER_INPUT_KIND
     {
+        #[cfg(feature = "local-model-proof")]
+        if let Some(request) = GENERATIVE_PRESENTER_REQUEST.with(|value| value.borrow().clone()) {
+            request
+        } else {
+            serde_json::to_vec(&crate::hosted_local_model::ollama_present::proof_request()?)
+                .map_err(|error| format!("encode generative Presenter request: {error}"))?
+        }
+        #[cfg(not(feature = "local-model-proof"))]
         serde_json::to_vec(&crate::hosted_local_model::ollama_present::proof_request()?)
             .map_err(|error| format!("encode generative Presenter request: {error}"))?
     } else {
         b"Conduit bounded local model request".to_vec()
     };
     Ok(request)
+}
+
+#[cfg(feature = "local-model-proof")]
+pub(crate) fn with_generative_presenter_request<T>(
+    request: Vec<u8>,
+    run: impl FnOnce() -> Result<T, Box<dyn std::error::Error>>,
+) -> Result<T, Box<dyn std::error::Error>> {
+    struct Reset;
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            GENERATIVE_PRESENTER_REQUEST.with(|value| *value.borrow_mut() = None);
+        }
+    }
+
+    GENERATIVE_PRESENTER_REQUEST.with(|value| -> Result<(), Box<dyn std::error::Error>> {
+        let mut value = value.borrow_mut();
+        if value.is_some() {
+            return Err("generative Presenter proof request is already installed".into());
+        }
+        *value = Some(request);
+        Ok(())
+    })?;
+    let _reset = Reset;
+    run()
 }
 
 #[cfg(test)]

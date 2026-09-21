@@ -45,6 +45,7 @@ conduit-form = { path = "../../architecture/form" }
 conduit-host-fabrication = { path = "../../fabrication/host" }
 conduit-embedded-build = { path = "../../fabrication/embedded-build" }
 conduit-workspace-fabrication = { path = "../../fabrication/workspace" }
+conduit-workspace-model = { path = "../../products/workspace/model" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-midi = { path = "../../mechanisms/protocols/midi" }
 conduit-semantic-catalog = { path = "../../semantics/catalog", features = ["body-coordination-plan"] }

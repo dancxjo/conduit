@@ -148,6 +148,9 @@ enum HostCommand {
         /// Finite admitted RAM/VRAM ceiling expressed in MiB.
         #[arg(long)]
         admitted_memory_mib: u32,
+        /// Run the fixed-policy Orifina comparison over one exact Workspace tutorial state.
+        #[arg(long)]
+        orifina_presenter: bool,
     },
     /// Exercise one explicitly selected local Piper provider under finite bounds.
     ProvePiper {
@@ -551,7 +554,8 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
         HostCommand::ProveLocalModel {
             model,
             admitted_memory_mib,
-        } => host_local_model::prove(&model, admitted_memory_mib, opts),
+            orifina_presenter,
+        } => host_local_model::prove(&model, admitted_memory_mib, orifina_presenter, opts),
         HostCommand::Verify { output, boot } => {
             let manifest = host_target::verify_target(&output)?;
             if boot {
