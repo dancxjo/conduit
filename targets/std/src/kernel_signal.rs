@@ -6,12 +6,13 @@ use conduit_core::{
     ObservationKind, PlanFragment, TerminalDisposition, ValuePayload,
 };
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
+    FixedScheduler, HostCallRequest, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
+    StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
-    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, Operation, OperationAction,
-    OperationInput, PortId, RequestId, SignSink, ValueRef, ValueStorage,
+    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, PortId, RequestId, SignSink,
+    ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
@@ -55,7 +56,7 @@ type SignalScheduler<
     const HOST_BINDING_SLOTS: usize,
     const PENDING_REQUESTS: usize,
 > = FixedScheduler<
-    OperationDriver<SignalOperation, PORTS>,
+    SignalBack,
     HostedValueStore,
     HostedSignLog,
     NODES,
@@ -77,12 +78,13 @@ struct PreparedSignalProjection {
     connection_id: Option<conduit_core::ConnectionId>,
 }
 
-enum SignalOperation {
+enum SignalBack {
     Pulse {
         values: Vec<ValueRef>,
         waits: Vec<ValueRef>,
         next: usize,
         pending: Option<RequestId>,
+        emitted: bool,
     },
     Show {
         expected: Vec<ValueRef>,
@@ -91,13 +93,14 @@ enum SignalOperation {
     },
 }
 
-impl SignalOperation {
+impl SignalBack {
     fn pulse(values: Vec<ValueRef>, waits: Vec<ValueRef>) -> Self {
         Self::Pulse {
             values,
             waits,
             next: 0,
             pending: None,
+            emitted: false,
         }
     }
 
@@ -109,8 +112,8 @@ impl SignalOperation {
         }
     }
 
-    fn fail(code: FailureCode, detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure { code, detail })
+    fn fail(code: FailureCode, detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure { code, detail })
     }
 
     fn allocation_capacity(&self) -> usize {
@@ -121,105 +124,57 @@ impl SignalOperation {
     }
 }
 
-impl Operation for SignalOperation {
-    fn start(&mut self) -> OperationAction {
-        match self {
-            Self::Pulse { values, .. } => {
-                values
-                    .first()
-                    .copied()
-                    .map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    })
-            }
-            Self::Show { .. } => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Pulse {
-                    values,
-                    next,
-                    pending,
-                    ..
-                },
-                OperationInput::HostCallCompleted { request, outcome },
-            ) if *pending == Some(request)
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                *pending = None;
-                values.get(*next).copied().map_or_else(
-                    || Self::fail(FailureCode::InvalidLifecycle, 1),
-                    |value| OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    },
-                )
-            }
-            (
-                Self::Show {
-                    expected,
-                    next,
-                    pending,
-                },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if pending.is_none() && expected.get(*next) == Some(&value) => {
-                let Ok(sequence) = u32::try_from(*next) else {
-                    return Self::fail(FailureCode::InvalidLifecycle, 2);
-                };
-                let request = RequestId(0x8000_0000 | sequence);
-                *pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
-                        .expect("sealed signal value is exactly admitted"),
-                }
-            }
-            (
-                Self::Show { next, pending, .. },
-                OperationInput::HostCallCompleted { request, outcome },
-            ) if *pending == Some(request)
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                *pending = None;
-                *next += 1;
-                OperationAction::Await
-            }
-            (
-                Self::Show {
-                    expected,
-                    next,
-                    pending,
-                },
-                OperationInput::Closed { port: PortId(0) },
-            ) if pending.is_none() && *next == expected.len() => OperationAction::Complete,
-            (Self::Pulse { .. }, _) => Self::fail(FailureCode::InvalidLifecycle, 3),
-            (Self::Show { .. }, _) => Self::fail(FailureCode::InvalidInput, 4),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for SignalBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
             Self::Pulse {
                 values,
                 waits,
                 next,
                 pending,
+                emitted,
             } => {
+                if let Some(expected) = *pending {
+                    let Some((request, outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    let Some(value) = values.get(*next).copied() else {
+                        return Self::fail(FailureCode::InvalidLifecycle, 1);
+                    };
+                    if request != expected
+                        || outcome.disposition != HostCallDisposition::Completed
+                        || outcome.output.is_some()
+                        || outcome.failure.is_some()
+                        || !io.output_ready(PortId(0))
+                        || io.consume_host_completion().is_err()
+                        || io.send(PortId(0), value).is_err()
+                    {
+                        return Self::fail(FailureCode::InvalidLifecycle, 3);
+                    }
+                    *pending = None;
+                    *emitted = true;
+                    return StepOutcome::Progress;
+                }
+                if !*emitted {
+                    let Some(value) = values.get(*next).copied() else {
+                        return StepOutcome::Complete;
+                    };
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    if io.send(PortId(0), value).is_err() {
+                        return Self::fail(FailureCode::InvalidLifecycle, 3);
+                    }
+                    *emitted = true;
+                    return StepOutcome::Progress;
+                }
                 *next += 1;
                 if *next >= values.len() {
-                    return OperationAction::Complete;
+                    return StepOutcome::Complete;
                 }
                 let Some(wait) = waits.get(*next - 1).copied() else {
                     return Self::fail(FailureCode::InvalidLifecycle, 5);
@@ -228,15 +183,68 @@ impl Operation for SignalOperation {
                     return Self::fail(FailureCode::InvalidLifecycle, 6);
                 };
                 let request = RequestId(sequence);
-                *pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(wait, 8)
-                        .expect("sealed wait value is exactly admitted"),
+                let input =
+                    BoundedValueRef::new(wait, 8).expect("sealed wait value is exactly admitted");
+                if io.request_host_call(request, HostCallId(0), input).is_err() {
+                    return Self::fail(FailureCode::InvalidLifecycle, 3);
                 }
+                *pending = Some(request);
+                *emitted = false;
+                StepOutcome::Progress
             }
-            Self::Show { .. } => OperationAction::Await,
+            Self::Show {
+                expected,
+                next,
+                pending,
+            } => {
+                if let Some(expected_request) = *pending {
+                    let Some((request, outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    if request != expected_request
+                        || outcome.disposition != HostCallDisposition::Completed
+                        || outcome.output.is_some()
+                        || outcome.failure.is_some()
+                        || io.consume_host_completion().is_err()
+                    {
+                        return Self::fail(FailureCode::InvalidInput, 4);
+                    }
+                    *pending = None;
+                    *next += 1;
+                    return StepOutcome::Progress;
+                }
+                if let Some(value) = io.input(PortId(0)) {
+                    if expected.get(*next) != Some(&value) {
+                        return Self::fail(FailureCode::InvalidInput, 4);
+                    }
+                    let Ok(sequence) = u32::try_from(*next) else {
+                        return Self::fail(FailureCode::InvalidLifecycle, 2);
+                    };
+                    let request = RequestId(0x8000_0000 | sequence);
+                    let input = BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
+                        .expect("sealed Signal is exactly admitted");
+                    if io.consume(PortId(0)).is_err()
+                        || io.request_host_call(request, HostCallId(0), input).is_err()
+                    {
+                        return Self::fail(FailureCode::InvalidInput, 4);
+                    }
+                    *pending = Some(request);
+                    return StepOutcome::Progress;
+                }
+                if io.input_closed(PortId(0)) {
+                    if *next != expected.len() || io.consume_closed(PortId(0)).is_err() {
+                        return Self::fail(FailureCode::InvalidInput, 4);
+                    }
+                    return StepOutcome::Complete;
+                }
+                StepOutcome::Await
+            }
+        }
+    }
+
+    fn cancel(&mut self) {
+        match self {
+            Self::Pulse { pending, .. } | Self::Show { pending, .. } => *pending = None,
         }
     }
 }
@@ -425,30 +433,19 @@ fn run_signal_profile<
         .seal()
         .map_err(|error| format!("seal Host Calls: {error:?}"))?;
 
-    let mut operations: [Option<SignalOperation>; NODES] = core::array::from_fn(|_| None);
-    operations[usize::from(pulse_node.node.0)] =
-        Some(SignalOperation::pulse(signal_values.clone(), wait_values));
+    let mut backs: [Option<SignalBack>; NODES] = core::array::from_fn(|_| None);
+    backs[usize::from(pulse_node.node.0)] =
+        Some(SignalBack::pulse(signal_values.clone(), wait_values));
     for show_node in &show_nodes {
-        operations[usize::from(show_node.node.0)] =
-            Some(SignalOperation::show(signal_values.clone()));
+        backs[usize::from(show_node.node.0)] = Some(SignalBack::show(signal_values.clone()));
     }
-    let drivers: [OperationDriver<SignalOperation, PORTS>; NODES] = operations
-        .map(|operation| {
-            OperationDriver::new(
-                operation.ok_or_else(|| "missing installed signal operation".to_string())?,
-            )
-            .map_err(|error| format!("prepare operation driver: {error:?}"))
-        })
+    let backs: [SignalBack; NODES] = backs
+        .map(|back| back.ok_or_else(|| "missing installed Signal Back".to_string()))
         .into_iter()
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
-        .map_err(|_| "signal driver table width changed".to_string())?;
-    let driver_capacity_before: usize = drivers
-        .iter()
-        .map(|driver: &OperationDriver<SignalOperation, PORTS>| {
-            driver.operation().allocation_capacity()
-        })
-        .sum();
+        .map_err(|_| "Signal Back table width changed".to_string())?;
+    let back_capacity_before: usize = backs.iter().map(SignalBack::allocation_capacity).sum();
 
     let sign_events_per_signal = 10_u64
         .checked_add(
@@ -497,7 +494,7 @@ fn run_signal_profile<
         cord_specs,
         routes,
         host_bindings,
-        drivers,
+        backs,
         values,
         sign,
     )
@@ -656,13 +653,13 @@ fn run_signal_profile<
     {
         return Err("kernel completed with missing receipts or retained values".to_string());
     }
-    let driver_capacity_after: usize = scheduler
+    let back_capacity_after: usize = scheduler
         .drivers()
         .iter()
-        .map(|driver| driver.operation().allocation_capacity())
+        .map(SignalBack::allocation_capacity)
         .sum();
-    if driver_capacity_after != driver_capacity_before {
-        return Err("operation storage grew after Play start".to_string());
+    if back_capacity_after != back_capacity_before {
+        return Err("Back storage grew after Play start".to_string());
     }
     let value_allocation_after = scheduler.values().allocation_capacities();
     if value_allocation_after != value_allocation_before {
