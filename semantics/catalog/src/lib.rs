@@ -491,24 +491,24 @@ mod supported_nucleus_tests {
     }
 }
 
-#[cfg(feature = "kernel-operation")]
+#[cfg(feature = "kernel-step")]
 mod pattern_comparison_operation;
-#[cfg(feature = "kernel-operation")]
+#[cfg(feature = "kernel-step")]
 pub use pattern_comparison_operation::PatternComparisonOperation;
 
-#[cfg(feature = "kernel-operation")]
+#[cfg(feature = "kernel-step")]
 mod template_storage_operation;
-#[cfg(feature = "kernel-operation")]
+#[cfg(feature = "kernel-step")]
 pub use template_storage_operation::TemplateStorageOperation;
 #[cfg(feature = "form-catalog")]
 mod template_store;
 #[cfg(feature = "form-catalog")]
 pub use template_store::{BoundedTemplateStore, TemplateStoreRefusal};
-#[cfg(feature = "kernel-operation")]
+#[cfg(feature = "kernel-step")]
 mod final_pattern_operation;
-#[cfg(feature = "kernel-operation")]
+#[cfg(feature = "kernel-step")]
 pub use final_pattern_operation::FinalNormalizedPatternOperation;
-#[cfg(feature = "kernel-operation")]
+#[cfg(feature = "kernel-step")]
 mod structured_selector_operation;
-#[cfg(feature = "kernel-operation")]
+#[cfg(feature = "kernel-step")]
 pub use structured_selector_operation::StructuredSelectorOperation;

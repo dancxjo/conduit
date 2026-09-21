@@ -68,17 +68,17 @@ mod catalog;
 #[cfg(feature = "form-catalog")]
 pub use catalog::*;
 
-#[cfg(feature = "kernel-operation")]
+#[cfg(feature = "kernel-step")]
 mod button_attempt_operation;
-#[cfg(feature = "kernel-operation")]
+#[cfg(feature = "kernel-step")]
 pub use button_attempt_operation::TimedButtonAttemptOperation;
 
-#[cfg(feature = "kernel-operation")]
+#[cfg(feature = "kernel-step")]
 mod pulse_observation_operation;
-#[cfg(feature = "kernel-operation")]
+#[cfg(feature = "kernel-step")]
 pub use pulse_observation_operation::PulseObservationOperation;
 
-#[cfg(feature = "kernel-operation")]
+#[cfg(feature = "kernel-step")]
 mod phase_synchronization_operation;
-#[cfg(feature = "kernel-operation")]
+#[cfg(feature = "kernel-step")]
 pub use phase_synchronization_operation::PhaseSynchronizationOperation;

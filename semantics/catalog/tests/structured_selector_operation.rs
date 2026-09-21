@@ -1,4 +1,4 @@
-#![cfg(feature = "kernel-operation")]
+#![cfg(feature = "kernel-step")]
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
     Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
