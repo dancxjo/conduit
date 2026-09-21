@@ -1,11 +1,14 @@
 use super::planning::*;
 use super::*;
 use conduit_core::bind_active_play;
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerError, SchedulerStatus};
+use conduit_kernel::scheduler::{
+    FixedScheduler, SchedulerError, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
+    StepOutcome,
+};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
-    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, Operation, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, PortId, RequestId, ValueRef,
+    ValueStorage,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 pub(super) const VALUE_BYTES: u32 = 1024;
@@ -17,7 +20,7 @@ const ROUTE_SLOTS: usize = NODES * PORTS;
 const MAX_DECISIONS: usize = 32;
 
 type Scheduler = FixedScheduler<
-    OperationDriver<ObligationOperation, PORTS>,
+    ObligationOperation,
     HostedValueStore,
     HostedSignLog,
     NODES,
@@ -35,64 +38,53 @@ enum ObligationOperation {
     Execute { pending: bool },
 }
 
-impl Operation for ObligationOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for ObligationOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
-            Self::Source { value, .. } => OperationAction::Emit {
-                port: PortId(0),
-                value: *value,
-            },
-            Self::Execute { .. } => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Execute { pending },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if !*pending => {
-                *pending = true;
-                match BoundedValueRef::new(value, VALUE_BYTES) {
-                    Ok(input) => OperationAction::RequestHostCall {
-                        request: RequestId(0),
-                        operation: HostCallId(0),
-                        input,
-                    },
-                    Err(_) => failed(FailureCode::InvalidInput, 1),
+            Self::Source { value, emitted } => {
+                if *emitted {
+                    return StepOutcome::Complete;
                 }
-            }
-            (
-                Self::Execute { pending },
-                OperationInput::HostCallCompleted {
-                    request: RequestId(0),
-                    outcome,
-                },
-            ) if *pending => {
-                *pending = false;
-                if outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none()
-                {
-                    OperationAction::Complete
-                } else {
-                    failed(FailureCode::HostCallFailed, 2)
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
                 }
-            }
-            _ => failed(FailureCode::InvalidLifecycle, 3),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source { emitted, .. } if !*emitted => {
+                io.send(PortId(0), *value).expect("ready obligation Cord");
                 *emitted = true;
-                OperationAction::Complete
+                StepOutcome::Complete
             }
-            _ => OperationAction::Await,
+            Self::Execute { pending } => {
+                if let Some((request, outcome)) = io.host_completion() {
+                    if request != RequestId(0) || !*pending {
+                        return failed(FailureCode::InvalidLifecycle, 3);
+                    }
+                    io.consume_host_completion()
+                        .expect("observed obligation Host Call completion");
+                    *pending = false;
+                    return if outcome.disposition == HostCallDisposition::Completed
+                        && outcome.output.is_none()
+                        && outcome.failure.is_none()
+                    {
+                        StepOutcome::Complete
+                    } else {
+                        failed(FailureCode::HostCallFailed, 2)
+                    };
+                }
+                if *pending {
+                    return StepOutcome::Await;
+                }
+                let Some(value) = io.input(PortId(0)) else {
+                    return StepOutcome::Await;
+                };
+                let input = match BoundedValueRef::new(value, VALUE_BYTES) {
+                    Ok(input) => input,
+                    Err(_) => return failed(FailureCode::InvalidInput, 1),
+                };
+                io.consume(PortId(0)).expect("present obligation value");
+                io.request_host_call(RequestId(0), HostCallId(0), input)
+                    .expect("planned obligation Host Call");
+                *pending = true;
+                StepOutcome::Progress
+            }
         }
     }
 
@@ -304,9 +296,6 @@ fn scheduler(
         });
     }
     let drivers = operations
-        .into_iter()
-        .map(OperationDriver::new)
-        .collect::<Result<Vec<_>, _>>()?
         .try_into()
         .map_err(|_| ObligationRefusal::StepFailed)?;
     let mut routes = FixedRoutes::<ROUTE_SLOTS, 1>::new(PORTS as u16);
@@ -367,8 +356,8 @@ fn host_failed() -> HostCallOutcome {
     }
 }
 
-fn failed(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
+fn failed(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl From<SchedulerError> for ObligationRefusal {

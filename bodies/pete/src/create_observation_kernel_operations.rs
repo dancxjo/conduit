@@ -1,9 +1,11 @@
 use conduit_kernel::{
-    scheduler::{CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver},
+    scheduler::{
+        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepInputBytes, StepIo, StepOperation,
+        StepOutcome,
+    },
     BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostCallBinding, HostCallDisposition, HostCallId, KernelEvent, NodeId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget, ValueRef,
-    ValueStorage,
+    HostCallBinding, HostCallDisposition, HostCallId, KernelEvent, NodeId, PortId, RequestId,
+    RouteRange, RouteTarget, ValueRef, ValueStorage,
 };
 
 const SOURCE_NODE: NodeId = NodeId(0);
@@ -20,96 +22,13 @@ pub(super) struct ObservationSource {
     emitted: bool,
 }
 
-impl Operation for ObservationSource {
-    fn start(&mut self) -> OperationAction {
-        let input = BoundedValueRef::new(self.empty, 0).expect("empty request is exact");
-        self.pending = true;
-        OperationAction::RequestHostCall {
-            request: RequestId(1),
-            operation: OPERATION,
-            input,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted {
-                request: RequestId(1),
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.failure.is_none() =>
-            {
-                self.pending = false;
-                match outcome.output {
-                    Some(output) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    None => OperationAction::Complete,
-                }
-            }
-            OperationInput::HostCallCompleted { outcome, .. }
-                if self.pending
-                    && outcome.disposition == HostCallDisposition::Failed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_some() =>
-            {
-                self.pending = false;
-                OperationAction::Fail(outcome.failure.expect("guarded failure"))
-            }
-            _ => invalid(1),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            self.emitted = false;
-            OperationAction::Complete
-        } else {
-            invalid(2)
-        }
-    }
-
-    fn cancel(&mut self) {
-        self.pending = false;
-        self.emitted = false;
-    }
-}
-
 #[derive(Clone, Copy)]
 pub(super) struct ObservationSink {
     received: bool,
 }
 
-impl Operation for ObservationSink {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0), ..
-            } if !self.received => {
-                self.received = true;
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(0) } if self.received => {
-                OperationAction::Complete
-            }
-            _ => invalid(3),
-        }
-    }
-
-    fn cancel(&mut self) {}
-}
-
-const fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+const fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
         detail,
     })
@@ -121,35 +40,81 @@ pub(super) enum DriverOperation {
     Sink(ObservationSink),
 }
 
-impl Operation for DriverOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for DriverOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
-            Self::Source(value) => value.start(),
-            Self::Sink(value) => value.start(),
-        }
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Source(value) => value.resume(input),
-            Self::Sink(value) => value.resume(input),
-        }
-    }
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source(value) => value.advance(),
-            Self::Sink(value) => value.advance(),
+            Self::Source(source) => {
+                if let Some((request, outcome)) = io.host_completion() {
+                    if request != RequestId(1) || !source.pending {
+                        return invalid(1);
+                    }
+                    match (outcome.disposition, outcome.output, outcome.failure) {
+                        (HostCallDisposition::Completed, output, None) => {
+                            if output.is_some() && !io.output_ready(PortId(0)) {
+                                return StepOutcome::Await;
+                            }
+                            io.consume_host_completion()
+                                .expect("observed observation Host Call completion");
+                            source.pending = false;
+                            if let Some(output) = output {
+                                io.send(PortId(0), output.value)
+                                    .expect("ready observation Cord");
+                                source.emitted = true;
+                            }
+                            return StepOutcome::Complete;
+                        }
+                        (HostCallDisposition::Failed, None, Some(failure)) => {
+                            io.consume_host_completion()
+                                .expect("observed failed observation Host Call");
+                            source.pending = false;
+                            return StepOutcome::Fail(failure);
+                        }
+                        _ => return invalid(1),
+                    }
+                }
+                if source.emitted {
+                    return StepOutcome::Complete;
+                }
+                if source.pending {
+                    return StepOutcome::Await;
+                }
+                let input = BoundedValueRef::new(source.empty, 0).expect("empty request is exact");
+                io.request_host_call(RequestId(1), OPERATION, input)
+                    .expect("planned observation Host Call");
+                source.pending = true;
+                StepOutcome::Progress
+            }
+            Self::Sink(sink) => {
+                if !sink.received {
+                    if io.input(PortId(0)).is_none() {
+                        return StepOutcome::Await;
+                    }
+                    io.consume(PortId(0)).expect("present observation");
+                    sink.received = true;
+                    return StepOutcome::Progress;
+                }
+                if io.input_closed(PortId(0)) {
+                    io.consume_closed(PortId(0))
+                        .expect("observed observation closure");
+                    return StepOutcome::Complete;
+                }
+                StepOutcome::Await
+            }
         }
     }
     fn cancel(&mut self) {
         match self {
-            Self::Source(value) => value.cancel(),
-            Self::Sink(value) => value.cancel(),
+            Self::Source(value) => {
+                value.pending = false;
+                value.emitted = false;
+            }
+            Self::Sink(_) => {}
         }
     }
 }
 
 pub(super) type Scheduler = FixedScheduler<
-    OperationDriver<DriverOperation, PORTS>,
+    DriverOperation,
     FixedValueStore<3, MAXIMUM_VALUE_BYTES>,
     FixedSignLog<SIGNS>,
     2,
@@ -220,14 +185,12 @@ pub(super) fn prepare_scheduler(maximum_output_bytes: u32) -> Result<Scheduler, 
         routes,
         bindings,
         [
-            OperationDriver::new(DriverOperation::Source(ObservationSource {
+            DriverOperation::Source(ObservationSource {
                 empty,
                 pending: false,
                 emitted: false,
-            }))
-            .map_err(|_| "source preparation failed")?,
-            OperationDriver::new(DriverOperation::Sink(ObservationSink { received: false }))
-                .map_err(|_| "sink preparation failed")?,
+            }),
+            DriverOperation::Sink(ObservationSink { received: false }),
         ],
         values,
         signs,
@@ -237,7 +200,7 @@ pub(super) fn prepare_scheduler(maximum_output_bytes: u32) -> Result<Scheduler, 
 
 pub(super) fn sink_received(scheduler: &Scheduler) -> bool {
     matches!(
-        scheduler.drivers()[1].operation(),
+        &scheduler.drivers()[1],
         DriverOperation::Sink(ObservationSink { received: true })
     )
 }

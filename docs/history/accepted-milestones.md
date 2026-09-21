@@ -330,7 +330,7 @@ deterministic fixed-capacity scheduling, transactional fanout, per-port closure,
 correlated bounded host calls, late-completion rejection, and matching
 hosted/fixed lifecycle vectors. The capacity-one conformance graph now includes
 a stateful latest operation, atomic joins, and a stable hosted allocation shape.
-The published `OperationInput`/`OperationAction` contract runs the complete
+The published bounded Step contract runs the complete
 four-value tick/tee/filter/latest/show graph through the same fixed-capacity
 scheduler in fixed and hosted profiles. S1 is accepted and now also admits
 exact cancellation of one dispatched host request without

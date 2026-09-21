@@ -1,8 +1,11 @@
 use conduit_kernel::{
-    scheduler::{CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver},
+    scheduler::{
+        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepInputBytes, StepIo, StepOperation,
+        StepOutcome,
+    },
     BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostCallBinding, HostCallDisposition, HostCallId, KernelEvent, NodeId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget, ValueStorage,
+    HostCallBinding, HostCallDisposition, HostCallId, KernelEvent, NodeId, PortId, RequestId,
+    RouteRange, RouteTarget, ValueStorage,
 };
 
 const REQUEST_NODE: NodeId = NodeId(0);
@@ -19,33 +22,6 @@ pub(super) struct BooleanSource {
     emitted: bool,
 }
 
-impl Operation for BooleanSource {
-    fn start(&mut self) -> OperationAction {
-        self.emitted = true;
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.value,
-        }
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        invalid(1)
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            self.emitted = false;
-            OperationAction::Complete
-        } else {
-            invalid(2)
-        }
-    }
-
-    fn cancel(&mut self) {
-        self.emitted = false;
-    }
-}
-
 #[derive(Clone, Copy)]
 pub(super) struct CreateDockOperation {
     request: BoundedValueRef,
@@ -53,60 +29,8 @@ pub(super) struct CreateDockOperation {
     admitted: bool,
 }
 
-impl Operation for CreateDockOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0), ..
-            } if !self.pending && !self.admitted => {
-                self.pending = true;
-                OperationAction::RequestHostCall {
-                    request: DOCK_REQUEST,
-                    operation: DOCK_OPERATION,
-                    input: self.request,
-                }
-            }
-            OperationInput::HostCallCompleted {
-                request: DOCK_REQUEST,
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                self.pending = false;
-                self.admitted = true;
-                OperationAction::Await
-            }
-            OperationInput::HostCallCompleted { outcome, .. }
-                if self.pending
-                    && outcome.disposition == HostCallDisposition::Failed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_some() =>
-            {
-                self.pending = false;
-                OperationAction::Fail(outcome.failure.expect("guarded failure"))
-            }
-            _ => invalid(3),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        invalid(4)
-    }
-
-    fn cancel(&mut self) {
-        self.pending = false;
-        self.admitted = false;
-    }
-}
-
-const fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+const fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
         detail,
     })
@@ -118,38 +42,65 @@ pub(super) enum DockKernelOperation {
     Dock(CreateDockOperation),
 }
 
-impl Operation for DockKernelOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for DockKernelOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
-            Self::Source(value) => value.start(),
-            Self::Dock(value) => value.start(),
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Source(value) => value.resume(input),
-            Self::Dock(value) => value.resume(input),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source(value) => value.advance(),
-            Self::Dock(value) => value.advance(),
+            Self::Source(source) => {
+                if source.emitted {
+                    return StepOutcome::Complete;
+                }
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                io.send(PortId(0), source.value).expect("ready dock Cord");
+                source.emitted = true;
+                StepOutcome::Complete
+            }
+            Self::Dock(operation) => {
+                if let Some((request, outcome)) = io.host_completion() {
+                    if request != DOCK_REQUEST || !operation.pending || outcome.output.is_some() {
+                        return invalid(3);
+                    }
+                    io.consume_host_completion()
+                        .expect("observed dock Host Call completion");
+                    operation.pending = false;
+                    return match (outcome.disposition, outcome.failure) {
+                        (HostCallDisposition::Completed, None) => {
+                            operation.admitted = true;
+                            StepOutcome::Progress
+                        }
+                        (HostCallDisposition::Failed, Some(failure)) => StepOutcome::Fail(failure),
+                        _ => invalid(3),
+                    };
+                }
+                if operation.pending || operation.admitted {
+                    return StepOutcome::Await;
+                }
+                if io.input(PortId(0)).is_none() {
+                    return StepOutcome::Await;
+                }
+                io.consume(PortId(0)).expect("present dock request");
+                io.request_host_call(DOCK_REQUEST, DOCK_OPERATION, operation.request)
+                    .expect("planned dock Host Call");
+                operation.pending = true;
+                StepOutcome::Progress
+            }
         }
     }
 
     fn cancel(&mut self) {
         match self {
-            Self::Source(value) => value.cancel(),
-            Self::Dock(value) => value.cancel(),
+            Self::Source(value) => value.emitted = false,
+            Self::Dock(value) => {
+                value.pending = false;
+                value.admitted = false;
+            }
         }
     }
 }
 
 pub(super) type DockScheduler = FixedScheduler<
-    OperationDriver<DockKernelOperation, PORTS>,
+    DockKernelOperation,
     FixedValueStore<1, { REQUEST_BYTES as usize }>,
     FixedSignLog<SIGNS>,
     2,
@@ -222,17 +173,15 @@ pub(super) fn prepare_dock_scheduler(request: [u8; 1]) -> Result<DockScheduler, 
         routes,
         bindings,
         [
-            OperationDriver::new(DockKernelOperation::Source(BooleanSource {
+            DockKernelOperation::Source(BooleanSource {
                 value,
                 emitted: false,
-            }))
-            .map_err(|_| "dock request source preparation failed")?,
-            OperationDriver::new(DockKernelOperation::Dock(CreateDockOperation {
+            }),
+            DockKernelOperation::Dock(CreateDockOperation {
                 request: bounded,
                 pending: false,
                 admitted: false,
-            }))
-            .map_err(|_| "dock operation preparation failed")?,
+            }),
         ],
         values,
         signs,
@@ -242,7 +191,7 @@ pub(super) fn prepare_dock_scheduler(request: [u8; 1]) -> Result<DockScheduler, 
 
 pub(super) fn dock_is_admitted(scheduler: &DockScheduler) -> bool {
     matches!(
-        scheduler.drivers()[usize::from(DOCK_NODE.0)].operation(),
+        &scheduler.drivers()[usize::from(DOCK_NODE.0)],
         DockKernelOperation::Dock(CreateDockOperation { admitted: true, .. })
     )
 }

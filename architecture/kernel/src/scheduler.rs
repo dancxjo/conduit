@@ -16,12 +16,10 @@ pub use conduit_assigned_plan::AssignedPressurePolicy;
 mod active_capacity;
 mod debug_control;
 mod derived_value;
-mod operation_driver;
 mod retirement;
 use active_capacity::validate_active_capacity;
 use debug_control::DebugControlState;
 pub use derived_value::CanonicalValue;
-pub use operation_driver::OperationDriver;
 pub use retirement::RetiredExecution;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

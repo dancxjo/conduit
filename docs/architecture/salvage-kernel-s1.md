@@ -12,17 +12,18 @@ operation API.
 state-machine contract:
 
 ```text
-OperationInput
-  Value { port, value }
-  Closed { port }
-  HostCallCompleted { request, outcome }
+Back::step(StepIo, StepInputBytes)
+  -> Progress
+  -> Await
+  -> Complete
+  -> Fail
 
-OperationAction
-  Await
-  Emit { port, value }
-  RequestHostCall { request, operation, input }
-  Complete
-  Fail
+StepIo
+  input / input_closed
+  consume / consume_closed / discard
+  send / send_canonical
+  request_host_call / cancel_host_call
+  host_completion / consume_host_completion
 ```
 
 ports, nodes, cords, requests, and Host Calls are compact numeric
@@ -92,23 +93,22 @@ The hosted profile also records its value-slot, per-slot byte-buffer, and
 sign-vector capacities at play start and proves those capacities are
 unchanged after a complete host-enabled run.
 
-## Public operation adapter
+## One Step protocol
 
-`OperationDriver` adapts the published `OperationInput`/`OperationAction`
-state machine into `FixedScheduler`. `Operation::advance` lets an operation
-produce more than one named output for one input; the adapter collects those
-actions in fixed arrays and publishes them as one scheduler transaction only
-when every target is ready. Defaulted ownership hooks preserve the required
-action vocabulary while allowing bounded state operations to retain a resumed
-value and release one superseded value.
+Every Back implements `StepOperation` directly. One invocation receives only
+the current bounded inputs and correlated Host Call completion, stages named
+Cord emissions or one planned Host Call through `StepIo`, and returns control
+to `FixedScheduler`. The scheduler preflights and commits that staged work as
+one transaction. Bounded Back state may retain an explicitly taken value and
+later discard it; no second lifecycle protocol or translating adapter exists.
 
-The fixed and hosted profiles match for a public-operation source/tee/two-sink
-vector, including two tee emits committed from one input. A separate
-host-enabled adapter vector proves that a public `RequestHostCall` action
-waits for and resumes from the exact correlated completion.
+The fixed and hosted profiles match for a Step-native source/tee/two-sink
+vector, including two outputs committed from one input. A separate
+host-enabled vector proves that a planned Host Call waits for and consumes the
+exact correlated completion.
 
 The final conformance vector drives four bounded host-generated tick values
-entirely through `OperationDriver`:
+entirely through the same Step protocol:
 
 ```text
 tick -> tee.left  -> filter -> show-a

@@ -17,7 +17,6 @@ pub mod debug_observation;
 mod execution_disposition;
 mod failure;
 pub mod fault_disposition;
-mod operation;
 pub use execution_disposition::{DrainedPlayDisposition, ExecutionDisposition};
 pub use failure::{Failure, FailureCode};
 pub mod scheduler;
@@ -118,45 +117,6 @@ pub struct HostCallOutcome {
     pub output: Option<BoundedValueRef>,
     pub failure: Option<Failure>,
 }
-
-/// Every value, closure, and host completion carries its exact correlation.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum OperationInput {
-    Value {
-        port: PortId,
-        value: ValueRef,
-    },
-    Closed {
-        port: PortId,
-    },
-    HostCallCompleted {
-        request: RequestId,
-        outcome: HostCallOutcome,
-    },
-}
-
-/// Operations cannot emit without naming the exact semantic output port.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum OperationAction {
-    Await,
-    Emit {
-        port: PortId,
-        value: ValueRef,
-    },
-    EmitCanonical {
-        port: PortId,
-        value: CanonicalValue,
-    },
-    RequestHostCall {
-        request: RequestId,
-        operation: HostCallId,
-        input: BoundedValueRef,
-    },
-    Complete,
-    Fail(Failure),
-}
-
-pub use operation::Operation;
 
 pub use scheduler::CanonicalValue;
 
