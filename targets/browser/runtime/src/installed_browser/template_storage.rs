@@ -126,7 +126,7 @@ fn validate(placement: &PlannedGear) -> Result<u64, String> {
 
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
     let maximum = validate(placement)?;
-    Ok(BrowserOperation::installed(
+    Ok(BrowserOperation::installed_step(
         conduit_semantic_catalog::TemplateStorageOperation::new(
             maximum,
             MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
