@@ -3,9 +3,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::HostedValueStore;
 #[cfg(test)]
-use conduit_kernel::{
-    Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef, ValueStorage,
-};
+use conduit_kernel::{Failure, FailureCode, PortId, ValueRef, ValueStorage};
 use conduit_time::{PulseObservationConfiguration, PulseObservationOperation, TICK_ENCODED_LEN};
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {

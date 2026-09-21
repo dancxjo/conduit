@@ -8,7 +8,7 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    Failure, FailureCode, OperationAction, OperationInput, PortId,
+    Failure, FailureCode, PortId,
 };
 
 const KIND: &str = "conduit-test/recurrence-sink";

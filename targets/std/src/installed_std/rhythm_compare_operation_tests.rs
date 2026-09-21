@@ -28,109 +28,107 @@ fn completed(output: Option<ValueRef>) -> HostCallOutcome {
     }
 }
 
+fn frame(
+    inputs: [Option<ValueRef>; 2],
+    closed: [bool; 2],
+    completion: Option<(RequestId, HostCallOutcome)>,
+) -> StepIo<2> {
+    StepIo::test_frame(inputs, closed, [Some(4096), None], completion, 8)
+}
+
+fn run(operation: &mut RhythmCompareOperation, io: &mut StepIo<2>) -> StepOutcome {
+    operation.step(io, &StepInputBytes::test_frame([None; 2], None))
+}
+
 #[test]
-fn exact_ports_request_admitted_operations_without_retaining_inputs() {
+fn exact_ports_request_admitted_host_calls_without_retaining_inputs() {
     let mut operation = fresh_operation();
     let performance = value(1, 43);
-    assert_eq!(operation.start(), OperationAction::Await);
+    let mut io = frame([Some(performance), None], [false; 2], None);
+    assert_eq!(run(&mut operation, &mut io), StepOutcome::Progress);
+    assert!(io.test_consumed(PortId(0)));
+    assert_eq!(
+        io.test_host_request().map(|request| (request.0, request.1)),
+        Some((RequestId(0), HostCallId(1)))
+    );
+
+    let mut blocked = frame([None, Some(value(2, 100))], [false; 2], None);
     assert!(matches!(
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: performance,
-        }),
-        OperationAction::RequestHostCall {
-            request: RequestId(0),
-            operation: HostCallId(1),
-            ..
-        }
-    ));
-    assert!(!operation.retains_resumed_value());
-    assert!(matches!(
-        operation.resume(OperationInput::Value {
-            port: PortId(1),
-            value: value(2, 100),
-        }),
-        OperationAction::Fail(Failure {
+        run(&mut operation, &mut blocked),
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             ..
         })
     ));
-    assert_eq!(
-        operation.resume(OperationInput::HostCallCompleted {
-            request: RequestId(0),
-            outcome: completed(None),
-        }),
-        OperationAction::Await
-    );
+    assert!(!blocked.test_consumed(PortId(1)));
+
+    let mut completion = frame([None; 2], [false; 2], Some((RequestId(0), completed(None))));
+    assert_eq!(run(&mut operation, &mut completion), StepOutcome::Progress);
     let reference = value(2, 512);
-    assert!(matches!(
-        operation.resume(OperationInput::Value {
-            port: PortId(1),
-            value: reference,
-        }),
-        OperationAction::RequestHostCall {
-            request: RequestId(1),
-            operation: HostCallId(2),
-            ..
-        }
-    ));
-    assert_eq!(operation.take_released_value(), None);
+    let mut io = frame([None, Some(reference)], [false; 2], None);
+    assert_eq!(run(&mut operation, &mut io), StepOutcome::Progress);
+    assert!(io.test_consumed(PortId(1)));
+    assert_eq!(
+        io.test_host_request().map(|request| (request.0, request.1)),
+        Some((RequestId(1), HostCallId(2)))
+    );
 }
 
 #[test]
 fn performance_close_drains_missed_feedback_before_exact_completion() {
     let mut operation = fresh_operation();
-    assert!(matches!(
-        operation.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::RequestHostCall {
-            request: RequestId(0),
-            operation: HostCallId(0),
-            ..
-        }
-    ));
+    let mut close_performance = frame([None; 2], [true, false], None);
+    assert_eq!(
+        run(&mut operation, &mut close_performance),
+        StepOutcome::Progress
+    );
+    assert!(close_performance.test_consumed_closed(PortId(0)));
+    assert_eq!(
+        close_performance
+            .test_host_request()
+            .map(|request| (request.0, request.1)),
+        Some((RequestId(0), HostCallId(0)))
+    );
+
     let feedback = value(2, 800);
-    assert_eq!(
-        operation.resume(OperationInput::HostCallCompleted {
-            request: RequestId(0),
-            outcome: completed(Some(feedback)),
-        }),
-        OperationAction::Emit {
-            port: PortId(0),
-            value: feedback,
-        }
-    );
-    assert!(matches!(
-        operation.advance(),
-        OperationAction::RequestHostCall {
-            request: RequestId(1),
-            operation: HostCallId(0),
-            ..
-        }
-    ));
-    assert_eq!(
-        operation.resume(OperationInput::HostCallCompleted {
-            request: RequestId(1),
-            outcome: completed(None),
-        }),
-        OperationAction::Await
+    let mut feedback_completion = frame(
+        [None; 2],
+        [false; 2],
+        Some((RequestId(0), completed(Some(feedback)))),
     );
     assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(1) }),
-        OperationAction::Complete
+        run(&mut operation, &mut feedback_completion),
+        StepOutcome::Progress
     );
-    assert_eq!(operation.take_released_value(), Some(value(99, 0)));
+    assert_eq!(feedback_completion.test_output(PortId(0)), Some(feedback));
+    assert_eq!(
+        feedback_completion
+            .test_host_request()
+            .map(|request| (request.0, request.1)),
+        Some((RequestId(1), HostCallId(0)))
+    );
+
+    let mut drained = frame([None; 2], [false; 2], Some((RequestId(1), completed(None))));
+    assert_eq!(run(&mut operation, &mut drained), StepOutcome::Progress);
+    let mut close_reference = frame([None; 2], [false, true], None);
+    assert_eq!(
+        run(&mut operation, &mut close_reference),
+        StepOutcome::Complete
+    );
+    assert!(close_reference.test_consumed_closed(PortId(1)));
+    assert!(close_reference
+        .test_discards()
+        .contains(&Some(value(99, 0))));
 }
 
 #[test]
-fn oversized_value_duplicate_close_and_wrong_completion_fail_closed() {
-    let mut operation = fresh_operation();
+fn oversized_value_and_wrong_completion_fail_closed() {
     let oversized = value(1, MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 + 1);
+    let mut operation = fresh_operation();
+    let mut io = frame([Some(oversized), None], [false; 2], None);
     assert!(matches!(
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: oversized,
-        }),
-        OperationAction::Fail(Failure {
+        run(&mut operation, &mut io),
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidInput,
             ..
         })
@@ -139,14 +137,12 @@ fn oversized_value_duplicate_close_and_wrong_completion_fail_closed() {
         BoundedValueRef::new(oversized, MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32),
         Err(ProtocolError::HostCallInputExceeded)
     );
+
     let mut operation = fresh_operation();
-    assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(1) }),
-        OperationAction::Await
-    );
+    let mut wrong = frame([None; 2], [false; 2], Some((RequestId(7), completed(None))));
     assert!(matches!(
-        operation.resume(OperationInput::Closed { port: PortId(1) }),
-        OperationAction::Fail(Failure {
+        run(&mut operation, &mut wrong),
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             ..
         })

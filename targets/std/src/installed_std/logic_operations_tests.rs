@@ -132,9 +132,9 @@ fn not_rejects_noncanonical_bool_and_closure_releases_both_prepared_decisions() 
 
     let mut values = store();
     let mut not = test_not(&mut values);
-    let mut io = StepIo::test_frame([None], [true], [None], None, 8);
+    let mut io = StepIo::test_frame([None; 2], [true, false], [None; 2], None, 8);
     assert_eq!(
-        not.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        not.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
         StepOutcome::Complete
     );
     assert!(io.test_consumed_closed(PortId(0)));

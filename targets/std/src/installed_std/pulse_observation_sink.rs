@@ -3,7 +3,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{CapabilityId, CapabilityOffer, PlannedGear, PortDirection};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    HostedValueStore, OperationAction, OperationInput, PortId,
+    HostedValueStore, PortId,
 };
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: "conduit-test/pulse-sink@1",

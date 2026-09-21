@@ -5,7 +5,7 @@ use conduit_core::{
     PortTemporal,
 };
 use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
-use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef, ValueStorage};
+use conduit_kernel::{PortId, ValueRef, ValueStorage};
 
 const SOURCE_KIND: &str = "conduit-test/local-model-request";
 const SOURCE_REVISION: &str = "conduit-test/local-model-request@1";

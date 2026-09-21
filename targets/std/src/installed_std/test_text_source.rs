@@ -8,7 +8,7 @@ use conduit_core::{
 use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    OperationAction, PortId, ValueRef, ValueStorage,
+    PortId, ValueRef, ValueStorage,
 };
 
 pub(super) const TEST_TEXT_SOURCE_KIND: &str = "conduit-test/text-source";

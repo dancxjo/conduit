@@ -7,8 +7,8 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, HostCallDisposition, HostCallId, HostedValueStore, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, HostedValueStore, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 pub(crate) const SOURCE_KIND: &str = "conduit-test/structured-source";

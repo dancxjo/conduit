@@ -7,8 +7,7 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(crate) const IMPLEMENTATION: &str = "conduit-proof/recorded-speech-recognizer@1";

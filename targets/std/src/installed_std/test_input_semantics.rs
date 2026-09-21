@@ -11,8 +11,8 @@ use conduit_human::{
 };
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 const SOURCE_KIND: &str = "conduit-test/key-event-source";

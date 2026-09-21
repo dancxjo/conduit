@@ -7,7 +7,7 @@ use conduit_core::{
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    Failure, FailureCode, OperationAction, OperationInput, PortId,
+    Failure, FailureCode, PortId,
 };
 
 pub(crate) const KIND: &str = "conduit-proof/speech-pcm-sink";

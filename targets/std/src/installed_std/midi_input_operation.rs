@@ -50,7 +50,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for MidiInputOperation {
             };
             let port = match message {
                 MidiMessage::NoteOn { .. } | MidiMessage::NoteOff { .. } => PortId(0),
-                MidiMessage::ControlChange { .. } => PortId(1),
+                MidiMessage::ControlChange { .. } | MidiMessage::PitchBend { .. } => PortId(1),
                 _ => return step_failure(FailureCode::InvalidInput, 96),
             };
             if !io.output_ready(port) {

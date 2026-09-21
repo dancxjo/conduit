@@ -8,8 +8,7 @@ use conduit_core::{
 use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
-    RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 const SOURCE_KIND: &str = "conduit-test/scalar-source";

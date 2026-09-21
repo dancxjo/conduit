@@ -457,6 +457,10 @@ pub(super) fn prepare_fake_hosts(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduit_kernel::{
+        scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+        HostCallOutcome,
+    };
 
     fn value(slot: u16, byte_len: u32) -> ValueRef {
         ValueRef {
@@ -464,6 +468,44 @@ mod tests {
             generation: 1,
             byte_len,
         }
+    }
+
+    fn input_step(
+        operation: &mut SpeechSynthesisOperation,
+        value: ValueRef,
+    ) -> (StepOutcome, StepIo<1>) {
+        let mut io = StepIo::test_frame(
+            [Some(value)],
+            [false],
+            [Some(conduit_std_offers::PIPER_PCM_BLOCK_BYTES)],
+            None,
+            8,
+        );
+        let outcome = operation.step(&mut io, &StepInputBytes::test_frame([None], None));
+        (outcome, io)
+    }
+
+    fn completion_step(
+        operation: &mut SpeechSynthesisOperation,
+        request: u32,
+        output: Option<BoundedValueRef>,
+    ) -> (StepOutcome, StepIo<1>) {
+        let mut io = StepIo::test_frame(
+            [None],
+            [false],
+            [Some(conduit_std_offers::PIPER_PCM_BLOCK_BYTES)],
+            Some((
+                RequestId(request),
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
+                    output,
+                    failure: None,
+                },
+            )),
+            8,
+        );
+        let outcome = operation.step(&mut io, &StepInputBytes::test_frame([None], None));
+        (outcome, io)
     }
 
     #[test]
@@ -479,43 +521,24 @@ mod tests {
             started: false,
             finished: false,
         };
-        assert!(matches!(operation.start(), OperationAction::Await));
-        assert!(matches!(
-            operation.resume(OperationInput::Value {
-                port: PortId(0),
-                value: value(1, 7),
-            }),
-            OperationAction::RequestHostCall {
-                request: RequestId(0),
-                ..
-            }
-        ));
+        let (outcome, io) = input_step(&mut operation, value(1, 7));
+        assert_eq!(outcome, StepOutcome::Progress);
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(0))
+        );
         let output = BoundedValueRef::new(
             value(2, conduit_std_offers::PIPER_PCM_BLOCK_BYTES),
             conduit_std_offers::PIPER_PCM_BLOCK_BYTES,
         )
         .unwrap();
-        assert!(matches!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome: conduit_kernel::HostCallOutcome {
-                    disposition: HostCallDisposition::Completed,
-                    output: Some(output),
-                    failure: None,
-                },
-            }),
-            OperationAction::Emit {
-                port: PortId(0),
-                ..
-            }
-        ));
-        assert!(matches!(
-            operation.advance(),
-            OperationAction::RequestHostCall {
-                request: RequestId(1),
-                ..
-            }
-        ));
+        let (outcome, io) = completion_step(&mut operation, 0, Some(output));
+        assert_eq!(outcome, StepOutcome::Progress);
+        assert_eq!(io.test_output(PortId(0)), Some(output.value));
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(1))
+        );
     }
 
     #[test]
@@ -534,15 +557,8 @@ mod tests {
         let output =
             BoundedValueRef::new(value(3, 1), conduit_std_offers::PIPER_PCM_BLOCK_BYTES).unwrap();
         assert!(matches!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request: RequestId(2),
-                outcome: conduit_kernel::HostCallOutcome {
-                    disposition: HostCallDisposition::Completed,
-                    output: Some(output),
-                    failure: None,
-                },
-            }),
-            OperationAction::Fail(Failure {
+            completion_step(&mut operation, 2, Some(output)).0,
+            StepOutcome::Fail(Failure {
                 code: FailureCode::WorkBudgetExhausted,
                 ..
             })
@@ -562,52 +578,33 @@ mod tests {
             started: false,
             finished: false,
         };
-        assert!(matches!(
-            operation.resume(OperationInput::Value {
-                port: PortId(0),
-                value: value(1, 128),
-            }),
-            OperationAction::RequestHostCall {
-                request: RequestId(0),
-                ..
-            }
-        ));
-        assert!(matches!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome: conduit_kernel::HostCallOutcome {
-                    disposition: HostCallDisposition::Completed,
-                    output: None,
-                    failure: None,
-                },
-            }),
-            OperationAction::Await
-        ));
-        assert!(matches!(
-            operation.resume(OperationInput::Value {
-                port: PortId(0),
-                value: value(2, 128),
-            }),
-            OperationAction::RequestHostCall {
-                request: RequestId(1),
-                ..
-            }
-        ));
-        assert!(matches!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request: RequestId(1),
-                outcome: conduit_kernel::HostCallOutcome {
-                    disposition: HostCallDisposition::Completed,
-                    output: None,
-                    failure: None,
-                },
-            }),
-            OperationAction::Await
-        ));
-        assert!(matches!(
-            operation.resume(OperationInput::Closed { port: PortId(0) }),
-            OperationAction::Complete
-        ));
+        let (outcome, io) = input_step(&mut operation, value(1, 128));
+        assert_eq!(outcome, StepOutcome::Progress);
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(0))
+        );
+        assert_eq!(
+            completion_step(&mut operation, 0, None).0,
+            StepOutcome::Progress
+        );
+        let (outcome, io) = input_step(&mut operation, value(2, 128));
+        assert_eq!(outcome, StepOutcome::Progress);
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(1))
+        );
+        assert_eq!(
+            completion_step(&mut operation, 1, None).0,
+            StepOutcome::Progress
+        );
+        let mut io = StepIo::test_frame([None], [true], [None], None, 8);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Complete
+        );
+        assert!(io.test_consumed_closed(PortId(0)));
+        assert!(io.test_discards().contains(&Some(operation.continuation)));
     }
 
     #[test]
@@ -677,16 +674,23 @@ mod tests {
             finished: false,
         };
         let (_, failure) = piper_failure_outcome(Piper::Timeout);
-        assert_eq!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome: conduit_kernel::HostCallOutcome {
+        let mut io = StepIo::test_frame(
+            [None],
+            [false],
+            [None],
+            Some((
+                RequestId(0),
+                HostCallOutcome {
                     disposition: HostCallDisposition::Failed,
                     output: None,
                     failure: Some(failure),
                 },
-            }),
-            OperationAction::Fail(failure)
+            )),
+            8,
+        );
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Fail(failure)
         );
     }
 }
