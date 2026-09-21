@@ -1,6 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId,
 };
@@ -81,6 +82,74 @@ pub(super) static JSON_DECODE_FACTORY: InstalledFactory = InstalledFactory {
 pub(super) struct JsonOperation {
     pending: Option<RequestId>,
     next: u32,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for JsonOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return StepOutcome::Fail(step_failure(FailureCode::InvalidLifecycle, 103));
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed JSON Host Call completion");
+                    io.send(PortId(0), output.value).expect("ready JSON output");
+                    self.pending = None;
+                    self.next += 1;
+                    StepOutcome::Progress
+                }
+                (HostCallDisposition::Cancelled, _, _) => {
+                    io.consume_host_completion()
+                        .expect("observed cancelled JSON Host Call");
+                    self.pending = None;
+                    StepOutcome::Fail(Failure {
+                        code: FailureCode::Cancelled,
+                        detail: 0,
+                    })
+                }
+                (HostCallDisposition::Failed, None, Some(failure)) => {
+                    io.consume_host_completion()
+                        .expect("observed failed JSON Host Call");
+                    self.pending = None;
+                    StepOutcome::Fail(failure)
+                }
+                _ => StepOutcome::Fail(step_failure(FailureCode::InvalidLifecycle, 102)),
+            }
+        } else if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() || self.next >= 4 {
+                return StepOutcome::Fail(step_failure(FailureCode::InvalidLifecycle, 103));
+            }
+            let Ok(input) =
+                BoundedValueRef::new(value, conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32)
+            else {
+                return StepOutcome::Fail(step_failure(FailureCode::InvalidInput, 101));
+            };
+            let request = RequestId(self.next);
+            io.consume(PortId(0)).expect("present JSON input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("JSON Host Call");
+            self.pending = Some(request);
+            StepOutcome::Progress
+        } else if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed JSON input closure");
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Await
+        }
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+const fn step_failure(code: FailureCode, detail: u16) -> Failure {
+    Failure { code, detail }
 }
 
 impl JsonOperation {
