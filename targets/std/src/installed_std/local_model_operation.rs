@@ -259,7 +259,10 @@ fn prepare(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::{HostCallOutcome, ValueRef};
+    use conduit_kernel::{
+        scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+        HostCallOutcome, ValueRef,
+    };
 
     fn value(slot: u16, bytes: u32) -> ValueRef {
         ValueRef {
@@ -282,49 +285,60 @@ mod tests {
             stream_complete: false,
             input: None,
         };
-        let request = operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: value(1, 12),
-        });
-        assert!(matches!(
-            request,
-            OperationAction::RequestHostCall {
-                request: RequestId(0),
-                ..
-            }
-        ));
-        let emitted = operation.resume(OperationInput::HostCallCompleted {
-            request: RequestId(0),
-            outcome: HostCallOutcome {
-                disposition: HostCallDisposition::Completed,
-                output: Some(BoundedValueRef::new(value(2, 20), 64).unwrap()),
-                failure: None,
-            },
-        });
-        assert!(matches!(
-            emitted,
-            OperationAction::Emit {
-                port: PortId(0),
-                ..
-            }
-        ));
-        assert!(matches!(
-            operation.advance(),
-            OperationAction::RequestHostCall {
-                request: RequestId(1),
-                ..
-            }
-        ));
-        assert!(matches!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request: RequestId(1),
-                outcome: HostCallOutcome {
+        let input = value(1, 12);
+        let mut io = StepIo::test_frame([Some(input)], [false], [Some(64)], None, 8);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert!(io.test_consumed(PortId(0)));
+        assert!(io.test_retained(PortId(0)));
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(0))
+        );
+        let mut io = StepIo::test_frame(
+            [None],
+            [false],
+            [Some(64)],
+            Some((
+                RequestId(0),
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
+                    output: Some(BoundedValueRef::new(value(2, 20), 64).unwrap()),
+                    failure: None,
+                },
+            )),
+            8,
+        );
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert_eq!(io.test_output(PortId(0)), Some(value(2, 20)));
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(1))
+        );
+        let mut io = StepIo::test_frame(
+            [None],
+            [false],
+            [Some(64)],
+            Some((
+                RequestId(1),
+                HostCallOutcome {
                     disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },
-            }),
-            OperationAction::Complete
-        ));
+            )),
+            8,
+        );
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Complete
+        );
+        assert!(io.test_host_completion_consumed());
+        assert!(io.test_discards().contains(&Some(input)));
     }
 }

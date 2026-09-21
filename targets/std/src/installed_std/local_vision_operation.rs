@@ -143,7 +143,10 @@ fn prepare(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::{HostCallOutcome, ValueRef};
+    use conduit_kernel::{
+        scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+        HostCallOutcome, ValueRef,
+    };
 
     fn value() -> ValueRef {
         ValueRef {
@@ -160,33 +163,45 @@ mod tests {
             closed: false,
             next_request: 0,
         };
-        let request = operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: value(),
-        });
-        assert!(matches!(request, OperationAction::RequestHostCall { .. }));
+        let mut io = StepIo::test_frame([Some(value())], [false], [Some(64)], None, 8);
         assert_eq!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome: HostCallOutcome {
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert!(io.test_consumed(PortId(0)));
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(0))
+        );
+        let mut io = StepIo::test_frame(
+            [None],
+            [false],
+            [Some(64)],
+            Some((
+                RequestId(0),
+                HostCallOutcome {
                     disposition: HostCallDisposition::Completed,
                     output: Some(BoundedValueRef::new(value(), 64).unwrap()),
                     failure: None,
                 },
-            }),
-            OperationAction::Emit {
-                port: PortId(0),
-                value: value(),
-            }
+            )),
+            8,
         );
-        assert!(matches!(
-            operation.resume(OperationInput::Value {
-                port: PortId(0),
-                value: value(),
-            }),
-            OperationAction::RequestHostCall { .. }
-        ));
-        operation.cancel();
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert_eq!(io.test_output(PortId(0)), Some(value()));
+        let mut io = StepIo::test_frame([Some(value())], [false], [Some(64)], None, 8);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(1))
+        );
+        StepOperation::<1>::cancel(&mut operation);
         assert!(operation.closed);
         assert!(!operation.pending);
     }
