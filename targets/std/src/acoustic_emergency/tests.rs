@@ -1,4 +1,7 @@
 use super::*;
+use crate::remote_emergency::{
+    RemoteEmergencyReceipt, RemotePropagationStatus, RemotePropagationSummary,
+};
 use conduit_body::{Body, EmergencyMachineAction, EmergencyStepOutcome};
 use conduit_core::{
     BaseEnforcementClass, BaseImplementationId, BaseInstanceId, BaseProviderEntry, CheckedFormId,
@@ -127,6 +130,19 @@ fn feed_word(
     decision
 }
 
+fn feed_noisy_word(
+    adapter: &mut AcousticEmergencyAdapter,
+    audio: &WordAudio,
+    first_sequence: u64,
+) -> AcousticEmergencyDecision {
+    let noisy = core::array::from_fn(|frame| {
+        core::array::from_fn(|sample| {
+            audio[frame][sample].saturating_add(if sample.is_multiple_of(2) { 3 } else { -3 })
+        })
+    });
+    feed_word(adapter, &noisy, first_sequence)
+}
+
 #[test]
 fn exact_phrase_requests_only_admitted_authority_reductions_once() {
     let (mut adapter, words) = fixture();
@@ -247,4 +263,130 @@ fn admission_requires_current_unmuted_provider_and_exact_birth_contract() {
     assert_eq!(adapter.availability(), AcousticEmergencyAvailability::Ready);
     assert_eq!(adapter.provider_id(), "base/microphone/instance-9");
     assert_eq!(adapter.provider_generation(), 9);
+}
+
+#[test]
+fn recurring_corpus_refuses_partial_wrong_order_and_replay_but_accepts_bounded_noise() {
+    let (mut partial, words) = fixture();
+    assert_eq!(
+        feed_word(&mut partial, &words[0], 1),
+        AcousticEmergencyDecision::PhraseAdvanced
+    );
+    assert_eq!(
+        feed_word(&mut partial, &words[1], 9),
+        AcousticEmergencyDecision::PhraseAdvanced
+    );
+
+    let (mut wrong_order, words) = fixture();
+    assert_eq!(
+        feed_word(&mut wrong_order, &words[1], 1),
+        AcousticEmergencyDecision::Waiting
+    );
+    assert_eq!(
+        feed_word(&mut wrong_order, &words[0], 9),
+        AcousticEmergencyDecision::PhraseAdvanced
+    );
+    assert_eq!(
+        feed_word(&mut wrong_order, &words[2], 17),
+        AcousticEmergencyDecision::Waiting
+    );
+
+    let (mut replay, words) = fixture();
+    assert_eq!(
+        feed_word(&mut replay, &words[0], 1),
+        AcousticEmergencyDecision::PhraseAdvanced
+    );
+    assert_eq!(
+        feed_word(&mut replay, &words[1], 1),
+        AcousticEmergencyDecision::Waiting
+    );
+
+    let (mut noisy, words) = fixture();
+    assert_eq!(
+        feed_noisy_word(&mut noisy, &words[0], 1),
+        AcousticEmergencyDecision::PhraseAdvanced
+    );
+    assert_eq!(
+        feed_noisy_word(&mut noisy, &words[1], 9),
+        AcousticEmergencyDecision::PhraseAdvanced
+    );
+    assert!(matches!(
+        feed_noisy_word(&mut noisy, &words[2], 17),
+        AcousticEmergencyDecision::AuthorityReductionRequested(_)
+    ));
+}
+
+#[test]
+fn independent_reduction_proof_does_not_trust_unresponsive_ordinary_work() {
+    struct OrdinaryWorkFixture {
+        active: bool,
+        responsive: bool,
+        accepting_new_work: bool,
+    }
+
+    let mut ordinary = OrdinaryWorkFixture {
+        active: true,
+        responsive: false,
+        accepting_new_work: true,
+    };
+    let (mut adapter, words) = fixture();
+    assert!(ordinary.active && !ordinary.responsive);
+    let _ = feed_word(&mut adapter, &words[0], 1);
+    let _ = feed_word(&mut adapter, &words[1], 9);
+    let AcousticEmergencyDecision::AuthorityReductionRequested(mut outcome) =
+        feed_word(&mut adapter, &words[2], 17)
+    else {
+        panic!("independent emergency path did not fire during ordinary work");
+    };
+
+    // The proof owner, not the ordinary fixture, applies the admitted local
+    // reduction and records completion. No ordinary callback is consulted.
+    ordinary.accepting_new_work = false;
+    ordinary.active = false;
+    outcome.local_execution_revocation = EmergencyStepOutcome::Completed;
+    assert!(!ordinary.active && !ordinary.accepting_new_work && !ordinary.responsive);
+
+    let mut propagation = RemoteEmergencyReceipt {
+        local_outcome: outcome,
+        authenticated_peer_host_id: HostId::from("host/peer"),
+        authenticated_peer_boot_id: BootId::from("boot/peer"),
+        membership_credential_id: "credential/peer".into(),
+        line_session_id: "line/emergency-proof".into(),
+        freshness: 18,
+        propagation: Vec::new(),
+    };
+    propagation
+        .record_propagation(
+            HostId::from("host/reached"),
+            RemotePropagationStatus::Delivered,
+        )
+        .unwrap();
+    propagation
+        .record_propagation(
+            HostId::from("host/unreachable"),
+            RemotePropagationStatus::Unreachable,
+        )
+        .unwrap();
+    assert_eq!(
+        propagation.propagation_summary(),
+        RemotePropagationSummary::PartialFailure
+    );
+    assert_eq!(
+        adapter.observe_validated_frame(
+            "base/microphone/instance-9",
+            ValidatedPcmFrame {
+                microphone_generation: 9,
+                sequence: 25,
+                samples: &words[0][0],
+            },
+        ),
+        AcousticEmergencyDecision::Suppressed
+    );
+    // Recovery is deliberately represented by a fresh adapter admission;
+    // there is no implicit resume or reset on the triggered instance.
+    let (fresh_recovery_admission, _) = fixture();
+    assert_eq!(
+        fresh_recovery_admission.availability(),
+        AcousticEmergencyAvailability::Ready
+    );
 }
