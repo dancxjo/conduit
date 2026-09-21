@@ -60,33 +60,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for TestRecurrenceSinkOperation {
     }
 }
 
-impl TestRecurrenceSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume_value(&mut self, port: PortId, canonical: &[u8]) -> OperationAction {
-        let valid = !canonical.is_empty()
-            && canonical.len() <= conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES;
-        if port != PortId(0) || !valid || self.received != 0 {
-            return OperationAction::Fail(Failure {
-                code: FailureCode::InvalidInput,
-                detail: 230,
-            });
-        }
-        self.received = self.expected;
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Closed { port: PortId(0) } if self.received == self.expected => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(231),
-        }
-    }
-}
+impl TestRecurrenceSinkOperation {}
 
 pub(crate) fn offer() -> CapabilityOffer {
     let value_kind = conduit_semantic_catalog::recurrence_result_type()

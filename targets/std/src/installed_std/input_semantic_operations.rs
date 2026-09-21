@@ -184,10 +184,6 @@ impl KeyEventTeeOperation {
 }
 
 impl InputSemanticOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
             OperationInput::Value {

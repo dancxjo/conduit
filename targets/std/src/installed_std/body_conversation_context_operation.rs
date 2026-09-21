@@ -145,9 +145,6 @@ impl BodyConversationContextOperation {
             OperationAction::Await
         }
     }
-    pub(super) fn cancel(&mut self) {
-        self.pending = false;
-    }
 }
 
 pub(super) struct BodyConversationContextHost<'a> {

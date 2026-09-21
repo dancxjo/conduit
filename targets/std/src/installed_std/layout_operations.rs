@@ -52,20 +52,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for LayoutSinkOperation {
     }
 }
 #[cfg(test)]
-impl LayoutSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0), ..
-            } => OperationAction::Await,
-            OperationInput::Closed { port: PortId(0) } => OperationAction::Complete,
-            _ => InstalledOperation::fail(43),
-        }
-    }
-}
+impl LayoutSinkOperation {}
 impl LayoutOperation {
     pub(super) fn start(&mut self) -> OperationAction {
         match self.source {

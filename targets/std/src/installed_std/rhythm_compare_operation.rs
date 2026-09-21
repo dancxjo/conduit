@@ -216,12 +216,6 @@ impl RhythmCompareOperation {
         }
     }
 
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.release_drain_marker = true;
-        self.draining_missed = false;
-    }
-
     pub(super) fn retains_resumed_value(&self) -> bool {
         false
     }

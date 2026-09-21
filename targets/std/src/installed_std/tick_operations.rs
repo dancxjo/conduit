@@ -439,51 +439,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for TestObserverOperation {
 }
 
 #[cfg(test)]
-impl TestObserverOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: conduit_kernel::PortId(0),
-                value,
-            } if self.pending.is_none() => {
-                let request = RequestId(0x8000_0000 | self.next);
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(value, TICK_ENCODED_LEN)
-                        .expect("typed tick is exactly eight bytes"),
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.next = self.next.saturating_add(1);
-                OperationAction::Await
-            }
-            OperationInput::Closed {
-                port: conduit_kernel::PortId(0),
-            } if self.pending.is_none() => OperationAction::Complete,
-            _ => InstalledOperation::fail(3),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-}
+impl TestObserverOperation {}
 
 #[cfg(test)]
 fn prepare_test_observer(

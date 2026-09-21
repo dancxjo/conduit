@@ -171,20 +171,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for PresentationSinkOperation {
 }
 
 #[cfg(test)]
-impl PresentationSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0), ..
-            } => OperationAction::Await,
-            OperationInput::Closed { port: PortId(0) } => OperationAction::Complete,
-            _ => InstalledOperation::fail(47),
-        }
-    }
-}
+impl PresentationSinkOperation {}
 
 impl PresentationCompositionOperation {
     pub(super) fn start(&mut self) -> OperationAction {

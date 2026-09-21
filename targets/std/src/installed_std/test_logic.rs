@@ -79,48 +79,9 @@ impl<const PORTS: usize> StepOperation<PORTS> for TestLogicSinkOperation {
     }
 }
 
-impl TestLogicScriptOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.emit_or_complete()
-    }
+impl TestLogicScriptOperation {}
 
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        self.emit_or_complete()
-    }
-
-    fn emit_or_complete(&self) -> OperationAction {
-        self.values
-            .get(self.next)
-            .copied()
-            .map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                port: PortId(u16::try_from(self.next).unwrap_or(u16::MAX)),
-                value,
-            })
-    }
-}
-
-impl TestLogicSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume_value(
-        &mut self,
-        port: PortId,
-        value: ValueRef,
-        canonical: &[u8],
-    ) -> OperationAction {
-        if port == PortId(0)
-            && value.byte_len == SCALAR_ENCODED_LEN as u32
-            && Scalar::decode(canonical) == Ok(Scalar::from_raw_microunits(-1))
-        {
-            OperationAction::Complete
-        } else {
-            InstalledOperation::fail(24)
-        }
-    }
-}
+impl TestLogicSinkOperation {}
 
 pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {

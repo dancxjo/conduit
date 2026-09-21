@@ -117,10 +117,6 @@ fn select_failure() -> Failure {
 }
 
 impl StateSelectScalarOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
     pub(super) fn resume_value(
         &mut self,
         port: PortId,
@@ -182,15 +178,6 @@ impl StateSelectScalarOperation {
             value: conduit_kernel::CanonicalValue::new(&value)
                 .expect("Scalar fits derived-value bound"),
         }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.selector = None;
-        self.candidates = [None; 2];
     }
 }
 

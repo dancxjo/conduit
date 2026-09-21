@@ -76,23 +76,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for TestScalarLiteralOperation {
     }
 }
 
-impl TestScalarLiteralOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.value,
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            InstalledOperation::fail(26)
-        } else {
-            self.emitted = true;
-            OperationAction::Complete
-        }
-    }
-}
+impl TestScalarLiteralOperation {}
 
 pub(super) struct TestScalarSinkOperation {
     seen: u64,
@@ -171,74 +155,9 @@ const fn scalar_fixture_fail(detail: u16) -> StepOutcome {
     })
 }
 
-impl TestScalarSourceOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
+impl TestScalarSourceOperation {}
 
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.values.get(self.next).copied().map_or_else(
-                    || InstalledOperation::fail(14),
-                    |value| OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    },
-                )
-            }
-            _ => InstalledOperation::fail(14),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-
-    fn request_wait(&mut self) -> Option<OperationAction> {
-        let input = self.waits.get(self.next).copied()?;
-        let request = RequestId(u32::try_from(self.next).ok()?);
-        self.pending = Some(request);
-        Some(OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(input, 8).ok()?,
-        })
-    }
-}
-
-impl TestScalarSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if value.byte_len == SCALAR_ENCODED_LEN as u32 && self.seen < self.expected => {
-                self.seen += 1;
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(0) } if self.seen == self.expected => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(15),
-        }
-    }
-}
+impl TestScalarSinkOperation {}
 
 pub(super) fn source_offer() -> CapabilityOffer {
     let mut offer = offer(

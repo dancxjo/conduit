@@ -146,10 +146,6 @@ impl InstrumentMapOperation {
         self.emitted = false;
         OperationAction::Await
     }
-
-    pub(super) fn cancel(&mut self) {
-        self.emitted = false;
-    }
 }
 
 enum MappedEvent {

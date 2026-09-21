@@ -119,10 +119,6 @@ fn gate_failure() -> conduit_kernel::Failure {
 }
 
 impl FlowGateScalarOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
             OperationInput::Value {
@@ -188,10 +184,6 @@ impl FlowGateScalarOperation {
             }
             _ => InstalledOperation::fail(16),
         }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
     }
 
     pub(super) fn cancel(&mut self) {

@@ -458,13 +458,6 @@ impl DebounceOperation {
         }
     }
 
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.cancellation = None;
-        self.candidate = None;
-        self.released = None;
-    }
-
     pub(super) fn retains_resumed_value(&self) -> bool {
         self.retain_resumed
     }
@@ -588,11 +581,6 @@ impl TimeoutOperation {
         } else {
             OperationAction::Await
         }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.cancellation = None;
     }
 
     pub(super) fn take_host_call_cancellation(&mut self) -> Option<RequestId> {

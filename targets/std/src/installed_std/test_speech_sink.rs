@@ -50,29 +50,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for TestSpeechSinkOperation {
     }
 }
 
-impl TestSpeechSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if value.byte_len <= conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES
-                && self.blocks < conduit_std_offers::PIPER_MAXIMUM_BLOCKS =>
-            {
-                self.blocks += 1;
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(0) } if self.blocks != 0 => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(180),
-        }
-    }
-}
+impl TestSpeechSinkOperation {}
 
 pub(crate) fn offer() -> CapabilityOffer {
     CapabilityOffer {

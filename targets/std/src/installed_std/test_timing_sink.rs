@@ -118,72 +118,9 @@ const fn timing_fixture_fail(detail: u16) -> StepOutcome {
     })
 }
 
-impl TestTimingSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
+impl TestTimingSinkOperation {}
 
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if value.byte_len == 1 && self.received < MAXIMUM_VALUES => {
-                self.received += 1;
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(0) } => OperationAction::Complete,
-            _ => InstalledOperation::fail(789),
-        }
-    }
-}
-
-impl TestTimingSourceOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.values.get(self.next).copied().map_or_else(
-                    || InstalledOperation::fail(790),
-                    |value| OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    },
-                )
-            }
-            _ => InstalledOperation::fail(791),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-
-    fn request_wait(&mut self) -> Option<OperationAction> {
-        let input = self.waits.get(self.next).copied()?;
-        let request = RequestId(u32::try_from(self.next).ok()?);
-        self.pending = Some(request);
-        Some(OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(input, 8).ok()?,
-        })
-    }
-}
+impl TestTimingSourceOperation {}
 
 pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {

@@ -150,11 +150,6 @@ impl AudioPlayOperation {
         }
     }
 
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.closed = true;
-    }
-
     fn request(&mut self, value: ValueRef, drain: bool) -> OperationAction {
         let request = RequestId(self.next_request);
         self.next_request = self.next_request.saturating_add(1);

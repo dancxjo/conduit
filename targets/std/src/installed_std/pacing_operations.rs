@@ -270,10 +270,6 @@ const fn step_fail(detail: u16) -> StepOutcome {
 }
 
 impl DelayOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         self.retain_resumed = false;
         match input {
@@ -337,17 +333,8 @@ impl DelayOperation {
         }
     }
 
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.values.clear();
-    }
-
     pub(super) fn retains_resumed_value(&self) -> bool {
         self.retain_resumed
-    }
-
-    pub(super) fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.terminal_releases.pop()
     }
 
     pub(super) fn allocation_capacity(&self) -> usize {
@@ -378,10 +365,6 @@ impl DelayOperation {
 }
 
 impl ThrottleOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
             OperationInput::Value {
@@ -440,11 +423,6 @@ impl ThrottleOperation {
         } else {
             OperationAction::Await
         }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.cancellation = None;
     }
 
     pub(super) fn take_released_value(&mut self) -> Option<ValueRef> {

@@ -89,10 +89,6 @@ const fn step_failure(detail: u16) -> conduit_kernel::Failure {
 }
 
 impl LocalVisionOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
             OperationInput::Value {
@@ -133,10 +129,6 @@ impl LocalVisionOperation {
             }
             _ => InstalledOperation::fail(332),
         }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
     }
 
     pub(super) fn cancel(&mut self) {

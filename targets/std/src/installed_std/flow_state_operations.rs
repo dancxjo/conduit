@@ -124,10 +124,6 @@ impl StateLatestScalarOperation {
         }
     }
 
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
     pub(super) fn retains_resumed_value(&self) -> bool {
         self.retain_resumed
     }
@@ -135,19 +131,9 @@ impl StateLatestScalarOperation {
     pub(super) fn take_released_value(&mut self) -> Option<ValueRef> {
         self.released.take()
     }
-
-    pub(super) fn cancel(&mut self) {
-        self.held = None;
-        self.released = None;
-        self.retain_resumed = false;
-    }
 }
 
 impl FlowTeeScalarOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
             OperationInput::Value {
@@ -184,11 +170,6 @@ impl FlowTeeScalarOperation {
             }
             _ => InstalledOperation::fail(13),
         }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.phase = 0;
     }
 }
 

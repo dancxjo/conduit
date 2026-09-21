@@ -152,96 +152,9 @@ const fn gate_fixture_fail(detail: u16) -> StepOutcome {
     })
 }
 
-impl TestGateScriptOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
+impl TestGateScriptOperation {}
 
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.items.get(self.next).copied().map_or_else(
-                    || InstalledOperation::fail(17),
-                    |(port, value)| OperationAction::Emit { port, value },
-                )
-            }
-            _ => InstalledOperation::fail(17),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-
-    fn request_wait(&mut self) -> Option<OperationAction> {
-        let wait = self.waits.get(self.next).copied()?;
-        let request = RequestId(u32::try_from(self.next).ok()?);
-        self.pending = Some(request);
-        Some(OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(wait, 8).ok()?,
-        })
-    }
-}
-
-impl TestSlowScalarSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if value.byte_len == SCALAR_ENCODED_LEN as u32
-                && self.pending.is_none()
-                && self.next < self.waits.len() =>
-            {
-                let request = RequestId(u32::try_from(self.next).unwrap_or(u32::MAX));
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(self.waits[self.next], 8)
-                        .expect("slow sink wait is exactly eight bytes"),
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.next += 1;
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(0) }
-                if self.pending.is_none() && self.next == self.waits.len() =>
-            {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(18),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-}
+impl TestSlowScalarSinkOperation {}
 
 pub(super) fn source_offer() -> CapabilityOffer {
     offer(

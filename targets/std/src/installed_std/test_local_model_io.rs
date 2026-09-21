@@ -152,71 +152,9 @@ const fn local_model_fixture_fail(detail: u16) -> conduit_kernel::scheduler::Ste
     })
 }
 
-impl TestLocalModelSourceOperation {
-    pub(super) fn emit_or_complete(&self) -> OperationAction {
-        if self.emitted {
-            OperationAction::Complete
-        } else if self.hosted {
-            OperationAction::RequestHostCall {
-                request: conduit_kernel::RequestId(0),
-                operation: conduit_kernel::HostCallId(0),
-                input: conduit_kernel::BoundedValueRef::new(self.value, 1)
-                    .expect("proof clip source marker is one admitted byte"),
-            }
-        } else {
-            OperationAction::Emit {
-                port: PortId(0),
-                value: self.value,
-            }
-        }
-    }
+impl TestLocalModelSourceOperation {}
 
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.emitted = true;
-        OperationAction::Complete
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.hosted && !self.emitted && request == conduit_kernel::RequestId(0) =>
-            {
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (conduit_kernel::HostCallDisposition::Completed, Some(output), None) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (conduit_kernel::HostCallDisposition::Denied, _, _) => {
-                        InstalledOperation::fail(143)
-                    }
-                    _ => InstalledOperation::fail(144),
-                }
-            }
-            _ => InstalledOperation::fail(145),
-        }
-    }
-}
-
-impl TestLocalModelSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0), ..
-            } if !self.complete => {
-                self.complete = true;
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(142),
-        }
-    }
-}
+impl TestLocalModelSinkOperation {}
 
 pub(crate) fn source_offer(value_kind: &str) -> CapabilityOffer {
     offer(

@@ -270,10 +270,6 @@ impl LeniaStepOperation {
         }
     }
 
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
     pub(super) fn resume_value(
         &mut self,
         port: PortId,
@@ -360,10 +356,6 @@ impl LeniaStepOperation {
             }
             _ => fail(FailureCode::InvalidLifecycle, 188),
         }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
     }
 
     pub(super) fn cancel(&mut self) {

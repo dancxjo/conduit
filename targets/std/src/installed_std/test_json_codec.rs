@@ -120,62 +120,9 @@ impl<const PORTS: usize> StepOperation<PORTS> for TestJsonSinkOperation {
     }
 }
 
-impl TestJsonSourceOperation {
-    pub(super) fn emit_or_complete(&self) -> OperationAction {
-        if self.emitted {
-            OperationAction::Complete
-        } else {
-            OperationAction::Emit {
-                port: PortId(0),
-                value: self.value,
-            }
-        }
-    }
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.emitted = true;
-        OperationAction::Complete
-    }
-}
+impl TestJsonSourceOperation {}
 
-impl TestJsonSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending => {
-                self.pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(
-                        value,
-                        conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
-                    )
-                    .unwrap(),
-                }
-            }
-            OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                self.pending = false;
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(105),
-        }
-    }
-    pub(super) fn cancel(&mut self) {
-        self.pending = false;
-    }
-}
+impl TestJsonSinkOperation {}
 
 pub(crate) fn source_offer() -> CapabilityOffer {
     offer(

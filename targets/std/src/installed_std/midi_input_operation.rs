@@ -118,10 +118,6 @@ impl MidiInputOperation {
         self.request_next()
     }
 
-    pub(super) fn resume(&mut self) -> OperationAction {
-        InstalledOperation::fail(91)
-    }
-
     pub(super) fn resume_host_call(
         &mut self,
         request: RequestId,

@@ -125,83 +125,9 @@ const fn key_fixture_fail(detail: u16) -> StepOutcome {
     })
 }
 
-impl TestKeyEventSourceOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
+impl TestKeyEventSourceOperation {}
 
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.values.get(self.next).copied().map_or_else(
-                    || invalid(60),
-                    |value| OperationAction::Emit {
-                        port: PortId(0),
-                        value,
-                    },
-                )
-            }
-            _ => invalid(60),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-
-    fn request_wait(&mut self) -> Option<OperationAction> {
-        let input = self.waits.get(self.next).copied()?;
-        let request = RequestId(u32::try_from(self.next).ok()?);
-        self.pending = Some(request);
-        Some(OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(input, 8).ok()?,
-        })
-    }
-}
-
-impl TestChordSinkOperation {
-    pub(super) fn start(&self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        let _ = input;
-        invalid(61)
-    }
-
-    pub(super) fn resume_value(&mut self, port: PortId, canonical: &[u8]) -> OperationAction {
-        if port != PortId(0) || self.observed != 0 {
-            return invalid(62);
-        }
-        match ChordInfo::decode(canonical) {
-            Ok(chord) if chord.chord_id() == CoreChordId::CancelOrEscape => {
-                self.observed = 1;
-                OperationAction::Complete
-            }
-            _ => invalid(63),
-        }
-    }
-}
-
-fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
-        code: FailureCode::InvalidInput,
-        detail,
-    })
-}
+impl TestChordSinkOperation {}
 
 pub(super) fn source_offer() -> CapabilityOffer {
     offer(

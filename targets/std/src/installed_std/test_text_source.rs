@@ -42,17 +42,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for TestTextSourceOperation {
     }
 }
 
-impl TestTextSourceOperation {
-    pub(super) fn emit_or_complete(&self) -> OperationAction {
-        self.values
-            .get(self.next)
-            .copied()
-            .map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                port: PortId(0),
-                value,
-            })
-    }
-}
+impl TestTextSourceOperation {}
 
 pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {

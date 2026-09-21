@@ -142,10 +142,6 @@ impl<const PORTS: usize> StepOperation<PORTS> for LogicCompareScalarOperation {
 }
 
 impl LogicCompareScalarOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
     pub(super) fn resume_value(
         &mut self,
         port: PortId,
@@ -166,22 +162,6 @@ impl LogicCompareScalarOperation {
         match self.operands {
             [Some(left), Some(right)] => self.decisions.decide(self.operator.evaluate(left, right)),
             _ => OperationAction::Await,
-        }
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Closed { port } => {
-                let index = usize::from(port.0);
-                if index < self.operands.len() && self.operands[index].is_none() {
-                    self.decisions.complete_without_decision()
-                } else if index < self.operands.len() {
-                    OperationAction::Await
-                } else {
-                    InstalledOperation::fail(20)
-                }
-            }
-            _ => InstalledOperation::fail(20),
         }
     }
 
@@ -269,10 +249,6 @@ const fn logic_failure(detail: u16) -> conduit_kernel::Failure {
 }
 
 impl LogicNotOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
     pub(super) fn resume_value(
         &mut self,
         port: PortId,
@@ -300,11 +276,6 @@ impl LogicNotOperation {
 
     pub(super) fn take_released_value(&mut self) -> Option<ValueRef> {
         self.decisions.take_released()
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.received = false;
-        self.decisions.cancel();
     }
 }
 
@@ -413,10 +384,6 @@ impl LogicSelectScalarOperation {
 }
 
 impl LogicSelectScalarOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
     pub(super) fn resume_value(
         &mut self,
         port: PortId,

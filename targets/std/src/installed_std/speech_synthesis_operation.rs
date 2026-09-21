@@ -255,11 +255,6 @@ impl SpeechSynthesisOperation {
         OperationAction::Await
     }
 
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.finished = true;
-    }
-
     fn request(&mut self, input: BoundedValueRef) -> OperationAction {
         let request = RequestId(self.next_request);
         self.next_request = self.next_request.saturating_add(1);

@@ -88,52 +88,7 @@ const fn midi_fixture_fail() -> StepOutcome {
     })
 }
 
-impl TestMidiSourceOperation {
-    pub(super) fn emit_or_complete(&self) -> OperationAction {
-        self.values
-            .get(self.next)
-            .copied()
-            .map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                port: self.ports[self.next],
-                value,
-            })
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        if self.next >= self.values.len() {
-            return OperationAction::Complete;
-        }
-        let request = RequestId(self.next as u32);
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(self.yield_markers[self.next - 1], 1)
-                .expect("test MIDI yield marker is one byte"),
-        }
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.emit_or_complete()
-            }
-            _ => InstalledOperation::fail(90),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.next = self.values.len();
-        self.pending = None;
-    }
-}
+impl TestMidiSourceOperation {}
 
 pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {

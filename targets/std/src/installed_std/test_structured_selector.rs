@@ -92,66 +92,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for SourceOperation {
     }
 }
 
-impl SourceOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        if self.waits.is_empty() {
-            self.emit_or_complete()
-        } else {
-            self.request_wait()
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        if self.next >= self.values.len() {
-            OperationAction::Complete
-        } else {
-            self.request_wait()
-        }
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.emit_or_complete()
-            }
-            _ => InstalledOperation::fail(154),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-
-    fn emit_or_complete(&self) -> OperationAction {
-        self.values
-            .get(self.next)
-            .copied()
-            .map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                port: PortId(0),
-                value,
-            })
-    }
-
-    fn request_wait(&mut self) -> OperationAction {
-        let request = RequestId(u32::try_from(self.next).expect("bounded fixture request"));
-        let Some(value) = self.waits.get(self.next).copied() else {
-            return InstalledOperation::fail(155);
-        };
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(value, 8).expect("fixture wait is exactly eight bytes"),
-        }
-    }
-}
+impl SourceOperation {}
 
 pub(super) struct SinkOperation {
     expected: Vec<Vec<Vec<u8>>>,
@@ -196,34 +137,7 @@ const fn structured_fixture_fail(detail: u16) -> StepOutcome {
     })
 }
 
-impl SinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume_value(&mut self, port: PortId, canonical: &[u8]) -> OperationAction {
-        if port != PortId(0)
-            || !self.expected.get(self.received).is_some_and(|choices| {
-                choices
-                    .iter()
-                    .any(|expected| expected.as_slice() == canonical)
-            })
-        {
-            return InstalledOperation::fail(150);
-        }
-        self.received += 1;
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Closed { port: PortId(0) } if self.received == self.expected.len() => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(151),
-        }
-    }
-}
+impl SinkOperation {}
 
 pub(crate) fn offer(value_type: &StructuredInfoType, direction: PortDirection) -> CapabilityOffer {
     offer_named(value_type, direction, SOURCE_KIND, SINK_KIND)

@@ -39,10 +39,6 @@ impl<const PORTS: usize> StepOperation<PORTS> for FlowPressureOperation {
 }
 
 impl FlowPressureOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
             OperationInput::Value {
@@ -60,8 +56,6 @@ impl FlowPressureOperation {
     pub(super) fn advance(&mut self) -> OperationAction {
         OperationAction::Await
     }
-
-    pub(super) fn cancel(&mut self) {}
 }
 
 fn backpressure_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {

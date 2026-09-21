@@ -70,20 +70,4 @@ impl<const PORTS: usize> StepOperation<PORTS> for Sink {
         StepOutcome::Await
     }
 }
-impl Sink {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        assert_eq!(input, OperationInput::Closed { port: PortId(0) });
-        assert_eq!(self.next, 3);
-        OperationAction::Complete
-    }
-    pub(super) fn resume_value(&mut self, port: PortId, canonical: &[u8]) -> OperationAction {
-        assert_eq!(port, PortId(0));
-        let pulse = conduit_time::decode_pulse_observation(canonical).unwrap();
-        assert_eq!((pulse.sequence, pulse.period_ms), (self.next, 320));
-        self.next += 1;
-        OperationAction::Await
-    }
-}
+impl Sink {}
