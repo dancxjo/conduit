@@ -76,8 +76,18 @@ for remote peers. Propagation has a finite target count, no implicit retry, and
 retains each delivered, unreachable, unauthorized, or refused outcome so partial
 reachability cannot be reported as global success.
 
-The current source-level contract and deterministic tests do not establish a
-microphone implementation, false-positive threshold, architecture halt/reset
-support beyond the existing x86_64 rescue reset, physical/HIL behavior,
-distributed propagation, or stable-release acceptance. Those proof classes
-remain explicit work under issue #3682.
+Pete's Pico W image provides one concrete local physical adapter beneath Play:
+a dedicated normally-open switch from GP22 to ground, sampled with the RP2040
+pull-up and a fixed debounce. The host arms it with a digest bound to the exact
+firmware build, Body, Host, Boot, provider and narrow policy. A one-shot press
+first latches the GP19 Create translator enable low through the RP2040 SIO clear
+boundary, then marks ordinary Play preempted. It cannot request Lull, carrier
+isolation, propagation, halt or reset. The bounded firmware receipt separates
+the observed switch edge from translator disablement and Play preemption; the
+attended electrical demonstration remains a physical proof rather than a claim
+made by source tests.
+
+The current source-level contract and deterministic tests do not establish the
+physical/HIL behavior of Pete's switch, an attended microphone path, distributed
+propagation, or stable-release acceptance. Those proof classes remain explicit
+work under issue #3682 and the owning physical quests.

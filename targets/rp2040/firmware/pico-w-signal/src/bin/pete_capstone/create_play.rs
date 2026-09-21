@@ -249,6 +249,9 @@ pub async fn serve_hello(class: &mut InertCdc) {
 }
 
 pub fn submit(kind: RequestKind) -> Result<u32, ()> {
+    if crate::create_link_gate::emergency_latched() {
+        return Err(());
+    }
     REQUEST_STATE
         .compare_exchange(
             RequestState::Idle as u8,
@@ -323,10 +326,19 @@ pub fn set_kernel_metrics(decisions: u32, signs: u32) {
 }
 
 pub(crate) fn release(generation: u32) {
-    if REQUEST_GENERATION.load(Ordering::Acquire) == generation && snapshot().state.terminal() {
+    if !crate::create_link_gate::emergency_latched()
+        && REQUEST_GENERATION.load(Ordering::Acquire) == generation
+        && snapshot().state.terminal()
+    {
         set_state(RequestState::Idle);
         REQUEST_KIND.store(RequestKind::None as u8, Ordering::Release);
     }
+}
+
+pub fn preempt_for_physical_emergency() {
+    SELECTED_LINEAR_MICROUNITS.store(0, Ordering::Release);
+    RESULT_CODE.store(11, Ordering::Release);
+    REQUEST_STATE.store(RequestState::Preempted as u8, Ordering::Release);
 }
 
 pub(crate) fn timeout(generation: u32) {
