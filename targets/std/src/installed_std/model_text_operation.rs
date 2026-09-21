@@ -3,6 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId,
 };
@@ -19,6 +20,73 @@ pub(super) struct ModelTextOperation {
     emitted: bool,
     flow: bool,
     maximum_input_bytes: u32,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for ModelTextOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted && !self.flow {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(FailureCode::InvalidLifecycle, 6);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed model-text Host Call completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready model-text output");
+                    self.pending = None;
+                    self.emitted = true;
+                    StepOutcome::Progress
+                }
+                (HostCallDisposition::Denied, _, _) => step_fail(FailureCode::HostCallDenied, 2),
+                (HostCallDisposition::Cancelled, _, _) => step_fail(FailureCode::Cancelled, 3),
+                (HostCallDisposition::Failed, _, _) => {
+                    StepOutcome::Fail(outcome.failure.unwrap_or(Failure {
+                        code: FailureCode::HostCallFailed,
+                        detail: 4,
+                    }))
+                }
+                _ => step_fail(FailureCode::InvalidLifecycle, 5),
+            }
+        } else if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() || (!self.flow && self.emitted) {
+                return step_fail(FailureCode::InvalidLifecycle, 6);
+            }
+            let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
+                return step_fail(FailureCode::InvalidInput, 1);
+            };
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_fail(FailureCode::StorageExhausted, 1);
+            };
+            io.consume(PortId(0)).expect("present model result input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("model-text projection Host Call");
+            self.next_request = next;
+            self.pending = Some(request);
+            StepOutcome::Progress
+        } else if self.flow && io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed model result closure");
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Await
+        }
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl ModelTextOperation {
