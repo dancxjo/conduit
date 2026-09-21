@@ -10,9 +10,11 @@ use conduit_core::{
 };
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, Operation, OperationAction,
-    OperationInput, PortId, RequestId, SignSink, ValueRef, ValueStorage,
-    scheduler::{FixedScheduler, OperationDriver, SchedulerStatus},
+    HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, PortId, RequestId, SignSink,
+    ValueRef, ValueStorage,
+    scheduler::{
+        FixedScheduler, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+    },
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
@@ -38,25 +40,20 @@ struct Source {
     emitted: bool,
 }
 
-impl Operation for Source {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.value,
-        }
-    }
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        invalid(1)
-    }
-    fn advance(&mut self) -> OperationAction {
+impl Source {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
         if self.emitted {
-            OperationAction::Complete
-        } else {
-            self.emitted = true;
-            OperationAction::Complete
+            return StepOutcome::Complete;
         }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        if io.send(PortId(0), self.value).is_err() {
+            return invalid(1);
+        }
+        self.emitted = true;
+        StepOutcome::Progress
     }
-    fn cancel(&mut self) {}
 }
 
 #[derive(Clone, Copy)]
@@ -65,46 +62,51 @@ struct Client {
     emitted: bool,
 }
 
-impl Operation for Client {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending && !self.emitted => {
-                self.pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(value, REQUEST_BYTES as u32).unwrap(),
-                }
-            }
-            OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.failure.is_none()
-                && outcome.output.is_some() =>
+impl Client {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        if self.pending {
+            let Some((request, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            let Some(output) = outcome.output else {
+                return invalid(2);
+            };
+            if request != RequestId(0)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
+                || !io.output_ready(PortId(0))
+                || io.consume_host_completion().is_err()
+                || io.send(PortId(0), output.value).is_err()
             {
-                self.pending = false;
-                self.emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: outcome.output.unwrap().value,
-                }
+                return invalid(2);
             }
-            OperationInput::Closed { port: PortId(0) } if self.emitted && !self.pending => {
-                OperationAction::Complete
-            }
-            _ => invalid(2),
+            self.pending = false;
+            self.emitted = true;
+            return StepOutcome::Progress;
         }
-    }
-    fn cancel(&mut self) {
-        self.pending = false;
+        if !self.emitted
+            && let Some(value) = io.input(PortId(0))
+        {
+            let Ok(input) = BoundedValueRef::new(value, REQUEST_BYTES as u32) else {
+                return invalid(2);
+            };
+            if io.consume(PortId(0)).is_err()
+                || io
+                    .request_host_call(RequestId(0), HostCallId(0), input)
+                    .is_err()
+            {
+                return invalid(2);
+            }
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        if self.emitted && io.input_closed(PortId(0)) {
+            if io.consume_closed(PortId(0)).is_err() {
+                return invalid(2);
+            }
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 }
 
@@ -114,85 +116,77 @@ struct Sink {
     observed: bool,
 }
 
-impl Operation for Sink {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending => {
-                self.pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(value, RESPONSE_BYTES as u32).unwrap(),
-                }
-            }
-            OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
+impl Sink {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        if self.pending {
+            let Some((request, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            if request != RequestId(0)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+                || io.consume_host_completion().is_err()
             {
-                self.pending = false;
-                self.observed = true;
-                OperationAction::Await
+                return invalid(3);
             }
-            OperationInput::Closed { port: PortId(0) } if self.observed && !self.pending => {
-                OperationAction::Complete
-            }
-            _ => invalid(3),
+            self.pending = false;
+            self.observed = true;
+            return StepOutcome::Progress;
         }
-    }
-    fn cancel(&mut self) {
-        self.pending = false;
+        if let Some(value) = io.input(PortId(0)) {
+            let Ok(input) = BoundedValueRef::new(value, RESPONSE_BYTES as u32) else {
+                return invalid(3);
+            };
+            if io.consume(PortId(0)).is_err()
+                || io
+                    .request_host_call(RequestId(0), HostCallId(0), input)
+                    .is_err()
+            {
+                return invalid(3);
+            }
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        if self.observed && io.input_closed(PortId(0)) {
+            if io.consume_closed(PortId(0)).is_err() {
+                return invalid(3);
+            }
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 }
 
-enum PlannedOperation {
+enum PlannedBack {
     Source(Source),
     Client(Client),
     Sink(Sink),
 }
 
-impl Operation for PlannedOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for PlannedBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
-            Self::Source(v) => v.start(),
-            Self::Client(v) => v.start(),
-            Self::Sink(v) => v.start(),
-        }
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Source(v) => v.resume(input),
-            Self::Client(v) => v.resume(input),
-            Self::Sink(v) => v.resume(input),
-        }
-    }
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source(v) => v.advance(),
-            Self::Client(v) => v.advance(),
-            Self::Sink(v) => v.advance(),
+            Self::Source(v) => v.step(io),
+            Self::Client(v) => v.step(io),
+            Self::Sink(v) => v.step(io),
         }
     }
     fn cancel(&mut self) {
         match self {
-            Self::Source(v) => v.cancel(),
-            Self::Client(v) => v.cancel(),
-            Self::Sink(v) => v.cancel(),
+            Self::Source(_) => {}
+            Self::Client(v) => v.pending = false,
+            Self::Sink(v) => v.pending = false,
         }
     }
 }
 
-const fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+const fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
         detail,
     })
@@ -452,22 +446,22 @@ fn run_ordinary_form() {
     bindings.seal().unwrap();
     let mut drivers = [None, None, None];
     for (index, placement) in fragment.placements.iter().enumerate() {
-        let operation = match placement.implementation_id.as_str() {
-            SOURCE_IMPLEMENTATION => PlannedOperation::Source(Source {
+        let back = match placement.implementation_id.as_str() {
+            SOURCE_IMPLEMENTATION => PlannedBack::Source(Source {
                 value: request_value,
                 emitted: false,
             }),
-            IMPLEMENTATION => PlannedOperation::Client(Client {
+            IMPLEMENTATION => PlannedBack::Client(Client {
                 pending: false,
                 emitted: false,
             }),
-            SINK_IMPLEMENTATION => PlannedOperation::Sink(Sink {
+            SINK_IMPLEMENTATION => PlannedBack::Sink(Sink {
                 pending: false,
                 observed: false,
             }),
             _ => panic!("unexpected implementation"),
         };
-        drivers[index] = Some(OperationDriver::<PlannedOperation, PORTS>::new(operation).unwrap());
+        drivers[index] = Some(back);
     }
     let [Some(first), Some(second), Some(third)] = drivers else {
         panic!("all drivers")

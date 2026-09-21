@@ -1,7 +1,7 @@
 //! Allocation-independent installation of the lowered ordinary text Plan.
 
-use crate::text_kernel_operations::{
-    LiteralOperation, LiteralState, PlannedOperation, PresentationOperation, UpperOperation,
+use crate::text_kernel_backs::{
+    LiteralBack, LiteralState, PlannedBack, PresentationBack, UpperBack,
 };
 use conduit_core::{ConfigurationValue, PlanFragment};
 #[cfg(test)]
@@ -9,9 +9,7 @@ use conduit_kernel::RequestId;
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
-    scheduler::{
-        FixedScheduler, HostCallRequest, OperationDriver, SchedulerError, SchedulerStatus,
-    },
+    scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
@@ -27,7 +25,7 @@ const VALUE_SLOTS: usize = 6;
 const VALUE_BYTES: usize = (conduit_text::MAX_TEXT_BYTES as usize) * 3;
 const SIGN_CAPACITY: usize = 64;
 
-type Driver = OperationDriver<PlannedOperation, PORTS>;
+type Driver = PlannedBack;
 type Scheduler = FixedScheduler<
     Driver,
     FixedValueStore<VALUE_SLOTS, VALUE_BYTES>,
@@ -103,19 +101,18 @@ impl TextPlannedKernel {
             bindings.install(operation.node, operation.binding)?;
         }
         bindings.seal()?;
-        let literal_driver = OperationDriver::new(PlannedOperation::Literal(LiteralOperation {
+        let literal_driver = PlannedBack::Literal(LiteralBack {
             text,
             state: LiteralState::Emitting,
-        }))?;
-        let presentation_driver =
-            OperationDriver::new(PlannedOperation::Presentation(PresentationOperation {
-                pending: false,
-                complete: false,
-            }))?;
-        let upper_driver = OperationDriver::new(PlannedOperation::Upper(UpperOperation {
+        });
+        let presentation_driver = PlannedBack::Presentation(PresentationBack {
+            pending: false,
+            complete: false,
+        });
+        let upper_driver = PlannedBack::Upper(UpperBack {
             pending: false,
             emitted: false,
-        }))?;
+        });
         let mut drivers = [None, None, None];
         drivers[literal_index] = Some(literal_driver);
         drivers[upper_index] = Some(upper_driver);

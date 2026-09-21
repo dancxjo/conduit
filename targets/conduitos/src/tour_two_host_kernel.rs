@@ -12,7 +12,7 @@ use conduit_plan_lowering::lowering::{
     FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment, RemoteCordDirection,
 };
 
-use crate::text_kernel_operations::{LiteralOperation, LiteralState, PresentationOperation};
+use crate::text_kernel_backs::{LiteralBack, LiteralState, PresentationBack};
 
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const SIGN_CAPACITY: usize = 32;
@@ -20,7 +20,7 @@ const REMOTE_SIGN_CAPACITY: u16 = 16;
 const VALUE_BYTES: usize = conduit_text::MAX_TEXT_BYTES as usize;
 
 type SourceScheduler = FixedScheduler<
-    conduit_kernel::scheduler::OperationDriver<LiteralOperation, PORTS>,
+    LiteralBack,
     FixedValueStore<1, VALUE_BYTES>,
     FixedSignLog<SIGN_CAPACITY>,
     1,
@@ -31,7 +31,7 @@ type SourceScheduler = FixedScheduler<
     1,
 >;
 type SinkScheduler = FixedScheduler<
-    conduit_kernel::scheduler::OperationDriver<PresentationOperation, PORTS>,
+    PresentationBack,
     FixedValueStore<1, VALUE_BYTES>,
     FixedSignLog<SIGN_CAPACITY>,
     1,
@@ -97,12 +97,10 @@ impl SourceKernel {
             [lowered.node_specs[0]],
             [lowered.cords[0].spec],
             routes,
-            [conduit_kernel::scheduler::OperationDriver::new(
-                LiteralOperation {
-                    text,
-                    state: LiteralState::Emitting,
-                },
-            )?],
+            [LiteralBack {
+                text,
+                state: LiteralState::Emitting,
+            }],
             values,
             signs,
         )?;
@@ -175,12 +173,10 @@ impl SinkKernel {
             [lowered.cords[0].spec],
             routes,
             bindings,
-            [conduit_kernel::scheduler::OperationDriver::new(
-                PresentationOperation {
-                    pending: false,
-                    complete: false,
-                },
-            )?],
+            [PresentationBack {
+                pending: false,
+                complete: false,
+            }],
             FixedValueStore::<1, VALUE_BYTES>::new(VALUE_BYTES as u32)?,
             signs(lowered.sign_bytes)?,
         )?;

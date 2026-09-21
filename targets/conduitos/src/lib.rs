@@ -197,7 +197,7 @@ pub mod spore_provision;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod synth_nucleus;
 pub mod text_composition;
-mod text_kernel_operations;
+mod text_kernel_backs;
 mod text_offer;
 pub mod text_planned_kernel;
 pub mod text_upper;
@@ -208,8 +208,8 @@ pub mod timing_profile;
 mod tour_comparison_kernel;
 pub mod tour_comparison_plan;
 mod tour_comparison_play;
+mod tour_morse_backs;
 mod tour_morse_kernel;
-mod tour_morse_operations;
 mod tour_morse_plan;
 mod tour_morse_play;
 pub mod tour_play;
