@@ -9,7 +9,7 @@ kernel-step = ["dep:conduit-kernel"]
 form-catalog = ["dep:conduit-form"]
 
 [dependencies]
-conduit-kernel = { path = "../../architecture/kernel", optional = true, features = ["alloc"] }
+conduit-kernel = { path = "../../architecture/kernel", optional = true, features = ["alloc", "step-test-support"] }
 conduit-core = { path = "../../architecture/core" }
 conduit-form = { path = "../../architecture/form", optional = true }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }

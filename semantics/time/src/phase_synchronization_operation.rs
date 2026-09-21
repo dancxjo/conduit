@@ -1,8 +1,8 @@
 //! Shared deterministic kernel operation for finite phase following.
 
 use conduit_kernel::{
-    CanonicalValue, Failure, FailureCode, Operation, OperationAction, OperationInput, PortId,
-    ValueRef,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    CanonicalValue, Failure, FailureCode, PortId,
 };
 
 use crate::{
@@ -12,9 +12,7 @@ use crate::{
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Lifecycle {
-    Prepared,
     Ready,
-    Emitting,
     Terminal,
     Cancelled,
 }
@@ -35,7 +33,7 @@ impl PhaseSynchronizationOperation {
             peer: None,
             closed: [false; 2],
             last_outcome: None,
-            lifecycle: Lifecycle::Prepared,
+            lifecycle: Lifecycle::Ready,
         }
     }
 
@@ -43,9 +41,9 @@ impl PhaseSynchronizationOperation {
         self.last_outcome
     }
 
-    fn derive_if_ready(&mut self) -> OperationAction {
+    fn derive_if_ready<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
         let (Some(local), Some(peer)) = (self.local.as_mut(), self.peer) else {
-            return OperationAction::Await;
+            return StepOutcome::Progress;
         };
         let observed_at_ms = peer.sequence.wrapping_mul(u32::from(peer.period_ms));
         let outcome = match synchronize(local, peer, observed_at_ms) {
@@ -57,11 +55,10 @@ impl PhaseSynchronizationOperation {
             Err(_) => return failure(FailureCode::StorageExhausted, 512),
         };
         self.last_outcome = Some(outcome);
-        self.lifecycle = Lifecycle::Emitting;
-        OperationAction::EmitCanonical {
-            port: PortId(0),
-            value,
-        }
+        io.send_canonical(PortId(0), value)
+            .expect("ready phase synchronization output");
+        self.peer = None;
+        StepOutcome::Progress
     }
 }
 
@@ -71,75 +68,79 @@ impl Default for PhaseSynchronizationOperation {
     }
 }
 
-impl Operation for PhaseSynchronizationOperation {
-    fn start(&mut self) -> OperationAction {
-        if self.lifecycle != Lifecycle::Prepared {
-            return failure(FailureCode::InvalidLifecycle, 500);
-        }
-        self.lifecycle = Lifecycle::Ready;
-        OperationAction::Await
-    }
-
-    fn resume_value(&mut self, port: PortId, _: ValueRef, canonical: &[u8]) -> OperationAction {
+impl<const PORTS: usize> StepOperation<PORTS> for PhaseSynchronizationOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         if self.lifecycle == Lifecycle::Cancelled {
             return failure(FailureCode::Cancelled, 509);
         }
         if self.lifecycle != Lifecycle::Ready {
             return failure(FailureCode::InvalidLifecycle, 501);
         }
-        match port {
-            PortId(0) if self.local.is_none() && !self.closed[0] => {
-                self.local = match decode_rhythm_state(canonical) {
-                    Ok(value) => Some(value),
-                    Err(_) => return failure(FailureCode::InvalidInput, 502),
-                };
+        let local_input = io.input(PortId(0)).is_some();
+        let peer_input = io.input(PortId(1)).is_some();
+        if (local_input && (self.local.is_some() || self.closed[0]))
+            || (peer_input && (self.peer.is_some() || self.closed[1]))
+        {
+            return failure(FailureCode::InvalidLifecycle, 504);
+        }
+        if (self.local.is_some() || local_input)
+            && (self.peer.is_some() || peer_input)
+            && !io.output_ready(PortId(0))
+        {
+            return StepOutcome::Await;
+        }
+        if local_input {
+            let Some(canonical) = input_bytes.input(PortId(0)) else {
+                return failure(FailureCode::InvalidInput, 502);
+            };
+            self.local = match decode_rhythm_state(canonical) {
+                Ok(value) => Some(value),
+                Err(_) => return failure(FailureCode::InvalidInput, 502),
+            };
+            io.consume(PortId(0))
+                .expect("present phase synchronization state");
+        }
+        if peer_input {
+            let Some(canonical) = input_bytes.input(PortId(1)) else {
+                return failure(FailureCode::InvalidInput, 503);
+            };
+            self.peer = match decode_pulse_observation(canonical) {
+                Ok(value) => Some(value),
+                Err(_) => return failure(FailureCode::InvalidInput, 503),
+            };
+            io.consume(PortId(1))
+                .expect("present phase synchronization observation");
+        }
+        if local_input || peer_input {
+            return self.derive_if_ready(io);
+        }
+        let mut observed_close = false;
+        for port in [PortId(0), PortId(1)] {
+            let index = usize::from(port.0);
+            if io.input_closed(port) && !self.closed[index] {
+                io.consume_closed(port)
+                    .expect("observed phase synchronization closure");
+                self.closed[index] = true;
+                observed_close = true;
+                break;
             }
-            PortId(1) if self.peer.is_none() && !self.closed[1] => {
-                self.peer = match decode_pulse_observation(canonical) {
-                    Ok(value) => Some(value),
-                    Err(_) => return failure(FailureCode::InvalidInput, 503),
-                };
-            }
-            PortId(0) | PortId(1) => return failure(FailureCode::InvalidLifecycle, 504),
-            _ => return failure(FailureCode::InvalidPort, 505),
         }
-        self.derive_if_ready()
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        if self.lifecycle == Lifecycle::Cancelled {
-            return failure(FailureCode::Cancelled, 509);
-        }
-        if self.lifecycle != Lifecycle::Ready {
-            return failure(FailureCode::InvalidLifecycle, 506);
-        }
-        let OperationInput::Closed { port } = input else {
-            return failure(FailureCode::InvalidLifecycle, 507);
-        };
-        let Some(closed) = self.closed.get_mut(usize::from(port.0)) else {
-            return failure(FailureCode::InvalidPort, 505);
-        };
-        *closed = true;
         if self.closed == [true, true] {
             if self.local.is_none() || self.peer.is_some() {
                 return failure(FailureCode::InvalidInput, 508);
             }
             self.lifecycle = Lifecycle::Terminal;
-            return OperationAction::Complete;
+            return StepOutcome::Complete;
         }
-        OperationAction::Await
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        if self.lifecycle == Lifecycle::Cancelled {
-            return failure(FailureCode::Cancelled, 509);
+        if observed_close {
+            StepOutcome::Progress
+        } else {
+            StepOutcome::Await
         }
-        if self.lifecycle != Lifecycle::Emitting {
-            return failure(FailureCode::InvalidLifecycle, 510);
-        }
-        self.peer = None;
-        self.lifecycle = Lifecycle::Ready;
-        OperationAction::Await
     }
 
     fn cancel(&mut self) {
@@ -147,17 +148,17 @@ impl Operation for PhaseSynchronizationOperation {
     }
 }
 
-fn failure(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
+fn failure(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn value(len: usize) -> ValueRef {
-        ValueRef {
-            slot: 0,
+    fn value(slot: u16, len: usize) -> conduit_kernel::ValueRef {
+        conduit_kernel::ValueRef {
+            slot,
             generation: 1,
             byte_len: len as u32,
         }
@@ -176,27 +177,41 @@ mod tests {
         operation: &mut PhaseSynchronizationOperation,
         state: RhythmState,
         peer: PulseObservation,
-    ) -> OperationAction {
-        assert_eq!(
-            operation.resume_value(
-                PortId(0),
-                value(crate::RHYTHM_STATE_ENCODED_LEN),
-                &encode_rhythm_state(state),
-            ),
-            OperationAction::Await
+    ) -> (StepOutcome, StepIo<2>) {
+        let state_bytes = encode_rhythm_state(state);
+        let mut state_io = StepIo::test_frame(
+            [Some(value(0, state_bytes.len())), None],
+            [false; 2],
+            [Some(crate::RHYTHM_STATE_ENCODED_LEN as u32), None],
+            None,
+            4,
         );
-        operation.resume_value(
-            PortId(1),
-            value(crate::PULSE_OBSERVATION_ENCODED_LEN),
-            &crate::encode_pulse_observation(peer),
-        )
+        assert_eq!(
+            operation.step(
+                &mut state_io,
+                &StepInputBytes::test_frame([Some(&state_bytes), None], None),
+            ),
+            StepOutcome::Progress
+        );
+        let peer_bytes = crate::encode_pulse_observation(peer);
+        let mut peer_io = StepIo::test_frame(
+            [None, Some(value(1, peer_bytes.len()))],
+            [false; 2],
+            [Some(crate::RHYTHM_STATE_ENCODED_LEN as u32), None],
+            None,
+            4,
+        );
+        let outcome = operation.step(
+            &mut peer_io,
+            &StepInputBytes::test_frame([None, Some(&peer_bytes)], None),
+        );
+        (outcome, peer_io)
     }
 
     #[test]
     fn stale_outside_and_adjusted_outcomes_remain_distinct() {
         let mut operation = PhaseSynchronizationOperation::new();
-        operation.start();
-        assert!(matches!(
+        assert_eq!(
             pair(
                 &mut operation,
                 local(4),
@@ -204,16 +219,16 @@ mod tests {
                     sequence: 3,
                     period_ms: 240,
                 },
-            ),
-            OperationAction::EmitCanonical { .. }
-        ));
+            )
+            .0,
+            StepOutcome::Progress
+        );
         assert_eq!(
             operation.last_outcome(),
             Some(SynchronizationOutcome::Stale)
         );
         let mut outside = PhaseSynchronizationOperation::new();
-        outside.start();
-        assert!(matches!(
+        assert_eq!(
             pair(
                 &mut outside,
                 local(8),
@@ -221,9 +236,10 @@ mod tests {
                     sequence: 8,
                     period_ms: 240,
                 },
-            ),
-            OperationAction::EmitCanonical { .. }
-        ));
+            )
+            .0,
+            StepOutcome::Progress
+        );
         assert_eq!(
             outside.last_outcome(),
             Some(SynchronizationOutcome::OutsideWindow)
@@ -233,44 +249,74 @@ mod tests {
     #[test]
     fn malformed_missing_duplicate_and_cancel_are_machine_distinct() {
         let mut malformed = PhaseSynchronizationOperation::new();
-        malformed.start();
+        let mut malformed_io = StepIo::test_frame(
+            [Some(value(0, 1)), None],
+            [false; 2],
+            [Some(crate::RHYTHM_STATE_ENCODED_LEN as u32), None],
+            None,
+            4,
+        );
         assert_eq!(
-            malformed.resume_value(PortId(0), value(1), &[0]),
+            malformed.step(
+                &mut malformed_io,
+                &StepInputBytes::test_frame([Some(&[0]), None], None),
+            ),
             failure(FailureCode::InvalidInput, 502)
         );
 
         let mut missing = PhaseSynchronizationOperation::new();
-        missing.start();
+        let local_bytes = encode_rhythm_state(local(0));
+        let mut local_io = StepIo::test_frame(
+            [Some(value(0, local_bytes.len())), None],
+            [false; 2],
+            [Some(crate::RHYTHM_STATE_ENCODED_LEN as u32), None],
+            None,
+            4,
+        );
         assert_eq!(
-            missing.resume_value(
-                PortId(0),
-                value(crate::RHYTHM_STATE_ENCODED_LEN),
-                &encode_rhythm_state(local(0)),
+            missing.step(
+                &mut local_io,
+                &StepInputBytes::test_frame([Some(&local_bytes), None], None),
             ),
-            OperationAction::Await
+            StepOutcome::Progress
         );
+        let mut close_local = StepIo::test_frame([None; 2], [true, false], [None; 2], None, 4);
         assert_eq!(
-            missing.resume(OperationInput::Closed { port: PortId(0) }),
-            OperationAction::Await
+            missing.step(
+                &mut close_local,
+                &StepInputBytes::test_frame([None; 2], None)
+            ),
+            StepOutcome::Progress
         );
+        let mut close_peer = StepIo::test_frame([None; 2], [false, true], [None; 2], None, 4);
         assert_eq!(
-            missing.resume(OperationInput::Closed { port: PortId(1) }),
-            OperationAction::Complete
+            missing.step(
+                &mut close_peer,
+                &StepInputBytes::test_frame([None; 2], None)
+            ),
+            StepOutcome::Complete
         );
 
         let mut no_local = PhaseSynchronizationOperation::new();
-        no_local.start();
-        no_local.resume(OperationInput::Closed { port: PortId(0) });
+        let mut close_local = StepIo::test_frame([None; 2], [true, false], [None; 2], None, 4);
+        no_local.step(
+            &mut close_local,
+            &StepInputBytes::test_frame([None; 2], None),
+        );
+        let mut close_peer = StepIo::test_frame([None; 2], [false, true], [None; 2], None, 4);
         assert_eq!(
-            no_local.resume(OperationInput::Closed { port: PortId(1) }),
+            no_local.step(
+                &mut close_peer,
+                &StepInputBytes::test_frame([None; 2], None)
+            ),
             failure(FailureCode::InvalidInput, 508)
         );
 
         let mut cancelled = PhaseSynchronizationOperation::new();
-        cancelled.start();
-        cancelled.cancel();
+        StepOperation::<2>::cancel(&mut cancelled);
+        let mut io = StepIo::test_frame([None; 2], [true, false], [None; 2], None, 4);
         assert_eq!(
-            cancelled.resume(OperationInput::Closed { port: PortId(0) }),
+            cancelled.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
             failure(FailureCode::Cancelled, 509)
         );
     }
