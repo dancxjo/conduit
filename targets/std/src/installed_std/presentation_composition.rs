@@ -1,6 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
     RequestId, ValueRef, ValueStorage,
 };
@@ -59,6 +60,51 @@ pub(super) struct GraphicsPresentationOperation {
     presented: bool,
 }
 
+impl<const PORTS: usize> StepOperation<PORTS> for GraphicsPresentationOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if request != RequestId(0) || !self.pending {
+                return StepOutcome::Fail(step_failure(48));
+            }
+            io.consume_host_completion()
+                .expect("observed graphics Presentation completion");
+            self.pending = false;
+            if let Some(failure) = outcome.failure {
+                return StepOutcome::Fail(failure);
+            }
+            if outcome.disposition != HostCallDisposition::Completed || outcome.output.is_some() {
+                return StepOutcome::Fail(step_failure(48));
+            }
+            self.presented = true;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending || self.presented {
+                return StepOutcome::Fail(step_failure(48));
+            }
+            let Ok(input) = BoundedValueRef::new(value, MAX_GRAPHICS_SCENE_BYTES as u32) else {
+                return StepOutcome::Fail(step_failure(48));
+            };
+            io.consume(PortId(0))
+                .expect("present graphics Presentation input");
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("graphics Presentation Host Call");
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && !self.pending {
+            io.consume_closed(PortId(0))
+                .expect("observed graphics Presentation closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = false;
+    }
+}
+
 impl GraphicsPresentationOperation {
     pub(super) fn start(&mut self) -> OperationAction {
         OperationAction::Await
@@ -106,6 +152,23 @@ impl GraphicsPresentationOperation {
 
 #[cfg(test)]
 pub(super) struct PresentationSinkOperation;
+
+#[cfg(test)]
+impl<const PORTS: usize> StepOperation<PORTS> for PresentationSinkOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if io.input(PortId(0)).is_some() {
+            io.consume(PortId(0))
+                .expect("present test Presentation input");
+            StepOutcome::Progress
+        } else if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed test Presentation closure");
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Await
+        }
+    }
+}
 
 #[cfg(test)]
 impl PresentationSinkOperation {
@@ -187,6 +250,78 @@ impl PresentationCompositionOperation {
     pub(super) fn cancel(&mut self) {
         self.pending = false;
         self.emitted = true;
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for PresentationCompositionOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = self.source {
+            if self.emitted {
+                return StepOutcome::Complete;
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.send(PortId(0), value)
+                .expect("ready Presentation composition source output");
+            self.emitted = true;
+            return StepOutcome::Progress;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if request != RequestId(0)
+                || !self.pending
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(step_failure(46));
+            }
+            let Some(output) = outcome.output else {
+                return StepOutcome::Fail(step_failure(45));
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume_host_completion()
+                .expect("observed Presentation composition completion");
+            io.send(PortId(0), output.value)
+                .expect("ready Presentation composition output");
+            self.pending = false;
+            self.emitted = true;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending || self.emitted {
+                return StepOutcome::Fail(step_failure(46));
+            }
+            let Ok(input) = BoundedValueRef::new(value, MAX_PRESENTATION_COMPOSITION_BYTES as u32)
+            else {
+                return StepOutcome::Fail(step_failure(44));
+            };
+            io.consume(PortId(0))
+                .expect("present Presentation composition input");
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("Presentation composition Host Call");
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && !self.pending {
+            io.consume_closed(PortId(0))
+                .expect("observed Presentation composition closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = false;
+        self.emitted = true;
+    }
+}
+
+const fn step_failure(detail: u16) -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
     }
 }
 

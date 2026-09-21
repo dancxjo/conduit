@@ -1,6 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
     RequestId, ValueRef, ValueStorage,
 };
@@ -35,6 +36,21 @@ pub(super) struct LayoutOperation {
 }
 #[cfg(test)]
 pub(super) struct LayoutSinkOperation;
+#[cfg(test)]
+impl<const PORTS: usize> StepOperation<PORTS> for LayoutSinkOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if io.input(PortId(0)).is_some() {
+            io.consume(PortId(0)).expect("present test layout input");
+            StepOutcome::Progress
+        } else if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed test layout closure");
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Await
+        }
+    }
+}
 #[cfg(test)]
 impl LayoutSinkOperation {
     pub(super) fn start(&mut self) -> OperationAction {
@@ -110,6 +126,76 @@ impl LayoutOperation {
     pub(super) fn cancel(&mut self) {
         self.pending = None;
         self.emitted = true;
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for LayoutOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = self.source {
+            if self.emitted {
+                return StepOutcome::Complete;
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.send(PortId(0), value)
+                .expect("ready layout source output");
+            self.emitted = true;
+            return StepOutcome::Progress;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(step_failure(42));
+            }
+            let Some(output) = outcome.output else {
+                return StepOutcome::Fail(step_failure(41));
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume_host_completion()
+                .expect("observed layout Host Call completion");
+            io.send(PortId(0), output.value)
+                .expect("ready transformed layout output");
+            self.pending = None;
+            self.emitted = true;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() || self.emitted {
+                return StepOutcome::Fail(step_failure(42));
+            }
+            let Ok(input) = BoundedValueRef::new(value, MAX_LAYOUT_FRAME_BYTES as u32) else {
+                return StepOutcome::Fail(step_failure(40));
+            };
+            let request = RequestId(0);
+            io.consume(PortId(0)).expect("present layout input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("layout transform Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed layout input closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.emitted = true;
+    }
+}
+
+const fn step_failure(detail: u16) -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
     }
 }
 
