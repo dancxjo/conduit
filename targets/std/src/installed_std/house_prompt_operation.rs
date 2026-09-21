@@ -4,6 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_ai::WiredHouseContextItem;
 use conduit_core::PlannedGear;
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
     RequestId, ValueRef,
 };
@@ -17,10 +18,99 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
 
 pub(super) struct HousePromptOperation {
     seen: [bool; 2],
+    closed: [bool; 2],
     pending: Option<RequestId>,
     deferred: Option<(u16, ValueRef)>,
     next_request: u32,
     emitted: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for HousePromptOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(FailureCode::InvalidLifecycle, 3);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed House prompt completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready House prompt output");
+                    self.pending = None;
+                    self.emitted = true;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Completed, None, None) => {
+                    io.consume_host_completion()
+                        .expect("observed partial House prompt completion");
+                    self.pending = None;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Denied, _, _) => {
+                    return step_fail(FailureCode::HostCallDenied, 1)
+                }
+                (_, _, Some(failure)) => return StepOutcome::Fail(failure),
+                _ => return step_fail(FailureCode::HostCallFailed, 2),
+            }
+        }
+        for port in 0..2_u16 {
+            let id = PortId(port);
+            let Some(value) = io.input(id) else {
+                continue;
+            };
+            if self.seen[usize::from(port)] {
+                return step_fail(FailureCode::InvalidLifecycle, 3);
+            }
+            let maximum = if port == 0 {
+                conduit_tongues::MAXIMUM_ADDRESS_DETECTION_VALUE_BYTES as u32
+            } else {
+                conduit_tongues::MAXIMUM_WIRED_HOUSE_CONTEXT_VALUE_BYTES as u32
+            };
+            let Ok(input) = conduit_kernel::BoundedValueRef::new(value, maximum) else {
+                return step_fail(FailureCode::InvalidInput, 4);
+            };
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_fail(FailureCode::IdentityCapacityExhausted, 3);
+            };
+            io.consume(id).expect("present House prompt input");
+            io.request_host_call(request, HostCallId(if port == 0 { 1 } else { 0 }), input)
+                .expect("House prompt Host Call");
+            self.seen[usize::from(port)] = true;
+            self.next_request = next;
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        for port in 0..2_u16 {
+            let id = PortId(port);
+            if io.input_closed(id)
+                && self.seen[usize::from(port)]
+                && !self.closed[usize::from(port)]
+            {
+                io.consume_closed(id)
+                    .expect("observed House prompt input closure");
+                self.closed[usize::from(port)] = true;
+                return StepOutcome::Progress;
+            }
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.deferred = None;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl HousePromptOperation {
@@ -224,6 +314,7 @@ fn prepare(
     validate(placement)?;
     Ok(InstalledOperation::HousePrompt(HousePromptOperation {
         seen: [false; 2],
+        closed: [false; 2],
         pending: None,
         deferred: None,
         next_request: 0,

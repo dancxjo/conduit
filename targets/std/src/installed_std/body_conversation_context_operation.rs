@@ -1,9 +1,9 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    scheduler::HostCallRequest, BoundedValueRef, Failure, FailureCode, HostCallDisposition,
-    HostCallId, HostCallOutcome, OperationAction, OperationInput, PortId, RequestId, ValueRef,
-    ValueStorage,
+    scheduler::{HostCallRequest, StepInputBytes, StepIo, StepOperation, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
+    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -17,6 +17,78 @@ pub(super) struct BodyConversationContextOperation {
     pending: bool,
     emitted: bool,
     next_request: u32,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for BodyConversationContextOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        let Some(token) = self.token else {
+            return step_fail(FailureCode::InvalidLifecycle, 1);
+        };
+        let input = BoundedValueRef::new(token, 0).expect("empty Body context source token");
+        if let Some((request, outcome)) = io.host_completion() {
+            let expected = self
+                .next_request
+                .checked_sub(1)
+                .map(RequestId)
+                .filter(|_| self.pending);
+            if expected != Some(request) {
+                return step_fail(FailureCode::InvalidLifecycle, 5);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    let request = RequestId(self.next_request);
+                    let Some(next) = self.next_request.checked_add(1) else {
+                        return step_fail(FailureCode::IdentityCapacityExhausted, 6);
+                    };
+                    io.consume_host_completion()
+                        .expect("observed Body context source completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready Body context output");
+                    io.request_host_call(request, HostCallId(0), input)
+                        .expect("next Body context source Host Call");
+                    self.next_request = next;
+                    self.pending = true;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Denied, _, _) => {
+                    return step_fail(FailureCode::HostCallDenied, 3)
+                }
+                (HostCallDisposition::Cancelled, None, None) => {
+                    return step_fail(FailureCode::Cancelled, 4)
+                }
+                (_, _, Some(failure)) => return StepOutcome::Fail(failure),
+                _ => return step_fail(FailureCode::HostCallFailed, 4),
+            }
+        }
+        if self.pending {
+            return StepOutcome::Await;
+        }
+        let request = RequestId(self.next_request);
+        let Some(next) = self.next_request.checked_add(1) else {
+            return step_fail(FailureCode::IdentityCapacityExhausted, 6);
+        };
+        io.request_host_call(request, HostCallId(0), input)
+            .expect("Body context source Host Call");
+        self.next_request = next;
+        self.pending = true;
+        StepOutcome::Progress
+    }
+
+    fn retains_host_call_input(&self, _request: RequestId, value: ValueRef) -> bool {
+        self.token == Some(value)
+    }
+
+    fn cancel(&mut self) {
+        self.pending = false;
+        self.token = None;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 impl BodyConversationContextOperation {
     pub(super) fn start(&mut self) -> OperationAction {
