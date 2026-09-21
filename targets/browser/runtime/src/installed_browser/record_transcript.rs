@@ -1,7 +1,7 @@
 //! Browser production-kernel realization of bounded record transcript retention.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, ImplementationId, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
@@ -36,7 +36,7 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-struct TranscriptOperation {
+struct TranscriptBack {
     transcript: conduit_net::BoundedRecordTranscript,
     maximum_events: usize,
     events: usize,
@@ -45,7 +45,7 @@ struct TranscriptOperation {
     terminal_type: Vec<u8>,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TranscriptOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TranscriptBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -118,10 +118,10 @@ impl<const PORTS: usize> StepBack<PORTS> for TranscriptOperation {
     }
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     let (items, events, frame_bytes, retained_bytes) = limits(placement)?;
-    Ok(BrowserOperation::installed_step(TranscriptOperation {
+    Ok(BrowserBack::installed_step(TranscriptBack {
         transcript: conduit_net::BoundedRecordTranscript::new(
             items,
             frame_bytes,

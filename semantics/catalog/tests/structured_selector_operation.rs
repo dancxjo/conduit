@@ -4,7 +4,7 @@ use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
     PortId, RequestId, ValueRef,
 };
-use conduit_semantic_catalog::StructuredSelectorOperation;
+use conduit_semantic_catalog::StructuredSelectorBack;
 
 fn value() -> ValueRef {
     ValueRef {
@@ -14,14 +14,14 @@ fn value() -> ValueRef {
     }
 }
 
-fn input(operation: &mut StructuredSelectorOperation) -> (StepOutcome, StepIo<1>) {
+fn input(operation: &mut StructuredSelectorBack) -> (StepOutcome, StepIo<1>) {
     let mut io = StepIo::test_frame([Some(value())], [false], [Some(4096)], None, 4);
     let outcome = operation.step(&mut io, &StepInputBytes::test_frame([None], None));
     (outcome, io)
 }
 
 fn completion(
-    operation: &mut StructuredSelectorOperation,
+    operation: &mut StructuredSelectorBack,
     request: u32,
     output: bool,
 ) -> (StepOutcome, StepIo<1>) {
@@ -45,7 +45,7 @@ fn completion(
 
 #[test]
 fn dropped_value_does_not_close_flow_and_next_match_emits() {
-    let mut operation = StructuredSelectorOperation::new(4096);
+    let mut operation = StructuredSelectorBack::new(4096);
     for request in 0..2 {
         let (outcome, io) = input(&mut operation);
         assert_eq!(outcome, StepOutcome::Progress);
@@ -70,7 +70,7 @@ fn dropped_value_does_not_close_flow_and_next_match_emits() {
 
 #[test]
 fn cancel_rejects_late_completion() {
-    let mut operation = StructuredSelectorOperation::new(4096);
+    let mut operation = StructuredSelectorBack::new(4096);
     input(&mut operation);
     StepBack::<1>::cancel(&mut operation);
     assert_eq!(

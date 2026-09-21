@@ -1,7 +1,7 @@
 //! Browser realization of finite replay timing and explicit control.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
@@ -174,15 +174,13 @@ fn host_call(contract: &str, kind: &conduit_core::KindId) -> HostCallRequirement
     }
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     PreparedReplayControl::for_placement(placement)?
         .ok_or_else(|| "replay control placement selected another implementation".to_string())?;
-    Ok(BrowserOperation::installed_step(
-        ReplayControlOperation::new(),
-    ))
+    Ok(BrowserBack::installed_step(ReplayControlBack::new()))
 }
 
-struct ReplayControlOperation {
+struct ReplayControlBack {
     next_request: Option<u32>,
     stage: Stage,
     closed: [bool; 3],
@@ -195,7 +193,7 @@ enum Stage {
     EventPending(RequestId),
 }
 
-impl ReplayControlOperation {
+impl ReplayControlBack {
     const fn new() -> Self {
         Self {
             next_request: Some(0),
@@ -213,7 +211,7 @@ impl ReplayControlOperation {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for ReplayControlOperation {
+impl<const PORTS: usize> StepBack<PORTS> for ReplayControlBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             match self.stage {

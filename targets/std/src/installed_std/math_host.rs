@@ -1,6 +1,6 @@
 //! Exact hosted math request matching and completion.
 
-use super::{math_operations, InstalledScheduler};
+use super::{math_backs, InstalledScheduler};
 use conduit_core::{kind_id, HostCallContractId, KindId, PlanFragment, SCALAR_ENCODED_LEN};
 use conduit_kernel::scheduler::HostCallRequest;
 use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
@@ -144,7 +144,7 @@ impl MathHost {
                 .complete_host_call(request.node, request.request, outcome)
                 .map_err(|error| format!("complete quantity mapping: {error:?}"));
         }
-        let encoded = math_operations::transform_bytes(placement, input)?;
+        let encoded = math_backs::transform_bytes(placement, input)?;
         let value = scheduler
             .store_host_value(&encoded)
             .map_err(|error| format!("store math scalar output: {error:?}"))?;

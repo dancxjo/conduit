@@ -2,7 +2,7 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{CapabilityOffer, PlannedGear};
 
 const IMPLEMENTATION: &str = "browser/presentation-tick@1";
@@ -41,12 +41,9 @@ fn offer() -> CapabilityOffer {
 fn prepare(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
-    Ok(BrowserOperation::presentation(
-        conduit_time::TICK_ENCODED_LEN,
-        1,
-    ))
+    Ok(BrowserBack::presentation(conduit_time::TICK_ENCODED_LEN, 1))
 }
 
 fn perform(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {

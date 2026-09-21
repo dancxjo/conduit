@@ -3,7 +3,7 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     kind_id, HostCallContractId, HostCallRequirement, InfoBool, PlannedGear, BOOL_ENCODED_LEN,
     PRESENTATION_RESOURCE_CLASS,
@@ -78,9 +78,9 @@ fn indicator_offer() -> conduit_core::CapabilityOffer {
 fn prepare_mapper(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &mapper_offer())?;
-    Ok(BrowserOperation::installed_step(ButtonIndicatorOperation {
+    Ok(BrowserBack::installed_step(ButtonIndicatorBack {
         mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper::new().map_err(debug)?,
         emitted: 0,
     }))
@@ -89,9 +89,9 @@ fn prepare_mapper(
 fn prepare_indicator(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &indicator_offer())?;
-    Ok(BrowserOperation::presentation(BOOL_ENCODED_LEN as u32, 8))
+    Ok(BrowserBack::presentation(BOOL_ENCODED_LEN as u32, 8))
 }
 
 fn perform_indicator(_placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
@@ -105,12 +105,12 @@ fn perform_indicator(_placement: &PlannedGear, input: &[u8]) -> Result<BrowserHo
     })
 }
 
-struct ButtonIndicatorOperation {
+struct ButtonIndicatorBack {
     mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper,
     emitted: u32,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for ButtonIndicatorOperation {
+impl<const PORTS: usize> StepBack<PORTS> for ButtonIndicatorBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -178,7 +178,7 @@ mod tests {
     }
 
     fn step<const PORTS: usize>(
-        operation: &mut ButtonIndicatorOperation,
+        operation: &mut ButtonIndicatorBack,
         inputs: [Option<ValueRef>; PORTS],
         closed: [bool; PORTS],
         outputs: [Option<u32>; PORTS],
@@ -191,7 +191,7 @@ mod tests {
 
     #[test]
     fn pressed_and_released_emit_transaction_local_current_states() {
-        let mut operation = ButtonIndicatorOperation {
+        let mut operation = ButtonIndicatorBack {
             mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper::new().unwrap(),
             emitted: 0,
         };
@@ -228,7 +228,7 @@ mod tests {
 
     #[test]
     fn mapping_preserves_pressure_state_and_closure() {
-        let mut operation = ButtonIndicatorOperation {
+        let mut operation = ButtonIndicatorBack {
             mapper: conduit_semantic_catalog::PreparedButtonIndicatorMapper::new().unwrap(),
             emitted: 0,
         };

@@ -1,7 +1,7 @@
 //! Pure browser realization of the canonical deterministic Garden observations.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, ImplementationId, PlannedGear,
@@ -42,10 +42,7 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(
-    placement: &PlannedGear,
-    values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     let (state, clock, contact) = conduit_semantic_catalog::deterministic_garden_observations();
     let canonical = [
@@ -65,18 +62,15 @@ fn prepare(
     let values: [ValueRef; 3] = stored
         .try_into()
         .map_err(|_| "deterministic Garden source value count".to_string())?;
-    Ok(BrowserOperation::installed_step(SourceOperation {
-        values,
-        next: 0,
-    }))
+    Ok(BrowserBack::installed_step(SourceBack { values, next: 0 }))
 }
 
-struct SourceOperation {
+struct SourceBack {
     values: [ValueRef; 3],
     next: usize,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for SourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for SourceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         let Some(value) = self.values.get(self.next).copied() else {
             return StepOutcome::Complete;

@@ -4,7 +4,7 @@ mod cancellation;
 use super::*;
 use crate::installed_std::MAX_CORDS;
 use crate::installed_std::{
-    kernel_preparation::KernelTables, simple_presentation_host, typed_record_operation,
+    kernel_preparation::KernelTables, simple_presentation_host, typed_record_back,
 };
 use conduit_body::{Body, BodyFormPlan, BodyPlan, BodyPlayIdentity, ResidentForm};
 use conduit_core::{resource_offer, HostAdvertisement, Plan, SignId};
@@ -228,7 +228,7 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
     let budgets: Vec<_> = fragments
         .iter()
         .flat_map(|fragment| &fragment.placements)
-        .map(|placement| operation_budget(placement).unwrap())
+        .map(|placement| back_budget(placement).unwrap())
         .collect();
     let value_items = budgets
         .iter()
@@ -244,7 +244,7 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
         .max()
         .unwrap();
     let mut values = HostedValueStore::new(value_items, maximum_value_bytes, value_bytes).unwrap();
-    let mut drivers = core::array::from_fn(|_| InstalledOperation::inactive());
+    let mut drivers = core::array::from_fn(|_| InstalledBack::inactive());
     for (fragment, part) in fragments.iter().zip(&lowered.partitions) {
         for node in &part.nodes {
             drivers[usize::from(node.node.0)] =
@@ -288,7 +288,7 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
     let mut output = Vec::with_capacity(1024);
     let mut typed_record_hosts: Vec<_> = fragments
         .iter()
-        .flat_map(|fragment| typed_record_operation::prepare_hosts(fragment))
+        .flat_map(|fragment| typed_record_back::prepare_hosts(fragment))
         .collect();
     let mut text_state_hosts: Vec<_> = fragments
         .iter()
@@ -296,7 +296,7 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
             fragment
                 .placements
                 .iter()
-                .map(crate::installed_std::text_state_operation::TextStateHost::from_placement)
+                .map(crate::installed_std::text_state_back::TextStateHost::from_placement)
         })
         .collect::<Result<_, _>>()
         .unwrap();
@@ -348,7 +348,7 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
                     BoundedValueRef::new(value, operation.binding.maximum_output_bytes).unwrap()
                 });
             } else if operation.contract_id.as_str() == conduit_std_offers::KEYMAP_HOST_CALL {
-                let encoded = crate::installed_std::input_semantic_operations::execute_host(
+                let encoded = crate::installed_std::input_semantic_backs::execute_host(
                     true,
                     &mut input_keymaps[usize::from(request.node.0)],
                     kernel.host_value(request.input.value).unwrap(),

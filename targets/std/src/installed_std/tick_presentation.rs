@@ -1,22 +1,22 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
-pub(super) static TICK_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TICK_PRESENTATION_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::TICK_PRESENTATION_IMPLEMENTATION,
     budget,
     prepare,
 };
 
-pub(super) struct TickPresentationOperation {
+pub(super) struct TickPresentationBack {
     pending: Option<RequestId>,
     next: u32,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TickPresentationOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TickPresentationBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -67,7 +67,7 @@ fn tick_failure(code: FailureCode) -> Failure {
     Failure { code, detail: 9 }
 }
 
-impl TickPresentationOperation {}
+impl TickPresentationBack {}
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
     if placement.kind_id.as_str() != conduit_semantic_catalog::TICK_PRESENTATION_KIND
@@ -92,9 +92,9 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     Ok(())
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 1,
@@ -106,12 +106,10 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
-    Ok(InstalledOperation::TickPresentation(
-        TickPresentationOperation {
-            pending: None,
-            next: 0,
-        },
-    ))
+    Ok(InstalledBack::TickPresentation(TickPresentationBack {
+        pending: None,
+        next: 0,
+    }))
 }

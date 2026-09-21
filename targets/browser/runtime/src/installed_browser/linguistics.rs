@@ -3,7 +3,7 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, Kind,
@@ -137,7 +137,7 @@ fn presentation_contract() -> conduit_semantic_catalog::StructuredValueContract 
 fn prepare_tokenize(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &tokenize_offer())?;
     let value = conduit_language::tokenize_four("tour/gear-lab", configuration_text(placement)?)
         .map_err(|error| format!("tokenize four: {error:?}"))?;
@@ -145,15 +145,15 @@ fn prepare_tokenize(
         .canonical_bytes()
         .map_err(|error| format!("encode linguistic tokens: {error:?}"))?;
     let stored = values.store(&canonical).map_err(debug_error)?;
-    Ok(BrowserOperation::source(stored))
+    Ok(BrowserBack::source(stored))
 }
 
 fn prepare_annotate(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &annotate_offer())?;
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         1,
     ))
@@ -162,9 +162,9 @@ fn prepare_annotate(
 fn prepare_presentation(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &presentation_offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         1,
     ))

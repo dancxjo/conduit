@@ -72,7 +72,7 @@ pub(super) fn execute(
     if contract != conduit_ai::LOCAL_MODEL_OPERATION {
         return Err("model host received an unsupported operation".to_string());
     }
-    super::local_model_operation::validate(placement)?;
+    super::local_model_back::validate(placement)?;
     let Some(adapter) = local_model else {
         return Ok(ModelHostCompletion::Refused);
     };

@@ -1,7 +1,7 @@
 //! Browser realization of the shared finite named-pattern template store.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
@@ -124,10 +124,10 @@ fn validate(placement: &PlannedGear) -> Result<u64, String> {
     Ok(maximum)
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let maximum = validate(placement)?;
-    Ok(BrowserOperation::installed_step(
-        conduit_semantic_catalog::TemplateStorageOperation::new(
+    Ok(BrowserBack::installed_step(
+        conduit_semantic_catalog::TemplateStorageBack::new(
             maximum,
             MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         ),
@@ -137,7 +137,7 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserO
 fn prepare_initializer(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &initializer_offer())?;
     let configured = |key| {
         placement
@@ -169,20 +169,18 @@ fn prepare_initializer(
                 .map_err(|error| format!("template command: {error:?}"))?,
         )
         .map_err(|error| format!("store template command: {error:?}"))?;
-    Ok(BrowserOperation::installed_step(
-        TemplateInitializerOperation {
-            command: stored,
-            emitted: false,
-        },
-    ))
+    Ok(BrowserBack::installed_step(TemplateInitializerBack {
+        command: stored,
+        emitted: false,
+    }))
 }
 
-struct TemplateInitializerOperation {
+struct TemplateInitializerBack {
     command: ValueRef,
     emitted: bool,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TemplateInitializerOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TemplateInitializerBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;

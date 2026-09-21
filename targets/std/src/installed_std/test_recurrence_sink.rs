@@ -1,6 +1,6 @@
 //! Test-only finite sink proving recurrence values traversed an ordinary Cord.
 
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, ImplementationId, ImplementationOffer, KindIdentity, PlannedGear,
@@ -14,18 +14,18 @@ use conduit_kernel::{
 const KIND: &str = "conduit-test/recurrence-sink";
 const IMPLEMENTATION: &str = "conduit-test/recurrence-sink@1";
 
-pub(super) static FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
     budget,
     prepare,
 };
 
-pub(super) struct TestRecurrenceSinkOperation {
+pub(super) struct TestRecurrenceSinkBack {
     expected: u32,
     received: u32,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TestRecurrenceSinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestRecurrenceSinkBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -60,7 +60,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TestRecurrenceSinkOperation {
     }
 }
 
-impl TestRecurrenceSinkOperation {}
+impl TestRecurrenceSinkBack {}
 
 pub(crate) fn offer() -> CapabilityOffer {
     let value_kind = conduit_semantic_catalog::recurrence_result_type()
@@ -119,9 +119,9 @@ fn expected(placement: &PlannedGear) -> Result<u32, String> {
     }
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     expected(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 0,
@@ -133,11 +133,9 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
-    Ok(InstalledOperation::TestRecurrenceSink(
-        TestRecurrenceSinkOperation {
-            expected: expected(placement)?,
-            received: 0,
-        },
-    ))
+) -> Result<InstalledBack, String> {
+    Ok(InstalledBack::TestRecurrenceSink(TestRecurrenceSinkBack {
+        expected: expected(placement)?,
+        received: 0,
+    }))
 }

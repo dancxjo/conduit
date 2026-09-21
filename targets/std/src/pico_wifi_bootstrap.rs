@@ -75,7 +75,7 @@ impl Drop for VolatileCredentials {
 
 struct CredentialBack {
     output_port: PortId,
-    operation: HostCallId,
+    host_call: HostCallId,
     pending: bool,
     emitted: bool,
     empty: conduit_kernel::ValueRef,
@@ -114,7 +114,7 @@ impl StepBack<PORTS> for CredentialBack {
         let input =
             BoundedValueRef::new(self.empty, 1).expect("empty credential request is bounded");
         if io
-            .request_host_call(RequestId(0), self.operation, input)
+            .request_host_call(RequestId(0), self.host_call, input)
             .is_err()
         {
             return Self::fail(3);
@@ -145,8 +145,8 @@ pub struct PicoWifiBootstrapSource {
     fragment: PlanFragment,
     endpoint: RemoteEndpointId,
     cord: CordId,
-    operation_node: conduit_kernel::NodeId,
-    operation: HostCallId,
+    host_call_node: conduit_kernel::NodeId,
+    host_call: HostCallId,
     binding: SessionBinding,
     session: SessionMachine,
 }
@@ -220,10 +220,10 @@ impl PicoWifiBootstrapSource {
             .first()
             .map(|port| port.port)
             .ok_or_else(|| "credential source output missing".to_owned())?;
-        let operation = lowered.host_calls[0].binding.call;
+        let host_call = lowered.host_calls[0].binding.call;
         let back = CredentialBack {
             output_port,
-            operation,
+            host_call,
             pending: false,
             emitted: false,
             empty,
@@ -272,8 +272,8 @@ impl PicoWifiBootstrapSource {
             fragment,
             endpoint: remote.endpoint,
             cord: remote.cord,
-            operation_node: lowered.host_calls[0].node,
-            operation,
+            host_call_node: lowered.host_calls[0].node,
+            host_call,
             binding,
             session,
         })
@@ -393,8 +393,8 @@ impl PicoWifiBootstrapSource {
     }
 
     fn complete_credentials(&mut self, request: HostCallRequest) -> Result<(), String> {
-        if request.node != self.operation_node
-            || request.call != self.operation
+        if request.node != self.host_call_node
+            || request.call != self.host_call
             || request.request != RequestId(0)
         {
             return Err("credential Host Call identity mismatch".to_owned());

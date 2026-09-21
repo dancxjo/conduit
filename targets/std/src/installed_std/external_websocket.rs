@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -6,7 +6,7 @@ use conduit_kernel::{
     ValueRef, ValueStorage,
 };
 
-pub(super) static EXTERNAL_WEBSOCKET_LISTENER_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static EXTERNAL_WEBSOCKET_LISTENER_FACTORY: BackFactory = BackFactory {
     implementation_id: "std/native-external-websocket-listener@1",
     budget,
     prepare,
@@ -24,7 +24,7 @@ enum AfterEmit {
     AwaitSend,
 }
 
-pub(super) struct ExternalWebSocketListenerOperation {
+pub(super) struct ExternalWebSocketListenerBack {
     accept_commands: [ValueRef; 2],
     initial_receive_command: Option<ValueRef>,
     connected: [bool; 2],
@@ -36,7 +36,7 @@ pub(super) struct ExternalWebSocketListenerOperation {
     after_emit: AfterEmit,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for ExternalWebSocketListenerOperation {
+impl<const PORTS: usize> StepBack<PORTS> for ExternalWebSocketListenerBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if request != RequestId(self.next_request.saturating_sub(1)) {
@@ -156,7 +156,7 @@ impl<const PORTS: usize> StepBack<PORTS> for ExternalWebSocketListenerOperation 
     }
 }
 
-impl ExternalWebSocketListenerOperation {
+impl ExternalWebSocketListenerBack {
     fn next_request_id(&self) -> Option<(RequestId, u32)> {
         self.next_request
             .checked_add(1)
@@ -238,9 +238,9 @@ const fn step_fail(detail: u16) -> StepOutcome {
     step_failure(FailureCode::InvalidLifecycle, detail)
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_ITEMS,
         value_bytes: conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_BYTES,
         host_requests: 2
@@ -254,7 +254,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
     let bind = placement
         .configuration
@@ -266,8 +266,8 @@ fn prepare(
         .ok_or_else(|| "external WebSocket listener has no bind address".to_string())?;
     let accept_commands = [store(values, bind)?, store(values, bind)?];
     let initial_receive_command = store(values, &[0])?;
-    Ok(InstalledOperation::ExternalWebSocketListener(
-        ExternalWebSocketListenerOperation {
+    Ok(InstalledBack::ExternalWebSocketListener(
+        ExternalWebSocketListenerBack {
             accept_commands,
             initial_receive_command: Some(initial_receive_command),
             connected: [false; 2],

@@ -1,7 +1,7 @@
 //! Pure-kernel browser realizations of explicit framed-record temporal adapters.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
     ImplementationId, Kind, PlannedGear,
@@ -58,15 +58,15 @@ fn offer(contract: Kind, implementation: &str) -> CapabilityOffer {
 fn prepare_singleton(
     placement: &PlannedGear,
     _: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &singleton_offer())?;
-    Ok(BrowserOperation::singleton_stream(MAXIMUM))
+    Ok(BrowserBack::singleton_stream(MAXIMUM))
 }
 
 fn prepare_exactly_one(
     placement: &PlannedGear,
     _: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &exactly_one_offer())?;
-    Ok(BrowserOperation::exactly_one(MAXIMUM))
+    Ok(BrowserBack::exactly_one(MAXIMUM))
 }

@@ -1,7 +1,7 @@
 //! Exact std Host offer facts for the reviewed hosted HNSW profile.
 
 use conduit_ai::{
-    validate_process_identity, vector_search_contract, vector_search_operation,
+    validate_process_identity, vector_search_back, vector_search_contract,
     vector_search_startup_parameters, SimilarityMetric, VectorSearchOfferInvalidity,
     VECTOR_SEARCH_RESOURCE_CLASS,
 };
@@ -60,7 +60,7 @@ pub fn hosted_hnsw_vector_search_offer(
                 "conduit-std-host/vector-search/{HOSTED_HNSW_LIBRARY_NAME}-{HOSTED_HNSW_LIBRARY_VERSION}@1"
             )),
         },
-        host_calls: vec![vector_search_operation(&contract)],
+        host_calls: vec![vector_search_back(&contract)],
         resource_requirements: vec![resource_requirement(
             VECTOR_SEARCH_RESOURCE_CLASS,
             contract.maximum_query_work_units,

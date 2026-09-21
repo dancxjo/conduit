@@ -40,7 +40,7 @@ type SinkScheduler = FixedScheduler<
 
 struct ShowBack {
     input_port: PortId,
-    present_operation: conduit_kernel::HostCallId,
+    present_host_call: conduit_kernel::HostCallId,
     pending: Option<RequestId>,
     presented: usize,
 }
@@ -67,7 +67,7 @@ impl StepBack<PORTS> for ShowBack {
                     || io
                         .request_host_call(
                             request,
-                            self.present_operation,
+                            self.present_host_call,
                             BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
                                 .expect("generated remote Signal is exactly bounded"),
                         )
@@ -108,7 +108,7 @@ pub struct RemoteSignalKernel {
     endpoint: conduit_kernel::RemoteEndpointId,
     cord: conduit_kernel::CordId,
     show_node: conduit_kernel::NodeId,
-    present_operation: conduit_kernel::HostCallId,
+    present_host_call: conduit_kernel::HostCallId,
     presented: usize,
     closed: bool,
     identity: SignalExecutionIdentity,
@@ -146,7 +146,7 @@ impl RemoteSignalKernel {
         .map_err(UsbLinkError::SignStorage)?;
         let driver = ShowBack {
             input_port: layout.show_input_port,
-            present_operation: layout.present_operation,
+            present_host_call: layout.present_host_call,
             pending: None,
             presented: 0,
         };
@@ -165,7 +165,7 @@ impl RemoteSignalKernel {
             endpoint,
             cord,
             show_node: layout.show_node,
-            present_operation: layout.present_operation,
+            present_host_call: layout.present_host_call,
             presented: 0,
             closed: false,
             identity,
@@ -187,7 +187,7 @@ impl RemoteSignalKernel {
     ) -> UsbLinkResult<Signal> {
         loop {
             if let Some(request) = self.scheduler.next_host_request() {
-                if request.node != self.show_node || request.call != self.present_operation {
+                if request.node != self.show_node || request.call != self.present_host_call {
                     return Err(UsbLinkError::InvalidGeneratedEndpoint);
                 }
                 let signal = decode_signal_bytes(

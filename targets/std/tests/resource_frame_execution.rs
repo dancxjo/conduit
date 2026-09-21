@@ -11,7 +11,7 @@ use conduit_planner::proof::resource_frame::*;
 use conduit_std_host::hosted_resource::HostedResourceGeneration;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 type Scheduler = FixedScheduler<
-    execution::FrameOperation,
+    execution::FrameBack,
     HostedValueStore,
     HostedSignLog,
     4,
@@ -167,7 +167,7 @@ fn execute(copy: bool) -> (Vec<u64>, u16) {
     let drivers = lowered
         .nodes
         .iter()
-        .map(|node| execution::FrameOperation {
+        .map(|node| execution::FrameBack {
             input: node.inputs.first().map(|p| p.port),
             output: node.outputs.first().map(|p| {
                 (
@@ -180,7 +180,7 @@ fn execute(copy: bool) -> (Vec<u64>, u16) {
                     },
                 )
             }),
-            operation: lowered
+            host_call: lowered
                 .host_calls
                 .iter()
                 .find(|o| o.node == node.node)

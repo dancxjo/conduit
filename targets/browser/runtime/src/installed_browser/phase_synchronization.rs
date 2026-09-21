@@ -28,7 +28,7 @@ fn offer() -> CapabilityOffer {
 fn prepare(
     placement: &conduit_core::PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<super::BrowserOperation, String> {
+) -> Result<super::BrowserBack, String> {
     super::factory::validate_placement(placement, &offer())?;
     if !placement.configuration.is_empty()
         || !placement.resources.is_empty()
@@ -36,8 +36,8 @@ fn prepare(
     {
         return Err("phase synchronization admission differs from installation".into());
     }
-    Ok(super::BrowserOperation::installed_step(
-        conduit_time::PhaseSynchronizationOperation::new(),
+    Ok(super::BrowserBack::installed_step(
+        conduit_time::PhaseSynchronizationBack::new(),
     ))
 }
 
@@ -77,7 +77,7 @@ mod tests {
         assert_eq!(offer.inputs, semantic.inputs);
         assert_eq!(offer.outputs, semantic.outputs);
         assert_eq!(offer.limits, semantic.limits);
-        let mut operation = conduit_time::PhaseSynchronizationOperation::new();
+        let mut operation = conduit_time::PhaseSynchronizationBack::new();
         let local = conduit_time::RhythmState {
             sequence: 7,
             next_pulse_at_ms: 1_000,

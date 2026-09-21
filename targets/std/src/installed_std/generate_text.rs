@@ -1,33 +1,33 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
-pub(super) static GENERATE_TEXT_SMALL_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static GENERATE_TEXT_SMALL_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_ai::SMALL_LOCAL_IMPLEMENTATION,
     budget,
     prepare,
 };
-pub(super) static GENERATE_TEXT_LARGE_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static GENERATE_TEXT_LARGE_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_ai::LARGE_LOCAL_IMPLEMENTATION,
     budget,
     prepare,
 };
-pub(super) static GENERATE_TEXT_REMOTE_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static GENERATE_TEXT_REMOTE_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_ai::REMOTE_FRONTIER_IMPLEMENTATION,
     budget,
     prepare,
 };
 
-pub(super) struct GenerateTextOperation {
+pub(super) struct GenerateTextBack {
     maximum_input_bytes: u32,
     pending: bool,
     emitted: bool,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for GenerateTextOperation {
+impl<const PORTS: usize> StepBack<PORTS> for GenerateTextBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;
@@ -85,7 +85,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl GenerateTextOperation {}
+impl GenerateTextBack {}
 
 pub(super) fn execute_fixture(
     placement: &PlannedGear,
@@ -163,7 +163,7 @@ fn configuration_count(placement: &PlannedGear, key: &str) -> Result<u64, String
         .ok_or_else(|| format!("generate-text configuration '{key}' is missing"))
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
     let maximum_input_bytes = u32::try_from(configuration_count(placement, "maximum-input-bytes")?)
         .map_err(|_| "generate-text input bound does not fit the kernel".to_string())?;
@@ -171,7 +171,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         .checked_mul(4)
         .and_then(|value| u32::try_from(value).ok())
         .ok_or_else(|| "generate-text output bound does not fit the kernel".to_string())?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 1,
         value_bytes: maximum_output_bytes,
         host_requests: 1,
@@ -183,9 +183,9 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
-    Ok(InstalledOperation::GenerateText(GenerateTextOperation {
+    Ok(InstalledBack::GenerateText(GenerateTextBack {
         maximum_input_bytes: u32::try_from(configuration_count(placement, "maximum-input-bytes")?)
             .map_err(|_| "generate-text input bound does not fit the kernel".to_string())?,
         pending: false,

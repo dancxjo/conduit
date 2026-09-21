@@ -1,14 +1,14 @@
 //! Test-only finite pulse sink. This is byte-checking instrumentation, not manifestation.
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{CapabilityId, CapabilityOffer, PlannedGear, PortDirection};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     HostedValueStore, PortId,
 };
-pub(super) static FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: "conduit-test/pulse-sink@1",
     budget: |_| {
-        Ok(OperationBudget {
+        Ok(BackBudget {
             value_items: 1,
             value_bytes: 1,
             host_requests: 0,
@@ -32,7 +32,7 @@ pub(super) fn offer() -> CapabilityOffer {
 fn prepare(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     let offer = offer();
     if placement.kind_id != offer.kind_id
         || placement.inputs != offer.inputs
@@ -40,7 +40,7 @@ fn prepare(
     {
         return Err("invalid test pulse sink".into());
     }
-    Ok(InstalledOperation::TestPulseSink(Sink { next: 0 }))
+    Ok(InstalledBack::TestPulseSink(Sink { next: 0 }))
 }
 pub(super) struct Sink {
     next: u32,

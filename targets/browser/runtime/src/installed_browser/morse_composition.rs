@@ -1,7 +1,7 @@
 //! Browser installations for the typed finite Morse composition verbs.
 
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
@@ -145,14 +145,11 @@ fn value_bound(kind: &str) -> u32 {
     }
 }
 
-fn prepare(
-    placement: &PlannedGear,
-    _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let offer = installed_offer(placement.implementation_id.as_str())
         .ok_or_else(|| "unknown Morse composition installation".to_string())?;
     validate_placement(placement, &offer)?;
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         placement.host_calls[0].maximum_input_bytes,
         1,
     ))

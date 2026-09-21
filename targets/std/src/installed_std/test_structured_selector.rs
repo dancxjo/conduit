@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationEntry,
     ConfigurationValue, ExecutionProfileId, ImplementationId, ImplementationOffer, KindId,
@@ -16,25 +16,25 @@ pub(crate) const SINK_KIND: &str = "conduit-test/structured-sink";
 const SOURCE_IMPLEMENTATION: &str = "conduit-test/structured-source@1";
 const SINK_IMPLEMENTATION: &str = "conduit-test/structured-sink@1";
 
-pub(super) static SOURCE_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static SOURCE_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget,
     prepare: prepare_source,
 };
-pub(super) static SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: SINK_IMPLEMENTATION,
     budget,
     prepare: prepare_sink,
 };
 
-pub(super) struct SourceOperation {
+pub(super) struct SourceBack {
     pub(super) values: Vec<ValueRef>,
     pub(super) waits: Vec<ValueRef>,
     next: usize,
     pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for SourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for SourceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -92,14 +92,14 @@ impl<const PORTS: usize> StepBack<PORTS> for SourceOperation {
     }
 }
 
-impl SourceOperation {}
+impl SourceBack {}
 
-pub(super) struct SinkOperation {
+pub(super) struct SinkBack {
     expected: Vec<Vec<Vec<u8>>>,
     received: usize,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for SinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for SinkBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -137,7 +137,7 @@ const fn structured_fixture_fail(detail: u16) -> StepOutcome {
     })
 }
 
-impl SinkOperation {}
+impl SinkBack {}
 
 pub(crate) fn offer(value_type: &StructuredInfoType, direction: PortDirection) -> CapabilityOffer {
     offer_named(value_type, direction, SOURCE_KIND, SINK_KIND)
@@ -219,11 +219,11 @@ pub(crate) fn raw_configuration(value: &[u8]) -> Vec<ConfigurationEntry> {
     }]
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     let configured = configured_values(placement)?;
     let count = u16::try_from(configured.len()).map_err(|_| "too many structured fixtures")?;
     let maximum = configured.iter().map(Vec::len).max().unwrap_or_default() as u32;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: count.saturating_add(1),
         value_bytes: configured
             .iter()
@@ -239,7 +239,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_source(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     let stored = configured_values(placement)?
         .iter()
         .map(|value| {
@@ -259,7 +259,7 @@ fn prepare_source(
     } else {
         Vec::new()
     };
-    Ok(InstalledOperation::TestStructuredSource(SourceOperation {
+    Ok(InstalledBack::TestStructuredSource(SourceBack {
         values: stored,
         waits,
         next: 0,
@@ -270,7 +270,7 @@ fn prepare_source(
 fn prepare_sink(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     let expected = if let [ConfigurationEntry {
         key,
         value: ConfigurationValue::Text(encoded),
@@ -294,7 +294,7 @@ fn prepare_sink(
         StructuredInfoValue::from_canonical_bytes(value)
             .map_err(|error| format!("structured fixture refusal: {error:?}"))?;
     }
-    Ok(InstalledOperation::TestStructuredSink(SinkOperation {
+    Ok(InstalledBack::TestStructuredSink(SinkBack {
         expected,
         received: 0,
     }))

@@ -1,7 +1,7 @@
 //! Browser production realization of the reusable finite semantic stroke capture.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostCallRequirement, ImplementationId, PlannedGear, StructuredInfoValue,
@@ -118,27 +118,22 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(
-    placement: &PlannedGear,
-    values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     PreparedStrokeCapture::for_placement(placement)?
         .ok_or_else(|| "bounded stroke capture selected another implementation".to_string())?;
     let finish = values
         .store(FINISH_INPUT)
         .map_err(|error| format!("prepare bounded stroke finish: {error:?}"))?;
-    Ok(BrowserOperation::installed_step(
-        StrokeCaptureOperation::new(finish),
-    ))
+    Ok(BrowserBack::installed_step(StrokeCaptureBack::new(finish)))
 }
 
-struct StrokeCaptureOperation {
+struct StrokeCaptureBack {
     pending: Option<RequestId>,
     next_point: u32,
     finish: Option<ValueRef>,
 }
 
-impl StrokeCaptureOperation {
+impl StrokeCaptureBack {
     const fn new(finish: ValueRef) -> Self {
         Self {
             pending: None,
@@ -148,7 +143,7 @@ impl StrokeCaptureOperation {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for StrokeCaptureOperation {
+impl<const PORTS: usize> StepBack<PORTS> for StrokeCaptureBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {

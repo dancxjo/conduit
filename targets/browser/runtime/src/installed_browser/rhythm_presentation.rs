@@ -35,9 +35,9 @@ fn offer() -> CapabilityOffer {
 fn prepare(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<super::BrowserOperation, String> {
+) -> Result<super::BrowserBack, String> {
     validate_placement(placement, &offer())?;
-    Ok(super::BrowserOperation::presentation(
+    Ok(super::BrowserBack::presentation(
         conduit_time::RHYTHM_STATE_ENCODED_LEN as u32,
         1,
     ))

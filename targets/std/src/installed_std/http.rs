@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, Back,
     BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostCallContractId,
@@ -25,12 +25,12 @@ pub(super) const SERVER_RESPOND_OPERATION: &str = "conduit.host/http-server-resp
 pub(super) const SERVER_RESOURCE: &str = "conduit.resource/network/http-listener";
 pub(super) const SERVER_AUTHORITY: &str = "conduit.authority/http-listener";
 
-pub(super) static HTTP_CLIENT_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static HTTP_CLIENT_FACTORY: BackFactory = BackFactory {
     implementation_id: CLIENT_IMPLEMENTATION,
     budget: client_budget,
     prepare: prepare_client,
 };
-pub(super) static HTTP_SERVER_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static HTTP_SERVER_FACTORY: BackFactory = BackFactory {
     implementation_id: SERVER_IMPLEMENTATION,
     budget: server_budget,
     prepare: prepare_server,
@@ -146,12 +146,12 @@ fn authority(
     }
 }
 
-pub(super) struct HttpClientOperation {
+pub(super) struct HttpClientBack {
     pending: bool,
     completed: u16,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for HttpClientOperation {
+impl<const PORTS: usize> StepBack<PORTS> for HttpClientBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.completed == conduit_web::HTTP_MAXIMUM_IN_FLIGHT {
             return StepOutcome::Complete;
@@ -206,7 +206,7 @@ impl<const PORTS: usize> StepBack<PORTS> for HttpClientOperation {
     }
 }
 
-impl HttpClientOperation {}
+impl HttpClientBack {}
 
 #[derive(Clone, Copy)]
 enum ServerPending {
@@ -214,14 +214,14 @@ enum ServerPending {
     Respond,
 }
 
-pub(super) struct HttpServerOperation {
+pub(super) struct HttpServerBack {
     empty: ValueRef,
     released: Option<ValueRef>,
     pending: Option<ServerPending>,
     accepted: u16,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for HttpServerOperation {
+impl<const PORTS: usize> StepBack<PORTS> for HttpServerBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((_, outcome)) = io.host_completion() {
             let Some(pending) = self.pending else {
@@ -302,7 +302,7 @@ impl<const PORTS: usize> StepBack<PORTS> for HttpServerOperation {
     }
 }
 
-impl HttpServerOperation {
+impl HttpServerBack {
     fn request_accept_step<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) {
         let request = RequestId(u32::from(self.accepted) * 2);
         io.request_host_call(
@@ -319,11 +319,11 @@ const fn http_step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
 }
 
-impl HttpServerOperation {}
+impl HttpServerBack {}
 
-fn client_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn client_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, &client_offer())?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 2,
         value_bytes: conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES
             + conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
@@ -333,9 +333,9 @@ fn client_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     })
 }
 
-fn server_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn server_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, &server_offer())?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: conduit_web::HTTP_MAXIMUM_IN_FLIGHT * 2 + 1,
         value_bytes: u32::from(conduit_web::HTTP_MAXIMUM_IN_FLIGHT)
             * (conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES
@@ -349,9 +349,9 @@ fn server_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_client(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement, &client_offer())?;
-    Ok(InstalledOperation::HttpClient(HttpClientOperation {
+    Ok(InstalledBack::HttpClient(HttpClientBack {
         pending: false,
         completed: 0,
     }))
@@ -360,12 +360,12 @@ fn prepare_client(
 fn prepare_server(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement, &server_offer())?;
     let empty = values
         .store(&[])
         .map_err(|error| format!("store HTTP accept command: {error:?}"))?;
-    Ok(InstalledOperation::HttpServer(HttpServerOperation {
+    Ok(InstalledBack::HttpServer(HttpServerBack {
         empty,
         released: None,
         pending: None,

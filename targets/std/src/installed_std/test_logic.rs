@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
@@ -21,26 +21,26 @@ const SINK_PROFILE: &str = "conduit-test/logic-sink-kernel@1";
 const SINK_IMPLEMENTATION: &str = "conduit-test/logic-sink-kernel@1";
 const SINK_ARTIFACT: &str = "conduit-std-host/test-logic-sink@1";
 
-pub(super) static TEST_LOGIC_SCRIPT_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_LOGIC_SCRIPT_FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
     budget,
     prepare,
 };
 
-pub(super) static TEST_LOGIC_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_LOGIC_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: SINK_IMPLEMENTATION,
     budget: sink_budget,
     prepare: prepare_sink,
 };
 
-pub(super) struct TestLogicScriptOperation {
+pub(super) struct TestLogicScriptBack {
     pub(super) values: [ValueRef; 4],
     pub(super) next: usize,
 }
 
-pub(super) struct TestLogicSinkOperation;
+pub(super) struct TestLogicSinkBack;
 
-impl<const PORTS: usize> StepBack<PORTS> for TestLogicScriptOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestLogicScriptBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         let Some(value) = self.values.get(self.next).copied() else {
             return StepOutcome::Complete;
@@ -55,7 +55,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TestLogicScriptOperation {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TestLogicSinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestLogicSinkBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -79,9 +79,9 @@ impl<const PORTS: usize> StepBack<PORTS> for TestLogicSinkOperation {
     }
 }
 
-impl TestLogicScriptOperation {}
+impl TestLogicScriptBack {}
 
-impl TestLogicSinkOperation {}
+impl TestLogicSinkBack {}
 
 pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {
@@ -171,9 +171,9 @@ fn scalar_output(name: &str) -> PortDescriptor {
     }
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 4,
         value_bytes: (SCALAR_ENCODED_LEN * 4) as u32,
         host_requests: 0,
@@ -185,7 +185,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     store: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
     let values = [
         Scalar::MIN,
@@ -202,14 +202,15 @@ fn prepare(
     .collect::<Result<Vec<_>, _>>()?
     .try_into()
     .map_err(|_| "logic fixture value count changed".to_string())?;
-    Ok(InstalledOperation::TestLogicScript(
-        TestLogicScriptOperation { values, next: 0 },
-    ))
+    Ok(InstalledBack::TestLogicScript(TestLogicScriptBack {
+        values,
+        next: 0,
+    }))
 }
 
-fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn sink_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate_sink(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 0,
@@ -221,9 +222,9 @@ fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_sink(
     placement: &PlannedGear,
     _store: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate_sink(placement)?;
-    Ok(InstalledOperation::TestLogicSink(TestLogicSinkOperation))
+    Ok(InstalledBack::TestLogicSink(TestLogicSinkBack))
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {

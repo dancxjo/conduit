@@ -18,7 +18,7 @@ use preparation::{prepare_scheduler, validate_envelope};
 mod quantity_tests;
 
 use crate::installed_browser::{
-    factory, BrowserManifestation, BrowserOperation, BROWSER_HOST_CALLS_PER_GEAR,
+    factory, BrowserBack, BrowserManifestation, BROWSER_HOST_CALLS_PER_GEAR,
     BROWSER_HOST_CALL_BINDINGS, BROWSER_PENDING_REQUESTS, BROWSER_PORTS_PER_GEAR,
     BROWSER_QUEUE_SLOTS, BROWSER_ROUTE_SLOTS, BROWSER_ROUTE_TARGETS, BROWSER_SIGN_ITEMS,
     BROWSER_TOTAL_VALUE_BYTES, BROWSER_VALUE_ITEMS, MAXIMUM_BROWSER_CORDS,
@@ -36,7 +36,7 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
 
 type BrowserKernel = FixedScheduler<
-    BrowserOperation,
+    BrowserBack,
     HostedValueStore,
     HostedSignLog,
     MAXIMUM_BROWSER_GEARS,

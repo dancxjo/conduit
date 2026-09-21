@@ -152,7 +152,7 @@ fn temporal_suggestion_has_no_calendar_write_authority() {
     let effect = ModelEffectProposal {
         proposal_id: "proposal/calendar-write".into(),
         plan_id: PlanId::from("plan/temporal-candidate"),
-        operation_kind: KindId::from("calendar/create-event"),
+        back_kind: KindId::from("calendar/create-event"),
         canonical_arguments: vec![1, 2, 3],
         rationale: "create the selected candidate".into(),
         evidence: vec![],

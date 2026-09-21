@@ -103,9 +103,9 @@ pub async fn run_signal_demo(
         wait_values,
         layout.configuration.count,
         layout.pulse_output_port,
-        layout.wait_operation,
+        layout.wait_host_call,
     );
-    let show = ShowBack::new(layout.show_input_port, layout.present_operation);
+    let show = ShowBack::new(layout.show_input_port, layout.present_host_call);
     let backs = generated_backs(layout.pulse_node, layout.show_node, pulse, show);
 
     let mut scheduler = FixedScheduler::<
@@ -145,7 +145,7 @@ pub async fn run_signal_demo(
                     error = true;
                     break;
                 };
-                if req.node == layout.pulse_node && req.operation == layout.wait_operation {
+                if req.node == layout.pulse_node && req.call == layout.wait_host_call {
                     let duration_ms = scheduler
                         .host_value(req.input.value)
                         .ok()
@@ -157,7 +157,7 @@ pub async fn run_signal_demo(
                     };
                     Timer::after(Duration::from_millis(duration_ms)).await;
                     complete_host_request(&mut scheduler, req.node, req.request);
-                } else if req.node == layout.show_node && req.operation == layout.present_operation
+                } else if req.node == layout.show_node && req.call == layout.present_host_call
                 {
                     let signal = scheduler
                         .host_value(req.input.value)
@@ -360,7 +360,7 @@ struct PulseBack {
     wait_values: [ValueRef; MAX_STORED_SIGNAL_VALUES],
     count: usize,
     output_port: PortId,
-    wait_operation: HostCallId,
+    wait_host_call: HostCallId,
     next: usize,
     pending_request: Option<RequestId>,
 }
@@ -372,14 +372,14 @@ impl PulseBack {
         wait_values: [ValueRef; MAX_STORED_SIGNAL_VALUES],
         count: usize,
         output_port: PortId,
-        wait_operation: HostCallId,
+        wait_host_call: HostCallId,
     ) -> Self {
         Self {
             signal_values,
             wait_values,
             count,
             output_port,
-            wait_operation,
+            wait_host_call,
             next: 0,
             pending_request: None,
         }
@@ -430,7 +430,7 @@ impl StepBack<PORTS> for PulseBack {
         if io
             .request_host_call(
                 request,
-                self.wait_operation,
+                self.wait_host_call,
                 BoundedValueRef {
                     value: self.wait_values[self.next],
                     admitted_bytes: WAIT_VALUE_BYTES,
@@ -448,17 +448,17 @@ impl StepBack<PORTS> for PulseBack {
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 struct ShowBack {
     input_port: PortId,
-    present_operation: HostCallId,
+    present_host_call: HostCallId,
     pending_request: Option<RequestId>,
     presented: usize,
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 impl ShowBack {
-    fn new(input_port: PortId, present_operation: HostCallId) -> Self {
+    fn new(input_port: PortId, present_host_call: HostCallId) -> Self {
         Self {
             input_port,
-            present_operation,
+            present_host_call,
             pending_request: None,
             presented: 0,
         }
@@ -497,7 +497,7 @@ impl StepBack<PORTS> for ShowBack {
                 || io
                     .request_host_call(
                         request,
-                        self.present_operation,
+                        self.present_host_call,
                         BoundedValueRef {
                             value,
                             admitted_bytes: SIGNAL_ENCODED_LEN,

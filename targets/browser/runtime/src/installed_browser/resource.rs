@@ -1,6 +1,6 @@
 //! Optional browser snapshot operations; residence and authority come from Plan bindings.
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use crate::resource_snapshot::*;
 use conduit_core::*;
 use conduit_kernel::HostedValueStore;
@@ -134,10 +134,10 @@ pub(crate) fn reference(placement: &PlannedGear) -> Result<BoundedResourceRef, S
     }
     Ok(reference)
 }
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let publish = placement.implementation_id.as_str() == WRITE;
     validate_placement(placement, &base_offer(publish))?;
     PreparedSnapshotRecord::prepare(placement, &reference(placement)?)
         .map_err(|error| format!("{error:?}"))?;
-    Ok(BrowserOperation::unary(if publish { 4096 } else { 512 }, 1))
+    Ok(BrowserBack::unary(if publish { 4096 } else { 512 }, 1))
 }

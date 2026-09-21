@@ -28,7 +28,7 @@ fn offer() -> CapabilityOffer {
 fn prepare(
     placement: &conduit_core::PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<super::BrowserOperation, String> {
+) -> Result<super::BrowserBack, String> {
     let installed = offer();
     super::factory::validate_placement(placement, &installed)?;
     if !placement.resources.is_empty() || !placement.authority.is_empty() {
@@ -37,8 +37,8 @@ fn prepare(
     let configuration =
         conduit_time::PulseObservationConfiguration::parse(&placement.configuration)
             .map_err(|error| format!("invalid pulse observation configuration: {error:?}"))?;
-    let operation = conduit_time::PulseObservationOperation::new(configuration);
-    Ok(super::BrowserOperation::installed_step(operation))
+    let operation = conduit_time::PulseObservationBack::new(configuration);
+    Ok(super::BrowserBack::installed_step(operation))
 }
 
 pub(super) static INSTALLATION: super::factory::BrowserInstallation =

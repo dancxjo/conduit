@@ -1,7 +1,7 @@
 //! One bounded portable key transition acquired by the browser page adapter.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     kind_id, resource_requirement, HostCallContractId, HostCallRequirement, PlannedGear,
 };
@@ -82,12 +82,12 @@ fn offer() -> conduit_core::CapabilityOffer {
 fn prepare(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     let request = values
         .store(&[0])
         .map_err(|error| format!("store keyboard request: {error:?}"))?;
-    Ok(BrowserOperation::installed_step(KeyboardOperation {
+    Ok(BrowserBack::installed_step(KeyboardBack {
         request,
         pending: false,
         next: 0,
@@ -97,25 +97,25 @@ fn prepare(
 fn prepare_button(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &button_offer())?;
     let request = values
         .store(&[0])
         .map_err(|error| format!("store button request: {error:?}"))?;
-    Ok(BrowserOperation::installed_step(ButtonOperation {
+    Ok(BrowserBack::installed_step(ButtonBack {
         request,
         pending: false,
         next: 0,
     }))
 }
 
-struct ButtonOperation {
+struct ButtonBack {
     request: ValueRef,
     pending: bool,
     next: u32,
 }
 
-struct KeyboardOperation {
+struct KeyboardBack {
     request: ValueRef,
     pending: bool,
     next: u32,
@@ -164,7 +164,7 @@ fn continuous_input_step<const PORTS: usize>(
     StepOutcome::Await
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for ButtonOperation {
+impl<const PORTS: usize> StepBack<PORTS> for ButtonBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         continuous_input_step(self.request, &mut self.pending, &mut self.next, io)
     }
@@ -174,7 +174,7 @@ impl<const PORTS: usize> StepBack<PORTS> for ButtonOperation {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for KeyboardOperation {
+impl<const PORTS: usize> StepBack<PORTS> for KeyboardBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         continuous_input_step(self.request, &mut self.pending, &mut self.next, io)
     }
@@ -245,7 +245,7 @@ mod tests {
             generation: 1,
             byte_len: 1,
         };
-        let mut operation = ButtonOperation {
+        let mut operation = ButtonBack {
             request,
             pending: false,
             next: 0,
@@ -276,7 +276,7 @@ mod tests {
 
     #[test]
     fn keyboard_rearms_the_same_bounded_request_after_each_event() {
-        let mut operation = KeyboardOperation {
+        let mut operation = KeyboardBack {
             request: ValueRef {
                 slot: 1,
                 generation: 1,

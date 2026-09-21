@@ -3,7 +3,7 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, FrontStartupParameter, HostCallContractId, HostCallRequirement,
@@ -192,24 +192,24 @@ fn operation(
 fn prepare_literal(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &literal_offer())?;
     let value = text_configuration(placement, "value")?;
     let stored = values.store(value.as_bytes()).map_err(debug_error)?;
-    Ok(BrowserOperation::source(stored))
+    Ok(BrowserBack::source(stored))
 }
 
 fn prepare_unary(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     let offer = match placement.implementation_id.as_str() {
         UPPER_IMPLEMENTATION => upper_offer(),
         JOIN_IMPLEMENTATION => join_offer(),
         _ => return Err("unknown text transform installation".into()),
     };
     validate_placement(placement, &offer)?;
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         placement.host_calls[0].maximum_input_bytes,
         1,
     ))
@@ -218,9 +218,9 @@ fn prepare_unary(
 fn prepare_presentation(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &presentation_offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         placement.host_calls[0].maximum_input_bytes,
         maximum_values(placement)?,
     ))

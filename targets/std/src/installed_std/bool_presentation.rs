@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{PlannedGear, PortDirection, PortTemporal, BOOL_ENCODED_LEN};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -11,7 +11,7 @@ pub(super) fn present_stdout(output: &mut impl std::io::Write, input: &[u8]) -> 
     writeln!(output, "bool value={}", value.get()).map_err(|error| error.to_string())
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for BoolPresentationOperation {
+impl<const PORTS: usize> StepBack<PORTS> for BoolPresentationBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
@@ -64,19 +64,19 @@ fn step_failure() -> conduit_kernel::Failure {
     }
 }
 
-pub(super) static BOOL_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static BOOL_PRESENTATION_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::BOOL_PRESENTATION_IMPLEMENTATION,
     budget,
     prepare,
 };
 
-pub(super) struct BoolPresentationOperation {
+pub(super) struct BoolPresentationBack {
     pending: Option<RequestId>,
     next: u32,
     maximum: u64,
 }
 
-impl BoolPresentationOperation {
+impl BoolPresentationBack {
     pub(super) fn new(maximum: u64) -> Self {
         Self {
             pending: None,
@@ -109,9 +109,9 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     Ok(())
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: conduit_semantic_catalog::MAX_TOGGLE_VALUES as usize,
@@ -123,13 +123,11 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
-    Ok(InstalledOperation::BoolPresentation(
-        BoolPresentationOperation {
-            pending: None,
-            next: 0,
-            maximum: conduit_semantic_catalog::MAX_TOGGLE_VALUES,
-        },
-    ))
+    Ok(InstalledBack::BoolPresentation(BoolPresentationBack {
+        pending: None,
+        next: 0,
+        maximum: conduit_semantic_catalog::MAX_TOGGLE_VALUES,
+    }))
 }

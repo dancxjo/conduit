@@ -1,8 +1,8 @@
 use super::*;
 use conduit_kernel::HostCallOutcome;
 
-fn pending() -> UnaryOperation {
-    UnaryOperation {
+fn pending() -> UnaryBack {
+    UnaryBack {
         maximum_input_bytes: 4096,
         next_request: 3,
         pending: Some(RequestId(3)),
@@ -10,7 +10,7 @@ fn pending() -> UnaryOperation {
 }
 
 fn completion(
-    operation: &mut UnaryOperation,
+    operation: &mut UnaryBack,
     request: RequestId,
     outcome: HostCallOutcome,
 ) -> (StepOutcome, StepIo<1>) {
@@ -90,7 +90,7 @@ fn unary_stale_completion_and_malformed_failure_do_not_claim_the_supplied_failur
 
 #[test]
 fn unary_transform_reuses_one_host_slot_for_later_open_flow_values() {
-    let mut operation = UnaryOperation {
+    let mut operation = UnaryBack {
         maximum_input_bytes: 16,
         next_request: 0,
         pending: None,

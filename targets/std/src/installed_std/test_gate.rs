@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ExecutionProfileId, ImplementationId, InfoBool, KindIdentity, PlannedGear,
@@ -26,32 +26,32 @@ const SLOW_SINK_ARTIFACT: &str = "conduit-std-host/test-slow-scalar-sink@1";
 const SCRIPT_ITEMS: usize = 6;
 const EXPECTED_SCALARS: usize = 3;
 
-pub(super) static TEST_GATE_SCRIPT_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_GATE_SCRIPT_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget: source_budget,
     prepare: prepare_source,
 };
 
-pub(super) static TEST_SLOW_SCALAR_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_SLOW_SCALAR_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: SLOW_SINK_IMPLEMENTATION,
     budget: slow_sink_budget,
     prepare: prepare_slow_sink,
 };
 
-pub(super) struct TestGateScriptOperation {
+pub(super) struct TestGateScriptBack {
     pub(super) items: Vec<(PortId, ValueRef)>,
     pub(super) waits: Vec<ValueRef>,
     pub(super) next: usize,
     pending: Option<RequestId>,
 }
 
-pub(super) struct TestSlowScalarSinkOperation {
+pub(super) struct TestSlowScalarSinkBack {
     pub(super) waits: Vec<ValueRef>,
     next: usize,
     pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TestGateScriptOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestGateScriptBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -96,7 +96,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TestGateScriptOperation {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TestSlowScalarSinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestSlowScalarSinkBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -151,9 +151,9 @@ const fn gate_fixture_fail(detail: u16) -> StepOutcome {
     })
 }
 
-impl TestGateScriptOperation {}
+impl TestGateScriptBack {}
 
-impl TestSlowScalarSinkOperation {}
+impl TestSlowScalarSinkBack {}
 
 pub(super) fn source_offer() -> CapabilityOffer {
     offer(
@@ -274,9 +274,9 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     }
 }
 
-fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn source_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, &source_offer())?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: (SCRIPT_ITEMS * 2) as u16,
         value_bytes: 75,
         host_requests: SCRIPT_ITEMS,
@@ -288,7 +288,7 @@ fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_source(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement, &source_offer())?;
     let encoded = [
         (PortId(1), InfoBool::FALSE.encode().to_vec()),
@@ -317,19 +317,17 @@ fn prepare_source(
                 .map_err(|error| format!("store gate script wait: {error:?}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(InstalledOperation::TestGateScript(
-        TestGateScriptOperation {
-            items,
-            waits,
-            next: 0,
-            pending: None,
-        },
-    ))
+    Ok(InstalledBack::TestGateScript(TestGateScriptBack {
+        items,
+        waits,
+        next: 0,
+        pending: None,
+    }))
 }
 
-fn slow_sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn slow_sink_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, &slow_sink_offer())?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: EXPECTED_SCALARS as u16,
         value_bytes: (EXPECTED_SCALARS * SCALAR_ENCODED_LEN) as u32,
         host_requests: EXPECTED_SCALARS,
@@ -341,7 +339,7 @@ fn slow_sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> 
 fn prepare_slow_sink(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement, &slow_sink_offer())?;
     let waits = (0..EXPECTED_SCALARS)
         .map(|_| {
@@ -350,13 +348,11 @@ fn prepare_slow_sink(
                 .map_err(|error| format!("store slow sink wait: {error:?}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(InstalledOperation::TestSlowScalarSink(
-        TestSlowScalarSinkOperation {
-            waits,
-            next: 0,
-            pending: None,
-        },
-    ))
+    Ok(InstalledBack::TestSlowScalarSink(TestSlowScalarSinkBack {
+        waits,
+        next: 0,
+        pending: None,
+    }))
 }
 
 fn validate(placement: &PlannedGear, offer: &CapabilityOffer) -> Result<(), String> {

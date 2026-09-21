@@ -364,7 +364,7 @@ fn model_follow_up() -> ModelFollowUpTimingProposal {
             payload: ModelEffectProposal {
                 proposal_id: "proposal/model/capstone/effect".into(),
                 plan_id: PlanId::from("plan/model/capstone"),
-                operation_kind: KindId::from(REMINDER_DELIVER_KIND),
+                back_kind: KindId::from(REMINDER_DELIVER_KIND),
                 canonical_arguments: vec![1],
                 rationale: "follow up after the meeting".into(),
                 evidence: vec![SignId::from("sign/meeting/created")],

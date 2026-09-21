@@ -31,7 +31,7 @@ pub(crate) struct BrowserInstallation {
     pub prepare: fn(
         &conduit_core::PlannedGear,
         &mut conduit_kernel::HostedValueStore,
-    ) -> Result<super::BrowserOperation, String>,
+    ) -> Result<super::BrowserBack, String>,
     pub perform: Option<BrowserHostCall>,
 }
 

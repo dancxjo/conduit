@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -11,7 +11,7 @@ use conduit_presentation::{
 
 macro_rules! factory {
     ($name:ident, $implementation:ident) => {
-        pub(super) static $name: InstalledFactory = InstalledFactory {
+        pub(super) static $name: BackFactory = BackFactory {
             implementation_id: conduit_std_offers::$implementation,
             budget,
             prepare,
@@ -30,36 +30,36 @@ factory!(
 factory!(GRAPHICS_RECT_FACTORY, GRAPHICS_RECT_IMPLEMENTATION);
 factory!(GRAPHICS_TEXT_FACTORY, GRAPHICS_TEXT_IMPLEMENTATION);
 factory!(GRAPHICS_ICON_FACTORY, GRAPHICS_ICON_IMPLEMENTATION);
-pub(super) static GRAPHICS_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static GRAPHICS_PRESENTATION_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::GRAPHICS_PRESENTATION_IMPLEMENTATION,
     budget: graphics_presentation_budget,
     prepare: prepare_graphics_presentation,
 };
 #[cfg(test)]
-pub(super) static TEST_PRESENTATION_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_PRESENTATION_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: "conduit-test/presentation-sink-implementation@1",
     budget: sink_budget,
     prepare: prepare_sink,
 };
 #[cfg(test)]
-pub(super) static TEST_GRAPHICS_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_GRAPHICS_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: "conduit-test/graphics-sink-implementation@1",
     budget: sink_budget,
     prepare: prepare_sink,
 };
 
-pub(super) struct PresentationCompositionOperation {
+pub(super) struct PresentationCompositionBack {
     source: Option<ValueRef>,
     pending: bool,
     emitted: bool,
 }
 
-pub(super) struct GraphicsPresentationOperation {
+pub(super) struct GraphicsPresentationBack {
     pending: bool,
     presented: bool,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for GraphicsPresentationOperation {
+impl<const PORTS: usize> StepBack<PORTS> for GraphicsPresentationBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if request != RequestId(0) || !self.pending {
@@ -104,13 +104,13 @@ impl<const PORTS: usize> StepBack<PORTS> for GraphicsPresentationOperation {
     }
 }
 
-impl GraphicsPresentationOperation {}
+impl GraphicsPresentationBack {}
 
 #[cfg(test)]
-pub(super) struct PresentationSinkOperation;
+pub(super) struct PresentationSinkBack;
 
 #[cfg(test)]
-impl<const PORTS: usize> StepBack<PORTS> for PresentationSinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for PresentationSinkBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if io.input(PortId(0)).is_some() {
             io.consume(PortId(0))
@@ -127,11 +127,11 @@ impl<const PORTS: usize> StepBack<PORTS> for PresentationSinkOperation {
 }
 
 #[cfg(test)]
-impl PresentationSinkOperation {}
+impl PresentationSinkBack {}
 
-impl PresentationCompositionOperation {}
+impl PresentationCompositionBack {}
 
-impl<const PORTS: usize> StepBack<PORTS> for PresentationCompositionOperation {
+impl<const PORTS: usize> StepBack<PORTS> for PresentationCompositionBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some(value) = self.source {
             if self.emitted {
@@ -236,9 +236,9 @@ pub(super) fn transform_graphics_bytes(
     Ok((scene.encode(), scene.encoded_len()))
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 1,
         value_bytes: MAX_PRESENTATION_COMPOSITION_BYTES.max(MAX_GRAPHICS_SCENE_BYTES) as u32,
         host_requests: usize::from(
@@ -253,7 +253,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
     let source = if placement.kind_id.as_str() == conduit_semantic_catalog::PRESENTATION_ICON_KIND {
         let value = conduit_semantic_catalog::execute_presentation_source(placement)?;
@@ -266,8 +266,8 @@ fn prepare(
     } else {
         None
     };
-    Ok(InstalledOperation::PresentationComposition(
-        PresentationCompositionOperation {
+    Ok(InstalledBack::PresentationComposition(
+        PresentationCompositionBack {
             source,
             pending: false,
             emitted: false,
@@ -298,9 +298,9 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     Ok(())
 }
 
-fn graphics_presentation_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn graphics_presentation_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate_graphics_presentation(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 1,
@@ -312,10 +312,10 @@ fn graphics_presentation_budget(placement: &PlannedGear) -> Result<OperationBudg
 fn prepare_graphics_presentation(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate_graphics_presentation(placement)?;
-    Ok(InstalledOperation::GraphicsPresentation(
-        GraphicsPresentationOperation {
+    Ok(InstalledBack::GraphicsPresentation(
+        GraphicsPresentationBack {
             pending: false,
             presented: false,
         },
@@ -347,14 +347,14 @@ fn validate_graphics_presentation(placement: &PlannedGear) -> Result<(), String>
 }
 
 #[cfg(test)]
-fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn sink_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     if !matches!(
         placement.kind_id.as_str(),
         "conduit-test/presentation-sink" | "conduit-test/graphics-sink"
     ) {
         return Err("wrong presentation sink Kind".into());
     }
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 0,
@@ -367,9 +367,7 @@ fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_sink(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     sink_budget(placement)?;
-    Ok(InstalledOperation::TestPresentationSink(
-        PresentationSinkOperation,
-    ))
+    Ok(InstalledBack::TestPresentationSink(PresentationSinkBack))
 }

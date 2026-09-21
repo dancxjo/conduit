@@ -1,7 +1,7 @@
 //! Exact selected Quantity normalization through an admitted browser operation.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostCallRequirement, ImplementationId,
@@ -51,13 +51,13 @@ fn offer() -> CapabilityOffer {
 fn prepare(
     placement: &conduit_core::PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     if !placement.configuration.is_empty() {
         return Err("normalized Quantity conversion accepts no configuration".into());
     }
     CONVERTER.get_or_init(PreparedNormalizedQuantity::new);
-    Ok(BrowserOperation::installed_step(NormalizeOperation {
+    Ok(BrowserBack::installed_step(NormalizeBack {
         pending: false,
         next_request: 0,
         cancelled: false,
@@ -85,13 +85,13 @@ fn failure(detail: u16) -> Failure {
     }
 }
 
-struct NormalizeOperation {
+struct NormalizeBack {
     pending: bool,
     next_request: u32,
     cancelled: bool,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for NormalizeOperation {
+impl<const PORTS: usize> StepBack<PORTS> for NormalizeBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if !self.pending || request.0.checked_add(1) != Some(self.next_request) {
@@ -183,7 +183,7 @@ mod tests {
         ] {
             let reason = transform(&bytes).unwrap_err();
             assert_eq!(reason, failure(detail));
-            let mut operation = NormalizeOperation {
+            let mut operation = NormalizeBack {
                 pending: true,
                 next_request: 1,
                 cancelled: false,

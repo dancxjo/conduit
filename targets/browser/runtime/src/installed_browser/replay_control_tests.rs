@@ -44,7 +44,7 @@ fn completed(value: Option<ValueRef>) -> HostCallOutcome {
 }
 
 fn input_step(
-    operation: &mut ReplayControlOperation,
+    operation: &mut ReplayControlBack,
     port: PortId,
     value: ValueRef,
 ) -> (StepOutcome, StepIo<3>) {
@@ -69,7 +69,7 @@ fn input_step(
 }
 
 fn completion_step(
-    operation: &mut ReplayControlOperation,
+    operation: &mut ReplayControlBack,
     request: RequestId,
     outcome: HostCallOutcome,
 ) -> (StepOutcome, StepIo<3>) {
@@ -91,10 +91,7 @@ fn completion_step(
     (result, io)
 }
 
-fn close_step(
-    operation: &mut ReplayControlOperation,
-    closed: [bool; 3],
-) -> (StepOutcome, StepIo<3>) {
+fn close_step(operation: &mut ReplayControlBack, closed: [bool; 3]) -> (StepOutcome, StepIo<3>) {
     let mut io = StepIo::test_frame([None; 3], closed, [None; 3], None, 3);
     let result = operation.step(
         &mut io,
@@ -245,7 +242,7 @@ fn prepared_step_preserves_historical_and_playback_time_as_distinct_values() {
 
 #[test]
 fn state_output_becomes_the_owned_event_request_token() {
-    let mut operation = ReplayControlOperation::new();
+    let mut operation = ReplayControlBack::new();
     let (result, input) = input_step(&mut operation, PortId(0), value(1));
     assert_eq!(result, StepOutcome::Progress);
     let (request, host_call, _) = input.test_host_request().unwrap();
@@ -265,7 +262,7 @@ fn state_output_becomes_the_owned_event_request_token() {
 
 #[test]
 fn absent_event_and_closed_inputs_remain_explicit() {
-    let mut operation = ReplayControlOperation::new();
+    let mut operation = ReplayControlBack::new();
     let (result, input) = input_step(&mut operation, PortId(2), value(1));
     assert_eq!(result, StepOutcome::Progress);
     let request = input.test_host_request().unwrap().0;
@@ -289,7 +286,7 @@ fn absent_event_and_closed_inputs_remain_explicit() {
 
 #[test]
 fn completed_requests_use_monotonic_identities_for_long_lived_replay() {
-    let mut operation = ReplayControlOperation::new();
+    let mut operation = ReplayControlBack::new();
     for sequence in 0..100_000 {
         let (result, input) = input_step(&mut operation, PortId(2), value(1));
         assert_eq!(result, StepOutcome::Progress);
@@ -318,7 +315,7 @@ fn completed_requests_use_monotonic_identities_for_long_lived_replay() {
 
 #[test]
 fn a_noncurrent_identity_cannot_complete_the_pending_stage() {
-    let mut operation = ReplayControlOperation::new();
+    let mut operation = ReplayControlBack::new();
     let (result, input) = input_step(&mut operation, PortId(0), value(1));
     assert_eq!(result, StepOutcome::Progress);
     let request = input.test_host_request().unwrap().0;
@@ -335,7 +332,7 @@ fn a_noncurrent_identity_cannot_complete_the_pending_stage() {
 
 #[test]
 fn request_identity_exhaustion_is_explicit_before_the_event_stage() {
-    let mut operation = ReplayControlOperation::new();
+    let mut operation = ReplayControlBack::new();
     operation.next_request = Some(u32::MAX);
     let (result, input) = input_step(&mut operation, PortId(0), value(1));
     assert_eq!(result, StepOutcome::Progress);

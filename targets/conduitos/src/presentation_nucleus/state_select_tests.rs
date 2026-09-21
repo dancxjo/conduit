@@ -4,7 +4,7 @@ use conduit_kernel::{Failure, FailureCode, PortId, ValueRef};
 
 use super::{
     StateSelectSequence, prepare_state_select, run_state_select,
-    state_select_operation::StateSelectBack, state_select_play::cancel_state_select,
+    state_select_back::StateSelectBack, state_select_play::cancel_state_select,
 };
 
 fn scalar(raw: i64) -> Scalar {

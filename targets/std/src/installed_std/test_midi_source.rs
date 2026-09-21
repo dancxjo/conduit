@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_audio::{
     Gate, MusicalControl, MusicalControlEvent, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId,
     MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID,
@@ -22,13 +22,13 @@ const ARTIFACT: &str = "conduit-std-host/proof-midi-performance-source@1";
 const EVENT_COUNT: usize = 3;
 const YIELD_COUNT: usize = EVENT_COUNT - 1;
 
-pub(super) static FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
     budget,
     prepare,
 };
 
-pub(super) struct TestMidiSourceOperation {
+pub(super) struct TestMidiSourceBack {
     values: [ValueRef; EVENT_COUNT],
     ports: [PortId; EVENT_COUNT],
     yield_markers: [ValueRef; YIELD_COUNT],
@@ -36,7 +36,7 @@ pub(super) struct TestMidiSourceOperation {
     pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TestMidiSourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestMidiSourceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -87,7 +87,7 @@ const fn midi_fixture_fail() -> StepOutcome {
     })
 }
 
-impl TestMidiSourceOperation {}
+impl TestMidiSourceBack {}
 
 pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {
@@ -170,9 +170,9 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     Ok(())
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: (EVENT_COUNT + YIELD_COUNT) as u16,
         value_bytes: (2 * conduit_audio::NOTE_EVENT_ENCODED_LEN
             + conduit_audio::CONTROL_EVENT_ENCODED_LEN
@@ -187,7 +187,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
     let pitch =
         MusicalPitch::from_equal_tempered(0, crate::hosted_midi::A4_REFERENCE_MILLIHERTZ, 0)
@@ -213,21 +213,19 @@ fn prepare(
             .store(&[0])
             .map_err(|error| format!("store test MIDI yield marker: {error:?}"))
     });
-    Ok(InstalledOperation::TestMidiSource(
-        TestMidiSourceOperation {
-            values: stored
-                .into_iter()
-                .collect::<Result<Vec<_>, _>>()?
-                .try_into()
-                .map_err(|_| "test MIDI event count changed")?,
-            ports: [PortId(0), PortId(1), PortId(0)],
-            yield_markers: yield_markers
-                .into_iter()
-                .collect::<Result<Vec<_>, _>>()?
-                .try_into()
-                .map_err(|_| "test MIDI yield count changed")?,
-            next: 0,
-            pending: None,
-        },
-    ))
+    Ok(InstalledBack::TestMidiSource(TestMidiSourceBack {
+        values: stored
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()?
+            .try_into()
+            .map_err(|_| "test MIDI event count changed")?,
+        ports: [PortId(0), PortId(1), PortId(0)],
+        yield_markers: yield_markers
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()?
+            .try_into()
+            .map_err(|_| "test MIDI yield count changed")?,
+        next: 0,
+        pending: None,
+    }))
 }

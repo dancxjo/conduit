@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const MAX_SIGNS: u16 = 256;
 type SpeechScheduler = FixedScheduler<
-    SpeechOperation,
+    SpeechBack,
     HostedValueStore,
     HostedSignLog,
     3,
@@ -72,24 +72,24 @@ pub struct SpeechRunReceipt {
 }
 
 #[derive(Clone, Copy)]
-enum SpeechOperation {
+enum SpeechBack {
     Source {
         value: ValueRef,
         emitted: bool,
     },
     Synthesize {
         stage: u8,
-        operation: conduit_kernel::HostCallId,
+        host_call: conduit_kernel::HostCallId,
         maximum_input_bytes: u32,
     },
     Present {
         stage: u8,
-        operation: conduit_kernel::HostCallId,
+        host_call: conduit_kernel::HostCallId,
         maximum_input_bytes: u32,
     },
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for SpeechOperation {
+impl<const PORTS: usize> StepBack<PORTS> for SpeechBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
             Self::Source { value, emitted } => {
@@ -106,12 +106,12 @@ impl<const PORTS: usize> StepBack<PORTS> for SpeechOperation {
             }
             Self::Synthesize {
                 stage,
-                operation,
+                host_call,
                 maximum_input_bytes,
             }
             | Self::Present {
                 stage,
-                operation,
+                host_call,
                 maximum_input_bytes,
             } if *stage == 0 => {
                 if let Some(value) = io.input(PortId(0)) {
@@ -119,7 +119,7 @@ impl<const PORTS: usize> StepBack<PORTS> for SpeechOperation {
                         return failure(FailureCode::InvalidInput, 5);
                     };
                     io.consume(PortId(0)).expect("present Tongues input");
-                    io.request_host_call(RequestId(1), *operation, input)
+                    io.request_host_call(RequestId(1), *host_call, input)
                         .expect("Tongues Host Call request");
                     *stage = 1;
                     return StepOutcome::Progress;
@@ -339,20 +339,20 @@ fn scheduler(
             .map_err(debug)?;
     let text = values.store(text_value.as_bytes()).map_err(debug)?;
     let pcm_ref = values.store(pcm).map_err(debug)?;
-    let mut operations = Vec::new();
+    let mut backs = Vec::new();
     for node in &lowered.nodes {
-        operations.push(match kind_for_node(planned, node.node)? {
-            "text/literal" => SpeechOperation::Source {
+        backs.push(match kind_for_node(planned, node.node)? {
+            "text/literal" => SpeechBack::Source {
                 value: text,
                 emitted: false,
             },
-            crate::SPEECH_SYNTHESIZE_KIND => SpeechOperation::Synthesize {
+            crate::SPEECH_SYNTHESIZE_KIND => SpeechBack::Synthesize {
                 stage: 0,
-                operation: lowered
+                host_call: lowered
                     .host_calls
                     .iter()
                     .find(|op| op.node == node.node)
-                    .ok_or("synthesis operation missing")?
+                    .ok_or("synthesis host_call missing")?
                     .call,
                 maximum_input_bytes: lowered
                     .host_calls
@@ -362,13 +362,13 @@ fn scheduler(
                     .binding
                     .maximum_input_bytes,
             },
-            crate::AUDIO_PLAY_KIND => SpeechOperation::Present {
+            crate::AUDIO_PLAY_KIND => SpeechBack::Present {
                 stage: 0,
-                operation: lowered
+                host_call: lowered
                     .host_calls
                     .iter()
                     .find(|op| op.node == node.node)
-                    .ok_or("presentation operation missing")?
+                    .ok_or("presentation host_call missing")?
                     .call,
                 maximum_input_bytes: lowered
                     .host_calls
@@ -394,9 +394,9 @@ fn scheduler(
     }
     routes.seal().map_err(debug)?;
     let mut bindings = FixedHostCallBindings::<6>::new(2);
-    for operation in &lowered.host_calls {
+    for host_call in &lowered.host_calls {
         bindings
-            .install(operation.node, operation.binding)
+            .install(host_call.node, host_call.binding)
             .map_err(debug)?;
     }
     bindings.seal().map_err(debug)?;
@@ -422,7 +422,7 @@ fn scheduler(
             .map_err(|_| "cord shape")?,
         routes,
         bindings,
-        operations.try_into().map_err(|_| "operation shape")?,
+        backs.try_into().map_err(|_| "host_call shape")?,
         values,
         signs,
     )

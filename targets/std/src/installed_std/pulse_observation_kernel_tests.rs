@@ -17,7 +17,7 @@ enum Driver {
         values: Vec<ValueRef>,
         next: usize,
     },
-    Pulse(InstalledOperation),
+    Pulse(InstalledBack),
     Sink {
         next: u32,
         wait: ValueRef,
@@ -144,7 +144,7 @@ fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
                 values: ticks,
                 next: 0,
             },
-            Driver::Pulse(InstalledOperation::PulseObserve(pulse)),
+            Driver::Pulse(InstalledBack::PulseObserve(pulse)),
             Driver::Sink {
                 next: 0,
                 wait,
@@ -161,7 +161,7 @@ fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
     for _ in 0..32 {
         scheduler.step().unwrap();
     }
-    let Driver::Pulse(InstalledOperation::PulseObserve(observer)) = &scheduler.drivers()[1] else {
+    let Driver::Pulse(InstalledBack::PulseObserve(observer)) = &scheduler.drivers()[1] else {
         panic!("pulse driver");
     };
     let staged_sequence = observer.next_sequence();
@@ -169,7 +169,7 @@ fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
     for _ in 0..16 {
         scheduler.step().unwrap();
     }
-    let Driver::Pulse(InstalledOperation::PulseObserve(observer)) = &scheduler.drivers()[1] else {
+    let Driver::Pulse(InstalledBack::PulseObserve(observer)) = &scheduler.drivers()[1] else {
         panic!("pulse driver");
     };
     assert_eq!(

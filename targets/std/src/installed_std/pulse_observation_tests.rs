@@ -31,10 +31,9 @@ fn placement() -> PlannedGear {
         pool_references: vec![],
     }
 }
-fn prepared() -> (conduit_time::PulseObservationOperation, HostedValueStore) {
+fn prepared() -> (conduit_time::PulseObservationBack, HostedValueStore) {
     let mut values = HostedValueStore::new(128, 8, 1024).unwrap();
-    let InstalledOperation::PulseObserve(operation) = prepare(&placement(), &mut values).unwrap()
-    else {
+    let InstalledBack::PulseObserve(operation) = prepare(&placement(), &mut values).unwrap() else {
         panic!("pulse preparation returned another Back");
     };
     (operation, values)
@@ -66,7 +65,7 @@ fn factory_checks_exact_identity_and_needs_no_lifetime_output_allocation() {
     );
     let (mut operation, values) = prepared();
     let before = values.allocation_capacities();
-    let operation_capacity = operation.allocation_capacity();
+    let back_capacity = operation.allocation_capacity();
     for sequence in 0..2 {
         let encoded = conduit_time::encode_tick(sequence);
         let mut io = StepIo::test_frame([Some(tick())], [false], [Some(32)], None, 8);
@@ -87,7 +86,7 @@ fn factory_checks_exact_identity_and_needs_no_lifetime_output_allocation() {
         StepOutcome::Complete
     );
     assert_eq!(values.allocation_capacities(), before);
-    assert_eq!(operation.allocation_capacity(), operation_capacity);
+    assert_eq!(operation.allocation_capacity(), back_capacity);
 }
 
 #[test]

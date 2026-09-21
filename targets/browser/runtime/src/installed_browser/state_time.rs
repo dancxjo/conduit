@@ -3,7 +3,7 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     kind_id, resource_requirement, wait_host_call_requirement, ConfigurationValue, PlannedGear,
     PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
@@ -97,14 +97,14 @@ fn identity(
 fn prepare_time_every(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &time_every_offer())?;
     let period_millis =
         quantity_millis_configuration(placement, "freq", BROWSER_TIMER_MAXIMUM_MILLIS)?;
     let wait = values
         .store(&period_millis.to_le_bytes())
         .map_err(debug_error)?;
-    Ok(BrowserOperation::installed_step(TimeEveryOperation {
+    Ok(BrowserBack::installed_step(TimeEveryBack {
         wait,
         sequence: 0,
         next_request: 0,
@@ -115,10 +115,10 @@ fn prepare_time_every(
 fn prepare_state_count(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &state_count_offer())?;
     let start = u64_configuration(placement, "start", u64::MAX)?;
-    Ok(BrowserOperation::installed_step(StateCountOperation {
+    Ok(BrowserBack::installed_step(StateCountBack {
         current: start,
         initial_emitted: false,
     }))
@@ -127,9 +127,9 @@ fn prepare_state_count(
 fn prepare_count_presentation(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &count_presentation_offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         conduit_semantic_catalog::COUNT_ENCODED_LEN,
         1,
     ))
@@ -194,14 +194,14 @@ fn u64_configuration(placement: &PlannedGear, key: &str, maximum: u64) -> Result
         })
 }
 
-struct TimeEveryOperation {
+struct TimeEveryBack {
     wait: ValueRef,
     sequence: u64,
     next_request: u32,
     pending: Option<RequestId>,
 }
 
-impl TimeEveryOperation {
+impl TimeEveryBack {
     fn request_wait<const PORTS: usize>(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -219,7 +219,7 @@ impl TimeEveryOperation {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TimeEveryOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TimeEveryBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -266,12 +266,12 @@ impl<const PORTS: usize> StepBack<PORTS> for TimeEveryOperation {
     }
 }
 
-struct StateCountOperation {
+struct StateCountBack {
     current: u64,
     initial_emitted: bool,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for StateCountOperation {
+impl<const PORTS: usize> StepBack<PORTS> for StateCountBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if !self.initial_emitted {
             if !io.output_ready(PortId(0)) {
@@ -354,7 +354,7 @@ mod tests {
             generation: 1,
             byte_len: conduit_time::TICK_ENCODED_LEN,
         };
-        let mut operation = TimeEveryOperation {
+        let mut operation = TimeEveryBack {
             wait,
             sequence: 0,
             next_request: 0,

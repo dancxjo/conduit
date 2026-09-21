@@ -1,7 +1,7 @@
 //! Ordered finite Boolean delay through the admitted browser timer boundary.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserOperation, BROWSER_TIMER_MAXIMUM_MILLIS};
+use super::{BrowserBack, BROWSER_TIMER_MAXIMUM_MILLIS};
 use conduit_core::{
     encode_monotonic_duration, resource_requirement, ConfigurationValue, PlannedGear,
     TIMER_RESOURCE_CLASS,
@@ -41,7 +41,7 @@ fn offer() -> conduit_core::CapabilityOffer {
 fn prepare(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     let duration = configured(placement, "duration-ms")?;
     if duration > BROWSER_TIMER_MAXIMUM_MILLIS {
@@ -61,7 +61,7 @@ fn prepare(
                 .map_err(debug_error)
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(BrowserOperation::installed_step(DelayOperation {
+    Ok(BrowserBack::installed_step(DelayBack {
         durations,
         queued: Vec::with_capacity(maximum_values),
         maximum_values,
@@ -84,7 +84,7 @@ fn configured(placement: &PlannedGear, key: &str) -> Result<u64, String> {
         .ok_or_else(|| format!("time/delay configuration '{key}' is missing"))
 }
 
-struct DelayOperation {
+struct DelayBack {
     durations: Vec<ValueRef>,
     queued: Vec<ValueRef>,
     maximum_values: usize,
@@ -95,7 +95,7 @@ struct DelayOperation {
     next_request: usize,
 }
 
-impl DelayOperation {
+impl DelayBack {
     fn request<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) -> Result<(), StepOutcome> {
         let Some(duration) = self.durations.get(self.next_request).copied() else {
             return Err(fail(40));
@@ -122,7 +122,7 @@ impl DelayOperation {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for DelayOperation {
+impl<const PORTS: usize> StepBack<PORTS> for DelayBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
@@ -226,7 +226,7 @@ mod tests {
 
     #[test]
     fn ordered_delay_retains_and_drains_admitted_values() {
-        let mut operation = DelayOperation {
+        let mut operation = DelayBack {
             durations: vec![value(10, 8), value(11, 8)],
             queued: Vec::with_capacity(2),
             maximum_values: 2,

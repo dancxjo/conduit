@@ -120,7 +120,7 @@ pub fn exact_vector_search_offer(
             implementation_id: ImplementationId::from(EXACT_VECTOR_SEARCH_IMPLEMENTATION),
             artifact_id: ArtifactId::from(EXACT_VECTOR_SEARCH_ARTIFACT),
         },
-        host_calls: vec![vector_search_operation(&contract)],
+        host_calls: vec![vector_search_back(&contract)],
         resource_requirements: vec![resource_requirement(
             VECTOR_SEARCH_RESOURCE_CLASS,
             contract.maximum_query_work_units,
@@ -130,7 +130,7 @@ pub fn exact_vector_search_offer(
     })
 }
 
-pub fn vector_search_operation(contract: &VectorSearchContract) -> HostCallRequirement {
+pub fn vector_search_back(contract: &VectorSearchContract) -> HostCallRequirement {
     HostCallRequirement {
         contract_id: HostCallContractId::from(VECTOR_SEARCH_OPERATION),
         target_kind: Some(contract.kind_id.clone()),

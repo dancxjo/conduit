@@ -69,16 +69,16 @@ mod catalog;
 pub use catalog::*;
 
 #[cfg(feature = "kernel-step")]
-mod button_attempt_operation;
+mod button_attempt_back;
 #[cfg(feature = "kernel-step")]
-pub use button_attempt_operation::TimedButtonAttemptOperation;
+pub use button_attempt_back::TimedButtonAttemptBack;
 
 #[cfg(feature = "kernel-step")]
-mod pulse_observation_operation;
+mod pulse_observation_back;
 #[cfg(feature = "kernel-step")]
-pub use pulse_observation_operation::PulseObservationOperation;
+pub use pulse_observation_back::PulseObservationBack;
 
 #[cfg(feature = "kernel-step")]
-mod phase_synchronization_operation;
+mod phase_synchronization_back;
 #[cfg(feature = "kernel-step")]
-pub use phase_synchronization_operation::PhaseSynchronizationOperation;
+pub use phase_synchronization_back::PhaseSynchronizationBack;

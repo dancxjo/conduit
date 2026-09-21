@@ -221,7 +221,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
         }
     }
     while operations.len() < MAXIMUM_BROWSER_GEARS {
-        operations.push(BrowserOperation::inactive());
+        operations.push(BrowserBack::inactive());
     }
     let backs = operations
         .try_into()

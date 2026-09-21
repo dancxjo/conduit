@@ -1,7 +1,7 @@
 //! Browser production realization of an explicitly profiled finite measurement window.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostCallRequirement, ImplementationId, PlannedGear,
@@ -141,21 +141,16 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(
-    placement: &PlannedGear,
-    values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     PreparedWindow::for_placement(placement)?
         .ok_or_else(|| "measurement window selected another implementation".to_string())?;
     let finalize = values
         .store(FINALIZE_INPUT)
         .map_err(|error| format!("prepare measurement window finalizer: {error:?}"))?;
-    Ok(BrowserOperation::installed_step(WindowOperation::new(
-        finalize,
-    )))
+    Ok(BrowserBack::installed_step(WindowBack::new(finalize)))
 }
 
-struct WindowOperation {
+struct WindowBack {
     profile_ready: bool,
     profile_closed: bool,
     sample_closed: bool,
@@ -164,7 +159,7 @@ struct WindowOperation {
     finalize: Option<ValueRef>,
 }
 
-impl WindowOperation {
+impl WindowBack {
     const fn new(finalize: ValueRef) -> Self {
         Self {
             profile_ready: false,
@@ -177,7 +172,7 @@ impl WindowOperation {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for WindowOperation {
+impl<const PORTS: usize> StepBack<PORTS> for WindowBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             let Some((expected, operation)) = self.pending else {

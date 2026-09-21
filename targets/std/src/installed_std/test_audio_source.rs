@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation, AUDIO_PCM_INFO_ID};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
@@ -21,20 +21,20 @@ const BLOCKS: u16 = 96;
 const YIELDS: usize = BLOCKS as usize - 1;
 pub(super) const YIELD_OPERATION: &str = "conduit-proof/audio-source-yield@1";
 
-pub(super) static FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
     budget,
     prepare,
 };
 
-pub(super) struct TestPcmSourceOperation {
+pub(super) struct TestPcmSourceBack {
     pub(super) values: [ValueRef; BLOCKS as usize],
     yield_markers: [ValueRef; YIELDS],
     pub(super) next: usize,
     pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TestPcmSourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestPcmSourceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -79,7 +79,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TestPcmSourceOperation {
     }
 }
 
-impl TestPcmSourceOperation {}
+impl TestPcmSourceBack {}
 
 pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {
@@ -151,9 +151,9 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     Ok(())
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: BLOCKS + YIELDS as u16,
         value_bytes: BLOCKS as u32 * conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES
             + YIELDS as u32,
@@ -166,7 +166,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
     let stored: [Result<ValueRef, String>; BLOCKS as usize] = core::array::from_fn(|index| {
         let frame_count = conduit_semantic_catalog::AUDIO_PLAY_ALSA_PERIOD_FRAMES;
@@ -205,14 +205,12 @@ fn prepare(
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
         .map_err(|_| "test PCM yield count changed")?;
-    Ok(InstalledOperation::TestPcmSource(Box::new(
-        TestPcmSourceOperation {
-            values: stored
-                .try_into()
-                .map_err(|_| "test PCM block count changed")?,
-            yield_markers,
-            next: 0,
-            pending: None,
-        },
-    )))
+    Ok(InstalledBack::TestPcmSource(Box::new(TestPcmSourceBack {
+        values: stored
+            .try_into()
+            .map_err(|_| "test PCM block count changed")?,
+        yield_markers,
+        next: 0,
+        pending: None,
+    })))
 }

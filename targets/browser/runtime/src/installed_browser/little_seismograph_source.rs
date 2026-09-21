@@ -1,7 +1,7 @@
 //! Pure browser realization of the deterministic Little Seismograph inputs.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, ImplementationId, PlannedGear, StructuredInfoType, StructuredInfoValue,
@@ -42,10 +42,7 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(
-    placement: &PlannedGear,
-    values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     let (profile, samples, threshold) =
         conduit_little_seismograph_fixture::deterministic_little_seismograph_inputs();
@@ -79,7 +76,7 @@ fn prepare(
             )?,
         ));
     }
-    Ok(BrowserOperation::installed_step(SourceOperation {
+    Ok(BrowserBack::installed_step(SourceBack {
         emissions,
         next: 0,
     }))
@@ -99,12 +96,12 @@ fn store_leaf(
         .map_err(|error| format!("{error:?}"))
 }
 
-struct SourceOperation {
+struct SourceBack {
     emissions: Vec<(PortId, ValueRef)>,
     next: usize,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for SourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for SourceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         let Some((port, value)) = self.emissions.get(self.next).copied() else {
             return StepOutcome::Complete;

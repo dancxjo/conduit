@@ -1,7 +1,7 @@
 //! Browser realization of reusable bounded record-delivery status projection.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
@@ -43,12 +43,12 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     if !placement.configuration.is_empty() {
         return Err("unexpected delivery-status configuration".into());
     }
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         MAXIMUM,
         u32::from(conduit_net::MAXIMUM_RECORD_DELIVERY_OBSERVATIONS),
     ))

@@ -4,7 +4,7 @@ use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
     PortId, RequestId, ValueRef,
 };
-use conduit_semantic_catalog::PatternComparisonOperation;
+use conduit_semantic_catalog::PatternComparisonBack;
 
 fn value(byte_len: u32) -> ValueRef {
     ValueRef {
@@ -15,7 +15,7 @@ fn value(byte_len: u32) -> ValueRef {
 }
 
 fn input(
-    operation: &mut PatternComparisonOperation,
+    operation: &mut PatternComparisonBack,
     port: usize,
     value: ValueRef,
 ) -> (StepOutcome, StepIo<2>) {
@@ -27,7 +27,7 @@ fn input(
 }
 
 fn completion(
-    operation: &mut PatternComparisonOperation,
+    operation: &mut PatternComparisonBack,
     request: RequestId,
     output: Option<BoundedValueRef>,
 ) -> (StepOutcome, StepIo<2>) {
@@ -52,7 +52,7 @@ fn completion(
 #[test]
 fn host_input_bound_is_exact_and_oversize_refuses() {
     for bound in [4096, 65536] {
-        let mut operation = PatternComparisonOperation::new(bound);
+        let mut operation = PatternComparisonBack::new(bound);
         let (outcome, io) = input(&mut operation, 0, value(bound));
         assert_eq!(outcome, StepOutcome::Progress);
         assert_eq!(
@@ -63,7 +63,7 @@ fn host_input_bound_is_exact_and_oversize_refuses() {
                 BoundedValueRef::new(value(bound), bound).unwrap()
             ))
         );
-        let mut operation = PatternComparisonOperation::new(bound);
+        let mut operation = PatternComparisonBack::new(bound);
         assert_eq!(
             input(&mut operation, 0, value(bound + 1)).0,
             StepOutcome::Fail(Failure {
@@ -77,7 +77,7 @@ fn host_input_bound_is_exact_and_oversize_refuses() {
 #[test]
 fn either_port_order_emits_once_then_requires_both_closures() {
     for ports in [[0, 1], [1, 0]] {
-        let mut operation = PatternComparisonOperation::new(4096);
+        let mut operation = PatternComparisonBack::new(4096);
         for (index, port) in ports.into_iter().enumerate() {
             let request = RequestId(index as u32);
             let (outcome, io) = input(&mut operation, port, value(10));
@@ -126,7 +126,7 @@ fn either_port_order_emits_once_then_requires_both_closures() {
 
 #[test]
 fn stale_completion_and_cancelled_work_do_not_emit() {
-    let mut operation = PatternComparisonOperation::new(4096);
+    let mut operation = PatternComparisonBack::new(4096);
     input(&mut operation, 0, value(10));
     StepBack::<2>::cancel(&mut operation);
     assert_eq!(

@@ -2,13 +2,13 @@ use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef,
 };
-pub struct FrameOperation {
+pub struct FrameBack {
     pub input: Option<PortId>,
     pub output: Option<(PortId, ValueRef)>,
-    pub operation: Option<HostCallId>,
+    pub host_call: Option<HostCallId>,
     pub pending: bool,
 }
-impl<const PORTS: usize> StepBack<PORTS> for FrameOperation {
+impl<const PORTS: usize> StepBack<PORTS> for FrameBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if !self.pending
@@ -36,7 +36,7 @@ impl<const PORTS: usize> StepBack<PORTS> for FrameOperation {
                 io.consume(port).expect("present frame reference");
                 io.request_host_call(
                     RequestId(1),
-                    self.operation.expect("planned frame Host Call"),
+                    self.host_call.expect("planned frame Host Call"),
                     input,
                 )
                 .expect("frame Host Call");
@@ -51,7 +51,7 @@ impl<const PORTS: usize> StepBack<PORTS> for FrameOperation {
         self.emit(io)
     }
 }
-impl FrameOperation {
+impl FrameBack {
     fn emit<const PORTS: usize>(&self, io: &mut StepIo<PORTS>) -> StepOutcome {
         if let Some((port, value)) = self.output {
             io.send(port, value).expect("ready frame output");

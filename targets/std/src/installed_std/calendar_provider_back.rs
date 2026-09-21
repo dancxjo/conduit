@@ -1,0 +1,280 @@
+//! One-request installed operations for exact planned calendar effects.
+
+use super::back::{BackBudget, BackFactory, InstalledBack};
+use conduit_core::{ConfigurationValue, PlannedGear, PortDirection, StructuredInfoValue};
+use conduit_kernel::{
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
+};
+
+pub(super) static CALENDAR_READ_FACTORY: BackFactory =
+    factory(crate::hosted_calendar::CalendarHostedOperation::Read.implementation());
+pub(super) static CALENDAR_FREE_BUSY_FACTORY: BackFactory =
+    factory(crate::hosted_calendar::CalendarHostedOperation::FreeBusy.implementation());
+pub(super) static CALENDAR_CREATE_FACTORY: BackFactory =
+    factory(crate::hosted_calendar::CalendarHostedOperation::Create.implementation());
+pub(super) static CALENDAR_UPDATE_FACTORY: BackFactory =
+    factory(crate::hosted_calendar::CalendarHostedOperation::Update.implementation());
+pub(super) static CALENDAR_CANCEL_FACTORY: BackFactory =
+    factory(crate::hosted_calendar::CalendarHostedOperation::Cancel.implementation());
+pub(super) static CALENDAR_INVITE_FACTORY: BackFactory =
+    factory(crate::hosted_calendar::CalendarHostedOperation::Invite.implementation());
+
+const fn factory(implementation_id: &'static str) -> BackFactory {
+    BackFactory {
+        implementation_id,
+        budget,
+        prepare,
+    }
+}
+
+pub(super) struct CalendarProviderBack {
+    request: Option<ValueRef>,
+    requires_prior: bool,
+    pending: bool,
+    emitted: bool,
+}
+
+impl<const PORTS: usize> StepBack<PORTS> for CalendarProviderBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if !self.pending || request != RequestId(0) {
+                return step_fail(FailureCode::InvalidLifecycle, 244);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed calendar provider completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready calendar provider output");
+                    self.pending = false;
+                    self.emitted = true;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Denied, _, _) => {
+                    return step_fail(FailureCode::HostCallDenied, 241)
+                }
+                (HostCallDisposition::Cancelled, _, _) => {
+                    return step_fail(FailureCode::Cancelled, 242)
+                }
+                (HostCallDisposition::Failed, _, Some(failure)) => {
+                    return StepOutcome::Fail(failure)
+                }
+                _ => return step_fail(FailureCode::InvalidLifecycle, 243),
+            }
+        }
+
+        if self.requires_prior {
+            let Some(value) = io.input(PortId(0)) else {
+                return StepOutcome::Await;
+            };
+            if self.pending {
+                return step_fail(FailureCode::InvalidLifecycle, 244);
+            }
+            let Ok(input) = BoundedValueRef::new(
+                value,
+                conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES,
+            ) else {
+                return step_fail(FailureCode::InvalidInput, 245);
+            };
+            io.consume(PortId(0))
+                .expect("present prior calendar result");
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("calendar provider Host Call");
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+
+        if !self.pending {
+            let Some(value) = self.request else {
+                return step_fail(FailureCode::InvalidLifecycle, 240);
+            };
+            let Ok(input) = BoundedValueRef::new(
+                value,
+                conduit_semantic_catalog::CALENDAR_MAXIMUM_SEMANTIC_JSON_BYTES,
+            ) else {
+                return step_fail(FailureCode::InvalidInput, 245);
+            };
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("calendar provider Host Call");
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = false;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
+}
+
+impl CalendarProviderBack {}
+
+pub(super) fn operation(
+    placement: &PlannedGear,
+) -> Option<crate::hosted_calendar::CalendarHostedOperation> {
+    crate::hosted_calendar::CalendarHostedOperation::from_implementation(
+        placement.implementation_id.as_str(),
+    )
+}
+
+pub(super) fn request_value(placement: &PlannedGear) -> Result<StructuredInfoValue, String> {
+    let [entry] = placement.configuration.as_slice() else {
+        return Err("calendar provider operation requires one planned request".into());
+    };
+    let ("request", ConfigurationValue::Structured(configuration)) =
+        (entry.key.as_str(), &entry.value)
+    else {
+        return Err("calendar provider planned request is malformed".into());
+    };
+    let value = StructuredInfoValue::from_canonical_bytes(configuration.canonical_value())
+        .map_err(|error| format!("decode calendar provider request: {error:?}"))?;
+    let operation = operation(placement)
+        .ok_or_else(|| "calendar provider implementation is unknown".to_string())?;
+    let offer = crate::hosted_calendar::google_calendar_offers()
+        .into_iter()
+        .find(|offer| offer.implementation.implementation_id == placement.implementation_id)
+        .ok_or_else(|| "calendar provider offer is absent".to_string())?;
+    let contract = conduit_semantic_catalog::calendar_provider_contracts()
+        .into_iter()
+        .find(|contract| contract.kind == offer.kind_id.as_str())
+        .ok_or_else(|| "calendar provider portable contract is absent".to_string())?;
+    let expected = conduit_semantic_catalog::calendar_request_type(&contract);
+    if value.value_type() != &expected
+        || operation.contract() != offer.host_calls[0].contract_id.as_str()
+    {
+        return Err("calendar provider request type differs from its realization".into());
+    }
+    Ok(value)
+}
+
+fn validate(
+    placement: &PlannedGear,
+) -> Result<crate::hosted_calendar::CalendarHostedOperation, String> {
+    let operation = operation(placement)
+        .ok_or_else(|| "planned calendar implementation is not installed".to_string())?;
+    let offer = crate::hosted_calendar::google_calendar_offers()
+        .into_iter()
+        .find(|offer| offer.implementation.implementation_id == placement.implementation_id)
+        .ok_or_else(|| "planned calendar offer is absent".to_string())?;
+    let expected_authorities =
+        if operation == crate::hosted_calendar::CalendarHostedOperation::Invite {
+            2
+        } else {
+            1
+        };
+    if placement.kind_id != offer.kind_id
+        || placement.kind_contract_revision != offer.kind_contract_revision
+        || placement.execution_profile_id != offer.implementation.execution_profile_id
+        || placement.artifact_id != offer.implementation.artifact_id
+        || placement.inputs != offer.inputs
+        || placement.outputs != offer.outputs
+        || placement.host_calls != offer.host_calls
+        || placement.limits != offer.limits
+        || placement.resources.len() != 1
+        || placement.resources[0].class_id.as_str()
+            != crate::hosted_calendar::GOOGLE_CALENDAR_RESOURCE_CLASS
+        || placement.resources[0].units != 1
+        || placement.resources[0].protected.is_some()
+        || placement.resources[0].compute.is_some()
+        || placement.authority.len() != expected_authorities
+        || placement.authority.iter().any(|authority| {
+            authority.host_id != placement.host_id
+                || authority.boot_id != placement.boot_id
+                || authority.capability_id != placement.capability_id
+                || authority.host_call_contract_id != placement.host_calls[0].contract_id
+                || Some(&authority.subject_kind) != placement.host_calls[0].target_kind.as_ref()
+        })
+        || placement
+            .inputs
+            .iter()
+            .any(|port| port.direction != PortDirection::Input)
+    {
+        return Err("planned calendar provider identity/resource/authority mismatch".into());
+    }
+    let actual_authorities = placement
+        .authority
+        .iter()
+        .map(|authority| authority.contract_id.as_str())
+        .collect::<Vec<_>>();
+    let expected = offer
+        .authority_requirements
+        .iter()
+        .map(|authority| authority.contract_id.as_str())
+        .collect::<Vec<_>>();
+    if actual_authorities != expected {
+        return Err("planned calendar provider authority set is not exact".into());
+    }
+    request_value(placement)?;
+    Ok(operation)
+}
+
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate(placement)?;
+    let request_bytes = placement
+        .configuration
+        .first()
+        .and_then(|entry| match &entry.value {
+            ConfigurationValue::Structured(value) => Some(value.canonical_value().len()),
+            _ => None,
+        })
+        .ok_or_else(|| "calendar request byte budget is absent".to_string())?;
+    let request_bytes = u32::try_from(request_bytes)
+        .map_err(|_| "calendar request byte budget overflow".to_string())?;
+    Ok(BackBudget {
+        value_items: 2,
+        value_bytes: request_bytes
+            .checked_add(conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES)
+            .ok_or_else(|| "calendar value byte budget overflow".to_string())?,
+        host_requests: 1,
+        sign_items: 24,
+        maximum_value_bytes: request_bytes
+            .max(conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES),
+    })
+}
+
+fn prepare(
+    placement: &PlannedGear,
+    values: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    let operation = validate(placement)?;
+    let request = if matches!(
+        operation,
+        crate::hosted_calendar::CalendarHostedOperation::Read
+            | crate::hosted_calendar::CalendarHostedOperation::FreeBusy
+            | crate::hosted_calendar::CalendarHostedOperation::Create
+    ) {
+        let [entry] = placement.configuration.as_slice() else {
+            unreachable!("validated calendar request")
+        };
+        let ConfigurationValue::Structured(request) = &entry.value else {
+            unreachable!("validated calendar request")
+        };
+        Some(
+            values
+                .store(request.canonical_value())
+                .map_err(|error| format!("store calendar request: {error:?}"))?,
+        )
+    } else {
+        None
+    };
+    Ok(InstalledBack::CalendarProvider(CalendarProviderBack {
+        request,
+        requires_prior: operation != crate::hosted_calendar::CalendarHostedOperation::Read
+            && operation != crate::hosted_calendar::CalendarHostedOperation::FreeBusy
+            && operation != crate::hosted_calendar::CalendarHostedOperation::Create,
+        pending: false,
+        emitted: false,
+    }))
+}

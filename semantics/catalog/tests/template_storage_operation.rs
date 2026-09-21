@@ -4,7 +4,7 @@ use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
     PortId, RequestId, ValueRef,
 };
-use conduit_semantic_catalog::TemplateStorageOperation;
+use conduit_semantic_catalog::TemplateStorageBack;
 
 fn value(bytes: u32) -> ValueRef {
     ValueRef {
@@ -14,14 +14,14 @@ fn value(bytes: u32) -> ValueRef {
     }
 }
 
-fn input(operation: &mut TemplateStorageOperation, bytes: u32) -> (StepOutcome, StepIo<1>) {
+fn input(operation: &mut TemplateStorageBack, bytes: u32) -> (StepOutcome, StepIo<1>) {
     let mut io = StepIo::test_frame([Some(value(bytes))], [false], [Some(4096)], None, 4);
     let outcome = operation.step(&mut io, &StepInputBytes::test_frame([None], None));
     (outcome, io)
 }
 
 fn completion(
-    operation: &mut TemplateStorageOperation,
+    operation: &mut TemplateStorageBack,
     request: u32,
     outcome: HostCallOutcome,
 ) -> (StepOutcome, StepIo<1>) {
@@ -47,7 +47,7 @@ fn completed() -> HostCallOutcome {
 #[test]
 fn exact_host_bounds_accept_and_oversize_refuses() {
     for bound in [4096, 65536] {
-        let mut operation = TemplateStorageOperation::new(2, bound);
+        let mut operation = TemplateStorageBack::new(2, bound);
         let (outcome, io) = input(&mut operation, bound);
         assert_eq!(outcome, StepOutcome::Progress);
         assert_eq!(
@@ -58,7 +58,7 @@ fn exact_host_bounds_accept_and_oversize_refuses() {
                 BoundedValueRef::new(value(bound), bound).unwrap()
             ))
         );
-        let mut operation = TemplateStorageOperation::new(2, bound);
+        let mut operation = TemplateStorageBack::new(2, bound);
         assert_eq!(
             input(&mut operation, bound + 1).0,
             StepOutcome::Fail(Failure {
@@ -71,7 +71,7 @@ fn exact_host_bounds_accept_and_oversize_refuses() {
 
 #[test]
 fn finite_commands_emit_exactly_then_refuse_excess_and_allow_closure() {
-    let mut operation = TemplateStorageOperation::new(2, 4096);
+    let mut operation = TemplateStorageBack::new(2, 4096);
     for request in 0..2 {
         let (outcome, io) = input(&mut operation, 10);
         assert_eq!(outcome, StepOutcome::Progress);
@@ -99,7 +99,7 @@ fn finite_commands_emit_exactly_then_refuse_excess_and_allow_closure() {
 
 #[test]
 fn cancellation_invalidates_pending_completion_and_host_failures_remain_exact() {
-    let mut operation = TemplateStorageOperation::new(2, 4096);
+    let mut operation = TemplateStorageBack::new(2, 4096);
     input(&mut operation, 10);
     StepBack::<1>::cancel(&mut operation);
     assert_eq!(
@@ -109,7 +109,7 @@ fn cancellation_invalidates_pending_completion_and_host_failures_remain_exact() 
             detail: 261
         })
     );
-    let mut operation = TemplateStorageOperation::new(2, 4096);
+    let mut operation = TemplateStorageBack::new(2, 4096);
     input(&mut operation, 10);
     let reason = Failure {
         code: FailureCode::InvalidInput,

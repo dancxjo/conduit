@@ -1,7 +1,7 @@
 //! Browser-owned bounded PCM capture and safe playback installations.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     kind_id, resource_requirement, AuthorityContractId, AuthorityRequirement, CapabilityOffer,
     HostCallContractId, HostCallRequirement, PlannedGear,
@@ -104,12 +104,12 @@ pub(crate) fn playback_offer() -> CapabilityOffer {
 fn prepare_capture(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &capture_offer())?;
     let request = values
         .store(&[0])
         .map_err(|error| format!("store browser microphone request: {error:?}"))?;
-    Ok(BrowserOperation::installed_step(CaptureOperation {
+    Ok(BrowserBack::installed_step(CaptureBack {
         request,
         next: 0,
         pending: false,
@@ -120,22 +120,22 @@ fn prepare_capture(
 fn prepare_playback(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &playback_offer())?;
-    Ok(BrowserOperation::installed_step(PlaybackOperation {
+    Ok(BrowserBack::installed_step(PlaybackBack {
         next: 0,
         pending: None,
     }))
 }
 
-struct CaptureOperation {
+struct CaptureBack {
     request: ValueRef,
     next: u32,
     pending: bool,
     completed: bool,
 }
 
-impl CaptureOperation {
+impl CaptureBack {
     fn request<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) {
         io.request_host_call(
             RequestId(self.next),
@@ -147,7 +147,7 @@ impl CaptureOperation {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for CaptureOperation {
+impl<const PORTS: usize> StepBack<PORTS> for CaptureBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if !self.pending || request != RequestId(self.next) {
@@ -195,12 +195,12 @@ impl<const PORTS: usize> StepBack<PORTS> for CaptureOperation {
     }
 }
 
-struct PlaybackOperation {
+struct PlaybackBack {
     next: u32,
     pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for PlaybackOperation {
+impl<const PORTS: usize> StepBack<PORTS> for PlaybackBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -350,7 +350,7 @@ mod tests {
 
     #[test]
     fn capture_preserves_pending_frame_under_output_pressure_and_rearms() {
-        let mut operation = CaptureOperation {
+        let mut operation = CaptureBack {
             request: value(0, 1),
             next: 0,
             pending: false,
@@ -413,7 +413,7 @@ mod tests {
         .encode_frame(&payload)
         .unwrap();
         let input = value(1, frame.len());
-        let mut operation = PlaybackOperation {
+        let mut operation = PlaybackBack {
             next: 0,
             pending: None,
         };

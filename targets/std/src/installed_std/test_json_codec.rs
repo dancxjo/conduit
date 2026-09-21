@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, port_id, present_host_call_requirement, ArtifactId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear,
@@ -40,26 +40,26 @@ pub(super) fn with_source_text<T>(input: &[u8], run: impl FnOnce() -> T) -> T {
     run()
 }
 
-pub(super) static TEST_JSON_SOURCE_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_JSON_SOURCE_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget: source_budget,
     prepare: prepare_source,
 };
-pub(super) static TEST_JSON_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_JSON_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: SINK_IMPLEMENTATION,
     budget: sink_budget,
     prepare: prepare_sink,
 };
 
-pub(super) struct TestJsonSourceOperation {
+pub(super) struct TestJsonSourceBack {
     value: ValueRef,
     emitted: bool,
 }
-pub(super) struct TestJsonSinkOperation {
+pub(super) struct TestJsonSinkBack {
     pending: bool,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TestJsonSourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestJsonSourceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;
@@ -74,7 +74,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TestJsonSourceOperation {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TestJsonSinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestJsonSinkBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if !self.pending
@@ -119,9 +119,9 @@ impl<const PORTS: usize> StepBack<PORTS> for TestJsonSinkOperation {
     }
 }
 
-impl TestJsonSourceOperation {}
+impl TestJsonSourceBack {}
 
-impl TestJsonSinkOperation {}
+impl TestJsonSinkBack {}
 
 pub(crate) fn source_offer() -> CapabilityOffer {
     offer(
@@ -225,9 +225,9 @@ fn validate(placement: &PlannedGear, offer: CapabilityOffer) -> Result<(), Strin
         Ok(())
     }
 }
-fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn source_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, source_offer())?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 1,
         value_bytes: conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
         host_requests: 0,
@@ -235,9 +235,9 @@ fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
         maximum_value_bytes: conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
     })
 }
-fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn sink_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, sink_offer())?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 1,
@@ -248,7 +248,7 @@ fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_source(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     source_budget(placement)?;
     let value = SOURCE_TEXT
         .with(|text| {
@@ -256,19 +256,17 @@ fn prepare_source(
             values.store(text.as_deref().unwrap_or(b" {\"z\":1.2300,\"a\":\"ok\"} "))
         })
         .map_err(|error| format!("store JSON fixture: {error:?}"))?;
-    Ok(InstalledOperation::TestJsonSource(
-        TestJsonSourceOperation {
-            value,
-            emitted: false,
-        },
-    ))
+    Ok(InstalledBack::TestJsonSource(TestJsonSourceBack {
+        value,
+        emitted: false,
+    }))
 }
 fn prepare_sink(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     sink_budget(placement)?;
-    Ok(InstalledOperation::TestJsonSink(TestJsonSinkOperation {
+    Ok(InstalledBack::TestJsonSink(TestJsonSinkBack {
         pending: false,
     }))
 }

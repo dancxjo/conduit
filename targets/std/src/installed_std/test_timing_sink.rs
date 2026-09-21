@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
@@ -22,30 +22,30 @@ const SOURCE_PROFILE: &str = "conduit-test/timing-bool-source-kernel@1";
 const SOURCE_IMPLEMENTATION: &str = "conduit-test/timing-bool-source-kernel@1";
 const SOURCE_ARTIFACT: &str = "conduit-std-host/test-timing-bool-source@1";
 
-pub(super) static TEST_TIMING_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_TIMING_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
     budget,
     prepare,
 };
 
-pub(super) static TEST_TIMING_SOURCE_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_TIMING_SOURCE_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget: source_budget,
     prepare: prepare_source,
 };
 
-pub(super) struct TestTimingSinkOperation {
+pub(super) struct TestTimingSinkBack {
     received: usize,
 }
 
-pub(super) struct TestTimingSourceOperation {
+pub(super) struct TestTimingSourceBack {
     pub(super) values: Vec<ValueRef>,
     pub(super) waits: Vec<ValueRef>,
     next: usize,
     pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TestTimingSinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestTimingSinkBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some(value) = io.input(PortId(0)) {
             if value.byte_len != 1 || self.received >= MAXIMUM_VALUES {
@@ -64,7 +64,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TestTimingSinkOperation {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TestTimingSourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestTimingSourceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -117,9 +117,9 @@ const fn timing_fixture_fail(detail: u16) -> StepOutcome {
     })
 }
 
-impl TestTimingSinkOperation {}
+impl TestTimingSinkBack {}
 
-impl TestTimingSourceOperation {}
+impl TestTimingSourceBack {}
 
 pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {
@@ -198,9 +198,9 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     }
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 0,
@@ -212,16 +212,16 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
-    Ok(InstalledOperation::TestTimingSink(
-        TestTimingSinkOperation { received: 0 },
-    ))
+    Ok(InstalledBack::TestTimingSink(TestTimingSinkBack {
+        received: 0,
+    }))
 }
 
-fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn source_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate_exact(placement, &source_offer())?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 6,
         value_bytes: 27,
         host_requests: 3,
@@ -233,7 +233,7 @@ fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_source(
     placement: &PlannedGear,
     store: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate_exact(placement, &source_offer())?;
     let values = [
         conduit_core::InfoBool::FALSE,
@@ -254,14 +254,12 @@ fn prepare_source(
                 .map_err(|error| format!("store timing fixture wait: {error:?}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(InstalledOperation::TestTimingSource(
-        TestTimingSourceOperation {
-            values,
-            waits,
-            next: 0,
-            pending: None,
-        },
-    ))
+    Ok(InstalledBack::TestTimingSource(TestTimingSourceBack {
+        values,
+        waits,
+        next: 0,
+        pending: None,
+    }))
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {

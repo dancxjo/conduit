@@ -1,6 +1,6 @@
 //! Local multi-partition composition of the existing kernel and Host effects.
 use super::{
-    kernel_preparation::KernelTables, preparation, simple_presentation_host, InstalledOperation,
+    kernel_preparation::KernelTables, preparation, simple_presentation_host, InstalledBack,
     InstalledScheduler, MAX_CORDS, MAX_NODES, MAX_QUEUE_SLOTS, PENDING_REQUESTS,
 };
 use crate::{hosted_keyboard::HostedKeyboardAdapter, RunControl, TimerAdapter};
@@ -20,10 +20,10 @@ pub(crate) struct BodyKernel {
     scheduler: InstalledScheduler,
     partitions: Vec<KernelIdentityMap>,
     operations: Vec<LoweredHostCall>,
-    typed_record_hosts: Vec<Option<super::typed_record_operation::TypedRecordHost>>,
-    image_text_hosts: Vec<Option<super::image_text_operation::ImageTextHost>>,
-    image_text_record_hosts: Vec<Option<super::image_text_record_operation::ImageTextRecordHost>>,
-    text_state_hosts: Vec<Option<super::text_state_operation::TextStateHost>>,
+    typed_record_hosts: Vec<Option<super::typed_record_back::TypedRecordHost>>,
+    image_text_hosts: Vec<Option<super::image_text_back::ImageTextHost>>,
+    image_text_record_hosts: Vec<Option<super::image_text_record_back::ImageTextRecordHost>>,
+    text_state_hosts: Vec<Option<super::text_state_back::TextStateHost>>,
     input_keymaps: [conduit_human::ConduitIntlKeymap; MAX_NODES],
     requests: Vec<HostCallRequest>,
 }
@@ -129,7 +129,7 @@ impl BodyKernel {
         let mut sign_items = 32_u16;
         let mut request_capacity = 0_usize;
         for placement in fragments.iter().flat_map(|part| &part.placements) {
-            let budget = preparation::operation_budget(placement)?;
+            let budget = preparation::back_budget(placement)?;
             items = items
                 .checked_add(budget.value_items)
                 .ok_or("Body value item overflow")?;
@@ -147,7 +147,7 @@ impl BodyKernel {
         }
         let mut values = HostedValueStore::new(items.max(1), maximum, bytes.max(1))
             .map_err(|error| format!("Body value store: {error:?}"))?;
-        let mut drivers = core::array::from_fn(|_| InstalledOperation::inactive());
+        let mut drivers = core::array::from_fn(|_| InstalledBack::inactive());
         for (fragment, part) in fragments.iter().zip(&lowered.partitions) {
             for node in &part.nodes {
                 drivers[usize::from(node.node.0)] = preparation::prepare_ordinary_operation(
@@ -165,15 +165,15 @@ impl BodyKernel {
         .map_err(|error| format!("Body Sign store: {error:?}"))?;
         let typed_record_hosts = fragments
             .iter()
-            .flat_map(|fragment| super::typed_record_operation::prepare_hosts(fragment))
+            .flat_map(|fragment| super::typed_record_back::prepare_hosts(fragment))
             .collect();
         let image_text_hosts = fragments
             .iter()
-            .flat_map(|fragment| super::image_text_operation::prepare_hosts(fragment))
+            .flat_map(|fragment| super::image_text_back::prepare_hosts(fragment))
             .collect();
         let image_text_record_hosts = fragments
             .iter()
-            .flat_map(|fragment| super::image_text_record_operation::prepare_hosts(fragment))
+            .flat_map(|fragment| super::image_text_record_back::prepare_hosts(fragment))
             .collect();
         let text_state_hosts = fragments
             .iter()
@@ -181,7 +181,7 @@ impl BodyKernel {
                 fragment
                     .placements
                     .iter()
-                    .map(super::text_state_operation::TextStateHost::from_placement)
+                    .map(super::text_state_back::TextStateHost::from_placement)
             })
             .collect::<Result<Vec<_>, String>>()?;
         Ok(Self {
@@ -341,7 +341,7 @@ impl BodyKernel {
                     }
                     if input_semantic(&operation.contract_id) {
                         let node = usize::from(request.node.0);
-                        let completion = super::input_semantic_operations::execute_host(
+                        let completion = super::input_semantic_backs::execute_host(
                             operation.contract_id.as_str() == conduit_std_offers::KEYMAP_HOST_CALL,
                             &mut self.input_keymaps[node],
                             input,

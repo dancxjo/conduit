@@ -57,14 +57,14 @@ fn real_partition_operations_use_global_slots_and_original_placement_identity() 
         )
         .unwrap();
         let offset = index * 2;
-        assert!(matches!(&drivers[offset], InstalledOperation::Tick(_)));
+        assert!(matches!(&drivers[offset], InstalledBack::Tick(_)));
         assert!(matches!(
             &drivers[offset + 1],
-            InstalledOperation::TickPresentation(_)
+            InstalledBack::TickPresentation(_)
         ));
         for (slot, driver) in drivers.iter().enumerate() {
             if slot < offset || slot >= offset + 2 {
-                assert!(matches!(driver, InstalledOperation::Inactive));
+                assert!(matches!(driver, InstalledBack::Inactive));
             }
         }
     }
@@ -82,7 +82,7 @@ fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_ins
     let lowered =
         lower_local_fragment_set(&fragments, FIXED_KERNEL_STORAGE_PROFILE, bounds()).unwrap();
     let mut values = HostedValueStore::new(32, 64, 2048).unwrap();
-    let mut drivers = core::array::from_fn(|_| InstalledOperation::inactive());
+    let mut drivers = core::array::from_fn(|_| InstalledBack::inactive());
     for (fragment, partition) in fragments.iter().zip(&lowered.partitions) {
         assert!(partition.states.is_empty());
         for node in &partition.nodes {

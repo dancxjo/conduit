@@ -1,7 +1,7 @@
 //! Optional bounded audible embodiment of one exact frequency quantity.
 use super::{
     factory::{validate_placement, BrowserInstallation},
-    BrowserOperation,
+    BrowserBack,
 };
 use conduit_core::{kind_id, HostCallRequirement, PlannedGear, QUANTITY_ENCODED_LEN};
 use conduit_kernel::{
@@ -44,9 +44,9 @@ fn offer() -> conduit_core::CapabilityOffer {
     )
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
-    Ok(BrowserOperation::installed_step(PitchTone {
+    Ok(BrowserBack::installed_step(PitchTone {
         pending: None,
         next: 0,
     }))

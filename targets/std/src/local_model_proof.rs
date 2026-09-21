@@ -102,7 +102,7 @@ pub fn run(
     }
     additional_capabilities
         .extend(crate::installed_std::test_local_model_io::house_source_offers());
-    additional_capabilities.push(crate::installed_std::recorded_speech_operation::offer());
+    additional_capabilities.push(crate::installed_std::recorded_speech_back::offer());
     additional_capabilities
         .push(crate::installed_std::test_local_model_io::house_text_sink_offer());
     let mut host = StdHost::new_with_local_model_capabilities(

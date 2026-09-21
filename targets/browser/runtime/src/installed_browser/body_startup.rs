@@ -1,7 +1,7 @@
 //! A finite source initialized from exact retained body startup evidence.
 use super::{
     factory::{validate_placement, BrowserInstallation},
-    BrowserOperation,
+    BrowserBack,
 };
 use conduit_body::{BodyStartup, StartupScope};
 use conduit_core::{CapabilityOffer, InfoBool, PlannedGear};
@@ -54,7 +54,7 @@ fn offer(first: bool) -> CapabilityOffer {
         vec![],
     )
 }
-fn without_body(_: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn without_body(_: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     Err("Body startup sources require an admitted body lifecycle".into())
 }
 
@@ -62,7 +62,7 @@ pub(crate) fn prepare_for_body(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
     startup: Option<&BodyStartup>,
-) -> Result<Option<BrowserOperation>, String> {
+) -> Result<Option<BrowserBack>, String> {
     let first = match placement.implementation_id.as_str() {
         WAKE_IMPLEMENTATION => false,
         FIRST_IMPLEMENTATION => true,
@@ -83,9 +83,7 @@ pub(crate) fn prepare_for_body(
     } else {
         None
     };
-    Ok(Some(BrowserOperation::installed_step(StartupSource {
-        value,
-    })))
+    Ok(Some(BrowserBack::installed_step(StartupSource { value })))
 }
 
 struct StartupSource {

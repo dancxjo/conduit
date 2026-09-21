@@ -402,10 +402,10 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
 }
 
 pub fn standard_host_call_requirements(
-    operation_kind: &KindId,
+    back_kind: &KindId,
     maximum_value_bytes: u32,
 ) -> Vec<HostCallRequirement> {
-    match operation_kind.as_str() {
+    match back_kind.as_str() {
         PULSE_KIND | TICK_KIND => vec![wait_host_call_requirement()],
         SHOW_KIND => vec![present_host_call_requirement(
             kind_id("presentation/stdout"),
@@ -492,23 +492,23 @@ mod supported_nucleus_tests {
 }
 
 #[cfg(feature = "kernel-step")]
-mod pattern_comparison_operation;
+mod pattern_comparison_back;
 #[cfg(feature = "kernel-step")]
-pub use pattern_comparison_operation::PatternComparisonOperation;
+pub use pattern_comparison_back::PatternComparisonBack;
 
 #[cfg(feature = "kernel-step")]
-mod template_storage_operation;
+mod template_storage_back;
 #[cfg(feature = "kernel-step")]
-pub use template_storage_operation::TemplateStorageOperation;
+pub use template_storage_back::TemplateStorageBack;
 #[cfg(feature = "form-catalog")]
 mod template_store;
 #[cfg(feature = "form-catalog")]
 pub use template_store::{BoundedTemplateStore, TemplateStoreRefusal};
 #[cfg(feature = "kernel-step")]
-mod final_pattern_operation;
+mod final_pattern_back;
 #[cfg(feature = "kernel-step")]
-pub use final_pattern_operation::FinalNormalizedPatternOperation;
+pub use final_pattern_back::FinalNormalizedPatternBack;
 #[cfg(feature = "kernel-step")]
-mod structured_selector_operation;
+mod structured_selector_back;
 #[cfg(feature = "kernel-step")]
-pub use structured_selector_operation::StructuredSelectorOperation;
+pub use structured_selector_back::StructuredSelectorBack;

@@ -1,7 +1,7 @@
 //! Dynamic browser realization of exact structured field and variant selectors.
 
 use super::factory::{BrowserHostResult, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
@@ -138,11 +138,11 @@ fn validate(placement: &PlannedGear, selector: &StructuredSelector) -> Result<()
     Ok(())
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let selector = selector_from_placement(placement)?;
     validate(placement, &selector)?;
-    Ok(BrowserOperation::installed_step(
-        conduit_semantic_catalog::StructuredSelectorOperation::new(
+    Ok(BrowserBack::installed_step(
+        conduit_semantic_catalog::StructuredSelectorBack::new(
             MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         ),
     ))

@@ -29,7 +29,7 @@ fn offer() -> CapabilityOffer {
 fn prepare(
     placement: &conduit_core::PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<super::BrowserOperation, String> {
+) -> Result<super::BrowserBack, String> {
     super::factory::validate_placement(placement, &offer())?;
     let get = |key: &str| {
         placement
@@ -58,7 +58,7 @@ fn prepare(
     let value = values
         .store(&conduit_time::encode_rhythm_state(state))
         .map_err(|error| format!("admit rhythm state: {error:?}"))?;
-    Ok(super::BrowserOperation::source(value))
+    Ok(super::BrowserBack::source(value))
 }
 
 pub(super) static INSTALLATION: super::factory::BrowserInstallation =

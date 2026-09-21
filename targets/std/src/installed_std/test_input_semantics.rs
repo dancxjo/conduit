@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
@@ -27,30 +27,30 @@ const SINK_PROFILE: &str = "conduit-test/chord-sink-kernel@1";
 pub(super) const SINK_IMPLEMENTATION: &str = "conduit-test/chord-sink-kernel@1";
 const SINK_ARTIFACT: &str = "conduit-std-host/test-chord-sink@1";
 
-pub(super) static TEST_KEY_EVENT_SOURCE_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_KEY_EVENT_SOURCE_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget: source_budget,
     prepare: prepare_source,
 };
 
-pub(super) static TEST_CHORD_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_CHORD_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: SINK_IMPLEMENTATION,
     budget: sink_budget,
     prepare: prepare_sink,
 };
 
-pub(super) struct TestKeyEventSourceOperation {
+pub(super) struct TestKeyEventSourceBack {
     pub(super) values: Vec<ValueRef>,
     pub(super) waits: Vec<ValueRef>,
     pub(super) next: usize,
     pending: Option<RequestId>,
 }
 
-pub(super) struct TestChordSinkOperation {
+pub(super) struct TestChordSinkBack {
     observed: u8,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TestKeyEventSourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestKeyEventSourceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -95,7 +95,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TestKeyEventSourceOperation {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TestChordSinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestChordSinkBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -125,9 +125,9 @@ const fn key_fixture_fail(detail: u16) -> StepOutcome {
     })
 }
 
-impl TestKeyEventSourceOperation {}
+impl TestKeyEventSourceBack {}
 
-impl TestChordSinkOperation {}
+impl TestChordSinkBack {}
 
 pub(super) fn source_offer() -> CapabilityOffer {
     offer(
@@ -238,9 +238,9 @@ fn sink_port() -> PortDescriptor {
     }
 }
 
-fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn source_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate_source(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 16,
         value_bytes: 8 * KEY_EVENT_ENCODED_LEN as u32 + 64,
         host_requests: 8,
@@ -249,9 +249,9 @@ fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     })
 }
 
-fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn sink_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate_sink(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 0,
@@ -263,7 +263,7 @@ fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_source(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate_source(placement)?;
     let specs = [
         (0x04, KeyTransition::Pressed, 0),
@@ -304,22 +304,20 @@ fn prepare_source(
                 .map_err(|error| format!("store test key wait: {error:?}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(InstalledOperation::TestKeyEventSource(
-        TestKeyEventSourceOperation {
-            values: event_values,
-            waits,
-            next: 0,
-            pending: None,
-        },
-    ))
+    Ok(InstalledBack::TestKeyEventSource(TestKeyEventSourceBack {
+        values: event_values,
+        waits,
+        next: 0,
+        pending: None,
+    }))
 }
 
 fn prepare_sink(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate_sink(placement)?;
-    Ok(InstalledOperation::TestChordSink(TestChordSinkOperation {
+    Ok(InstalledBack::TestChordSink(TestChordSinkBack {
         observed: 0,
     }))
 }

@@ -1,7 +1,7 @@
 //! Browser realization of the reusable bounded ordered framed-record queue.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
@@ -44,10 +44,10 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     let (maximum_items, _) = limits(placement).map_err(|_| "invalid ordered queue limits")?;
-    Ok(BrowserOperation::unary(MAXIMUM, maximum_items as u32))
+    Ok(BrowserBack::unary(MAXIMUM, maximum_items as u32))
 }
 
 pub(crate) fn execute(placement: &PlannedGear, input: &[u8]) -> Result<Vec<u8>, Failure> {

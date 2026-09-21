@@ -23,7 +23,7 @@ pub struct ProviderFunctionCall {
 pub struct ModelEffectProposal {
     pub proposal_id: String,
     pub plan_id: PlanId,
-    pub operation_kind: KindId,
+    pub back_kind: KindId,
     pub canonical_arguments: Vec<u8>,
     pub rationale: String,
     pub evidence: Vec<SignId>,
@@ -40,7 +40,7 @@ impl ModelEffectProposal {
         Self {
             proposal_id,
             plan_id,
-            operation_kind: KindId::from(call.function_name),
+            back_kind: KindId::from(call.function_name),
             canonical_arguments: call.canonical_arguments,
             rationale,
             evidence,
@@ -83,7 +83,7 @@ impl EffectAuthority {
     pub fn from_plan(
         plan: &Plan,
         proposer_placement_id: &PlacementId,
-        operation_kind: &KindId,
+        back_kind: &KindId,
     ) -> Result<Self, EffectAuthorityDerivationError> {
         if !conduit_core::verify_plan(plan) {
             return Err(EffectAuthorityDerivationError::InvalidPlan);
@@ -119,7 +119,7 @@ impl EffectAuthority {
                     .iter()
                     .flat_map(|fragment| &fragment.placements)
                     .find(|placement| placement.placement_id == connection.sink_placement_id)
-                    .filter(|placement| &placement.kind_id == operation_kind)
+                    .filter(|placement| &placement.kind_id == back_kind)
                     .map(|placement| (connection, placement))
             });
         let (connection, effect) = wiring
@@ -135,8 +135,7 @@ impl EffectAuthority {
         }
 
         let mut operations = effect.host_calls.iter().filter(|requirement| {
-            requirement.target_kind.as_ref() == Some(operation_kind)
-                && requirement.maximum_in_flight > 0
+            requirement.target_kind.as_ref() == Some(back_kind) && requirement.maximum_in_flight > 0
         });
         let operation = operations
             .next()
@@ -147,7 +146,7 @@ impl EffectAuthority {
 
         let mut bindings = effect.authority.iter().filter(|binding| {
             binding.host_call_contract_id == operation.contract_id
-                && &binding.subject_kind == operation_kind
+                && &binding.subject_kind == back_kind
                 && binding.host_id == effect.host_id
                 && binding.boot_id == effect.boot_id
                 && binding.capability_id == effect.capability_id
@@ -170,7 +169,7 @@ impl EffectAuthority {
         let authority = Self {
             authority_id: binding.grant_id.as_str().into(),
             active_plan_id: plan.plan_id.clone(),
-            wired_operation_kind: operation_kind.clone(),
+            wired_operation_kind: back_kind.clone(),
             argument_type_digest,
             maximum_argument_bytes,
         };
@@ -212,7 +211,7 @@ pub struct AuthorizedEffectRequest {
     pub decision_id: String,
     pub authority_id: String,
     pub plan_id: PlanId,
-    pub operation_kind: KindId,
+    pub back_kind: KindId,
     pub canonical_arguments: Vec<u8>,
 }
 
@@ -312,7 +311,7 @@ impl ProposalGate {
                 decision_id: decision_id.clone(),
                 authority_id: authority.authority_id.clone(),
                 plan_id: proposal.plan_id,
-                operation_kind: proposal.operation_kind,
+                back_kind: proposal.back_kind,
                 canonical_arguments: proposal.canonical_arguments,
             };
             self.pending.push(request.clone());
@@ -414,7 +413,7 @@ impl ProposalGate {
         if proposal.plan_id != authority.active_plan_id {
             return Some(ProposalRefusal::StalePlan);
         }
-        if proposal.operation_kind != authority.wired_operation_kind {
+        if proposal.back_kind != authority.wired_operation_kind {
             return Some(ProposalRefusal::UnwiredOperation);
         }
         if proposal.canonical_arguments.len() > authority.maximum_argument_bytes {
@@ -443,7 +442,7 @@ fn valid_authority(authority: &EffectAuthority) -> bool {
 fn valid_proposal(proposal: &ModelEffectProposal) -> bool {
     valid_identity(&proposal.proposal_id)
         && !proposal.plan_id.as_str().is_empty()
-        && valid_identity(proposal.operation_kind.as_str())
+        && valid_identity(proposal.back_kind.as_str())
         && proposal.canonical_arguments.len() <= MAXIMUM_EFFECT_ARGUMENT_BYTES
         && proposal.rationale.len() <= MAXIMUM_PROPOSAL_RATIONALE_BYTES
         && proposal.evidence.len() <= MAXIMUM_PROPOSAL_EVIDENCE

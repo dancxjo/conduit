@@ -1,7 +1,7 @@
 //! Exact, bounded Scalar-to-Quantity work through the browser Host Call waist.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{ConfigurationValue, PlannedGear, QuantityUnit, Scalar};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -94,13 +94,13 @@ pub(crate) fn configuration(placement: &PlannedGear) -> Result<QuantityMapping, 
 fn prepare(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     if placement.configuration.len() != 8 {
         return Err("quantity mapping requires exactly eight configuration fields".into());
     }
     configuration(placement)?;
-    Ok(BrowserOperation::installed_step(QuantityOperation {
+    Ok(BrowserBack::installed_step(QuantityBack {
         pending: false,
         next_request: 0,
         cancelled: false,
@@ -135,13 +135,13 @@ fn failure(detail: u16) -> Failure {
     }
 }
 
-struct QuantityOperation {
+struct QuantityBack {
     pending: bool,
     next_request: u32,
     cancelled: bool,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for QuantityOperation {
+impl<const PORTS: usize> StepBack<PORTS> for QuantityBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if !self.pending || request.0.checked_add(1) != Some(self.next_request) {
@@ -211,7 +211,7 @@ mod tests {
     use conduit_kernel::{HostCallOutcome, ValueRef};
 
     fn completion(
-        operation: &mut QuantityOperation,
+        operation: &mut QuantityBack,
         outcome: HostCallOutcome,
     ) -> (StepOutcome, StepIo<1>) {
         let mut io =
@@ -222,7 +222,7 @@ mod tests {
 
     #[test]
     fn browser_quantity_operation_requires_exact_ports_requests_and_output() {
-        let mut operation = QuantityOperation {
+        let mut operation = QuantityBack {
             pending: false,
             next_request: 0,
             cancelled: false,
@@ -266,7 +266,7 @@ mod tests {
     #[test]
     fn browser_quantity_failure_and_cancellation_never_become_output() {
         for detail in 1..=5 {
-            let mut operation = QuantityOperation {
+            let mut operation = QuantityBack {
                 pending: true,
                 next_request: 1,
                 cancelled: false,
@@ -281,7 +281,7 @@ mod tests {
                 StepOutcome::Fail(failure(detail))
             );
         }
-        let mut operation = QuantityOperation {
+        let mut operation = QuantityBack {
             pending: true,
             next_request: 1,
             cancelled: false,

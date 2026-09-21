@@ -1,7 +1,7 @@
 //! Browser production realization of explicitly initialized measurement hysteresis.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostCallRequirement, ImplementationId, PlannedGear,
@@ -126,20 +126,20 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     PreparedHysteresis::for_placement(placement)?
         .ok_or_else(|| "measurement hysteresis selected another implementation".to_string())?;
-    Ok(BrowserOperation::installed_step(HysteresisOperation::new()))
+    Ok(BrowserBack::installed_step(HysteresisBack::new()))
 }
 
-struct HysteresisOperation {
+struct HysteresisBack {
     profile_ready: bool,
     profile_closed: bool,
     pending: Option<(RequestId, HostCallId)>,
     emitted: bool,
 }
 
-impl HysteresisOperation {
+impl HysteresisBack {
     const fn new() -> Self {
         Self {
             profile_ready: false,
@@ -150,7 +150,7 @@ impl HysteresisOperation {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for HysteresisOperation {
+impl<const PORTS: usize> StepBack<PORTS> for HysteresisBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             let Some((pending_request, operation)) = self.pending else {
@@ -415,7 +415,7 @@ mod tests {
 
     #[test]
     fn browser_hysteresis_step_preserves_pending_evaluation_under_output_pressure() {
-        let mut operation = HysteresisOperation::new();
+        let mut operation = HysteresisBack::new();
         let profile = value(1, 40);
         let mut profile_io = StepIo::test_frame(
             [Some(profile), None],

@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 pub struct DeadlineKey {
     pub node: NodeId,
     pub request: RequestId,
-    pub operation: HostCallId,
+    pub host_call: HostCallId,
 }
 
 impl From<HostCallRequest> for DeadlineKey {
@@ -21,7 +21,7 @@ impl From<HostCallRequest> for DeadlineKey {
         Self {
             node: request.node,
             request: request.request,
-            operation: request.call,
+            host_call: request.call,
         }
     }
 }
@@ -31,7 +31,7 @@ impl From<HostCallCancellation> for DeadlineKey {
         Self {
             node: cancellation.node,
             request: cancellation.request,
-            operation: cancellation.call,
+            host_call: cancellation.call,
         }
     }
 }

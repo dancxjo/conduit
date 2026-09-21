@@ -10,7 +10,7 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 
 use super::{
-    state_select_operation::StateSelectBack,
+    state_select_back::StateSelectBack,
     state_select_plan::{
         FALSE_SOURCE_KIND, PreparedStateSelect, SELECTOR_SOURCE_KIND, SINK_KIND, TRUE_SOURCE_KIND,
     },

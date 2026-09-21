@@ -1,7 +1,7 @@
 //! Optional audible embodiment. Lifecycle eligibility belongs to the upstream Form.
 use super::{
     factory::{validate_placement, BrowserInstallation},
-    BrowserOperation,
+    BrowserBack,
 };
 use conduit_core::{kind_id, HostCallRequirement, PlannedGear};
 use conduit_kernel::{
@@ -41,9 +41,9 @@ fn offer() -> conduit_core::CapabilityOffer {
         vec![],
     )
 }
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
-    Ok(BrowserOperation::installed_step(Chime {
+    Ok(BrowserBack::installed_step(Chime {
         pending: None,
         next: 0,
     }))

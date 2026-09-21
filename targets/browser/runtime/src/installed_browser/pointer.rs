@@ -1,7 +1,7 @@
 //! Existing browser pointer offer installed in the ordinary form runner.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
@@ -35,12 +35,12 @@ fn offer() -> conduit_core::CapabilityOffer {
 fn prepare(
     placement: &conduit_core::PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     let empty = values
         .store(&[])
         .map_err(|error| format!("pointer request: {error:?}"))?;
-    Ok(BrowserOperation::installed_step(PointerSource {
+    Ok(BrowserBack::installed_step(PointerSource {
         empty,
         pending: false,
         next: 0,

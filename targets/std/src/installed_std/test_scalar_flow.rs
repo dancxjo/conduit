@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ConfigurationValue, ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear,
@@ -30,37 +30,37 @@ const SINK_IMPLEMENTATION: &str = "conduit-test/scalar-sink-kernel@1";
 const SINK_ARTIFACT: &str = "conduit-std-host/test-scalar-sink@1";
 const EXPECTED_VALUES: u64 = 3;
 
-pub(super) static TEST_SCALAR_SOURCE_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_SCALAR_SOURCE_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget: source_budget,
     prepare: prepare_source,
 };
 
-pub(super) static TEST_SCALAR_LITERAL_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_SCALAR_LITERAL_FACTORY: BackFactory = BackFactory {
     implementation_id: LITERAL_IMPLEMENTATION,
     budget: literal_budget,
     prepare: prepare_literal,
 };
 
-pub(super) static TEST_SCALAR_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_SCALAR_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: SINK_IMPLEMENTATION,
     budget: sink_budget,
     prepare: prepare_sink,
 };
 
-pub(super) struct TestScalarSourceOperation {
+pub(super) struct TestScalarSourceBack {
     pub(super) values: Vec<ValueRef>,
     pub(super) waits: Vec<ValueRef>,
     pub(super) next: usize,
     pending: Option<RequestId>,
 }
 
-pub(super) struct TestScalarLiteralOperation {
+pub(super) struct TestScalarLiteralBack {
     pub(super) value: ValueRef,
     pub(super) emitted: bool,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TestScalarLiteralOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestScalarLiteralBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;
@@ -75,14 +75,14 @@ impl<const PORTS: usize> StepBack<PORTS> for TestScalarLiteralOperation {
     }
 }
 
-impl TestScalarLiteralOperation {}
+impl TestScalarLiteralBack {}
 
-pub(super) struct TestScalarSinkOperation {
+pub(super) struct TestScalarSinkBack {
     seen: u64,
     expected: u64,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TestScalarSourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestScalarSourceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -128,7 +128,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TestScalarSourceOperation {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TestScalarSinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestScalarSinkBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some(value) = io.input(PortId(0)) {
             if value.byte_len != SCALAR_ENCODED_LEN as u32 || self.seen >= self.expected {
@@ -154,9 +154,9 @@ const fn scalar_fixture_fail(detail: u16) -> StepOutcome {
     })
 }
 
-impl TestScalarSourceOperation {}
+impl TestScalarSourceBack {}
 
-impl TestScalarSinkOperation {}
+impl TestScalarSinkBack {}
 
 pub(super) fn source_offer() -> CapabilityOffer {
     let mut offer = offer(
@@ -328,9 +328,9 @@ fn scalar_port(name: &str, direction: PortDirection, temporal: PortTemporal) -> 
     }
 }
 
-fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn source_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate_source(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: (EXPECTED_VALUES * 2) as u16,
         value_bytes: (SCALAR_ENCODED_LEN as u64 * EXPECTED_VALUES * 2) as u32,
         host_requests: EXPECTED_VALUES as usize,
@@ -339,9 +339,9 @@ fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     })
 }
 
-fn literal_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn literal_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate_literal(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 1,
         value_bytes: SCALAR_ENCODED_LEN as u32,
         host_requests: 0,
@@ -353,23 +353,21 @@ fn literal_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_literal(
     placement: &PlannedGear,
     store: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate_literal(placement)?;
     let value = store
         .store(&Scalar::from_raw_microunits(-1).encode())
         .map_err(|error| format!("store scalar literal fixture: {error:?}"))?;
-    Ok(InstalledOperation::TestScalarLiteral(
-        TestScalarLiteralOperation {
-            value,
-            emitted: false,
-        },
-    ))
+    Ok(InstalledBack::TestScalarLiteral(TestScalarLiteralBack {
+        value,
+        emitted: false,
+    }))
 }
 
 fn prepare_source(
     placement: &PlannedGear,
     store: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate_source(placement)?;
     let values = [-1_000_000_i64, 0, 1_000_000]
         .into_iter()
@@ -386,19 +384,17 @@ fn prepare_source(
                 .map_err(|error| format!("store scalar fixture wait: {error:?}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(InstalledOperation::TestScalarSource(
-        TestScalarSourceOperation {
-            values,
-            waits,
-            next: 0,
-            pending: None,
-        },
-    ))
+    Ok(InstalledBack::TestScalarSource(TestScalarSourceBack {
+        values,
+        waits,
+        next: 0,
+        pending: None,
+    }))
 }
 
-fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn sink_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate_sink(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 0,
@@ -410,14 +406,12 @@ fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_sink(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate_sink(placement)?;
-    Ok(InstalledOperation::TestScalarSink(
-        TestScalarSinkOperation {
-            seen: 0,
-            expected: expected(placement)?,
-        },
-    ))
+    Ok(InstalledBack::TestScalarSink(TestScalarSinkBack {
+        seen: 0,
+        expected: expected(placement)?,
+    }))
 }
 
 fn expected(placement: &PlannedGear) -> Result<u64, String> {

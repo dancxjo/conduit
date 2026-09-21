@@ -1,7 +1,7 @@
 //! Browser production realization of the deterministic minimal Garden reducer.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
@@ -209,10 +209,10 @@ fn offer_for(contract: Kind, implementation: &str, operations: &[&str]) -> Capab
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     PreparedGardenStep::for_placement(placement)?
-        .ok_or_else(|| "Garden operation selected another implementation".to_string())?;
-    Ok(BrowserOperation::installed_step(GardenStepBack::new()))
+        .ok_or_else(|| "Garden host_call selected another implementation".to_string())?;
+    Ok(BrowserBack::installed_step(GardenStepBack::new()))
 }
 
 struct GardenStepBack {
@@ -234,14 +234,14 @@ impl GardenStepBack {
 impl<const PORTS: usize> StepBack<PORTS> for GardenStepBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
-            let Some((expected, operation)) = self.pending else {
+            let Some((expected, host_call)) = self.pending else {
                 return StepOutcome::Fail(failure(22));
             };
             if request != expected {
                 return StepOutcome::Fail(failure(22));
             }
             match (
-                operation,
+                host_call,
                 outcome.disposition,
                 outcome.output,
                 outcome.failure,
@@ -320,16 +320,16 @@ impl GardenStepBack {
         port: PortId,
         value: conduit_kernel::ValueRef,
         request: RequestId,
-        operation: HostCallId,
+        host_call: HostCallId,
         detail: u16,
     ) -> Result<(), StepOutcome> {
         let Ok(input) = BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32) else {
             return Err(StepOutcome::Fail(failure(detail)));
         };
         io.consume(port).expect("present Garden input");
-        io.request_host_call(request, operation, input)
+        io.request_host_call(request, host_call, input)
             .expect("Garden Host Call");
-        self.pending = Some((request, operation));
+        self.pending = Some((request, host_call));
         Ok(())
     }
 }

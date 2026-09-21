@@ -48,7 +48,7 @@ pub(super) fn execute(
     adapter: Option<&mut dyn HostedVectorSearchAdapter>,
     output: &mut Vec<u8>,
 ) -> Result<Completion, String> {
-    super::vector_search_operation::validate(placement)?;
+    super::vector_search_back::validate(placement)?;
     let Some(adapter) = adapter else {
         return Ok(Completion::Refused);
     };

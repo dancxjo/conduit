@@ -209,7 +209,7 @@ fn malformed_identity_and_finite_capacity_refuse_without_output() {
     );
     assert_eq!(
         comparison.execute("conduit.host/wrong@1", &beat(1, 1)),
-        Err(RhythmCompareRefusal::WrongOperation)
+        Err(RhythmCompareRefusal::WrongBack)
     );
     for index in 0..conduit_semantic_catalog::RHYTHM_MAXIMUM_PENDING_BEATS {
         assert!(comparison

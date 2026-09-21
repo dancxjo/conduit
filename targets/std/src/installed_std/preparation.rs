@@ -1,5 +1,5 @@
 //! Construct the finite operation driver set before Play start.
-use super::{catalog::factory, operation::InstalledOperation, MAX_NODES};
+use super::{back::InstalledBack, catalog::factory, MAX_NODES};
 use conduit_core::PlanFragment;
 use conduit_kernel::HostedValueStore;
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
@@ -10,7 +10,7 @@ pub(super) fn prepare_operations(
     values: &mut HostedValueStore,
     play: &conduit_core::ActivePlayIdentity,
     mut retained: Option<&mut Vec<crate::state_value::RetainedTypedState>>,
-) -> Result<[InstalledOperation; MAX_NODES], String> {
+) -> Result<[InstalledBack; MAX_NODES], String> {
     if lowered.identity.plan_id != fragment.plan_id
         || lowered.identity.fragment_id != fragment.fragment_id
         || play.plan_id != fragment.plan_id
@@ -44,15 +44,13 @@ pub(super) fn prepare_operations(
     )?;
     // Kernel IDs may be offset within a combined workload. Resolve authored
     // placement identity inside this exact partition, never by the global ID.
-    let mut operations: Vec<_> = (0..MAX_NODES)
-        .map(|_| InstalledOperation::inactive())
-        .collect();
+    let mut operations: Vec<_> = (0..MAX_NODES).map(|_| InstalledBack::inactive()).collect();
     for node in &lowered.nodes {
         if let Some(state) = lowered.states.iter().find(|state| state.node == node.node) {
             if state.contract.retained.is_some() {
                 continue;
             }
-            operations[usize::from(node.node.0)] = InstalledOperation::TypedState(Box::new(
+            operations[usize::from(node.node.0)] = InstalledBack::TypedState(Box::new(
                 crate::state_value::TypedStateBack::prepare_for_play(fragment, state, play)?,
             ));
         } else {
@@ -83,9 +81,9 @@ pub(super) fn prepare_operations(
                 return Err(failure.reason);
             }
         };
-        operations[usize::from(state.node.0)] = InstalledOperation::TypedState(Box::new(operation));
+        operations[usize::from(state.node.0)] = InstalledBack::TypedState(Box::new(operation));
     }
-    let drivers: [InstalledOperation; MAX_NODES] = operations
+    let drivers: [InstalledBack; MAX_NODES] = operations
         .into_iter()
         .collect::<Vec<_>>()
         .try_into()
@@ -100,7 +98,7 @@ pub(super) fn prepare_ordinary_operation(
     fragment: &PlanFragment,
     placement_id: &conduit_core::PlacementId,
     values: &mut HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     let placement = fragment
         .placements
         .iter()
@@ -141,13 +139,13 @@ pub(crate) fn state_storage_profile() -> conduit_plan_lowering::lowering::Kernel
         .expect("the installed State storage profile has fixed positive capacities")
 }
 
-pub(super) fn operation_budget(
+pub(super) fn back_budget(
     placement: &conduit_core::PlannedGear,
-) -> Result<super::factory::OperationBudget, String> {
+) -> Result<super::factory::BackBudget, String> {
     if placement.implementation_id.as_str() == conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION {
         // Reserve the selected implementation's fixed envelope. Exact authored
         // initialization and the sealed per-cell capacity are checked on prepare.
-        Ok(super::factory::OperationBudget {
+        Ok(super::factory::BackBudget {
             value_items: 2,
             value_bytes: 128,
             host_requests: 0,

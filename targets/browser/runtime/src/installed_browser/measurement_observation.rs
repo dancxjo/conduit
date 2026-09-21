@@ -1,7 +1,7 @@
 //! Exact Quantity-to-MeasurementSample work in the ordinary browser kernel.
 
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ConfigurationValue, PlannedGear, StructuredInfoValue, TemporalInstant, TemporalScale,
 };
@@ -72,10 +72,10 @@ fn offer() -> conduit_core::CapabilityOffer {
 fn prepare(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     configuration(placement)?;
-    Ok(BrowserOperation::installed_step(ObservationOperation {
+    Ok(BrowserBack::installed_step(ObservationBack {
         pending: false,
         completed: false,
     }))
@@ -130,12 +130,12 @@ fn perform(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, S
     })
 }
 
-struct ObservationOperation {
+struct ObservationBack {
     pending: bool,
     completed: bool,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for ObservationOperation {
+impl<const PORTS: usize> StepBack<PORTS> for ObservationBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if request != RequestId(0) || !self.pending {

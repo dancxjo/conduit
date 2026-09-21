@@ -1,4 +1,4 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
@@ -48,30 +48,28 @@ const NAV_TIME_SOURCE: &str = "conduit-test/navigation-time-source";
 #[cfg(test)]
 const NAV_TIME_SOURCE_REVISION: &str = "conduit-test/navigation-time-source@1";
 
-pub(super) static TEST_LOCAL_MODEL_SOURCE_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_LOCAL_MODEL_SOURCE_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget: source_budget,
     prepare: prepare_source,
 };
-pub(super) static TEST_LOCAL_MODEL_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_LOCAL_MODEL_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: SINK_IMPLEMENTATION,
     budget: sink_budget,
     prepare: prepare_sink,
 };
 
-pub(super) struct TestLocalModelSourceOperation {
+pub(super) struct TestLocalModelSourceBack {
     value: ValueRef,
     emitted: bool,
     hosted: bool,
 }
 
-pub(super) struct TestLocalModelSinkOperation {
+pub(super) struct TestLocalModelSinkBack {
     complete: bool,
 }
 
-impl<const PORTS: usize> conduit_kernel::scheduler::StepBack<PORTS>
-    for TestLocalModelSourceOperation
-{
+impl<const PORTS: usize> conduit_kernel::scheduler::StepBack<PORTS> for TestLocalModelSourceBack {
     fn step(
         &mut self,
         io: &mut conduit_kernel::scheduler::StepIo<PORTS>,
@@ -123,9 +121,7 @@ impl<const PORTS: usize> conduit_kernel::scheduler::StepBack<PORTS>
     }
 }
 
-impl<const PORTS: usize> conduit_kernel::scheduler::StepBack<PORTS>
-    for TestLocalModelSinkOperation
-{
+impl<const PORTS: usize> conduit_kernel::scheduler::StepBack<PORTS> for TestLocalModelSinkBack {
     fn step(
         &mut self,
         io: &mut conduit_kernel::scheduler::StepIo<PORTS>,
@@ -152,9 +148,9 @@ const fn local_model_fixture_fail(detail: u16) -> conduit_kernel::scheduler::Ste
     })
 }
 
-impl TestLocalModelSourceOperation {}
+impl TestLocalModelSourceBack {}
 
-impl TestLocalModelSinkOperation {}
+impl TestLocalModelSinkBack {}
 
 pub(crate) fn source_offer(value_kind: &str) -> CapabilityOffer {
     offer(
@@ -499,10 +495,10 @@ fn validate(placement: &PlannedGear, direction: PortDirection) -> Result<(), Str
     Ok(())
 }
 
-fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn source_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, PortDirection::Output)?;
     let hosted_clip = placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 1,
         value_bytes: if hosted_clip {
             conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
@@ -519,9 +515,9 @@ fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     })
 }
 
-fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn sink_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, PortDirection::Input)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 0,
@@ -533,7 +529,7 @@ fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_source(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement, PortDirection::Output)?;
     #[cfg(test)]
     let request = if placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND {
@@ -562,8 +558,8 @@ fn prepare_source(
     let value = values
         .store(&request)
         .map_err(|error| format!("store local-model test request: {error:?}"))?;
-    Ok(InstalledOperation::TestLocalModelSource(
-        TestLocalModelSourceOperation {
+    Ok(InstalledBack::TestLocalModelSource(
+        TestLocalModelSourceBack {
             value,
             emitted: false,
             hosted: placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND,
@@ -767,9 +763,9 @@ fn recorded_house_audio_block(start_frame: u64, samples: &[i16]) -> Result<Vec<u
 fn prepare_sink(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement, PortDirection::Input)?;
-    Ok(InstalledOperation::TestLocalModelSink(
-        TestLocalModelSinkOperation { complete: false },
-    ))
+    Ok(InstalledBack::TestLocalModelSink(TestLocalModelSinkBack {
+        complete: false,
+    }))
 }

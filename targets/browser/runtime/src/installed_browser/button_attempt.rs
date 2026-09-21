@@ -50,7 +50,7 @@ pub fn offer() -> CapabilityOffer {
 pub(super) fn prepare(
     placement: &conduit_core::PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<super::BrowserOperation, String> {
+) -> Result<super::BrowserBack, String> {
     use conduit_kernel::ValueStorage;
     let installed = offer();
     super::factory::validate_placement(placement, &installed)?;
@@ -97,8 +97,8 @@ pub(super) fn prepare(
                 .map_err(|error| format!("admit timed attempt duration: {error:?}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(super::BrowserOperation::installed_step(
-        conduit_time::TimedButtonAttemptOperation::from_prepared_durations(
+    Ok(super::BrowserBack::installed_step(
+        conduit_time::TimedButtonAttemptBack::from_prepared_durations(
             durations,
             transitions,
             super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
