@@ -2,8 +2,8 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use super::timing_configuration::{self, TimingConfiguration};
 use conduit_core::{encode_monotonic_duration, InfoBool, PlannedGear, PortDirection, BOOL_INFO_ID};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static TIME_DEBOUNCE_FACTORY: InstalledFactory = InstalledFactory {
@@ -72,9 +72,9 @@ impl DebounceOperation {
                     self.request_deadline()
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Cancelled
+                    && outcome.disposition == HostCallDisposition::Cancelled
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -85,9 +85,9 @@ impl DebounceOperation {
                     self.request_deadline()
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -140,7 +140,7 @@ impl DebounceOperation {
             .or_else(|| self.terminal_releases.pop())
     }
 
-    pub(super) fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {
+    pub(super) fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
         self.cancellation.take()
     }
 
@@ -158,9 +158,9 @@ impl DebounceOperation {
         self.next_request += 1;
         let request = RequestId(raw_request);
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(input, 8)
                 .expect("deadline duration is exactly eight bytes"),
         }
@@ -205,9 +205,9 @@ impl TimeoutOperation {
                     fail(783)
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Cancelled
+                    && outcome.disposition == HostCallDisposition::Cancelled
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -218,9 +218,9 @@ impl TimeoutOperation {
                     self.request_deadline()
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -260,7 +260,7 @@ impl TimeoutOperation {
         self.cancellation = None;
     }
 
-    pub(super) fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {
+    pub(super) fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
         self.cancellation.take()
     }
 
@@ -303,9 +303,9 @@ impl TimeoutOperation {
         self.next_request += 1;
         let request = RequestId(raw_request);
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(input, 8)
                 .expect("deadline duration is exactly eight bytes"),
         }
@@ -460,7 +460,7 @@ fn validate(
         || placement.limits != offer.limits
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.resources.len() != 1
         || placement.resources[0].class_id.as_str()
             != conduit_core::MONOTONIC_MILLISECOND_TIMER_RESOURCE_CLASS

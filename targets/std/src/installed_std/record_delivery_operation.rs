@@ -3,8 +3,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId,
+    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
+    RequestId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -38,16 +38,16 @@ impl RecordDeliveryStatusOperation {
                 ) else {
                     return InstalledOperation::fail(260);
                 };
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(u32::from(self.observations)),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending
                     && request == RequestId(u32::from(self.observations))
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -101,7 +101,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.limits != offer.limits
         || !placement.configuration.is_empty()
         || !placement.resources.is_empty()

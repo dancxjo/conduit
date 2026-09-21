@@ -159,7 +159,7 @@ fn unchanged_signal_form_plans_lowers_and_generates_one_fixed_image() {
             maximum_cords: 1,
             maximum_routes: 1,
             maximum_route_targets: 1,
-            maximum_host_operations: 2,
+            maximum_host_calls: 2,
             maximum_resources: 2,
             maximum_sign_expectations: 8,
             maximum_configuration_entries: 3,
@@ -188,7 +188,7 @@ fn unchanged_signal_form_plans_lowers_and_generates_one_fixed_image() {
     assert!(rendered.contains("pub const GENERATED_NODES"));
     assert!(rendered.contains("pub const GENERATED_CORDS"));
     assert!(rendered.contains("pub const GENERATED_ROUTES"));
-    assert!(rendered.contains("pub const GENERATED_HOST_OPERATIONS"));
+    assert!(rendered.contains("pub const GENERATED_HOST_CALLS"));
     assert!(!rendered.contains("ExecutionPlan"));
 }
 
@@ -267,7 +267,7 @@ fn renderer_emits_fixed_current_kernel_tables() {
         remote_endpoints: Vec::new(),
         routes: Vec::new(),
         route_targets: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resources: Vec::new(),
         signs: Vec::new(),
         startup_dependencies: Vec::new(),
@@ -376,7 +376,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 },
                 inputs: Vec::new(),
                 outputs: vec![output],
-                host_operations: Vec::new(),
+                host_calls: Vec::new(),
                 resources: Vec::new(),
                 authority: Vec::new(),
                 pool_references: Vec::new(),
@@ -403,7 +403,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 },
                 inputs: vec![input],
                 outputs: Vec::new(),
-                host_operations: Vec::new(),
+                host_calls: Vec::new(),
                 resources: Vec::new(),
                 authority: Vec::new(),
                 pool_references: Vec::new(),

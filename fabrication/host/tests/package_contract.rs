@@ -43,7 +43,7 @@ fn pico_anchor() -> FabricationAnchor {
             os: None,
             host_core: "host-core/conduitos@1".into(),
             presenter: None,
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             toolchain_identity: "rustc:stable+thumbv6m-none-eabi".into(),
             builder_adapter: "conduit-host-rp2040/build@1".into(),
             strategy: conduit_host_fabrication::FabricationStrategy::DeterministicSpecializedBuild,

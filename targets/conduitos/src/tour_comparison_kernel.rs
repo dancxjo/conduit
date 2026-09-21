@@ -3,10 +3,10 @@
 use alloc::{boxed::Box, vec::Vec};
 use conduit_core::{ConfigurationValue, PlanFragment};
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, KernelEvent, SignSink, ValueRef, ValueStorage,
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallOutcome, KernelEvent, SignSink, ValueRef, ValueStorage,
     scheduler::{
-        FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
+        FixedScheduler, HostCallRequest, OperationDriver, SchedulerError, SchedulerStatus,
     },
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
@@ -85,7 +85,7 @@ impl ComparisonKernel {
         delegate!(self, kernel => kernel.scheduler.step())
     }
 
-    pub fn next_host_request(&mut self) -> Option<HostOperationRequest> {
+    pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
         delegate!(self, kernel => kernel.scheduler.next_host_request())
     }
 
@@ -93,25 +93,25 @@ impl ComparisonKernel {
         delegate!(self, kernel => kernel.scheduler.host_value(value))
     }
 
-    pub fn request_kind(&self, request: &HostOperationRequest) -> ComparisonNodeKind {
+    pub fn request_kind(&self, request: &HostCallRequest) -> ComparisonNodeKind {
         delegate!(self, kernel => kernel.kinds[usize::from(request.node.0)])
     }
 
     pub fn complete_value(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         output: &[u8],
         maximum: u32,
     ) -> Result<(), SchedulerError> {
         delegate!(self, kernel => {
             let value = kernel.scheduler.store_host_value(output)?;
             let output = BoundedValueRef::new(value, maximum)
-                .map_err(|_| SchedulerError::InvalidHostOperationAccess)?;
-            kernel.scheduler.complete_host_operation(
+                .map_err(|_| SchedulerError::InvalidHostCallAccess)?;
+            kernel.scheduler.complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(output),
                     failure: None,
                 },
@@ -121,13 +121,13 @@ impl ComparisonKernel {
 
     pub fn complete_presentation(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
     ) -> Result<(), SchedulerError> {
-        delegate!(self, kernel => kernel.scheduler.complete_host_operation(
+        delegate!(self, kernel => kernel.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -142,8 +142,8 @@ impl ComparisonKernel {
         delegate!(self, kernel => kernel.scheduler.signs().len())
     }
 
-    pub fn pending_host_operations(&self) -> usize {
-        delegate!(self, kernel => kernel.scheduler.pending_host_operation_count())
+    pub fn pending_host_calls(&self) -> usize {
+        delegate!(self, kernel => kernel.scheduler.pending_host_call_count())
     }
 }
 
@@ -205,15 +205,15 @@ impl<const N: usize, const C: usize> BoxedKernel<N, C> {
             )?;
         }
         routes.seal()?;
-        let mut bindings = FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(N as u16);
-        for host_operation in &lowered.host_operations {
-            bindings.install(host_operation.node, host_operation.binding)?;
+        let mut bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(N as u16);
+        for host_call in &lowered.host_calls {
+            bindings.install(host_call.node, host_call.binding)?;
         }
         bindings.seal()?;
         let minimum_sign_bytes = (SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32;
         let signs = FixedSignLog::<SIGN_CAPACITY>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;
         Ok(Self {
-            scheduler: FixedScheduler::new_with_host_operations(
+            scheduler: FixedScheduler::new_with_host_calls(
                 nodes, cords, routes, bindings, drivers, values, signs,
             )?,
             kinds,

@@ -3,11 +3,11 @@
 use alloc::vec::Vec;
 use conduit_core::{InfoBool, SCALAR_ENCODED_LEN, Scalar};
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    CordSpec, FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, NodeId, SignSink, ValueStorage,
+    FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, HostCallDisposition,
+    HostCallOutcome, NodeId, SignSink, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 
@@ -159,18 +159,18 @@ pub(super) fn cancel_state_select(
 
 fn capture(
     scheduler: &mut Scheduler,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     outputs: &mut [Option<Scalar>; MAXIMUM_OUTPUTS],
     output_count: &mut usize,
 ) -> Result<(), StateSelectError> {
     if request.node != scheduler.sink {
         return scheduler
             .kernel
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },
@@ -192,11 +192,11 @@ fn capture(
     *output_count += 1;
     scheduler
         .kernel
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -235,8 +235,8 @@ fn scheduler(
     routes
         .seal()
         .map_err(|_| StateSelectError::KernelSetup(2))?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(|_| StateSelectError::KernelSetup(3))?;
@@ -291,10 +291,9 @@ fn scheduler(
         (SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
     )
     .map_err(|_| StateSelectError::KernelSetup(6))?;
-    let kernel = FixedScheduler::new_with_host_operations(
-        nodes, cords, routes, bindings, drivers, values, signs,
-    )
-    .map_err(|_| StateSelectError::KernelSetup(7))?;
+    let kernel =
+        FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
+            .map_err(|_| StateSelectError::KernelSetup(7))?;
     Ok(Scheduler {
         kernel,
         sink: sink.ok_or(StateSelectError::Shape)?,

@@ -21,7 +21,7 @@ pub const ENDPOINT_RESOURCE: &str = "conduitos.resource/device-endpoint-instance
 pub const REPORT_RESOURCE: &str = "conduitos.resource/input-report-buffer@1";
 pub const TRANSITION_RESOURCE: &str = "conduitos.resource/input-transition-slot@1";
 pub const OPERATION_RESOURCE: &str = "conduitos.resource/input-operation-slot@1";
-pub const NEXT_KEY_EVENT_HOST_OPERATION: &str = "conduit.host/input-next-key-event@1";
+pub const NEXT_KEY_EVENT_HOST_CALL: &str = "conduit.host/input-next-key-event@1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct KeyboardRealization {
@@ -186,8 +186,8 @@ pub(crate) fn append_to_advertisement(
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
-        host_operations: vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(NEXT_KEY_EVENT_HOST_OPERATION),
+        host_calls: vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(NEXT_KEY_EVENT_HOST_CALL),
             target_kind: Some(conduit_core::kind_id(conduit_human::KEY_EVENT_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: 0,

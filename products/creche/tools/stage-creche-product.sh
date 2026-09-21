@@ -49,7 +49,7 @@ cp targets/browser/host/assets/browser-body-continuity.mjs "$destination/browser
 cp targets/browser/host/assets/browser-host-bootstrap.mjs "$destination/browser-host-bootstrap.mjs"
 cp targets/browser/host/assets/browser-host-membership.mjs "$destination/browser-host-membership.mjs"
 cp targets/browser/host/assets/browser-host-identity.mjs "$destination/browser-host-identity.mjs"
-cp targets/browser/host/assets/browser-host-operations.mjs "$destination/browser-host-operations.mjs"
+cp targets/browser/host/assets/browser-host-calls.mjs "$destination/browser-host-calls.mjs"
 cp targets/browser/host/assets/device-base.mjs "$destination/device-base.mjs"
 cp targets/browser/host/assets/usb-device-base.mjs "$destination/usb-device-base.mjs"
 cp "$runtime" "$destination/runtime.wasm"

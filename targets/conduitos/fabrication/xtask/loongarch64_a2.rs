@@ -35,7 +35,7 @@ struct MachineSign {
     timer_wakes: u32,
     kernel_decisions: u32,
     kernel_signs: u32,
-    pending_host_operations: u32,
+    pending_host_calls: u32,
     sequence: Vec<String>,
     a3_ordinary_form_claimed: bool,
 }
@@ -275,7 +275,7 @@ fn validate(sign: &MachineSign) -> Result<(), ConduitosError> {
         || sign.timer_wakes != 1
         || sign.kernel_decisions == 0
         || sign.kernel_signs == 0
-        || sign.pending_host_operations != 0
+        || sign.pending_host_calls != 0
         || sign.sequence.iter().map(String::as_str).ne(sequence)
         || sign.a3_ordinary_form_claimed
     {

@@ -6,11 +6,11 @@ use conduit_plan_lowering::lowering::{LoweredPlanFragment, FIXED_KERNEL_STORAGE_
 
 use crate::model::{
     EmbeddedImageBounds, GeneratedConfigurationEntry, GeneratedConfigurationValue,
-    GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedExpectedTerminal,
-    GeneratedHostOperation, GeneratedPort, GeneratedSignTarget, GeneratedStartupDependency,
-    GeneratedStaticCord, GeneratedStaticNode, GeneratedStaticRemoteEndpoint,
-    GeneratedStaticResource, GeneratedStaticRoute, GeneratedStaticRouteTarget, GeneratedStaticSign,
-    GenerationError, UnsupportedPlanFeature,
+    GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedExpectedTerminal, GeneratedHostCall,
+    GeneratedPort, GeneratedSignTarget, GeneratedStartupDependency, GeneratedStaticCord,
+    GeneratedStaticNode, GeneratedStaticRemoteEndpoint, GeneratedStaticResource,
+    GeneratedStaticRoute, GeneratedStaticRouteTarget, GeneratedStaticSign, GenerationError,
+    UnsupportedPlanFeature,
 };
 use crate::validate::validate_shape;
 use crate::GENERATED_EMBEDDED_PLAN_SCHEMA_VERSION;
@@ -48,10 +48,10 @@ pub fn generate_embedded_plan(
     let cords = generate_cords(lowered)?;
     let remote_endpoints = generate_remote_endpoints(lowered, bounds)?;
     let (routes, route_targets) = generate_routes(lowered)?;
-    let host_operations = lowered
-        .host_operations
+    let host_calls = lowered
+        .host_calls
         .iter()
-        .map(|operation| GeneratedHostOperation {
+        .map(|operation| GeneratedHostCall {
             node: operation.node.0,
             operation: operation.operation.0,
             contract_id: operation.contract_id.as_str().to_owned(),
@@ -109,7 +109,7 @@ pub fn generate_embedded_plan(
         remote_endpoints,
         routes,
         route_targets,
-        host_operations,
+        host_calls,
         resources,
         signs,
         startup_dependencies,

@@ -1,9 +1,9 @@
 use super::{ObligationBasis, ObligationRefusal, VALUE_BYTES};
 use conduit_core::{
     kind_id, port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, FrontStartupParameter, HostAdvertisement, HostId,
-    HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
-    KindIdentity, OfferGeneration, PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
+    CapabilityOffer, ExecutionProfileId, FrontStartupParameter, HostAdvertisement,
+    HostCallContractId, HostCallRequirement, HostId, HostProfileId, ImplementationId, KindIdentity,
+    OfferGeneration, PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
@@ -17,7 +17,7 @@ pub(super) const EXECUTE_KIND: &str = "repository/execute-proof-catalog";
 const VALUE_KIND: &str = "repository/validation-obligation@1";
 const CONTRACT_REVISION: &str = "conduit.repository/proof-catalog-obligation@1";
 const EXECUTION_PROFILE: &str = "conduit.repository/kernel-hosted@1";
-const HOST_OPERATION: &str = "conduit.repository/execute-proof-catalog@1";
+const HOST_CALL: &str = "conduit.repository/execute-proof-catalog@1";
 const QUEUE_SLOTS: usize = 2;
 const FIELDS: &[&str] = &[
     "commit",
@@ -168,7 +168,7 @@ fn source_offer() -> CapabilityOffer {
             })
             .collect(),
         shorthand: None,
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: limits(),
@@ -185,8 +185,8 @@ fn execute_offer() -> CapabilityOffer {
         outputs: vec![],
         startup_parameters: vec![],
         shorthand: None,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(HOST_OPERATION),
+        host_calls: vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(HOST_CALL),
             target_kind: Some(kind_id("repository/proof-catalog")),
             maximum_in_flight: 1,
             maximum_input_bytes: VALUE_BYTES,

@@ -252,16 +252,13 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
                 return Some(transfer);
             }
             if let Some(request) = runtimes[1].next_host_request() {
-                if runtimes[1]
-                    .complete_portable_host_operation(request)
-                    .unwrap()
-                {
+                if runtimes[1].complete_portable_host_call(request).unwrap() {
                     return None;
                 }
                 let work = runtimes[1].describe_host_request(request).unwrap();
                 if work.contract_id.as_str() == conduit_ai::LOCAL_MODEL_OPERATION {
                     assert!(runtimes[1]
-                        .complete_voice_provider_host_operation(
+                        .complete_voice_provider_host_call(
                             request,
                             None,
                             Some(&mut model),
@@ -347,7 +344,7 @@ fn unchanged_spoken_house_form_plans_across_three_exact_hosts_and_lines() {
                             _ => None,
                         }
                     }
-                    other => panic!("unexpected distributed cognition host operation: {other}"),
+                    other => panic!("unexpected distributed cognition host-call: {other}"),
                 };
                 complete_remote_work(&mut runtimes[1], work, output);
             }

@@ -339,26 +339,22 @@ impl Operation for InstalledOperation {
         }
     }
 
-    fn resume_host_operation(
+    fn resume_host_call(
         &mut self,
         request: RequestId,
-        outcome: conduit_kernel::HostOperationOutcome,
+        outcome: conduit_kernel::HostCallOutcome,
         canonical: Option<&[u8]>,
     ) -> OperationAction {
         match self {
             Self::KeyboardInput(operation) => {
-                operation.resume_host_operation(request, outcome, canonical)
+                operation.resume_host_call(request, outcome, canonical)
             }
-            Self::ButtonInput(operation) => {
-                operation.resume_host_operation(request, outcome, canonical)
-            }
-            Self::MidiInput(operation) => {
-                operation.resume_host_operation(request, outcome, canonical)
-            }
+            Self::ButtonInput(operation) => operation.resume_host_call(request, outcome, canonical),
+            Self::MidiInput(operation) => operation.resume_host_call(request, outcome, canonical),
             Self::TimedButtonAttempt(operation) => {
-                operation.resume_host_operation(request, outcome, canonical)
+                operation.resume_host_call(request, outcome, canonical)
             }
-            _ => self.resume(OperationInput::HostOperationCompleted { request, outcome }),
+            _ => self.resume(OperationInput::HostCallCompleted { request, outcome }),
         }
     }
 
@@ -556,7 +552,7 @@ impl Operation for InstalledOperation {
         }
     }
 
-    fn accepts_input_while_host_operation_pending(&self) -> bool {
+    fn accepts_input_while_host_call_pending(&self) -> bool {
         matches!(
             self,
             Self::TimeDebounce(_)
@@ -567,19 +563,19 @@ impl Operation for InstalledOperation {
         )
     }
 
-    fn retains_host_operation_input(&self, _request: RequestId, value: ValueRef) -> bool {
+    fn retains_host_call_input(&self, _request: RequestId, value: ValueRef) -> bool {
         match self {
-            Self::TimedButtonAttempt(operation) => operation.retains_host_operation_input(value),
+            Self::TimedButtonAttempt(operation) => operation.retains_host_call_input(value),
             _ => false,
         }
     }
 
-    fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {
+    fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
         match self {
-            Self::TimeDebounce(operation) => operation.take_host_operation_cancellation(),
-            Self::TimeTimeout(operation) => operation.take_host_operation_cancellation(),
-            Self::TimeThrottle(operation) => operation.take_host_operation_cancellation(),
-            Self::TimedButtonAttempt(operation) => operation.take_host_operation_cancellation(),
+            Self::TimeDebounce(operation) => operation.take_host_call_cancellation(),
+            Self::TimeTimeout(operation) => operation.take_host_call_cancellation(),
+            Self::TimeThrottle(operation) => operation.take_host_call_cancellation(),
+            Self::TimedButtonAttempt(operation) => operation.take_host_call_cancellation(),
             _ => None,
         }
     }

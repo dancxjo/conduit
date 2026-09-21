@@ -4,8 +4,8 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_ai::WiredHouseContextItem;
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    Failure, FailureCode, HostOperationDisposition, HostOperationId, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef,
+    Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
+    RequestId, ValueRef,
 };
 use conduit_text::AddressDetection;
 
@@ -44,28 +44,26 @@ impl HousePromptOperation {
                     self.request(port, value)
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Completed, None, None) => self
+                    (HostCallDisposition::Completed, None, None) => self
                         .deferred
                         .take()
                         .map_or(OperationAction::Await, |(port, value)| {
                             self.request(port, value)
                         }),
-                    (HostOperationDisposition::Denied, _, _) => {
-                        fail(FailureCode::HostOperationDenied, 1)
-                    }
-                    _ => fail(FailureCode::HostOperationFailed, 2),
+                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 1),
+                    _ => fail(FailureCode::HostCallFailed, 2),
                 }
             }
             OperationInput::Closed { port: PortId(port) }
@@ -104,9 +102,9 @@ impl HousePromptOperation {
         ) else {
             return fail(FailureCode::InvalidInput, 4);
         };
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(if port == 0 { 1 } else { 0 }),
+            operation: HostCallId(if port == 0 { 1 } else { 0 }),
             input,
         }
     }
@@ -197,10 +195,10 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id.as_str() != conduit_std_offers::HOUSE_PROMPT_STD_ARTIFACT
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations.len() != 2
-        || placement.host_operations[0].contract_id.as_str()
+        || placement.host_calls.len() != 2
+        || placement.host_calls[0].contract_id.as_str()
             != conduit_std_offers::HOUSE_PROMPT_CONTEXT_OPERATION
-        || placement.host_operations[1].contract_id.as_str()
+        || placement.host_calls[1].contract_id.as_str()
             != conduit_std_offers::HOUSE_PROMPT_DETECTION_OPERATION
     {
         return Err("planned House prompt identity does not match installation".into());

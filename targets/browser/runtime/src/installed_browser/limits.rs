@@ -12,9 +12,9 @@ pub(crate) const BROWSER_PORTS_PER_GEAR: usize =
 pub(crate) const BROWSER_QUEUE_SLOTS: usize = MAXIMUM_BROWSER_CORDS * 4;
 pub(crate) const BROWSER_ROUTE_SLOTS: usize = MAXIMUM_BROWSER_GEARS * BROWSER_PORTS_PER_GEAR;
 pub(crate) const BROWSER_ROUTE_TARGETS: usize = BROWSER_QUEUE_SLOTS;
-pub(crate) const BROWSER_HOST_OPERATIONS_PER_GEAR: u16 = 2;
-pub(crate) const BROWSER_HOST_OPERATION_BINDINGS: usize =
-    MAXIMUM_BROWSER_GEARS * BROWSER_HOST_OPERATIONS_PER_GEAR as usize;
+pub(crate) const BROWSER_HOST_CALLS_PER_GEAR: u16 = 2;
+pub(crate) const BROWSER_HOST_CALL_BINDINGS: usize =
+    MAXIMUM_BROWSER_GEARS * BROWSER_HOST_CALLS_PER_GEAR as usize;
 pub(crate) const BROWSER_PENDING_REQUESTS: usize = MAXIMUM_BROWSER_GEARS;
 pub(crate) const BROWSER_VALUE_ITEMS: u16 = 128;
 pub(crate) const BROWSER_TOTAL_VALUE_BYTES: u32 = 512 * 1_024;
@@ -28,8 +28,8 @@ pub(crate) struct BrowserEnvelopeLimits {
     pub queue_slots: usize,
     pub route_slots: usize,
     pub route_targets: usize,
-    pub host_operations_per_gear: u16,
-    pub host_operation_bindings: usize,
+    pub host_calls_per_gear: u16,
+    pub host_call_bindings: usize,
     pub pending_requests: usize,
     pub value_items: u16,
     pub maximum_value_bytes: usize,
@@ -45,8 +45,8 @@ pub(crate) const fn envelope_limits() -> BrowserEnvelopeLimits {
         queue_slots: BROWSER_QUEUE_SLOTS,
         route_slots: BROWSER_ROUTE_SLOTS,
         route_targets: BROWSER_ROUTE_TARGETS,
-        host_operations_per_gear: BROWSER_HOST_OPERATIONS_PER_GEAR,
-        host_operation_bindings: BROWSER_HOST_OPERATION_BINDINGS,
+        host_calls_per_gear: BROWSER_HOST_CALLS_PER_GEAR,
+        host_call_bindings: BROWSER_HOST_CALL_BINDINGS,
         pending_requests: BROWSER_PENDING_REQUESTS,
         value_items: BROWSER_VALUE_ITEMS,
         maximum_value_bytes: MAXIMUM_BROWSER_VALUE_BYTES,

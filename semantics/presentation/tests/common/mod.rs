@@ -3,8 +3,8 @@
 use conduit_body::Body;
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, BootId, CapabilityId,
-    CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, OfferGeneration, SignId,
+    CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostCallContractId,
+    HostCallRequirement, HostId, HostProfileId, ImplementationId, OfferGeneration, SignId,
     PROTOCOL_VERSION,
 };
 use conduit_form::{parse, ProfileCatalog};
@@ -56,8 +56,8 @@ pub fn host(
             execution_profile_id: ExecutionProfileId::from("presentation/renderer-hosted@1"),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operation: HostOperationRequirement {
-                contract_id: HostOperationContractId::from("conduit.host/present@1"),
+            host_call: HostCallRequirement {
+                contract_id: HostCallContractId::from("conduit.host/present@1"),
                 target_kind: Some(kind_id(target)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,

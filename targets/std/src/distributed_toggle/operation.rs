@@ -4,7 +4,7 @@
 //! requests) and `state/toggle` (stateful bool flip with exact ValueRef validation).
 
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
     OperationAction, OperationInput, PortId, RequestId, ValueRef,
 };
 
@@ -21,7 +21,7 @@ pub(super) struct CapacitySeal {
 /// driver of this enum.
 pub(super) enum ToggleSourceOperation {
     /// Trigger: awaits one deliberate operator input per trigger.
-    /// Each host-operation request carries a 1-byte sequence token as a correlation handle.
+    /// Each Host Call request carries a 1-byte sequence token as a correlation handle.
     /// The std adapter performs the actual `read_line` inside the host-op completion,
     /// not before the kernel issues the request.
     Trigger {
@@ -78,9 +78,9 @@ impl Operation for ToggleSourceOperation {
                 let request = RequestId(0);
                 *pending = Some(request);
                 *next = 0;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(token, 1)
                         .expect("sealed token value is exactly admitted"),
                 }
@@ -102,9 +102,9 @@ impl Operation for ToggleSourceOperation {
                     pending,
                     ..
                 },
-                OperationInput::HostOperationCompleted { request, outcome },
+                OperationInput::HostCallCompleted { request, outcome },
             ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -186,9 +186,9 @@ impl Operation for ToggleSourceOperation {
                 };
                 let request = RequestId(sequence);
                 *pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(token, 1)
                         .expect("sealed token value is exactly admitted"),
                 }

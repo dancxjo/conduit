@@ -296,7 +296,7 @@ fn image_resource_and_detection_metadata_flow_through_one_ordinary_form() {
             .find(|placement| placement.kind_id.as_str() == kind)
             .unwrap();
         assert_eq!(
-            placement.host_operations[0].contract_id.as_str(),
+            placement.host_calls[0].contract_id.as_str(),
             DOMAIN_PROOF_OPERATION
         );
         assert!(placement.resources.is_empty());

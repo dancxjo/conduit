@@ -1,4 +1,4 @@
-//! Finite semantic host operations shared by ordinary ConduitOS planned plays.
+//! Finite semantic Host Calls shared by ordinary ConduitOS planned plays.
 
 use conduit_core::{InfoBool, Scalar};
 use conduit_human::{ChordInfo, ConduitIntlKeymap, KeyEvent, KeymapDisposition, KeymapRefusal};
@@ -7,7 +7,7 @@ const OUTPUT_BYTES: usize = conduit_web::JSON_MAXIMUM_ENCODED_BYTES;
 const TEXT_OUTPUT_BYTES: usize = conduit_text::MAX_TEXT_BYTES as usize;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum BoundedHostOperationError {
+pub enum BoundedHostCallError {
     InvalidInput,
     InvalidConfiguration,
     Overflow,
@@ -26,9 +26,9 @@ impl BoundedOutput {
         &self.bytes[..self.len]
     }
 
-    fn from_slice(bytes: &[u8]) -> Result<Self, BoundedHostOperationError> {
+    fn from_slice(bytes: &[u8]) -> Result<Self, BoundedHostCallError> {
         if bytes.len() > OUTPUT_BYTES {
-            return Err(BoundedHostOperationError::Overflow);
+            return Err(BoundedHostCallError::Overflow);
         }
         let mut output = Self {
             bytes: [0; OUTPUT_BYTES],
@@ -39,11 +39,11 @@ impl BoundedOutput {
     }
 }
 
-pub struct BoundedHostOperations {
+pub struct BoundedHostCalls {
     keymap: ConduitIntlKeymap,
 }
 
-impl Default for BoundedHostOperations {
+impl Default for BoundedHostCalls {
     fn default() -> Self {
         Self {
             keymap: ConduitIntlKeymap::new(),
@@ -51,7 +51,7 @@ impl Default for BoundedHostOperations {
     }
 }
 
-impl BoundedHostOperations {
+impl BoundedHostCalls {
     pub fn reset(&mut self) {
         self.keymap.reset();
     }
@@ -60,15 +60,14 @@ impl BoundedHostOperations {
         &self,
         prefix: &str,
         input: &[u8],
-    ) -> Result<BoundedOutput, BoundedHostOperationError> {
-        let text =
-            core::str::from_utf8(input).map_err(|_| BoundedHostOperationError::InvalidInput)?;
+    ) -> Result<BoundedOutput, BoundedHostCallError> {
+        let text = core::str::from_utf8(input).map_err(|_| BoundedHostCallError::InvalidInput)?;
         let total = prefix
             .len()
             .checked_add(text.len())
-            .ok_or(BoundedHostOperationError::Overflow)?;
+            .ok_or(BoundedHostCallError::Overflow)?;
         if total > TEXT_OUTPUT_BYTES {
-            return Err(BoundedHostOperationError::Overflow);
+            return Err(BoundedHostCallError::Overflow);
         }
         let mut output = BoundedOutput {
             bytes: [0; OUTPUT_BYTES],
@@ -79,23 +78,23 @@ impl BoundedHostOperations {
         Ok(output)
     }
 
-    pub fn decode_bool(&self, input: &[u8]) -> Result<bool, BoundedHostOperationError> {
+    pub fn decode_bool(&self, input: &[u8]) -> Result<bool, BoundedHostCallError> {
         InfoBool::decode(input)
             .map(InfoBool::get)
-            .map_err(|_| BoundedHostOperationError::InvalidInput)
+            .map_err(|_| BoundedHostCallError::InvalidInput)
     }
 
-    pub fn json_encode(&self, input: &[u8]) -> Result<BoundedOutput, BoundedHostOperationError> {
+    pub fn json_encode(&self, input: &[u8]) -> Result<BoundedOutput, BoundedHostCallError> {
         let output = conduit_web::JsonValue::decode_info(input)
             .and_then(|value| value.encode_text())
-            .map_err(BoundedHostOperationError::Json)?;
+            .map_err(BoundedHostCallError::Json)?;
         BoundedOutput::from_slice(&output)
     }
 
-    pub fn json_decode(&self, input: &[u8]) -> Result<BoundedOutput, BoundedHostOperationError> {
+    pub fn json_decode(&self, input: &[u8]) -> Result<BoundedOutput, BoundedHostCallError> {
         let output = conduit_web::JsonValue::decode_text(input)
             .and_then(|value| value.encode_info())
-            .map_err(BoundedHostOperationError::Json)?;
+            .map_err(BoundedHostCallError::Json)?;
         BoundedOutput::from_slice(&output)
     }
 
@@ -103,7 +102,7 @@ impl BoundedHostOperations {
         &self,
         input: &[u8],
         gain: Scalar,
-    ) -> Result<BoundedOutput, BoundedHostOperationError> {
+    ) -> Result<BoundedOutput, BoundedHostCallError> {
         self.math(input, |value| {
             conduit_semantic_catalog::scale_scalar(value, gain)
         })
@@ -113,17 +112,14 @@ impl BoundedHostOperations {
         &self,
         input: &[u8],
         radius: Scalar,
-    ) -> Result<BoundedOutput, BoundedHostOperationError> {
+    ) -> Result<BoundedOutput, BoundedHostCallError> {
         self.math(input, |value| {
             conduit_semantic_catalog::deadband_scalar(value, radius)
         })
     }
 
-    pub fn keymap(
-        &mut self,
-        input: &[u8],
-    ) -> Result<Option<BoundedOutput>, BoundedHostOperationError> {
-        let event = KeyEvent::decode(input).map_err(|_| BoundedHostOperationError::InvalidInput)?;
+    pub fn keymap(&mut self, input: &[u8]) -> Result<Option<BoundedOutput>, BoundedHostCallError> {
+        let event = KeyEvent::decode(input).map_err(|_| BoundedHostCallError::InvalidInput)?;
         match self.keymap.apply(event) {
             KeymapDisposition::Text(fragment) => {
                 BoundedOutput::from_slice(fragment.as_bytes()).map(Some)
@@ -134,12 +130,12 @@ impl BoundedHostOperations {
                 | KeymapRefusal::EmptyUnicodeEntry
                 | KeymapRefusal::UnicodeEntryOverflow
                 | KeymapRefusal::InvalidUnicodeScalar,
-            ) => Err(BoundedHostOperationError::InvalidInput),
+            ) => Err(BoundedHostCallError::InvalidInput),
         }
     }
 
-    pub fn chords(&self, input: &[u8]) -> Result<Option<BoundedOutput>, BoundedHostOperationError> {
-        let event = KeyEvent::decode(input).map_err(|_| BoundedHostOperationError::InvalidInput)?;
+    pub fn chords(&self, input: &[u8]) -> Result<Option<BoundedOutput>, BoundedHostCallError> {
+        let event = KeyEvent::decode(input).map_err(|_| BoundedHostCallError::InvalidInput)?;
         ChordInfo::from_key_event(event)
             .map(|chord| BoundedOutput::from_slice(&chord.encode()))
             .transpose()
@@ -149,15 +145,13 @@ impl BoundedHostOperations {
         &self,
         input: &[u8],
         transform: impl FnOnce(Scalar) -> Result<Scalar, conduit_semantic_catalog::MathScalarError>,
-    ) -> Result<BoundedOutput, BoundedHostOperationError> {
-        let value = Scalar::decode(input).map_err(|_| BoundedHostOperationError::InvalidInput)?;
+    ) -> Result<BoundedOutput, BoundedHostCallError> {
+        let value = Scalar::decode(input).map_err(|_| BoundedHostCallError::InvalidInput)?;
         let output = transform(value).map_err(|error| match error {
             conduit_semantic_catalog::MathScalarError::InvalidConfiguration => {
-                BoundedHostOperationError::InvalidConfiguration
+                BoundedHostCallError::InvalidConfiguration
             }
-            conduit_semantic_catalog::MathScalarError::Overflow => {
-                BoundedHostOperationError::Overflow
-            }
+            conduit_semantic_catalog::MathScalarError::Overflow => BoundedHostCallError::Overflow,
         })?;
         BoundedOutput::from_slice(&output.encode())
     }
@@ -170,7 +164,7 @@ mod tests {
 
     #[test]
     fn finite_operations_match_portable_semantics_and_refuse_overflow() {
-        let host = BoundedHostOperations::default();
+        let host = BoundedHostCalls::default();
         assert_eq!(
             host.text_join("Hello, ", b"Conduit").unwrap().as_bytes(),
             b"Hello, Conduit"
@@ -202,14 +196,14 @@ mod tests {
         );
         assert_eq!(
             host.text_join(&"x".repeat(TEXT_OUTPUT_BYTES), b"y"),
-            Err(BoundedHostOperationError::Overflow)
+            Err(BoundedHostCallError::Overflow)
         );
     }
 
     #[test]
     fn keymap_and_chords_share_portable_key_meaning_and_reset_state() {
         let event = KeyEvent::new(4, KeyTransition::Pressed, KeyModifiers::NONE).unwrap();
-        let mut host = BoundedHostOperations::default();
+        let mut host = BoundedHostCalls::default();
         assert_eq!(
             host.keymap(&event.encode()).unwrap().unwrap().as_bytes(),
             b"a"
@@ -222,13 +216,13 @@ mod tests {
         );
         assert_eq!(
             host.keymap(&[0xff]),
-            Err(BoundedHostOperationError::InvalidInput)
+            Err(BoundedHostCallError::InvalidInput)
         );
     }
 
     #[test]
     fn json_operations_match_the_shared_no_std_semantics() {
-        let host = BoundedHostOperations::default();
+        let host = BoundedHostCalls::default();
         let info = host
             .json_decode("{\"z\":1,\"a\":\"世界\"}".as_bytes())
             .unwrap();
@@ -236,7 +230,7 @@ mod tests {
         assert_eq!(text.as_bytes(), "{\"a\":\"世界\",\"z\":1}".as_bytes());
         assert_eq!(
             host.json_decode(b"{\"a\":1,\"a\":2}"),
-            Err(BoundedHostOperationError::Json(
+            Err(BoundedHostCallError::Json(
                 conduit_web::JsonRefusal::DuplicateKey
             ))
         );

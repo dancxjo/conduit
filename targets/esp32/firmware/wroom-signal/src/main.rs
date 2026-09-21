@@ -66,7 +66,7 @@ const _: () = assert!(generated::GENERATED_ROUTE_TARGETS.is_empty());
 #[cfg(feature = "distributed-lenia")]
 const _: () = assert!(generated::GENERATED_ROUTE_TARGETS.len() == 1);
 #[cfg(not(feature = "distributed-lenia"))]
-const _: () = assert!(generated::GENERATED_HOST_OPERATIONS.len() == 1);
+const _: () = assert!(generated::GENERATED_HOST_CALLS.len() == 1);
 #[cfg(not(feature = "distributed-lenia"))]
 const _: () = assert!(generated::GENERATED_RESOURCES.len() == 1);
 #[cfg(not(feature = "distributed-lenia"))]

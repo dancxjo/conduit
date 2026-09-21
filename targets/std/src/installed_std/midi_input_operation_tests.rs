@@ -25,7 +25,7 @@ fn completion(
     time: u64,
 ) -> OperationAction {
     let request = match operation.start() {
-        OperationAction::RequestHostOperation { request, .. } => request,
+        OperationAction::RequestHostCall { request, .. } => request,
         _ => panic!("MIDI source did not request an observation"),
     };
     let observation = MidiInputObservation {
@@ -34,10 +34,10 @@ fn completion(
     }
     .encode()
     .unwrap();
-    operation.resume_host_operation(
+    operation.resume_host_call(
         request,
-        HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output: Some(
                 BoundedValueRef::new(
                     ValueRef {
@@ -61,7 +61,7 @@ fn next_completion(
     time: u64,
 ) -> OperationAction {
     let request = match operation.advance() {
-        OperationAction::RequestHostOperation { request, .. } => request,
+        OperationAction::RequestHostCall { request, .. } => request,
         _ => panic!("MIDI source did not request its next observation"),
     };
     let observation = MidiInputObservation {
@@ -70,10 +70,10 @@ fn next_completion(
     }
     .encode()
     .unwrap();
-    operation.resume_host_operation(
+    operation.resume_host_call(
         request,
-        HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output: Some(
                 BoundedValueRef::new(
                     ValueRef {

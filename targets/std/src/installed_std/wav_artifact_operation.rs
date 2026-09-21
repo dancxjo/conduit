@@ -4,12 +4,11 @@ use super::audio_play_operation::DRAIN_MARKER;
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedValueStore, OperationAction, OperationInput, PortId, RequestId,
-    ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
+    HostedValueStore, OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
-pub(super) const HOST_OPERATION: &str = conduit_std_offers::AUDIO_WAV_ARTIFACT_OPERATION;
+pub(super) const HOST_CALL: &str = conduit_std_offers::AUDIO_WAV_ARTIFACT_OPERATION;
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::AUDIO_WAV_ARTIFACT_IMPLEMENTATION,
@@ -48,15 +47,14 @@ impl WavArtifactOperation {
                 self.closed = true;
                 self.request(self.drain_marker, true)
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 if let Some(failure) = outcome.failure {
                     return OperationAction::Fail(failure);
                 }
-                if outcome.disposition != HostOperationDisposition::Completed
-                    || outcome.output.is_some()
+                if outcome.disposition != HostCallDisposition::Completed || outcome.output.is_some()
                 {
                     return InstalledOperation::fail(182);
                 }
@@ -86,9 +84,9 @@ impl WavArtifactOperation {
         ) else {
             return InstalledOperation::fail(183);
         };
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input,
         }
     }
@@ -133,7 +131,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.limits != offer.limits
         || placement.inputs.len() != 1
         || placement.inputs[0].port_id.as_str() != "audio"
@@ -149,7 +147,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || authority.is_none_or(|binding| {
             binding.contract_id.as_str()
                 != conduit_std_offers::AUDIO_WAV_ARTIFACT_AUTHORITY_CONTRACT
-                || binding.host_operation_contract_id.as_str() != HOST_OPERATION
+                || binding.host_call_contract_id.as_str() != HOST_CALL
                 || binding.subject_kind.as_str() != conduit_audio::AUDIO_PCM_INFO_ID
                 || binding.host_id != placement.host_id
                 || binding.boot_id != placement.boot_id
@@ -185,23 +183,23 @@ pub(super) fn prepare_session(
 pub(super) fn execute(
     session: &mut crate::hosted_wav_artifact::WavArtifactSession,
     input: &[u8],
-) -> HostOperationOutcome {
+) -> HostCallOutcome {
     let result = if input == DRAIN_MARKER {
         session.finish()
     } else {
         session.write_frame(input)
     };
     match result {
-        Ok(()) => HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        Ok(()) => HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output: None,
             failure: None,
         },
-        Err(_) => HostOperationOutcome {
-            disposition: HostOperationDisposition::Failed,
+        Err(_) => HostCallOutcome {
+            disposition: HostCallDisposition::Failed,
             output: None,
             failure: Some(Failure {
-                code: FailureCode::HostOperationFailed,
+                code: FailureCode::HostCallFailed,
                 detail: 184,
             }),
         },

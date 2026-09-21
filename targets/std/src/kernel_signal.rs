@@ -6,13 +6,12 @@ use conduit_core::{
     ObservationKind, PlanFragment, TerminalDisposition, ValuePayload,
 };
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, SignSink,
-    ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
+    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, Operation, OperationAction,
+    OperationInput, PortId, RequestId, SignSink, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
@@ -147,9 +146,9 @@ impl Operation for SignalOperation {
                     pending,
                     ..
                 },
-                OperationInput::HostOperationCompleted { request, outcome },
+                OperationInput::HostCallCompleted { request, outcome },
             ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -178,18 +177,18 @@ impl Operation for SignalOperation {
                 };
                 let request = RequestId(0x8000_0000 | sequence);
                 *pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
                         .expect("sealed signal value is exactly admitted"),
                 }
             }
             (
                 Self::Show { next, pending, .. },
-                OperationInput::HostOperationCompleted { request, outcome },
+                OperationInput::HostCallCompleted { request, outcome },
             ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -230,9 +229,9 @@ impl Operation for SignalOperation {
                 };
                 let request = RequestId(sequence);
                 *pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(wait, 8)
                         .expect("sealed wait value is exactly admitted"),
                 }
@@ -327,7 +326,7 @@ fn run_signal_profile<
             .map(|route| route.targets.len())
             .sum::<usize>()
             != ROUTE_TARGETS
-        || lowered.host_operations.len() != HOST_BINDING_SLOTS
+        || lowered.host_calls.len() != HOST_BINDING_SLOTS
     {
         return Err("fragment does not match the installed std signal kernel profile".to_string());
     }
@@ -416,15 +415,15 @@ fn run_signal_profile<
     routes
         .seal()
         .map_err(|error| format!("seal routes: {error:?}"))?;
-    let mut host_bindings = FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(1);
-    for operation in &lowered.host_operations {
+    let mut host_bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(1);
+    for operation in &lowered.host_calls {
         host_bindings
             .install(operation.node, operation.binding)
-            .map_err(|error| format!("install host operation: {error:?}"))?;
+            .map_err(|error| format!("install host-call: {error:?}"))?;
     }
     host_bindings
         .seal()
-        .map_err(|error| format!("seal host operations: {error:?}"))?;
+        .map_err(|error| format!("seal Host Calls: {error:?}"))?;
 
     let mut operations: [Option<SignalOperation>; NODES] = core::array::from_fn(|_| None);
     operations[usize::from(pulse_node.node.0)] =
@@ -493,7 +492,7 @@ fn run_signal_profile<
         ROUTE_TARGETS,
         HOST_BINDING_SLOTS,
         PENDING_REQUESTS,
-    >::new_with_host_operations(
+    >::new_with_host_calls(
         node_specs,
         cord_specs,
         routes,
@@ -531,8 +530,8 @@ fn run_signal_profile<
     let mut receipts = Vec::with_capacity(presentation_capacity);
     let mut observations = Vec::with_capacity(sign_capacity);
     let mut presentation_ids = Vec::with_capacity(presentation_capacity);
-    let mut dispatched_requests = Vec::<HostOperationRequest>::with_capacity(request_capacity);
-    let mut manifested_requests = Vec::<HostOperationRequest>::with_capacity(presentation_capacity);
+    let mut dispatched_requests = Vec::<HostCallRequest>::with_capacity(request_capacity);
+    let mut manifested_requests = Vec::<HostCallRequest>::with_capacity(presentation_capacity);
     let sign_sequence_start = *next_sign_sequence;
     let sign_count =
         u64::try_from(sign_capacity).map_err(|_| "execution sign count overflow".to_string())?;
@@ -597,12 +596,12 @@ fn run_signal_profile<
             dispatched_requests.push(request);
             let input = scheduler
                 .host_value(request.input.value)
-                .map_err(|error| format!("read host-operation input: {error:?}"))?;
+                .map_err(|error| format!("read Host Call input: {error:?}"))?;
             if request.node == pulse_node.node {
                 let duration = input
                     .try_into()
                     .map(u64::from_le_bytes)
-                    .map_err(|_| "wait host operation input is not eight bytes".to_string())?;
+                    .map_err(|_| "wait Host Call input is not eight bytes".to_string())?;
                 timer.wait(Duration::from_millis(duration));
             } else {
                 let expected = prepared_projections
@@ -627,16 +626,16 @@ fn run_signal_profile<
                 manifested_requests.push(request);
             }
             scheduler
-                .complete_host_operation(
+                .complete_host_call(
                     request.node,
                     request.request,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: None,
                         failure: None,
                     },
                 )
-                .map_err(|error| format!("complete host operation: {error:?}"))?;
+                .map_err(|error| format!("complete host-call: {error:?}"))?;
         }
         match scheduler
             .step()

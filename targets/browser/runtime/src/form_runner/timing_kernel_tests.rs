@@ -43,7 +43,7 @@ fn fragment() -> PlanFragment {
     source_offer.outputs = source_offer.inputs.clone();
     source_offer.outputs[0].direction = PortDirection::Output;
     source_offer.inputs.clear();
-    source_offer.host_operations.clear();
+    source_offer.host_calls.clear();
     source_offer.implementation.implementation_id = "fixture/timed-events@1".into();
     source_offer.implementation.artifact_id = "fixture/timed-events@1".into();
     startup
@@ -148,7 +148,7 @@ fn fragment() -> PlanFragment {
 }
 
 #[test]
-fn planned_browser_timing_ingress_runs_both_host_operations_to_completion() {
+fn planned_browser_timing_ingress_runs_both_host_calls_to_completion() {
     let fragment = fragment();
     let (mut scheduler, lowered) = prepare_remote_fragment(&fragment).unwrap();
     let remote = &lowered.remote_endpoints[0];
@@ -187,7 +187,7 @@ fn planned_browser_timing_ingress_runs_both_host_operations_to_completion() {
         scheduler
             .signs()
             .events()
-            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted)
+            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostCallCompleted)
             .count(),
         3
     );
@@ -211,7 +211,7 @@ fn invalid_remote_timing_preserves_kernel_failure_and_does_not_run_normalization
         scheduler
             .signs()
             .events()
-            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted)
+            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostCallCompleted)
             .count(),
         1
     );

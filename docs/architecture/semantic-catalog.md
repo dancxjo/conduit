@@ -9,7 +9,7 @@ The hosted reference host owns its exact realization identities and
 `CapabilityOffer` construction in `targets/std/offers` (`conduit-std-offers`).
 Its `supported_nucleus_offers()` inventory must preserve every selected
 portable front exactly while adding the std execution profile, implementation,
-artifact, host-operation, resource, and authority facts required to execute it.
+artifact, Host Call, resource, and authority facts required to execute it.
 Runtime advertisement remains planner truth; catalog membership does not imply
 availability.
 

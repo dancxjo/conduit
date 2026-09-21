@@ -3,7 +3,7 @@ use super::*;
 use conduit_form::{check_syntax_document, expand_canonical_form, parse_syntax_document};
 use conduit_kernel::ValueStorage;
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationOutcome, Operation, OperationAction,
+    BoundedValueRef, HostCallDisposition, HostCallOutcome, Operation, OperationAction,
     OperationInput, PortId, RequestId,
 };
 use std::collections::BTreeMap;
@@ -63,7 +63,7 @@ fn browser_plans_prepare_shared_codecs_and_emit_exact_timing_values() {
                 port: PortId(0),
                 value
             }),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(0),
                 ..
             }
@@ -71,10 +71,10 @@ fn browser_plans_prepare_shared_codecs_and_emit_exact_timing_values() {
         input = codec.execute(OPERATIONS[index], &input).unwrap().to_vec();
         let output = store.store(&input).unwrap();
         assert_eq!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(0),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(BoundedValueRef::new(output, MAXIMUM).unwrap()),
                     failure: None,
                 },
@@ -123,10 +123,10 @@ fn prepared_timing_refuses_bad_sequences_bounds_and_changed_placement() {
         value,
     });
     assert_eq!(
-        operation.resume(OperationInput::HostOperationCompleted {
+        operation.resume(OperationInput::HostCallCompleted {
             request: RequestId(0),
-            outcome: HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            outcome: HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(codec.execute(OPERATIONS[0], &bytes).unwrap_err()),
             },
@@ -141,6 +141,6 @@ fn prepared_timing_refuses_bad_sequences_bounds_and_changed_placement() {
     );
     assert_eq!(codec.execute(OPERATIONS[1], &bytes), Err(failure(1)));
     let mut changed = placement.clone();
-    changed.host_operations[0].maximum_output_bytes -= 1;
+    changed.host_calls[0].maximum_output_bytes -= 1;
     assert!(PreparedTiming::for_placement(&changed).is_err());
 }

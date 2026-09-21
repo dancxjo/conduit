@@ -58,7 +58,7 @@ fn offer(
             execution_profile_id: ExecutionProfileId::from(execution_profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },

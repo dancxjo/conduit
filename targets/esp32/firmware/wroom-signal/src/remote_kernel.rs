@@ -4,8 +4,8 @@ use conduit_kernel::scheduler::{
     FixedScheduler, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    FixedSignLog, FixedValueStore, HostOperationDisposition, HostOperationOutcome, Operation,
+    BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
+    FixedSignLog, FixedValueStore, HostCallDisposition, HostCallOutcome, Operation,
     OperationAction, OperationInput, PortId, RemoteEndpointId, RequestId, SignQuery, ValueStorage,
     remote_sign_storage_bytes,
 };
@@ -50,16 +50,16 @@ impl Operation for ShowOperation {
             {
                 let request = RequestId(self.presented as u32);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: conduit_kernel::HostOperationId(0),
+                    operation: conduit_kernel::HostCallId(0),
                     input: BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
                         .expect("generated Signal value is exactly bounded"),
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -107,15 +107,15 @@ impl Esp32RemoteSignalKernel {
         .map_err(|_| "kernel-driver")?;
         let mut routes = FixedRoutes::<0, 0>::new(PORTS as u16);
         routes.seal().map_err(|_| "kernel-routes")?;
-        let mut host_bindings = FixedHostOperationBindings::<1>::new(1);
+        let mut host_bindings = FixedHostCallBindings::<1>::new(1);
         host_bindings
             .install(
                 conduit_kernel::NodeId(0),
-                crate::generated::GENERATED_HOST_OPERATIONS[0].1,
+                crate::generated::GENERATED_HOST_CALLS[0].1,
             )
             .map_err(|_| "kernel-host-binding")?;
         host_bindings.seal().map_err(|_| "kernel-host-binding")?;
-        let scheduler = SinkScheduler::new_with_host_operations(
+        let scheduler = SinkScheduler::new_with_host_calls(
             crate::generated::GENERATED_NODES,
             crate::generated::GENERATED_CORDS,
             routes,
@@ -145,7 +145,7 @@ impl Esp32RemoteSignalKernel {
         loop {
             if let Some(request) = self.scheduler.next_host_request() {
                 if request.node != conduit_kernel::NodeId(0)
-                    || request.operation != conduit_kernel::HostOperationId(0)
+                    || request.operation != conduit_kernel::HostCallId(0)
                 {
                     return Err("kernel-host-request");
                 }
@@ -166,11 +166,11 @@ impl Esp32RemoteSignalKernel {
                     signal.level
                 );
                 self.scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: None,
                             failure: None,
                         },

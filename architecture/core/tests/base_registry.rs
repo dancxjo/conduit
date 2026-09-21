@@ -29,7 +29,7 @@ fn capability(id: &str) -> CapabilityOffer {
             artifact_id: conduit_core::ArtifactId::from(format!("artifact/{id}")),
             execution_profile_id: conduit_core::ExecutionProfileId::from("pure-or-base"),
         },
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: CapabilityLimits {

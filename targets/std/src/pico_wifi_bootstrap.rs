@@ -3,13 +3,13 @@
 
 use conduit_core::{bind_active_play, BootId, PlanFragment};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput, PortId,
-    RemoteEndpointId, RequestId, SignQuery, ValueStorage,
+    BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
+    HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore,
+    KernelEventKind, Operation, OperationAction, OperationInput, PortId, RemoteEndpointId,
+    RequestId, SignQuery, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, RemoteCordDirection, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
@@ -76,7 +76,7 @@ impl Drop for VolatileCredentials {
 
 struct CredentialOperation {
     output_port: PortId,
-    operation: HostOperationId,
+    operation: HostCallId,
     pending: bool,
     emitted: bool,
     empty: conduit_kernel::ValueRef,
@@ -86,7 +86,7 @@ struct CredentialOperation {
 impl Operation for CredentialOperation {
     fn start(&mut self) -> OperationAction {
         self.pending = true;
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(0),
             operation: self.operation,
             input: BoundedValueRef::new(self.empty, 1)
@@ -96,10 +96,10 @@ impl Operation for CredentialOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending
                     && request == RequestId(0)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -154,7 +154,7 @@ pub struct PicoWifiBootstrapSource {
     endpoint: RemoteEndpointId,
     cord: CordId,
     operation_node: conduit_kernel::NodeId,
-    operation: HostOperationId,
+    operation: HostCallId,
     binding: SessionBinding,
     session: SessionMachine,
 }
@@ -177,7 +177,7 @@ impl PicoWifiBootstrapSource {
             || lowered.cords.len() != 1
             || lowered.remote_endpoints.len() != 1
             || lowered.remote_endpoints[0].direction != RemoteCordDirection::Egress
-            || lowered.host_operations.len() != 1
+            || lowered.host_calls.len() != 1
         {
             return Err("R1 std bootstrap fragment shape changed".to_owned());
         }
@@ -218,12 +218,9 @@ impl PicoWifiBootstrapSource {
                 .map_err(|error| format!("{error:?}"))?;
         }
         routes.seal().map_err(|error| format!("{error:?}"))?;
-        let mut host_bindings = FixedHostOperationBindings::<1>::new(1);
+        let mut host_bindings = FixedHostCallBindings::<1>::new(1);
         host_bindings
-            .install(
-                lowered.host_operations[0].node,
-                lowered.host_operations[0].binding,
-            )
+            .install(lowered.host_calls[0].node, lowered.host_calls[0].binding)
             .map_err(|error| format!("{error:?}"))?;
         host_bindings.seal().map_err(|error| format!("{error:?}"))?;
         let output_port = lowered.nodes[0]
@@ -231,7 +228,7 @@ impl PicoWifiBootstrapSource {
             .first()
             .map(|port| port.port)
             .ok_or_else(|| "credential source output missing".to_owned())?;
-        let operation = lowered.host_operations[0].binding.operation;
+        let operation = lowered.host_calls[0].binding.operation;
         let driver = OperationDriver::new(CredentialOperation {
             output_port,
             operation,
@@ -253,7 +250,7 @@ impl PicoWifiBootstrapSource {
             remote_sign_bytes,
         )
         .map_err(|error| format!("{error:?}"))?;
-        let scheduler = CredentialScheduler::new_with_host_operations(
+        let scheduler = CredentialScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()
@@ -284,7 +281,7 @@ impl PicoWifiBootstrapSource {
             fragment,
             endpoint: remote.endpoint,
             cord: remote.cord,
-            operation_node: lowered.host_operations[0].node,
+            operation_node: lowered.host_calls[0].node,
             operation,
             binding,
             session,
@@ -404,20 +401,20 @@ impl PicoWifiBootstrapSource {
         Ok(1)
     }
 
-    fn complete_credentials(&mut self, request: HostOperationRequest) -> Result<(), String> {
+    fn complete_credentials(&mut self, request: HostCallRequest) -> Result<(), String> {
         if request.node != self.operation_node
             || request.operation != self.operation
             || request.request != RequestId(0)
         {
-            return Err("credential host operation identity mismatch".to_owned());
+            return Err("credential Host Call identity mismatch".to_owned());
         }
         let value = self.scheduler.drivers()[0].operation().output;
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(
                         BoundedValueRef::new(value, conduit_net::MAXIMUM_JOIN_INPUT_BYTES)
                             .expect("credential output is bounded"),

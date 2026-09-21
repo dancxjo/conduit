@@ -4,12 +4,12 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationRequirement, ImplementationId, PlannedGear,
+    HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
-    RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
+    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    ValueStorage,
 };
 
 pub(crate) const OPERATIONS: [&str; 2] = [
@@ -118,15 +118,15 @@ fn offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-window@2"),
-            host_operations: vec![
-                HostOperationRequirement {
+            host_calls: vec![
+                HostCallRequirement {
                     contract_id: OPERATIONS[0].into(),
                     target_kind: Some(kind.clone()),
                     maximum_in_flight: 1,
                     maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
                     maximum_output_bytes: 0,
                 },
-                HostOperationRequirement {
+                HostCallRequirement {
                     contract_id: OPERATIONS[1].into(),
                     target_kind: Some(kind),
                     maximum_in_flight: 1,
@@ -156,7 +156,7 @@ fn prepare(
 struct WindowOperation {
     profile_ready: bool,
     sample_closed: bool,
-    pending: Option<(RequestId, HostOperationId)>,
+    pending: Option<(RequestId, HostCallId)>,
     next_sample: u32,
     finalize: Option<ValueRef>,
     released: Option<ValueRef>,
@@ -176,11 +176,7 @@ impl WindowOperation {
         }
     }
 
-    fn complete_host(
-        &mut self,
-        request: RequestId,
-        outcome: HostOperationOutcome,
-    ) -> OperationAction {
+    fn complete_host(&mut self, request: RequestId, outcome: HostCallOutcome) -> OperationAction {
         let Some((expected, operation)) = self.pending else {
             return OperationAction::Fail(failure(30));
         };
@@ -188,7 +184,7 @@ impl WindowOperation {
             return OperationAction::Fail(failure(30));
         }
         self.pending = None;
-        if let (HostOperationDisposition::Failed, None, Some(failure)) =
+        if let (HostCallDisposition::Failed, None, Some(failure)) =
             (outcome.disposition, outcome.output, outcome.failure)
         {
             return OperationAction::Fail(failure);
@@ -199,17 +195,17 @@ impl WindowOperation {
             outcome.output,
             outcome.failure,
         ) {
-            (HostOperationId(0), HostOperationDisposition::Completed, None, None) => {
+            (HostCallId(0), HostCallDisposition::Completed, None, None) => {
                 self.profile_ready = true;
                 OperationAction::Await
             }
-            (HostOperationId(1), HostOperationDisposition::Completed, None, None)
+            (HostCallId(1), HostCallDisposition::Completed, None, None)
                 if request != FINALIZE_REQUEST =>
             {
                 self.next_sample = self.next_sample.saturating_add(1);
                 OperationAction::Await
             }
-            (HostOperationId(1), HostOperationDisposition::Completed, Some(output), None)
+            (HostCallId(1), HostCallDisposition::Completed, Some(output), None)
                 if request == FINALIZE_REQUEST =>
             {
                 self.emitted = true;
@@ -239,9 +235,9 @@ impl Operation for WindowOperation {
                     return OperationAction::Fail(failure(31));
                 };
                 let request = RequestId(0);
-                let operation = HostOperationId(0);
+                let operation = HostCallId(0);
                 self.pending = Some((request, operation));
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
                     operation,
                     input,
@@ -259,15 +255,15 @@ impl Operation for WindowOperation {
                     return OperationAction::Fail(failure(32));
                 };
                 let request = RequestId(self.next_sample + 1);
-                let operation = HostOperationId(1);
+                let operation = HostCallId(1);
                 self.pending = Some((request, operation));
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
                     operation,
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome } => {
+            OperationInput::HostCallCompleted { request, outcome } => {
                 self.complete_host(request, outcome)
             }
             OperationInput::Closed { port: PortId(0) } if self.profile_ready => {
@@ -282,10 +278,10 @@ impl Operation for WindowOperation {
                 else {
                     return OperationAction::Fail(failure(33));
                 };
-                self.pending = Some((FINALIZE_REQUEST, HostOperationId(1)));
-                OperationAction::RequestHostOperation {
+                self.pending = Some((FINALIZE_REQUEST, HostCallId(1)));
+                OperationAction::RequestHostCall {
                     request: FINALIZE_REQUEST,
-                    operation: HostOperationId(1),
+                    operation: HostCallId(1),
                     input,
                 }
             }
@@ -362,7 +358,7 @@ mod tests {
             limits: offered.limits,
             inputs: offered.inputs,
             outputs: offered.outputs,
-            host_operations: offered.host_operations,
+            host_calls: offered.host_calls,
             resources: Vec::new(),
             authority: Vec::new(),
             pool_references: Vec::new(),

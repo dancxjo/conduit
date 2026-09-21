@@ -3,12 +3,12 @@ use alloc::vec::Vec;
 use conduit_audio::{Gate, MusicalNoteEvent, NoteOccurrenceId};
 
 use conduit_kernel::{
-    BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, KernelEvent, NodeId, Operation, OperationAction, OperationInput, PortId,
-    RequestId, RouteRange, RouteTarget, SignSink, ValueRef, ValueStorage,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, NodeId,
+    Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
+    SignSink, ValueRef, ValueStorage,
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver,
+        CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, OperationDriver,
         SchedulerStatus,
     },
 };
@@ -22,8 +22,8 @@ use crate::{
 
 const SOURCE_NODE: NodeId = NodeId(0);
 const SINK_NODE: NodeId = NodeId(1);
-const FIXTURE_OPERATION: HostOperationId = HostOperationId(0);
-const OPL2_OPERATION: HostOperationId = HostOperationId(0);
+const FIXTURE_OPERATION: HostCallId = HostCallId(0);
+const OPL2_OPERATION: HostCallId = HostCallId(0);
 const PORTS: usize = 1;
 const EVENTS: usize = crate::opl2_plan::FIXTURE_EVENT_COUNT as usize;
 const SIGN_CAPACITY: usize = 256;
@@ -42,9 +42,9 @@ impl Operation for SourceOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == RequestId((self.next + 1) as u32)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -72,7 +72,7 @@ impl SourceOperation {
         self.values
             .get(self.next)
             .map_or(OperationAction::Complete, |_| {
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId((self.next + 1) as u32),
                     operation: FIXTURE_OPERATION,
                     input: BoundedValueRef::new(self.tokens[self.next], 8)
@@ -107,15 +107,15 @@ impl Operation for MusicOperation {
                 let request = RequestId(self.next_request);
                 self.next_request = self.next_request.saturating_add(1);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
                     operation: OPL2_OPERATION,
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -262,11 +262,11 @@ pub fn prepare_execution(
     routes
         .seal()
         .map_err(|_| PreparationError::KernelRejected)?;
-    let mut bindings = FixedHostOperationBindings::<2>::new(1);
+    let mut bindings = FixedHostCallBindings::<2>::new(1);
     bindings
         .install(
             SOURCE_NODE,
-            HostOperationBinding {
+            HostCallBinding {
                 operation: FIXTURE_OPERATION,
                 maximum_input_bytes: 8,
                 maximum_output_bytes: 0,
@@ -276,7 +276,7 @@ pub fn prepare_execution(
     bindings
         .install(
             SINK_NODE,
-            HostOperationBinding {
+            HostCallBinding {
                 operation: OPL2_OPERATION,
                 maximum_input_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN as u32,
                 maximum_output_bytes: 0,
@@ -288,7 +288,7 @@ pub fn prepare_execution(
         .map_err(|_| PreparationError::KernelRejected)?;
     let signs = FixedSignLog::new((SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32)
         .map_err(|_| PreparationError::KernelRejected)?;
-    let scheduler = FixedScheduler::new_with_host_operations(
+    let scheduler = FixedScheduler::new_with_host_calls(
         [
             NodeSpec {
                 input_cords: [None],
@@ -453,16 +453,13 @@ pub use evidence::{Opl2ConformanceReport, cancel_with_evidence, run_with_evidenc
 mod voice;
 use voice::apply_event;
 
-fn complete(
-    scheduler: &mut Scheduler,
-    request: HostOperationRequest,
-) -> Result<(), PreparationError> {
+fn complete(scheduler: &mut Scheduler, request: HostCallRequest) -> Result<(), PreparationError> {
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },

@@ -188,7 +188,7 @@ fn physical_motion_authority_is_narrower_than_observation_capability() {
     );
     assert_eq!(
         motion.authority_requirements[0]
-            .host_operation_contract_id
+            .host_call_contract_id
             .as_str(),
         MOTION_PROOF_OPERATION
     );

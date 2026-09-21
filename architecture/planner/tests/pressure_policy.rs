@@ -32,7 +32,7 @@ fn tick_current_sink_offer() -> CapabilityOffer {
             temporal: PortTemporal::Current,
         }],
         outputs: vec![],
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: CapabilityLimits {

@@ -6,8 +6,8 @@
 use super::TimerAdapter;
 use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, kind_id, port_id,
-    present_host_operation_requirement, resource_offer, resource_requirement,
-    wait_host_operation_requirement, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
+    present_host_call_requirement, resource_offer, resource_requirement,
+    wait_host_call_requirement, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostAdvertisement, HostId,
     HostProfileId, KindIdentity, Observation, ObservationKind, OfferGeneration, PlacementId,
     PlanFragment, PortDescriptor, PortDirection, PresentationId, TerminalDisposition, ValuePayload,
@@ -17,13 +17,13 @@ use conduit_form::{
     CheckedForm, KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog,
 };
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput,
-    PortId as KernelPortId, RequestId, SignSink, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
+    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, KernelEventKind, Operation,
+    OperationAction, OperationInput, PortId as KernelPortId, RequestId, SignSink, ValueRef,
+    ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
@@ -125,7 +125,7 @@ enum ManifestationBranch {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct KernelManifestation {
-    request: HostOperationRequest,
+    request: HostCallRequest,
     branch: ManifestationBranch,
     ordinal: u64,
     tick: u64,
@@ -195,9 +195,9 @@ impl Operation for MultiValueOperation {
                 };
                 let request = RequestId(0);
                 *pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(wait, 8).expect("sealed wait is eight bytes"),
                 }
             }
@@ -214,9 +214,9 @@ impl Operation for MultiValueOperation {
                     pending,
                     ..
                 },
-                OperationInput::HostOperationCompleted { request, outcome },
+                OperationInput::HostCallCompleted { request, outcome },
             ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -325,17 +325,17 @@ impl Operation for MultiValueOperation {
                 };
                 let request = RequestId(0x8000_0000 | sequence);
                 *pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, 8).expect("sealed tick is eight bytes"),
                 }
             }
             (
                 Self::Show { next, pending, .. },
-                OperationInput::HostOperationCompleted { request, outcome },
+                OperationInput::HostCallCompleted { request, outcome },
             ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -364,7 +364,7 @@ impl Operation for MultiValueOperation {
             (Self::Show { failure_detail, .. }, OperationInput::Closed { .. }) => {
                 Self::fail(failure_detail.saturating_add(20))
             }
-            (Self::Show { failure_detail, .. }, OperationInput::HostOperationCompleted { .. }) => {
+            (Self::Show { failure_detail, .. }, OperationInput::HostCallCompleted { .. }) => {
                 Self::fail(failure_detail.saturating_add(30))
             }
         }
@@ -390,9 +390,9 @@ impl Operation for MultiValueOperation {
                 };
                 let request = RequestId(sequence);
                 *pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(wait, 8).expect("sealed wait is eight bytes"),
                 }
             }
@@ -585,9 +585,9 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
         .get(&kind_id(kind))
         .expect("offered multi-value kind exists")
         .clone();
-    let host_operations = match kind {
-        TICK_KIND => vec![wait_host_operation_requirement()],
-        SHOW_KIND => vec![present_host_operation_requirement(
+    let host_calls = match kind {
+        TICK_KIND => vec![wait_host_call_requirement()],
+        SHOW_KIND => vec![present_host_call_requirement(
             kind_id("presentation/stdout-tick@1"),
             8,
         )],
@@ -634,7 +634,7 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
         },
         inputs: definition.inputs,
         outputs: definition.outputs,
-        host_operations,
+        host_calls,
         resource_requirements,
         authority_requirements: vec![],
         limits: CapabilityLimits {
@@ -697,7 +697,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             .map(|route| route.targets.len())
             .sum::<usize>()
             != ROUTE_TARGETS
-        || lowered.host_operations.len() != 3
+        || lowered.host_calls.len() != 3
     {
         return Err("fragment does not match the installed multi-value kernel profile".to_string());
     }
@@ -796,15 +796,15 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     routes
         .seal()
         .map_err(|error| format!("seal routes: {error:?}"))?;
-    let mut host_bindings = FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(1);
-    for operation in &lowered.host_operations {
+    let mut host_bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(1);
+    for operation in &lowered.host_calls {
         host_bindings
             .install(operation.node, operation.binding)
-            .map_err(|error| format!("install host operation: {error:?}"))?;
+            .map_err(|error| format!("install host-call: {error:?}"))?;
     }
     host_bindings
         .seal()
-        .map_err(|error| format!("seal host operations: {error:?}"))?;
+        .map_err(|error| format!("seal Host Calls: {error:?}"))?;
 
     let mut operations: [Option<MultiValueOperation>; NODES] = [None, None, None, None, None, None];
     operations[usize::from(tick_node.0)] = Some(MultiValueOperation::Tick {
@@ -872,7 +872,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         .collect::<Vec<_>>()
         .try_into()
         .map_err(|_| "multi-value cord table width changed".to_string())?;
-    let mut scheduler = MultiValueScheduler::new_with_host_operations(
+    let mut scheduler = MultiValueScheduler::new_with_host_calls(
         node_specs,
         cord_specs,
         routes,
@@ -913,7 +913,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     let mut receipts = Vec::with_capacity(3);
     let mut observations = Vec::with_capacity(4);
     let mut presentation_ids = Vec::with_capacity(3);
-    let mut dispatched_requests = Vec::<HostOperationRequest>::with_capacity(7);
+    let mut dispatched_requests = Vec::<HostCallRequest>::with_capacity(7);
     let mut manifestations = Vec::<KernelManifestation>::with_capacity(3);
     let sign_sequence_start = *next_sign_sequence;
     let sign_sequence_end = sign_sequence_start
@@ -965,7 +965,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         Some(&active_play.active_play_id),
         sign_sequence_end - 1,
     );
-    let mut deferred_even_completion: Option<HostOperationRequest> = None;
+    let mut deferred_even_completion: Option<HostCallRequest> = None;
     let mut pressure_items = 0_u16;
     let mut pressure_bytes = 0_u32;
     // SEALED PROFILE PLAY START BEGIN: numeric tables and preallocated capture only.
@@ -976,11 +976,11 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             dispatched_requests.push(request);
             if options.fault == InjectedBoundaryFault::StaleCompletion {
                 let stale = RequestId(request.request.0.wrapping_add(1));
-                return match scheduler.complete_host_operation(
+                return match scheduler.complete_host_call(
                     request.node,
                     stale,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: None,
                         failure: None,
                     },
@@ -991,7 +991,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             }
             let encoded = scheduler
                 .host_value(request.input.value)
-                .map_err(|error| format!("read host-operation input: {error:?}"))?;
+                .map_err(|error| format!("read Host Call input: {error:?}"))?;
             if request.node == tick_node {
                 let duration = encoded
                     .try_into()
@@ -1062,16 +1062,16 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                 ));
             }
             scheduler
-                .complete_host_operation(
+                .complete_host_call(
                     request.node,
                     request.request,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: None,
                         failure: None,
                     },
                 )
-                .map_err(|error| format!("complete host operation: {error:?}"))?;
+                .map_err(|error| format!("complete host-call: {error:?}"))?;
         }
         match scheduler
             .step()
@@ -1094,11 +1094,11 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                     ));
                 }
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: None,
                             failure: None,
                         },
@@ -1342,14 +1342,14 @@ mod tests {
         assert_eq!(lowered.nodes.len(), 6);
         assert_eq!(lowered.cords.len(), 5);
         assert_eq!(lowered.routes.len(), 5);
-        assert_eq!(lowered.host_operations.len(), 3);
+        assert_eq!(lowered.host_calls.len(), 3);
         assert_eq!(lowered.resources.len(), 3);
         assert_eq!(lowered.cord_value_slots, 5);
         assert_eq!(lowered.cord_value_bytes, 40);
     }
 
     #[test]
-    fn exact_multi_value_form_executes_real_host_operations_through_kernel() {
+    fn exact_multi_value_form_executes_real_host_calls_through_kernel() {
         let (host, fragment) = planned_fixture();
         let mut output = Vec::with_capacity(65_536);
         let mut timer = VirtualTimer {
@@ -1413,7 +1413,7 @@ mod tests {
             let request = report
                 .identity
                 .request(dynamic.node, dynamic.request)
-                .expect("presentation request reverses to its host-operation contract");
+                .expect("presentation request reverses to its Host Call contract");
             assert!(report
                 .identity
                 .request_for_contract(dynamic.node, &request.contract_id)
@@ -1466,7 +1466,7 @@ mod tests {
             },
         )
         .expect_err("stale request identity must fail closed");
-        assert!(error.contains("HostOperationCompletionRejected"), "{error}");
+        assert!(error.contains("HostCallCompletionRejected"), "{error}");
         assert!(timer.waits.is_empty());
     }
 

@@ -4,14 +4,14 @@ use alloc::{format, vec, vec::Vec};
 use conduit_audio::NOTE_EVENT_ENCODED_LEN;
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostAdvertisement, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    HostAdvertisement, HostCallContractId, HostCallRequirement, ImplementationId,
     ImplementationOffer, KindIdentity, resource_offer,
 };
 
 pub const OPL2_IMPLEMENTATION: &str = "conduitos/opl2-fixed-fm-music@1";
 pub const OPL2_EXECUTION_PROFILE: &str = "conduitos/opl2-nine-voice-fixed-patch@1";
 pub const OPL2_PATCH_PROFILE: &str = "conduitos/opl2-patch-bright-organ@1";
-pub const OPL2_HOST_OPERATION: &str = "conduitos.host/opl2-note@1";
+pub const OPL2_HOST_CALL: &str = "conduitos.host/opl2-note@1";
 pub const OPL2_BASE_RESOURCE: &str = "conduitos.resource/opl2-base@1";
 pub const OPL2_VOICE_RESOURCE: &str = "conduitos.resource/opl2-voice@1";
 pub const OPL2_EVENT_RESOURCE: &str = "conduitos.resource/opl2-event-slot@1";
@@ -170,8 +170,8 @@ pub fn append_to_advertisement(
             implementation_id: ImplementationId::from(OPL2_IMPLEMENTATION),
             artifact_id: ArtifactId::from(format!("conduitos-build/{build_id}")),
         },
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(OPL2_HOST_OPERATION),
+        host_calls: vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(OPL2_HOST_CALL),
             target_kind: Some(conduit_core::kind_id(conduit_audio::MUSIC_NOTE_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: NOTE_EVENT_ENCODED_LEN as u32,

@@ -8,11 +8,10 @@ use crate::{
 };
 use conduit_core::{ConfigurationValue, PlanFragment};
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, KernelEvent, NodeId, SignSink, ValueRef,
-    ValueStorage,
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
     scheduler::{
-        FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
+        FixedScheduler, HostCallRequest, OperationDriver, SchedulerError, SchedulerStatus,
     },
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
@@ -93,8 +92,8 @@ impl TourMorseKernel {
             )?;
         }
         routes.seal()?;
-        let mut bindings = FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(MAX_NODES as u16);
-        for operation in &lowered.host_operations {
+        let mut bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(MAX_NODES as u16);
+        for operation in &lowered.host_calls {
             bindings.install(operation.node, operation.binding)?;
         }
         bindings.seal()?;
@@ -142,7 +141,7 @@ impl TourMorseKernel {
         let minimum_sign_bytes = (SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32;
         let signs = FixedSignLog::<SIGN_CAPACITY>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;
         Ok(Self {
-            scheduler: FixedScheduler::new_with_host_operations(
+            scheduler: FixedScheduler::new_with_host_calls(
                 nodes,
                 cords,
                 routes,
@@ -162,7 +161,7 @@ impl TourMorseKernel {
         self.scheduler.step()
     }
 
-    pub fn next_host_request(&mut self) -> Option<HostOperationRequest> {
+    pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
         self.scheduler.next_host_request()
     }
 
@@ -170,25 +169,25 @@ impl TourMorseKernel {
         self.scheduler.host_value(value)
     }
 
-    pub fn is_upper_request(&self, request: &HostOperationRequest) -> bool {
+    pub fn is_upper_request(&self, request: &HostCallRequest) -> bool {
         request.node == self.upper_node
     }
 
-    pub fn is_text_presentation_request(&self, request: &HostOperationRequest) -> bool {
+    pub fn is_text_presentation_request(&self, request: &HostCallRequest) -> bool {
         request.node == self.text_presentation_node
     }
 
-    pub fn is_morse_request(&self, request: &HostOperationRequest) -> bool {
+    pub fn is_morse_request(&self, request: &HostCallRequest) -> bool {
         request.node == self.morse_node
     }
 
-    pub fn is_indicator_request(&self, request: &HostOperationRequest) -> bool {
+    pub fn is_indicator_request(&self, request: &HostCallRequest) -> bool {
         request.node == self.indicator_node
     }
 
     pub fn complete_upper(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         output: &[u8],
     ) -> Result<(), SchedulerError> {
         self.complete_value(
@@ -201,7 +200,7 @@ impl TourMorseKernel {
 
     pub fn complete_morse(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         output: &[u8],
     ) -> Result<(), SchedulerError> {
         self.complete_value(
@@ -214,22 +213,22 @@ impl TourMorseKernel {
 
     fn complete_value(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         node: NodeId,
         maximum: u32,
         output: &[u8],
     ) -> Result<(), SchedulerError> {
-        if request.node != node || request.operation != conduit_kernel::HostOperationId(0) {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+        if request.node != node || request.operation != conduit_kernel::HostCallId(0) {
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
         let value = self.scheduler.store_host_value(output)?;
         let output = BoundedValueRef::new(value, maximum)
-            .map_err(|_| SchedulerError::InvalidHostOperationAccess)?;
-        self.scheduler.complete_host_operation(
+            .map_err(|_| SchedulerError::InvalidHostCallAccess)?;
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(output),
                 failure: None,
             },
@@ -238,18 +237,18 @@ impl TourMorseKernel {
 
     pub fn complete_presentation(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
     ) -> Result<(), SchedulerError> {
-        if request.operation != conduit_kernel::HostOperationId(0)
+        if request.operation != conduit_kernel::HostCallId(0)
             || (request.node != self.text_presentation_node && request.node != self.indicator_node)
         {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -264,8 +263,8 @@ impl TourMorseKernel {
         self.scheduler.signs().len()
     }
 
-    pub fn pending_host_operations(&self) -> usize {
-        self.scheduler.pending_host_operation_count()
+    pub fn pending_host_calls(&self) -> usize {
+        self.scheduler.pending_host_call_count()
     }
 }
 
@@ -302,7 +301,7 @@ fn validate_shape(
         || fragment.connections.len() != MAX_CORDS
         || lowered.nodes.len() != MAX_NODES
         || lowered.cords.len() != MAX_CORDS
-        || lowered.host_operations.len() != 4
+        || lowered.host_calls.len() != 4
         || !lowered.remote_endpoints.is_empty()
         || configured_text(
             &fragment.placements[node(fragment, conduit_text::TEXT_LITERAL_KIND)?].configuration,

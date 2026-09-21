@@ -4,12 +4,12 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PlannedGear, StructuredInfoType,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
+    StructuredInfoType,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-bounded-typed-history@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-bounded-typed-history@1";
 const IMPLEMENTATION: &str = "browser/bounded-typed-history@1";
 const MAXIMUM_COMMANDS: u32 = 16;
 const MAXIMUM_BROWSER_HISTORY_ENTRIES: usize = 4;
@@ -108,8 +108,8 @@ fn offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-time/bounded-typed-history@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_time::MAXIMUM_HISTORICAL_TIMELINE_COMMAND_BYTES as u32,
@@ -214,7 +214,7 @@ mod tests {
             limits: offer.limits,
             inputs: offer.inputs,
             outputs: offer.outputs,
-            host_operations: offer.host_operations,
+            host_calls: offer.host_calls,
             resources: Vec::new(),
             authority: Vec::new(),
             pool_references: Vec::new(),

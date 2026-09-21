@@ -3,8 +3,8 @@ use super::{
     MAXIMUM_BROWSER_MEDIA_VALUE_BYTES,
 };
 use conduit_core::{
-    AuthorityContractId, AuthorityGrantId, BootId, HostId, HostOperationContractId,
-    HostOperationId, KindId, OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId,
+    AuthorityContractId, AuthorityGrantId, BootId, HostCallContractId, HostCallId, HostId, KindId,
+    OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId,
 };
 use conduit_human::{
     AcquiredMediaResource, HumanMediaKind, KnownPermissionState, MediaAcquisitionAuthority,
@@ -23,7 +23,7 @@ struct AbiState {
     boot_id: BootId,
     kind: HumanMediaKind,
     session: BrowserMediaSession,
-    operation_id: HostOperationId,
+    operation_id: HostCallId,
     acquisition_plan_id: PlanId,
     use_plan_id: Option<PlanId>,
     constraints: MediaConstraints,
@@ -119,14 +119,13 @@ pub extern "C" fn conduit_browser_media_start_acquisition(
         maximum_queue_items: 1,
         maximum_queue_bytes: MAXIMUM_BROWSER_MEDIA_VALUE_BYTES as u32,
     };
-    let operation_id =
-        HostOperationId::from(format!("{}/media-acquire/1", host_id.as_str()).as_str());
+    let operation_id = HostCallId::from(format!("{}/media-acquire/1", host_id.as_str()).as_str());
     let offer = MediaAcquisitionOffer {
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),
         offer_generation: OfferGeneration(1),
         kind,
-        operation_contract: HostOperationContractId::from("conduit.host/acquire-human-media@1"),
+        operation_contract: HostCallContractId::from("conduit.host/acquire-human-media@1"),
         request_authority_contract: AuthorityContractId::from(
             "conduit.authority/request-human-media@1",
         ),

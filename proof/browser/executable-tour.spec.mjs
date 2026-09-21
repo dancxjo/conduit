@@ -187,7 +187,7 @@ test("every Tour page and Crèche step has a direct, history-aware route", async
   await expect(page).toHaveURL(/\/creche\/physical-host\/$/);
 });
 
-test("Tour route mutation crosses the finite Browser Host operation boundary", async ({ page }) => {
+test("Tour route mutation crosses the finite Browser Host Call boundary", async ({ page }) => {
   const [source, routing, manifest] = await Promise.all([
     page.request.get(new URL("tour.mjs", entrance.url).href).then((response) => response.text()),
     page.request.get(new URL("tour-routing.mjs", entrance.url).href).then((response) => response.text()),
@@ -195,9 +195,9 @@ test("Tour route mutation crosses the finite Browser Host operation boundary", a
   ]);
   expect(source).toContain('from "./tour-routing.mjs"');
   expect(source).not.toMatch(/\bhistory\.(?:pushState|replaceState)\s*\(/);
-  expect(routing).toContain('from "../../../targets/browser/host/assets/browser-host-operations.mjs"');
+  expect(routing).toContain('from "../../../targets/browser/host/assets/browser-host-calls.mjs"');
   expect(routing).not.toMatch(/\bhistory\.(?:pushState|replaceState)\s*\(/);
-  expect(manifest.resources.some((resource) => resource.role === "browser-host-operations")).toBe(true);
+  expect(manifest.resources.some((resource) => resource.role === "browser-host-calls")).toBe(true);
   expect(manifest.resources.some((resource) => resource.role === "tour-routing")).toBe(true);
 
   await page.goto(entrance.url);

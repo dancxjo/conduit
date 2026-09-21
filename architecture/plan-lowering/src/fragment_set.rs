@@ -260,7 +260,7 @@ fn reindex(
             endpoint(&mut target.sink, nodes)?;
         }
     }
-    for operation in &mut part.host_operations {
+    for operation in &mut part.host_calls {
         operation.node.0 = add("node-index", operation.node.0, nodes)?;
     }
     for resource in &mut part.resources {
@@ -283,7 +283,7 @@ fn reindex(
     for (cord, _) in &mut part.identity.connections {
         cord.0 = add("cord-index", cord.0, cords)?;
     }
-    for (node, _, _) in &mut part.identity.host_operations {
+    for (node, _, _) in &mut part.identity.host_calls {
         node.0 = add("node-index", node.0, nodes)?;
     }
     for (node, _, _) in &mut part.identity.resources {

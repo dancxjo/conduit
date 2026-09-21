@@ -2,11 +2,11 @@
 
 use conduit_core::{ConfigurationValue, PlanFragment};
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, KernelEvent, NodeId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, SignSink, ValueRef, ValueStorage,
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, Operation, OperationAction,
+    OperationInput, PortId, RequestId, SignSink, ValueRef, ValueStorage,
     scheduler::{
-        FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
+        FixedScheduler, HostCallRequest, OperationDriver, SchedulerError, SchedulerStatus,
     },
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
@@ -61,18 +61,18 @@ struct TimerOperation {
 
 impl Operation for TimerOperation {
     fn start(&mut self) -> OperationAction {
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: TIMER_REQUEST,
-            operation: conduit_kernel::HostOperationId(0),
+            operation: conduit_kernel::HostCallId(0),
             input: self.wait,
         }
     }
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == TIMER_REQUEST
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -82,9 +82,9 @@ impl Operation for TimerOperation {
                     value: self.tick,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == TIMER_REQUEST
-                    && outcome.disposition == HostOperationDisposition::Cancelled =>
+                    && outcome.disposition == HostCallDisposition::Cancelled =>
             {
                 OperationAction::Fail(conduit_kernel::Failure {
                     code: conduit_kernel::FailureCode::Cancelled,
@@ -92,7 +92,7 @@ impl Operation for TimerOperation {
                 })
             }
             _ => OperationAction::Fail(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::HostOperationFailed,
+                code: conduit_kernel::FailureCode::HostCallFailed,
                 detail: 11,
             }),
         }
@@ -133,16 +133,16 @@ impl Operation for PresentationOperation {
                     return invalid(20);
                 };
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: PRESENT_REQUEST,
-                    operation: conduit_kernel::HostOperationId(0),
+                    operation: conduit_kernel::HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == PRESENT_REQUEST
                     && self.pending
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -235,8 +235,8 @@ impl PlannedKernel {
             )?;
         }
         routes.seal()?;
-        let mut bindings = FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(MAX_NODES as u16);
-        for operation in &lowered.host_operations {
+        let mut bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(MAX_NODES as u16);
+        for operation in &lowered.host_calls {
             bindings.install(operation.node, operation.binding)?;
         }
         bindings.seal()?;
@@ -254,7 +254,7 @@ impl PlannedKernel {
         let minimum_sign_bytes = (SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32;
         let signs = FixedSignLog::<SIGN_CAPACITY>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;
         Ok(Self {
-            scheduler: FixedScheduler::new_with_host_operations(
+            scheduler: FixedScheduler::new_with_host_calls(
                 nodes, cords, routes, bindings, drivers, values, signs,
             )?,
         })
@@ -264,7 +264,7 @@ impl PlannedKernel {
         self.scheduler.step()
     }
 
-    pub fn next_host_request(&mut self) -> Option<HostOperationRequest> {
+    pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
         self.scheduler.next_host_request()
     }
 
@@ -272,9 +272,9 @@ impl PlannedKernel {
         self.scheduler.host_value(value)
     }
 
-    pub fn timer_interest(request: HostOperationRequest) -> Result<KernelInterest, SchedulerError> {
-        if request.node != TIMER_NODE || request.operation != conduit_kernel::HostOperationId(0) {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+    pub fn timer_interest(request: HostCallRequest) -> Result<KernelInterest, SchedulerError> {
+        if request.node != TIMER_NODE || request.operation != conduit_kernel::HostCallId(0) {
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
         Ok(KernelInterest {
             node: request.node,
@@ -284,11 +284,11 @@ impl PlannedKernel {
     }
 
     pub fn complete_timer(&mut self, interest: KernelInterest) -> Result<(), SchedulerError> {
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             interest.node,
             interest.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -297,14 +297,14 @@ impl PlannedKernel {
 
     #[cfg(test)]
     fn fail_timer(&mut self, interest: KernelInterest) -> Result<(), SchedulerError> {
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             interest.node,
             interest.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(conduit_kernel::Failure {
-                    code: conduit_kernel::FailureCode::HostOperationFailed,
+                    code: conduit_kernel::FailureCode::HostCallFailed,
                     detail: 1,
                 }),
             },
@@ -313,16 +313,16 @@ impl PlannedKernel {
 
     pub fn complete_presentation(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
     ) -> Result<(), SchedulerError> {
-        if request.node != PRESENT_NODE || request.operation != conduit_kernel::HostOperationId(0) {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+        if request.node != PRESENT_NODE || request.operation != conduit_kernel::HostCallId(0) {
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -338,8 +338,8 @@ impl PlannedKernel {
     pub fn sign_count(&self) -> u16 {
         self.scheduler.signs().len()
     }
-    pub fn pending_host_operations(&self) -> usize {
-        self.scheduler.pending_host_operation_count()
+    pub fn pending_host_calls(&self) -> usize {
+        self.scheduler.pending_host_call_count()
     }
 }
 
@@ -365,7 +365,7 @@ fn validate_shape(
         || lowered.nodes.len() != MAX_NODES
         || lowered.cords.len() != MAX_CORDS
         || lowered.routes.len() != ROUTE_SLOTS
-        || lowered.host_operations.len() != 2
+        || lowered.host_calls.len() != 2
         || lowered.cord_value_slots != 1
         || lowered.cord_value_bytes != 8
         || fragment.placements[0].kind_id.as_str() != conduit_semantic_catalog::TICK_KIND
@@ -427,7 +427,7 @@ mod tests {
         kernel.cancel().unwrap();
         assert_eq!(
             kernel.complete_timer(interest),
-            Err(SchedulerError::HostOperationCompletionRejected)
+            Err(SchedulerError::HostCallCompletionRejected)
         );
         assert_eq!(kernel.step(), Ok(SchedulerStatus::Cancelled));
     }
@@ -444,7 +444,7 @@ mod tests {
         assert_eq!(
             kernel.step(),
             Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::HostOperationFailed,
+                code: conduit_kernel::FailureCode::HostCallFailed,
                 detail: 11
             }))
         );

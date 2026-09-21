@@ -1,10 +1,10 @@
 use conduit_core::{bind_active_play, ConfigurationValue, HostId, PlanFragment};
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
 use conduit_kernel::{
-    BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput, PortId,
-    RemoteEndpointId, RequestId, SignQuery, ValueRef, ValueStorage,
+    BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
+    HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore,
+    KernelEventKind, Operation, OperationAction, OperationInput, PortId, RemoteEndpointId,
+    RequestId, SignQuery, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -69,9 +69,9 @@ impl Operation for CoordinationOperation {
                 },
             ) if pending.is_none() => {
                 *pending = Some(RequestId(0));
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: match BoundedValueRef::new(value, MAX_TEXT_BYTES) {
                         Ok(value) => value,
                         Err(_) => return Self::fail(1),
@@ -80,9 +80,9 @@ impl Operation for CoordinationOperation {
             }
             (
                 Self::Presentation { pending },
-                OperationInput::HostOperationCompleted { request, outcome },
+                OperationInput::HostCallCompleted { request, outcome },
             ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -144,14 +144,14 @@ impl CoordinationEndpoint {
         if lowered.nodes.len() != 2
             || lowered.cords.len() != 2
             || lowered.remote_endpoints.len() != 2
-            || lowered.host_operations.len() != 1
+            || lowered.host_calls.len() != 1
         {
             return Err(format!(
                 "coordination fragment shape nodes={} cords={} remote={} host_ops={}",
                 lowered.nodes.len(),
                 lowered.cords.len(),
                 lowered.remote_endpoints.len(),
-                lowered.host_operations.len()
+                lowered.host_calls.len()
             ));
         }
         let mut values = HostedValueStore::new(VALUE_ITEMS, MAX_TEXT_BYTES, VALUE_BYTES)
@@ -197,16 +197,16 @@ impl CoordinationEndpoint {
                 .map_err(|error| format!("{error:?}"))?;
         }
         routes.seal().map_err(|error| format!("{error:?}"))?;
-        let mut host_bindings = FixedHostOperationBindings::<2>::new(1);
-        let host_operation = &lowered.host_operations[0];
+        let mut host_bindings = FixedHostCallBindings::<2>::new(1);
+        let host_call = &lowered.host_calls[0];
         host_bindings
-            .install(host_operation.node, host_operation.binding)
+            .install(host_call.node, host_call.binding)
             .map_err(|error| format!("{error:?}"))?;
         host_bindings.seal().map_err(|error| format!("{error:?}"))?;
         let sign_bytes = u32::from(SIGN_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or("coordination Sign budget overflow")?;
-        let scheduler = CoordinationScheduler::new_with_host_operations(
+        let scheduler = CoordinationScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()
@@ -414,11 +414,11 @@ impl CoordinationEndpoint {
         }
         self.received.push_str(text);
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },

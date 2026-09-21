@@ -4,16 +4,16 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationRequirement, ImplementationId,
+    HostCallRequirement, ImplementationId,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
     OperationAction, OperationInput, PortId, RequestId,
 };
 use conduit_semantic_catalog::{NormalizedQuantityRefusal, PreparedNormalizedQuantity};
 use std::sync::OnceLock;
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/normalized-quantity-scalar@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/normalized-quantity-scalar@1";
 const IMPLEMENTATION: &str = "browser/kernel-normalized-quantity-scalar@1";
 static CONVERTER: OnceLock<PreparedNormalizedQuantity> = OnceLock::new();
 
@@ -34,8 +34,8 @@ fn offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-browser-runtime/normalized-quantity-scalar@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HOST_OPERATION.into(),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HOST_CALL.into(),
                 target_kind,
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
@@ -117,18 +117,18 @@ impl Operation for NormalizeOperation {
                 };
                 self.next_request = next_request;
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending && request.0.checked_add(1) == Some(self.next_request) =>
             {
                 self.pending = false;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None)
+                    (HostCallDisposition::Completed, Some(output), None)
                         if output.admitted_bytes == 8 && output.value.byte_len == 8 =>
                     {
                         OperationAction::Emit {
@@ -136,7 +136,7 @@ impl Operation for NormalizeOperation {
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Failed, None, Some(reason)) => {
+                    (HostCallDisposition::Failed, None, Some(reason)) => {
                         OperationAction::Fail(reason)
                     }
                     _ => OperationAction::Fail(failure(11)),
@@ -188,10 +188,10 @@ mod tests {
                 cancelled: false,
             };
             assert_eq!(
-                operation.resume(OperationInput::HostOperationCompleted {
+                operation.resume(OperationInput::HostCallCompleted {
                     request: RequestId(0),
-                    outcome: conduit_kernel::HostOperationOutcome {
-                        disposition: HostOperationDisposition::Failed,
+                    outcome: conduit_kernel::HostCallOutcome {
+                        disposition: HostCallDisposition::Failed,
                         output: None,
                         failure: Some(reason),
                     },

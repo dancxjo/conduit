@@ -95,7 +95,7 @@ pub fn execute(
         || kernel["semantic_result"] != "HELLO, CONDUITOS"
         || kernel["allocation_stable_during_play"] != true
         || kernel["timer_irq_wakes"] != 1
-        || kernel["pending_host_operations"] != 0
+        || kernel["pending_host_calls"] != 0
         || identity["image_id"] != format!("conduitos-image/{commit}/{}/v1", board.identity_slug())
         || identity["a3_ordinary_form_claimed"] != true
     {

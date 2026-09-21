@@ -5,7 +5,7 @@ use crate::{
 };
 use conduit_body::{BodyPlan, BodyPlayIdentity, Wake};
 use conduit_core::{bind_sign, SignIdentity, TerminalDisposition};
-use conduit_kernel::{scheduler::HostOperationRequest, KernelEvent};
+use conduit_kernel::{scheduler::HostCallRequest, KernelEvent};
 use conduit_plan_lowering::lowering::KernelIdentityMap;
 use std::io::Write;
 
@@ -27,7 +27,7 @@ pub struct BodyRunReport {
     pub cleanup_failure: Option<String>,
     pub terminal_sign: SignIdentity,
     pub partitions: Vec<KernelIdentityMap>,
-    pub requests: Vec<HostOperationRequest>,
+    pub requests: Vec<HostCallRequest>,
     pub kernel_events: Vec<KernelEvent>,
 }
 

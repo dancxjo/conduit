@@ -114,7 +114,7 @@ pub fn deterministic_hybrid_retrieval_offer(
             implementation_id: ImplementationId::from(DETERMINISTIC_HYBRID_IMPLEMENTATION),
             artifact_id: ArtifactId::from(DETERMINISTIC_HYBRID_ARTIFACT),
         },
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: contract.limits,

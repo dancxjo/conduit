@@ -1,5 +1,5 @@
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
     OperationAction, OperationInput, PortId, RequestId, ValueRef,
 };
 use conduit_signal::SIGNAL_ENCODED_LEN;
@@ -73,9 +73,9 @@ impl Operation for TripleOperation {
                     pending,
                     ..
                 },
-                OperationInput::HostOperationCompleted { request, outcome },
+                OperationInput::HostCallCompleted { request, outcome },
             ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -104,18 +104,18 @@ impl Operation for TripleOperation {
                 };
                 let request = RequestId(0x8000_0000 | sequence);
                 *pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
                         .expect("sealed Signal is exactly admitted"),
                 }
             }
             (
                 Self::Show { next, pending, .. },
-                OperationInput::HostOperationCompleted { request, outcome },
+                OperationInput::HostCallCompleted { request, outcome },
             ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -153,9 +153,9 @@ impl Operation for TripleOperation {
                 };
                 let request = RequestId(*next as u32);
                 *pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(wait, 8).expect("wait is exactly eight bytes"),
                 }
             }

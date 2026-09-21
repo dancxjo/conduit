@@ -29,7 +29,7 @@ fn placement() -> PlannedGear {
         limits: offer.limits,
         inputs: offer.inputs,
         outputs: offer.outputs,
-        host_operations: offer.host_operations,
+        host_calls: offer.host_calls,
         resources: Vec::new(),
         authority: Vec::new(),
         pool_references: Vec::new(),

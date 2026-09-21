@@ -1,4 +1,4 @@
-import { browserHostOperationLimits, createBrowserHostOperations } from "../../../targets/browser/host/assets/browser-host-operations.mjs";
+import { browserHostCallLimits, createBrowserHostCalls } from "../../../targets/browser/host/assets/browser-host-calls.mjs";
 
 // A Gallery link identifies checked meaning. It neither carries executable code
 // nor creates a body; the receiver revalidates against its own admitted inventory.
@@ -17,11 +17,11 @@ export function readWorkspaceHandoff(location, inventory) {
 }
 
 export async function consumeWorkspaceHandoff({ host, applicationId }) {
-  const operations = createBrowserHostOperations({ hostId: host.hostId, bootId: host.bootId,
+  const calls = createBrowserHostCalls({ hostId: host.hostId, bootId: host.bootId,
     applicationId, applicationGeneration: 1, authorityGeneration: 1 });
   const path = globalThis.location.pathname;
-  const outcome = await operations.moveLocation({
-    contract: browserHostOperationLimits.contract, kind: 'location', operationId: 'workspace/gallery-handoff',
+  const outcome = await calls.moveLocation({
+    contract: browserHostCallLimits.contract, kind: 'location', callId: 'workspace/gallery-handoff',
     hostId: host.hostId, bootId: host.bootId, applicationId, applicationGeneration: 1,
     authorityGeneration: 1, presentationRevision: 1, mode: 'replace', path,
   });

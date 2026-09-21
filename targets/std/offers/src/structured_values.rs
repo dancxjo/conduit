@@ -6,7 +6,7 @@ mod flow_pressure;
 pub use flow_pressure::*;
 
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, Back,
+    kind_id, present_host_call_requirement, resource_requirement, ArtifactId, Back,
     BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, ImplementationId,
     PRESENTATION_RESOURCE_CLASS,
 };
@@ -76,10 +76,10 @@ fn offer(
             } else {
                 STRUCTURED_PRESENTATION_STD_ARTIFACT
             }),
-            host_operations: if source {
+            host_calls: if source {
                 Vec::new()
             } else {
-                vec![present_host_operation_requirement(
+                vec![present_host_call_requirement(
                     kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET),
                     conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
                 )]

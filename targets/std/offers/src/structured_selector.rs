@@ -2,14 +2,14 @@
 
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, PortTemporal,
-    StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    HostCallContractId, HostCallRequirement, ImplementationId, PortTemporal, StructuredSelector,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const STRUCTURED_SELECTOR_STD_PROFILE: &str = "std/structured-selector-kernel-hosted@1";
 pub const STRUCTURED_SELECTOR_STD_IMPLEMENTATION: &str = "std/kernel-structured-selector@1";
 pub const STRUCTURED_SELECTOR_STD_ARTIFACT: &str = "conduit-core/structured-selector@1";
-pub const STRUCTURED_SELECTOR_HOST_OPERATION: &str = "conduit.host/structured-selector@1";
+pub const STRUCTURED_SELECTOR_HOST_CALL: &str = "conduit.host/structured-selector@1";
 
 pub fn structured_selector_std_offer(
     selector: &StructuredSelector,
@@ -34,8 +34,8 @@ pub fn structured_selector_std_offer(
             execution_profile_id: ExecutionProfileId::from(STRUCTURED_SELECTOR_STD_PROFILE),
             implementation_id: ImplementationId::from(STRUCTURED_SELECTOR_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(STRUCTURED_SELECTOR_STD_ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(STRUCTURED_SELECTOR_HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(STRUCTURED_SELECTOR_HOST_CALL),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,

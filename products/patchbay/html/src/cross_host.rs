@@ -9,13 +9,12 @@ use wire::*;
 use crate::{RendererSnapshot, SnapshotError};
 use conduit_core::{bind_active_play, BootId, HostId, PlanFragment, SignId};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
+    FixedScheduler, HostCallRequest, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RemoteEndpointId,
-    RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
+    HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, Operation,
+    OperationAction, OperationInput, PortId, RemoteEndpointId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
@@ -118,16 +117,16 @@ impl Operation for RenderOperation {
             } if self.pending.is_none() => {
                 let request = RequestId(1);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, MAX_RENDERER_VALUE_BYTES)
                         .expect("planned Presentation value uses its admitted byte bound"),
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {

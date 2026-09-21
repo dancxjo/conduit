@@ -117,7 +117,7 @@ mod tests {
         for forbidden in [
             "artifact_id",
             "execution_profile_id",
-            "host_operation",
+            "host_call",
             "std/field-gray-scott",
             "conduit-std-host",
         ] {

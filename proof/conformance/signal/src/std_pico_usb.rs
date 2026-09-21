@@ -12,11 +12,11 @@ use conduit_core::{
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 
 use crate::{
-    pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
-    pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
-    show_host_operation_requirements, show_inputs, show_resource_requirements,
-    signal_profile_catalog, signal_resource_offers, DISTRIBUTED_MAXIMUM_FRAME_BYTES,
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, SIGNAL_ENCODED_LEN,
+    pulse_contract_revision, pulse_execution_profile, pulse_host_call_requirements, pulse_outputs,
+    pulse_resource_requirements, show_contract_revision, show_execution_profile,
+    show_host_call_requirements, show_inputs, show_resource_requirements, signal_profile_catalog,
+    signal_resource_offers, DISTRIBUTED_MAXIMUM_FRAME_BYTES, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+    SIGNAL_ENCODED_LEN,
 };
 
 pub const STD_PICO_USB_SOURCE_HOST_ID: &str = "s4/std-pico-source";
@@ -63,7 +63,7 @@ pub fn std_pico_usb_source_advertisement() -> HostAdvertisement {
             },
             inputs: vec![],
             outputs: pulse_outputs(),
-            host_operations: pulse_host_operation_requirements(),
+            host_calls: pulse_host_call_requirements(),
             resource_requirements: pulse_resource_requirements(),
             authority_requirements: vec![],
             limits: CapabilityLimits {
@@ -103,7 +103,7 @@ pub fn std_pico_usb_sink_advertisement() -> HostAdvertisement {
             },
             inputs: show_inputs(),
             outputs: vec![],
-            host_operations: show_host_operation_requirements(),
+            host_calls: show_host_call_requirements(),
             resource_requirements: show_resource_requirements(),
             authority_requirements: vec![],
             limits: CapabilityLimits {

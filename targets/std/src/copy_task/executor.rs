@@ -8,8 +8,8 @@ use conduit_core::{
     ActivePlayIdentity, PlanFragment, ProtectedResourceAccess, ProtectedResourceBinding,
     ProtectedResourceCommitPolicy,
 };
-use conduit_kernel::scheduler::{HostOperationRequest, SchedulerStatus};
-use conduit_kernel::{HostOperationDisposition, HostOperationOutcome, SignSink, ValueStorage};
+use conduit_kernel::scheduler::{HostCallRequest, SchedulerStatus};
+use conduit_kernel::{HostCallDisposition, HostCallOutcome, SignSink, ValueStorage};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 
 const MAX_COPY_BYTES: u64 = 16 * 1024 * 1024;
@@ -260,7 +260,7 @@ fn exact_copy_placement(fragment: &PlanFragment) -> Result<&conduit_core::Planne
         || placement.artifact_id != expected_offer.implementation.artifact_id
         || !placement.inputs.is_empty()
         || placement.outputs.len() != 1
-        || placement.host_operations != expected_offer.host_operations
+        || placement.host_calls != expected_offer.host_calls
         || placement.resources.len() != 2
     {
         return Err(
@@ -282,7 +282,7 @@ fn exact_copy_placement(fragment: &PlanFragment) -> Result<&conduit_core::Planne
         || presenter.artifact_id != presentation_offer.implementation.artifact_id
         || presenter.inputs != presentation_offer.inputs
         || !presenter.outputs.is_empty()
-        || presenter.host_operations != presentation_offer.host_operations
+        || presenter.host_calls != presentation_offer.host_calls
         || presenter.resources.len() != 1
     {
         return Err(
@@ -422,11 +422,11 @@ fn execute_copy(
                     .map_err(|error| format!("read copy presentation: {error:?}"))?;
                 presented_encoded.extend_from_slice(encoded);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: None,
                             failure: None,
                         },
@@ -457,11 +457,11 @@ fn execute_copy(
                     )
                     .map_err(|_| "copy result exceeded its admitted bound")?;
                     scheduler
-                        .complete_host_operation(
+                        .complete_host_call(
                             request.node,
                             request.request,
-                            HostOperationOutcome {
-                                disposition: HostOperationDisposition::Completed,
+                            HostCallOutcome {
+                                disposition: HostCallDisposition::Completed,
                                 output: Some(success_value),
                                 failure: None,
                             },
@@ -473,11 +473,11 @@ fn execute_copy(
                 }
                 Err(copy_result) => {
                     scheduler
-                        .complete_host_operation(
+                        .complete_host_call(
                             request.node,
                             request.request,
-                            HostOperationOutcome {
-                                disposition: HostOperationDisposition::Failed,
+                            HostCallOutcome {
+                                disposition: HostCallDisposition::Failed,
                                 output: None,
                                 failure: None,
                             },
@@ -498,11 +498,11 @@ fn execute_copy(
                 loop {
                     while let Some(cancellation) = scheduler.next_host_cancellation() {
                         scheduler
-                            .complete_host_operation(
+                            .complete_host_call(
                                 cancellation.node,
                                 cancellation.request,
-                                HostOperationOutcome {
-                                    disposition: HostOperationDisposition::Cancelled,
+                                HostCallOutcome {
+                                    disposition: HostCallDisposition::Cancelled,
                                     output: None,
                                     failure: None,
                                 },
@@ -554,14 +554,14 @@ fn execute_copy(
 
 fn complete_continue(
     scheduler: &mut CopyScheduler,
-    request: HostOperationRequest,
+    request: HostCallRequest,
 ) -> Result<(), String> {
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(request.input),
                 failure: None,
             },

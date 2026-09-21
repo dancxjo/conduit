@@ -4,16 +4,15 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PlannedGear, StructuredInfoType,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
+    StructuredInfoType,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
-    RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
+    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
 };
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/replay@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/replay@1";
 const IMPLEMENTATION: &str = "browser/replay@1";
 const MAXIMUM_INPUTS: u32 = 64;
 const REQUEST_ID_SLOTS: u32 = 2;
@@ -151,7 +150,7 @@ fn offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("time/replay@1"),
-            host_operations: vec![host_operation(HOST_OPERATION, &target_kind)],
+            host_calls: vec![host_call(HOST_CALL, &target_kind)],
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -165,9 +164,9 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn host_operation(contract: &str, kind: &conduit_core::KindId) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(contract),
+fn host_call(contract: &str, kind: &conduit_core::KindId) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(contract),
         target_kind: Some(kind.clone()),
         maximum_in_flight: 1,
         maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
@@ -234,9 +233,9 @@ impl Operation for ReplayControlOperation {
                     return fail(13);
                 }
                 self.stage = Stage::Processing(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, super::MAXIMUM_BROWSER_VALUE_BYTES as u32)
                         .expect("replay input bound was checked"),
                 }
@@ -252,7 +251,7 @@ impl Operation for ReplayControlOperation {
                     OperationAction::Await
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome } if matches!(self.stage, Stage::Processing(expected) if expected == request) => {
+            OperationInput::HostCallCompleted { request, outcome } if matches!(self.stage, Stage::Processing(expected) if expected == request) => {
                 match completed_output(outcome) {
                     Ok(Some(value)) => {
                         self.stage = Stage::StateEmitted(value);
@@ -268,7 +267,7 @@ impl Operation for ReplayControlOperation {
                     Err(failure) => OperationAction::Fail(failure),
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome } if matches!(self.stage, Stage::EventPending(expected) if expected == request) => {
+            OperationInput::HostCallCompleted { request, outcome } if matches!(self.stage, Stage::EventPending(expected) if expected == request) => {
                 match completed_output(outcome) {
                     Ok(Some(value)) => {
                         self.stage = Stage::EventEmitted;
@@ -293,9 +292,9 @@ impl Operation for ReplayControlOperation {
             Stage::StateEmitted(value) => {
                 let request = self.next();
                 self.stage = Stage::EventPending(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, super::MAXIMUM_BROWSER_VALUE_BYTES as u32)
                         .expect("replay state output is browser bounded"),
                 }
@@ -309,13 +308,11 @@ impl Operation for ReplayControlOperation {
     }
 }
 
-fn completed_output(outcome: HostOperationOutcome) -> Result<Option<ValueRef>, Failure> {
+fn completed_output(outcome: HostCallOutcome) -> Result<Option<ValueRef>, Failure> {
     match (outcome.disposition, outcome.output, outcome.failure) {
-        (HostOperationDisposition::Completed, output, None) => Ok(output.map(|value| value.value)),
-        (HostOperationDisposition::Failed, None, Some(failure)) => Err(failure),
-        (HostOperationDisposition::Cancelled, None, None) => {
-            Err(failure(FailureCode::Cancelled, 0))
-        }
+        (HostCallDisposition::Completed, output, None) => Ok(output.map(|value| value.value)),
+        (HostCallDisposition::Failed, None, Some(failure)) => Err(failure),
+        (HostCallDisposition::Cancelled, None, None) => Err(failure(FailureCode::Cancelled, 0)),
         _ => Err(failure(FailureCode::InvalidInput, 17)),
     }
 }

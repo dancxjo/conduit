@@ -2,10 +2,10 @@ use conduit_kernel::scheduler::{
     CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, HostOperationBinding,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, NodeId, Operation, OperationAction, OperationInput, PortId, RequestId,
-    RouteRange, RouteTarget, ValueRef, ValueStorage,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, HostCallBinding,
+    HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, NodeId,
+    Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
+    ValueRef, ValueStorage,
 };
 use conduit_std_host::{DeadlineHostAdapter, DeadlineWake};
 
@@ -28,9 +28,9 @@ impl Operation for DeadlineOperation {
         match self {
             Self::Reset { initial, phase, .. } => {
                 *phase = 1;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(21),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(*initial, 8).unwrap(),
                 }
             }
@@ -60,25 +60,25 @@ impl Operation for DeadlineOperation {
                 Self::Reset {
                     replacement, phase, ..
                 },
-                OperationInput::HostOperationCompleted {
+                OperationInput::HostCallCompleted {
                     request: RequestId(21),
                     outcome,
                 },
-            ) if outcome.disposition == HostOperationDisposition::Cancelled => {
+            ) if outcome.disposition == HostCallDisposition::Cancelled => {
                 *phase = 2;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(22),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(replacement.take().unwrap(), 8).unwrap(),
                 }
             }
             (
                 Self::Reset { phase, .. },
-                OperationInput::HostOperationCompleted {
+                OperationInput::HostCallCompleted {
                     request: RequestId(22),
                     outcome,
                 },
-            ) if outcome.disposition == HostOperationDisposition::Completed => {
+            ) if outcome.disposition == HostCallDisposition::Completed => {
                 *phase = 3;
                 OperationAction::Complete
             }
@@ -99,11 +99,11 @@ impl Operation for DeadlineOperation {
         }
     }
 
-    fn accepts_input_while_host_operation_pending(&self) -> bool {
+    fn accepts_input_while_host_call_pending(&self) -> bool {
         matches!(self, Self::Reset { phase: 1, .. })
     }
 
-    fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {
+    fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
         match self {
             Self::Reset { cancellation, .. } => cancellation.take(),
             Self::Source { .. } => None,
@@ -158,12 +158,12 @@ fn production_kernel_arms_cancels_replaces_and_completes_one_deadline() {
         )
         .unwrap();
     routes.seal().unwrap();
-    let mut bindings = FixedHostOperationBindings::<2>::new(1);
+    let mut bindings = FixedHostCallBindings::<2>::new(1);
     bindings
         .install(
             NodeId(0),
-            HostOperationBinding {
-                operation: HostOperationId(0),
+            HostCallBinding {
+                operation: HostCallId(0),
                 maximum_input_bytes: 8,
                 maximum_output_bytes: 0,
             },
@@ -194,30 +194,29 @@ fn production_kernel_arms_cancels_replaces_and_completes_one_deadline() {
             pressure_policy: Default::default(),
         },
     )];
-    let mut scheduler =
-        FixedScheduler::<_, _, _, 2, 1, 2, 1, 4, 1, 2, 1>::new_with_host_operations(
-            nodes,
-            cords,
-            routes,
-            bindings,
-            [
-                OperationDriver::new(DeadlineOperation::Reset {
-                    initial,
-                    replacement: None,
-                    cancellation: None,
-                    phase: 0,
-                })
-                .unwrap(),
-                OperationDriver::new(DeadlineOperation::Source {
-                    value: replacement,
-                    advanced: false,
-                })
-                .unwrap(),
-            ],
-            values,
-            signs,
-        )
-        .unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 2, 1, 2, 1, 4, 1, 2, 1>::new_with_host_calls(
+        nodes,
+        cords,
+        routes,
+        bindings,
+        [
+            OperationDriver::new(DeadlineOperation::Reset {
+                initial,
+                replacement: None,
+                cancellation: None,
+                phase: 0,
+            })
+            .unwrap(),
+            OperationDriver::new(DeadlineOperation::Source {
+                value: replacement,
+                advanced: false,
+            })
+            .unwrap(),
+        ],
+        values,
+        signs,
+    )
+    .unwrap();
     let mut host = DeadlineHostAdapter::<_, 1>::new(VirtualClock(100));
 
     scheduler.step().unwrap();
@@ -236,11 +235,11 @@ fn production_kernel_arms_cancels_replaces_and_completes_one_deadline() {
     let cancellation = scheduler.next_host_cancellation().unwrap();
     host.cancel(cancellation).unwrap();
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             cancellation.node,
             cancellation.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Cancelled,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Cancelled,
                 output: None,
                 failure: None,
             },
@@ -262,11 +261,11 @@ fn production_kernel_arms_cancels_replaces_and_completes_one_deadline() {
         DeadlineWake::Fired(second.into())
     );
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             second.node,
             second.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -275,7 +274,7 @@ fn production_kernel_arms_cancels_replaces_and_completes_one_deadline() {
     scheduler.run(16).unwrap();
 
     assert!(host.is_empty());
-    assert_eq!(scheduler.pending_host_operation_count(), 0);
+    assert_eq!(scheduler.pending_host_call_count(), 0);
     assert_eq!(scheduler.values().used_items(), 0);
     assert_eq!(scheduler.values().allocation_capacities(), value_shape);
     assert_eq!(scheduler.signs().allocation_capacity(), sign_shape);

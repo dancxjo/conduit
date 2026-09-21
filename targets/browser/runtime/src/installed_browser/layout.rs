@@ -60,7 +60,7 @@ mod tests {
             offer.outputs[0].value_kind.as_str(),
             conduit_presentation::LAYOUT_FRAME_KIND
         );
-        assert!(offer.host_operations.is_empty());
+        assert!(offer.host_calls.is_empty());
         assert!(offer.resource_requirements.is_empty());
     }
 }

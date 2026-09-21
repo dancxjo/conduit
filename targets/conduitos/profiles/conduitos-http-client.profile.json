@@ -5,7 +5,7 @@
   "host_core": "host-core/conduitos@1",
   "fragments": [],
   "capabilities": [{ "kind": "http/client", "contract_revision": "conduit.http/client@1", "implementation": "conduitos/kernel-http-client-http1-literal" }],
-  "host_operations": ["conduit.host/http-client-exchange"],
+  "host_calls": ["conduit.host/http-client-exchange"],
   "resources": [
     { "id": "http/client-0", "class": "conduit.resource/network/http-client", "slots": 1, "bytes": 107000 },
     { "id": "network/packets", "class": "network/packet-buffer@1", "slots": 4, "bytes": 6144 },

@@ -4,11 +4,11 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, HostOperationRequirement, ImplementationId, Kind, PlannedGear,
+    ExecutionProfileId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-text-state@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-text-state@1";
 const EDIT_IMPLEMENTATION: &str = "browser/kernel-text-edit@1";
 const SUBMIT_IMPLEMENTATION: &str = "browser/kernel-text-submit-lines@1";
 
@@ -45,8 +45,8 @@ fn offer(contract: Kind, implementation: &'static str) -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from("conduit-browser-runtime/text-state@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HOST_OPERATION.into(),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HOST_CALL.into(),
                 target_kind: Some(kind_id("text/bounded-state-output@1")),
                 maximum_in_flight: 1,
                 maximum_input_bytes: 4,

@@ -7,10 +7,13 @@ use crate::{
 };
 use sha2::{Digest, Sha256};
 use std::{
-    fs::{self, File, OpenOptions},
+    fs::{File, OpenOptions},
     io::{Read, Seek, Write},
     path::Path,
 };
+
+#[cfg(target_os = "linux")]
+use std::fs;
 
 const COPY_BUFFER_BYTES: usize = 64 * 1024;
 pub const LINUX_REMOVABLE_WRITER_IMPLEMENTATION: &str = "conduit-helper/linux-removable-writer@1";

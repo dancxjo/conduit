@@ -443,7 +443,7 @@ mod tests {
         assert_eq!(evidence.result, CANONICAL_RESULT);
         assert_eq!(evidence.run.logical_operations, 3);
         assert_eq!(evidence.run.serial_presentations, 1);
-        assert_eq!(evidence.run.pending_host_operations, 0);
+        assert_eq!(evidence.run.pending_host_calls, 0);
     }
 
     #[test]

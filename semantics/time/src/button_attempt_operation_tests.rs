@@ -37,37 +37,37 @@ fn fired_deadline_is_a_distinct_timeout_failure() {
             port: PortId(0),
             value: transition
         }),
-        OperationAction::RequestHostOperation {
-            operation: HostOperationId(1),
+        OperationAction::RequestHostCall {
+            operation: HostCallId(1),
             ..
         }
     ));
     assert!(matches!(
-        operation.resume_host_operation(
+        operation.resume_host_call(
             RequestId(0),
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(BoundedValueRef::new(marker, 1).unwrap()),
                 failure: None,
             },
             Some(&[0]),
         ),
-        OperationAction::RequestHostOperation {
-            operation: HostOperationId(0),
+        OperationAction::RequestHostCall {
+            operation: HostCallId(0),
             ..
         }
     ));
     assert!(matches!(
-        operation.resume(OperationInput::HostOperationCompleted {
+        operation.resume(OperationInput::HostCallCompleted {
             request: RequestId(1),
-            outcome: HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            outcome: HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             }
         }),
         OperationAction::Fail(Failure {
-            code: FailureCode::HostOperationFailed,
+            code: FailureCode::HostCallFailed,
             detail: 4
         })
     ));
@@ -97,13 +97,13 @@ fn total_transition_exhaustion_is_not_timeout_or_malformed_input() {
             port: PortId(0),
             value: first
         }),
-        OperationAction::RequestHostOperation { .. }
+        OperationAction::RequestHostCall { .. }
     ));
     assert!(matches!(
-        operation.resume_host_operation(
+        operation.resume_host_call(
             RequestId(0),
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -131,30 +131,30 @@ fn shared_operation_retains_transition_until_exact_deadline_cancellation() {
     let marker = store.store(&[0]).unwrap();
     let mut prepared = operation(&mut store, 3);
     let operation: &mut dyn conduit_kernel::Operation = &mut prepared;
-    assert!(operation.accepts_input_while_host_operation_pending());
+    assert!(operation.accepts_input_while_host_call_pending());
     assert!(matches!(
         operation.resume(OperationInput::Value {
             port: PortId(0),
             value: first
         }),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(0),
             ..
         }
     ));
     assert!(matches!(
-        operation.resume_host_operation(
+        operation.resume_host_call(
             RequestId(0),
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(BoundedValueRef::new(marker, 1).unwrap()),
                 failure: None,
             },
             Some(&[0])
         ),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(1),
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             ..
         }
     ));
@@ -166,44 +166,41 @@ fn shared_operation_retains_transition_until_exact_deadline_cancellation() {
         OperationAction::Await
     );
     assert!(operation.retains_resumed_value());
-    assert_eq!(
-        operation.take_host_operation_cancellation(),
-        Some(RequestId(1))
-    );
-    assert_eq!(operation.take_host_operation_cancellation(), None);
+    assert_eq!(operation.take_host_call_cancellation(), Some(RequestId(1)));
+    assert_eq!(operation.take_host_call_cancellation(), None);
     assert!(
-        matches!(operation.resume_host_operation(RequestId(1), HostOperationOutcome {
-        disposition: HostOperationDisposition::Cancelled, output: None, failure: None,
-    }, None), OperationAction::RequestHostOperation { request: RequestId(2), operation: HostOperationId(1), input } if input.value == next)
+        matches!(operation.resume_host_call(RequestId(1), HostCallOutcome {
+        disposition: HostCallDisposition::Cancelled, output: None, failure: None,
+    }, None), OperationAction::RequestHostCall { request: RequestId(2), operation: HostCallId(1), input } if input.value == next)
     );
     assert!(matches!(
-        operation.resume_host_operation(
+        operation.resume_host_call(
             RequestId(2),
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
             None
         ),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(3),
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             ..
         }
     ));
     assert_eq!(
-        operation.resume_host_operation(
+        operation.resume_host_call(
             RequestId(3),
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
             None
         ),
         OperationAction::Fail(Failure {
-            code: FailureCode::HostOperationFailed,
+            code: FailureCode::HostCallFailed,
             detail: 4
         })
     );
@@ -214,12 +211,10 @@ fn observation_request_uses_the_callers_admitted_input_bound() {
     let mut store = conduit_kernel::HostedValueStore::new(8, 4096, 32768).unwrap();
     let value = store.store(b"transition").unwrap();
     let mut operation = TimedButtonAttemptOperation::from_prepared_durations(Vec::new(), 2, 4096);
-    let OperationAction::RequestHostOperation { input, .. } =
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value,
-        })
-    else {
+    let OperationAction::RequestHostCall { input, .. } = operation.resume(OperationInput::Value {
+        port: PortId(0),
+        value,
+    }) else {
         panic!("transition must request clock observation");
     };
     assert_eq!(input.admitted_bytes, 4096);

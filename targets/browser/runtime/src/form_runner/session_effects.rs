@@ -44,30 +44,28 @@ impl TourSession {
         denied: bool,
         detail: u16,
     ) -> Result<TourProgress, String> {
-        use conduit_kernel::{
-            Failure, FailureCode, HostOperationDisposition, HostOperationOutcome,
-        };
+        use conduit_kernel::{Failure, FailureCode, HostCallDisposition, HostCallOutcome};
         let index = self.pending_index(play, placement, request)?;
         self.host_outcomes.check_capacity()?;
         let effect = &self.pending[index];
-        let outcome = HostOperationOutcome {
+        let outcome = HostCallOutcome {
             disposition: if denied {
-                HostOperationDisposition::Denied
+                HostCallDisposition::Denied
             } else {
-                HostOperationDisposition::Failed
+                HostCallDisposition::Failed
             },
             output: None,
             failure: Some(Failure {
                 code: if denied {
-                    FailureCode::HostOperationDenied
+                    FailureCode::HostCallDenied
                 } else {
-                    FailureCode::HostOperationFailed
+                    FailureCode::HostCallFailed
                 },
                 detail,
             }),
         };
         self.scheduler
-            .complete_host_operation(effect.request.node, effect.request.request, outcome)
+            .complete_host_call(effect.request.node, effect.request.request, outcome)
             .map_err(|error| format!("Host refusal: {error:?}"))?;
         self.host_outcomes
             .record(effect.request.node, effect.request.request, outcome);
@@ -93,8 +91,8 @@ impl TourSession {
         self.host_outcomes.record(
             effect.request.node,
             effect.request.request,
-            conduit_kernel::HostOperationOutcome {
-                disposition: conduit_kernel::HostOperationDisposition::Completed,
+            conduit_kernel::HostCallOutcome {
+                disposition: conduit_kernel::HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },

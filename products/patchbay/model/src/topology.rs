@@ -221,7 +221,7 @@ fn render_plans_and_plays(
         push_line(
             lines,
             format!(
-                "    PLACEMENT {} plan={} host={} boot={} capability={} kind={} contract={} profile={} implementation={} artifact={} host-operations={:?} resources={:?}",
+                "    PLACEMENT {} plan={} host={} boot={} capability={} kind={} contract={} profile={} implementation={} artifact={} Host Calls={:?} resources={:?}",
                 placement.placement_id.as_str(),
                 placement.plan_id.as_str(),
                 placement.host_id.as_str(),
@@ -232,7 +232,7 @@ fn render_plans_and_plays(
                 placement.execution_profile_id.as_str(),
                 placement.implementation_id.as_str(),
                 placement.artifact_id.as_str(),
-                placement.host_operations,
+                placement.host_calls,
                 placement.resources
             ),
         )?;

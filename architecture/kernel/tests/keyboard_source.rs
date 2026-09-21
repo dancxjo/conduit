@@ -50,7 +50,7 @@ impl StepOperation<PORTS> for Driver {
             } => {
                 if *fail {
                     return StepOutcome::Fail(conduit_kernel::Failure {
-                        code: conduit_kernel::FailureCode::HostOperationFailed,
+                        code: conduit_kernel::FailureCode::HostCallFailed,
                         detail: 0x4b44,
                     });
                 }
@@ -217,7 +217,7 @@ fn cancellation_and_host_input_failure_remain_distinct() {
     assert_eq!(
         failed.step(),
         Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
-            code: conduit_kernel::FailureCode::HostOperationFailed,
+            code: conduit_kernel::FailureCode::HostCallFailed,
             detail: 0x4b44
         }))
     );

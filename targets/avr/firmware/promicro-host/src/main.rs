@@ -63,7 +63,7 @@ fn main() -> ! {
 
     // Construct the shared Create provider at the required 57,600 8N1. The
     // provider does not transmit merely because it exists; ordinary assigned
-    // Host operation dispatch is the only future caller allowed to write.
+    // Host Call dispatch is the only future caller allowed to write.
     let create_uart = arduino_hal::default_serial!(peripherals, pins, 57_600);
     let mut create = provider::AvrCreateUart::new(create_uart);
     let mut host_line = UsbLine::new(peripherals.USB_DEVICE, peripherals.PLL, boot.usb_serial);

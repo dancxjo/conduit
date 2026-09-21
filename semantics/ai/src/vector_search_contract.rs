@@ -3,8 +3,8 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, FrontStartupParameter, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindId, KindIdentity,
+    CapabilityOffer, ExecutionProfileId, FrontStartupParameter, HostCallContractId,
+    HostCallRequirement, ImplementationId, ImplementationOffer, KindId, KindIdentity,
     PortDescriptor, PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
@@ -120,7 +120,7 @@ pub fn exact_vector_search_offer(
             implementation_id: ImplementationId::from(EXACT_VECTOR_SEARCH_IMPLEMENTATION),
             artifact_id: ArtifactId::from(EXACT_VECTOR_SEARCH_ARTIFACT),
         },
-        host_operations: vec![vector_search_operation(&contract)],
+        host_calls: vec![vector_search_operation(&contract)],
         resource_requirements: vec![resource_requirement(
             VECTOR_SEARCH_RESOURCE_CLASS,
             contract.maximum_query_work_units,
@@ -130,9 +130,9 @@ pub fn exact_vector_search_offer(
     })
 }
 
-pub fn vector_search_operation(contract: &VectorSearchContract) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(VECTOR_SEARCH_OPERATION),
+pub fn vector_search_operation(contract: &VectorSearchContract) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(VECTOR_SEARCH_OPERATION),
         target_kind: Some(contract.kind_id.clone()),
         maximum_in_flight: contract.limits.max_active_instances,
         maximum_input_bytes: contract.maximum_input_bytes,

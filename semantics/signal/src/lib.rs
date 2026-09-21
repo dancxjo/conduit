@@ -23,9 +23,9 @@ use alloc::vec::Vec;
 pub use canonical::{primary_signal_startup_catalog, signal_startup_catalog};
 #[cfg(feature = "host-profile")]
 use conduit_core::{
-    kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
-    wait_host_operation_requirement, CapabilityLimits, ConfigurationEntry, ConfigurationValue,
-    ExecutionProfileId, HostOperationRequirement, Kind, KindId, KindIdentity, PortDescriptor,
+    kind_id, port_id, present_host_call_requirement, resource_offer, resource_requirement,
+    wait_host_call_requirement, CapabilityLimits, ConfigurationEntry, ConfigurationValue,
+    ExecutionProfileId, HostCallRequirement, Kind, KindId, KindIdentity, PortDescriptor,
     PortDirection, ResourceOffer, ResourceRequirement, ValuePayload, PRESENTATION_RESOURCE_CLASS,
     TIMER_RESOURCE_CLASS,
 };
@@ -140,13 +140,13 @@ pub fn show_execution_profile() -> ExecutionProfileId {
 }
 
 #[cfg(feature = "host-profile")]
-pub fn pulse_host_operation_requirements() -> Vec<HostOperationRequirement> {
-    vec![wait_host_operation_requirement()]
+pub fn pulse_host_call_requirements() -> Vec<HostCallRequirement> {
+    vec![wait_host_call_requirement()]
 }
 
 #[cfg(feature = "host-profile")]
-pub fn show_host_operation_requirements() -> Vec<HostOperationRequirement> {
-    vec![present_host_operation_requirement(
+pub fn show_host_call_requirements() -> Vec<HostCallRequirement> {
+    vec![present_host_call_requirement(
         kind_id(SIGNAL_PRESENTATION_KIND),
         SIGNAL_ENCODED_LEN,
     )]

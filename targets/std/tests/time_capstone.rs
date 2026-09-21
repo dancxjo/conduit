@@ -3,8 +3,8 @@ use conduit_ai::{
     ProposalDecisionOutcome, ProposalGate, ProposalRefusal,
 };
 use conduit_core::{
-    AuthorityBinding, AuthorityContractId, AuthorityGrantId, BootId, CapabilityId, HostId,
-    HostOperationContractId, KindId, PlanId, SignId,
+    AuthorityBinding, AuthorityContractId, AuthorityGrantId, BootId, CapabilityId,
+    HostCallContractId, HostId, KindId, PlanId, SignId,
 };
 use conduit_presentation::present_timed_calendar_event;
 use conduit_semantic_catalog::{
@@ -377,7 +377,7 @@ fn reminder_grant() -> AuthorityBinding {
     AuthorityBinding {
         grant_id: AuthorityGrantId::from("grant/reminder/capstone"),
         contract_id: AuthorityContractId::from(REMINDER_DELIVERY_AUTHORITY),
-        host_operation_contract_id: HostOperationContractId::from(REMINDER_DELIVER_OPERATION),
+        host_call_contract_id: HostCallContractId::from(REMINDER_DELIVER_OPERATION),
         subject_kind: KindId::from(REMINDER_DELIVER_KIND),
         host_id: HostId::from("host/reminder/capstone"),
         boot_id: BootId::from("boot/reminder/capstone"),

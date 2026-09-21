@@ -1,7 +1,7 @@
 #![cfg(feature = "kernel-operation")]
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
+    Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
 };
 use conduit_semantic_catalog::StructuredSelectorOperation;
 fn value() -> ValueRef {
@@ -12,10 +12,10 @@ fn value() -> ValueRef {
     }
 }
 fn completion(request: u32, output: bool) -> OperationInput {
-    OperationInput::HostOperationCompleted {
+    OperationInput::HostCallCompleted {
         request: RequestId(request),
-        outcome: HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        outcome: HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output: output.then(|| BoundedValueRef::new(value(), 4096).unwrap()),
             failure: None,
         },
@@ -32,9 +32,9 @@ fn dropped_value_does_not_close_flow_and_next_match_emits() {
                 port: PortId(0),
                 value: value()
             }),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(request),
-                operation: HostOperationId(0),
+                operation: HostCallId(0),
                 input: BoundedValueRef::new(value(), 4096).unwrap(),
             }
         );

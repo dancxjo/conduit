@@ -2,8 +2,8 @@
 
 use conduit_core::{
     protected_resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement, Back,
-    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, Kind,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostCallContractId,
+    HostCallRequirement, ImplementationId, Kind,
 };
 
 pub const LOCAL_VISION_PROFILE: &str = "conduit.std/local-vision-gray8@1";
@@ -31,7 +31,7 @@ pub fn local_vision_offers() -> [CapabilityOffer; 2] {
 }
 
 fn local_vision_offer(capability: &str, contract: Kind, operation: &str) -> CapabilityOffer {
-    let operation = HostOperationContractId::from(operation);
+    let operation = HostCallContractId::from(operation);
     let target_kind = contract.kind_id.clone();
     BackOfferBuilder::new(
         contract,
@@ -40,7 +40,7 @@ fn local_vision_offer(capability: &str, contract: Kind, operation: &str) -> Capa
             execution_profile_id: ExecutionProfileId::from(LOCAL_VISION_PROFILE),
             implementation_id: ImplementationId::from(LOCAL_VISION_IMPLEMENTATION),
             artifact_id: ArtifactId::from(LOCAL_VISION_ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
+            host_calls: vec![HostCallRequirement {
                 contract_id: operation.clone(),
                 target_kind: Some(target_kind.clone()),
                 maximum_in_flight: 1,
@@ -54,7 +54,7 @@ fn local_vision_offer(capability: &str, contract: Kind, operation: &str) -> Capa
             )],
             authority_requirements: vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(LOCAL_VISION_READ_AUTHORITY),
-                host_operation_contract_id: operation,
+                host_call_contract_id: operation,
                 subject_kind: target_kind,
             }],
         },
@@ -108,7 +108,7 @@ mod tests {
             assert_eq!(offer.outputs.len(), 1);
             assert_eq!(offer.outputs[0].direction, PortDirection::Output);
             assert_eq!(offer.outputs[0].temporal, PortTemporal::Current);
-            assert_eq!(offer.host_operations.len(), 1);
+            assert_eq!(offer.host_calls.len(), 1);
             assert_eq!(offer.resource_requirements.len(), 1);
             assert_eq!(
                 offer.resource_requirements[0]
@@ -119,8 +119,8 @@ mod tests {
             );
             assert_eq!(offer.authority_requirements.len(), 1);
             assert_eq!(
-                offer.authority_requirements[0].host_operation_contract_id,
-                offer.host_operations[0].contract_id
+                offer.authority_requirements[0].host_call_contract_id,
+                offer.host_calls[0].contract_id
             );
         }
     }

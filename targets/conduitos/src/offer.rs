@@ -98,7 +98,7 @@ pub struct CapabilityOffer<'a> {
     pub contract_revision: &'static str,
     pub implementation: &'static str,
     pub artifact_build: &'a str,
-    pub host_operation: Option<&'static str>,
+    pub host_call: Option<&'static str>,
     pub required_base: BaseKind,
     pub secondary_base: Option<BaseKind>,
     pub input: Option<PortOffer>,
@@ -233,7 +233,7 @@ impl<'a> HostOffer<'a> {
                     contract_revision: "conduit.std/time-tick@2",
                     implementation: TIME_TICK_IMPLEMENTATION,
                     artifact_build: build_id,
-                    host_operation: Some("conduit.host/wait@1"),
+                    host_call: Some("conduit.host/wait@1"),
                     required_base: BaseKind::Timer,
                     secondary_base: Some(BaseKind::Clock),
                     input: None,
@@ -252,7 +252,7 @@ impl<'a> HostOffer<'a> {
                     contract_revision: "conduit.std/presentation-tick@2",
                     implementation: TICK_PRESENTATION_IMPLEMENTATION,
                     artifact_build: build_id,
-                    host_operation: Some("conduit.host/present@1"),
+                    host_call: Some("conduit.host/present@1"),
                     required_base: BaseKind::Serial,
                     secondary_base: None,
                     input: Some(PortOffer {
@@ -442,7 +442,7 @@ impl<'a> HostOffer<'a> {
                 || capability.contract_revision.is_empty()
                 || capability.implementation.is_empty()
                 || capability.artifact_build.is_empty()
-                || capability.host_operation.is_some_and(str::is_empty)
+                || capability.host_call.is_some_and(str::is_empty)
                 || capability.maximum_in_flight == 0
                 || capability.maximum_input_bytes == 0
             {

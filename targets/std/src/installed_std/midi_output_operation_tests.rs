@@ -48,7 +48,7 @@ fn fixture() -> (PlannedGear, crate::hosted_midi::HostedMidiSelection) {
         .map(|(index, requirement)| AuthorityBinding {
             grant_id: AuthorityGrantId::from(format!("midi-grant-{index}")),
             contract_id: requirement.contract_id.clone(),
-            host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+            host_call_contract_id: requirement.host_call_contract_id.clone(),
             subject_kind: requirement.subject_kind.clone(),
             host_id: host_id.clone(),
             boot_id: boot_id.clone(),
@@ -74,7 +74,7 @@ fn fixture() -> (PlannedGear, crate::hosted_midi::HostedMidiSelection) {
             limits: offer.limits,
             inputs: offer.inputs,
             outputs: offer.outputs,
-            host_operations: offer.host_operations,
+            host_calls: offer.host_calls,
             resources: vec![resource],
             authority,
             pool_references: Vec::new(),
@@ -122,7 +122,7 @@ fn exact_portable_events_cross_the_bounded_host_boundary_in_order() {
     ] {
         assert_eq!(
             execute(&mut adapter, &mut session, contract, &encoded).disposition,
-            HostOperationDisposition::Completed
+            HostCallDisposition::Completed
         );
     }
     session.stop().unwrap();
@@ -165,7 +165,7 @@ fn stale_authority_and_unrepresentable_pitch_fail_closed() {
         conduit_std_offers::MUSIC_PLAY_MIDI_NOTE_OPERATION,
         &event.encode(),
     );
-    assert_eq!(outcome.disposition, HostOperationDisposition::Failed);
+    assert_eq!(outcome.disposition, HostCallDisposition::Failed);
     assert_eq!(
         outcome.failure.unwrap().code,
         conduit_kernel::FailureCode::InvalidInput
@@ -196,10 +196,10 @@ fn provider_loss_remains_a_host_failure() {
         conduit_std_offers::MUSIC_PLAY_MIDI_NOTE_OPERATION,
         &event.encode(),
     );
-    assert_eq!(outcome.disposition, HostOperationDisposition::Failed);
+    assert_eq!(outcome.disposition, HostCallDisposition::Failed);
     assert_eq!(
         outcome.failure.unwrap().code,
-        conduit_kernel::FailureCode::HostOperationFailed
+        conduit_kernel::FailureCode::HostCallFailed
     );
     assert_eq!(
         session.report().lifecycle,
@@ -226,14 +226,14 @@ fn scheduler_operation_keeps_note_and_control_bindings_distinct() {
     });
     assert!(matches!(
         action,
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(0),
-            operation: HostOperationId(1),
+            operation: HostCallId(1),
             ..
         }
     ));
     assert_eq!(
-        operation.resume(OperationInput::HostOperationCompleted {
+        operation.resume(OperationInput::HostCallCompleted {
             request: RequestId(0),
             outcome: completed(),
         }),

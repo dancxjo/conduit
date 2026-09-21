@@ -2,8 +2,7 @@
 
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, Back, BackOfferBuilder, CapabilityId,
-    CapabilityOffer, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId,
+    CapabilityOffer, ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId,
 };
 
 pub const PIPER_SPEECH_PROFILE: &str = "std/piper-s16le-22050-mono-p25@1";
@@ -91,8 +90,8 @@ fn speech_offer(
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(PIPER_SPEECH_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(PIPER_SPEECH_OPERATION),
                 target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: if streaming {
@@ -124,9 +123,9 @@ mod tests {
         assert_eq!(offer.inputs, contract.inputs);
         assert_eq!(offer.outputs, contract.outputs);
         assert_eq!(offer.limits, contract.limits);
-        assert_eq!(offer.host_operations[0].maximum_in_flight, 1);
+        assert_eq!(offer.host_calls[0].maximum_in_flight, 1);
         assert_eq!(
-            offer.host_operations[0].maximum_output_bytes,
+            offer.host_calls[0].maximum_output_bytes,
             PIPER_PCM_BLOCK_BYTES
         );
         assert_eq!(offer.resource_requirements.len(), 1);
@@ -155,7 +154,7 @@ mod tests {
         assert_eq!(offer.outputs, contract.outputs);
         assert_eq!(offer.limits, contract.limits);
         assert_eq!(
-            offer.host_operations[0].maximum_input_bytes,
+            offer.host_calls[0].maximum_input_bytes,
             conduit_tongues::SPEECH_COMMIT_QUEUE_BYTES
         );
         assert_eq!(offer.resource_requirements.len(), 1);

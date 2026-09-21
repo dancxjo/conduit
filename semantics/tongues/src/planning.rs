@@ -4,7 +4,7 @@ use crate::{
 };
 use conduit_core::{
     kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId,
-    CapabilityId, HostOperationContractId,
+    CapabilityId, HostCallContractId,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
@@ -104,7 +104,7 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
         },
         inputs: literal_contract.inputs,
         outputs: literal_contract.outputs,
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: literal_contract.limits,
@@ -122,9 +122,7 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
             OutputCondition::PrimaryPlayback => AUDIO_OUTPUT_AUTHORITY,
             OutputCondition::DegradedWavArtifact => ARTIFACT_WRITE_AUTHORITY,
         }),
-        host_operation_contract_id: HostOperationContractId::from(
-            requirement.host_operation_contract_id.as_str(),
-        ),
+        host_call_contract_id: HostCallContractId::from(requirement.host_call_contract_id.as_str()),
         subject_kind: kind_id(AUDIO_PLAY_KIND),
         host_id: fixture.advertisement.host_id.clone(),
         boot_id: fixture.advertisement.boot_id.clone(),

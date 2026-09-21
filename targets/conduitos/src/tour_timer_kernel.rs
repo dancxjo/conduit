@@ -4,11 +4,11 @@ use crate::machine::KernelInterest;
 use alloc::vec::Vec;
 use conduit_core::{ConfigurationValue, PlanFragment};
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, KernelEvent, NodeId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, SignSink, ValueRef, ValueStorage,
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, Operation, OperationAction,
+    OperationInput, PortId, RequestId, SignSink, ValueRef, ValueStorage,
     scheduler::{
-        FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
+        FixedScheduler, HostCallRequest, OperationDriver, SchedulerError, SchedulerStatus,
     },
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
@@ -79,9 +79,9 @@ impl Operation for TimerOperation {
                     next_wait,
                     ..
                 },
-                OperationInput::HostOperationCompleted { request, outcome },
+                OperationInput::HostCallCompleted { request, outcome },
             ) if usize::try_from(request.0).ok() == Some(*next_wait)
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -127,17 +127,17 @@ impl Operation for TimerOperation {
                 let request = RequestId(*next_request);
                 *next_request = next_request.saturating_add(1);
                 *pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: conduit_kernel::HostOperationId(0),
+                    operation: conduit_kernel::HostCallId(0),
                     input,
                 }
             }
             (
                 Self::Presentation { pending, .. },
-                OperationInput::HostOperationCompleted { request, outcome },
+                OperationInput::HostCallCompleted { request, outcome },
             ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -182,9 +182,9 @@ fn request_wait(waits: &[BoundedValueRef; 2], next_wait: &mut usize) -> Operatio
     };
     let request = RequestId(u32::try_from(*next_wait + 1).unwrap_or(u32::MAX));
     *next_wait += 1;
-    OperationAction::RequestHostOperation {
+    OperationAction::RequestHostCall {
         request,
-        operation: conduit_kernel::HostOperationId(0),
+        operation: conduit_kernel::HostCallId(0),
         input: wait,
     }
 }
@@ -282,15 +282,15 @@ impl TourTimerKernel {
             )?;
         }
         routes.seal()?;
-        let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(NODES as u16);
-        for operation in &lowered.host_operations {
+        let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+        for operation in &lowered.host_calls {
             bindings.install(operation.node, operation.binding)?;
         }
         bindings.seal()?;
         let minimum_sign_bytes = (SIGNS * core::mem::size_of::<KernelEvent>()) as u32;
         let signs = FixedSignLog::<SIGNS>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;
         Ok(Self {
-            scheduler: FixedScheduler::new_with_host_operations(
+            scheduler: FixedScheduler::new_with_host_calls(
                 nodes, cords, routes, bindings, drivers, values, signs,
             )?,
             timer: NodeId(timer as u16),
@@ -302,7 +302,7 @@ impl TourTimerKernel {
         self.scheduler.step()
     }
 
-    pub fn next_host_request(&mut self) -> Option<HostOperationRequest> {
+    pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
         self.scheduler.next_host_request()
     }
 
@@ -310,20 +310,20 @@ impl TourTimerKernel {
         self.scheduler.host_value(value)
     }
 
-    pub fn is_timer(&self, request: &HostOperationRequest) -> bool {
+    pub fn is_timer(&self, request: &HostCallRequest) -> bool {
         request.node == self.timer
     }
 
-    pub fn is_presentation(&self, request: &HostOperationRequest) -> bool {
+    pub fn is_presentation(&self, request: &HostCallRequest) -> bool {
         request.node == self.presentation
     }
 
     pub fn complete_timer(&mut self, interest: KernelInterest) -> Result<(), SchedulerError> {
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             interest.node,
             interest.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -332,17 +332,17 @@ impl TourTimerKernel {
 
     pub fn complete_presentation(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
     ) -> Result<(), SchedulerError> {
         self.complete(request)
     }
 
-    fn complete(&mut self, request: HostOperationRequest) -> Result<(), SchedulerError> {
-        self.scheduler.complete_host_operation(
+    fn complete(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -353,8 +353,8 @@ impl TourTimerKernel {
         self.scheduler.cancel()
     }
 
-    pub fn pending_host_operations(&self) -> usize {
-        self.scheduler.pending_host_operation_count()
+    pub fn pending_host_calls(&self) -> usize {
+        self.scheduler.pending_host_call_count()
     }
 
     pub fn decisions(&self) -> u32 {

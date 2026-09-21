@@ -101,9 +101,9 @@ pub use temporal_quantity::*;
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
 pub const DEFAULT_CONNECTION_BYTE_CAPACITY: u32 = 64;
-pub const WAIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/wait@1";
-pub const PRESENT_HOST_OPERATION_CONTRACT: &str = "conduit.host/present@1";
-pub const AWAIT_TRIGGER_HOST_OPERATION_CONTRACT: &str = "conduit.host/await-trigger@1";
+pub const WAIT_HOST_CALL_CONTRACT: &str = "conduit.host/wait@1";
+pub const PRESENT_HOST_CALL_CONTRACT: &str = "conduit.host/present@1";
+pub const AWAIT_TRIGGER_HOST_CALL_CONTRACT: &str = "conduit.host/await-trigger@1";
 pub const MAX_PRESENTATION_COMPLETION_BYTES: u32 = 256;
 pub const TIMER_RESOURCE_CLASS: &str = "conduit.resource/timer-slot@1";
 pub const RUNTIME_MEMORY_RESOURCE_CLASS: &str = "conduit.resource/runtime-memory@1";
@@ -111,7 +111,7 @@ pub const PRESENTATION_RESOURCE_CLASS: &str = "conduit.resource/presentation-slo
 pub const INPUT_RESOURCE_CLASS: &str = "conduit.resource/input-slot@1";
 pub const PRESENT_AUTHORITY_CONTRACT: &str = "conduit.authority/present@1";
 pub const SHARED_POOL_ADMIT_AUTHORITY_CONTRACT: &str = "conduit.authority/shared-pool-admit@1";
-pub const SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/shared-pool-admit@1";
+pub const SHARED_POOL_ADMIT_HOST_CALL_CONTRACT: &str = "conduit.host/shared-pool-admit@1";
 pub const SHARED_POOL_AUTHORITY_SUBJECT_KIND: &str = "conduit/shared-pool";
 /// Explicit semantic contract used when the authored meaning is "any callable
 /// with this exact front" rather than one particular operation.
@@ -187,9 +187,9 @@ identity_type!(CredentialReferenceId);
 identity_type!(PortId);
 identity_type!(GearId);
 identity_type!(HostProfileId);
-// Immutable identity of one host-operation boundary contract.
-identity_type!(HostOperationContractId);
-identity_type!(HostOperationId);
+// Immutable identity of one Host Call boundary contract.
+identity_type!(HostCallContractId);
+identity_type!(HostCallId);
 // Semantic identity of a countable host resource contract.
 identity_type!(ResourceClassId);
 // Boot-scoped identity of one concrete host resource pool.
@@ -366,8 +366,8 @@ pub struct CapabilityLimits {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct HostOperationRequirement {
-    pub contract_id: HostOperationContractId,
+pub struct HostCallRequirement {
+    pub contract_id: HostCallContractId,
     pub target_kind: Option<KindId>,
     pub maximum_in_flight: u16,
     pub maximum_input_bytes: u32,
@@ -377,7 +377,7 @@ pub struct HostOperationRequirement {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct AuthorityRequirement {
     pub contract_id: AuthorityContractId,
-    pub host_operation_contract_id: HostOperationContractId,
+    pub host_call_contract_id: HostCallContractId,
     pub subject_kind: KindId,
 }
 
@@ -385,7 +385,7 @@ pub struct AuthorityRequirement {
 pub struct AuthorityGrant {
     pub grant_id: AuthorityGrantId,
     pub contract_id: AuthorityContractId,
-    pub host_operation_contract_id: HostOperationContractId,
+    pub host_call_contract_id: HostCallContractId,
     pub subject_kind: KindId,
     pub host_id: HostId,
     pub boot_id: BootId,
@@ -396,7 +396,7 @@ pub struct AuthorityGrant {
 pub struct AuthorityBinding {
     pub grant_id: AuthorityGrantId,
     pub contract_id: AuthorityContractId,
-    pub host_operation_contract_id: HostOperationContractId,
+    pub host_call_contract_id: HostCallContractId,
     pub subject_kind: KindId,
     pub host_id: HostId,
     pub boot_id: BootId,
@@ -416,7 +416,7 @@ pub struct CapabilityOffer {
     pub outputs: Vec<PortDescriptor>,
     #[serde(flatten)]
     pub implementation: ImplementationOffer,
-    pub host_operations: Vec<HostOperationRequirement>,
+    pub host_calls: Vec<HostCallRequirement>,
     pub resource_requirements: Vec<ResourceRequirement>,
     pub authority_requirements: Vec<AuthorityRequirement>,
     pub limits: CapabilityLimits,
@@ -521,7 +521,7 @@ pub struct PlannedGear {
     pub limits: CapabilityLimits,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
-    pub host_operations: Vec<HostOperationRequirement>,
+    pub host_calls: Vec<HostCallRequirement>,
     pub resources: Vec<ResourceBinding>,
     pub authority: Vec<AuthorityBinding>,
     #[serde(default)]
@@ -1107,10 +1107,10 @@ pub enum FailureReason {
     UnsupportedCancellationPolicy,
     UnsupportedTerminalPolicy,
     SignBudgetExceeded,
-    HostOperationContractMismatch,
-    HostOperationNotPlanned,
-    HostOperationInputExceeded,
-    HostOperationOutputExceeded,
+    HostCallContractMismatch,
+    HostCallNotPlanned,
+    HostCallInputExceeded,
+    HostCallOutputExceeded,
     ResourceContractMismatch,
     ResourceCapacityExceeded,
     SharedPoolContractMismatch,
@@ -1428,9 +1428,9 @@ pub fn port_id(value: &str) -> PortId {
     PortId::from(value)
 }
 
-pub fn wait_host_operation_requirement() -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(WAIT_HOST_OPERATION_CONTRACT),
+pub fn wait_host_call_requirement() -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(WAIT_HOST_CALL_CONTRACT),
         target_kind: None,
         maximum_in_flight: 1,
         maximum_input_bytes: core::mem::size_of::<u64>() as u32,
@@ -1438,12 +1438,12 @@ pub fn wait_host_operation_requirement() -> HostOperationRequirement {
     }
 }
 
-pub fn present_host_operation_requirement(
+pub fn present_host_call_requirement(
     target_kind: KindId,
     maximum_input_bytes: u32,
-) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(PRESENT_HOST_OPERATION_CONTRACT),
+) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(PRESENT_HOST_CALL_CONTRACT),
         target_kind: Some(target_kind),
         maximum_in_flight: 1,
         maximum_input_bytes,
@@ -1451,13 +1451,13 @@ pub fn present_host_operation_requirement(
     }
 }
 
-/// Host-operation requirement for exactly one human/physical trigger input.
+/// Host Call requirement for exactly one human/physical trigger input.
 /// The platform adapter must block on the admitted input resource (e.g. stdin)
 /// until the operator provides the trigger, then complete the request.
 /// A 1-byte sequence counter is admitted as a correlation token (no timer semantics).
-pub fn await_trigger_host_operation_requirement() -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(AWAIT_TRIGGER_HOST_OPERATION_CONTRACT),
+pub fn await_trigger_host_call_requirement() -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(AWAIT_TRIGGER_HOST_CALL_CONTRACT),
         target_kind: None,
         maximum_in_flight: 1,
         maximum_input_bytes: 1,
@@ -1468,7 +1468,7 @@ pub fn await_trigger_host_operation_requirement() -> HostOperationRequirement {
 pub fn present_authority_requirement(subject_kind: KindId) -> AuthorityRequirement {
     AuthorityRequirement {
         contract_id: AuthorityContractId::from(PRESENT_AUTHORITY_CONTRACT),
-        host_operation_contract_id: HostOperationContractId::from(PRESENT_HOST_OPERATION_CONTRACT),
+        host_call_contract_id: HostCallContractId::from(PRESENT_HOST_CALL_CONTRACT),
         subject_kind,
     }
 }
@@ -1483,7 +1483,7 @@ pub fn authority_grant(
     AuthorityGrant {
         grant_id: AuthorityGrantId::from(grant_id),
         contract_id: requirement.contract_id.clone(),
-        host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+        host_call_contract_id: requirement.host_call_contract_id.clone(),
         subject_kind: requirement.subject_kind.clone(),
         host_id,
         boot_id,

@@ -49,10 +49,10 @@ fn latest_tee_and_gate_run_together_with_closed_open_closed_and_uneven_pressure(
         gate.inputs[1].value_kind.as_str(),
         conduit_core::BOOL_INFO_ID
     );
-    assert_eq!(gate.host_operations.len(), 1);
+    assert_eq!(gate.host_calls.len(), 1);
     assert_eq!(
-        gate.host_operations[0].contract_id.as_str(),
-        conduit_std_offers::FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT
+        gate.host_calls[0].contract_id.as_str(),
+        conduit_std_offers::FLOW_GATE_BOOL_HOST_CALL_CONTRACT
     );
 
     let mut output = Vec::with_capacity(2_048);
@@ -129,8 +129,8 @@ fn gate_zero_capacity_and_mutated_decoder_identity_fail_before_play() {
         .iter_mut()
         .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::GATE_KIND)
         .expect("gate placement exists")
-        .host_operations[0]
-        .contract_id = conduit_core::HostOperationContractId::from("mutated/decode-bool");
+        .host_calls[0]
+        .contract_id = conduit_core::HostCallContractId::from("mutated/decode-bool");
 
     let mut host = baseline_host;
     let mut output = Vec::new();

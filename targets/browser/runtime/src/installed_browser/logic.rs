@@ -3,8 +3,8 @@
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, ConfigurationValue, HostOperationContractId, HostOperationRequirement, InfoBool,
-    PlannedGear, BOOL_ENCODED_LEN,
+    kind_id, ConfigurationValue, HostCallContractId, HostCallRequirement, InfoBool, PlannedGear,
+    BOOL_ENCODED_LEN,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
 
@@ -46,8 +46,8 @@ fn not_offer() -> conduit_core::CapabilityOffer {
         conduit_semantic_catalog::logic_not_contract(),
         conduit_semantic_catalog::LOGIC_NOT_CONTRACT_REVISION,
         NOT_IMPLEMENTATION,
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(NOT_IMPLEMENTATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(NOT_IMPLEMENTATION),
             target_kind: Some(kind_id(NOT_IMPLEMENTATION)),
             maximum_in_flight: 1,
             maximum_input_bytes: BOOL_ENCODED_LEN as u32,
@@ -69,7 +69,7 @@ fn offer(
     contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     implementation: &str,
-    operations: Vec<HostOperationRequirement>,
+    operations: Vec<HostCallRequirement>,
 ) -> conduit_core::CapabilityOffer {
     conduit_semantic_catalog::realization_offer(
         contract,

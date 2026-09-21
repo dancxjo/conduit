@@ -24,7 +24,7 @@ fn offer() -> UsbAcquisitionOffer {
         host_id: HostId::from("browser/one"),
         boot_id: BootId::from("browser-boot/one"),
         offer_generation: OfferGeneration(1),
-        operation_contract: HostOperationContractId::from(USB_ACQUIRE_OPERATION),
+        operation_contract: HostCallContractId::from(USB_ACQUIRE_OPERATION),
         request_authority_contract: AuthorityContractId::from(USB_REQUEST_AUTHORITY),
         maximum_in_flight: 1,
         maximum_result_bytes: MAXIMUM_USB_RESULT_BYTES as u32,
@@ -40,8 +40,8 @@ fn authority() -> UsbAcquisitionAuthority {
     }
 }
 
-fn operation() -> HostOperationId {
-    HostOperationId::from("usb-acquire/one")
+fn operation() -> HostCallId {
+    HostCallId::from("usb-acquire/one")
 }
 
 fn request() -> UsbAcquisitionRequest {

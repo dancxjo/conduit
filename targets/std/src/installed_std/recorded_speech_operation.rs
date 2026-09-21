@@ -3,17 +3,17 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, PlannedGear,
+    HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId,
 };
 
 pub(crate) const IMPLEMENTATION: &str = "conduit-proof/recorded-speech-recognizer@1";
 const PROFILE: &str = "conduit-proof/recorded-speech-recognizer-hosted@1";
 const ARTIFACT: &str = "conduit-std-host/proof-recorded-speech-recognizer@1";
-pub(crate) const HOST_OPERATION: &str = "conduit.host/proof-recorded-speech-recognize@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/proof-recorded-speech-recognize@1";
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: IMPLEMENTATION,
@@ -44,28 +44,26 @@ impl RecordedSpeechOperation {
                     return fail(FailureCode::InvalidInput, 1);
                 };
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending && request == RequestId(0) =>
             {
                 self.pending = false;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Denied, _, _) => {
-                        fail(FailureCode::HostOperationDenied, 2)
-                    }
-                    _ => fail(FailureCode::HostOperationFailed, 3),
+                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 2),
+                    _ => fail(FailureCode::HostCallFailed, 3),
                 }
             }
             _ => fail(FailureCode::InvalidLifecycle, 4),
@@ -93,8 +91,8 @@ pub(crate) fn offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
                 target_kind: Some(kind_id(conduit_tongues::SPEECH_RECOGNIZE_KIND)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_tongues::MAXIMUM_RECOGNITION_AUDIO_BYTES as u32,
@@ -167,7 +165,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id.as_str() != ARTIFACT
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || !placement.configuration.is_empty()
     {
         return Err("planned recorded recognizer does not match proof installation".into());
@@ -222,6 +220,6 @@ mod tests {
         assert_eq!(offer.inputs, contract.inputs);
         assert_eq!(offer.outputs, contract.outputs);
         assert_eq!(offer.limits, contract.limits);
-        assert_eq!(offer.host_operations.len(), 1);
+        assert_eq!(offer.host_calls.len(), 1);
     }
 }

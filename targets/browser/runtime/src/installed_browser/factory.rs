@@ -1,4 +1,4 @@
-//! Browser-owned offer, factory, and host-operation installation catalog.
+//! Browser-owned offer, factory, and Host Call installation catalog.
 
 mod installations;
 
@@ -22,7 +22,7 @@ pub(crate) struct BrowserHostResult {
     pub manifestation: Option<BrowserManifestation>,
 }
 
-pub(crate) type BrowserHostOperation =
+pub(crate) type BrowserHostCall =
     fn(&conduit_core::PlannedGear, &[u8]) -> Result<BrowserHostResult, String>;
 
 pub(crate) struct BrowserInstallation {
@@ -32,7 +32,7 @@ pub(crate) struct BrowserInstallation {
         &conduit_core::PlannedGear,
         &mut conduit_kernel::HostedValueStore,
     ) -> Result<super::BrowserOperation, String>,
-    pub perform: Option<BrowserHostOperation>,
+    pub perform: Option<BrowserHostCall>,
 }
 
 pub(crate) const AUDIO_FABRICATION_ID: &str = "browser/audio-cue@1";
@@ -350,7 +350,7 @@ pub(super) fn validate_placement(
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
     {
         return Err("planned browser Gear does not match its installed capability".into());
     }
@@ -435,8 +435,8 @@ mod profile_tests {
                     binding.maximum_queue_items
                 );
                 assert_eq!(pointer.limits.max_queue_bytes, binding.maximum_queue_bytes);
-                assert!(pointer.host_operations.iter().any(|operation| {
-                    operation.contract_id.as_str() == binding.host_operation
+                assert!(pointer.host_calls.iter().any(|operation| {
+                    operation.contract_id.as_str() == binding.host_call
                         && operation.maximum_in_flight == binding.maximum_in_flight
                 }));
                 continue;
@@ -465,13 +465,13 @@ mod profile_tests {
                 binding.runtime_implementation_id
             );
             assert!(
-                offer.host_operations.iter().any(|operation| {
-                    operation.contract_id.as_str() == binding.host_operation
+                offer.host_calls.iter().any(|operation| {
+                    operation.contract_id.as_str() == binding.host_call
                         && operation.maximum_in_flight == binding.maximum_in_flight
                 }),
                 "fabrication operation binding drifted for {}: expected {}",
                 binding.runtime_implementation_id,
-                binding.host_operation
+                binding.host_call
             );
         }
     }

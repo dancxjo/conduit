@@ -1,13 +1,13 @@
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId,
+    HostCallContractId, HostCallRequirement, ImplementationId,
 };
 
 pub const BROWSER_TEXT_UPPER_PROFILE: &str = "browser/text-upper-kernel@1";
 pub const BROWSER_TEXT_UPPER_ARTIFACT: &str = "conduit-browser-runtime/text-upper@1";
 pub const BROWSER_TEXT_UPPER_IMPLEMENTATION: &str = "browser/text-upper@1";
 pub const BROWSER_TEXT_UPPER_CAPABILITY: &str = "browser-text-upper-v1";
-pub const BROWSER_TEXT_UPPER_HOST_OPERATION: &str = "conduit.host/text-upper@1";
+pub const BROWSER_TEXT_UPPER_HOST_CALL: &str = "conduit.host/text-upper@1";
 pub const BROWSER_TEXT_UPPER_TARGET: &str = "text/uppercase-utf8";
 
 pub fn browser_text_upper_offer() -> CapabilityOffer {
@@ -18,8 +18,8 @@ pub fn browser_text_upper_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(BROWSER_TEXT_UPPER_PROFILE),
             implementation_id: ImplementationId::from(BROWSER_TEXT_UPPER_IMPLEMENTATION),
             artifact_id: ArtifactId::from(BROWSER_TEXT_UPPER_ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(BROWSER_TEXT_UPPER_HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(BROWSER_TEXT_UPPER_HOST_CALL),
                 target_kind: Some(kind_id(BROWSER_TEXT_UPPER_TARGET)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,

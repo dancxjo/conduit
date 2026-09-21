@@ -6,8 +6,8 @@ use conduit_alife::{
 };
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static ORBIUM_SEED_FACTORY: InstalledFactory = InstalledFactory {
@@ -95,12 +95,7 @@ impl LeniaStepOperation {
             }
             let request = RequestId(0);
             self.pending = Some(Pending::Initialize(request));
-            return request_action(
-                request,
-                HostOperationId(0),
-                value,
-                LENIA_MAXIMUM_FIELD_BYTES,
-            );
+            return request_action(request, HostCallId(0), value, LENIA_MAXIMUM_FIELD_BYTES);
         }
         if port == PortId(1)
             && self.initialized
@@ -118,7 +113,7 @@ impl LeniaStepOperation {
             self.pending = Some(Pending::Step(request_id));
             return request_action(
                 request_id,
-                HostOperationId(1),
+                HostCallId(1),
                 value,
                 conduit_time::TICK_ENCODED_LEN,
             );
@@ -128,11 +123,11 @@ impl LeniaStepOperation {
 
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(Pending::Initialize(request)) =>
             {
                 self.pending = None;
-                if outcome.disposition == HostOperationDisposition::Completed
+                if outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none()
                 {
@@ -142,15 +137,15 @@ impl LeniaStepOperation {
                     host_failure(outcome.failure, 185)
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(Pending::Step(request)) =>
             {
                 self.pending = None;
-                if outcome.disposition == HostOperationDisposition::Completed
+                if outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none()
                 {
                     let Some(output) = outcome.output else {
-                        return fail(FailureCode::HostOperationFailed, 186);
+                        return fail(FailureCode::HostCallFailed, 186);
                     };
                     self.next_tick += 1;
                     OperationAction::Emit {
@@ -200,16 +195,11 @@ impl ScalarFieldPresentationOperation {
             {
                 let request = RequestId(self.next);
                 self.pending = Some(request);
-                request_action(
-                    request,
-                    HostOperationId(0),
-                    value,
-                    LENIA_MAXIMUM_FIELD_BYTES,
-                )
+                request_action(request, HostCallId(0), value, LENIA_MAXIMUM_FIELD_BYTES)
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -220,9 +210,7 @@ impl ScalarFieldPresentationOperation {
             OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
                 OperationAction::Complete
             }
-            OperationInput::HostOperationCompleted { outcome, .. } => {
-                host_failure(outcome.failure, 189)
-            }
+            OperationInput::HostCallCompleted { outcome, .. } => host_failure(outcome.failure, 189),
             _ => fail(FailureCode::InvalidLifecycle, 190),
         }
     }
@@ -359,7 +347,7 @@ fn validate_lenia(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id.as_str() != conduit_std_offers::LENIA_STEP_ARTIFACT
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.configuration.len() != 8
         || text_configuration(placement, conduit_alife::BOUNDARY_KEY)? != "wrap"
         || text_configuration(placement, conduit_alife::NUMERIC_PROFILE_KEY)? != "fixed-q16.16"
@@ -383,7 +371,7 @@ fn validate_presentation(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id.as_str() != conduit_std_offers::SCALAR_FIELD_PRESENTATION_ARTIFACT
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.resources.len() != 1
         || placement.configuration.len() != 3
         || text_configuration(placement, conduit_alife::TITLE_KEY)?.len() > 64
@@ -444,12 +432,12 @@ fn text_configuration<'a>(placement: &'a PlannedGear, key: &str) -> Result<&'a s
 
 fn request_action(
     request: RequestId,
-    operation: HostOperationId,
+    operation: HostCallId,
     value: ValueRef,
     maximum: u32,
 ) -> OperationAction {
     match BoundedValueRef::new(value, maximum) {
-        Ok(input) => OperationAction::RequestHostOperation {
+        Ok(input) => OperationAction::RequestHostCall {
             request,
             operation,
             input,
@@ -460,7 +448,7 @@ fn request_action(
 
 fn host_failure(failure: Option<Failure>, detail: u16) -> OperationAction {
     OperationAction::Fail(failure.unwrap_or(Failure {
-        code: FailureCode::HostOperationFailed,
+        code: FailureCode::HostCallFailed,
         detail,
     }))
 }

@@ -57,7 +57,7 @@ fn validate(placement: &PlannedGear) -> Result<u64, String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.limits != offer.limits
     {
         return Err("planned pattern comparison differs from installed realization".into());

@@ -23,7 +23,7 @@ pub(super) fn offer() -> CapabilityOffer {
             artifact: "conduit-browser-runtime/normalized-duration-presentation@1",
         },
     );
-    offer.host_operations[0].maximum_input_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
+    offer.host_calls[0].maximum_input_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
     offer.limits.max_queue_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
     offer
 }

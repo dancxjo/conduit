@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection, PortTemporal};
 use conduit_kernel::{
-    BoundedValueRef, CanonicalValue, Failure, FailureCode, HostOperationDisposition,
-    HostOperationId, OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, CanonicalValue, Failure, FailureCode, HostCallDisposition, HostCallId,
+    OperationAction, OperationInput, PortId, RequestId,
 };
 
 pub(super) static STATE_COUNT_FACTORY: InstalledFactory = InstalledFactory {
@@ -96,15 +96,15 @@ impl CountPresentationOperation {
                 else {
                     return InstalledOperation::fail(11);
                 };
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {

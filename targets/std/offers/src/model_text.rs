@@ -2,7 +2,7 @@
 
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId,
+    HostCallContractId, HostCallRequirement, ImplementationId,
 };
 
 pub const MODEL_RESULT_TO_TEXT_STD_IMPLEMENTATION: &str = "std/model-result-to-text@1";
@@ -56,8 +56,8 @@ fn model_text_offer(
             execution_profile_id: ExecutionProfileId::from(MODEL_RESULT_TO_TEXT_STD_PROFILE),
             implementation_id: ImplementationId::from(MODEL_RESULT_TO_TEXT_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(MODEL_RESULT_TO_TEXT_STD_ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(operation),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(operation),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes,
@@ -94,7 +94,7 @@ mod tests {
             assert_eq!(offer.inputs, contract.inputs);
             assert_eq!(offer.outputs, contract.outputs);
             assert_eq!(offer.limits, contract.limits);
-            assert_eq!(offer.host_operations.len(), 1);
+            assert_eq!(offer.host_calls.len(), 1);
             assert!(offer.resource_requirements.is_empty());
             assert!(offer.authority_requirements.is_empty());
         }

@@ -3,8 +3,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, ResourceClassId};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
+    OperationAction, OperationInput, PortId, RequestId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -39,29 +39,27 @@ impl WhisperSpeechOperation {
                     return fail(FailureCode::InvalidInput, 1);
                 };
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending && request == RequestId(0) =>
             {
                 self.pending = false;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Denied, _, _) => {
-                        fail(FailureCode::HostOperationDenied, 2)
-                    }
-                    (HostOperationDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 3),
-                    _ => fail(FailureCode::HostOperationFailed, 4),
+                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 2),
+                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 3),
+                    _ => fail(FailureCode::HostCallFailed, 4),
                 }
             }
             _ => fail(FailureCode::InvalidLifecycle, 5),
@@ -103,44 +101,24 @@ pub(super) fn execute_clip(
 
 pub(super) fn failure_outcome(
     failure: crate::hosted_speech_recognition::WhisperFailure,
-) -> HostOperationOutcome {
+) -> HostCallOutcome {
     use crate::hosted_speech_recognition::WhisperFailure as Whisper;
     let (disposition, code, detail) = match failure {
-        Whisper::MissingProvider => (
-            HostOperationDisposition::Denied,
-            FailureCode::HostOperationDenied,
-            1,
-        ),
+        Whisper::MissingProvider => (HostCallDisposition::Denied, FailureCode::HostCallDenied, 1),
         Whisper::InvalidPcm
         | Whisper::InvalidClip
         | Whisper::UnsupportedPcmProfile
-        | Whisper::AudioOverflow => (
-            HostOperationDisposition::Failed,
-            FailureCode::InvalidInput,
-            2,
-        ),
-        Whisper::Cancelled => (
-            HostOperationDisposition::Cancelled,
-            FailureCode::Cancelled,
-            3,
-        ),
-        Whisper::Timeout => (
-            HostOperationDisposition::Failed,
-            FailureCode::HostOperationFailed,
-            4,
-        ),
+        | Whisper::AudioOverflow => (HostCallDisposition::Failed, FailureCode::InvalidInput, 2),
+        Whisper::Cancelled => (HostCallDisposition::Cancelled, FailureCode::Cancelled, 3),
+        Whisper::Timeout => (HostCallDisposition::Failed, FailureCode::HostCallFailed, 4),
         Whisper::OutputOverflow => (
-            HostOperationDisposition::Failed,
+            HostCallDisposition::Failed,
             FailureCode::WorkBudgetExhausted,
             5,
         ),
-        _ => (
-            HostOperationDisposition::Failed,
-            FailureCode::HostOperationFailed,
-            6,
-        ),
+        _ => (HostCallDisposition::Failed, FailureCode::HostCallFailed, 6),
     };
-    HostOperationOutcome {
+    HostCallOutcome {
         disposition,
         output: None,
         failure: Some(Failure { code, detail }),
@@ -163,7 +141,7 @@ fn validate_offer(
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || !placement.configuration.is_empty()
         || placement.resources.len() != 1
         || placement.resources[0].class_id

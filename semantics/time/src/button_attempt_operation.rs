@@ -1,8 +1,8 @@
 //! Shared kernel operation for a finite pressed-button timing attempt.
 use alloc::vec::Vec;
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
+    OperationAction, OperationInput, PortId, RequestId, ValueRef,
 };
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Pending {
@@ -79,7 +79,7 @@ impl TimedButtonAttemptOperation {
             } if self.accepted_transitions >= self.maximum_transitions => {
                 fail(FailureCode::StorageExhausted, 1)
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some((request, Pending::Deadline)) =>
             {
                 self.resume_deadline(request, outcome)
@@ -100,14 +100,14 @@ impl TimedButtonAttemptOperation {
         }
     }
 
-    pub fn resume_host_operation(
+    pub fn resume_host_call(
         &mut self,
         request: RequestId,
-        outcome: HostOperationOutcome,
+        outcome: HostCallOutcome,
         canonical: Option<&[u8]>,
     ) -> OperationAction {
         if self.pending != Some((request, Pending::Observe)) {
-            return self.resume(OperationInput::HostOperationCompleted { request, outcome });
+            return self.resume(OperationInput::HostCallCompleted { request, outcome });
         }
         self.pending = None;
         match (
@@ -116,24 +116,20 @@ impl TimedButtonAttemptOperation {
             outcome.failure,
             canonical,
         ) {
-            (HostOperationDisposition::Completed, None, None, None) if self.next_duration > 0 => {
+            (HostCallDisposition::Completed, None, None, None) if self.next_duration > 0 => {
                 self.request_deadline()
             }
-            (HostOperationDisposition::Completed, None, None, None) => OperationAction::Await,
-            (HostOperationDisposition::Completed, Some(_), None, Some([0])) => {
-                self.request_deadline()
-            }
-            (HostOperationDisposition::Completed, Some(output), None, Some(_)) => {
+            (HostCallDisposition::Completed, None, None, None) => OperationAction::Await,
+            (HostCallDisposition::Completed, Some(_), None, Some([0])) => self.request_deadline(),
+            (HostCallDisposition::Completed, Some(output), None, Some(_)) => {
                 self.emitted_attempt = true;
                 OperationAction::Emit {
                     port: PortId(0),
                     value: output.value,
                 }
             }
-            (HostOperationDisposition::Cancelled, _, _, _) => fail(FailureCode::Cancelled, 0),
-            (HostOperationDisposition::Failed, None, Some(failure), _) => {
-                OperationAction::Fail(failure)
-            }
+            (HostCallDisposition::Cancelled, _, _, _) => fail(FailureCode::Cancelled, 0),
+            (HostCallDisposition::Failed, None, Some(failure), _) => OperationAction::Fail(failure),
             _ => fail(FailureCode::InvalidLifecycle, 273),
         }
     }
@@ -162,7 +158,7 @@ impl TimedButtonAttemptOperation {
         self.released.pop()
     }
 
-    pub fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {
+    pub fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
         self.cancellation.take()
     }
 
@@ -170,30 +166,24 @@ impl TimedButtonAttemptOperation {
         self.durations.capacity() + self.released.capacity()
     }
 
-    pub fn retains_host_operation_input(&self, value: ValueRef) -> bool {
+    pub fn retains_host_call_input(&self, value: ValueRef) -> bool {
         self.durations.contains(&value)
     }
 
-    fn resume_deadline(
-        &mut self,
-        request: RequestId,
-        outcome: HostOperationOutcome,
-    ) -> OperationAction {
+    fn resume_deadline(&mut self, request: RequestId, outcome: HostCallOutcome) -> OperationAction {
         self.pending = None;
         match (outcome.disposition, outcome.output, outcome.failure) {
-            (HostOperationDisposition::Cancelled, None, None) => {
+            (HostCallDisposition::Cancelled, None, None) => {
                 self.queued_transition.take().map_or_else(
                     || fail(FailureCode::InvalidLifecycle, 274),
                     |value| self.request_observation(value),
                 )
             }
-            (HostOperationDisposition::Completed, None, None) => {
+            (HostCallDisposition::Completed, None, None) => {
                 self.release_unused_durations();
-                fail(FailureCode::HostOperationFailed, 4)
+                fail(FailureCode::HostCallFailed, 4)
             }
-            (HostOperationDisposition::Failed, None, Some(failure)) => {
-                OperationAction::Fail(failure)
-            }
+            (HostCallDisposition::Failed, None, Some(failure)) => OperationAction::Fail(failure),
             _ => {
                 let _ = request;
                 fail(FailureCode::InvalidLifecycle, 275)
@@ -204,9 +194,9 @@ impl TimedButtonAttemptOperation {
     fn request_observation(&mut self, value: ValueRef) -> OperationAction {
         let request = self.next_request();
         self.pending = Some((request, Pending::Observe));
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(1),
+            operation: HostCallId(1),
             input: BoundedValueRef::new(value, self.maximum_input_bytes)
                 .expect("button transition is bounded by its exact port"),
         }
@@ -219,9 +209,9 @@ impl TimedButtonAttemptOperation {
         self.next_duration = 1;
         let request = self.next_request();
         self.pending = Some((request, Pending::Deadline));
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(value, 8)
                 .expect("deadline duration is exactly eight bytes"),
         }
@@ -245,13 +235,13 @@ impl conduit_kernel::Operation for TimedButtonAttemptOperation {
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         Self::resume(self, input)
     }
-    fn resume_host_operation(
+    fn resume_host_call(
         &mut self,
         request: RequestId,
-        outcome: HostOperationOutcome,
+        outcome: HostCallOutcome,
         canonical: Option<&[u8]>,
     ) -> OperationAction {
-        Self::resume_host_operation(self, request, outcome, canonical)
+        Self::resume_host_call(self, request, outcome, canonical)
     }
     fn advance(&mut self) -> OperationAction {
         Self::advance(self)
@@ -259,8 +249,8 @@ impl conduit_kernel::Operation for TimedButtonAttemptOperation {
     fn cancel(&mut self) {
         Self::cancel(self)
     }
-    fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {
-        Self::take_host_operation_cancellation(self)
+    fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
+        Self::take_host_call_cancellation(self)
     }
     fn take_released_value(&mut self) -> Option<ValueRef> {
         Self::take_released_value(self)
@@ -268,11 +258,11 @@ impl conduit_kernel::Operation for TimedButtonAttemptOperation {
     fn retains_resumed_value(&self) -> bool {
         Self::retains_resumed_value(self)
     }
-    fn accepts_input_while_host_operation_pending(&self) -> bool {
+    fn accepts_input_while_host_call_pending(&self) -> bool {
         true
     }
-    fn retains_host_operation_input(&self, _request: RequestId, value: ValueRef) -> bool {
-        Self::retains_host_operation_input(self, value)
+    fn retains_host_call_input(&self, _request: RequestId, value: ValueRef) -> bool {
+        Self::retains_host_call_input(self, value)
     }
 }
 fn fail(code: FailureCode, detail: u16) -> OperationAction {

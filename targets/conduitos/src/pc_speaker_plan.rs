@@ -24,7 +24,7 @@ const TONE_SOURCE_KIND: &str = "conduitos-fixture/tone-source";
 const TONE_SOURCE_REVISION: &str = "conduitos.fixture/tone-source@1";
 const TONE_SOURCE_PROFILE: &str = "conduitos/proof-tone-source@1";
 const TONE_SOURCE_IMPLEMENTATION: &str = "conduitos.fixture/tone-source@1";
-pub const TONE_SOURCE_HOST_OPERATION: &str = "conduitos.fixture/tone-sequence-step@1";
+pub const TONE_SOURCE_HOST_CALL: &str = "conduitos.fixture/tone-sequence-step@1";
 pub const PC_SPEAKER_FORM_SOURCE: &str = "form conduitos-tone {\n    source: conduitos-fixture/tone-source\n    speaker: sound/tone-play\n    source > speaker.tone\n}\n";
 
 pub struct PreparedPcSpeakerPlay {
@@ -116,9 +116,9 @@ pub fn validate(
         || placement.artifact_id.as_str() != alloc::format!("conduitos-build/{build_id}")
         || placement.inputs != expected_input
         || !placement.outputs.is_empty()
-        || placement.host_operations.len() != 1
-        || placement.host_operations[0].contract_id.as_str()
-            != crate::pc_speaker_offer::PC_SPEAKER_HOST_OPERATION
+        || placement.host_calls.len() != 1
+        || placement.host_calls[0].contract_id.as_str()
+            != crate::pc_speaker_offer::PC_SPEAKER_HOST_CALL
     {
         return Err(PreparationError::PlanRejected);
     }
@@ -225,8 +225,8 @@ fn tone_source_offer(build_id: &str) -> CapabilityOffer {
             implementation_id: ImplementationId::from(TONE_SOURCE_IMPLEMENTATION),
             artifact_id: ArtifactId::from(alloc::format!("conduitos-build/{build_id}")),
         },
-        host_operations: alloc::vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(TONE_SOURCE_HOST_OPERATION),
+        host_calls: alloc::vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(TONE_SOURCE_HOST_CALL),
             target_kind: None,
             maximum_in_flight: 1,
             maximum_input_bytes: 8,

@@ -3,8 +3,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -68,12 +68,12 @@ impl SpeechSynthesisOperation {
                 self.started = true;
                 self.request(input)
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None)
+                    (HostCallDisposition::Completed, Some(output), None)
                         if self.emitted_blocks < self.maximum_blocks
                             && output.admitted_bytes
                                 == conduit_std_offers::PIPER_PCM_BLOCK_BYTES
@@ -86,7 +86,7 @@ impl SpeechSynthesisOperation {
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Completed, None, None) if self.started => {
+                    (HostCallDisposition::Completed, None, None) if self.started => {
                         self.started = false;
                         if self.streaming && !self.input_closed {
                             OperationAction::Await
@@ -95,21 +95,15 @@ impl SpeechSynthesisOperation {
                             OperationAction::Complete
                         }
                     }
-                    (HostOperationDisposition::Denied, _, Some(failure))
-                    | (HostOperationDisposition::Cancelled, _, Some(failure))
-                    | (HostOperationDisposition::Failed, _, Some(failure)) => {
+                    (HostCallDisposition::Denied, _, Some(failure))
+                    | (HostCallDisposition::Cancelled, _, Some(failure))
+                    | (HostCallDisposition::Failed, _, Some(failure)) => {
                         OperationAction::Fail(failure)
                     }
-                    (HostOperationDisposition::Denied, _, None) => {
-                        fail(FailureCode::HostOperationDenied, 3)
-                    }
-                    (HostOperationDisposition::Cancelled, _, None) => {
-                        fail(FailureCode::Cancelled, 4)
-                    }
-                    (HostOperationDisposition::Failed, _, None) => {
-                        fail(FailureCode::HostOperationFailed, 5)
-                    }
-                    (HostOperationDisposition::Completed, Some(_), None) => {
+                    (HostCallDisposition::Denied, _, None) => fail(FailureCode::HostCallDenied, 3),
+                    (HostCallDisposition::Cancelled, _, None) => fail(FailureCode::Cancelled, 4),
+                    (HostCallDisposition::Failed, _, None) => fail(FailureCode::HostCallFailed, 5),
+                    (HostCallDisposition::Completed, Some(_), None) => {
                         fail(FailureCode::WorkBudgetExhausted, 6)
                     }
                     _ => fail(FailureCode::InvalidLifecycle, 7),
@@ -151,9 +145,9 @@ impl SpeechSynthesisOperation {
         let request = RequestId(self.next_request);
         self.next_request = self.next_request.saturating_add(1);
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input,
         }
     }
@@ -208,7 +202,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || !placement.authority.is_empty()
         || placement.configuration.len() != 1
     {
@@ -331,96 +325,44 @@ pub(super) fn execute_piper_cancellable<'a>(
 
 pub(super) fn piper_failure_outcome(
     failure: crate::hosted_speech::PiperFailure,
-) -> (HostOperationDisposition, Failure) {
+) -> (HostCallDisposition, Failure) {
     use crate::hosted_speech::PiperFailure as Piper;
     let (disposition, code, detail) = match failure {
-        Piper::MissingProvider => (
-            HostOperationDisposition::Denied,
-            FailureCode::HostOperationDenied,
-            61,
-        ),
-        Piper::InvalidProvider => (
-            HostOperationDisposition::Denied,
-            FailureCode::HostOperationDenied,
-            62,
-        ),
-        Piper::InvalidLimits => (
-            HostOperationDisposition::Denied,
-            FailureCode::HostOperationDenied,
-            63,
-        ),
-        Piper::InvalidText => (
-            HostOperationDisposition::Denied,
-            FailureCode::InvalidInput,
-            64,
-        ),
-        Piper::EmptyText => (
-            HostOperationDisposition::Denied,
-            FailureCode::InvalidInput,
-            65,
-        ),
+        Piper::MissingProvider => (HostCallDisposition::Denied, FailureCode::HostCallDenied, 61),
+        Piper::InvalidProvider => (HostCallDisposition::Denied, FailureCode::HostCallDenied, 62),
+        Piper::InvalidLimits => (HostCallDisposition::Denied, FailureCode::HostCallDenied, 63),
+        Piper::InvalidText => (HostCallDisposition::Denied, FailureCode::InvalidInput, 64),
+        Piper::EmptyText => (HostCallDisposition::Denied, FailureCode::InvalidInput, 65),
         Piper::TextOverflow => (
-            HostOperationDisposition::Denied,
+            HostCallDisposition::Denied,
             FailureCode::WorkBudgetExhausted,
             66,
         ),
-        Piper::SpawnFailed => (
-            HostOperationDisposition::Failed,
-            FailureCode::HostOperationFailed,
-            67,
-        ),
-        Piper::WriteFailed => (
-            HostOperationDisposition::Failed,
-            FailureCode::HostOperationFailed,
-            68,
-        ),
-        Piper::ReadFailed => (
-            HostOperationDisposition::Failed,
-            FailureCode::HostOperationFailed,
-            69,
-        ),
-        Piper::MalformedPcm => (
-            HostOperationDisposition::Failed,
-            FailureCode::InvalidInput,
-            70,
-        ),
+        Piper::SpawnFailed => (HostCallDisposition::Failed, FailureCode::HostCallFailed, 67),
+        Piper::WriteFailed => (HostCallDisposition::Failed, FailureCode::HostCallFailed, 68),
+        Piper::ReadFailed => (HostCallDisposition::Failed, FailureCode::HostCallFailed, 69),
+        Piper::MalformedPcm => (HostCallDisposition::Failed, FailureCode::InvalidInput, 70),
         Piper::OutputOverflow => (
-            HostOperationDisposition::Failed,
+            HostCallDisposition::Failed,
             FailureCode::WorkBudgetExhausted,
             71,
         ),
         Piper::BlockOverflow => (
-            HostOperationDisposition::Failed,
+            HostCallDisposition::Failed,
             FailureCode::WorkBudgetExhausted,
             72,
         ),
-        Piper::Timeout => (
-            HostOperationDisposition::Failed,
-            FailureCode::HostOperationFailed,
-            73,
-        ),
-        Piper::Cancelled => (
-            HostOperationDisposition::Cancelled,
-            FailureCode::Cancelled,
-            74,
-        ),
-        Piper::ProviderLost => (
-            HostOperationDisposition::Failed,
-            FailureCode::HostOperationFailed,
-            75,
-        ),
+        Piper::Timeout => (HostCallDisposition::Failed, FailureCode::HostCallFailed, 73),
+        Piper::Cancelled => (HostCallDisposition::Cancelled, FailureCode::Cancelled, 74),
+        Piper::ProviderLost => (HostCallDisposition::Failed, FailureCode::HostCallFailed, 75),
         Piper::ConsumerPressure => (
-            HostOperationDisposition::Failed,
+            HostCallDisposition::Failed,
             FailureCode::StorageExhausted,
             76,
         ),
-        Piper::ProviderBusy => (
-            HostOperationDisposition::Denied,
-            FailureCode::HostOperationDenied,
-            77,
-        ),
+        Piper::ProviderBusy => (HostCallDisposition::Denied, FailureCode::HostCallDenied, 77),
         Piper::NoActiveSynthesis => (
-            HostOperationDisposition::Denied,
+            HostCallDisposition::Denied,
             FailureCode::InvalidLifecycle,
             78,
         ),
@@ -536,7 +478,7 @@ mod tests {
                 port: PortId(0),
                 value: value(1, 7),
             }),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(0),
                 ..
             }
@@ -547,10 +489,10 @@ mod tests {
         )
         .unwrap();
         assert!(matches!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(0),
-                outcome: conduit_kernel::HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: conduit_kernel::HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(output),
                     failure: None,
                 },
@@ -562,7 +504,7 @@ mod tests {
         ));
         assert!(matches!(
             operation.advance(),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(1),
                 ..
             }
@@ -585,10 +527,10 @@ mod tests {
         let output =
             BoundedValueRef::new(value(3, 1), conduit_std_offers::PIPER_PCM_BLOCK_BYTES).unwrap();
         assert!(matches!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(2),
-                outcome: conduit_kernel::HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: conduit_kernel::HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(output),
                     failure: None,
                 },
@@ -618,16 +560,16 @@ mod tests {
                 port: PortId(0),
                 value: value(1, 128),
             }),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(0),
                 ..
             }
         ));
         assert!(matches!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(0),
-                outcome: conduit_kernel::HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: conduit_kernel::HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },
@@ -639,16 +581,16 @@ mod tests {
                 port: PortId(0),
                 value: value(2, 128),
             }),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(1),
                 ..
             }
         ));
         assert!(matches!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(1),
-                outcome: conduit_kernel::HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: conduit_kernel::HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },
@@ -707,10 +649,10 @@ mod tests {
         for failure in cases {
             let (disposition, mapped) = piper_failure_outcome(failure);
             if failure == Piper::Cancelled {
-                assert_eq!(disposition, HostOperationDisposition::Cancelled);
+                assert_eq!(disposition, HostCallDisposition::Cancelled);
                 assert_eq!(mapped.code, FailureCode::Cancelled);
             } else {
-                assert_eq!(disposition, HostOperationDisposition::Failed);
+                assert_eq!(disposition, HostCallDisposition::Failed);
             }
             assert!(!details.contains(&mapped.detail));
             details.push(mapped.detail);
@@ -729,10 +671,10 @@ mod tests {
         };
         let (_, failure) = piper_failure_outcome(Piper::Timeout);
         assert_eq!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(0),
-                outcome: conduit_kernel::HostOperationOutcome {
-                    disposition: HostOperationDisposition::Failed,
+                outcome: conduit_kernel::HostCallOutcome {
+                    disposition: HostCallDisposition::Failed,
                     output: None,
                     failure: Some(failure),
                 },

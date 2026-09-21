@@ -169,7 +169,7 @@ fn offer(definition: &KindProjection, part: &str) -> CapabilityOffer {
             implementation_id: ImplementationId::from(format!("test/{part}/{slug}@1")),
             artifact_id: ArtifactId::from(format!("test/{part}-image@1")),
         },
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: CapabilityLimits {

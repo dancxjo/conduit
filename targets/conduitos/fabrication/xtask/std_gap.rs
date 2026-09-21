@@ -22,7 +22,7 @@ struct HostCapability {
     implementation: String,
     execution_profile: String,
     artifact: String,
-    host_operations: Vec<String>,
+    host_calls: Vec<String>,
     resources: Vec<String>,
 }
 
@@ -33,7 +33,7 @@ struct GapEntry {
     classification: catalog::GapClassification,
     realization_mode: &'static str,
     reason_code: Option<&'static str>,
-    required_host_operations: Vec<String>,
+    required_host_calls: Vec<String>,
     required_resources: Vec<String>,
     required_bases: Vec<String>,
     unsatisfied_prerequisites: Vec<String>,
@@ -115,7 +115,7 @@ fn build_report() -> Result<StdGapReport, ConduitosError> {
                     "none"
                 },
                 reason_code: prerequisites.reason_code,
-                required_host_operations: prerequisites.required_host_operations,
+                required_host_calls: prerequisites.required_host_calls,
                 required_resources: prerequisites.required_resources,
                 required_bases: prerequisites.required_bases,
                 unsatisfied_prerequisites: prerequisites.unsatisfied,
@@ -135,8 +135,8 @@ fn build_report() -> Result<StdGapReport, ConduitosError> {
                         .as_str()
                         .to_owned(),
                     artifact: capability.implementation.artifact_id.as_str().to_owned(),
-                    host_operations: capability
-                        .host_operations
+                    host_calls: capability
+                        .host_calls
                         .iter()
                         .map(|requirement| requirement.contract_id.as_str().to_owned())
                         .collect(),
@@ -170,7 +170,7 @@ fn build_report() -> Result<StdGapReport, ConduitosError> {
         classification_vocabulary: [
             catalog::GapClassification::Implemented,
             catalog::GapClassification::PortableImplementationMissing,
-            catalog::GapClassification::MissingHostOperation,
+            catalog::GapClassification::MissingHostCall,
             catalog::GapClassification::MissingResource,
             catalog::GapClassification::MissingBase,
             catalog::GapClassification::UnsupportedOnThisMachine,

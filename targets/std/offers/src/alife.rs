@@ -2,10 +2,9 @@
 
 use conduit_alife::{LENIA_MAXIMUM_FIELD_BYTES, LENIA_STEP_KIND};
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, Back,
-    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, Kind, ResourceRequirement,
-    PRESENTATION_RESOURCE_CLASS,
+    kind_id, present_host_call_requirement, resource_requirement, ArtifactId, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostCallContractId,
+    HostCallRequirement, ImplementationId, Kind, ResourceRequirement, PRESENTATION_RESOURCE_CLASS,
 };
 
 pub const ORBIUM_SEED_EXECUTION_PROFILE: &str = "conduit.std/orbium-seed-fixed-q16.16@1";
@@ -18,8 +17,8 @@ pub const SCALAR_FIELD_PRESENTATION_IMPLEMENTATION: &str = "std/kernel-present-s
 pub const ORBIUM_SEED_ARTIFACT: &str = "conduit-std-host/orbium-seed@1";
 pub const LENIA_STEP_ARTIFACT: &str = "conduit-std-host/lenia-spatial-q16@1";
 pub const SCALAR_FIELD_PRESENTATION_ARTIFACT: &str = "conduit-std-host/presentation-scalar-field@1";
-pub const LENIA_INITIALIZE_HOST_OPERATION: &str = "conduit.host/lenia-initialize@1";
-pub const LENIA_STEP_HOST_OPERATION: &str = "conduit.host/lenia-step@1";
+pub const LENIA_INITIALIZE_HOST_CALL: &str = "conduit.host/lenia-initialize@1";
+pub const LENIA_STEP_HOST_CALL: &str = "conduit.host/lenia-step@1";
 pub const SCALAR_FIELD_PRESENTATION_TARGET: &str = "presentation/stdout-scalar-field";
 
 pub fn alife_offers() -> Vec<CapabilityOffer> {
@@ -50,15 +49,15 @@ pub fn lenia_step_offer() -> CapabilityOffer {
         LENIA_STEP_IMPLEMENTATION,
         LENIA_STEP_ARTIFACT,
         vec![
-            HostOperationRequirement {
-                contract_id: HostOperationContractId::from(LENIA_INITIALIZE_HOST_OPERATION),
+            HostCallRequirement {
+                contract_id: HostCallContractId::from(LENIA_INITIALIZE_HOST_CALL),
                 target_kind: Some(kind_id(LENIA_STEP_KIND)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: LENIA_MAXIMUM_FIELD_BYTES,
                 maximum_output_bytes: 0,
             },
-            HostOperationRequirement {
-                contract_id: HostOperationContractId::from(LENIA_STEP_HOST_OPERATION),
+            HostCallRequirement {
+                contract_id: HostCallContractId::from(LENIA_STEP_HOST_CALL),
                 target_kind: Some(kind_id(LENIA_STEP_KIND)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_time::TICK_ENCODED_LEN,
@@ -76,7 +75,7 @@ pub fn scalar_field_presentation_offer() -> CapabilityOffer {
         SCALAR_FIELD_PRESENTATION_EXECUTION_PROFILE,
         SCALAR_FIELD_PRESENTATION_IMPLEMENTATION,
         SCALAR_FIELD_PRESENTATION_ARTIFACT,
-        vec![present_host_operation_requirement(
+        vec![present_host_call_requirement(
             kind_id(SCALAR_FIELD_PRESENTATION_TARGET),
             LENIA_MAXIMUM_FIELD_BYTES,
         )],
@@ -90,7 +89,7 @@ fn offer(
     execution_profile: &str,
     implementation: &str,
     artifact: &str,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
     resources: Vec<ResourceRequirement>,
 ) -> CapabilityOffer {
     BackOfferBuilder::new(
@@ -100,7 +99,7 @@ fn offer(
             execution_profile_id: ExecutionProfileId::from(execution_profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operations,
+            host_calls,
             resource_requirements: resources,
             authority_requirements: Vec::new(),
         },

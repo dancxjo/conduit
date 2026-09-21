@@ -3,10 +3,9 @@
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyModifiers, KeyTransition, KeymapDisposition};
 use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
 use conduit_kernel::{
-    BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RemoteEndpointId,
-    RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
+    HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, Operation,
+    OperationAction, OperationInput, PortId, RemoteEndpointId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
@@ -72,9 +71,9 @@ impl NativeOperation {
         let request = RequestId(*next);
         *next += 1;
         *pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(empty, 0).expect("keyboard request input is empty"),
         }
     }
@@ -99,9 +98,9 @@ impl Operation for NativeOperation {
                 Self::Keyboard {
                     pending, emitted, ..
                 },
-                OperationInput::HostOperationCompleted { request, outcome },
+                OperationInput::HostCallCompleted { request, outcome },
             ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -123,9 +122,9 @@ impl Operation for NativeOperation {
             ) if pending.is_none() && *next < TEXT_LAB_MAXIMUM_VALUES as u32 => {
                 let request = RequestId(*next);
                 *pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: match BoundedValueRef::new(
                         value,
                         conduit_human::KEY_EVENT_ENCODED_LEN as u32,
@@ -137,9 +136,9 @@ impl Operation for NativeOperation {
             }
             (
                 Self::Keymap { pending, next },
-                OperationInput::HostOperationCompleted { request, outcome },
+                OperationInput::HostCallCompleted { request, outcome },
             ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -166,9 +165,9 @@ impl Operation for NativeOperation {
             ) if pending.is_none() && *next < TEXT_LAB_MAXIMUM_VALUES as u32 => {
                 let request = RequestId(*next);
                 *pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: match BoundedValueRef::new(value, MAX_TEXT_BYTES) {
                         Ok(value) => value,
                         Err(_) => return Self::fail(4),
@@ -177,9 +176,9 @@ impl Operation for NativeOperation {
             }
             (
                 Self::Presentation { pending, next },
-                OperationInput::HostOperationCompleted { request, outcome },
+                OperationInput::HostCallCompleted { request, outcome },
             ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -244,7 +243,7 @@ impl NativeTextLabFragment {
         if lowered.nodes.len() != 3
             || lowered.cords.len() != 3
             || lowered.remote_endpoints.len() != 2
-            || lowered.host_operations.len() != 3
+            || lowered.host_calls.len() != 3
         {
             return Err("split Text Lab native fragment has the wrong exact shape".into());
         }
@@ -260,8 +259,8 @@ impl NativeTextLabFragment {
                 .map_err(|error| format!("{error:?}"))?;
         }
         routes.seal().map_err(|error| format!("{error:?}"))?;
-        let mut bindings = FixedHostOperationBindings::<3>::new(1);
-        for operation in &lowered.host_operations {
+        let mut bindings = FixedHostCallBindings::<3>::new(1);
+        for operation in &lowered.host_calls {
             bindings
                 .install(operation.node, operation.binding)
                 .map_err(|error| format!("{error:?}"))?;
@@ -297,7 +296,7 @@ impl NativeTextLabFragment {
         let sign_bytes = u32::from(SIGN_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or_else(|| "split Text Lab native Sign budget overflow".to_string())?;
-        let scheduler = NativeTextLabScheduler::new_with_host_operations(
+        let scheduler = NativeTextLabScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()
@@ -397,11 +396,11 @@ impl NativeTextLabFragment {
             _ => return Err("unsupported native Text Lab host request".into()),
         };
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output,
                     failure: None,
                 },

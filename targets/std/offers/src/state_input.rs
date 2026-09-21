@@ -2,7 +2,7 @@
 
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
 };
 use conduit_human::{CHORD_ENCODED_LEN, KEY_EVENT_ENCODED_LEN};
 
@@ -23,13 +23,13 @@ pub const KEYMAP_PROFILE: &str = "conduit.input/keymap-kernel-hosted@1";
 pub const KEYMAP_IMPLEMENTATION: &str = "std/kernel-keymap@1";
 pub const KEYMAP_ARTIFACT: &str = "conduit-std-host/keymap@1";
 pub const KEYMAP_CAPABILITY: &str = "input-keymap-v1";
-pub const KEYMAP_HOST_OPERATION: &str = "conduit.host/input-keymap@1";
+pub const KEYMAP_HOST_CALL: &str = "conduit.host/input-keymap@1";
 pub const KEYMAP_HOST_TARGET: &str = "input/keymap-text-fragment";
 pub const CHORDS_PROFILE: &str = "conduit.input/chords-kernel-hosted@1";
 pub const CHORDS_IMPLEMENTATION: &str = "std/kernel-chords@1";
 pub const CHORDS_ARTIFACT: &str = "conduit-std-host/chords@1";
 pub const CHORDS_CAPABILITY: &str = "input-chords-v1";
-pub const CHORDS_HOST_OPERATION: &str = "conduit.host/input-chords@1";
+pub const CHORDS_HOST_CALL: &str = "conduit.host/input-chords@1";
 pub const CHORDS_HOST_TARGET: &str = "input/chord-fragment";
 
 pub fn state_count_offer() -> CapabilityOffer {
@@ -72,7 +72,7 @@ pub fn keymap_offer() -> CapabilityOffer {
         KEYMAP_PROFILE,
         KEYMAP_IMPLEMENTATION,
         KEYMAP_ARTIFACT,
-        Some((KEYMAP_HOST_OPERATION, KEYMAP_HOST_TARGET, 4)),
+        Some((KEYMAP_HOST_CALL, KEYMAP_HOST_TARGET, 4)),
     )
 }
 
@@ -84,7 +84,7 @@ pub fn chords_offer() -> CapabilityOffer {
         CHORDS_IMPLEMENTATION,
         CHORDS_ARTIFACT,
         Some((
-            CHORDS_HOST_OPERATION,
+            CHORDS_HOST_CALL,
             CHORDS_HOST_TARGET,
             CHORD_ENCODED_LEN as u32,
         )),
@@ -101,8 +101,8 @@ fn offer(
     operation: Option<(&str, &str, u32)>,
 ) -> CapabilityOffer {
     let operations = operation
-        .map(|(contract, target, output)| HostOperationRequirement {
-            contract_id: HostOperationContractId::from(contract),
+        .map(|(contract, target, output)| HostCallRequirement {
+            contract_id: HostCallContractId::from(contract),
             target_kind: Some(kind_id(target)),
             maximum_in_flight: 1,
             maximum_input_bytes: KEY_EVENT_ENCODED_LEN as u32,
@@ -117,7 +117,7 @@ fn offer(
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operations: operations,
+            host_calls: operations,
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },

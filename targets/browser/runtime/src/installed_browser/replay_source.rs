@@ -4,12 +4,12 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PlannedGear, StructuredInfoType,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
+    StructuredInfoType,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-replay-source@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-replay-source@1";
 const IMPLEMENTATION: &str = "browser/bounded-replay-source@1";
 
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
@@ -72,8 +72,8 @@ fn offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-time/bounded-replay-source@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,

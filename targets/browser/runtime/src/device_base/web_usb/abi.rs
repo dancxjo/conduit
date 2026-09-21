@@ -13,7 +13,7 @@ pub(super) struct AbiState {
     pub(super) host_id: HostId,
     pub(super) boot_id: BootId,
     pub(super) session: BrowserUsbSession,
-    pub(super) operation_id: HostOperationId,
+    pub(super) operation_id: HostCallId,
     pub(super) acquisition_plan_id: PlanId,
     pub(super) use_plan_id: Option<PlanId>,
     pub(super) configuration: UsbConfiguration,
@@ -111,13 +111,12 @@ pub extern "C" fn conduit_browser_usb_start_acquisition(
         maximum_out_transfers,
         maximum_in_flight: 1,
     };
-    let operation_id =
-        HostOperationId::from(format!("{}/usb-acquire/1", host_id.as_str()).as_str());
+    let operation_id = HostCallId::from(format!("{}/usb-acquire/1", host_id.as_str()).as_str());
     let offer = UsbAcquisitionOffer {
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),
         offer_generation: OfferGeneration(1),
-        operation_contract: HostOperationContractId::from(USB_ACQUIRE_OPERATION),
+        operation_contract: HostCallContractId::from(USB_ACQUIRE_OPERATION),
         request_authority_contract: AuthorityContractId::from(USB_REQUEST_AUTHORITY),
         maximum_in_flight: 1,
         maximum_result_bytes: MAXIMUM_USB_RESULT_BYTES as u32,

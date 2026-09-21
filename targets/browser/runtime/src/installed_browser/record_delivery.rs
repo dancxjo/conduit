@@ -4,11 +4,11 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, PlannedGear,
+    HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-record-delivery-status@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-record-delivery-status@1";
 const IMPLEMENTATION: &str = "browser/record-delivery-status@1";
 const MAXIMUM: u32 = conduit_net::MAXIMUM_RECORD_DELIVERY_CANONICAL_BYTES as u32;
 
@@ -29,8 +29,8 @@ fn offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from("browser/record-delivery-status@1"),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-net/record-delivery-status@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM,

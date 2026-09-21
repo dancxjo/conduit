@@ -143,7 +143,7 @@ pub(super) fn edit_offer() -> CapabilityOffer {
         },
         inputs: vec![],
         outputs: vec![request_port(PortDirection::Output)],
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: interaction_limits(),

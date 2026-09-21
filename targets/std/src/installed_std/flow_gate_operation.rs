@@ -3,8 +3,8 @@ use conduit_core::{
     ConfigurationValue, InfoBool, PlannedGear, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId, ValueRef,
+    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
+    RequestId, ValueRef,
 };
 
 pub(super) static FLOW_GATE_SCALAR_FACTORY: InstalledFactory = InstalledFactory {
@@ -51,18 +51,18 @@ impl FlowGateScalarOperation {
             {
                 let request = RequestId(self.next_request);
                 self.pending_enable = Some((request, value));
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: match BoundedValueRef::new(value, BOOL_ENCODED_LEN as u32) {
                         Ok(input) => input,
                         Err(_) => return InstalledOperation::fail(16),
                     },
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending_enable.map(|pending| pending.0) == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 let (_, input) = self
@@ -173,7 +173,7 @@ fn validate_flow_gate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id.as_str() != conduit_std_offers::FLOW_GATE_SCALAR_ARTIFACT
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.configuration.len() != 1
     {
         return Err("planned flow/gate scalar identity does not match its installation".into());
@@ -184,7 +184,7 @@ fn validate_flow_gate(placement: &PlannedGear) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::HostOperationOutcome;
+    use conduit_kernel::HostCallOutcome;
 
     fn value(slot: u16, byte_len: u32) -> ValueRef {
         ValueRef {
@@ -219,16 +219,16 @@ mod tests {
                 port: PortId(1),
                 value: enabled,
             }),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(0),
                 ..
             }
         ));
         assert_eq!(
-            gate.resume(OperationInput::HostOperationCompleted {
+            gate.resume(OperationInput::HostCallCompleted {
                 request: RequestId(0),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(BoundedValueRef::new(enabled, 1).unwrap()),
                     failure: None,
                 },
@@ -248,10 +248,10 @@ mod tests {
             port: PortId(1),
             value: disabled,
         });
-        gate.resume(OperationInput::HostOperationCompleted {
+        gate.resume(OperationInput::HostCallCompleted {
             request: RequestId(1),
-            outcome: HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            outcome: HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -307,10 +307,10 @@ mod tests {
         gate.cancel();
         assert!(gate.pending_enable.is_none());
         assert!(matches!(
-            gate.resume(OperationInput::HostOperationCompleted {
+            gate.resume(OperationInput::HostCallCompleted {
                 request: RequestId(0),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },

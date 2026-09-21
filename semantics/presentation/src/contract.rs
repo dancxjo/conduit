@@ -3,7 +3,7 @@
 use alloc::vec;
 use conduit_core::{
     kind_id, port_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, HostOperationRequirement, ImplementationId,
+    CapabilityOffer, ExecutionProfileId, HostCallRequirement, ImplementationId,
     ImplementationOffer, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
     ResourceRequirement,
 };
@@ -112,7 +112,7 @@ pub struct RendererRealizationOffer {
     pub execution_profile_id: ExecutionProfileId,
     pub implementation_id: ImplementationId,
     pub artifact_id: ArtifactId,
-    pub host_operation: HostOperationRequirement,
+    pub host_call: HostCallRequirement,
     pub resource_requirement: ResourceRequirement,
     pub limits: CapabilityLimits,
 }
@@ -123,7 +123,7 @@ pub struct InteractionRealizationOffer {
     pub execution_profile_id: ExecutionProfileId,
     pub implementation_id: ImplementationId,
     pub artifact_id: ArtifactId,
-    pub host_operation: HostOperationRequirement,
+    pub host_call: HostCallRequirement,
     pub resource_requirement: ResourceRequirement,
     pub limits: CapabilityLimits,
 }
@@ -137,7 +137,7 @@ pub fn renderer_offer(realization: RendererRealizationOffer) -> CapabilityOffer 
             implementation_id: realization.implementation_id,
             artifact_id: realization.artifact_id,
         },
-        vec![realization.host_operation],
+        vec![realization.host_call],
         vec![realization.resource_requirement],
         realization.limits,
     )
@@ -152,7 +152,7 @@ pub fn interaction_offer(realization: InteractionRealizationOffer) -> Capability
             implementation_id: realization.implementation_id,
             artifact_id: realization.artifact_id,
         },
-        vec![realization.host_operation],
+        vec![realization.host_call],
         vec![realization.resource_requirement],
         realization.limits,
     )
@@ -241,7 +241,7 @@ fn build_offer(
     contract: Kind,
     capability_id: CapabilityId,
     implementation: ImplementationOffer,
-    host_operations: alloc::vec::Vec<HostOperationRequirement>,
+    host_calls: alloc::vec::Vec<HostCallRequirement>,
     resource_requirements: alloc::vec::Vec<ResourceRequirement>,
     limits: CapabilityLimits,
 ) -> CapabilityOffer {
@@ -252,7 +252,7 @@ fn build_offer(
             execution_profile_id: implementation.execution_profile_id,
             implementation_id: implementation.implementation_id,
             artifact_id: implementation.artifact_id,
-            host_operations,
+            host_calls,
             resource_requirements,
             authority_requirements: alloc::vec::Vec::new(),
         },

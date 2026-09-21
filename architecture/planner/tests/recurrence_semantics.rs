@@ -114,7 +114,7 @@ fn advertisement(
             },
             inputs: vec![],
             outputs: vec![],
-            host_operations: vec![],
+            host_calls: vec![],
             resource_requirements: vec![],
             authority_requirements: vec![],
             limits: CapabilityLimits {

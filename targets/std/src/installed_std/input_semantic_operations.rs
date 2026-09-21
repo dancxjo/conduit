@@ -5,8 +5,8 @@ use conduit_human::{
     CONDUIT_INTL_LAYOUT, CORE_CHORD_MAP, KEY_EVENT_ENCODED_LEN,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, OperationAction, OperationInput,
+    PortId, RequestId,
 };
 
 pub(super) static KEY_EVENT_TEE_FACTORY: InstalledFactory = InstalledFactory {
@@ -103,16 +103,16 @@ impl InputSemanticOperation {
             {
                 let request = RequestId(self.next);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: conduit_kernel::HostOperationId(0),
+                    operation: conduit_kernel::HostCallId(0),
                     input: match BoundedValueRef::new(value, KEY_EVENT_ENCODED_LEN as u32) {
                         Ok(value) => value,
                         Err(_) => return InstalledOperation::fail(42),
                     },
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
@@ -120,7 +120,7 @@ impl InputSemanticOperation {
                 if let Some(failure) = outcome.failure {
                     return OperationAction::Fail(failure);
                 }
-                if outcome.disposition != HostOperationDisposition::Completed {
+                if outcome.disposition != HostCallDisposition::Completed {
                     return InstalledOperation::fail(42);
                 }
                 match outcome.output {
@@ -389,7 +389,7 @@ mod tests {
                 port: PortId(0),
                 value,
             }),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(0),
                 ..
             }

@@ -1,10 +1,10 @@
-//! Portable microphone clip capture realized through one admitted host operation.
+//! Portable microphone clip capture realized through one admitted Host Call.
 
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{CapabilityOffer, PlannedGear};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -33,29 +33,27 @@ impl MicrophoneClipOperation {
                     return fail(FailureCode::InvalidInput, 1);
                 };
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending && request == RequestId(0) =>
             {
                 self.pending = false;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Denied, _, _) => {
-                        fail(FailureCode::HostOperationDenied, 2)
-                    }
-                    (HostOperationDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 3),
-                    _ => fail(FailureCode::HostOperationFailed, 4),
+                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 2),
+                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 3),
+                    _ => fail(FailureCode::HostCallFailed, 4),
                 }
             }
             _ => fail(FailureCode::InvalidLifecycle, 5),
@@ -88,7 +86,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.resources.len() != 1
         || placement.authority.len() != 1
         || !placement.configuration.is_empty()

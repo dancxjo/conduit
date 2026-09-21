@@ -2,7 +2,7 @@
 
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
 };
 
 pub const IMAGE_TEXT_STD_PROFILE: &str = "std/image-text-kernel-hosted@1";
@@ -16,8 +16,8 @@ pub const IMAGE_TEXT_RECORD_STD_ARTIFACT: &str = "conduit-net/typed-record@1";
 pub const IMAGE_TEXT_RECORD_OPERATION: &str = "conduit.host/image-text-record@1";
 
 pub fn image_text_std_offer() -> CapabilityOffer {
-    let operation = |contract, maximum_input_bytes| HostOperationRequirement {
-        contract_id: HostOperationContractId::from(contract),
+    let operation = |contract, maximum_input_bytes| HostCallRequirement {
+        contract_id: HostCallContractId::from(contract),
         target_kind: Some(conduit_core::kind_id(
             conduit_semantic_catalog::IMAGE_TEXT_COMPOSE_KIND,
         )),
@@ -51,8 +51,8 @@ pub fn image_text_record_std_offer() -> CapabilityOffer {
         IMAGE_TEXT_RECORD_STD_PROFILE,
         IMAGE_TEXT_RECORD_STD_IMPLEMENTATION,
         IMAGE_TEXT_RECORD_STD_ARTIFACT,
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(IMAGE_TEXT_RECORD_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(IMAGE_TEXT_RECORD_OPERATION),
             target_kind: Some(conduit_core::kind_id(
                 conduit_semantic_catalog::IMAGE_TEXT_TYPED_RECORD_KIND,
             )),
@@ -69,7 +69,7 @@ fn offer(
     profile: &str,
     implementation: &str,
     artifact: &str,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
 ) -> CapabilityOffer {
     BackOfferBuilder::new(
         contract,
@@ -78,7 +78,7 @@ fn offer(
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operations,
+            host_calls,
             resource_requirements: vec![],
             authority_requirements: vec![],
         },
@@ -106,7 +106,7 @@ mod tests {
             ["image", "caption"]
         );
         assert_eq!(offer.outputs[0].port_id.as_str(), "record");
-        assert_eq!(offer.host_operations.len(), 2);
+        assert_eq!(offer.host_calls.len(), 2);
         assert_eq!(offer.limits.max_queue_items, 2);
         assert!(offer.authority_requirements.is_empty());
         assert!(offer.resource_requirements.is_empty());

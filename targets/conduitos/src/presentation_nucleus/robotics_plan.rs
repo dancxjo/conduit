@@ -142,7 +142,7 @@ fn discard_offer(kind: &str, value_kind: &str) -> CapabilityOffer {
             temporal: PortTemporal::Current,
         }],
         outputs: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {

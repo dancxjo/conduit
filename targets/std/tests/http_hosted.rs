@@ -85,7 +85,7 @@ fn production_http_gears_execute_four_real_correlated_exchanges() {
                         capability.capability_id.as_str()
                     )),
                     contract_id: requirement.contract_id.clone(),
-                    host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+                    host_call_contract_id: requirement.host_call_contract_id.clone(),
                     subject_kind: requirement.subject_kind.clone(),
                     host_id: host_id.clone(),
                     boot_id: boot_id.clone(),
@@ -181,7 +181,7 @@ fn production_http_gears_execute_four_real_correlated_exchanges() {
     fixture_thread.join().unwrap();
     let report = run.join().unwrap().unwrap();
     let kernel = report.kernel.unwrap();
-    // Four exchanges reuse the three exact admitted host-operation bindings;
+    // Four exchanges reuse the three exact admitted Host Call bindings;
     // execution identity does not grow once per invocation.
     assert_eq!(kernel.identity.lengths().0, 3);
     assert_eq!(
@@ -221,7 +221,7 @@ fn operator_cancellation_releases_the_admitted_listener_before_accept() {
                         capability.capability_id.as_str()
                     )),
                     contract_id: requirement.contract_id.clone(),
-                    host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+                    host_call_contract_id: requirement.host_call_contract_id.clone(),
                     subject_kind: requirement.subject_kind.clone(),
                     host_id: host.advertisement().host_id.clone(),
                     boot_id: host.advertisement().boot_id.clone(),

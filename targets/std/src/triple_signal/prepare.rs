@@ -16,7 +16,7 @@ impl TripleSource {
             || lowered.routes.len() != 1
             || lowered.routes[0].targets.len() != 3
             || lowered.remote_endpoints.len() != 2
-            || lowered.host_operations.len() != 2
+            || lowered.host_calls.len() != 2
             || lowered.cord_value_slots != 3
         {
             return Err("triple source did not lower to the sealed fan-out profile".to_owned());
@@ -72,8 +72,8 @@ impl TripleSource {
                 .map_err(|error| format!("{error:?}"))?;
         }
         routes.seal().map_err(|error| format!("{error:?}"))?;
-        let mut host_bindings = FixedHostOperationBindings::<2>::new(1);
-        for operation in &lowered.host_operations {
+        let mut host_bindings = FixedHostCallBindings::<2>::new(1);
+        for operation in &lowered.host_calls {
             host_bindings
                 .install(operation.node, operation.binding)
                 .map_err(|error| format!("{error:?}"))?;
@@ -106,7 +106,7 @@ impl TripleSource {
             remote_sign_bytes,
         )
         .map_err(|error| format!("{error:?}"))?;
-        let scheduler = TripleScheduler::new_with_host_operations(
+        let scheduler = TripleScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()

@@ -6,7 +6,7 @@ use super::factory::{
 use super::BrowserOperation;
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, Kind,
     PlannedGear, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
     PRESENTATION_RESOURCE_CLASS,
 };
@@ -16,7 +16,7 @@ const ARTIFACT: &str = "conduit-browser-runtime/installed-linguistics@1";
 const TOKENIZE_IMPLEMENTATION: &str = "browser/kernel-language-tokenize-four@1";
 const ANNOTATE_IMPLEMENTATION: &str = "browser/kernel-language-annotate-four@1";
 const PRESENTATION_IMPLEMENTATION: &str = "browser/presentation-structured-info@1";
-const HOST_OPERATION: &str = "conduit.host/browser-linguistics@1";
+const HOST_CALL: &str = "conduit.host/browser-linguistics@1";
 
 pub(super) static TOKENIZE: BrowserInstallation = BrowserInstallation {
     implementation_id: TOKENIZE_IMPLEMENTATION,
@@ -86,7 +86,7 @@ fn presentation_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(PRESENTATION_IMPLEMENTATION),
             implementation_id: ImplementationId::from(PRESENTATION_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations: vec![operation(PRESENTATION_IMPLEMENTATION, 0)],
+            host_calls: vec![operation(PRESENTATION_IMPLEMENTATION, 0)],
             resource_requirements: vec![conduit_core::resource_requirement(
                 PRESENTATION_RESOURCE_CLASS,
                 1,
@@ -100,7 +100,7 @@ fn presentation_offer() -> CapabilityOffer {
 fn offer(
     contract: Kind,
     implementation: &str,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
 ) -> CapabilityOffer {
     BackOfferBuilder::new(
         contract,
@@ -109,7 +109,7 @@ fn offer(
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations,
+            host_calls,
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -117,9 +117,9 @@ fn offer(
     .build()
 }
 
-fn operation(target: &str, output: u32) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(HOST_OPERATION),
+fn operation(target: &str, output: u32) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(HOST_CALL),
         target_kind: Some(kind_id(target)),
         maximum_in_flight: 1,
         maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,

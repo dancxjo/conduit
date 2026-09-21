@@ -3,8 +3,8 @@
 use conduit_core::{
     ActivePlayId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseCapabilityAuthority,
     BaseCapabilityRefusal, BaseCapabilityScope, BaseCapabilityTable, BaseInstanceId,
-    BaseOperationClaim, BootId, CapabilityEnvelopeId, CapabilityId, CapabilityIssueRequest, HostId,
-    HostOperationContractId, ImplementationId, KindId, PlanId, ResourceGenerationId,
+    BaseOperationClaim, BootId, CapabilityEnvelopeId, CapabilityId, CapabilityIssueRequest,
+    HostCallContractId, HostId, ImplementationId, KindId, PlanId, ResourceGenerationId,
     ResourcePoolId,
 };
 use conduit_std_host::confined_gear::{
@@ -56,7 +56,7 @@ fn prepared(
 }
 
 fn issue() -> CapabilityIssueRequest {
-    let operation = HostOperationContractId::from("conduit.host/confined-write@1");
+    let operation = HostCallContractId::from("conduit.host/confined-write@1");
     let scope = BaseCapabilityScope {
         host_id: HostId::from("host/confined"),
         boot_id: BootId::from("boot/current"),
@@ -84,7 +84,7 @@ fn issue() -> CapabilityIssueRequest {
             grant: AuthorityGrant {
                 grant_id: scope.authority_grant_id.clone(),
                 contract_id: scope.authority_contract_id.clone(),
-                host_operation_contract_id: operation.clone(),
+                host_call_contract_id: operation.clone(),
                 subject_kind: scope.subject_kind.clone(),
                 host_id: scope.host_id.clone(),
                 boot_id: scope.boot_id.clone(),

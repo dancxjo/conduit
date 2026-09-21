@@ -8,7 +8,7 @@ use super::test_scalar_flow;
 use super::test_text_source;
 use super::tick_operations::{TEST_OBSERVER_IMPLEMENTATION, TEST_OBSERVER_KIND};
 use conduit_core::{
-    kind_id, present_host_operation_requirement, ArtifactId, CapabilityId, CapabilityLimits,
+    kind_id, present_host_call_requirement, ArtifactId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ExecutionProfileId, KindIdentity, PortDescriptor, PortDirection,
 };
 use conduit_form::KindProjection;
@@ -36,7 +36,7 @@ pub(crate) fn test_observer_offer() -> CapabilityOffer {
             temporal: conduit_core::PortTemporal::Flow { closes: true },
         }],
         outputs: Vec::new(),
-        host_operations: vec![present_host_operation_requirement(
+        host_calls: vec![present_host_call_requirement(
             kind_id("conduit-test/tick-observation"),
             TICK_ENCODED_LEN,
         )],
@@ -163,7 +163,7 @@ pub(crate) fn test_layout_sink_offer() -> CapabilityOffer {
             temporal: conduit_core::PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -197,7 +197,7 @@ pub(crate) fn test_presentation_sink_offer() -> CapabilityOffer {
             temporal: conduit_core::PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -229,7 +229,7 @@ pub(crate) fn test_graphics_sink_offer() -> CapabilityOffer {
             temporal: conduit_core::PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {

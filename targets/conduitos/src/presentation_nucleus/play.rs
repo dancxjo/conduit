@@ -1,10 +1,10 @@
 use alloc::{string::String, vec::Vec};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, ValueStorage,
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallOutcome, ValueStorage,
 };
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use conduit_presentation::{
@@ -157,7 +157,7 @@ pub fn run(
                             .store_host_value(&output)
                             .map_err(|_| PresentationRunError::Value)?;
                         let maximum = placement
-                            .host_operations
+                            .host_calls
                             .first()
                             .ok_or(PresentationRunError::Shape)?
                             .maximum_output_bytes;
@@ -252,8 +252,8 @@ fn prepare_scheduler(
             .map_err(|_| PresentationRunError::Kernel)?;
     }
     routes.seal().map_err(|_| PresentationRunError::Kernel)?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(|_| PresentationRunError::Kernel)?;
@@ -281,7 +281,7 @@ fn prepare_scheduler(
             | conduit_semantic_catalog::GRAPHICS_PRESENTATION_KIND
             | conduit_semantic_catalog::LAYOUT_COLUMN_KIND => PresentationOperation::Sink {
                 maximum_input_bytes: placement
-                    .host_operations
+                    .host_calls
                     .first()
                     .ok_or(PresentationRunError::Shape)?
                     .maximum_input_bytes,
@@ -290,7 +290,7 @@ fn prepare_scheduler(
             },
             _ => PresentationOperation::Transform {
                 maximum_input_bytes: placement
-                    .host_operations
+                    .host_calls
                     .first()
                     .ok_or(PresentationRunError::Shape)?
                     .maximum_input_bytes,
@@ -309,7 +309,7 @@ fn prepare_scheduler(
             .max((SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
     )
     .map_err(|_| PresentationRunError::Kernel)?;
-    FixedScheduler::new_with_host_operations(nodes, cords, routes, bindings, drivers, values, signs)
+    FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
         .map_err(|_| PresentationRunError::Kernel)
 }
 
@@ -374,15 +374,15 @@ fn encode_scene(scene: GraphicsScene) -> Result<Vec<u8>, PresentationRunError> {
 
 fn complete(
     scheduler: &mut PresentationScheduler,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     output: Option<BoundedValueRef>,
 ) -> Result<(), PresentationRunError> {
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output,
                 failure: None,
             },

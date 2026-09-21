@@ -6,7 +6,7 @@ pub mod allocation;
 pub mod arch;
 pub mod boot;
 #[cfg(any(test, target_arch = "x86_64"))]
-pub mod bounded_host_operations;
+pub mod bounded_host_calls;
 #[cfg(feature = "virtio-net-proof")]
 pub(crate) mod bounded_websocket;
 pub mod composition;

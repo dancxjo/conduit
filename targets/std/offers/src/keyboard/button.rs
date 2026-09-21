@@ -1,15 +1,15 @@
 //! An explicitly selected Space-key realization of ordinary button meaning.
 use conduit_core::{
     resource_requirement, ArtifactId, AuthorityRequirement, Back, BackOfferBuilder, CapabilityId,
-    CapabilityOffer, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, Kind, ResourceRequirement, INPUT_RESOURCE_CLASS,
+    CapabilityOffer, ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId,
+    Kind, ResourceRequirement, INPUT_RESOURCE_CLASS,
 };
 
 pub const IMPLEMENTATION: &str = "std/kernel-space-button@1";
 pub const ARTIFACT: &str = "conduit-std-host/space-button@1";
 pub const MAPPER: &str = "std/kernel-button-indicator-state@1";
 pub const INDICATOR: &str = "std/stdout-indicator-state@1";
-pub const NEXT_TRANSITION_HOST_OPERATION: &str = "conduit.host/input-next-button-transition@1";
+pub const NEXT_TRANSITION_HOST_CALL: &str = "conduit.host/input-next-button-transition@1";
 
 pub fn mapper_offer() -> CapabilityOffer {
     button_offer(
@@ -21,13 +21,13 @@ pub fn mapper_offer() -> CapabilityOffer {
     )
 }
 
-/// Current Boolean state manifested through the existing stdout host operation.
+/// Current Boolean state manifested through the existing stdout Host Call.
 pub fn indicator_offer() -> CapabilityOffer {
     let stdout = crate::bool_presentation_offer();
     button_offer(
         conduit_semantic_catalog::indicator_state_presentation_semantic_contract(),
         INDICATOR,
-        stdout.host_operations,
+        stdout.host_calls,
         stdout.resource_requirements,
         Vec::new(),
     )
@@ -38,8 +38,8 @@ pub fn offer() -> CapabilityOffer {
     button_offer(
         conduit_semantic_catalog::button_source_semantic_contract(),
         IMPLEMENTATION,
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(NEXT_TRANSITION_HOST_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(NEXT_TRANSITION_HOST_CALL),
             target_kind: Some(
                 conduit_semantic_catalog::input_button_transition_type()
                     .profile()
@@ -59,7 +59,7 @@ pub fn offer() -> CapabilityOffer {
 fn button_offer(
     contract: Kind,
     implementation: &'static str,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
     resource_requirements: Vec<ResourceRequirement>,
     authority_requirements: Vec<AuthorityRequirement>,
 ) -> CapabilityOffer {
@@ -70,7 +70,7 @@ fn button_offer(
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations,
+            host_calls,
             resource_requirements,
             authority_requirements,
         },

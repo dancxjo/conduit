@@ -60,7 +60,7 @@ pub fn hosted_hnsw_vector_search_offer(
                 "conduit-std-host/vector-search/{HOSTED_HNSW_LIBRARY_NAME}-{HOSTED_HNSW_LIBRARY_VERSION}@1"
             )),
         },
-        host_operations: vec![vector_search_operation(&contract)],
+        host_calls: vec![vector_search_operation(&contract)],
         resource_requirements: vec![resource_requirement(
             VECTOR_SEARCH_RESOURCE_CLASS,
             contract.maximum_query_work_units,

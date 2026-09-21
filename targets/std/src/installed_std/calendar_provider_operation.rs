@@ -3,8 +3,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection, StructuredInfoValue};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static CALENDAR_READ_FACTORY: InstalledFactory =
@@ -53,25 +53,21 @@ impl CalendarProviderOperation {
                 port: PortId(0),
                 value,
             } if self.requires_prior && !self.pending && !self.emitted => self.request(value),
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending && request == RequestId(0) =>
             {
                 self.pending = false;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Denied, _, _) => {
-                        fail(FailureCode::HostOperationDenied, 241)
-                    }
-                    (HostOperationDisposition::Cancelled, _, _) => {
-                        fail(FailureCode::Cancelled, 242)
-                    }
-                    (HostOperationDisposition::Failed, _, Some(failure)) => {
+                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 241),
+                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 242),
+                    (HostCallDisposition::Failed, _, Some(failure)) => {
                         OperationAction::Fail(failure)
                     }
                     _ => fail(FailureCode::InvalidLifecycle, 243),
@@ -103,9 +99,9 @@ impl CalendarProviderOperation {
         let Ok(input) = BoundedValueRef::new(value, maximum_input_bytes) else {
             return fail(FailureCode::InvalidInput, 245);
         };
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(0),
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input,
         }
     }
@@ -142,7 +138,7 @@ pub(super) fn request_value(placement: &PlannedGear) -> Result<StructuredInfoVal
         .ok_or_else(|| "calendar provider portable contract is absent".to_string())?;
     let expected = conduit_semantic_catalog::calendar_request_type(&contract);
     if value.value_type() != &expected
-        || operation.contract() != offer.host_operations[0].contract_id.as_str()
+        || operation.contract() != offer.host_calls[0].contract_id.as_str()
     {
         return Err("calendar provider request type differs from its realization".into());
     }
@@ -170,7 +166,7 @@ fn validate(
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.limits != offer.limits
         || placement.resources.len() != 1
         || placement.resources[0].class_id.as_str()
@@ -183,9 +179,8 @@ fn validate(
             authority.host_id != placement.host_id
                 || authority.boot_id != placement.boot_id
                 || authority.capability_id != placement.capability_id
-                || authority.host_operation_contract_id != placement.host_operations[0].contract_id
-                || Some(&authority.subject_kind)
-                    != placement.host_operations[0].target_kind.as_ref()
+                || authority.host_call_contract_id != placement.host_calls[0].contract_id
+                || Some(&authority.subject_kind) != placement.host_calls[0].target_kind.as_ref()
         })
         || placement
             .inputs

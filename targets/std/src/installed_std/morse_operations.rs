@@ -2,8 +2,8 @@
 
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use super::text_operations::{TextPresentationOperation, TextTransformOperation};
-use conduit_core::{ConfigurationValue, HostOperationContractId, KindId, PlannedGear};
-use conduit_kernel::{BoundedValueRef, HostOperationDisposition, HostOperationOutcome, ValueRef};
+use conduit_core::{ConfigurationValue, HostCallContractId, KindId, PlannedGear};
+use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome, ValueRef};
 
 pub(super) static TEXT_MORSE_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::TEXT_MORSE_IMPLEMENTATION,
@@ -53,7 +53,7 @@ fn prepare_composition(
 ) -> Result<InstalledOperation, String> {
     validate_composition(placement)?;
     Ok(InstalledOperation::TextUpper(
-        TextTransformOperation::bounded_input(4, placement.host_operations[0].maximum_input_bytes),
+        TextTransformOperation::bounded_input(4, placement.host_calls[0].maximum_input_bytes),
     ))
 }
 
@@ -65,10 +65,7 @@ fn validate_composition(placement: &PlannedGear) -> Result<(), String> {
     validate(placement, &offer)
 }
 
-pub(super) fn is_composition_operation(
-    contract: &HostOperationContractId,
-    target: &KindId,
-) -> bool {
+pub(super) fn is_composition_operation(contract: &HostCallContractId, target: &KindId) -> bool {
     matches!(
         contract.as_str(),
         conduit_std_offers::TEXT_CHARACTERS_IMPLEMENTATION
@@ -174,7 +171,7 @@ fn validate(placement: &PlannedGear, offer: &conduit_core::CapabilityOffer) -> R
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
     {
         return Err(format!(
             "planned {} executable identity does not match its installation",
@@ -213,20 +210,20 @@ pub(super) fn encode(
     Ok(())
 }
 
-pub(super) fn completed_with_output(value: ValueRef) -> HostOperationOutcome {
+pub(super) fn completed_with_output(value: ValueRef) -> HostCallOutcome {
     completed_with_bound(value, conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32)
 }
 
 pub(super) fn composition_completed_with_output(
     placement: &PlannedGear,
     value: ValueRef,
-) -> HostOperationOutcome {
-    completed_with_bound(value, placement.host_operations[0].maximum_output_bytes)
+) -> HostCallOutcome {
+    completed_with_bound(value, placement.host_calls[0].maximum_output_bytes)
 }
 
-fn completed_with_bound(value: ValueRef, maximum_bytes: u32) -> HostOperationOutcome {
-    HostOperationOutcome {
-        disposition: HostOperationDisposition::Completed,
+fn completed_with_bound(value: ValueRef, maximum_bytes: u32) -> HostCallOutcome {
+    HostCallOutcome {
+        disposition: HostCallDisposition::Completed,
         output: Some(
             BoundedValueRef::new(value, maximum_bytes)
                 .expect("Morse output was checked against its admitted bound"),

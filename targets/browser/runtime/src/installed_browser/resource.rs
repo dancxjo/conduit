@@ -50,7 +50,7 @@ fn base_offer(publish: bool) -> CapabilityOffer {
             implementation,
             artifact: "conduit-browser-runtime/resource-json@1",
         },
-        vec![HostOperationRequirement {
+        vec![HostCallRequirement {
             contract_id: operation.into(),
             target_kind: Some(kind.clone()),
             maximum_in_flight: 1,
@@ -60,7 +60,7 @@ fn base_offer(publish: bool) -> CapabilityOffer {
         Vec::new(),
         vec![AuthorityRequirement {
             contract_id: AUTHORITY_CONTRACT.into(),
-            host_operation_contract_id: operation.into(),
+            host_call_contract_id: operation.into(),
             subject_kind: kind,
         }],
     );

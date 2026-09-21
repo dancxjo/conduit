@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use conduit_core::{
     bind_active_play, kind_id, resource_offer, seal_plan_with_realization_backs,
     AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId, BootId, GearId,
-    HostAdvertisement, HostId, HostOperationContractId, HostProfileId, LineId, LinkBindingId,
+    HostAdvertisement, HostCallContractId, HostId, HostProfileId, LineId, LinkBindingId,
     LinkEndpointId, OfferGeneration, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
     ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId, ResourceHandleId, SignId,
     PROTOCOL_VERSION,
@@ -244,7 +244,7 @@ fn unchanged_form_selects_direct_front_or_distributed_provider_back_exactly() {
     let authority = AuthorityGrant {
         grant_id: AuthorityGrantId::from("grant/provider-endpoint"),
         contract_id: AuthorityContractId::from(PROVIDER_ENDPOINT_AUTHORITY),
-        host_operation_contract_id: HostOperationContractId::from(PROVIDER_HTTP_OPERATION),
+        host_call_contract_id: HostCallContractId::from(PROVIDER_HTTP_OPERATION),
         subject_kind: kind_id(conduit_web::HTTP_CLIENT_KIND),
         host_id: provider.host_id.clone(),
         boot_id: provider.boot_id.clone(),
@@ -427,8 +427,8 @@ fn json_proof_offer(
             implementation: identity,
             artifact: "proof/json",
         },
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: HostOperationContractId::from(operation),
+        vec![conduit_core::HostCallRequirement {
+            contract_id: HostCallContractId::from(operation),
             target_kind: Some(target_kind),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,

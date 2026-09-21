@@ -197,8 +197,8 @@ fn sink_offer(
             temporal,
         )],
         Vec::new(),
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(CAPTURE_OPERATION),
+        vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(CAPTURE_OPERATION),
             target_kind: Some(kind_id(kind)),
             maximum_in_flight: 1,
             maximum_input_bytes: maximum_bytes,
@@ -213,7 +213,7 @@ fn fixture_offer(
     revision: &str,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
-    host_operations: Vec<conduit_core::HostOperationRequirement>,
+    host_calls: Vec<conduit_core::HostCallRequirement>,
     maximum_bytes: u32,
 ) -> CapabilityOffer {
     CapabilityOffer {
@@ -231,7 +231,7 @@ fn fixture_offer(
         },
         inputs,
         outputs,
-        host_operations,
+        host_calls,
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {

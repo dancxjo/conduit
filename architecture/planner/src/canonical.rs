@@ -9,7 +9,7 @@ use conduit_core::{
     AdmittedLine, AuthorityGrant, BaseImplementationId, FormIdentity, HostAdvertisement,
     LineAvailability, Plan, PlannedGear, PlannedSharedPool, PoolMemberLimits,
     PoolRealizationEnvelope, ResourceBinding, SharedPoolId, SharedPoolSelectionPolicy,
-    SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
+    SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_CALL_CONTRACT,
     SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
 use conduit_form::{
@@ -542,7 +542,7 @@ fn validate_pool_authority(
     hosts: &[HostAdvertisement],
 ) -> Result<(), PlannerError> {
     let exact_scope = grant.contract_id.as_str() == SHARED_POOL_ADMIT_AUTHORITY_CONTRACT
-        && grant.host_operation_contract_id.as_str() == SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT
+        && grant.host_call_contract_id.as_str() == SHARED_POOL_ADMIT_HOST_CALL_CONTRACT
         && grant.subject_kind.as_str() == SHARED_POOL_AUTHORITY_SUBJECT_KIND
         && !grant.grant_id.as_str().is_empty()
         && hosts.iter().any(|host| {

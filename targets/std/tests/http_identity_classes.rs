@@ -22,7 +22,7 @@ fn http_names_keep_friendly_families_separate_from_exact_contract_truth() {
         client.implementation.execution_profile_id.as_str(),
         client.implementation.implementation_id.as_str(),
         client.implementation.artifact_id.as_str(),
-        client.host_operations[0].contract_id.as_str(),
+        client.host_calls[0].contract_id.as_str(),
         client.resource_requirements[0].class_id.as_str(),
         client.authority_requirements[0].contract_id.as_str(),
     ] {
@@ -33,11 +33,11 @@ fn http_names_keep_friendly_families_separate_from_exact_contract_truth() {
         conduit_web::HTTP_CLIENT_REVISION
     );
     assert!(client.kind_contract_revision.as_str().ends_with("@1"));
-    assert_eq!(client.host_operations[0].maximum_in_flight, 1);
+    assert_eq!(client.host_calls[0].maximum_in_flight, 1);
     assert_eq!(client.resource_requirements[0].units, 1);
     assert_eq!(
-        client.authority_requirements[0].host_operation_contract_id,
-        client.host_operations[0].contract_id
+        client.authority_requirements[0].host_call_contract_id,
+        client.host_calls[0].contract_id
     );
 }
 

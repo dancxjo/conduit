@@ -7,12 +7,12 @@ use conduit_alife::{
 };
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId,
+    HostCallContractId, HostCallRequirement, ImplementationId,
 };
 
 pub const REACTION_DIFFUSION_HOSTED_PROFILE: &str = "std/field-gray-scott-hosted@1";
 pub const REACTION_DIFFUSION_HOSTED_ARTIFACT: &str = "conduit-std-host/field-gray-scott@1";
-pub const REACTION_DIFFUSION_HOST_OPERATION: &str = "conduit.host/field-evolve@1";
+pub const REACTION_DIFFUSION_HOST_CALL: &str = "conduit.host/field-evolve@1";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct HostedReactionDiffusionLimits {
@@ -35,8 +35,8 @@ pub fn reaction_diffusion_std_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(REACTION_DIFFUSION_HOSTED_PROFILE),
             implementation_id: ImplementationId::from("std/field-gray-scott@1"),
             artifact_id: ArtifactId::from(REACTION_DIFFUSION_HOSTED_ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(REACTION_DIFFUSION_HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(REACTION_DIFFUSION_HOST_CALL),
                 target_kind: Some(kind_id(REACTION_DIFFUSION_EVOLVE_KIND)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: HOSTED_REACTION_DIFFUSION_LIMITS.maximum_input_bytes,
@@ -75,7 +75,7 @@ mod tests {
         assert_eq!(offer.outputs, definition.outputs);
         assert_eq!(offer.limits.max_active_instances, 1);
         assert_eq!(offer.limits.max_queue_items, 1);
-        assert_eq!(offer.host_operations.len(), 1);
+        assert_eq!(offer.host_calls.len(), 1);
     }
 
     #[test]

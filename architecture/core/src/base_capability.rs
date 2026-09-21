@@ -6,7 +6,7 @@
 
 use crate::{
     ActivePlayId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseInstanceId, BootId,
-    CapabilityEnvelopeId, CapabilityId, CapabilityPossessionId, HostId, HostOperationContractId,
+    CapabilityEnvelopeId, CapabilityId, CapabilityPossessionId, HostCallContractId, HostId,
     ImplementationId, KindId, PlanId, ResourceGenerationId, ResourcePoolId,
 };
 use alloc::vec::Vec;
@@ -20,7 +20,7 @@ pub struct BaseCapabilityAuthority {
     pub base_provider_generation: u64,
     pub resource_pool_id: ResourcePoolId,
     pub resource_generation_id: ResourceGenerationId,
-    pub operation_contract_id: HostOperationContractId,
+    pub operation_contract_id: HostCallContractId,
     pub envelope_id: CapabilityEnvelopeId,
     pub maximum_parameter_bytes: u32,
     pub maximum_result_bytes: u32,
@@ -41,7 +41,7 @@ pub struct BaseCapabilityScope {
     pub authority_contract_id: AuthorityContractId,
     pub capability_id: CapabilityId,
     pub implementation_id: ImplementationId,
-    pub operation_contract_id: HostOperationContractId,
+    pub operation_contract_id: HostCallContractId,
     pub subject_kind: KindId,
     pub resource_pool_id: ResourcePoolId,
     pub resource_generation_id: ResourceGenerationId,
@@ -75,7 +75,7 @@ pub struct BaseOperationClaim {
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
     pub implementation_id: ImplementationId,
-    pub operation_contract_id: HostOperationContractId,
+    pub operation_contract_id: HostCallContractId,
     pub subject_kind: KindId,
     pub resource_pool_id: ResourcePoolId,
     pub resource_generation_id: ResourceGenerationId,
@@ -389,7 +389,7 @@ fn validate_issue_request(
         || authority.grant.grant_id != scope.authority_grant_id
         || authority.grant.contract_id != scope.authority_contract_id
         || authority.grant.capability_id != scope.capability_id
-        || authority.grant.host_operation_contract_id != scope.operation_contract_id
+        || authority.grant.host_call_contract_id != scope.operation_contract_id
         || authority.grant.subject_kind != scope.subject_kind
         || authority.operation_contract_id != scope.operation_contract_id
         || authority.resource_pool_id != scope.resource_pool_id

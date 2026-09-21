@@ -105,7 +105,7 @@ fn validate_placement(
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.inputs[0].temporal != placement.outputs[0].temporal
     {
         return Err("planned structured selector differs from installed realization".into());

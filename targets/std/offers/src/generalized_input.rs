@@ -3,7 +3,7 @@
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
@@ -11,7 +11,7 @@ extern crate alloc;
 
 pub const GENERALIZED_INPUT_PROFILE: &str = "std/generalized-input-deterministic@1";
 pub const GENERALIZED_INPUT_ARTIFACT: &str = "conduit-std-host/generalized-input@1";
-pub const GENERALIZED_INPUT_HOST_OPERATION: &str = "conduit.host/generalized-input@1";
+pub const GENERALIZED_INPUT_HOST_CALL: &str = "conduit.host/generalized-input@1";
 
 pub fn generalized_input_std_offers() -> Vec<CapabilityOffer> {
     vec![
@@ -30,8 +30,8 @@ fn offer(contract: Kind) -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(GENERALIZED_INPUT_PROFILE),
             implementation_id: ImplementationId::from(identity),
             artifact_id: ArtifactId::from(GENERALIZED_INPUT_ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(GENERALIZED_INPUT_HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(GENERALIZED_INPUT_HOST_CALL),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: 0,
@@ -61,8 +61,8 @@ mod tests {
             conduit_semantic_catalog::deterministic_pointer_touch_outputs()
         );
         for offer in offers {
-            assert_eq!(offer.host_operations.len(), 1);
-            assert_eq!(offer.host_operations[0].maximum_in_flight, 1);
+            assert_eq!(offer.host_calls.len(), 1);
+            assert_eq!(offer.host_calls[0].maximum_in_flight, 1);
             assert_eq!(offer.limits.max_queue_items, 8);
             assert!(offer.authority_requirements.is_empty());
         }

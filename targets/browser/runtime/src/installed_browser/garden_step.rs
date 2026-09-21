@@ -4,11 +4,11 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostOperationRequirement, ImplementationId, Kind, PlannedGear,
+    ExecutionProfileId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
+    Operation, OperationAction, OperationInput, PortId, RequestId,
 };
 
 pub(crate) const OPERATIONS: [&str; 6] = [
@@ -180,10 +180,10 @@ fn offer_for(contract: Kind, implementation: &str, operations: &[&str]) -> Capab
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(implementation),
-            host_operations: operations
+            host_calls: operations
                 .iter()
                 .enumerate()
-                .map(|(index, contract_id)| HostOperationRequirement {
+                .map(|(index, contract_id)| HostCallRequirement {
                     contract_id: (*contract_id).into(),
                     target_kind: Some(target_kind.clone()),
                     maximum_in_flight: 1,
@@ -216,7 +216,7 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserO
 
 struct GardenStepOperation {
     prior_ready: bool,
-    pending: Option<(RequestId, HostOperationId)>,
+    pending: Option<(RequestId, HostCallId)>,
     emitted: bool,
 }
 
@@ -241,15 +241,15 @@ impl Operation for GardenStepOperation {
                 port: PortId(0),
                 value,
             } if !self.prior_ready && self.pending.is_none() => {
-                self.request(value, RequestId(0), HostOperationId(0), 20)
+                self.request(value, RequestId(0), HostCallId(0), 20)
             }
             OperationInput::Value {
                 port: PortId(1),
                 value,
             } if self.prior_ready && self.pending.is_none() && !self.emitted => {
-                self.request(value, RequestId(1), HostOperationId(1), 21)
+                self.request(value, RequestId(1), HostCallId(1), 21)
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending.map(|pending| pending.0) == Some(request) =>
             {
                 let Some((_, operation)) = self.pending.take() else {
@@ -261,23 +261,18 @@ impl Operation for GardenStepOperation {
                     outcome.output,
                     outcome.failure,
                 ) {
-                    (HostOperationId(0), HostOperationDisposition::Completed, None, None) => {
+                    (HostCallId(0), HostCallDisposition::Completed, None, None) => {
                         self.prior_ready = true;
                         OperationAction::Await
                     }
-                    (
-                        HostOperationId(1),
-                        HostOperationDisposition::Completed,
-                        Some(output),
-                        None,
-                    ) => {
+                    (HostCallId(1), HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (_, HostOperationDisposition::Failed, None, Some(reason)) => {
+                    (_, HostCallDisposition::Failed, None, Some(reason)) => {
                         OperationAction::Fail(reason)
                     }
                     _ => OperationAction::Fail(failure(22)),
@@ -309,14 +304,14 @@ impl GardenStepOperation {
         &mut self,
         value: conduit_kernel::ValueRef,
         request: RequestId,
-        operation: HostOperationId,
+        operation: HostCallId,
         detail: u16,
     ) -> OperationAction {
         let Ok(input) = BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32) else {
             return OperationAction::Fail(failure(detail));
         };
         self.pending = Some((request, operation));
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
             operation,
             input,
@@ -368,7 +363,7 @@ mod tests {
             limits: offered.limits,
             inputs: offered.inputs,
             outputs: offered.outputs,
-            host_operations: offered.host_operations,
+            host_calls: offered.host_calls,
             resources: Vec::new(),
             authority: Vec::new(),
             pool_references: Vec::new(),

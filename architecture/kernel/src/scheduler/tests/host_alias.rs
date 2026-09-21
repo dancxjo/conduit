@@ -43,9 +43,9 @@ impl StepOperation<2> for AliasDriver {
                 if *consume {
                     io.consume(PortId(*port)).unwrap();
                 }
-                io.request_host_operation(
+                io.request_host_call(
                     RequestId(u32::from(*port)),
-                    HostOperationId(0),
+                    HostCallId(0),
                     BoundedValueRef::new(value, 4).unwrap(),
                 )
                 .unwrap();
@@ -78,12 +78,12 @@ fn exercise(consume: bool) {
         )
         .unwrap();
     routes.seal().unwrap();
-    let mut bindings = FixedHostOperationBindings::<2>::new(1);
+    let mut bindings = FixedHostCallBindings::<2>::new(1);
     bindings
         .install(
             NodeId(1),
-            HostOperationBinding {
-                operation: HostOperationId(0),
+            HostCallBinding {
+                operation: HostCallId(0),
                 maximum_input_bytes: 4,
                 maximum_output_bytes: 4,
             },
@@ -91,29 +91,28 @@ fn exercise(consume: bool) {
         .unwrap();
     bindings.seal().unwrap();
     let charge = core::mem::size_of::<crate::KernelEvent>() as u32;
-    let mut scheduler =
-        FixedScheduler::<_, _, _, 2, 2, 2, 2, 4, 2, 2, 1>::new_with_host_operations(
-            [node([None, None]), node([Some(CordId(0)), Some(CordId(1))])],
-            [cord(0, 0, 0, 1, 0), cord(1, 0, 0, 1, 1)],
-            routes,
-            bindings,
-            [
-                AliasDriver::Source(Some(value)),
-                AliasDriver::Consumer {
-                    port: 0,
-                    pending: false,
-                    consume,
-                },
-            ],
-            values,
-            FixedSignLog::<64>::new(charge * 64).unwrap(),
-        )
-        .unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 2, 2, 2, 2, 4, 2, 2, 1>::new_with_host_calls(
+        [node([None, None]), node([Some(CordId(0)), Some(CordId(1))])],
+        [cord(0, 0, 0, 1, 0), cord(1, 0, 0, 1, 1)],
+        routes,
+        bindings,
+        [
+            AliasDriver::Source(Some(value)),
+            AliasDriver::Consumer {
+                port: 0,
+                pending: false,
+                consume,
+            },
+        ],
+        values,
+        FixedSignLog::<64>::new(charge * 64).unwrap(),
+    )
+    .unwrap();
     let mut requests = 0;
     for _ in 0..20 {
         match scheduler.step() {
             Err(error) if !consume => {
-                assert_eq!(error, SchedulerError::InvalidHostOperationAccess);
+                assert_eq!(error, SchedulerError::InvalidHostCallAccess);
                 assert!(scheduler.next_host_request().is_none());
                 return;
             }
@@ -135,11 +134,11 @@ fn exercise(consume: bool) {
             assert_eq!(scheduler.host_value(value).unwrap(), &[42]);
             requests += 1;
             scheduler
-                .complete_host_operation(
+                .complete_host_call(
                     request.node,
                     request.request,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: None,
                         failure: None,
                     },

@@ -3,14 +3,14 @@
 //! This module defines platform-neutral meaning, exact capability advertisements,
 //! and the profile-catalog extension used by the production kernel hosts. It does
 //! not provide a timer-backed compatibility implementation: deliberate input must
-//! be fulfilled through an admitted host-operation boundary.
+//! be fulfilled through an admitted Host Call boundary.
 
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    await_trigger_host_operation_requirement, kind_id, port_id, resource_requirement,
-    ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostOperationRequirement, KindId,
+    await_trigger_host_call_requirement, kind_id, port_id, resource_requirement,
+    ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostCallRequirement, KindId,
     KindIdentity, PortDescriptor, PortDirection, ResourceRequirement, ValuePayload,
     INPUT_RESOURCE_CLASS,
 };
@@ -85,11 +85,11 @@ pub fn trigger_execution_profile() -> ExecutionProfileId {
     ExecutionProfileId::from(TRIGGER_EXECUTION_PROFILE)
 }
 
-pub fn trigger_host_operation_requirements() -> Vec<HostOperationRequirement> {
-    vec![await_trigger_host_operation_requirement()]
+pub fn trigger_host_call_requirements() -> Vec<HostCallRequirement> {
+    vec![await_trigger_host_call_requirement()]
 }
 
-pub fn toggle_host_operation_requirements() -> Vec<HostOperationRequirement> {
+pub fn toggle_host_call_requirements() -> Vec<HostCallRequirement> {
     Vec::new()
 }
 

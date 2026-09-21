@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -41,12 +41,12 @@ impl BodyChatPromptOperation {
                 };
                 self.request(port, input)
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         let port = if self.queued_human.is_some() {
                             self.emit_human = true;
                             0
@@ -58,11 +58,9 @@ impl BodyChatPromptOperation {
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Completed, None, None) => OperationAction::Await,
-                    (HostOperationDisposition::Denied, _, _) => {
-                        fail(FailureCode::HostOperationDenied, 2)
-                    }
-                    _ => fail(FailureCode::HostOperationFailed, 3),
+                    (HostCallDisposition::Completed, None, None) => OperationAction::Await,
+                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 2),
+                    _ => fail(FailureCode::HostCallFailed, 3),
                 }
             }
             OperationInput::Closed { port: PortId(port) } if port < 3 => OperationAction::Await,
@@ -94,9 +92,9 @@ impl BodyChatPromptOperation {
         };
         self.next_request = next_request;
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(port),
+            operation: HostCallId(port),
             input,
         }
     }
@@ -189,7 +187,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id.as_str() != conduit_std_offers::BODY_CHAT_PROMPT_STD_ARTIFACT
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
     {
         return Err("planned body Chat prompt identity does not match installation".into());
     }

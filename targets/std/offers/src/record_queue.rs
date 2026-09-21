@@ -15,7 +15,7 @@ pub fn ordered_record_queue_std_offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from("std/ordered-record-queue@1"),
             implementation_id: ImplementationId::from(ORDERED_RECORD_QUEUE_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-net/ordered-record-queue@1"),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },

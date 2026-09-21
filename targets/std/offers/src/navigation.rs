@@ -2,7 +2,7 @@
 
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
@@ -87,13 +87,13 @@ fn navigation_offer(
     assert_eq!(
         contract.inputs.len(),
         operation_contracts.len(),
-        "each navigation input requires one exact host operation"
+        "each navigation input requires one exact Host Call"
     );
     let target_kind = contract.kind_id.clone();
-    let host_operations = operation_contracts
+    let host_calls = operation_contracts
         .iter()
-        .map(|operation_contract| HostOperationRequirement {
-            contract_id: HostOperationContractId::from(*operation_contract),
+        .map(|operation_contract| HostCallRequirement {
+            contract_id: HostCallContractId::from(*operation_contract),
             target_kind: Some(target_kind.clone()),
             maximum_in_flight: 1,
             maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
@@ -107,7 +107,7 @@ fn navigation_offer(
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(NAVIGATION_STD_ARTIFACT),
-            host_operations,
+            host_calls,
             resource_requirements: vec![],
             authority_requirements: vec![],
         },
@@ -145,9 +145,9 @@ mod tests {
     }
 
     #[test]
-    fn every_input_has_one_finite_authority_free_host_operation() {
+    fn every_input_has_one_finite_authority_free_host_call() {
         for offer in navigation_std_offers() {
-            assert_eq!(offer.host_operations.len(), offer.inputs.len());
+            assert_eq!(offer.host_calls.len(), offer.inputs.len());
             assert!(offer.resource_requirements.is_empty());
             assert!(offer.authority_requirements.is_empty());
             assert_eq!(offer.limits.max_queue_items as usize, offer.inputs.len());
@@ -155,7 +155,7 @@ mod tests {
                 offer.limits.max_queue_bytes,
                 offer.inputs.len() as u32 * MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
             );
-            for operation in &offer.host_operations {
+            for operation in &offer.host_calls {
                 assert_eq!(operation.target_kind.as_ref(), Some(&offer.kind_id));
                 assert_eq!(operation.maximum_in_flight, 1);
                 assert_eq!(

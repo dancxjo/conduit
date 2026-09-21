@@ -4,8 +4,8 @@ use alloc::{vec, vec::Vec};
 #[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
 use conduit_core::{ArtifactId, ExecutionProfileId, ImplementationId};
 use conduit_core::{
-    CapabilityOffer, HostOperationContractId, HostOperationRequirement,
-    PRESENTATION_RESOURCE_CLASS, kind_id, present_host_operation_requirement, resource_requirement,
+    CapabilityOffer, HostCallContractId, HostCallRequirement, PRESENTATION_RESOURCE_CLASS, kind_id,
+    present_host_call_requirement, resource_requirement,
 };
 use conduit_presentation::{
     BITMAP_PRESENTATION_KIND, MAX_GRAPHICS_SCENE_BYTES, MAX_LAYOUT_FRAME_BYTES,
@@ -103,9 +103,9 @@ fn portable_offer(kind: &str) -> Option<CapabilityOffer> {
                 )),
             )
         };
-    let host_operations = operation
-        .map(|(id, input, output)| HostOperationRequirement {
-            contract_id: HostOperationContractId::from(id),
+    let host_calls = operation
+        .map(|(id, input, output)| HostCallRequirement {
+            contract_id: HostCallContractId::from(id),
             target_kind: Some(contract.kind_id.clone()),
             maximum_in_flight: 1,
             maximum_input_bytes: input,
@@ -122,7 +122,7 @@ fn portable_offer(kind: &str) -> Option<CapabilityOffer> {
             implementation: "conduitos/portable-presentation-front@1",
             artifact: CONDUITOS_PRESENTATION_ARTIFACT,
         },
-        host_operations,
+        host_calls,
         Vec::new(),
         Vec::new(),
     ))
@@ -177,7 +177,7 @@ fn sink_offer(kind: &str) -> Option<CapabilityOffer> {
             implementation: "conduitos/presentation-sink@1",
             artifact: CONDUITOS_PRESENTATION_ARTIFACT,
         },
-        vec![present_host_operation_requirement(
+        vec![present_host_call_requirement(
             kind_id(target),
             maximum_input_bytes,
         )],
@@ -202,7 +202,7 @@ fn conduitos_patchbay_offer(
             implementation: &implementation,
             artifact: CONDUITOS_PRESENTATION_ARTIFACT,
         },
-        vec![present_host_operation_requirement(
+        vec![present_host_call_requirement(
             kind_id("presentation/patchbay-surface@1"),
             conduit_semantic_catalog::MAX_PATCHBAY_PRESENTATION_BYTES,
         )],

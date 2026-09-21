@@ -150,7 +150,7 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
         })
     ));
     let kernel = report.kernel.expect("kernel report exists");
-    // Execution identity retains the two exact host-operation bindings, not
+    // Execution identity retains the two exact Host Call bindings, not
     // one unbounded entry per recurring or finite invocation sequence.
     assert_eq!(kernel.identity.lengths(), (2, 0, 1));
     assert_eq!(
@@ -570,7 +570,7 @@ fn every_text_presentation_executable_identity_mutation_fails_before_output() {
         |placement| placement.offer_generation = conduit_core::OfferGeneration(99),
         |placement| placement.configuration[0].value = conduit_core::ConfigurationValue::U64(5),
         |placement| {
-            placement.host_operations[0].target_kind =
+            placement.host_calls[0].target_kind =
                 Some(conduit_core::KindId::from("wrong/presentation"))
         },
         |placement| {

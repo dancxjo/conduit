@@ -79,25 +79,25 @@ impl Operation for BoxedKernelOperation {
         self.0.resume(input)
     }
 
-    fn accepts_input_while_host_operation_pending(&self) -> bool {
-        self.0.accepts_input_while_host_operation_pending()
+    fn accepts_input_while_host_call_pending(&self) -> bool {
+        self.0.accepts_input_while_host_call_pending()
     }
 
-    fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {
-        self.0.take_host_operation_cancellation()
+    fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
+        self.0.take_host_call_cancellation()
     }
 
     fn resume_value(&mut self, port: PortId, value: ValueRef, bytes: &[u8]) -> OperationAction {
         self.0.resume_value(port, value, bytes)
     }
 
-    fn resume_host_operation(
+    fn resume_host_call(
         &mut self,
         request: RequestId,
-        outcome: conduit_kernel::HostOperationOutcome,
+        outcome: conduit_kernel::HostCallOutcome,
         bytes: Option<&[u8]>,
     ) -> OperationAction {
-        self.0.resume_host_operation(request, outcome, bytes)
+        self.0.resume_host_call(request, outcome, bytes)
     }
 
     fn advance(&mut self) -> OperationAction {

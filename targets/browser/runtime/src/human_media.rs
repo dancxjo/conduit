@@ -1,6 +1,6 @@
 //! Admitted browser media lifecycle. Browser APIs remain outside this module.
 
-use conduit_core::{AuthorityGrantId, BoundedResourceRef, HostOperationId, KindId, PlanId};
+use conduit_core::{AuthorityGrantId, BoundedResourceRef, HostCallId, KindId, PlanId};
 use conduit_human::{
     plan_media_acquisition, select_acquired_media, AcquiredMediaResource,
     ImageObservationReference, ImageObservationRefusal, MediaAcquisitionAuthority,
@@ -69,7 +69,7 @@ pub enum BrowserMediaRefusal {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BrowserMediaSession {
     phase: BrowserMediaPhase,
-    expected_operation: Option<HostOperationId>,
+    expected_operation: Option<HostCallId>,
     retained_bytes: usize,
     observed_values: u32,
 }
@@ -124,7 +124,7 @@ impl BrowserMediaSession {
 
     pub fn complete_acquisition(
         &mut self,
-        operation: &HostOperationId,
+        operation: &HostCallId,
         encoded_result_bytes: usize,
         result: MediaAcquisitionResult,
     ) -> Result<(), BrowserMediaRefusal> {

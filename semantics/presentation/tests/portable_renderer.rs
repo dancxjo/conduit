@@ -58,7 +58,7 @@ fn unchanged_front_plans_to_exact_wayland_and_dom_realizations() {
     assert_ne!(native.artifact_id, browser.artifact_id);
     assert_ne!(native.host_id, browser.host_id);
     assert_ne!(native.boot_id, browser.boot_id);
-    assert_ne!(native.host_operations, browser.host_operations);
+    assert_ne!(native.host_calls, browser.host_calls);
     assert_ne!(native.resources[0].class_id, browser.resources[0].class_id);
 }
 

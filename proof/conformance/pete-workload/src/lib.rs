@@ -193,7 +193,7 @@ mod tests {
                     implementation_id: ImplementationId::from(format!("proof/{host_id}/{index}@1")),
                     artifact_id: ArtifactId::from("proof/pete-workload-fixture@1"),
                 },
-                host_operations: Vec::new(),
+                host_calls: Vec::new(),
                 resource_requirements: Vec::new(),
                 authority_requirements: Vec::new(),
                 limits: CapabilityLimits {

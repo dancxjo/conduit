@@ -11,15 +11,15 @@ use crate::{
 };
 use conduit_core::{BootId, HostId, OfferGeneration, Plan};
 use conduit_kernel::{
-    scheduler::{HostOperationRequest, SchedulerStatus},
-    BoundedValueRef, HostOperationDisposition, HostOperationOutcome, SignSink,
+    scheduler::{HostCallRequest, SchedulerStatus},
+    BoundedValueRef, HostCallDisposition, HostCallOutcome, SignSink,
 };
 
 pub(super) const MAXIMUM_VALUE_BYTES: usize = conduit_robotics::ROBOTICS_CHARGING_ENCODED_LEN;
 
 #[derive(Clone, Copy)]
 struct PendingObservationCompletion {
-    request: HostOperationRequest,
+    request: HostCallRequest,
     output: BoundedValueRef,
     canonical: [u8; MAXIMUM_VALUE_BYTES],
     canonical_len: u8,
@@ -79,7 +79,7 @@ pub fn prepare_create_observation_execution_with_odometry(
         .iter()
         .flat_map(|fragment| &fragment.placements)
         .find(|placement| placement.implementation_id.as_str() == channel.implementation_id())
-        .and_then(|placement| placement.host_operations.first())
+        .and_then(|placement| placement.host_calls.first())
         .map(|operation| operation.maximum_output_bytes)
         .ok_or("planned observation operation missing")?;
     let scheduler = prepare_scheduler(maximum_output_bytes)?;
@@ -335,11 +335,11 @@ pub fn finish_create_observation_execution(
     };
     if execution
         .scheduler
-        .complete_host_operation(
+        .complete_host_call(
             pending.request.node,
             pending.request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(pending.output),
                 failure: None,
             },
@@ -399,7 +399,7 @@ pub fn cancel_create_observation_execution(
 
 fn next_request(
     execution: &mut PreparedCreateObservationExecution,
-) -> Result<HostOperationRequest, CreateObservationTerminal> {
+) -> Result<HostCallRequest, CreateObservationTerminal> {
     for _ in 0..16 {
         execution.scheduler.step().map_err(|_| {
             CreateObservationTerminal::Failed(CreateObservationExecutionFailure::KernelRefused)
@@ -424,7 +424,7 @@ fn next_request(
 
 fn fail_request(
     execution: &mut PreparedCreateObservationExecution,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     terminal: CreateObservationTerminal,
 ) {
     let detail = match terminal {
@@ -435,14 +435,14 @@ fn fail_request(
         ) => 3,
         _ => 4,
     };
-    let _ = execution.scheduler.complete_host_operation(
+    let _ = execution.scheduler.complete_host_call(
         request.node,
         request.request,
-        HostOperationOutcome {
-            disposition: HostOperationDisposition::Failed,
+        HostCallOutcome {
+            disposition: HostCallDisposition::Failed,
             output: None,
             failure: Some(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::HostOperationFailed,
+                code: conduit_kernel::FailureCode::HostCallFailed,
                 detail,
             }),
         },

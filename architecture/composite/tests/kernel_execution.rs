@@ -65,7 +65,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
             },
             inputs: vec![descriptor("in", PortDirection::Input)],
             outputs: vec![descriptor("out", PortDirection::Output)],
-            host_operations: vec![],
+            host_calls: vec![],
             resource_requirements: vec![],
             authority_requirements: vec![],
             limits: CapabilityLimits {

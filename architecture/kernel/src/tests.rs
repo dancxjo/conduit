@@ -1,9 +1,8 @@
 use super::{
-    BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, KernelEvent, KernelEventKind, NodeId, Operation, OperationAction,
-    OperationInput, PortId, RequestId, RouteRange, RouteTarget, SignError, SignQuery, SignSink,
-    StorageError, ValueStorage,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent,
+    KernelEventKind, NodeId, Operation, OperationAction, OperationInput, PortId, RequestId,
+    RouteRange, RouteTarget, SignError, SignQuery, SignSink, StorageError, ValueStorage,
 };
 
 #[test]
@@ -129,37 +128,37 @@ fn fixed_value_store_enforces_items_bytes_generation_and_fanout_references() {
 }
 
 #[test]
-fn host_operation_completion_is_correlated_and_byte_admitted() {
+fn host_call_completion_is_correlated_and_byte_admitted() {
     let value = super::ValueRef {
         slot: 0,
         generation: 1,
         byte_len: 4,
     };
     let bounded = BoundedValueRef::new(value, 4).unwrap();
-    let action = OperationAction::RequestHostOperation {
+    let action = OperationAction::RequestHostCall {
         request: RequestId(9),
-        operation: HostOperationId(2),
+        operation: HostCallId(2),
         input: bounded,
     };
     assert!(matches!(
         action,
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(9),
-            operation: HostOperationId(2),
+            operation: HostCallId(2),
             ..
         }
     ));
-    let input = OperationInput::HostOperationCompleted {
+    let input = OperationInput::HostCallCompleted {
         request: RequestId(9),
-        outcome: HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        outcome: HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output: Some(bounded),
             failure: None,
         },
     };
     assert!(matches!(
         input,
-        OperationInput::HostOperationCompleted {
+        OperationInput::HostCallCompleted {
             request: RequestId(9),
             ..
         }
@@ -168,27 +167,27 @@ fn host_operation_completion_is_correlated_and_byte_admitted() {
 }
 
 #[test]
-fn only_plan_admitted_host_operations_cross_the_boundary() {
+fn only_plan_admitted_host_calls_cross_the_boundary() {
     let value = super::ValueRef {
         slot: 0,
         generation: 1,
         byte_len: 4,
     };
-    let mut bindings = FixedHostOperationBindings::<4>::new(2);
+    let mut bindings = FixedHostCallBindings::<4>::new(2);
     bindings
         .install(
             NodeId(1),
-            HostOperationBinding {
-                operation: HostOperationId(0),
+            HostCallBinding {
+                operation: HostCallId(0),
                 maximum_input_bytes: 4,
                 maximum_output_bytes: 8,
             },
         )
         .unwrap();
     bindings.seal().unwrap();
-    let action = OperationAction::RequestHostOperation {
+    let action = OperationAction::RequestHostCall {
         request: RequestId(7),
-        operation: HostOperationId(0),
+        operation: HostCallId(0),
         input: BoundedValueRef::new(value, 4).unwrap(),
     };
     assert_eq!(
@@ -202,13 +201,13 @@ fn only_plan_admitted_host_operations_cross_the_boundary() {
 }
 
 #[test]
-fn admitted_sink_host_operation_may_have_no_output_payload() {
-    let mut bindings = FixedHostOperationBindings::<1>::new(1);
+fn admitted_sink_host_call_may_have_no_output_payload() {
+    let mut bindings = FixedHostCallBindings::<1>::new(1);
     bindings
         .install(
             NodeId(0),
-            HostOperationBinding {
-                operation: HostOperationId(0),
+            HostCallBinding {
+                operation: HostCallId(0),
                 maximum_input_bytes: 8,
                 maximum_output_bytes: 0,
             },
@@ -216,9 +215,9 @@ fn admitted_sink_host_operation_may_have_no_output_payload() {
         .unwrap();
     bindings.seal().unwrap();
 
-    let action = OperationAction::RequestHostOperation {
+    let action = OperationAction::RequestHostCall {
         request: RequestId(1),
-        operation: HostOperationId(0),
+        operation: HostCallId(0),
         input: BoundedValueRef::new(
             super::ValueRef {
                 slot: 0,
@@ -239,22 +238,22 @@ fn admitted_sink_host_operation_may_have_no_output_payload() {
 }
 
 #[test]
-fn admitted_source_host_operation_may_have_no_input_payload() {
-    let mut bindings = FixedHostOperationBindings::<1>::new(1);
+fn admitted_source_host_call_may_have_no_input_payload() {
+    let mut bindings = FixedHostCallBindings::<1>::new(1);
     bindings
         .install(
             NodeId(0),
-            HostOperationBinding {
-                operation: HostOperationId(0),
+            HostCallBinding {
+                operation: HostCallId(0),
                 maximum_input_bytes: 0,
                 maximum_output_bytes: 3,
             },
         )
         .unwrap();
     bindings.seal().unwrap();
-    let action = OperationAction::RequestHostOperation {
+    let action = OperationAction::RequestHostCall {
         request: RequestId(1),
-        operation: HostOperationId(0),
+        operation: HostCallId(0),
         input: BoundedValueRef::new(
             super::ValueRef {
                 slot: 0,
@@ -289,7 +288,7 @@ fn fixed_sign_has_independent_item_and_byte_budgets() {
         NodeId(1),
         None,
         Some(RequestId(2)),
-        KernelEventKind::HostOperationCompleted,
+        KernelEventKind::HostCallCompleted,
     )
     .unwrap();
     assert_eq!(
@@ -313,12 +312,7 @@ fn fixed_sign_evicts_transient_history_with_an_exact_gap_but_keeps_terminal_trut
     log.record(NodeId(2), None, None, KernelEventKind::ValueConsumed)
         .unwrap();
     let newest = log
-        .record(
-            NodeId(3),
-            None,
-            None,
-            KernelEventKind::HostOperationRequested,
-        )
+        .record(NodeId(3), None, None, KernelEventKind::HostCallRequested)
         .unwrap();
     assert_eq!(newest.sequence, 3);
     assert!(log.contains_kind(KernelEventKind::OperationCompleted));
@@ -459,7 +453,7 @@ fn hosted_and_fixed_value_profiles_produce_the_same_storage_vector() {
                 NodeId(1),
                 Some(PortId(2)),
                 Some(RequestId(3)),
-                KernelEventKind::HostOperationCompleted,
+                KernelEventKind::HostCallCompleted,
             )
             .unwrap();
         (sink.len(), sink.used_bytes(), event)

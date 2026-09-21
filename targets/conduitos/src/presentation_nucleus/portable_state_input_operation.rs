@@ -1,8 +1,8 @@
 //! Fixed-storage operations for bounded count, toggle, and typed key fan-out.
 
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, Operation, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, HostCallDisposition, HostCallId, Operation, OperationAction, OperationInput,
+    PortId, RequestId, ValueRef,
 };
 
 pub(super) enum PortableStateInputOperation {
@@ -139,19 +139,17 @@ impl Operation for PortableStateInputOperation {
                 let request = RequestId(*next_request);
                 *next_request = next_request.saturating_add(1);
                 *pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            (
-                Self::Sink { pending, .. },
-                OperationInput::HostOperationCompleted { outcome, .. },
-            ) if *pending
-                && outcome.disposition == HostOperationDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
+            (Self::Sink { pending, .. }, OperationInput::HostCallCompleted { outcome, .. })
+                if *pending
+                    && outcome.disposition == HostCallDisposition::Completed
+                    && outcome.output.is_none()
+                    && outcome.failure.is_none() =>
             {
                 *pending = false;
                 OperationAction::Await

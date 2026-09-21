@@ -19,7 +19,7 @@ fn all_seven_prewake_kinds_plan_and_clear_path_projects() {
                 .implementation_id
                 .as_str()
                 .starts_with("conduitos/kernel-robotics-prewake-")
-            && placement.host_operations.is_empty()
+            && placement.host_calls.is_empty()
             && placement.resources.is_empty()
             && placement.authority.is_empty()
     }));

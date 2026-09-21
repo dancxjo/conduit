@@ -5,9 +5,8 @@
 //! therefore never appear in these contracts.
 
 use conduit_core::{
-    AuthorityContractId, AuthorityGrantId, BootId, HostId, HostOperationContractId,
-    HostOperationId, ImplementationId, KindId, OfferGeneration, PlanId, PortId, ResourceClassId,
-    ResourceHandleId,
+    AuthorityContractId, AuthorityGrantId, BootId, HostCallContractId, HostCallId, HostId,
+    ImplementationId, KindId, OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -113,7 +112,7 @@ pub struct MediaAcquisitionOffer {
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
     pub kind: HumanMediaKind,
-    pub operation_contract: HostOperationContractId,
+    pub operation_contract: HostCallContractId,
     pub request_authority_contract: AuthorityContractId,
     pub known_permission: KnownPermissionState,
     pub maximum_in_flight: u16,
@@ -131,14 +130,14 @@ pub struct MediaAcquisitionAuthority {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MediaAcquisitionRequest {
-    pub operation_id: HostOperationId,
+    pub operation_id: HostCallId,
     pub constraints: MediaConstraints,
     pub flow_bounds: MediaFlowBounds,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MediaAcquisitionReservation {
-    pub operation_id: HostOperationId,
+    pub operation_id: HostCallId,
     pub slot: u16,
     pub maximum_result_bytes: u32,
 }
@@ -150,7 +149,7 @@ pub struct MediaAcquisitionPlan {
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
-    pub operation_contract: HostOperationContractId,
+    pub operation_contract: HostCallContractId,
     pub request_authority_grant: AuthorityGrantId,
     pub request: MediaAcquisitionRequest,
     pub reservation: MediaAcquisitionReservation,
@@ -215,7 +214,7 @@ pub struct ActiveMediaInstance {
     pub plan_id: PlanId,
     pub handle_id: ResourceHandleId,
     pub use_authority_grant: AuthorityGrantId,
-    pub operation_id: HostOperationId,
+    pub operation_id: HostCallId,
 }
 
 pub fn plan_media_acquisition(

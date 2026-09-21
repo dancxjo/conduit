@@ -197,7 +197,7 @@ fn base_rejection(dimension: &'static str) -> RealizationRejection {
         "queue item bound" => RealizationRejection::QueueItemBound,
         "queue byte bound" => RealizationRejection::QueueByteBound,
         "resource-unit ceiling" => RealizationRejection::ResourceUnitCeiling,
-        "host-operation allowlist" => RealizationRejection::HostOperationAllowlist,
+        "host-call allowlist" => RealizationRejection::HostCallAllowlist,
         "authority-contract allowlist" => RealizationRejection::AuthorityContractAllowlist,
         _ => unreachable!("hard requirement failures have a closed vocabulary"),
     }

@@ -10,8 +10,8 @@ use conduit_kernel::{
         FixedScheduler, OperationDriver, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
         StepOutcome,
     },
-    BoundedValueRef, Failure, FailureCode, FixedSignLog, FixedValueStore, HostOperationDisposition,
-    HostOperationId, HostOperationOutcome, NodeId, Operation, OperationAction, OperationInput,
+    BoundedValueRef, Failure, FailureCode, FixedSignLog, FixedValueStore, HostCallDisposition,
+    HostCallId, HostCallOutcome, NodeId, Operation, OperationAction, OperationInput,
     PortId, RequestId, SignSink, ValueRef, ValueStorage,
 };
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
@@ -122,7 +122,7 @@ pub async fn run_signal_demo(
         ROUTE_TARGETS,
         HOST_BINDING_SLOTS,
         PENDING_REQUESTS,
-    >::new_with_host_operations(
+    >::new_with_host_calls(
         generated_nodes(),
         generated_cords(),
         routes,
@@ -282,11 +282,11 @@ fn complete_host_request<S: ValueStorage, E: SignSink>(
     request: RequestId,
 ) {
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             node,
             request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -300,11 +300,11 @@ fn fail_host_request<S: ValueStorage, E: SignSink>(
     node: NodeId,
     request: RequestId,
 ) {
-    let _ = scheduler.complete_host_operation(
+    let _ = scheduler.complete_host_call(
         node,
         request,
-        HostOperationOutcome {
-            disposition: HostOperationDisposition::Failed,
+        HostCallOutcome {
+            disposition: HostCallDisposition::Failed,
             output: None,
             failure: None,
         },
@@ -364,7 +364,7 @@ struct PulseDriver {
     wait_values: [ValueRef; MAX_STORED_SIGNAL_VALUES],
     count: usize,
     output_port: PortId,
-    wait_operation: HostOperationId,
+    wait_operation: HostCallId,
     next: usize,
     pending_request: Option<RequestId>,
 }
@@ -376,7 +376,7 @@ impl PulseDriver {
         wait_values: [ValueRef; MAX_STORED_SIGNAL_VALUES],
         count: usize,
         output_port: PortId,
-        wait_operation: HostOperationId,
+        wait_operation: HostCallId,
     ) -> Self {
         Self {
             signal_values,
@@ -413,7 +413,7 @@ impl Operation for PulseDriver {
         }
         let req = RequestId(self.next as u32);
         self.pending_request = Some(req);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: req,
             operation: self.wait_operation,
             input: BoundedValueRef {
@@ -425,7 +425,7 @@ impl Operation for PulseDriver {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome } => {
+            OperationInput::HostCallCompleted { request, outcome } => {
                 if Some(request) != self.pending_request {
                     return OperationAction::Fail(Failure {
                         code: FailureCode::InvalidLifecycle,
@@ -434,9 +434,9 @@ impl Operation for PulseDriver {
                 }
                 self.pending_request = None;
                 match outcome.disposition {
-                    HostOperationDisposition::Completed => self.emit_current(),
+                    HostCallDisposition::Completed => self.emit_current(),
                     _ => OperationAction::Fail(Failure {
-                        code: FailureCode::HostOperationFailed,
+                        code: FailureCode::HostCallFailed,
                         detail: 2,
                     }),
                 }
@@ -452,14 +452,14 @@ impl Operation for PulseDriver {
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 struct ShowDriver {
     input_port: PortId,
-    present_operation: HostOperationId,
+    present_operation: HostCallId,
     pending_request: Option<RequestId>,
     presented: usize,
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 impl ShowDriver {
-    fn new(input_port: PortId, present_operation: HostOperationId) -> Self {
+    fn new(input_port: PortId, present_operation: HostCallId) -> Self {
         Self {
             input_port,
             present_operation,
@@ -486,7 +486,7 @@ impl Operation for ShowDriver {
                 }
                 let req = RequestId(self.presented as u32);
                 self.pending_request = Some(req);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: req,
                     operation: self.present_operation,
                     input: BoundedValueRef {
@@ -495,7 +495,7 @@ impl Operation for ShowDriver {
                     },
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome } => {
+            OperationInput::HostCallCompleted { request, outcome } => {
                 if Some(request) != self.pending_request {
                     return OperationAction::Fail(Failure {
                         code: FailureCode::InvalidLifecycle,
@@ -505,9 +505,9 @@ impl Operation for ShowDriver {
                 self.pending_request = None;
                 self.presented += 1;
                 match outcome.disposition {
-                    HostOperationDisposition::Completed => OperationAction::Await,
+                    HostCallDisposition::Completed => OperationAction::Await,
                     _ => OperationAction::Fail(Failure {
-                        code: FailureCode::HostOperationFailed,
+                        code: FailureCode::HostCallFailed,
                         detail: 11,
                     }),
                 }

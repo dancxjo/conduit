@@ -2,9 +2,7 @@
 
 use crate::hosted_vector_search::{HostedVectorSearchAdapter, HostedVectorSearchTerminal};
 use conduit_core::PlannedGear;
-use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationOutcome,
-};
+use conduit_kernel::{BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallOutcome};
 
 pub(super) enum Completion {
     Output,
@@ -21,22 +19,22 @@ impl Completion {
         matches!(self, Self::Output)
     }
 
-    pub(super) fn outcome(self, output: Option<BoundedValueRef>) -> HostOperationOutcome {
+    pub(super) fn outcome(self, output: Option<BoundedValueRef>) -> HostCallOutcome {
         let (disposition, failure) = match self {
-            Self::Output => (HostOperationDisposition::Completed, None),
-            Self::Refused | Self::QueueFull => (HostOperationDisposition::Denied, None),
-            Self::Cancelled => (HostOperationDisposition::Cancelled, None),
-            Self::Failed => (HostOperationDisposition::Failed, failure(70)),
-            Self::ProviderLost => (HostOperationDisposition::Failed, failure(71)),
+            Self::Output => (HostCallDisposition::Completed, None),
+            Self::Refused | Self::QueueFull => (HostCallDisposition::Denied, None),
+            Self::Cancelled => (HostCallDisposition::Cancelled, None),
+            Self::Failed => (HostCallDisposition::Failed, failure(70)),
+            Self::ProviderLost => (HostCallDisposition::Failed, failure(71)),
             Self::MalformedInput => (
-                HostOperationDisposition::Failed,
+                HostCallDisposition::Failed,
                 Some(Failure {
                     code: FailureCode::InvalidInput,
                     detail: 72,
                 }),
             ),
         };
-        HostOperationOutcome {
+        HostCallOutcome {
             disposition,
             output,
             failure,
@@ -76,7 +74,7 @@ pub(super) fn execute(
 
 fn failure(detail: u16) -> Option<Failure> {
     Some(Failure {
-        code: FailureCode::HostOperationFailed,
+        code: FailureCode::HostCallFailed,
         detail,
     })
 }

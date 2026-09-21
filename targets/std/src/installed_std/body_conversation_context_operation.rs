@@ -1,9 +1,9 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    scheduler::HostOperationRequest, BoundedValueRef, Failure, FailureCode,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    scheduler::HostCallRequest, BoundedValueRef, Failure, FailureCode, HostCallDisposition,
+    HostCallId, HostCallOutcome, OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    ValueStorage,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -35,34 +35,30 @@ impl BodyConversationContextOperation {
         };
         self.next_request = next_request;
         self.pending = true;
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input,
         }
     }
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted {
+            OperationInput::HostCallCompleted {
                 request: _,
                 outcome,
             } if self.pending => {
                 self.pending = false;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Denied, _, _) => {
-                        fail(FailureCode::HostOperationDenied, 3)
-                    }
-                    (HostOperationDisposition::Cancelled, None, None) => {
-                        fail(FailureCode::Cancelled, 4)
-                    }
-                    _ => fail(FailureCode::HostOperationFailed, 4),
+                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 3),
+                    (HostCallDisposition::Cancelled, None, None) => fail(FailureCode::Cancelled, 4),
+                    _ => fail(FailureCode::HostCallFailed, 4),
                 }
             }
             _ => fail(FailureCode::InvalidLifecycle, 5),
@@ -84,7 +80,7 @@ impl BodyConversationContextOperation {
 
 pub(super) struct BodyConversationContextHost<'a> {
     source: Option<&'a crate::BodyConversationContextSource>,
-    pending: Option<HostOperationRequest>,
+    pending: Option<HostCallRequest>,
     delivered: Option<[u8; 32]>,
 }
 
@@ -97,11 +93,7 @@ impl<'a> BodyConversationContextHost<'a> {
         }
     }
 
-    pub(super) fn accept(
-        &mut self,
-        request: HostOperationRequest,
-        input: &[u8],
-    ) -> Result<(), String> {
+    pub(super) fn accept(&mut self, request: HostCallRequest, input: &[u8]) -> Result<(), String> {
         if !input.is_empty() {
             return Err("Body context source request carries unexpected bytes".into());
         }
@@ -140,8 +132,8 @@ impl<'a> BodyConversationContextHost<'a> {
                 return Ok(false)
             }
             crate::hosted_body_conversation_context::BodyConversationContextPoll::Lost => {
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Cancelled,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Cancelled,
                     output: None,
                     failure: None,
                 }
@@ -153,8 +145,8 @@ impl<'a> BodyConversationContextHost<'a> {
                 let value =
                     value.map_err(|error| format!("store current body context: {error:?}"))?;
                 self.delivered = Some(fingerprint);
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(
                         BoundedValueRef::new(
                             value,
@@ -168,7 +160,7 @@ impl<'a> BodyConversationContextHost<'a> {
         };
         self.pending = None;
         scheduler
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(|error| format!("complete current body context: {error:?}"))?;
         Ok(true)
     }
@@ -184,7 +176,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
             != conduit_std_offers::BODY_CONVERSATION_CONTEXT_STD_ARTIFACT
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
     {
         return Err(
             "planned body conversation context identity does not match installation".into(),
@@ -245,17 +237,17 @@ mod tests {
         };
         assert!(matches!(
             operation.start(),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(0),
                 ..
             }
         ));
         let output = BoundedValueRef::new(value(12), 12).unwrap();
         assert!(matches!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(0),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(output),
                     failure: None,
                 },
@@ -267,7 +259,7 @@ mod tests {
         ));
         assert!(matches!(
             operation.advance(),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(1),
                 ..
             }

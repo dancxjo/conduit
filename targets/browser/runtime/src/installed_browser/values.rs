@@ -5,8 +5,8 @@ use super::factory::{
 };
 use super::BrowserOperation;
 use conduit_core::{
-    kind_id, ConfigurationValue, HostOperationContractId, HostOperationRequirement, InfoBool,
-    PlannedGear, Scalar, BOOL_ENCODED_LEN, PRESENTATION_RESOURCE_CLASS, SCALAR_ENCODED_LEN,
+    kind_id, ConfigurationValue, HostCallContractId, HostCallRequirement, InfoBool, PlannedGear,
+    Scalar, BOOL_ENCODED_LEN, PRESENTATION_RESOURCE_CLASS, SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
 
@@ -75,9 +75,9 @@ fn offer(
     implementation: &str,
     presentation: bool,
 ) -> conduit_core::CapabilityOffer {
-    let host_operations = presentation
-        .then(|| HostOperationRequirement {
-            contract_id: HostOperationContractId::from(implementation),
+    let host_calls = presentation
+        .then(|| HostCallRequirement {
+            contract_id: HostCallContractId::from(implementation),
             target_kind: Some(kind_id(implementation)),
             maximum_in_flight: 1,
             maximum_input_bytes: contract.limits.max_queue_bytes,
@@ -94,7 +94,7 @@ fn offer(
             implementation,
             artifact: ARTIFACT,
         },
-        host_operations,
+        host_calls,
         presentation
             .then(|| conduit_core::resource_requirement(PRESENTATION_RESOURCE_CLASS, 1))
             .into_iter()
@@ -138,7 +138,7 @@ fn prepare_presentation(
     };
     validate_placement(placement, &offer)?;
     Ok(BrowserOperation::presentation(
-        placement.host_operations[0].maximum_input_bytes,
+        placement.host_calls[0].maximum_input_bytes,
         1,
     ))
 }

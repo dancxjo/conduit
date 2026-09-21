@@ -27,7 +27,7 @@ pub(crate) fn offer() -> CapabilityOffer {
             implementation_id: KIND.into(),
             artifact_id: "conduit-test/timing-sink@1".into(),
         },
-        host_operations: vec![HostOperationRequirement {
+        host_calls: vec![HostCallRequirement {
             contract_id: "conduit-test/timing-output".into(),
             target_kind: Some(KIND.into()),
             maximum_in_flight: 1,

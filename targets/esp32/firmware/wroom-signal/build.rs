@@ -64,7 +64,7 @@ fn image_bounds(distributed: bool) -> EmbeddedImageBounds {
         maximum_cords: if distributed { 2 } else { 1 },
         maximum_routes: if distributed { 2 } else { 1 },
         maximum_route_targets: if distributed { 2 } else { 1 },
-        maximum_host_operations: if distributed { 0 } else { 2 },
+        maximum_host_calls: if distributed { 0 } else { 2 },
         maximum_resources: if distributed { 0 } else { 2 },
         maximum_sign_expectations: 8,
         maximum_configuration_entries: 0,

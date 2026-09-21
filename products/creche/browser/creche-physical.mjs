@@ -9,7 +9,7 @@ const decoder = new TextDecoder();
 
 export function createPhysicalHostRunner({
   host,
-  hostOperations,
+  hostCalls,
   presentationFor,
   targetCatalog,
   onBodyChanged,
@@ -55,7 +55,7 @@ export function createPhysicalHostRunner({
     observation: null,
     admission: null,
     download: null,
-    hostOperations,
+    hostCalls,
     adapterContext,
     intentions: PHYSICAL_HOST_INTENTIONS,
     selectionDisabled: false,
@@ -189,7 +189,7 @@ function renderDownload(runner, state, download) {
   state.download = download;
   presentPhysicalArtifact(state, download, async (artifact) => {
     try {
-      const outcome = await state.hostOperations.handoffArtifact(artifact);
+      const outcome = await state.hostCalls.handoffArtifact(artifact);
       if (!["completed", "handoff-offered"].includes(outcome.disposition)) {
         status(runner, state, `Artifact handoff refused: ${outcome.disposition}`, true);
       }
@@ -307,7 +307,7 @@ function cancelActive(runner, state, terminal) {
   presentPhysicalActions(state);
   if (terminal) {
     state.cancellations += 1;
-    fail(runner, state, active.operation, workflowFailure(state, active.operation, "Cancelled", "operator cancelled the active physical Host operation"));
+    fail(runner, state, active.operation, workflowFailure(state, active.operation, "Cancelled", "operator cancelled the active physical Host Call"));
   }
 }
 

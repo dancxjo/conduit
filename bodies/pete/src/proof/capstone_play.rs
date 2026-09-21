@@ -6,9 +6,9 @@ use super::capstone_kernel::{
 };
 use conduit_core::{ConfigurationValue, Plan, Scalar};
 use conduit_kernel::{
-    scheduler::{HostOperationRequest, SchedulerStatus},
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationOutcome,
-    SignSink, ValueStorage,
+    scheduler::{HostCallRequest, SchedulerStatus},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallOutcome, SignSink,
+    ValueStorage,
 };
 
 pub struct PreparedCapstoneExecution {
@@ -109,8 +109,8 @@ pub fn run_capstone_deterministic_vector(
                 .scheduler
                 .store_host_value(&oversized)
                 .map_err(|_| CapstoneExecutionRefusal::Pressure)?;
-            let outcome = HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            let outcome = HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(value, 2)
                         .map_err(|_| CapstoneExecutionRefusal::Pressure)?,
@@ -119,7 +119,7 @@ pub fn run_capstone_deterministic_vector(
             };
             execution
                 .scheduler
-                .complete_host_operation(observation.node, observation.request, outcome)
+                .complete_host_call(observation.node, observation.request, outcome)
                 .map_err(|_| CapstoneExecutionRefusal::Pressure)?;
             return Err(CapstoneExecutionRefusal::Pressure);
         }
@@ -131,11 +131,11 @@ pub fn run_capstone_deterministic_vector(
         .map_err(|_| CapstoneExecutionRefusal::Pressure)?;
     execution
         .scheduler
-        .complete_host_operation(
+        .complete_host_call(
             observation.node,
             observation.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(observation_value, conduit_core::BOOL_ENCODED_LEN as u32)
                         .map_err(|_| CapstoneExecutionRefusal::KernelLifecycle)?,
@@ -177,11 +177,11 @@ pub fn run_capstone_deterministic_vector(
     }
     execution
         .scheduler
-        .complete_host_operation(
+        .complete_host_call(
             drive.node,
             drive.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -209,7 +209,7 @@ pub fn run_capstone_deterministic_vector(
 
 fn next_request(
     scheduler: &mut CapstoneScheduler,
-) -> Result<HostOperationRequest, CapstoneExecutionRefusal> {
+) -> Result<HostCallRequest, CapstoneExecutionRefusal> {
     for _ in 0..128 {
         if let Some(request) = scheduler.next_host_request() {
             return Ok(request);
@@ -227,18 +227,18 @@ fn next_request(
 
 fn fail_request(
     scheduler: &mut CapstoneScheduler,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     detail: u16,
 ) -> Result<(), CapstoneExecutionRefusal> {
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(Failure {
-                    code: FailureCode::HostOperationFailed,
+                    code: FailureCode::HostCallFailed,
                     detail,
                 }),
             },

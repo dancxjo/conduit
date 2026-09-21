@@ -2,12 +2,12 @@
 //!
 //! This is a specialization of the same [`Operation`] protocol used by the
 //! full scheduler. It is valid only for a fragment containing one source, one
-//! host operation, one output Port, and no local or remote Cords. Any other
+//! Host Call, one output Port, and no local or remote Cords. Any other
 //! shape must be refused before construction.
 
-use crate::scheduler::HostOperationRequest;
+use crate::scheduler::HostCallRequest;
 use crate::{
-    BoundedValueRef, HostOperationId, HostOperationOutcome, KernelEventKind, NodeId, Operation,
+    BoundedValueRef, HostCallId, HostCallOutcome, KernelEventKind, NodeId, Operation,
     OperationAction, OperationInput, PortId, RemoteLifecycleIdentity, RequestId, SignError,
     SignSink, StorageError, ValueRef,
 };
@@ -162,7 +162,7 @@ pub struct SingleSourceExecutor<O, E> {
     operation: O,
     signs: E,
     node: NodeId,
-    operation_id: HostOperationId,
+    operation_id: HostCallId,
     maximum_input_bytes: u32,
     maximum_output_bytes: u32,
     maximum_step_work: u16,
@@ -175,7 +175,7 @@ impl<O: Operation, E: SignSink> SingleSourceExecutor<O, E> {
         operation: O,
         signs: E,
         node: NodeId,
-        operation_id: HostOperationId,
+        operation_id: HostCallId,
         maximum_input_bytes: u32,
         maximum_output_bytes: u32,
         maximum_step_work: u16,
@@ -196,14 +196,14 @@ impl<O: Operation, E: SignSink> SingleSourceExecutor<O, E> {
         })
     }
 
-    pub fn start(&mut self) -> Result<HostOperationRequest, SingleSourceRefusal> {
+    pub fn start(&mut self) -> Result<HostCallRequest, SingleSourceRefusal> {
         if self.terminal {
             return Err(SingleSourceRefusal::AlreadyTerminal);
         }
         if self.request.is_some() {
             return Err(SingleSourceRefusal::AlreadyStarted);
         }
-        let OperationAction::RequestHostOperation {
+        let OperationAction::RequestHostCall {
             request,
             operation,
             input,
@@ -220,10 +220,10 @@ impl<O: Operation, E: SignSink> SingleSourceExecutor<O, E> {
                 self.node,
                 None,
                 Some(request),
-                KernelEventKind::HostOperationRequested,
+                KernelEventKind::HostCallRequested,
             )
             .map_err(|_| SingleSourceRefusal::SignCapacity)?;
-        Ok(HostOperationRequest {
+        Ok(HostCallRequest {
             node: self.node,
             request,
             operation,
@@ -234,7 +234,7 @@ impl<O: Operation, E: SignSink> SingleSourceExecutor<O, E> {
     pub fn complete(
         &mut self,
         request: RequestId,
-        outcome: HostOperationOutcome,
+        outcome: HostCallOutcome,
     ) -> Result<SingleSourceOutput, SingleSourceRefusal> {
         if self.terminal {
             return Err(SingleSourceRefusal::AlreadyTerminal);
@@ -253,12 +253,12 @@ impl<O: Operation, E: SignSink> SingleSourceExecutor<O, E> {
                 self.node,
                 None,
                 Some(request),
-                KernelEventKind::HostOperationCompleted,
+                KernelEventKind::HostCallCompleted,
             )
             .map_err(|_| SingleSourceRefusal::SignCapacity)?;
         let first = self
             .operation
-            .resume(OperationInput::HostOperationCompleted { request, outcome });
+            .resume(OperationInput::HostCallCompleted { request, outcome });
         let OperationAction::Emit { port, value } = first else {
             return match first {
                 OperationAction::Fail(failure) => {
@@ -297,16 +297,16 @@ impl<O: Operation, E: SignSink> SingleSourceExecutor<O, E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Failure, FailureCode, HostOperationDisposition};
+    use crate::{Failure, FailureCode, HostCallDisposition};
 
     #[derive(Clone, Copy)]
     struct Source;
 
     impl Operation for Source {
         fn start(&mut self) -> OperationAction {
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(4),
-                operation: HostOperationId(2),
+                operation: HostCallId(2),
                 input: BoundedValueRef::new(
                     ValueRef {
                         slot: 0,
@@ -321,11 +321,11 @@ mod tests {
 
         fn resume(&mut self, input: OperationInput) -> OperationAction {
             match input {
-                OperationInput::HostOperationCompleted {
+                OperationInput::HostCallCompleted {
                     request: RequestId(4),
                     outcome:
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: Some(output),
                             failure: None,
                         },
@@ -351,8 +351,7 @@ mod tests {
     fn exact_single_source_uses_the_shared_operation_and_sign_contracts() {
         let signs = SingleSourceSignLog::new();
         let mut executor =
-            SingleSourceExecutor::new(Source, signs, NodeId(0), HostOperationId(2), 0, 1, 3)
-                .unwrap();
+            SingleSourceExecutor::new(Source, signs, NodeId(0), HostCallId(2), 0, 1, 3).unwrap();
         assert_eq!(executor.start().unwrap().request, RequestId(4));
         let value = BoundedValueRef::new(
             ValueRef {
@@ -366,8 +365,8 @@ mod tests {
         let output = executor
             .complete(
                 RequestId(4),
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(value),
                     failure: None,
                 },

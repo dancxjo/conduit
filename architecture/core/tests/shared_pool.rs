@@ -39,7 +39,7 @@ fn member_offer(kind: &str, revision: &str) -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: true },
         }],
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: CapabilityLimits {
@@ -122,7 +122,7 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
                 },
                 inputs: Vec::new(),
                 outputs: Vec::new(),
-                host_operations: Vec::new(),
+                host_calls: Vec::new(),
                 resources: Vec::new(),
                 authority: Vec::new(),
                 pool_references: vec![pool.pool_id.clone()],

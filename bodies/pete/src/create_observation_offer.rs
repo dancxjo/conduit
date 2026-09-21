@@ -6,9 +6,8 @@ use crate::{
 };
 use conduit_core::{
     resource_offer, resource_requirement, ArtifactId, Back, BackOfferBuilder, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, OfferGeneration,
-    PROTOCOL_VERSION,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostCallContractId,
+    HostCallRequirement, HostId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_robotics::{
     BatteryObservation, ROBOTICS_BATTERY_ENCODED_LEN, ROBOTICS_BEACON_ENCODED_LEN,
@@ -178,8 +177,8 @@ pub(crate) fn observation_offer(channel: CreateObservationChannel) -> Capability
             execution_profile_id: ExecutionProfileId::from(CREATE_OBSERVATION_PROFILE),
             implementation_id: ImplementationId::from(channel.implementation_id()),
             artifact_id: ArtifactId::from(CREATE_OBSERVATION_ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(channel.operation_id()),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(channel.operation_id()),
                 target_kind: Some(output_kind(channel)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: 0,

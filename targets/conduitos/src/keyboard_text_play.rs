@@ -8,11 +8,11 @@ use alloc::boxed::Box;
 use conduit_core::PlanFragment;
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeymapDisposition};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    FixedValueStore, HostOperationDisposition, HostOperationOutcome, KernelEvent, NodeId, SignSink,
-    ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, FixedSignLog,
+    FixedValueStore, HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef,
+    ValueStorage,
     scheduler::{
-        FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
+        FixedScheduler, HostCallRequest, OperationDriver, SchedulerError, SchedulerStatus,
     },
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
@@ -127,13 +127,13 @@ impl KeyboardTextKernel {
         self.scheduler.step()
     }
 
-    pub fn next_host_request(&mut self) -> Option<HostOperationRequest> {
+    pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
         self.scheduler.next_host_request()
     }
 
     pub fn request_kind(
         &self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
     ) -> Result<KeyboardTextRequestKind, SchedulerError> {
         if request.node == self.keyboard_node {
             Ok(KeyboardTextRequestKind::Keyboard)
@@ -144,7 +144,7 @@ impl KeyboardTextKernel {
         } else if request.node == self.presentation_node {
             Ok(KeyboardTextRequestKind::Presentation)
         } else {
-            Err(SchedulerError::InvalidHostOperationAccess)
+            Err(SchedulerError::InvalidHostCallAccess)
         }
     }
 
@@ -154,7 +154,7 @@ impl KeyboardTextKernel {
 
     pub fn complete_keyboard(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         event: KeyEvent,
     ) -> Result<(), SchedulerError> {
         self.complete_with_output(request, self.keyboard_node, &event.encode())
@@ -162,21 +162,20 @@ impl KeyboardTextKernel {
 
     pub fn fail_keyboard_device_removed(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
     ) -> Result<(), SchedulerError> {
         if request.node != self.keyboard_node {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
-        self.complete_failed(request, FailureCode::HostOperationFailed, 81)
+        self.complete_failed(request, FailureCode::HostCallFailed, 81)
     }
 
-    pub fn complete_keymap(&mut self, request: HostOperationRequest) -> Result<(), SchedulerError> {
+    pub fn complete_keymap(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
         if request.node != self.keymap_node {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
         let input = self.scheduler.host_value(request.input.value)?;
-        let event =
-            KeyEvent::decode(input).map_err(|_| SchedulerError::InvalidHostOperationAccess)?;
+        let event = KeyEvent::decode(input).map_err(|_| SchedulerError::InvalidHostCallAccess)?;
         let output = match self.keymap.apply(event) {
             KeymapDisposition::Text(fragment) => Some(fragment),
             KeymapDisposition::NoText | KeymapDisposition::Cancelled => None,
@@ -192,26 +191,26 @@ impl KeyboardTextKernel {
         }
     }
 
-    pub fn complete_upper(&mut self, request: HostOperationRequest) -> Result<(), SchedulerError> {
+    pub fn complete_upper(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
         if request.node != self.upper_node {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
         let input = self.scheduler.host_value(request.input.value)?;
         let output = crate::text_upper::uppercase(input)
-            .map_err(|_| SchedulerError::InvalidHostOperationAccess)?;
+            .map_err(|_| SchedulerError::InvalidHostCallAccess)?;
         self.complete_with_output(request, self.upper_node, output.as_bytes())
     }
 
     pub fn complete_presentation(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
     ) -> Result<PresentationFragment, SchedulerError> {
         if request.node != self.presentation_node {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
         let value =
             PresentationFragment::from_bytes(self.scheduler.host_value(request.input.value)?)
-                .map_err(|_| SchedulerError::InvalidHostOperationAccess)?;
+                .map_err(|_| SchedulerError::InvalidHostCallAccess)?;
         self.complete_without_output(request, self.presentation_node)?;
         Ok(value)
     }
@@ -223,21 +222,21 @@ impl KeyboardTextKernel {
 
     fn complete_with_output(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         node: NodeId,
         output: &[u8],
     ) -> Result<(), SchedulerError> {
         if request.node != node {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
         let value = self.scheduler.store_host_value(output)?;
         let output = BoundedValueRef::new(value, output.len() as u32)
-            .map_err(|_| SchedulerError::InvalidHostOperationAccess)?;
-        self.scheduler.complete_host_operation(
+            .map_err(|_| SchedulerError::InvalidHostCallAccess)?;
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(output),
                 failure: None,
             },
@@ -246,17 +245,17 @@ impl KeyboardTextKernel {
 
     fn complete_without_output(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         node: NodeId,
     ) -> Result<(), SchedulerError> {
         if request.node != node {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -265,15 +264,15 @@ impl KeyboardTextKernel {
 
     fn complete_failed(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         code: FailureCode,
         detail: u16,
     ) -> Result<(), SchedulerError> {
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(Failure { code, detail }),
             },
@@ -338,7 +337,7 @@ pub fn run_with_presentation(
         {
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Idle => {
-                if kernel.scheduler.pending_host_operation_count() == 0 {
+                if kernel.scheduler.pending_host_call_count() == 0 {
                     return Err(PreparationError::KernelRejected);
                 }
             }
@@ -369,7 +368,7 @@ fn validate_shape(
         || lowered.nodes.len() != MAX_NODES
         || lowered.cords.len() != MAX_CORDS
         || lowered.routes.len() != MAX_CORDS
-        || lowered.host_operations.len() != MAX_NODES
+        || lowered.host_calls.len() != MAX_NODES
         || !lowered.remote_endpoints.is_empty()
     {
         return Err(PreparationError::LoweringRejected);

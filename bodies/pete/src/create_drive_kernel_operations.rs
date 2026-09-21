@@ -1,16 +1,16 @@
 use conduit_kernel::{
     scheduler::{CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver},
-    BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId, KernelEvent,
-    NodeId, Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
-    ValueRef, ValueStorage,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallBinding, HostCallDisposition, HostCallId, KernelEvent, NodeId, Operation,
+    OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget, ValueRef,
+    ValueStorage,
 };
 
 const LINEAR_NODE: NodeId = NodeId(0);
 const ANGULAR_NODE: NodeId = NodeId(1);
 pub(super) const DRIVE_NODE: NodeId = NodeId(2);
 pub(super) const DRIVE_REQUEST: RequestId = RequestId(1);
-const DRIVE_OPERATION: HostOperationId = HostOperationId(0);
+const DRIVE_OPERATION: HostCallId = HostCallId(0);
 const PORTS: usize = 2;
 const SIGNS: usize = 64;
 const SCALAR_BYTES: u32 = conduit_core::SCALAR_ENCODED_LEN as u32;
@@ -74,7 +74,7 @@ impl Operation for CreateDriveOperation {
                 self.seen[usize::from(port.0)] = true;
                 if self.seen.into_iter().all(|seen| seen) {
                     self.pending = true;
-                    OperationAction::RequestHostOperation {
+                    OperationAction::RequestHostCall {
                         request: DRIVE_REQUEST,
                         operation: DRIVE_OPERATION,
                         input: self.request,
@@ -83,11 +83,11 @@ impl Operation for CreateDriveOperation {
                     OperationAction::Await
                 }
             }
-            OperationInput::HostOperationCompleted {
+            OperationInput::HostCallCompleted {
                 request: DRIVE_REQUEST,
                 outcome,
             } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -95,9 +95,9 @@ impl Operation for CreateDriveOperation {
                 self.admitted = true;
                 OperationAction::Await
             }
-            OperationInput::HostOperationCompleted { outcome, .. }
+            OperationInput::HostCallCompleted { outcome, .. }
                 if self.pending
-                    && outcome.disposition == HostOperationDisposition::Failed
+                    && outcome.disposition == HostCallDisposition::Failed
                     && outcome.output.is_none()
                     && outcome.failure.is_some() =>
             {
@@ -215,23 +215,21 @@ pub(super) fn prepare_drive_scheduler(
     }
     routes.seal().map_err(|_| "drive route seal failed")?;
 
-    let mut bindings = FixedHostOperationBindings::<3>::new(1);
+    let mut bindings = FixedHostCallBindings::<3>::new(1);
     bindings
         .install(
             DRIVE_NODE,
-            HostOperationBinding {
+            HostCallBinding {
                 operation: DRIVE_OPERATION,
                 maximum_input_bytes: REQUEST_BYTES,
                 maximum_output_bytes: 0,
             },
         )
-        .map_err(|_| "drive Host operation admission failed")?;
-    bindings
-        .seal()
-        .map_err(|_| "drive Host operation seal failed")?;
+        .map_err(|_| "drive Host Call admission failed")?;
+    bindings.seal().map_err(|_| "drive Host Call seal failed")?;
     let signs = FixedSignLog::new((SIGNS * core::mem::size_of::<KernelEvent>()) as u32)
         .map_err(|_| "drive Sign admission failed")?;
-    FixedScheduler::new_with_host_operations(
+    FixedScheduler::new_with_host_calls(
         [
             NodeSpec {
                 input_cords: [None, None],

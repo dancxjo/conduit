@@ -252,7 +252,7 @@ fn capability(catalog: &ProfileCatalog, kind: &str) -> Result<CapabilityOffer, C
         },
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {

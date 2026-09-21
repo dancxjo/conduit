@@ -1,9 +1,9 @@
 //! Hosted std realizations of portable layout and scene-composition contracts.
 
-use conduit_core::{CapabilityOffer, HostOperationContractId, HostOperationRequirement};
+use conduit_core::{CapabilityOffer, HostCallContractId, HostCallRequirement};
 use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity, StandardKindContract};
 
-pub const LAYOUT_HOST_OPERATION: &str = "conduit.host/layout-frame-transform@1";
+pub const LAYOUT_HOST_CALL: &str = "conduit.host/layout-frame-transform@1";
 pub const LAYOUT_VIEWPORT_IMPLEMENTATION: &str = "std/layout/viewport-implementation@1";
 pub const LAYOUT_INSET_IMPLEMENTATION: &str = "std/layout/inset-implementation@1";
 pub const LAYOUT_ROW_IMPLEMENTATION: &str = "std/layout/row-implementation@1";
@@ -13,12 +13,12 @@ pub const LAYOUT_ALIGN_IMPLEMENTATION: &str = "std/layout/align-implementation@1
 pub const PRESENTATION_ICON_IMPLEMENTATION: &str = "std/presentation/icon-implementation@1";
 pub const PRESENTATION_FRAME_IMPLEMENTATION: &str = "std/presentation/frame-implementation@1";
 pub const PRESENTATION_BADGE_IMPLEMENTATION: &str = "std/presentation/badge-implementation@1";
-pub const PRESENTATION_COMPOSITION_HOST_OPERATION: &str =
+pub const PRESENTATION_COMPOSITION_HOST_CALL: &str =
     "conduit.host/presentation-composition-transform@1";
 pub const GRAPHICS_RECT_IMPLEMENTATION: &str = "std/graphics/rect-implementation@1";
 pub const GRAPHICS_TEXT_IMPLEMENTATION: &str = "std/graphics/text-implementation@1";
 pub const GRAPHICS_ICON_IMPLEMENTATION: &str = "std/graphics/icon-implementation@1";
-pub const GRAPHICS_HOST_OPERATION: &str = "conduit.host/graphics-scene-transform@1";
+pub const GRAPHICS_HOST_CALL: &str = "conduit.host/graphics-scene-transform@1";
 
 pub fn layout_viewport_offer() -> CapabilityOffer {
     layout_offer(conduit_semantic_catalog::layout_viewport_contract())
@@ -87,7 +87,7 @@ fn layout_offer(contract: StandardKindContract) -> CapabilityOffer {
         Vec::new()
     } else {
         vec![operation(
-            LAYOUT_HOST_OPERATION,
+            LAYOUT_HOST_CALL,
             &contract,
             conduit_presentation::MAX_LAYOUT_FRAME_BYTES as u32,
             conduit_presentation::MAX_LAYOUT_FRAME_BYTES as u32,
@@ -116,7 +116,7 @@ fn presentation_composition_offer(contract: StandardKindContract) -> CapabilityO
         Vec::new()
     } else {
         vec![operation(
-            PRESENTATION_COMPOSITION_HOST_OPERATION,
+            PRESENTATION_COMPOSITION_HOST_CALL,
             &contract,
             conduit_presentation::MAX_PRESENTATION_COMPOSITION_BYTES as u32,
             conduit_presentation::MAX_PRESENTATION_COMPOSITION_BYTES as u32,
@@ -142,7 +142,7 @@ fn graphics_offer(contract: StandardKindContract) -> CapabilityOffer {
         _ => unreachable!("graphics contract mapper admits only graphics Kinds"),
     };
     let operations = vec![operation(
-        GRAPHICS_HOST_OPERATION,
+        GRAPHICS_HOST_CALL,
         &contract,
         conduit_presentation::MAX_PRESENTATION_COMPOSITION_BYTES as u32,
         conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u32,
@@ -163,9 +163,9 @@ fn operation(
     contract: &StandardKindContract,
     input: u32,
     output: u32,
-) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(id),
+) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(id),
         target_kind: Some(contract.kind_id.clone()),
         maximum_in_flight: 1,
         maximum_input_bytes: input,
@@ -181,7 +181,7 @@ fn offer(
     profile: &str,
     implementation: &str,
     artifact: &str,
-    operations: Vec<HostOperationRequirement>,
+    operations: Vec<HostCallRequirement>,
 ) -> CapabilityOffer {
     realization_offer(
         contract,
@@ -220,13 +220,9 @@ mod tests {
         ];
         assert_eq!(offers.len(), 12);
         assert!(offers.iter().all(|offer| offer.limits.max_queue_items == 1));
-        assert!(layout_viewport_offer().host_operations.is_empty());
-        assert!(presentation_icon_offer().host_operations.is_empty());
-        assert!(offers[1..6]
-            .iter()
-            .all(|offer| offer.host_operations.len() == 1));
-        assert!(offers[7..]
-            .iter()
-            .all(|offer| offer.host_operations.len() == 1));
+        assert!(layout_viewport_offer().host_calls.is_empty());
+        assert!(presentation_icon_offer().host_calls.is_empty());
+        assert!(offers[1..6].iter().all(|offer| offer.host_calls.len() == 1));
+        assert!(offers[7..].iter().all(|offer| offer.host_calls.len() == 1));
     }
 }

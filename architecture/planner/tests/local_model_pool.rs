@@ -2,13 +2,13 @@ use std::collections::BTreeMap;
 
 use conduit_core::{
     kind_id, ArtifactId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BootId,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId,
-    HostOperationContractId, HostProfileId, ImplementationId, KindIdentity, OfferGeneration,
+    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement,
+    HostCallContractId, HostId, HostProfileId, ImplementationId, KindIdentity, OfferGeneration,
     PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PlanningRequestAuthority,
     PlayUnsatisfiedReason, PoolMemberLimits, PoolOperationId, PoolRealizationHealth,
     PoolRealizationObservation, PoolSelectionDisposition, PoolSelectionEvidence, ResourceHealth,
     ResourceObservation, SharedPoolId, SignId, PROTOCOL_VERSION,
-    SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
+    SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_CALL_CONTRACT,
     SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
 use conduit_form::{
@@ -105,7 +105,7 @@ fn consumer_host(front: &conduit_core::CheckedFront) -> HostAdvertisement {
             },
             inputs: front.inputs().to_vec(),
             outputs: front.outputs().to_vec(),
-            host_operations: vec![],
+            host_calls: vec![],
             resource_requirements: vec![],
             authority_requirements: vec![],
             limits: CapabilityLimits {
@@ -132,9 +132,7 @@ fn authority() -> AuthorityGrant {
     AuthorityGrant {
         grant_id: AuthorityGrantId::from("grant/model-pool"),
         contract_id: AuthorityContractId::from(SHARED_POOL_ADMIT_AUTHORITY_CONTRACT),
-        host_operation_contract_id: HostOperationContractId::from(
-            SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
-        ),
+        host_call_contract_id: HostCallContractId::from(SHARED_POOL_ADMIT_HOST_CALL_CONTRACT),
         subject_kind: kind_id(SHARED_POOL_AUTHORITY_SUBJECT_KIND),
         host_id: HostId::from("host/consumer"),
         boot_id: BootId::from("boot/consumer/1"),

@@ -19,9 +19,8 @@ use alloc::{string::String, vec, vec::Vec};
 
 use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
-    HostBaseId, HostId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    OfferGeneration, PROTOCOL_VERSION, PlacementId, Plan, kind_id, resource_offer,
-    resource_requirement,
+    HostBaseId, HostCallContractId, HostCallRequirement, HostId, ImplementationId, OfferGeneration,
+    PROTOCOL_VERSION, PlacementId, Plan, kind_id, resource_offer, resource_requirement,
 };
 use conduit_form::{ProfileCatalog, parse};
 use conduit_planner::{default_placements, plan};
@@ -212,8 +211,8 @@ impl TourShellPresenter {
                 execution_profile_id: ExecutionProfileId::from("conduitos/native-product@1"),
                 implementation_id: implementation.clone(),
                 artifact_id: ArtifactId::from(image_id),
-                host_operation: HostOperationRequirement {
-                    contract_id: HostOperationContractId::from("conduit.host/present@1"),
+                host_call: HostCallRequirement {
+                    contract_id: HostCallContractId::from("conduit.host/present@1"),
                     target_kind: Some(kind_id("presentation/base/native-compositor@1")),
                     maximum_in_flight: 4,
                     maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,

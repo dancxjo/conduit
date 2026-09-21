@@ -38,12 +38,12 @@ impl Operation for StateSelectOperation {
         match (self, input) {
             (
                 Self::Source { values, phase },
-                OperationInput::HostOperationCompleted {
+                OperationInput::HostCallCompleted {
                     request: conduit_kernel::RequestId(0),
                     outcome,
                 },
             ) if *phase == 1
-                && outcome.disposition == conduit_kernel::HostOperationDisposition::Completed
+                && outcome.disposition == conduit_kernel::HostCallDisposition::Completed
                 && outcome.output.is_none()
                 && outcome.failure.is_none() =>
             {
@@ -76,20 +76,18 @@ impl Operation for StateSelectOperation {
                 let request = conduit_kernel::RequestId(*next_request);
                 *next_request = next_request.saturating_add(1);
                 *pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: conduit_kernel::HostOperationId(0),
+                    operation: conduit_kernel::HostCallId(0),
                     input: conduit_kernel::BoundedValueRef::new(value, SCALAR_ENCODED_LEN as u32)
                         .expect("exact Scalar length is within the sink bound"),
                 }
             }
-            (
-                Self::Sink { pending, .. },
-                OperationInput::HostOperationCompleted { outcome, .. },
-            ) if *pending
-                && outcome.disposition == conduit_kernel::HostOperationDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
+            (Self::Sink { pending, .. }, OperationInput::HostCallCompleted { outcome, .. })
+                if *pending
+                    && outcome.disposition == conduit_kernel::HostCallDisposition::Completed
+                    && outcome.output.is_none()
+                    && outcome.failure.is_none() =>
             {
                 *pending = false;
                 OperationAction::Await
@@ -152,9 +150,9 @@ impl Operation for StateSelectOperation {
             } => match values[1] {
                 Some(_) => {
                     *phase = 1;
-                    OperationAction::RequestHostOperation {
+                    OperationAction::RequestHostCall {
                         request: conduit_kernel::RequestId(0),
-                        operation: conduit_kernel::HostOperationId(0),
+                        operation: conduit_kernel::HostCallId(0),
                         input: conduit_kernel::BoundedValueRef::new(
                             values[0].expect("a source always has its first value"),
                             SCALAR_ENCODED_LEN as u32,

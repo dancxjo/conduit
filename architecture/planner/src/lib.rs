@@ -493,7 +493,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
         for requirement in &capability.authority_requirements {
             let mut matches = authority_grants.iter().filter(|grant| {
                 grant.contract_id == requirement.contract_id
-                    && grant.host_operation_contract_id == requirement.host_operation_contract_id
+                    && grant.host_call_contract_id == requirement.host_call_contract_id
                     && grant.subject_kind == requirement.subject_kind
                     && grant.host_id == host.host_id
                     && grant.boot_id == host.boot_id
@@ -519,7 +519,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             authority_bindings.push(AuthorityBinding {
                 grant_id: grant.grant_id.clone(),
                 contract_id: grant.contract_id.clone(),
-                host_operation_contract_id: grant.host_operation_contract_id.clone(),
+                host_call_contract_id: grant.host_call_contract_id.clone(),
                 subject_kind: grant.subject_kind.clone(),
                 host_id: grant.host_id.clone(),
                 boot_id: grant.boot_id.clone(),
@@ -554,7 +554,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             limits: capability.limits.clone(),
             inputs: capability.inputs.clone(),
             outputs: capability.outputs.clone(),
-            host_operations: capability.host_operations.clone(),
+            host_calls: capability.host_calls.clone(),
             resources: resource_bindings,
             authority: authority_bindings,
             pool_references: gear.pool_references.clone(),
@@ -817,7 +817,7 @@ fn validate_operation_capability(
             capability.capability_id.as_str()
         )));
     }
-    if capability.host_operations.iter().any(|requirement| {
+    if capability.host_calls.iter().any(|requirement| {
         requirement.contract_id.as_str().is_empty()
             || requirement
                 .target_kind
@@ -825,11 +825,11 @@ fn validate_operation_capability(
                 .is_some_and(|target| target.as_str().is_empty())
             || requirement.maximum_in_flight == 0
     }) || capability
-        .host_operations
+        .host_calls
         .windows(2)
         .any(|pair| pair[0] >= pair[1])
     {
-        return Err(PlannerError::InvalidHostOperationRequirement(format!(
+        return Err(PlannerError::InvalidHostCallRequirement(format!(
             "capability '{}' requirements must have non-empty identities, unique canonical ordering, and nonzero in-flight bounds",
             capability.capability_id.as_str()
         )));
@@ -857,11 +857,11 @@ fn validate_operation_capability(
     }
     if capability.authority_requirements.iter().any(|requirement| {
         requirement.contract_id.as_str().is_empty()
-            || requirement.host_operation_contract_id.as_str().is_empty()
+            || requirement.host_call_contract_id.as_str().is_empty()
             || requirement.subject_kind.as_str().is_empty()
-            || !capability.host_operations.iter().any(|host_operation| {
-                host_operation.contract_id == requirement.host_operation_contract_id
-                    && host_operation.target_kind.as_ref() == Some(&requirement.subject_kind)
+            || !capability.host_calls.iter().any(|host_call| {
+                host_call.contract_id == requirement.host_call_contract_id
+                    && host_call.target_kind.as_ref() == Some(&requirement.subject_kind)
             })
     }) || capability
         .authority_requirements
@@ -869,7 +869,7 @@ fn validate_operation_capability(
         .any(|pair| pair[0] >= pair[1])
     {
         return Err(PlannerError::InvalidAuthorityContract(format!(
-            "capability '{}' authority requirements must bind a declared targeted host operation with non-empty identities and unique canonical ordering",
+            "capability '{}' authority requirements must bind a declared targeted Host Call with non-empty identities and unique canonical ordering",
             capability.capability_id.as_str()
         )));
     }
@@ -880,7 +880,7 @@ fn validate_authority_grants(grants: &[AuthorityGrant]) -> Result<(), PlannerErr
     if grants.iter().any(|grant| {
         grant.grant_id.as_str().is_empty()
             || grant.contract_id.as_str().is_empty()
-            || grant.host_operation_contract_id.as_str().is_empty()
+            || grant.host_call_contract_id.as_str().is_empty()
             || grant.subject_kind.as_str().is_empty()
             || grant.host_id.as_str().is_empty()
             || grant.boot_id.as_str().is_empty()

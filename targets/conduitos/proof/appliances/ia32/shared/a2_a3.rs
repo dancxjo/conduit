@@ -256,7 +256,7 @@ fn machine_sign(nonce: u64, lane: &AdmittedLane, idle: u32, wakes: u32) {
     out.decimal(lane.decisions());
     out.push(b",\"kernel_signs\":");
     out.decimal(u32::from(lane.signs()));
-    out.push(b",\"pending_host_operations\":0,\"sequence\":[\"machine-init\",\"lane-handoff\",\"idle\",\"timer-wake\",\"terminal\"],\"a3_ordinary_form_claimed\":false}\n");
+    out.push(b",\"pending_host_calls\":0,\"sequence\":[\"machine-init\",\"lane-handoff\",\"idle\",\"timer-wake\",\"terminal\"],\"a3_ordinary_form_claimed\":false}\n");
     arch::present(out.bytes());
 }
 

@@ -19,7 +19,7 @@ pub(crate) fn validate_shape(
     {
         return Err(GenerationError::InconsistentLowering("cord tables"));
     }
-    if lowered.host_operations.len() != lowered.identity.host_operations.len()
+    if lowered.host_calls.len() != lowered.identity.host_calls.len()
         || lowered.resources.len() != lowered.identity.resources.len()
         || lowered.signs.len() != fragment.expected_sign.len()
     {
@@ -30,9 +30,9 @@ pub(crate) fn validate_shape(
     check_bound("cords", lowered.cords.len(), bounds.maximum_cords)?;
     check_bound("routes", lowered.routes.len(), bounds.maximum_routes)?;
     check_bound(
-        "host operations",
-        lowered.host_operations.len(),
-        bounds.maximum_host_operations,
+        "Host Calls",
+        lowered.host_calls.len(),
+        bounds.maximum_host_calls,
     )?;
     check_bound(
         "resources",

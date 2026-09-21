@@ -134,7 +134,7 @@ pub fn run_prove_pico_wifi_bootstrap(
         || generated.firmware_build_id != identity.firmware_build_id
         || generated.nodes != 2
         || generated.cords != 2
-        || generated.host_operations != 2
+        || generated.host_calls != 2
         || generated.cord_value_slots != 2
         || generated.cord_value_bytes
             != conduit_net::MAXIMUM_JOIN_INPUT_BYTES + conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES

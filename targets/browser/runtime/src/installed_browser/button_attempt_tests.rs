@@ -59,12 +59,10 @@ fn planned_attempt_preserves_browser_bounds_and_requires_timer_admission() {
         .canonical_bytes()
         .unwrap();
     let value = store.store(&bytes).unwrap();
-    let OperationAction::RequestHostOperation { input, .. } =
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value,
-        })
-    else {
+    let OperationAction::RequestHostCall { input, .. } = operation.resume(OperationInput::Value {
+        port: PortId(0),
+        value,
+    }) else {
         panic!("attempt must request observation");
     };
     assert_eq!(input.admitted_bytes, 4096);

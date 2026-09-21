@@ -50,7 +50,7 @@ fn fragment() -> PlanFragment {
     source_offer.outputs = source_offer.inputs.clone();
     source_offer.outputs[0].direction = PortDirection::Output;
     source_offer.inputs.clear();
-    source_offer.host_operations.clear();
+    source_offer.host_calls.clear();
     source_offer.startup_parameters.clear();
     source_offer.implementation.implementation_id = "fixture/measurement-window@1".into();
     source_offer.implementation.artifact_id = "fixture/measurement-window@1".into();

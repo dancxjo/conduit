@@ -79,7 +79,7 @@ fn standing_timer_stage_presents_zero_then_one_and_stops_with_next_wait_pending(
     );
     assert_eq!(evidence.run.logical_operations, 3);
     assert_eq!(evidence.run.timer_irq_wakes, 1);
-    assert_eq!(evidence.run.pending_host_operations, 1);
+    assert_eq!(evidence.run.pending_host_calls, 1);
     assert!(evidence.run.timer_pending_during_text_progress);
     assert_eq!(serial.0, [b"0".as_slice(), b"1".as_slice()]);
     let proof = product.controller().last_run().unwrap();

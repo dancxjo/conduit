@@ -27,7 +27,7 @@ fn offer() -> CapabilityOffer {
             ),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-browser-runtime/final-normalized-pattern@1"),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -63,6 +63,6 @@ mod tests {
         let offer = offer();
         assert_eq!(offer.inputs, contract.inputs);
         assert_eq!(offer.outputs, contract.outputs);
-        assert!(offer.host_operations.is_empty());
+        assert!(offer.host_calls.is_empty());
     }
 }

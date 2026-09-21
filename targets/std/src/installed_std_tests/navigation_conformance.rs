@@ -132,7 +132,7 @@ fn portable_navigation_executes_as_one_bounded_production_play() {
         kernel
             .kernel_sign
             .iter()
-            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted)
+            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostCallCompleted)
             .count(),
         11
     );

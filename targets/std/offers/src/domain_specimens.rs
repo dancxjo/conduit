@@ -2,20 +2,19 @@
 
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const EDUCATION_PROFILE: &str = "std/education-assessment-hosted@1";
 pub const EDUCATION_ARTIFACT: &str = "conduit-std-host/education-assessment@1";
-pub const EDUCATION_HOST_OPERATION: &str = "conduit.host/education-deterministic@1";
+pub const EDUCATION_HOST_CALL: &str = "conduit.host/education-deterministic@1";
 pub const VISION_PROFILE: &str = "std/vision-metadata-hosted@1";
 pub const VISION_ARTIFACT: &str = "conduit-std-host/vision-metadata@1";
-pub const VISION_HOST_OPERATION: &str = "conduit.host/vision-deterministic@1";
+pub const VISION_HOST_CALL: &str = "conduit.host/vision-deterministic@1";
 pub const ROBOTICS_STRUCTURED_PROFILE: &str = "std/robotics-structured-deterministic@1";
 pub const ROBOTICS_STRUCTURED_ARTIFACT: &str = "conduit-std-host/robotics-structured@1";
-pub const ROBOTICS_STRUCTURED_HOST_OPERATION: &str =
-    "conduit.host/robotics-structured-deterministic@1";
+pub const ROBOTICS_STRUCTURED_HOST_CALL: &str = "conduit.host/robotics-structured-deterministic@1";
 
 pub fn education_std_offers() -> Vec<CapabilityOffer> {
     conduit_semantic_catalog::education_semantic_contracts()
@@ -25,7 +24,7 @@ pub fn education_std_offers() -> Vec<CapabilityOffer> {
                 contract,
                 EDUCATION_PROFILE,
                 EDUCATION_ARTIFACT,
-                EDUCATION_HOST_OPERATION,
+                EDUCATION_HOST_CALL,
             )
         })
         .collect()
@@ -34,14 +33,7 @@ pub fn education_std_offers() -> Vec<CapabilityOffer> {
 pub fn vision_std_offers() -> Vec<CapabilityOffer> {
     conduit_semantic_catalog::vision_semantic_contracts()
         .into_iter()
-        .map(|contract| {
-            offer(
-                contract,
-                VISION_PROFILE,
-                VISION_ARTIFACT,
-                VISION_HOST_OPERATION,
-            )
-        })
+        .map(|contract| offer(contract, VISION_PROFILE, VISION_ARTIFACT, VISION_HOST_CALL))
         .collect()
 }
 
@@ -56,14 +48,14 @@ pub fn robotics_structured_deterministic_offers() -> Vec<CapabilityOffer> {
                 contract,
                 ROBOTICS_STRUCTURED_PROFILE,
                 ROBOTICS_STRUCTURED_ARTIFACT,
-                ROBOTICS_STRUCTURED_HOST_OPERATION,
+                ROBOTICS_STRUCTURED_HOST_CALL,
             )
         })
         .collect()
 }
 
 #[allow(clippy::too_many_arguments)]
-fn offer(contract: Kind, profile: &str, artifact: &str, host_operation: &str) -> CapabilityOffer {
+fn offer(contract: Kind, profile: &str, artifact: &str, host_call: &str) -> CapabilityOffer {
     let maximum_input_bytes = if contract.inputs.is_empty() {
         0
     } else {
@@ -82,8 +74,8 @@ fn offer(contract: Kind, profile: &str, artifact: &str, host_operation: &str) ->
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(format!("{profile}/{}", kind.as_str())),
             artifact_id: ArtifactId::from(artifact),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(host_operation),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(host_call),
                 target_kind: Some(kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes,

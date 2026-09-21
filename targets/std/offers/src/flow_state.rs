@@ -2,7 +2,7 @@
 
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
 };
 
 pub const STATE_LATEST_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/state-latest-scalar-kernel@2";
@@ -14,8 +14,8 @@ pub const FLOW_TEE_SCALAR_ARTIFACT: &str = "conduit-std-host/flow-tee-scalar@2";
 pub const FLOW_GATE_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/flow-gate-scalar-kernel@1";
 pub const FLOW_GATE_SCALAR_IMPLEMENTATION: &str = "std/kernel-flow-gate-scalar@1";
 pub const FLOW_GATE_SCALAR_ARTIFACT: &str = "conduit-std-host/flow-gate-scalar@1";
-pub const FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT: &str = "conduit.host/decode-bool@1";
-pub const FLOW_GATE_BOOL_HOST_OPERATION_TARGET: &str = "value/decode-bool";
+pub const FLOW_GATE_BOOL_HOST_CALL_CONTRACT: &str = "conduit.host/decode-bool@1";
+pub const FLOW_GATE_BOOL_HOST_CALL_TARGET: &str = "value/decode-bool";
 pub const STATE_SELECT_SCALAR_EXECUTION_PROFILE: &str = "conduit.std/state-select-scalar-kernel@1";
 pub const STATE_SELECT_SCALAR_IMPLEMENTATION: &str = "std/kernel-state-select-scalar@1";
 pub const STATE_SELECT_SCALAR_ARTIFACT: &str = "conduit-std-host/state-select-scalar@1";
@@ -49,9 +49,9 @@ pub fn flow_gate_scalar_offer() -> CapabilityOffer {
         FLOW_GATE_SCALAR_EXECUTION_PROFILE,
         FLOW_GATE_SCALAR_IMPLEMENTATION,
         FLOW_GATE_SCALAR_ARTIFACT,
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT),
-            target_kind: Some(kind_id(FLOW_GATE_BOOL_HOST_OPERATION_TARGET)),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(FLOW_GATE_BOOL_HOST_CALL_CONTRACT),
+            target_kind: Some(kind_id(FLOW_GATE_BOOL_HOST_CALL_TARGET)),
             maximum_in_flight: 1,
             maximum_input_bytes: 1,
             maximum_output_bytes: 1,
@@ -76,7 +76,7 @@ fn offer(
     profile: &str,
     implementation: &str,
     artifact: &str,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
 ) -> CapabilityOffer {
     BackOfferBuilder::new(
         contract,
@@ -85,7 +85,7 @@ fn offer(
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operations,
+            host_calls,
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -122,6 +122,6 @@ mod tests {
             assert_eq!(offer.outputs, contract.outputs);
             assert_eq!(offer.limits, contract.limits);
         }
-        assert_eq!(flow_gate_scalar_offer().host_operations.len(), 1);
+        assert_eq!(flow_gate_scalar_offer().host_calls.len(), 1);
     }
 }

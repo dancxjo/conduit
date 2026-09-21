@@ -18,8 +18,8 @@ use preparation::{prepare_scheduler, validate_envelope};
 mod quantity_tests;
 
 use crate::installed_browser::{
-    factory, BrowserManifestation, BrowserOperation, BROWSER_HOST_OPERATIONS_PER_GEAR,
-    BROWSER_HOST_OPERATION_BINDINGS, BROWSER_PENDING_REQUESTS, BROWSER_PORTS_PER_GEAR,
+    factory, BrowserManifestation, BrowserOperation, BROWSER_HOST_CALLS_PER_GEAR,
+    BROWSER_HOST_CALL_BINDINGS, BROWSER_PENDING_REQUESTS, BROWSER_PORTS_PER_GEAR,
     BROWSER_QUEUE_SLOTS, BROWSER_ROUTE_SLOTS, BROWSER_ROUTE_TARGETS, BROWSER_SIGN_ITEMS,
     BROWSER_TOTAL_VALUE_BYTES, BROWSER_VALUE_ITEMS, MAXIMUM_BROWSER_CORDS,
     MAXIMUM_BROWSER_FORM_CORDS, MAXIMUM_BROWSER_FORM_GEARS, MAXIMUM_BROWSER_GEARS,
@@ -27,12 +27,11 @@ use crate::installed_browser::{
 };
 use conduit_core::PlanFragment;
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver, SchedulerStatus,
+    CordSpec, FixedScheduler, HostCallRequest, NodeSpec, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationOutcome, HostedSignLog, HostedValueStore, NodeId,
-    PortId,
+    BoundedValueRef, CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
+    HostCallOutcome, HostedSignLog, HostedValueStore, NodeId, PortId,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
 
@@ -46,7 +45,7 @@ type BrowserKernel = FixedScheduler<
     BROWSER_QUEUE_SLOTS,
     BROWSER_ROUTE_SLOTS,
     BROWSER_ROUTE_TARGETS,
-    BROWSER_HOST_OPERATION_BINDINGS,
+    BROWSER_HOST_CALL_BINDINGS,
     BROWSER_PENDING_REQUESTS,
 >;
 
@@ -96,7 +95,7 @@ impl core::ops::DerefMut for TourScheduler {
 }
 
 pub(super) struct PendingHostEffect {
-    pub request: HostOperationRequest,
+    pub request: HostCallRequest,
     pub effect: BrowserHostEffect,
 }
 
@@ -202,7 +201,7 @@ fn drive_with_boundary<'a>(
                 .is_some()
             {
                 return Ok(DriveStatus::Waiting {
-                    pending_effects: scheduler.pending_host_operation_count(),
+                    pending_effects: scheduler.pending_host_call_count(),
                 });
             }
         }
@@ -222,9 +221,9 @@ fn drive_with_boundary<'a>(
             let placement = placement_for(request.node)
                 .ok_or_else(|| "browser request has no planned placement".to_string())?;
             let operation = placement
-                .host_operations
+                .host_calls
                 .get(usize::from(request.operation.0))
-                .ok_or_else(|| "browser request has no planned host operation".to_string())?;
+                .ok_or_else(|| "browser request has no planned Host Call".to_string())?;
             if resource_effect::matches(operation.contract_id.as_str()) {
                 if let Some(pending) = resource_effect::begin(scheduler, placement, request)? {
                     return Ok(DriveStatus::Effect(pending));
@@ -255,12 +254,17 @@ fn drive_with_boundary<'a>(
                     effect: BrowserHostEffect::PcmPlayback { frame: input },
                 }));
             }
-            if operation.contract_id.as_str() == crate::installed_browser::button_attempt::TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_OPERATION {
-                return Ok(DriveStatus::Effect(PendingHostEffect { request, effect: BrowserHostEffect::ClockObservation }));
+            if operation.contract_id.as_str()
+                == crate::installed_browser::button_attempt::TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_CALL
+            {
+                return Ok(DriveStatus::Effect(PendingHostEffect {
+                    request,
+                    effect: BrowserHostEffect::ClockObservation,
+                }));
             }
-            if operation.contract_id.as_str() == conduit_core::WAIT_HOST_OPERATION_CONTRACT
+            if operation.contract_id.as_str() == conduit_core::WAIT_HOST_CALL_CONTRACT
                 || operation.contract_id.as_str()
-                    == conduit_core::MONOTONIC_TIMER_HOST_OPERATION_CONTRACT
+                    == conduit_core::MONOTONIC_TIMER_HOST_CALL_CONTRACT
             {
                 let duration_millis = decode_timer_duration(operation, &input)?;
                 return Ok(DriveStatus::Effect(PendingHostEffect {
@@ -268,8 +272,7 @@ fn drive_with_boundary<'a>(
                     effect: BrowserHostEffect::Timer { duration_millis },
                 }));
             }
-            if operation.contract_id.as_str()
-                == crate::installed_browser::startup_chime::HOST_OPERATION
+            if operation.contract_id.as_str() == crate::installed_browser::startup_chime::HOST_CALL
             {
                 let pulse = conduit_core::InfoBool::decode(&input)
                     .map_err(|error| format!("audio cue pulse: {error:?}"))?;
@@ -280,11 +283,11 @@ fn drive_with_boundary<'a>(
                     }));
                 }
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: None,
                             failure: None,
                         },
@@ -292,9 +295,7 @@ fn drive_with_boundary<'a>(
                     .map_err(debug_error)?;
                 continue;
             }
-            if operation.contract_id.as_str()
-                == crate::installed_browser::pitch_tone::HOST_OPERATION
-            {
+            if operation.contract_id.as_str() == crate::installed_browser::pitch_tone::HOST_CALL {
                 let quantity = conduit_core::Quantity::decode(&input)
                     .map_err(|error| format!("pitch tone quantity: {error:?}"))?
                     .convert(conduit_core::QuantityUnit::Hertz)
@@ -338,18 +339,18 @@ fn drive_with_boundary<'a>(
             let installation = factory(&placement.implementation_id)
                 .ok_or_else(|| "browser request implementation is not installed".to_string())?;
             let perform = installation.perform.ok_or_else(|| {
-                "local browser implementation requested an unknown Host operation".to_string()
+                "local browser implementation requested an unknown Host Call".to_string()
             })?;
             let result = perform(placement, &input)?;
             match (result.output, result.manifestation) {
                 (Some(output), None) => {
                     let output = scheduler.store_host_value(&output).map_err(debug_error)?;
                     scheduler
-                        .complete_host_operation(
+                        .complete_host_call(
                             request.node,
                             request.request,
-                            HostOperationOutcome {
-                                disposition: HostOperationDisposition::Completed,
+                            HostCallOutcome {
+                                disposition: HostCallDisposition::Completed,
                                 output: Some(
                                     BoundedValueRef::new(output, operation.maximum_output_bytes)
                                         .map_err(|_| {
@@ -387,9 +388,9 @@ fn drive_with_boundary<'a>(
                     }
                 })
             }
-            SchedulerStatus::Idle if scheduler.pending_host_operation_count() > 0 => {
+            SchedulerStatus::Idle if scheduler.pending_host_call_count() > 0 => {
                 return Ok(DriveStatus::Waiting {
-                    pending_effects: scheduler.pending_host_operation_count(),
+                    pending_effects: scheduler.pending_host_call_count(),
                 });
             }
             SchedulerStatus::Idle if allow_remote_wait => return Ok(DriveStatus::Quiescent),
@@ -404,16 +405,15 @@ fn drive_with_boundary<'a>(
 mod body_partition_tests;
 
 fn decode_timer_duration(
-    operation: &conduit_core::HostOperationRequirement,
+    operation: &conduit_core::HostCallRequirement,
     input: &[u8],
 ) -> Result<u64, String> {
-    let expected_target = if operation.contract_id.as_str()
-        == conduit_core::MONOTONIC_TIMER_HOST_OPERATION_CONTRACT
-    {
-        Some(conduit_semantic_catalog::TIMED_BUTTON_ATTEMPT_KIND.into())
-    } else {
-        None
-    };
+    let expected_target =
+        if operation.contract_id.as_str() == conduit_core::MONOTONIC_TIMER_HOST_CALL_CONTRACT {
+            Some(conduit_semantic_catalog::TIMED_BUTTON_ATTEMPT_KIND.into())
+        } else {
+            None
+        };
     if operation.target_kind != expected_target
         || operation.maximum_in_flight != 1
         || operation.maximum_input_bytes != conduit_time::TICK_ENCODED_LEN

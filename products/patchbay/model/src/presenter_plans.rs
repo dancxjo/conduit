@@ -296,7 +296,7 @@ fn text_literal_fixture_offer(implementation: &str) -> conduit_core::CapabilityO
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: contract.limits,

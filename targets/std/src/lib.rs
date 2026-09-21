@@ -1459,7 +1459,7 @@ impl StdHost {
         Ok(conduit_core::AuthorityGrant {
             grant_id: conduit_core::AuthorityGrantId::from(grant_id),
             contract_id: requirement.contract_id.clone(),
-            host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+            host_call_contract_id: requirement.host_call_contract_id.clone(),
             subject_kind: requirement.subject_kind.clone(),
             host_id: self.advertisement.host_id.clone(),
             boot_id: self.advertisement.boot_id.clone(),
@@ -1496,7 +1496,7 @@ impl StdHost {
         Ok(conduit_core::AuthorityGrant {
             grant_id: conduit_core::AuthorityGrantId::from(grant_id),
             contract_id: requirement.contract_id.clone(),
-            host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+            host_call_contract_id: requirement.host_call_contract_id.clone(),
             subject_kind: requirement.subject_kind.clone(),
             host_id: self.advertisement.host_id.clone(),
             boot_id: self.advertisement.boot_id.clone(),
@@ -1538,7 +1538,7 @@ impl StdHost {
             .map(|(index, requirement)| conduit_core::AuthorityGrant {
                 grant_id: conduit_core::AuthorityGrantId::from(format!("{grant_prefix}-{index}")),
                 contract_id: requirement.contract_id.clone(),
-                host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+                host_call_contract_id: requirement.host_call_contract_id.clone(),
                 subject_kind: requirement.subject_kind.clone(),
                 host_id: self.advertisement.host_id.clone(),
                 boot_id: self.advertisement.boot_id.clone(),
@@ -1766,7 +1766,7 @@ mod tests {
         assert_eq!(lowered.nodes.len(), 2);
         assert_eq!(lowered.cords.len(), 1);
         assert_eq!(lowered.routes.len(), 1);
-        assert_eq!(lowered.host_operations.len(), 2);
+        assert_eq!(lowered.host_calls.len(), 2);
         assert_eq!(lowered.resources.len(), 2);
         assert_eq!(lowered.cord_value_slots, 4);
         assert_eq!(lowered.cord_value_bytes, 64);
@@ -1802,15 +1802,13 @@ mod tests {
                 Some(port.port)
             );
         }
-        for (node, operation, contract) in &lowered.identity.host_operations {
+        for (node, operation, contract) in &lowered.identity.host_calls {
             assert_eq!(
-                lowered.identity.host_operation_contract(*node, *operation),
+                lowered.identity.host_call_contract(*node, *operation),
                 Some(contract)
             );
             assert_eq!(
-                lowered
-                    .identity
-                    .host_operation_for_contract(*node, contract),
+                lowered.identity.host_call_for_contract(*node, contract),
                 Some(*operation)
             );
         }
@@ -1826,7 +1824,7 @@ mod tests {
             .any(|port| port.direction == PortDirection::Output));
         assert_eq!(lowered.signs.len(), fragment.expected_sign.len());
         assert!(lowered
-            .host_operations
+            .host_calls
             .iter()
             .any(|operation| operation.binding.maximum_output_bytes == 0));
         assert_eq!(
@@ -1847,15 +1845,11 @@ mod tests {
             expanded_form_id: fragment.expanded_form_id.clone(),
         };
         let mut concurrent = fragment.clone();
-        concurrent.placements[0].host_operations[0].maximum_in_flight = 2;
+        concurrent.placements[0].host_calls[0].maximum_in_flight = 2;
         let concurrent = seal_plan(form_identity.clone(), vec![concurrent]);
         assert!(matches!(
             conduit_plan_lowering::lowering::lower_plan_fragment(&concurrent.fragments[0]),
-            Err(
-                conduit_plan_lowering::lowering::LoweringError::UnsupportedHostOperationConcurrency(
-                    _
-                )
-            )
+            Err(conduit_plan_lowering::lowering::LoweringError::UnsupportedHostCallConcurrency(_))
         ));
 
         let mut fan_in = fragment.clone();
@@ -2050,7 +2044,7 @@ mod tests {
                 let request = kernel
                     .identity
                     .request(presentation.node, presentation.request)
-                    .expect("presentation request reverses to its host-operation contract");
+                    .expect("presentation request reverses to its Host Call contract");
                 assert!(kernel
                     .identity
                     .request_for_contract(presentation.node, &request.contract_id)

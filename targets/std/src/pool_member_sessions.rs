@@ -325,7 +325,7 @@ mod tests {
             },
             inputs: vec![],
             outputs: vec![],
-            host_operations: vec![],
+            host_calls: vec![],
             resources: vec![],
             authority: vec![],
             pool_references: vec![pool_id.clone()],

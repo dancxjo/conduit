@@ -205,7 +205,7 @@ fn plan(
                         capability.capability_id.as_str()
                     )),
                     contract_id: requirement.contract_id.clone(),
-                    host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+                    host_call_contract_id: requirement.host_call_contract_id.clone(),
                     subject_kind: requirement.subject_kind.clone(),
                     host_id: host.host().advertisement().host_id.clone(),
                     boot_id: host.host().advertisement().boot_id.clone(),

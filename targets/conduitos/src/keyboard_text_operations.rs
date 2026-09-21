@@ -1,7 +1,7 @@
 //! Production operation state machines for the ordinary keyboard-text Play.
 
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, Operation, OperationAction,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, Operation, OperationAction,
     OperationInput, PortId, RequestId, ValueRef,
 };
 
@@ -61,9 +61,9 @@ impl Operation for KeyboardOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -100,9 +100,9 @@ impl KeyboardOperation {
     fn request(&mut self) -> OperationAction {
         let request = RequestId(self.next);
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: conduit_kernel::HostOperationId(0),
+            operation: conduit_kernel::HostCallId(0),
             input: BoundedValueRef::new(self.empty, 0).expect("empty input is admitted"),
         }
     }
@@ -121,18 +121,18 @@ impl Operation for StreamTransformOperation {
             } if self.pending.is_none() => {
                 let request = RequestId(self.next);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: conduit_kernel::HostOperationId(0),
+                    operation: conduit_kernel::HostCallId(0),
                     input: match BoundedValueRef::new(value, value.byte_len) {
                         Ok(value) => value,
                         Err(_) => return fail(61),
                     },
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 self.pending = None;
@@ -174,18 +174,18 @@ impl Operation for PresentationOperation {
             } if self.pending.is_none() => {
                 let request = RequestId(self.next);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: conduit_kernel::HostOperationId(0),
+                    operation: conduit_kernel::HostCallId(0),
                     input: match BoundedValueRef::new(value, value.byte_len) {
                         Ok(value) => value,
                         Err(_) => return fail(64),
                     },
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -219,9 +219,9 @@ impl Operation for ApplicationOperation {
                 port: PortId(0),
                 value,
             } if self.pending.is_none() && !self.initial => self.request(value),
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 self.pending = None;
@@ -254,9 +254,9 @@ impl ApplicationOperation {
         };
         self.next = next;
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: conduit_kernel::HostOperationId(0),
+            operation: conduit_kernel::HostCallId(0),
             input: match BoundedValueRef::new(value, value.byte_len) {
                 Ok(value) => value,
                 Err(_) => return fail(70),

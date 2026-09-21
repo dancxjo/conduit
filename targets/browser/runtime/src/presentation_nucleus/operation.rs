@@ -1,6 +1,6 @@
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, Operation, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, HostCallDisposition, HostCallId, Operation, OperationAction, OperationInput,
+    PortId, RequestId, ValueRef,
 };
 
 pub(super) enum NucleusOperation {
@@ -46,9 +46,9 @@ impl Operation for NucleusOperation {
                 },
             ) if !*pending && !*emitted => {
                 *pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, *maximum_input_bytes)
                         .expect("portable presentation value is bounded"),
                 }
@@ -65,9 +65,9 @@ impl Operation for NucleusOperation {
                 },
             ) if !*pending => {
                 *pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, *maximum_input_bytes)
                         .expect("fixture manifestation value is bounded"),
                 }
@@ -76,12 +76,12 @@ impl Operation for NucleusOperation {
                 Self::Transform {
                     pending, emitted, ..
                 },
-                OperationInput::HostOperationCompleted {
+                OperationInput::HostCallCompleted {
                     request: RequestId(0),
                     outcome,
                 },
             ) if *pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -98,12 +98,12 @@ impl Operation for NucleusOperation {
                 Self::Sink {
                     pending, complete, ..
                 },
-                OperationInput::HostOperationCompleted {
+                OperationInput::HostCallCompleted {
                     request: RequestId(0),
                     outcome,
                 },
             ) if *pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.failure.is_none()
                 && outcome.output.is_none() =>
             {

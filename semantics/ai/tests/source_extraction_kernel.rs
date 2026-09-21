@@ -12,17 +12,16 @@ use conduit_kernel::{
     scheduler::{
         CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver, SchedulerStatus,
     },
-    BoundedValueRef, CordEndpoint, CordId, Failure, FailureCode, FixedHostOperationBindings,
-    FixedRoutes, HostOperationBinding, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEvent, NodeId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget, SignSink,
-    ValueRef, ValueStorage,
+    BoundedValueRef, CordEndpoint, CordId, Failure, FailureCode, FixedHostCallBindings,
+    FixedRoutes, HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog,
+    HostedValueStore, KernelEvent, NodeId, Operation, OperationAction, OperationInput, PortId,
+    RequestId, RouteRange, RouteTarget, SignSink, ValueRef, ValueStorage,
 };
 
 const SOURCE_NODE: NodeId = NodeId(0);
 const EXTRACTION_NODE: NodeId = NodeId(1);
 const SINK_NODE: NodeId = NodeId(2);
-const OPERATION: HostOperationId = HostOperationId(0);
+const OPERATION: HostCallId = HostCallId(0);
 const REQUEST: RequestId = RequestId(1);
 const MAX_VALUE_BYTES: u32 = 4096;
 
@@ -68,8 +67,8 @@ impl Operation for ExtractionOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { outcome, .. }
-                if outcome.disposition == HostOperationDisposition::Failed
+            OperationInput::HostCallCompleted { outcome, .. }
+                if outcome.disposition == HostCallDisposition::Failed
                     && outcome.failure.is_some() =>
             {
                 self.pending = false;
@@ -84,7 +83,7 @@ impl Operation for ExtractionOperation {
             return invalid(4);
         }
         self.pending = true;
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: REQUEST,
             operation: OPERATION,
             input: BoundedValueRef::new(
@@ -95,17 +94,17 @@ impl Operation for ExtractionOperation {
         }
     }
 
-    fn resume_host_operation(
+    fn resume_host_call(
         &mut self,
         request: RequestId,
-        outcome: HostOperationOutcome,
+        outcome: HostCallOutcome,
         canonical: Option<&[u8]>,
     ) -> OperationAction {
         if request != REQUEST || !self.pending {
             return invalid(5);
         }
-        if outcome.disposition != HostOperationDisposition::Completed || outcome.failure.is_some() {
-            return self.resume(OperationInput::HostOperationCompleted { request, outcome });
+        if outcome.disposition != HostCallDisposition::Completed || outcome.failure.is_some() {
+            return self.resume(OperationInput::HostCallCompleted { request, outcome });
         }
         let (Some(output), Some(bytes)) = (outcome.output, canonical) else {
             return invalid(6);
@@ -181,16 +180,14 @@ impl Operation for TestOperation {
             Self::Sink(operation) => operation.resume_value(port, value, bytes),
         }
     }
-    fn resume_host_operation(
+    fn resume_host_call(
         &mut self,
         request: RequestId,
-        outcome: HostOperationOutcome,
+        outcome: HostCallOutcome,
         canonical: Option<&[u8]>,
     ) -> OperationAction {
         match self {
-            Self::Extract(operation) => {
-                operation.resume_host_operation(request, outcome, canonical)
-            }
+            Self::Extract(operation) => operation.resume_host_call(request, outcome, canonical),
             _ => invalid(10),
         }
     }
@@ -280,11 +277,11 @@ fn scheduler(source: &SourceRef) -> Scheduler {
         )
         .unwrap();
     routes.seal().unwrap();
-    let mut operations = FixedHostOperationBindings::<3>::new(1);
+    let mut operations = FixedHostCallBindings::<3>::new(1);
     operations
         .install(
             EXTRACTION_NODE,
-            HostOperationBinding {
+            HostCallBinding {
                 operation: OPERATION,
                 maximum_input_bytes: conduit_core::MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES as u32,
                 maximum_output_bytes: MAX_VALUE_BYTES,
@@ -293,7 +290,7 @@ fn scheduler(source: &SourceRef) -> Scheduler {
         .unwrap();
     operations.seal().unwrap();
     let signs = HostedSignLog::new(64, (64 * core::mem::size_of::<KernelEvent>()) as u32).unwrap();
-    FixedScheduler::new_with_host_operations(
+    FixedScheduler::new_with_host_calls(
         [
             NodeSpec {
                 input_cords: [None],
@@ -353,7 +350,7 @@ fn scheduler(source: &SourceRef) -> Scheduler {
     .unwrap()
 }
 
-fn next_request(scheduler: &mut Scheduler) -> conduit_kernel::scheduler::HostOperationRequest {
+fn next_request(scheduler: &mut Scheduler) -> conduit_kernel::scheduler::HostCallRequest {
     for _ in 0..32 {
         if let Some(request) = scheduler.next_host_request() {
             return request;
@@ -402,11 +399,11 @@ fn admitted_source_executes_through_the_production_kernel() {
     let encoded = receipt.encode().unwrap();
     let output = scheduler.store_host_value(&encoded).unwrap();
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(BoundedValueRef::new(output, MAX_VALUE_BYTES).unwrap()),
                 failure: None,
             },
@@ -421,14 +418,14 @@ fn provider_loss_cancellation_and_pressure_remain_distinct_kernel_terminals() {
     let source = source();
     let mut lost = scheduler(&source);
     let request = next_request(&mut lost);
-    lost.complete_host_operation(
+    lost.complete_host_call(
         request.node,
         request.request,
-        HostOperationOutcome {
-            disposition: HostOperationDisposition::Failed,
+        HostCallOutcome {
+            disposition: HostCallDisposition::Failed,
             output: None,
             failure: Some(Failure {
-                code: FailureCode::HostOperationFailed,
+                code: FailureCode::HostCallFailed,
                 detail: 1,
             }),
         },
@@ -438,7 +435,7 @@ fn provider_loss_cancellation_and_pressure_remain_distinct_kernel_terminals() {
         lost.run(32),
         Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(
             conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::HostOperationFailed,
+                code: conduit_kernel::FailureCode::HostCallFailed,
                 detail: 1
             }
         ))
@@ -457,11 +454,11 @@ fn provider_loss_cancellation_and_pressure_remain_distinct_kernel_terminals() {
     let oversized = vec![0_u8; MAX_VALUE_BYTES as usize + 1];
     assert!(pressured.store_host_value(&oversized).is_err());
     pressured
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(Failure {
                     code: FailureCode::StorageExhausted,

@@ -3,8 +3,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -38,31 +38,27 @@ impl ModelTextOperation {
                 let request = RequestId(self.next_request);
                 self.next_request = self.next_request.saturating_add(1);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Denied, _, _) => {
-                        fail(FailureCode::HostOperationDenied, 2)
-                    }
-                    (HostOperationDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 3),
-                    (HostOperationDisposition::Failed, _, _) => {
-                        fail(FailureCode::HostOperationFailed, 4)
-                    }
+                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 2),
+                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 3),
+                    (HostCallDisposition::Failed, _, _) => fail(FailureCode::HostCallFailed, 4),
                     _ => fail(FailureCode::InvalidLifecycle, 5),
                 }
             }
@@ -109,7 +105,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id.as_str() != conduit_std_offers::MODEL_RESULT_TO_TEXT_STD_ARTIFACT
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || !placement.configuration.is_empty()
     {
         return Err("planned model-text projection identity does not match installation".into());
@@ -120,8 +116,8 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
 fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
     validate(placement)?;
     let offer = selected_offer(placement);
-    let input = offer.host_operations[0].maximum_input_bytes;
-    let output = offer.host_operations[0].maximum_output_bytes;
+    let input = offer.host_calls[0].maximum_input_bytes;
+    let output = offer.host_calls[0].maximum_output_bytes;
     let streaming_chunks = placement.kind_id.as_str() == conduit_ai::GENERATED_CHUNK_TO_TEXT_KIND;
     Ok(OperationBudget {
         value_items: if streaming_chunks {
@@ -154,7 +150,7 @@ fn prepare(
             placement.kind_id.as_str(),
             conduit_ai::MODEL_RESULT_FLOW_TO_TEXT_KIND | conduit_ai::GENERATED_CHUNK_TO_TEXT_KIND
         ),
-        maximum_input_bytes: offer.host_operations[0].maximum_input_bytes,
+        maximum_input_bytes: offer.host_calls[0].maximum_input_bytes,
     }))
 }
 

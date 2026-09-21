@@ -1,9 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
-    BoundedValueRef, CanonicalValue, Failure, FailureCode, HostOperationDisposition,
-    HostOperationId, HostOperationOutcome, OperationAction, PortId, RequestId, ValueRef,
-    ValueStorage,
+    BoundedValueRef, CanonicalValue, Failure, FailureCode, HostCallDisposition, HostCallId,
+    HostCallOutcome, OperationAction, PortId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_midi::{
     MidiInputAdapter, MidiInputObservation, MidiProfile, ParsedMidi, PortableMidiEvent,
@@ -32,14 +31,14 @@ impl MidiInputOperation {
         InstalledOperation::fail(91)
     }
 
-    pub(super) fn resume_host_operation(
+    pub(super) fn resume_host_call(
         &mut self,
         request: RequestId,
-        outcome: HostOperationOutcome,
+        outcome: HostCallOutcome,
         canonical: Option<&[u8]>,
     ) -> OperationAction {
         if self.pending != Some(request)
-            || outcome.disposition != HostOperationDisposition::Completed
+            || outcome.disposition != HostCallDisposition::Completed
             || outcome.failure.is_some()
             || outcome.output.is_none()
         {
@@ -102,9 +101,9 @@ impl MidiInputOperation {
         let request = RequestId(self.next_request);
         self.next_request += 1;
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(self.empty_input, 0)
                 .expect("empty MIDI source request is exact"),
         }
@@ -155,7 +154,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.limits != offer.limits
         || !placement.inputs.is_empty()
         || placement.outputs.len() != 2
@@ -176,9 +175,9 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         return Err("planned music/input MIDI identity/resource/authority mismatch".into());
     }
     let authority = &placement.authority[0];
-    let operation = &placement.host_operations[0];
+    let operation = &placement.host_calls[0];
     if authority.contract_id.as_str() != conduit_std_offers::MIDI_INPUT_AUTHORITY_CONTRACT
-        || authority.host_operation_contract_id != operation.contract_id
+        || authority.host_call_contract_id != operation.contract_id
         || authority.subject_kind.as_str()
             != operation
                 .target_kind
@@ -255,41 +254,39 @@ pub(super) fn prepare_session(
         .map_err(|error| format!("open planned MIDI input: {error:?}"))
 }
 
-pub(super) fn failure_outcome(error: crate::hosted_midi::MidiInputFailure) -> HostOperationOutcome {
+pub(super) fn failure_outcome(error: crate::hosted_midi::MidiInputFailure) -> HostCallOutcome {
     use crate::hosted_midi::MidiInputFailure;
     let (disposition, code, detail) = match error {
         MidiInputFailure::BackendUnavailable => (
-            HostOperationDisposition::Denied,
-            FailureCode::HostOperationDenied,
+            HostCallDisposition::Denied,
+            FailureCode::HostCallDenied,
             102,
         ),
         MidiInputFailure::ProviderLost => (
-            HostOperationDisposition::Failed,
-            FailureCode::HostOperationFailed,
+            HostCallDisposition::Failed,
+            FailureCode::HostCallFailed,
             103,
         ),
-        MidiInputFailure::Malformed(_) => (
-            HostOperationDisposition::Failed,
-            FailureCode::InvalidInput,
-            104,
-        ),
+        MidiInputFailure::Malformed(_) => {
+            (HostCallDisposition::Failed, FailureCode::InvalidInput, 104)
+        }
         MidiInputFailure::CapacityExceeded => (
-            HostOperationDisposition::Failed,
+            HostCallDisposition::Failed,
             FailureCode::StorageExhausted,
             105,
         ),
         MidiInputFailure::ClockRegressed => (
-            HostOperationDisposition::Failed,
+            HostCallDisposition::Failed,
             FailureCode::InvalidLifecycle,
             106,
         ),
         MidiInputFailure::InvalidLifecycle => (
-            HostOperationDisposition::Failed,
+            HostCallDisposition::Failed,
             FailureCode::InvalidLifecycle,
             107,
         ),
     };
-    HostOperationOutcome {
+    HostCallOutcome {
         disposition,
         output: None,
         failure: Some(Failure { code, detail }),

@@ -64,7 +64,7 @@ impl TypedStateOperation {
                 != conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION
             || placement.artifact_id.as_str() != conduit_std_offers::STATE_VALUE_STD_ARTIFACT
             || state.maximum_value_bytes > conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES
-            || !placement.host_operations.is_empty()
+            || !placement.host_calls.is_empty()
             || !placement.resources.is_empty()
             || !placement.authority.is_empty()
             || !placement.pool_references.is_empty()

@@ -13,9 +13,7 @@ use conduit_form::{
     StartupCatalog,
 };
 use conduit_kernel::scheduler::SchedulerStatus;
-use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationOutcome, HostedSignLog,
-};
+use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedSignLog};
 use conduit_plan_lowering::fragment_set::{lower_local_fragment_set, FragmentSetBounds};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE;
 
@@ -311,16 +309,16 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
             let operation = lowered
                 .partitions
                 .iter()
-                .flat_map(|part| &part.host_operations)
+                .flat_map(|part| &part.host_calls)
                 .find(|op| op.node == request.node && op.operation == request.operation)
                 .unwrap();
-            let mut result = HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            let mut result = HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             };
             if operation.contract_id.as_str()
-                == conduit_std_offers::NEXT_KEY_EVENT_HOST_OPERATION_CONTRACT
+                == conduit_std_offers::NEXT_KEY_EVENT_HOST_CALL_CONTRACT
             {
                 let Some(bytes) = keys.next() else {
                     continue;
@@ -328,7 +326,7 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
                 let value = kernel.store_host_value(&bytes).unwrap();
                 result.output = Some(BoundedValueRef::new(value, 3).unwrap());
             } else if operation.contract_id.as_str()
-                == conduit_std_offers::button::NEXT_TRANSITION_HOST_OPERATION
+                == conduit_std_offers::button::NEXT_TRANSITION_HOST_CALL
             {
                 let Some((pressed, sequence)) = buttons.next() else {
                     continue;
@@ -342,9 +340,7 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
                     )
                     .unwrap(),
                 );
-            } else if operation.contract_id.as_str()
-                == conduit_std_offers::TEXT_STATE_HOST_OPERATION
-            {
+            } else if operation.contract_id.as_str() == conduit_std_offers::TEXT_STATE_HOST_CALL {
                 let encoded = text_state_hosts[usize::from(request.node.0)]
                     .as_mut()
                     .unwrap()
@@ -354,7 +350,7 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
                     let value = kernel.store_host_value(encoded).unwrap();
                     BoundedValueRef::new(value, operation.binding.maximum_output_bytes).unwrap()
                 });
-            } else if operation.contract_id.as_str() == conduit_std_offers::KEYMAP_HOST_OPERATION {
+            } else if operation.contract_id.as_str() == conduit_std_offers::KEYMAP_HOST_CALL {
                 let encoded = crate::installed_std::input_semantic_operations::execute_host(
                     true,
                     &mut input_keymaps[usize::from(request.node.0)],
@@ -366,15 +362,15 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
                     BoundedValueRef::new(value, operation.binding.maximum_output_bytes).unwrap()
                 });
             } else if operation.contract_id
-                == conduit_core::wait_host_operation_requirement().contract_id
+                == conduit_core::wait_host_call_requirement().contract_id
             {
                 // Deterministic timer completion, not wall-clock or physical proof.
                 conduit_time::decode_tick(kernel.host_value(request.input.value).unwrap()).unwrap();
             } else if [
-                conduit_std_offers::TYPED_RECORD_FRAME_HOST_OPERATION,
-                conduit_std_offers::TYPED_RECORD_DEFRAME_HOST_OPERATION,
-                conduit_std_offers::TEXT_TO_TYPED_RECORD_HOST_OPERATION,
-                conduit_std_offers::TYPED_RECORD_TO_TEXT_HOST_OPERATION,
+                conduit_std_offers::TYPED_RECORD_FRAME_HOST_CALL,
+                conduit_std_offers::TYPED_RECORD_DEFRAME_HOST_CALL,
+                conduit_std_offers::TEXT_TO_TYPED_RECORD_HOST_CALL,
+                conduit_std_offers::TYPED_RECORD_TO_TEXT_HOST_CALL,
             ]
             .contains(&operation.contract_id.as_str())
             {
@@ -401,7 +397,7 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
                 .unwrap());
             }
             kernel
-                .complete_host_operation(request.node, request.request, result)
+                .complete_host_call(request.node, request.request, result)
                 .unwrap();
         }
         let step = kernel.step();

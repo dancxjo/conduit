@@ -5,13 +5,13 @@ use conduit_core::{bind_active_play, Observation, PlanFragment};
 #[cfg(test)]
 use conduit_core::{BaseImplementationId, CapabilityId, GearId};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput, PortId,
-    RemoteEndpointId, RequestId, SignQuery, ValueRef, ValueStorage,
+    BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
+    HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore,
+    KernelEventKind, Operation, OperationAction, OperationInput, PortId, RemoteEndpointId,
+    RequestId, SignQuery, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -107,9 +107,9 @@ impl Operation for PulseOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -139,9 +139,9 @@ impl Operation for PulseOperation {
         };
         let request = RequestId(sequence);
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(wait, 8).expect("sealed wait value is exactly admitted"),
         }
     }
@@ -211,7 +211,7 @@ impl DistributedSource {
             || lowered.cords.len() != 1
             || lowered.remote_endpoints.len() != 1
             || lowered.remote_endpoints[0].direction != RemoteCordDirection::Egress
-            || lowered.host_operations.len() != 1
+            || lowered.host_calls.len() != 1
         {
             return Err("source fragment did not lower to one exact remote egress".to_string());
         }
@@ -276,12 +276,9 @@ impl DistributedSource {
                 .map_err(|error| format!("{error:?}"))?;
         }
         routes.seal().map_err(|error| format!("{error:?}"))?;
-        let mut host_bindings = FixedHostOperationBindings::<1>::new(1);
+        let mut host_bindings = FixedHostCallBindings::<1>::new(1);
         host_bindings
-            .install(
-                lowered.host_operations[0].node,
-                lowered.host_operations[0].binding,
-            )
+            .install(lowered.host_calls[0].node, lowered.host_calls[0].binding)
             .map_err(|error| format!("{error:?}"))?;
         host_bindings.seal().map_err(|error| format!("{error:?}"))?;
         let driver = OperationDriver::new(PulseOperation {
@@ -303,7 +300,7 @@ impl DistributedSource {
             remote_sign_bytes,
         )
         .map_err(|error| format!("{error:?}"))?;
-        let scheduler = SourceScheduler::new_with_host_operations(
+        let scheduler = SourceScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()
@@ -337,7 +334,7 @@ impl DistributedSource {
                     &lowered.identity,
                     lowered.nodes[0].node,
                     RequestId(sequence as u32),
-                    HostOperationId(0),
+                    HostCallId(0),
                 )
                 .map_err(|error| format!("{error:?}"))?;
         }
@@ -378,7 +375,7 @@ impl DistributedSource {
         (remote.endpoint, remote.cord)
     }
 
-    fn complete_wait(&mut self, request: HostOperationRequest) -> Result<(), String> {
+    fn complete_wait(&mut self, request: HostCallRequest) -> Result<(), String> {
         let expected = self
             .identity
             .request(request.node, request.request)
@@ -397,11 +394,11 @@ impl DistributedSource {
         );
         thread::sleep(Duration::from_millis(duration));
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },

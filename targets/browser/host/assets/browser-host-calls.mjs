@@ -9,15 +9,15 @@ const MAXIMUM_RESOURCE_IDENTITY_BYTES = 256;
 const MAXIMUM_ID_BYTES = 96;
 const encoder = new TextEncoder();
 
-export class BrowserHostOperationRefusal extends Error {
+export class BrowserHostCallRefusal extends Error {
   constructor(code) {
-    super(`browser Host operation refused: ${code}`);
-    this.name = "BrowserHostOperationRefusal";
+    super(`browser Host Call refused: ${code}`);
+    this.name = "BrowserHostCallRefusal";
     this.code = code;
   }
 }
 
-const refuse = (code) => { throw new BrowserHostOperationRefusal(code); };
+const refuse = (code) => { throw new BrowserHostCallRefusal(code); };
 const byteLength = (value) => encoder.encode(value).byteLength;
 const validId = (value) => typeof value === "string" && value.length > 0
   && byteLength(value) <= MAXIMUM_ID_BYTES && /^[A-Za-z0-9][A-Za-z0-9._:/@-]*$/.test(value);
@@ -32,7 +32,7 @@ function bytesOf(value) {
 }
 
 function classify(error) {
-  if (error instanceof BrowserHostOperationRefusal) return error.code;
+  if (error instanceof BrowserHostCallRefusal) return error.code;
   if (error?.name === "AbortError" || error?.name === "NotFoundError") return "cancelled";
   if (error?.name === "NotAllowedError") return "denied";
   if (error?.name === "SecurityError") return "policy-prerequisite-absent";
@@ -97,7 +97,7 @@ function defaultDeviceAdapters() {
   });
 }
 
-export function createBrowserHostOperations({
+export function createBrowserHostCalls({
   hostId,
   bootId,
   applicationId,
@@ -134,20 +134,20 @@ export function createBrowserHostOperations({
     && (globalThis.navigator?.userActivation === undefined || navigator.userActivation.isActive === true);
   const admit = (request, kind) => {
     if (!request || request.contract !== CONTRACT || request.kind !== kind
-      || !validId(request.operationId) || request.hostId !== hostId || request.bootId !== bootId
+      || !validId(request.callId) || request.hostId !== hostId || request.bootId !== bootId
       || request.applicationId !== applicationId || request.applicationGeneration !== applicationGeneration
       || request.authorityGeneration !== authorityGeneration) refuse("malformed-request");
     if (!contextIsCurrent()) refuse("stale-request");
-    if (slots.has(request.operationId)) refuse("duplicate-operation");
-    if (slots.size === MAXIMUM_SLOTS) refuse("operation-pressure");
-    const admitted = Object.freeze({ operationId: request.operationId, kind });
-    slots.set(request.operationId, admitted);
+    if (slots.has(request.callId)) refuse("duplicate-call");
+    if (slots.size === MAXIMUM_SLOTS) refuse("call-pressure");
+    const admitted = Object.freeze({ callId: request.callId, kind });
+    slots.set(request.callId, admitted);
     return admitted;
   };
   const outcome = (admitted, disposition, details = {}) => Object.freeze({
     ...details,
     contract: CONTRACT,
-    operationId: admitted.operationId,
+    callId: admitted.callId,
     kind: admitted.kind,
     hostId,
     bootId,
@@ -168,7 +168,7 @@ export function createBrowserHostOperations({
     } catch (error) {
       return outcome(admitted, contextIsCurrent() ? classify(error) : "stale-completion");
     } finally {
-      slots.delete(admitted.operationId);
+      slots.delete(admitted.callId);
     }
   };
 
@@ -231,7 +231,7 @@ export function createBrowserHostOperations({
         const device = await adapter({ filters });
         if (!device) return Object.freeze({ disposition: "no-matching-device" });
         const resource = Object.freeze({
-          handle: `browser-resource/${request.operationId}`,
+          handle: `browser-resource/${request.callId}`,
           vendorId: device.vendorId ?? device.getInfo?.().usbVendorId ?? null,
           productId: device.productId ?? device.getInfo?.().usbProductId ?? null,
           serialNumber: device.serialNumber ?? null,
@@ -245,11 +245,11 @@ export function createBrowserHostOperations({
         });
       });
     },
-    activeOperations() { return slots.size; },
+    activeCalls() { return slots.size; },
   });
 }
 
-export const browserHostOperationLimits = Object.freeze({
+export const browserHostCallLimits = Object.freeze({
   contract: CONTRACT,
   slots: MAXIMUM_SLOTS,
   artifactBytes: MAXIMUM_ARTIFACT_BYTES,

@@ -1,12 +1,12 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{CapabilityOffer, PlannedGear, PortDirection};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, HostedValueStore, OperationAction,
+    BoundedValueRef, HostCallDisposition, HostCallId, HostedValueStore, OperationAction,
     OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) const DRAIN_MARKER: [u8; 1] = [0xff];
-pub(super) const HOST_OPERATION: &str = conduit_std_offers::AUDIO_PLAY_ALSA_HW_OPERATION;
+pub(super) const HOST_CALL: &str = conduit_std_offers::AUDIO_PLAY_ALSA_HW_OPERATION;
 
 pub(super) static AUDIO_PLAY_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION,
@@ -45,15 +45,14 @@ impl AudioPlayOperation {
                 self.closed = true;
                 self.request(self.drain_marker, true)
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 if let Some(failure) = outcome.failure {
                     return OperationAction::Fail(failure);
                 }
-                if outcome.disposition != HostOperationDisposition::Completed
-                    || outcome.output.is_some()
+                if outcome.disposition != HostCallDisposition::Completed || outcome.output.is_some()
                 {
                     return InstalledOperation::fail(61);
                 }
@@ -83,9 +82,9 @@ impl AudioPlayOperation {
         ) else {
             return InstalledOperation::fail(62);
         };
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input,
         }
     }
@@ -130,7 +129,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.limits != offer.limits
         || placement.inputs.len() != 1
         || placement.inputs[0].port_id.as_str() != "audio"
@@ -145,7 +144,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.authority.len() != 1
         || authority.is_none_or(|binding| {
             binding.contract_id.as_str() != conduit_std_offers::AUDIO_PLAYBACK_AUTHORITY_CONTRACT
-                || binding.host_operation_contract_id.as_str() != HOST_OPERATION
+                || binding.host_call_contract_id.as_str() != HOST_CALL
                 || binding.subject_kind.as_str() != conduit_audio::AUDIO_PCM_INFO_ID
                 || binding.host_id != placement.host_id
                 || binding.boot_id != placement.boot_id
@@ -191,15 +190,15 @@ pub(super) fn prepare_session(
 pub(super) fn execute(
     session: &mut crate::hosted_audio::PlaybackSession,
     input: &[u8],
-) -> conduit_kernel::HostOperationOutcome {
+) -> conduit_kernel::HostCallOutcome {
     let result = if input == DRAIN_MARKER {
         session.drain()
     } else {
         session.write_frame(input)
     };
     match result {
-        Ok(()) => conduit_kernel::HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        Ok(()) => conduit_kernel::HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output: None,
             failure: None,
         },
@@ -207,63 +206,61 @@ pub(super) fn execute(
     }
 }
 
-fn failure_outcome(
-    error: crate::hosted_audio::PlaybackFailure,
-) -> conduit_kernel::HostOperationOutcome {
+fn failure_outcome(error: crate::hosted_audio::PlaybackFailure) -> conduit_kernel::HostCallOutcome {
     use crate::hosted_audio::PlaybackFailure;
     let (disposition, code, detail) = match error {
         PlaybackFailure::StaleObservation => (
-            conduit_kernel::HostOperationDisposition::Denied,
-            conduit_kernel::FailureCode::HostOperationDenied,
+            conduit_kernel::HostCallDisposition::Denied,
+            conduit_kernel::FailureCode::HostCallDenied,
             70,
         ),
         PlaybackFailure::DeviceBusy => (
-            conduit_kernel::HostOperationDisposition::Denied,
-            conduit_kernel::FailureCode::HostOperationDenied,
+            conduit_kernel::HostCallDisposition::Denied,
+            conduit_kernel::FailureCode::HostCallDenied,
             71,
         ),
         PlaybackFailure::OpenFailed => (
-            conduit_kernel::HostOperationDisposition::Failed,
-            conduit_kernel::FailureCode::HostOperationFailed,
+            conduit_kernel::HostCallDisposition::Failed,
+            conduit_kernel::FailureCode::HostCallFailed,
             72,
         ),
         PlaybackFailure::InvalidPcm | PlaybackFailure::DiscontinuousInput => (
-            conduit_kernel::HostOperationDisposition::Failed,
+            conduit_kernel::HostCallDisposition::Failed,
             conduit_kernel::FailureCode::InvalidInput,
             73,
         ),
         PlaybackFailure::Underrun => (
-            conduit_kernel::HostOperationDisposition::Failed,
-            conduit_kernel::FailureCode::HostOperationFailed,
+            conduit_kernel::HostCallDisposition::Failed,
+            conduit_kernel::FailureCode::HostCallFailed,
             74,
         ),
         PlaybackFailure::ProviderLost => (
-            conduit_kernel::HostOperationDisposition::Failed,
-            conduit_kernel::FailureCode::HostOperationFailed,
+            conduit_kernel::HostCallDisposition::Failed,
+            conduit_kernel::FailureCode::HostCallFailed,
             75,
         ),
         PlaybackFailure::WriteFailed => (
-            conduit_kernel::HostOperationDisposition::Failed,
-            conduit_kernel::FailureCode::HostOperationFailed,
+            conduit_kernel::HostCallDisposition::Failed,
+            conduit_kernel::FailureCode::HostCallFailed,
             76,
         ),
         PlaybackFailure::DrainFailed => (
-            conduit_kernel::HostOperationDisposition::Failed,
-            conduit_kernel::FailureCode::HostOperationFailed,
+            conduit_kernel::HostCallDisposition::Failed,
+            conduit_kernel::FailureCode::HostCallFailed,
             77,
         ),
         PlaybackFailure::CloseFailed => (
-            conduit_kernel::HostOperationDisposition::Failed,
-            conduit_kernel::FailureCode::HostOperationFailed,
+            conduit_kernel::HostCallDisposition::Failed,
+            conduit_kernel::FailureCode::HostCallFailed,
             78,
         ),
         PlaybackFailure::InvalidLifecycle => (
-            conduit_kernel::HostOperationDisposition::Failed,
+            conduit_kernel::HostCallDisposition::Failed,
             conduit_kernel::FailureCode::InvalidLifecycle,
             79,
         ),
     };
-    conduit_kernel::HostOperationOutcome {
+    conduit_kernel::HostCallOutcome {
         disposition,
         output: None,
         failure: Some(conduit_kernel::Failure { code, detail }),
@@ -273,7 +270,7 @@ fn failure_outcome(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::HostOperationOutcome;
+    use conduit_kernel::HostCallOutcome;
 
     #[test]
     fn input_is_serialized_and_close_requests_exact_drain() {
@@ -299,14 +296,14 @@ mod tests {
                 port: PortId(0),
                 value
             }),
-            OperationAction::RequestHostOperation { request: RequestId(0), input, .. }
+            OperationAction::RequestHostCall { request: RequestId(0), input, .. }
                 if input.value == value
         ));
         assert_eq!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(0),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },
@@ -315,7 +312,7 @@ mod tests {
         );
         assert!(matches!(
             operation.resume(OperationInput::Closed { port: PortId(0) }),
-            OperationAction::RequestHostOperation { request: RequestId(1), input, .. }
+            OperationAction::RequestHostCall { request: RequestId(1), input, .. }
                 if input.value == operation.drain_marker
         ));
     }

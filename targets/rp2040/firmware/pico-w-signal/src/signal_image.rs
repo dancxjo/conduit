@@ -6,7 +6,7 @@ mod generated_signal {
 }
 
 use conduit_kernel::{
-    CordId, FixedHostOperationBindings, FixedRoutes, HostOperationId, NodeId, PortId,
+    CordId, FixedHostCallBindings, FixedRoutes, HostCallId, NodeId, PortId,
     RemoteEndpointId, ValueRef,
 };
 use conduit_signal::{PULSE_KIND, SHOW_KIND, SIGNAL_ENCODED_LEN, SIGNAL_PORT, SIGNAL_VALUE_KIND};
@@ -17,8 +17,8 @@ pub const PORTS: usize = generated_signal::GENERATED_PORTS_PER_NODE;
 pub const QUEUE_SLOTS: usize = generated_signal::CORD_VALUE_SLOTS as usize;
 pub const ROUTE_SLOTS: usize = generated_signal::GENERATED_ROUTES.len();
 pub const ROUTE_TARGETS: usize = generated_signal::GENERATED_ROUTE_TARGETS.len();
-pub const HOST_BINDING_SLOTS: usize = generated_signal::GENERATED_HOST_OPERATIONS.len();
-pub const PENDING_REQUESTS: usize = generated_signal::GENERATED_HOST_OPERATIONS.len();
+pub const HOST_BINDING_SLOTS: usize = generated_signal::GENERATED_HOST_CALLS.len();
+pub const PENDING_REQUESTS: usize = generated_signal::GENERATED_HOST_CALLS.len();
 
 #[allow(dead_code)]
 pub const MAX_STORED_SIGNAL_VALUES: usize = generated_signal::MAX_STORED_SIGNAL_VALUES;
@@ -46,8 +46,8 @@ pub const BOOT_SIGN_ID: &str = generated_signal::BOOT_SIGN_ID;
 pub const TERMINAL_SIGN_ID: &str = generated_signal::TERMINAL_SIGN_ID;
 
 #[allow(dead_code)]
-const WAIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/wait@1";
-const PRESENT_HOST_OPERATION_CONTRACT: &str = "conduit.host/present@1";
+const WAIT_HOST_CALL_CONTRACT: &str = "conduit.host/wait@1";
+const PRESENT_HOST_CALL_CONTRACT: &str = "conduit.host/present@1";
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 #[derive(Clone, Copy)]
@@ -110,29 +110,29 @@ pub fn generated_routes() -> FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS> {
     routes
 }
 
-pub fn generated_host_bindings() -> FixedHostOperationBindings<HOST_BINDING_SLOTS> {
+pub fn generated_host_bindings() -> FixedHostCallBindings<HOST_BINDING_SLOTS> {
     let mut host_bindings =
-        FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(maximum_host_operations_per_node());
-    for (node, binding) in generated_signal::GENERATED_HOST_OPERATIONS {
+        FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(maximum_host_calls_per_node());
+    for (node, binding) in generated_signal::GENERATED_HOST_CALLS {
         host_bindings
             .install(node, binding)
-            .expect("generated host-operation binding valid");
+            .expect("generated Host Call binding valid");
     }
     host_bindings
         .seal()
-        .expect("generated host-operation bindings sealed");
+        .expect("generated Host Call bindings sealed");
     host_bindings
 }
 
-fn maximum_host_operations_per_node() -> u16 {
+fn maximum_host_calls_per_node() -> u16 {
     let mut maximum = 0u16;
     let mut index = 0usize;
-    while index < generated_signal::GENERATED_HOST_OPERATIONS.len() {
-        let (node, _) = generated_signal::GENERATED_HOST_OPERATIONS[index];
+    while index < generated_signal::GENERATED_HOST_CALLS.len() {
+        let (node, _) = generated_signal::GENERATED_HOST_CALLS[index];
         let mut count = 0u16;
         let mut inner = 0usize;
-        while inner < generated_signal::GENERATED_HOST_OPERATIONS.len() {
-            if generated_signal::GENERATED_HOST_OPERATIONS[inner].0 == node {
+        while inner < generated_signal::GENERATED_HOST_CALLS.len() {
+            if generated_signal::GENERATED_HOST_CALLS[inner].0 == node {
                 count += 1;
             }
             inner += 1;
@@ -152,8 +152,8 @@ pub struct SignalLayout {
     pub show_node: NodeId,
     pub pulse_output_port: PortId,
     pub show_input_port: PortId,
-    pub wait_operation: HostOperationId,
-    pub present_operation: HostOperationId,
+    pub wait_operation: HostCallId,
+    pub present_operation: HostCallId,
     pub configuration: SignalConfiguration,
 }
 
@@ -170,7 +170,7 @@ pub struct SignalConfiguration {
 pub struct RemoteSignalLayout {
     pub show_node: NodeId,
     pub show_input_port: PortId,
-    pub present_operation: HostOperationId,
+    pub present_operation: HostCallId,
 }
 
 #[allow(dead_code)]
@@ -179,7 +179,7 @@ pub fn remote_signal_layout() -> Option<RemoteSignalLayout> {
     Some(RemoteSignalLayout {
         show_node,
         show_input_port: generated_port(&generated_signal::GENERATED_INPUT_PORTS, show_node)?,
-        present_operation: generated_host_operation(show_node, PRESENT_HOST_OPERATION_CONTRACT)?,
+        present_operation: generated_host_call(show_node, PRESENT_HOST_CALL_CONTRACT)?,
     })
 }
 
@@ -193,8 +193,8 @@ pub fn signal_layout() -> Option<SignalLayout> {
         show_node,
         pulse_output_port: generated_port(&generated_signal::GENERATED_OUTPUT_PORTS, pulse_node)?,
         show_input_port: generated_port(&generated_signal::GENERATED_INPUT_PORTS, show_node)?,
-        wait_operation: generated_host_operation(pulse_node, WAIT_HOST_OPERATION_CONTRACT)?,
-        present_operation: generated_host_operation(show_node, PRESENT_HOST_OPERATION_CONTRACT)?,
+        wait_operation: generated_host_call(pulse_node, WAIT_HOST_CALL_CONTRACT)?,
+        present_operation: generated_host_call(show_node, PRESENT_HOST_CALL_CONTRACT)?,
         configuration,
     })
 }
@@ -216,10 +216,10 @@ fn generated_port(ports: &[(NodeId, PortId, &str, &str)], node: NodeId) -> Optio
         .map(|(_, port, _, _)| *port)
 }
 
-fn generated_host_operation(node: NodeId, contract_id: &str) -> Option<HostOperationId> {
-    generated_signal::GENERATED_HOST_OPERATIONS
+fn generated_host_call(node: NodeId, contract_id: &str) -> Option<HostCallId> {
+    generated_signal::GENERATED_HOST_CALLS
         .iter()
-        .zip(generated_signal::GENERATED_HOST_OPERATION_IDENTITIES.iter())
+        .zip(generated_signal::GENERATED_HOST_CALL_IDENTITIES.iter())
         .find(|((candidate_node, _), (candidate_contract, _, _))| {
             *candidate_node == node && *candidate_contract == contract_id
         })

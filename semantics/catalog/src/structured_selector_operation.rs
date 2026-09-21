@@ -1,8 +1,8 @@
 //! Shared kernel lifecycle for exact structured selectors, including flow drops.
 
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId,
 };
 
 pub struct StructuredSelectorOperation {
@@ -39,29 +39,27 @@ impl StructuredSelectorOperation {
                 let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
                     return fail(141);
                 };
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostOperationDisposition::Completed, None, None) => OperationAction::Await,
-                    (HostOperationDisposition::Cancelled, _, _) => OperationAction::Fail(Failure {
+                    (HostCallDisposition::Completed, Some(output), None) => OperationAction::Emit {
+                        port: PortId(0),
+                        value: output.value,
+                    },
+                    (HostCallDisposition::Completed, None, None) => OperationAction::Await,
+                    (HostCallDisposition::Cancelled, _, _) => OperationAction::Fail(Failure {
                         code: FailureCode::Cancelled,
                         detail: 0,
                     }),
-                    (HostOperationDisposition::Failed, None, Some(failure)) => {
+                    (HostCallDisposition::Failed, None, Some(failure)) => {
                         OperationAction::Fail(failure)
                     }
                     _ => fail(142),

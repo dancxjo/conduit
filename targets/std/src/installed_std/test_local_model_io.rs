@@ -74,9 +74,9 @@ impl TestLocalModelSourceOperation {
         if self.emitted {
             OperationAction::Complete
         } else if self.hosted {
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: conduit_kernel::RequestId(0),
-                operation: conduit_kernel::HostOperationId(0),
+                operation: conduit_kernel::HostCallId(0),
                 input: conduit_kernel::BoundedValueRef::new(self.value, 1)
                     .expect("proof clip source marker is one admitted byte"),
             }
@@ -95,18 +95,18 @@ impl TestLocalModelSourceOperation {
 
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.hosted && !self.emitted && request == conduit_kernel::RequestId(0) =>
             {
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (conduit_kernel::HostOperationDisposition::Completed, Some(output), None) => {
+                    (conduit_kernel::HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (conduit_kernel::HostOperationDisposition::Denied, _, _) => {
+                    (conduit_kernel::HostCallDisposition::Denied, _, _) => {
                         InstalledOperation::fail(143)
                     }
                     _ => InstalledOperation::fail(144),
@@ -189,17 +189,13 @@ fn clip_source_offer() -> CapabilityOffer {
         conduit_audio::AUDIO_PCM_CLIP_INFO_ID,
         PortDirection::Output,
     );
-    offer
-        .host_operations
-        .push(conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(
-                HOUSE_AUDIO_CLIP_SOURCE_OPERATION,
-            ),
-            target_kind: None,
-            maximum_in_flight: 1,
-            maximum_input_bytes: 1,
-            maximum_output_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
-        });
+    offer.host_calls.push(conduit_core::HostCallRequirement {
+        contract_id: conduit_core::HostCallContractId::from(HOUSE_AUDIO_CLIP_SOURCE_OPERATION),
+        target_kind: None,
+        maximum_in_flight: 1,
+        maximum_input_bytes: 1,
+        maximum_output_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
+    });
     offer.limits.max_queue_bytes = conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32;
     offer
 }
@@ -272,7 +268,7 @@ fn offer(
         } else {
             Vec::new()
         },
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {

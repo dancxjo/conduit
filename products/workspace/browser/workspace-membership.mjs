@@ -127,7 +127,7 @@ function renderInvitationQr(root, projection) {
   svg.append(background, path); root.replaceChildren(svg); root.hidden = false;
 }
 
-export function openWorkspaceMembership({ root, session, host, hostOperations, invitation, invitationLabel, presentationFor, beforeAdmission, onChanged, onFailure }) {
+export function openWorkspaceMembership({ root, session, host, hostCalls, invitation, invitationLabel, presentationFor, beforeAdmission, onChanged, onFailure }) {
   const panel = root.querySelector("#workspace-membership");
   const content = panel.querySelector("[data-membership-content]");
   const openButton = root.querySelector("[data-open-membership]");
@@ -235,7 +235,7 @@ export function openWorkspaceMembership({ root, session, host, hostOperations, i
     });
     const runner = createPhysicalHostRunner({
       host,
-      hostOperations,
+      hostCalls,
       presentationFor,
       targetCatalog: catalog,
       adapterContext: {

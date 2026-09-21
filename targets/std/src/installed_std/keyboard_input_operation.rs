@@ -4,7 +4,7 @@ pub(super) mod button;
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
-    BoundedValueRef, FailureCode, HostOperationDisposition, HostOperationId, HostOperationOutcome,
+    BoundedValueRef, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
     OperationAction, PortId, RequestId, ValueRef, ValueStorage,
 };
 
@@ -26,10 +26,10 @@ impl KeyboardInputOperation {
         self.request_next()
     }
 
-    pub(super) fn resume_host_operation(
+    pub(super) fn resume_host_call(
         &mut self,
         request: RequestId,
-        outcome: HostOperationOutcome,
+        outcome: HostCallOutcome,
         canonical: Option<&[u8]>,
     ) -> OperationAction {
         if self.pending != Some(request) || outcome.failure.is_some() {
@@ -39,7 +39,7 @@ impl KeyboardInputOperation {
         }
         self.pending = None;
         match outcome.disposition {
-            HostOperationDisposition::Completed => {
+            HostCallDisposition::Completed => {
                 let Some(canonical) = canonical else {
                     return InstalledOperation::fail(111);
                 };
@@ -55,12 +55,10 @@ impl KeyboardInputOperation {
                     value,
                 }
             }
-            HostOperationDisposition::Cancelled if outcome.output.is_none() => {
-                OperationAction::Complete
-            }
-            HostOperationDisposition::Denied
-            | HostOperationDisposition::Failed
-            | HostOperationDisposition::Cancelled => InstalledOperation::fail(114),
+            HostCallDisposition::Cancelled if outcome.output.is_none() => OperationAction::Complete,
+            HostCallDisposition::Denied
+            | HostCallDisposition::Failed
+            | HostCallDisposition::Cancelled => InstalledOperation::fail(114),
         }
     }
 
@@ -87,9 +85,9 @@ impl KeyboardInputOperation {
         };
         self.next_request = next_request;
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(self.empty_input, 0)
                 .expect("keyboard request input is exactly empty"),
         }
@@ -129,7 +127,7 @@ fn prepare(
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
     let contract = conduit_semantic_catalog::keyboard_contract();
-    let operation = conduit_std_offers::next_key_event_host_operation_requirement();
+    let operation = conduit_std_offers::next_key_event_host_call_requirement();
     if placement.kind_id != contract.kind_id
         || placement.kind_contract_revision
             != conduit_semantic_catalog::keyboard_contract_revision()
@@ -140,7 +138,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || !placement.inputs.is_empty()
         || placement.outputs != contract.outputs
         || placement.outputs[0].direction != PortDirection::Output
-        || placement.host_operations != [operation]
+        || placement.host_calls != [operation]
         || placement.limits != contract.limits
         || placement.resources.iter().all(|binding| {
             binding.class_id.as_str() != conduit_core::INPUT_RESOURCE_CLASS

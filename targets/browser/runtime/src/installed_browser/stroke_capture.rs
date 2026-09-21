@@ -4,13 +4,12 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostOperationRequirement, ImplementationId, PlannedGear,
-    StructuredInfoValue,
+    ExecutionProfileId, HostCallRequirement, ImplementationId, PlannedGear, StructuredInfoValue,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
-    RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
+    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    ValueStorage,
 };
 
 pub(crate) const OPERATIONS: [&str; 2] = [
@@ -90,15 +89,15 @@ fn offer() -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-presentation/bounded-stroke-capture@1"),
-            host_operations: vec![
-                HostOperationRequirement {
+            host_calls: vec![
+                HostCallRequirement {
                     contract_id: OPERATIONS[0].into(),
                     target_kind: Some(target_kind.clone()),
                     maximum_in_flight: 1,
                     maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
                     maximum_output_bytes: 0,
                 },
-                HostOperationRequirement {
+                HostCallRequirement {
                     contract_id: OPERATIONS[1].into(),
                     target_kind: Some(target_kind),
                     maximum_in_flight: 1,
@@ -152,16 +151,12 @@ impl StrokeCaptureOperation {
         }
     }
 
-    fn complete_host(
-        &mut self,
-        request: RequestId,
-        outcome: HostOperationOutcome,
-    ) -> OperationAction {
+    fn complete_host(&mut self, request: RequestId, outcome: HostCallOutcome) -> OperationAction {
         if self.pending != Some(request) {
             return OperationAction::Fail(failure(20));
         }
         self.pending = None;
-        if let (HostOperationDisposition::Failed, None, Some(failure)) =
+        if let (HostCallDisposition::Failed, None, Some(failure)) =
             (outcome.disposition, outcome.output, outcome.failure)
         {
             return OperationAction::Fail(failure);
@@ -172,14 +167,14 @@ impl StrokeCaptureOperation {
             outcome.output,
             outcome.failure,
         ) {
-            (FINISH_REQUEST, HostOperationDisposition::Completed, Some(output), None) => {
+            (FINISH_REQUEST, HostCallDisposition::Completed, Some(output), None) => {
                 self.emitted = true;
                 OperationAction::Emit {
                     port: PortId(0),
                     value: output.value,
                 }
             }
-            (_, HostOperationDisposition::Completed, None, None) if request != FINISH_REQUEST => {
+            (_, HostCallDisposition::Completed, None, None) if request != FINISH_REQUEST => {
                 self.next_point = self.next_point.saturating_add(1);
                 OperationAction::Await
             }
@@ -205,13 +200,13 @@ impl Operation for StrokeCaptureOperation {
                 };
                 let request = RequestId(self.next_point);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome } => {
+            OperationInput::HostCallCompleted { request, outcome } => {
                 self.complete_host(request, outcome)
             }
             OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
@@ -223,9 +218,9 @@ impl Operation for StrokeCaptureOperation {
                     return OperationAction::Fail(failure(23));
                 };
                 self.pending = Some(FINISH_REQUEST);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: FINISH_REQUEST,
-                    operation: HostOperationId(1),
+                    operation: HostCallId(1),
                     input,
                 }
             }
@@ -315,7 +310,7 @@ mod tests {
             limits: offered.limits,
             inputs: offered.inputs,
             outputs: offered.outputs,
-            host_operations: offered.host_operations,
+            host_calls: offered.host_calls,
             resources: Vec::new(),
             authority: Vec::new(),
             pool_references: Vec::new(),

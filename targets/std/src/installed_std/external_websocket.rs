@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
+    RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static EXTERNAL_WEBSOCKET_LISTENER_FACTORY: InstalledFactory = InstalledFactory {
@@ -50,7 +50,7 @@ impl ExternalWebSocketListenerOperation {
                 value,
                 conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
             ),
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == RequestId(self.next_request.saturating_sub(1)) =>
             {
                 let Some(pending) = self.pending.take() else {
@@ -58,7 +58,7 @@ impl ExternalWebSocketListenerOperation {
                 };
                 match pending {
                     Pending::Accept(peer)
-                        if outcome.disposition == HostOperationDisposition::Completed
+                        if outcome.disposition == HostCallDisposition::Completed
                             && outcome.failure.is_none() =>
                     {
                         if outcome.output.is_some() {
@@ -73,7 +73,7 @@ impl ExternalWebSocketListenerOperation {
                         }
                     }
                     Pending::Receive(_peer)
-                        if outcome.disposition == HostOperationDisposition::Completed
+                        if outcome.disposition == HostCallDisposition::Completed
                             && outcome.failure.is_none() =>
                     {
                         let Some(output) = outcome.output else {
@@ -87,7 +87,7 @@ impl ExternalWebSocketListenerOperation {
                         }
                     }
                     Pending::Receive(peer)
-                        if outcome.disposition == HostOperationDisposition::Cancelled
+                        if outcome.disposition == HostCallDisposition::Cancelled
                             && outcome.failure.is_none() =>
                     {
                         self.connected[peer] = false;
@@ -101,7 +101,7 @@ impl ExternalWebSocketListenerOperation {
                         }
                     }
                     Pending::Send
-                        if outcome.disposition == HostOperationDisposition::Completed
+                        if outcome.disposition == HostCallDisposition::Completed
                             && outcome.failure.is_none() =>
                     {
                         let Some(output) = outcome.output else {
@@ -173,9 +173,9 @@ impl ExternalWebSocketListenerOperation {
         let request = RequestId(self.next_request);
         self.next_request = self.next_request.saturating_add(1);
         self.pending = Some(pending);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(match pending {
+            operation: HostCallId(match pending {
                 Pending::Accept(_) => 0,
                 Pending::Receive(_) => 1,
                 Pending::Send => 2,
@@ -243,7 +243,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
     {
         return Err("external WebSocket listener placement differs from its installation".into());
     }

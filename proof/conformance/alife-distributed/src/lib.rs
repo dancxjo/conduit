@@ -235,7 +235,7 @@ fn capability(gear: &conduit_form::CheckedGear, host_index: usize) -> Capability
             )),
             artifact_id: ArtifactId::from(format!("lenia/host-{host_index}-image@1")),
         },
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: CapabilityLimits {

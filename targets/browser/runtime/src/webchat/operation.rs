@@ -1,12 +1,12 @@
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
     OperationAction, OperationInput, PortId, RequestId, ValueRef,
 };
 
-const CLOSE: HostOperationId = HostOperationId(0);
-const OPEN: HostOperationId = HostOperationId(1);
-const RECEIVE: HostOperationId = HostOperationId(2);
-const SEND: HostOperationId = HostOperationId(3);
+const CLOSE: HostCallId = HostCallId(0);
+const OPEN: HostCallId = HostCallId(1);
+const RECEIVE: HostCallId = HostCallId(2);
+const SEND: HostCallId = HostCallId(3);
 
 pub(crate) enum BrowserChatOperation {
     State(State),
@@ -40,7 +40,7 @@ pub(crate) struct Socket {
     close: Option<ValueRef>,
     live: ValueRef,
     next: u32,
-    pending: Option<(RequestId, HostOperationId)>,
+    pending: Option<(RequestId, HostCallId)>,
     after_receive: Option<ValueRef>,
     opened: bool,
 }
@@ -162,9 +162,9 @@ impl State {
                 let request = RequestId(self.next);
                 self.next = self.next.saturating_add(1);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(1 - port.0),
+                    operation: HostCallId(1 - port.0),
                     input: BoundedValueRef::new(
                         value,
                         if port.0 == 0 {
@@ -176,9 +176,9 @@ impl State {
                     .expect("bounded state input"),
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending.take() == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 outcome.output.map_or_else(
@@ -211,16 +211,16 @@ impl Request {
                 let request = RequestId(self.next);
                 self.next = self.next.saturating_add(1);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, self.maximum)
                         .expect("bounded operation input"),
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending.take() == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none() =>
             {
                 outcome
@@ -255,10 +255,10 @@ impl Interaction {
                 self.manifestation = Some(value);
                 self.request_if_ready()
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending.take() == Some(request) =>
             {
-                if outcome.disposition == HostOperationDisposition::Completed
+                if outcome.disposition == HostCallDisposition::Completed
                     && outcome.failure.is_none()
                 {
                     outcome
@@ -267,7 +267,7 @@ impl Interaction {
                             port: PortId(0),
                             value: output.value,
                         })
-                } else if outcome.disposition == HostOperationDisposition::Cancelled {
+                } else if outcome.disposition == HostCallDisposition::Cancelled {
                     OperationAction::Await
                 } else {
                     BrowserChatOperation::fail(45)
@@ -283,9 +283,9 @@ impl Interaction {
         let request = RequestId(self.next);
         self.next = self.next.saturating_add(1);
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(self.token, 0).expect("empty admitted input token"),
         }
     }
@@ -298,16 +298,11 @@ impl Socket {
         };
         self.request(OPEN, value, 256)
     }
-    fn request(
-        &mut self,
-        operation: HostOperationId,
-        value: ValueRef,
-        maximum: u32,
-    ) -> OperationAction {
+    fn request(&mut self, operation: HostCallId, value: ValueRef, maximum: u32) -> OperationAction {
         let request = RequestId(self.next);
         self.next = self.next.saturating_add(1);
         self.pending = Some((request, operation));
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
             operation,
             input: BoundedValueRef::new(value, maximum).expect("bounded socket input"),
@@ -348,7 +343,7 @@ impl Socket {
                 };
                 self.request(CLOSE, value, 1)
             }
-            OperationInput::HostOperationCompleted { request, outcome } => {
+            OperationInput::HostCallCompleted { request, outcome } => {
                 let Some((expected, operation)) = self.pending.take() else {
                     return BrowserChatOperation::fail(49);
                 };
@@ -356,7 +351,7 @@ impl Socket {
                     return BrowserChatOperation::fail(50);
                 }
                 match operation {
-                    OPEN if outcome.disposition == HostOperationDisposition::Completed
+                    OPEN if outcome.disposition == HostCallDisposition::Completed
                         && outcome.failure.is_none() =>
                     {
                         self.opened = true;
@@ -366,7 +361,7 @@ impl Socket {
                         }
                     }
                     RECEIVE
-                        if outcome.disposition == HostOperationDisposition::Completed
+                        if outcome.disposition == HostCallDisposition::Completed
                             && outcome.failure.is_none() =>
                     {
                         let Some(output) = outcome.output else {
@@ -378,15 +373,13 @@ impl Socket {
                             value: output.value,
                         }
                     }
-                    RECEIVE if outcome.disposition == HostOperationDisposition::Cancelled => {
-                        outcome.output.map_or(OperationAction::Await, |output| {
-                            OperationAction::Emit {
-                                port: PortId(1),
-                                value: output.value,
-                            }
-                        })
-                    }
-                    SEND if outcome.disposition == HostOperationDisposition::Completed
+                    RECEIVE if outcome.disposition == HostCallDisposition::Cancelled => outcome
+                        .output
+                        .map_or(OperationAction::Await, |output| OperationAction::Emit {
+                            port: PortId(1),
+                            value: output.value,
+                        }),
+                    SEND if outcome.disposition == HostCallDisposition::Completed
                         && outcome.failure.is_none() =>
                     {
                         let Some(output) = outcome.output else {
@@ -399,7 +392,7 @@ impl Socket {
                         )
                     }
                     CLOSE
-                        if outcome.disposition == HostOperationDisposition::Completed
+                        if outcome.disposition == HostCallDisposition::Completed
                             && outcome.failure.is_none() =>
                     {
                         OperationAction::Complete

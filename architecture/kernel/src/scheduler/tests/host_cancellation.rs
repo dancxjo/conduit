@@ -19,9 +19,9 @@ impl Operation for CancellationOperation {
         match self {
             Self::Reset { initial, phase, .. } => {
                 *phase = 1;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(21),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(*initial, 8).unwrap(),
                 }
             }
@@ -51,25 +51,25 @@ impl Operation for CancellationOperation {
                 Self::Reset {
                     replacement, phase, ..
                 },
-                OperationInput::HostOperationCompleted {
+                OperationInput::HostCallCompleted {
                     request: RequestId(21),
                     outcome,
                 },
-            ) if outcome.disposition == HostOperationDisposition::Cancelled => {
+            ) if outcome.disposition == HostCallDisposition::Cancelled => {
                 *phase = 2;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(22),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(replacement.take().unwrap(), 8).unwrap(),
                 }
             }
             (
                 Self::Reset { phase, .. },
-                OperationInput::HostOperationCompleted {
+                OperationInput::HostCallCompleted {
                     request: RequestId(22),
                     outcome,
                 },
-            ) if outcome.disposition == HostOperationDisposition::Completed => {
+            ) if outcome.disposition == HostCallDisposition::Completed => {
                 *phase = 3;
                 OperationAction::Complete
             }
@@ -90,11 +90,11 @@ impl Operation for CancellationOperation {
         }
     }
 
-    fn accepts_input_while_host_operation_pending(&self) -> bool {
+    fn accepts_input_while_host_call_pending(&self) -> bool {
         matches!(self, Self::Reset { phase: 1, .. })
     }
 
-    fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {
+    fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
         match self {
             Self::Reset { cancellation, .. } => cancellation.take(),
             Self::Source { .. } => None,
@@ -117,7 +117,7 @@ impl Operation for CancellationOperation {
 struct Normalized {
     first: RequestId,
     replacement: RequestId,
-    cancellation: super::super::HostOperationCancellation,
+    cancellation: super::super::HostCallCancellation,
     used_items: u16,
     pending: usize,
     saw_cancellation: bool,
@@ -142,19 +142,19 @@ fn scheduler<S: ValueStorage, E: SignSink>(mut values: S, signs: E) -> Cancellat
         )
         .unwrap();
     routes.seal().unwrap();
-    let mut bindings = FixedHostOperationBindings::<2>::new(1);
+    let mut bindings = FixedHostCallBindings::<2>::new(1);
     bindings
         .install(
             NodeId(0),
-            HostOperationBinding {
-                operation: HostOperationId(0),
+            HostCallBinding {
+                operation: HostCallId(0),
                 maximum_input_bytes: 8,
                 maximum_output_bytes: 0,
             },
         )
         .unwrap();
     bindings.seal().unwrap();
-    FixedScheduler::<_, _, _, 2, 1, 2, 1, 4, 1, 2, 1>::new_with_host_operations(
+    FixedScheduler::<_, _, _, 2, 1, 2, 1, 4, 1, 2, 1>::new_with_host_calls(
         [node([Some(CordId(0)), None]), node([None, None])],
         [CordSpec::local(
             CordId(0),
@@ -199,11 +199,11 @@ fn execute<S: ValueStorage, E: SignSink + SignQuery>(values: S, signs: E) -> Nor
     let cancellation = scheduler.next_host_cancellation().unwrap();
     assert!(scheduler.next_host_cancellation().is_none());
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             cancellation.node,
             cancellation.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Cancelled,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Cancelled,
                 output: None,
                 failure: None,
             },
@@ -212,11 +212,11 @@ fn execute<S: ValueStorage, E: SignSink + SignQuery>(values: S, signs: E) -> Nor
     scheduler.step().unwrap();
     let second = scheduler.next_host_request().unwrap();
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             second.node,
             second.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -228,10 +228,10 @@ fn execute<S: ValueStorage, E: SignSink + SignQuery>(values: S, signs: E) -> Nor
         replacement: second.request,
         cancellation,
         used_items: scheduler.values().used_items(),
-        pending: scheduler.pending_host_operation_count(),
+        pending: scheduler.pending_host_call_count(),
         saw_cancellation: scheduler
             .signs()
-            .contains_kind(KernelEventKind::HostOperationCancellationRequested),
+            .contains_kind(KernelEventKind::HostCallCancellationRequested),
     }
 }
 
@@ -246,10 +246,10 @@ fn refuses_cancellation_until_the_exact_request_is_dispatched() {
     scheduler.step().unwrap();
     assert_eq!(
         scheduler.step(),
-        Err(super::super::SchedulerError::HostOperationCancellationUndispatched)
+        Err(super::super::SchedulerError::HostCallCancellationUndispatched)
     );
     assert!(scheduler.next_host_cancellation().is_none());
-    assert_eq!(scheduler.pending_host_operation_count(), 1);
+    assert_eq!(scheduler.pending_host_call_count(), 1);
 }
 
 #[test]
@@ -262,11 +262,11 @@ fn accepted_completion_wins_before_cancellation() {
     scheduler.step().unwrap();
     let request = scheduler.next_host_request().unwrap();
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -297,7 +297,7 @@ fn cancels_and_replaces_one_dispatched_request() {
     assert_eq!(normalized.replacement, RequestId(22));
     assert_eq!(normalized.cancellation.node, NodeId(0));
     assert_eq!(normalized.cancellation.request, normalized.first);
-    assert_eq!(normalized.cancellation.operation, HostOperationId(0));
+    assert_eq!(normalized.cancellation.operation, HostCallId(0));
     assert_eq!(normalized.used_items, 0);
     assert_eq!(normalized.pending, 0);
     assert!(normalized.saw_cancellation);

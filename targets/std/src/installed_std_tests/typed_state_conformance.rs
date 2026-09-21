@@ -23,7 +23,7 @@ fn fixture(
     // installed adapter are production paths; this is not physical input proof.
     let mut source = installed_std::test_structured_selector::offer(&ty, PortDirection::Output);
     source.startup_parameters[0].name = "values".into();
-    source.host_operations = vec![wait_host_operation_requirement()];
+    source.host_calls = vec![wait_host_call_requirement()];
     source.resource_requirements = vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)];
     let mut entry = installed_std::test_structured_selector::configuration(&next)
         .pop()

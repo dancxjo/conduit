@@ -64,7 +64,7 @@ fn exact_offer_is_finite_and_requires_narrow_authority() {
     assert_eq!(offer.outputs, semantic.outputs);
     assert_eq!(offer.limits, semantic.limits);
     assert_eq!(offer.kind_id.as_str(), conduit_web::HTTP_CLIENT_KIND);
-    assert_eq!(offer.host_operations.len(), 1);
+    assert_eq!(offer.host_calls.len(), 1);
     assert_eq!(
         offer.resource_requirements[0].class_id.as_str(),
         RESOURCE_CLASS
@@ -73,7 +73,7 @@ fn exact_offer_is_finite_and_requires_narrow_authority() {
         offer.authority_requirements[0].contract_id.as_str(),
         AUTHORITY
     );
-    assert_eq!(offer.host_operations[0].maximum_in_flight, 1);
+    assert_eq!(offer.host_calls[0].maximum_in_flight, 1);
     assert_eq!(PACKET_BUFFERS, 4);
     assert_eq!(SOCKET_SLOTS, 1);
     assert_eq!(TIMER_SLOTS, 2);

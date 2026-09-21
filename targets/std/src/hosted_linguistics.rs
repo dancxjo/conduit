@@ -2,13 +2,13 @@
 
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, Kind,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const LINGUISTICS_PROFILE: &str = "std/linguistics-kernel-hosted@1";
 pub const LINGUISTICS_ARTIFACT: &str = "conduit-std-host/linguistics@1";
-pub const LINGUISTICS_HOST_OPERATION: &str = "conduit.host/linguistics@1";
+pub const LINGUISTICS_HOST_CALL: &str = "conduit.host/linguistics@1";
 
 pub fn linguistics_std_offers() -> Vec<CapabilityOffer> {
     vec![
@@ -26,8 +26,8 @@ fn offer(contract: Kind) -> CapabilityOffer {
             execution_profile_id: ExecutionProfileId::from(LINGUISTICS_PROFILE),
             implementation_id: ImplementationId::from(format!("std/{kind}@1")),
             artifact_id: ArtifactId::from(LINGUISTICS_ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(LINGUISTICS_HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(LINGUISTICS_HOST_CALL),
                 target_kind: Some(conduit_core::kind_id(&kind)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,

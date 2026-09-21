@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  browserHostOperationLimits,
-  createBrowserHostOperations,
-} from "../../targets/browser/host/assets/browser-host-operations.mjs";
+  browserHostCallLimits,
+  createBrowserHostCalls,
+} from "../../targets/browser/host/assets/browser-host-calls.mjs";
 
 const context = Object.freeze({
   hostId: "host/browser-1",
@@ -12,26 +12,26 @@ const context = Object.freeze({
   applicationGeneration: 2,
   authorityGeneration: 3,
 });
-const request = (kind, operationId, fields = {}) => ({
-  contract: browserHostOperationLimits.contract,
+const request = (kind, callId, fields = {}) => ({
+  contract: browserHostCallLimits.contract,
   kind,
-  operationId,
+  callId,
   ...context,
   ...fields,
 });
 
 test("artifact handoff admits exact bounded identity and preserves terminal distinctions", async () => {
-  const calls = [];
-  const operations = createBrowserHostOperations({
+  const handoffs = [];
+  const calls = createBrowserHostCalls({
     ...context,
     artifactAdapter: {
       async handoff(value) {
-        calls.push(value);
+        handoffs.push(value);
         return { disposition: "completed", visibleName: value.filename };
       },
     },
   });
-  const completed = await operations.handoffArtifact(request("artifact-handoff", "artifact/save-1", {
+  const completed = await calls.handoffArtifact(request("artifact-handoff", "artifact/save-1", {
     userActivation: true,
     artifactId: "artifact/spore-1",
     bytes: Uint8Array.of(1, 2, 3),
@@ -40,9 +40,9 @@ test("artifact handoff admits exact bounded identity and preserves terminal dist
     mediaType: "application/vnd.conduit.spore",
   }));
   assert.equal(completed.disposition, "completed");
-  assert.equal(completed.operationId, "artifact/save-1");
-  assert.equal(calls[0].bytes.byteLength, 3);
-  assert.equal(operations.activeOperations(), 0);
+  assert.equal(completed.callId, "artifact/save-1");
+  assert.equal(handoffs[0].bytes.byteLength, 3);
+  assert.equal(calls.activeCalls(), 0);
 
   for (const [name, disposition] of [
     ["AbortError", "cancelled"],
@@ -52,7 +52,7 @@ test("artifact handoff admits exact bounded identity and preserves terminal dist
     ["QuotaExceededError", "resource-failure"],
     ["UnknownError", "adapter-failure"],
   ]) {
-    const failing = createBrowserHostOperations({
+    const failing = createBrowserHostCalls({
       ...context,
       artifactAdapter: { async handoff() { throw new DOMException("failed", name); } },
     });
@@ -70,12 +70,12 @@ test("artifact handoff admits exact bounded identity and preserves terminal dist
 
 test("artifact and location validation fail before platform effects", async () => {
   let effects = 0;
-  const operations = createBrowserHostOperations({
+  const calls = createBrowserHostCalls({
     ...context,
     artifactAdapter: { async handoff() { effects += 1; } },
     locationAdapter: { move() { effects += 1; } },
   });
-  const inactive = await operations.handoffArtifact(request("artifact-handoff", "artifact/inactive", {
+  const inactive = await calls.handoffArtifact(request("artifact-handoff", "artifact/inactive", {
     userActivation: false,
     artifactId: "artifact/a",
     bytes: Uint8Array.of(1),
@@ -84,16 +84,16 @@ test("artifact and location validation fail before platform effects", async () =
     mediaType: "application/octet-stream",
   }));
   assert.equal(inactive.disposition, "user-activation-required");
-  const oversized = await operations.handoffArtifact(request("artifact-handoff", "artifact/oversized", {
+  const oversized = await calls.handoffArtifact(request("artifact-handoff", "artifact/oversized", {
     userActivation: true,
     artifactId: "artifact/a",
-    bytes: new Uint8Array(browserHostOperationLimits.artifactBytes + 1),
-    maximumBytes: browserHostOperationLimits.artifactBytes,
+    bytes: new Uint8Array(browserHostCallLimits.artifactBytes + 1),
+    maximumBytes: browserHostCallLimits.artifactBytes,
     filename: "a.bin",
     mediaType: "application/octet-stream",
   }));
   assert.equal(oversized.disposition, "artifact-not-admitted");
-  const external = await operations.moveLocation(request("location", "location/external", {
+  const external = await calls.moveLocation(request("location", "location/external", {
     presentationRevision: 1,
     mode: "push",
     path: "https://example.com/ambient",
@@ -104,7 +104,7 @@ test("artifact and location validation fail before platform effects", async () =
 
 test("location movement is bounded presentation state and remains correlated", async () => {
   const moves = [];
-  const operations = createBrowserHostOperations({
+  const calls = createBrowserHostCalls({
     ...context,
     locationAdapter: {
       move(value) {
@@ -113,7 +113,7 @@ test("location movement is bounded presentation state and remains correlated", a
       },
     },
   });
-  const result = await operations.moveLocation(request("location", "location/page-2", {
+  const result = await calls.moveLocation(request("location", "location/page-2", {
     presentationRevision: 9,
     mode: "replace",
     path: "/tour/page-2/",
@@ -121,7 +121,7 @@ test("location movement is bounded presentation state and remains correlated", a
   assert.deepEqual(moves, [{ mode: "replace", path: "/tour/page-2/" }]);
   assert.equal(result.disposition, "completed");
   assert.equal(result.path, "/tour/page-2/");
-  assert.equal(result.operationId, "location/page-2");
+  assert.equal(result.callId, "location/page-2");
   assert.equal("membership" in result, false);
   assert.equal("lifecycle" in result, false);
 });
@@ -135,7 +135,7 @@ test("device choice is profile gated and acquisition grants no membership or Pla
       return { getInfo: () => ({ usbVendorId: 0x1209, usbProductId: 7 }) };
     },
   };
-  const omitted = createBrowserHostOperations({ ...context, deviceAdapters, secureContext: true });
+  const omitted = createBrowserHostCalls({ ...context, deviceAdapters, secureContext: true });
   const omittedResult = await omitted.chooseDevice(request("device-choice", "device/omitted", {
     implementationId: "browser/web-serial@1", authorized: true, userActivation: true, filters: [],
     maximumResults: 1, maximumResourceIdentityBytes: 256,
@@ -143,7 +143,7 @@ test("device choice is profile gated and acquisition grants no membership or Pla
   assert.equal(omittedResult.disposition, "implementation-not-selected");
   assert.equal(chooserCalls, 0);
 
-  const selected = createBrowserHostOperations({
+  const selected = createBrowserHostCalls({
     ...context,
     selectedImplementations: ["browser/web-serial@1"],
     initializedImplementations: ["browser/web-serial@1"],
@@ -172,8 +172,8 @@ test("device outcomes and stale completions remain distinct", async () => {
     [{ selectedImplementations: ["browser/web-usb@1"] }, "implementation-not-initialized"],
     [{ selectedImplementations: ["browser/web-usb@1"], initializedImplementations: ["browser/web-usb@1"], secureContext: false }, "secure-context-required"],
   ]) {
-    const operations = createBrowserHostOperations({ ...context, ...configuration });
-    const result = await operations.chooseDevice(request("device-choice", `device/${disposition}`, {
+    const calls = createBrowserHostCalls({ ...context, ...configuration });
+    const result = await calls.chooseDevice(request("device-choice", `device/${disposition}`, {
       implementationId: "browser/web-usb@1", authorized: true, userActivation: true, filters: [],
       maximumResults: 1, maximumResourceIdentityBytes: 256,
     }));
@@ -183,7 +183,7 @@ test("device outcomes and stale completions remain distinct", async () => {
   let generation = context.authorityGeneration;
   let complete;
   const pending = new Promise((resolve) => { complete = resolve; });
-  const operations = createBrowserHostOperations({
+  const calls = createBrowserHostCalls({
     ...context,
     currentContext: () => ({ ...context, authorityGeneration: generation }),
     selectedImplementations: ["browser/web-usb@1"],
@@ -191,14 +191,14 @@ test("device outcomes and stale completions remain distinct", async () => {
     secureContext: true,
     deviceAdapters: { "browser/web-usb@1": () => pending },
   });
-  const resultPromise = operations.chooseDevice(request("device-choice", "device/stale", {
+  const resultPromise = calls.chooseDevice(request("device-choice", "device/stale", {
     implementationId: "browser/web-usb@1", authorized: true, userActivation: true, filters: [],
     maximumResults: 1, maximumResourceIdentityBytes: 256,
   }));
   generation += 1;
   complete({ vendorId: 1, productId: 2 });
   assert.equal((await resultPromise).disposition, "stale-completion");
-  assert.equal(operations.activeOperations(), 0);
+  assert.equal(calls.activeCalls(), 0);
 });
 
 test("device authority, activation, API, chooser, and identity outcomes stay separate", async () => {
@@ -208,9 +208,9 @@ test("device authority, activation, API, chooser, and identity outcomes stay sep
     initializedImplementations: ["browser/web-usb@1"],
     secureContext: true,
   };
-  const choose = (operations, operationId, fields = {}) => operations.chooseDevice(request(
+  const choose = (calls, callId, fields = {}) => calls.chooseDevice(request(
     "device-choice",
-    operationId,
+    callId,
     {
       implementationId: "browser/web-usb@1",
       authorized: true,
@@ -221,13 +221,13 @@ test("device authority, activation, API, chooser, and identity outcomes stay sep
       ...fields,
     },
   ));
-  assert.equal((await choose(createBrowserHostOperations(base), "device/no-authority", {
+  assert.equal((await choose(createBrowserHostCalls(base), "device/no-authority", {
     authorized: false,
   })).disposition, "authority-missing");
-  assert.equal((await choose(createBrowserHostOperations(base), "device/no-activation", {
+  assert.equal((await choose(createBrowserHostCalls(base), "device/no-activation", {
     userActivation: false,
   })).disposition, "user-activation-required");
-  assert.equal((await choose(createBrowserHostOperations({ ...base, deviceAdapters: {} }),
+  assert.equal((await choose(createBrowserHostCalls({ ...base, deviceAdapters: {} }),
     "device/unavailable")).disposition, "unavailable-api");
 
   for (const [name, disposition] of [
@@ -235,17 +235,17 @@ test("device authority, activation, API, chooser, and identity outcomes stay sep
     ["NotAllowedError", "denied"],
     ["SecurityError", "policy-prerequisite-absent"],
   ]) {
-    const operations = createBrowserHostOperations({
+    const calls = createBrowserHostCalls({
       ...base,
       deviceAdapters: { "browser/web-usb@1": async () => { throw new DOMException("choice", name); } },
     });
-    assert.equal((await choose(operations, `device/${disposition}`)).disposition, disposition);
+    assert.equal((await choose(calls, `device/${disposition}`)).disposition, disposition);
   }
-  const noMatch = createBrowserHostOperations({
+  const noMatch = createBrowserHostCalls({
     ...base, deviceAdapters: { "browser/web-usb@1": async () => null },
   });
   assert.equal((await choose(noMatch, "device/no-match")).disposition, "no-matching-device");
-  const identityPressure = createBrowserHostOperations({
+  const identityPressure = createBrowserHostCalls({
     ...base,
     deviceAdapters: { "browser/web-usb@1": async () => ({ serialNumber: "x".repeat(300) }) },
   });
@@ -253,24 +253,24 @@ test("device authority, activation, API, chooser, and identity outcomes stay sep
     .disposition, "resource-identity-pressure");
 });
 
-test("operation slots are finite and duplicate correlation refuses", async () => {
+test("call slots are finite and duplicate correlation refuses", async () => {
   const completions = [];
-  const operations = createBrowserHostOperations({
+  const calls = createBrowserHostCalls({
     ...context,
     artifactAdapter: { handoff: () => new Promise((resolve) => completions.push(resolve)) },
   });
-  const artifact = (operationId) => operations.handoffArtifact(request("artifact-handoff", operationId, {
+  const artifact = (callId) => calls.handoffArtifact(request("artifact-handoff", callId, {
     userActivation: true,
-    artifactId: `artifact/${operationId}`,
+    artifactId: `artifact/${callId}`,
     bytes: Uint8Array.of(1),
     maximumBytes: 1,
-    filename: `${operationId.replace("/", "-")}.bin`,
+    filename: `${callId.replace("/", "-")}.bin`,
     mediaType: "application/octet-stream",
   }));
-  const pending = Array.from({ length: browserHostOperationLimits.slots }, (_, index) => artifact(`slot/${index}`));
-  await assert.rejects(artifact("slot/0"), (error) => error.code === "duplicate-operation");
-  await assert.rejects(artifact("slot/overflow"), (error) => error.code === "operation-pressure");
+  const pending = Array.from({ length: browserHostCallLimits.slots }, (_, index) => artifact(`slot/${index}`));
+  await assert.rejects(artifact("slot/0"), (error) => error.code === "duplicate-call");
+  await assert.rejects(artifact("slot/overflow"), (error) => error.code === "call-pressure");
   for (const complete of completions) complete({ disposition: "completed" });
   assert.equal((await Promise.all(pending)).every((value) => value.disposition === "completed"), true);
-  assert.equal(operations.activeOperations(), 0);
+  assert.equal(calls.activeCalls(), 0);
 });

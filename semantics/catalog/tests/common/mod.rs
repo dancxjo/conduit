@@ -4,8 +4,8 @@
 
 use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindIdentity, PortDescriptor,
+    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostCallContractId,
+    HostCallRequirement, ImplementationId, ImplementationOffer, KindIdentity, PortDescriptor,
     PortDirection, PortTemporal, StructuredInfoType,
 };
 
@@ -57,7 +57,7 @@ pub fn robotics_motion_proof_offer() -> CapabilityOffer {
     );
     offer.authority_requirements.push(AuthorityRequirement {
         contract_id: AuthorityContractId::from(MOTION_PROOF_AUTHORITY),
-        host_operation_contract_id: HostOperationContractId::from(MOTION_PROOF_OPERATION),
+        host_call_contract_id: HostCallContractId::from(MOTION_PROOF_OPERATION),
         subject_kind: kind,
     });
     offer.limits.max_active_instances = 1;
@@ -102,8 +102,8 @@ pub fn proof_domain_offer(
         },
         inputs,
         outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(operation),
+        host_calls: vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(operation),
             target_kind: Some(kind),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
@@ -140,7 +140,7 @@ pub fn recurrence_proof_offer() -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: CapabilityLimits {
@@ -222,8 +222,8 @@ fn workflow_proof_offer(
     resource_class: Option<&str>,
     authority_contract: Option<&str>,
 ) -> CapabilityOffer {
-    let operation = HostOperationRequirement {
-        contract_id: HostOperationContractId::from(operation),
+    let operation = HostCallRequirement {
+        contract_id: HostCallContractId::from(operation),
         target_kind: Some(kind_id(kind)),
         maximum_in_flight: 1,
         maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
@@ -242,7 +242,7 @@ fn workflow_proof_offer(
         },
         inputs,
         outputs,
-        host_operations: vec![operation.clone()],
+        host_calls: vec![operation.clone()],
         resource_requirements: resource_class
             .map(|class| resource_requirement(class, 1))
             .into_iter()
@@ -250,7 +250,7 @@ fn workflow_proof_offer(
         authority_requirements: authority_contract
             .map(|contract| AuthorityRequirement {
                 contract_id: AuthorityContractId::from(contract),
-                host_operation_contract_id: operation.contract_id,
+                host_call_contract_id: operation.contract_id,
                 subject_kind: kind_id(kind),
             })
             .into_iter()

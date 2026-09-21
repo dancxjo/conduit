@@ -54,7 +54,7 @@ fn unrelated_arithmetic_lesson_is_one_ordinary_plannable_form() {
     assert_eq!(plan.fragments[0].placements.len(), 2);
     for placement in &plan.fragments[0].placements {
         assert_eq!(
-            placement.host_operations[0].contract_id.as_str(),
+            placement.host_calls[0].contract_id.as_str(),
             DOMAIN_PROOF_OPERATION
         );
         assert!(placement.resources.is_empty());

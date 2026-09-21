@@ -7,9 +7,9 @@ use conduit_core::{
     ArchitectureBaseId, ArchitectureBaseKind, ArtifactId, AuthorityContractId,
     AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     CharacteristicUnit, ComputePoolContract, ComputeServiceGuarantee, ExecutionProfileId,
-    FrontStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, ImplementationOffer,
-    OfferGeneration, RealizationAdvertisement, RealizationCharacteristic,
+    FrontStartupParameter, HostAdvertisement, HostCallContractId, HostCallRequirement, HostId,
+    HostProfileId, ImplementationId, ImplementationOffer, OfferGeneration,
+    RealizationAdvertisement, RealizationCharacteristic,
 };
 use serde::{Deserialize, Serialize};
 
@@ -19,13 +19,13 @@ pub const ACCELERATOR_SLOT_RESOURCE: &str = "conduit.resource/accelerator/slot@1
 pub const ACCELERATOR_MEMORY_GIB_RESOURCE: &str = "conduit.resource/accelerator-memory/gib@1";
 pub const NETWORK_EGRESS_RESOURCE: &str = "conduit.resource/network-egress/slot@1";
 pub const INFERENCE_SLOT_RESOURCE: &str = "conduit.resource/inference/slot@1";
-pub const GENERATE_TEXT_HOST_OPERATION: &str = "conduit.host/generate-text@1";
+pub const GENERATE_TEXT_HOST_CALL: &str = "conduit.host/generate-text@1";
 pub const SMALL_LOCAL_IMPLEMENTATION: &str = "ai.fixture/small-local-cpu@1";
 pub const SMALL_LOCAL_ARTIFACT: &str = "ai.fixture/small-local-cpu/x86_64-portable@1";
 pub const LARGE_LOCAL_IMPLEMENTATION: &str = "ai.fixture/large-local-accelerated@1";
 pub const LARGE_LOCAL_ARTIFACT: &str = "ai.fixture/large-local-accelerated/x86_64-accelerator@1";
 pub const REMOTE_FRONTIER_IMPLEMENTATION: &str = "ai.fixture/remote-frontier@1";
-pub const REMOTE_FRONTIER_ARTIFACT: &str = "ai.fixture/remote-frontier/host-operation@1";
+pub const REMOTE_FRONTIER_ARTIFACT: &str = "ai.fixture/remote-frontier/host-call@1";
 pub const REMOTE_GENERATE_TEXT_AUTHORITY: &str = "conduit.authority/remote-generate-text@1";
 pub const MAXIMUM_CONTEXT_CHARACTERISTIC: &str = "conduit.realization/maximum-context-tokens@1";
 pub const MAXIMUM_OUTPUT_CHARACTERISTIC: &str = "conduit.realization/maximum-output-tokens@1";
@@ -201,8 +201,8 @@ fn base(
     remote: bool,
 ) -> GenerateTextBaseFixture {
     let contract = generate_text_contract();
-    let host_operation = HostOperationRequirement {
-        contract_id: HostOperationContractId::from(GENERATE_TEXT_HOST_OPERATION),
+    let host_call = HostCallRequirement {
+        contract_id: HostCallContractId::from(GENERATE_TEXT_HOST_CALL),
         target_kind: Some(kind_id(GENERATE_TEXT_KIND)),
         maximum_in_flight: 1,
         maximum_input_bytes: MAXIMUM_INPUT_BYTES as u32,
@@ -212,7 +212,7 @@ fn base(
     let authority_requirements = if remote {
         vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(REMOTE_GENERATE_TEXT_AUTHORITY),
-            host_operation_contract_id: host_operation.contract_id.clone(),
+            host_call_contract_id: host_call.contract_id.clone(),
             subject_kind: kind_id(GENERATE_TEXT_KIND),
         }]
     } else {
@@ -284,7 +284,7 @@ fn base(
                     implementation_id: ImplementationId::from(implementation),
                     artifact_id: ArtifactId::from(artifact),
                 },
-                host_operations: vec![host_operation],
+                host_calls: vec![host_call],
                 resource_requirements,
                 authority_requirements,
                 limits: CapabilityLimits {

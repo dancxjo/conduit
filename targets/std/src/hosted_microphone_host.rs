@@ -130,7 +130,7 @@ impl crate::StdHost {
         Ok(conduit_core::AuthorityGrant {
             grant_id: conduit_core::AuthorityGrantId::from(grant_id),
             contract_id: requirement.contract_id.clone(),
-            host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+            host_call_contract_id: requirement.host_call_contract_id.clone(),
             subject_kind: requirement.subject_kind.clone(),
             host_id: self.advertisement.host_id.clone(),
             boot_id: self.advertisement.boot_id.clone(),

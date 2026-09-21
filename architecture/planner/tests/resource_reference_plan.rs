@@ -1,9 +1,9 @@
 use conduit_core::{
     authority_grant, kind_id, port_id, ArtifactId, AuthorityContractId, AuthorityRequirement,
     BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, KindIdentity, OfferGeneration,
-    PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION, RESOURCE_REFERENCE_INFO_ID,
+    ExecutionProfileId, HostAdvertisement, HostCallContractId, HostCallRequirement, HostId,
+    HostProfileId, ImplementationId, KindIdentity, OfferGeneration, PortDescriptor, PortDirection,
+    PortTemporal, PROTOCOL_VERSION, RESOURCE_REFERENCE_INFO_ID,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
@@ -55,9 +55,9 @@ fn definition(kind: &str, direction: PortDirection) -> KindProjection {
 fn offer(definition: &KindProjection) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
     let dereferences = definition.kind_id.as_str() == SINK_KIND;
-    let host_operations = dereferences
-        .then(|| HostOperationRequirement {
-            contract_id: HostOperationContractId::from(READ_OPERATION),
+    let host_calls = dereferences
+        .then(|| HostCallRequirement {
+            contract_id: HostCallContractId::from(READ_OPERATION),
             target_kind: Some(kind_id(SINK_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: MAXIMUM_REFERENCE_BYTES,
@@ -68,7 +68,7 @@ fn offer(definition: &KindProjection) -> CapabilityOffer {
     let authority_requirements = dereferences
         .then(|| AuthorityRequirement {
             contract_id: AuthorityContractId::from(READ_AUTHORITY),
-            host_operation_contract_id: HostOperationContractId::from(READ_OPERATION),
+            host_call_contract_id: HostCallContractId::from(READ_OPERATION),
             subject_kind: kind_id(SINK_KIND),
         })
         .into_iter()
@@ -86,7 +86,7 @@ fn offer(definition: &KindProjection) -> CapabilityOffer {
         },
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
-        host_operations,
+        host_calls,
         resource_requirements: vec![],
         authority_requirements,
         limits: CapabilityLimits {
@@ -168,12 +168,9 @@ fn exact_resource_reference_kind_survives_checked_form_and_plan_without_locator_
         .iter()
         .find(|placement| placement.kind_id.as_str() == SINK_KIND)
         .unwrap();
-    assert_eq!(consumer.host_operations.len(), 1);
-    assert_eq!(
-        consumer.host_operations[0].contract_id.as_str(),
-        READ_OPERATION
-    );
-    assert_eq!(consumer.host_operations[0].maximum_in_flight, 1);
+    assert_eq!(consumer.host_calls.len(), 1);
+    assert_eq!(consumer.host_calls[0].contract_id.as_str(), READ_OPERATION);
+    assert_eq!(consumer.host_calls[0].maximum_in_flight, 1);
     assert_eq!(consumer.authority.len(), 1);
     assert_eq!(consumer.authority[0].contract_id.as_str(), READ_AUTHORITY);
     let debug = format!("{plan:?}");

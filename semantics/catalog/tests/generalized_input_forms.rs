@@ -49,7 +49,7 @@ fn canonical_form_consumes_gamepad_button_pointer_touch_and_rotary_info() {
     .unwrap();
     for placement in &plan.fragments[0].placements {
         assert_eq!(
-            placement.host_operations[0].contract_id.as_str(),
+            placement.host_calls[0].contract_id.as_str(),
             "proof/generalized-input@1"
         );
         assert!(placement.resources.is_empty());
@@ -209,8 +209,8 @@ fn proof_offers() -> Vec<conduit_core::CapabilityOffer> {
         },
         inputs: vec![],
         outputs,
-        host_operations: vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from("proof/generalized-input@1"),
+        host_calls: vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from("proof/generalized-input@1"),
             target_kind: Some(conduit_core::kind_id(kind)),
             maximum_in_flight: 1,
             maximum_input_bytes: 0,

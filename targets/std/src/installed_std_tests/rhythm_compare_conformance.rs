@@ -110,7 +110,7 @@ fn portable_lesson_executes_with_generic_structured_sources() {
         .iter()
         .find(|placement| placement.kind_id == compare_offer.kind_id)
         .unwrap();
-    assert_eq!(compare.host_operations.len(), 3);
+    assert_eq!(compare.host_calls.len(), 3);
 
     let mut output = Vec::with_capacity(2_048);
     let mut timer = RecordingTimer { waits: Vec::new() };

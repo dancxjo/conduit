@@ -130,7 +130,7 @@ fn text_source_offer() -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -219,7 +219,7 @@ mod tests {
             manifestation.execution_profile_id.as_str(),
             crate::presentation_nucleus::CONDUITOS_PRESENTATION_PROFILE
         );
-        assert_eq!(manifestation.host_operations.len(), 1);
+        assert_eq!(manifestation.host_calls.len(), 1);
         assert_eq!(manifestation.resources.len(), 1);
     }
 

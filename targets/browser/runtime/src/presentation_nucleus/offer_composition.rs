@@ -1,6 +1,6 @@
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_requirement, CapabilityOffer,
-    HostOperationContractId, HostOperationRequirement, PRESENTATION_RESOURCE_CLASS,
+    kind_id, present_host_call_requirement, resource_requirement, CapabilityOffer,
+    HostCallContractId, HostCallRequirement, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_presentation::{
     MAX_GRAPHICS_SCENE_BYTES, MAX_LAYOUT_FRAME_BYTES, MAX_PRESENTATION_COMPOSITION_BYTES,
@@ -57,7 +57,7 @@ fn text_offer_for(capability: &str, implementation: &str) -> CapabilityOffer {
             implementation,
             artifact: BROWSER_PRESENTATION_ARTIFACT,
         },
-        vec![present_host_operation_requirement(
+        vec![present_host_call_requirement(
             kind_id("presentation/browser-text"),
             conduit_text::MAX_TEXT_BYTES,
         )],
@@ -117,9 +117,9 @@ fn portable_offer_for(
                 )),
             )
         };
-    let host_operations = operation
-        .map(|(id, input, output)| HostOperationRequirement {
-            contract_id: HostOperationContractId::from(id),
+    let host_calls = operation
+        .map(|(id, input, output)| HostCallRequirement {
+            contract_id: HostCallContractId::from(id),
             target_kind: Some(contract.kind_id.clone()),
             maximum_in_flight: 1,
             maximum_input_bytes: input,
@@ -136,7 +136,7 @@ fn portable_offer_for(
             implementation,
             artifact: BROWSER_PRESENTATION_ARTIFACT,
         },
-        host_operations,
+        host_calls,
         Vec::new(),
         Vec::new(),
     ))

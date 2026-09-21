@@ -4,7 +4,7 @@
 //!
 //! This crate owns text Kind identity, exact typed fronts, semantic
 //! configuration, finite bounds, and canonical Form catalog installation. It
-//! owns no Host implementation, execution profile, host operation, artifact,
+//! owns no Host implementation, execution profile, Host Call, artifact,
 //! resource, authority, or manifestation claim.
 
 extern crate alloc;

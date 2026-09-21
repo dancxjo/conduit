@@ -4,7 +4,7 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, HostOperationRequirement, ImplementationId, Kind, PlannedGear,
+    ExecutionProfileId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 use conduit_web::JsonValue;
@@ -83,7 +83,7 @@ fn json_realization_offer(
             execution_profile_id: ExecutionProfileId::from("browser/bounded-json@1"),
             implementation_id: ImplementationId::from(IMPLEMENTATIONS[index]),
             artifact_id: ArtifactId::from("conduit-browser-runtime/bounded-json@1"),
-            host_operations: vec![HostOperationRequirement {
+            host_calls: vec![HostCallRequirement {
                 contract_id: OPERATIONS[index].into(),
                 target_kind: Some(kind),
                 maximum_in_flight: 1,

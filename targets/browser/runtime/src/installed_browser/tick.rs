@@ -23,7 +23,7 @@ fn offer() -> CapabilityOffer {
             implementation: IMPLEMENTATION,
             artifact: "conduit-browser-runtime/installed-tick@1",
         },
-        vec![conduit_core::HostOperationRequirement {
+        vec![conduit_core::HostCallRequirement {
             contract_id: "conduit.host/browser-present-tick@1".into(),
             target_kind: Some("presentation/browser-tick".into()),
             maximum_in_flight: 1,

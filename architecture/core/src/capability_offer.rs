@@ -1,14 +1,14 @@
 use crate::{
     ArtifactId, AuthorityRequirement, CapabilityId, CapabilityLimits, CapabilityOffer,
-    CheckedFront, ExecutionProfileId, FrontStartupParameter, HostOperationRequirement,
-    ImplementationId, ImplementationOffer, KindConfigurationField, KindId, KindIdentity,
-    KindSemanticLaw, PortDescriptor, PortId, ResourceRequirement,
+    CheckedFront, ExecutionProfileId, FrontStartupParameter, HostCallRequirement, ImplementationId,
+    ImplementationOffer, KindConfigurationField, KindId, KindIdentity, KindSemanticLaw,
+    PortDescriptor, PortId, ResourceRequirement,
 };
 use alloc::{collections::BTreeSet, vec::Vec};
 
 /// Portable semantic truth from which a host may offer one realization.
 ///
-/// This deliberately contains no implementation, artifact, Host operation,
+/// This deliberately contains no implementation, artifact, Host Call,
 /// resource, or authority identity. Those belong to the realization.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Kind {
@@ -78,7 +78,7 @@ pub struct Back {
     pub execution_profile_id: ExecutionProfileId,
     pub implementation_id: ImplementationId,
     pub artifact_id: ArtifactId,
-    pub host_operations: Vec<HostOperationRequirement>,
+    pub host_calls: Vec<HostCallRequirement>,
     pub resource_requirements: Vec<ResourceRequirement>,
     pub authority_requirements: Vec<AuthorityRequirement>,
 }
@@ -160,7 +160,7 @@ impl BackOfferBuilder {
                 implementation_id: self.realization.implementation_id,
                 artifact_id: self.realization.artifact_id,
             },
-            host_operations: self.realization.host_operations,
+            host_calls: self.realization.host_calls,
             resource_requirements: self.realization.resource_requirements,
             authority_requirements: self.realization.authority_requirements,
             limits: self.realization_limits,
@@ -203,7 +203,7 @@ mod tests {
             execution_profile_id: ExecutionProfileId::from("native"),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from("artifact"),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         }

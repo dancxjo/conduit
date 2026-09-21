@@ -1,5 +1,5 @@
 //! Shared operation lifecycle contract used by the one kernel scheduler.
-use crate::{HostOperationOutcome, OperationAction, OperationInput, PortId, RequestId, ValueRef};
+use crate::{HostCallOutcome, OperationAction, OperationInput, PortId, RequestId, ValueRef};
 
 /// Shared state-machine boundary for hosted and fixed-storage execution.
 pub trait Operation {
@@ -12,18 +12,18 @@ pub trait Operation {
     /// Whether this operation may consume another input while one exact host
     /// request remains pending. The default preserves backpressure for
     /// operations whose host interaction must complete before more input.
-    fn accepts_input_while_host_operation_pending(&self) -> bool {
+    fn accepts_input_while_host_call_pending(&self) -> bool {
         false
     }
-    /// Whether an exact prepared value used as Host-operation input remains
+    /// Whether an exact prepared value used as Host Call input remains
     /// operation-owned after that request completes.
-    fn retains_host_operation_input(&self, _request: RequestId, _value: ValueRef) -> bool {
+    fn retains_host_call_input(&self, _request: RequestId, _value: ValueRef) -> bool {
         false
     }
     /// Returns one exact pending host request that this operation wants the
     /// adapter to cancel. The scheduler validates ownership and dispatch state
     /// before exposing the cancellation to the host.
-    fn take_host_operation_cancellation(&mut self) -> Option<RequestId> {
+    fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
         None
     }
     /// Resumes one exact admitted value with its canonical bytes borrowed
@@ -36,14 +36,14 @@ pub trait Operation {
     /// Resumes one exact host completion with the completed output's canonical
     /// bytes borrowed read-only for this call. The default preserves the
     /// opaque host-output contract.
-    fn resume_host_operation(
+    fn resume_host_call(
         &mut self,
         request: RequestId,
-        outcome: HostOperationOutcome,
+        outcome: HostCallOutcome,
         canonical: Option<&[u8]>,
     ) -> OperationAction {
         let _ = canonical;
-        self.resume(OperationInput::HostOperationCompleted { request, outcome })
+        self.resume(OperationInput::HostCallCompleted { request, outcome })
     }
     fn advance(&mut self) -> OperationAction {
         OperationAction::Await

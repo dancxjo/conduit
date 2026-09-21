@@ -64,8 +64,8 @@
           "specifier": "../../creche/browser/creche-release-catalog.mjs"
         },
         {
-          "role": "browser-host-operations",
-          "specifier": "../../../targets/browser/host/assets/browser-host-operations.mjs"
+          "role": "browser-host-calls",
+          "specifier": "../../../targets/browser/host/assets/browser-host-calls.mjs"
         }
       ]
     },
@@ -497,15 +497,15 @@
       "maximum_bytes": 4096,
       "dependencies": [
         {
-          "role": "browser-host-operations",
-          "specifier": "../../../targets/browser/host/assets/browser-host-operations.mjs"
+          "role": "browser-host-calls",
+          "specifier": "../../../targets/browser/host/assets/browser-host-calls.mjs"
         }
       ]
     },
     {
-      "role": "browser-host-operations",
+      "role": "browser-host-calls",
       "kind": "module",
-      "path": "browser-host-operations.mjs",
+      "path": "browser-host-calls.mjs",
       "maximum_bytes": 24576,
       "dependencies": []
     },

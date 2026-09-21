@@ -5,12 +5,12 @@ use std::time::Duration;
 
 use conduit_core::{bind_active_play, BootId, HostId, Plan, PlanFragment};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEventKind, RemoteEndpointId,
-    RequestId, SignQuery, ValueStorage,
+    CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition, HostCallId, HostCallOutcome,
+    HostedSignLog, HostedValueStore, KernelEventKind, RemoteEndpointId, RequestId, SignQuery,
+    ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -96,7 +96,7 @@ impl PicoUsbSource {
                 .remote_endpoints
                 .iter()
                 .any(|endpoint| endpoint.direction != RemoteCordDirection::Egress)
-            || lowered.host_operations.len() != 1
+            || lowered.host_calls.len() != 1
         {
             return Err("std fragment is not one exact kernel remote egress".to_owned());
         }
@@ -169,12 +169,9 @@ impl PicoUsbSource {
                 .map_err(|error| format!("{error:?}"))?;
         }
         routes.seal().map_err(|error| format!("{error:?}"))?;
-        let mut host_bindings = FixedHostOperationBindings::<1>::new(1);
+        let mut host_bindings = FixedHostCallBindings::<1>::new(1);
         host_bindings
-            .install(
-                lowered.host_operations[0].node,
-                lowered.host_operations[0].binding,
-            )
+            .install(lowered.host_calls[0].node, lowered.host_calls[0].binding)
             .map_err(|error| format!("{error:?}"))?;
         host_bindings.seal().map_err(|error| format!("{error:?}"))?;
         let driver = OperationDriver::new(PulseOperation::new(signal_values, waits))
@@ -191,7 +188,7 @@ impl PicoUsbSource {
             remote_sign_bytes,
         )
         .map_err(|error| format!("{error:?}"))?;
-        let scheduler = SourceScheduler::new_with_host_operations(
+        let scheduler = SourceScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()
@@ -225,7 +222,7 @@ impl PicoUsbSource {
                     &lowered.identity,
                     lowered.nodes[0].node,
                     RequestId(sequence as u32),
-                    HostOperationId(0),
+                    HostCallId(0),
                 )
                 .map_err(|error| format!("{error:?}"))?;
         }
@@ -435,7 +432,7 @@ impl PicoUsbSource {
         (remote.endpoint, remote.cord)
     }
 
-    fn complete_wait(&mut self, request: HostOperationRequest) -> Result<(), String> {
+    fn complete_wait(&mut self, request: HostCallRequest) -> Result<(), String> {
         let identity = self
             .identity
             .request(request.node, request.request)
@@ -452,11 +449,11 @@ impl PicoUsbSource {
         );
         thread::sleep(Duration::from_millis(duration));
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },

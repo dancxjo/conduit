@@ -18,7 +18,7 @@ pub(super) const RIGHT_SINK_KIND: &str = "conduitos/fixture-flow-right-sink";
 const SOURCE_REVISION: &str = "conduitos/fixture-flow-source@1";
 const SINK_REVISION: &str = "conduitos/fixture-flow-sink@1";
 const FIXTURE_ARTIFACT: &str = "conduitos/flow-state-fixture@1";
-pub(super) const SINK_HOST_OPERATION: &str = "conduitos.fixture/capture-flow-scalar@1";
+pub(super) const SINK_HOST_CALL: &str = "conduitos.fixture/capture-flow-scalar@1";
 
 pub struct PreparedFlowState {
     pub advertisement: HostAdvertisement,
@@ -121,7 +121,7 @@ fn source_offer(value: Scalar) -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: true },
         }],
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: limits(),
@@ -138,8 +138,8 @@ fn sink_offer(kind: &str) -> CapabilityOffer {
         implementation: fixture_implementation("conduitos.fixture/flow-sink@1"),
         inputs: vec![scalar_port("value", PortDirection::Input)],
         outputs: Vec::new(),
-        host_operations: vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(SINK_HOST_OPERATION),
+        host_calls: vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(SINK_HOST_CALL),
             target_kind: Some(kind_id(kind)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,

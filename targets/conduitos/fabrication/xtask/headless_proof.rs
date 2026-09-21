@@ -28,7 +28,7 @@ pub fn execute(output: PathBuf, opts: &GlobalOpts) -> Result<(), ConduitosError>
         || !resolved.resource_budgets.is_empty()
         || !resolved.base_selections.is_empty()
         || !resolved.driver_selections.is_empty()
-        || !resolved.host_operations.is_empty()
+        || !resolved.host_calls.is_empty()
     {
         return Err(refusal(
             "headless-profile-mismatch",

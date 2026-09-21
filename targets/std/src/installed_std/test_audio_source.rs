@@ -6,9 +6,7 @@ use conduit_core::{
     PortTemporal,
 };
 use conduit_form::{KindProjection, ProfileCatalog};
-use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationInput, RequestId,
-};
+use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallId, OperationInput, RequestId};
 use conduit_kernel::{OperationAction, PortId, ValueRef, ValueStorage};
 
 pub(super) const KIND: &str = "conduit-proof/pcm-specimen-source";
@@ -46,9 +44,9 @@ impl TestPcmSourceOperation {
 
     pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -66,9 +64,9 @@ impl TestPcmSourceOperation {
         }
         let request = RequestId(self.next as u32);
         self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             input: BoundedValueRef::new(self.yield_markers[self.next - 1], 1)
                 .expect("yield marker is one byte"),
         }
@@ -93,8 +91,8 @@ pub(super) fn offer() -> CapabilityOffer {
         },
         inputs: Vec::new(),
         outputs: outputs(),
-        host_operations: vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(YIELD_OPERATION),
+        host_calls: vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(YIELD_OPERATION),
             target_kind: None,
             maximum_in_flight: 1,
             maximum_input_bytes: 1,
@@ -139,7 +137,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id.as_str() != ARTIFACT
         || !placement.inputs.is_empty()
         || placement.outputs != outputs()
-        || placement.host_operations != offer().host_operations
+        || placement.host_calls != offer().host_calls
         || !placement.resources.is_empty()
         || !placement.authority.is_empty()
         || !placement.configuration.is_empty()

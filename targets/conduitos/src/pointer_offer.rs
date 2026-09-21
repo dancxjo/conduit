@@ -3,15 +3,15 @@
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, KindIdentity,
-    PortDescriptor, PortDirection, PortTemporal, kind_id, port_id, resource_offer,
+    HostCallContractId, HostCallRequirement, ImplementationId, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal, kind_id, port_id, resource_offer,
 };
 
 pub const POINTER_IMPLEMENTATION: &str = "conduitos/usb-hid-pointer@1";
 pub const POINTER_EXECUTION_PROFILE: &str = "conduitos/usb-input-cooperative@1";
 pub const PS2_POINTER_IMPLEMENTATION: &str = "conduitos/ps2-pointer@1";
 pub const PS2_INPUT_EXECUTION_PROFILE: &str = "conduitos/ps2-input-cooperative@1";
-pub const NEXT_POINTER_EVENT_HOST_OPERATION: &str = "conduit.host/input-next-pointer-event@1";
+pub const NEXT_POINTER_EVENT_HOST_CALL: &str = "conduit.host/input-next-pointer-event@1";
 pub const POINTER_EVENT_SLOTS: u16 = 8;
 pub const POINTER_OPERATION_SLOTS: u16 = 1;
 pub const POINTER_EVENT_MAXIMUM_BYTES: u32 = 512;
@@ -207,8 +207,8 @@ pub(crate) fn append_to_advertisement(
                 direction: PortDirection::Output,
                 temporal: PortTemporal::Value,
             }],
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(NEXT_POINTER_EVENT_HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(NEXT_POINTER_EVENT_HOST_CALL),
                 target_kind: Some(kind_id(conduit_semantic_catalog::POINTER_EVENT_INFO_ID)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: 0,
@@ -318,6 +318,6 @@ mod tests {
         );
         assert_eq!(capability.outputs[0].port_id.as_str(), "pointer");
         assert_eq!(capability.limits.max_queue_items, POINTER_EVENT_SLOTS);
-        assert_eq!(capability.host_operations[0].maximum_in_flight, 1);
+        assert_eq!(capability.host_calls[0].maximum_in_flight, 1);
     }
 }

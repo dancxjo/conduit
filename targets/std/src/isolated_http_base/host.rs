@@ -216,8 +216,8 @@ fn exact_http_placement(
         .ok_or("Plan has no isolated HTTP client placement")?;
     if placements.next().is_some()
         || placement.kind_id.as_str() != conduit_web::HTTP_CLIENT_KIND
-        || placement.host_operations.len() != 1
-        || placement.host_operations[0].contract_id.as_str() != HTTP_CLIENT_OPERATION
+        || placement.host_calls.len() != 1
+        || placement.host_calls[0].contract_id.as_str() != HTTP_CLIENT_OPERATION
         || placement.authority.len() != 1
         || placement.resources.len() != 1
         || placement.resources[0].class_id.as_str() != HTTP_CLIENT_RESOURCE
@@ -235,7 +235,7 @@ pub(super) fn capability(
 ) -> Result<(CapabilityIssueRequest, BaseOperationClaim), String> {
     let authority = &placement.authority[0];
     let resource = &placement.resources[0];
-    let operation = placement.host_operations[0].clone();
+    let operation = placement.host_calls[0].clone();
     let base = placement
         .base
         .as_ref()
@@ -277,7 +277,7 @@ pub(super) fn capability(
     let grant = AuthorityGrant {
         grant_id: authority.grant_id.clone(),
         contract_id: authority.contract_id.clone(),
-        host_operation_contract_id: authority.host_operation_contract_id.clone(),
+        host_call_contract_id: authority.host_call_contract_id.clone(),
         subject_kind: authority.subject_kind.clone(),
         host_id: authority.host_id.clone(),
         boot_id: authority.boot_id.clone(),

@@ -475,7 +475,7 @@ reusable_entries = [
   { entry = "chat/server", title = "Chat Server", composition = { parent = "webchat-transport-demo", occurrences = ["server"] } },
   { entry = "chat/browser-client", title = "Browser Chat Client", composition = { parent = "webchat-browser-demo", occurrences = ["client"] } },
 ]
-deterministic = { package = "conduit-std-host", test = "external_websocket_plan", case = "planned_listener_executes_through_kernel_host_operations_for_two_clients" }
+deterministic = { package = "conduit-std-host", test = "external_websocket_plan", case = "planned_listener_executes_through_kernel_host_calls_for_two_clients" }
 
 [[combined_workloads]]
 slug = "initial-three-form-body"

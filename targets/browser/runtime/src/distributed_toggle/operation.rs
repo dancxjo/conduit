@@ -5,7 +5,7 @@
 
 use conduit_core::BOOL_ENCODED_LEN;
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
     OperationAction, OperationInput, PortId, RequestId,
 };
 
@@ -50,16 +50,16 @@ impl Operation for ToggleShowOperation {
                 };
                 let request = RequestId(0x8000_0000 | sequence);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, BOOL_ENCODED_LEN as u32)
                         .expect("remote Boolean was admitted at its exact byte bound"),
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {

@@ -227,7 +227,7 @@ mod tests {
             },
             inputs: Vec::new(),
             outputs: Vec::new(),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
             limits: CapabilityLimits {

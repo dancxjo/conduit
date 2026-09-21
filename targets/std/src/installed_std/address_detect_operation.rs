@@ -3,8 +3,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId, ValueRef,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -42,28 +42,26 @@ impl AddressDetectOperation {
                     self.request(port, value)
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
+                    (HostCallDisposition::Completed, Some(output), None) => {
                         self.emitted = true;
                         OperationAction::Emit {
                             port: PortId(0),
                             value: output.value,
                         }
                     }
-                    (HostOperationDisposition::Completed, None, None) => self
+                    (HostCallDisposition::Completed, None, None) => self
                         .deferred
                         .take()
                         .map_or(OperationAction::Await, |(port, value)| {
                             self.request(port, value)
                         }),
-                    (HostOperationDisposition::Denied, _, _) => {
-                        fail(FailureCode::HostOperationDenied, 2)
-                    }
-                    _ => fail(FailureCode::HostOperationFailed, 13),
+                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 2),
+                    _ => fail(FailureCode::HostCallFailed, 13),
                 }
             }
             OperationInput::Closed { port: PortId(port) }
@@ -100,9 +98,9 @@ impl AddressDetectOperation {
         let Ok(input) = BoundedValueRef::new(value, maximum) else {
             return fail(FailureCode::InvalidInput, 1);
         };
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request,
-            operation: HostOperationId(if port == 0 { 1 } else { 0 }),
+            operation: HostCallId(if port == 0 { 1 } else { 0 }),
             input,
         }
     }
@@ -154,7 +152,7 @@ impl AddressDetectHost {
                         .map_err(|error| format!("address set: {error:?}"))?,
                 );
             }
-            _ => return Err("unknown address-detect host operation".into()),
+            _ => return Err("unknown address-detect Host Call".into()),
         }
         let (Some(recognized), Some(addresses)) = (&self.recognized, &self.addresses) else {
             return Ok(HostCompletion::Stored);
@@ -192,7 +190,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id.as_str() != conduit_std_offers::ADDRESS_DETECT_ARTIFACT
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || !placement.configuration.is_empty()
     {
         return Err("planned address detection does not match installation".into());

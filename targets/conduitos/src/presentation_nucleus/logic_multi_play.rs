@@ -3,11 +3,11 @@
 use alloc::vec::Vec;
 use conduit_core::{InfoBool, Scalar};
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    CordSpec, FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, NodeId, ValueStorage,
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallOutcome, NodeId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 
@@ -128,7 +128,7 @@ pub fn run_logic_multi(prepared: &PreparedLogicMulti) -> Result<LogicMultiProof,
 
 fn service(
     scheduler: &mut Scheduler,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     state: &mut HostState,
     comparison: conduit_semantic_catalog::ScalarComparison,
 ) -> Result<(), LogicMultiError> {
@@ -184,7 +184,7 @@ fn service(
 
 fn complete(
     kernel: &mut Kernel,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     output: Option<&[u8]>,
 ) -> Result<(), LogicMultiError> {
     let output = output
@@ -196,11 +196,11 @@ fn complete(
         })
         .transpose()?;
     kernel
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output,
                 failure: None,
             },
@@ -237,8 +237,8 @@ fn scheduler(
             .map_err(|_| LogicMultiError::Kernel)?;
     }
     routes.seal().map_err(|_| LogicMultiError::Kernel)?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(|_| LogicMultiError::Kernel)?;
@@ -300,10 +300,9 @@ fn scheduler(
             .max((SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
     )
     .map_err(|_| LogicMultiError::Kernel)?;
-    let kernel = FixedScheduler::new_with_host_operations(
-        nodes, cords, routes, bindings, drivers, values, signs,
-    )
-    .map_err(|_| LogicMultiError::Kernel)?;
+    let kernel =
+        FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
+            .map_err(|_| LogicMultiError::Kernel)?;
     Ok(Scheduler {
         kernel,
         compare: compare.ok_or(LogicMultiError::Shape)?,

@@ -7,11 +7,11 @@ use conduit_core::{
 };
 use conduit_form::{ProfileCatalog, parse};
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    CordSpec, FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
 };
 use conduit_kernel::{
-    FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, ValueStorage,
+    FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, HostCallDisposition,
+    HostCallOutcome, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
@@ -224,7 +224,7 @@ fn source_offer(value: InfoBool) -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
         }],
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -271,8 +271,8 @@ fn scheduler(
             .map_err(|_| BoolPresentationError::Kernel)?;
     }
     routes.seal().map_err(|_| BoolPresentationError::Kernel)?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(|_| BoolPresentationError::Kernel)?;
@@ -312,7 +312,7 @@ fn scheduler(
             .max((SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
     )
     .map_err(|_| BoolPresentationError::Kernel)?;
-    FixedScheduler::new_with_host_operations(nodes, cords, routes, bindings, drivers, values, signs)
+    FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
         .map_err(|_| BoolPresentationError::Kernel)
 }
 
@@ -343,14 +343,14 @@ fn render(
 
 fn complete(
     scheduler: &mut Scheduler,
-    request: HostOperationRequest,
+    request: HostCallRequest,
 ) -> Result<(), BoolPresentationError> {
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },

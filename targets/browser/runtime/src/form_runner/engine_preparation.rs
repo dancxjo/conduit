@@ -28,7 +28,7 @@ pub(super) fn validate_envelope(
         } else {
             !lowered.remote_endpoints.is_empty()
         }
-        || lowered.host_operations.len() > BROWSER_HOST_OPERATION_BINDINGS
+        || lowered.host_calls.len() > BROWSER_HOST_CALL_BINDINGS
         || fragment
             .placements
             .iter()
@@ -133,7 +133,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
             );
         }
         if placement
-            .host_operations
+            .host_calls
             .iter()
             .any(|operation| resource_effect::matches(operation.contract_id.as_str()))
         {
@@ -213,9 +213,8 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
                 )?
                 .map(Box::new);
         }
-        if placement.host_operations.iter().any(|operation| {
-            operation.contract_id.as_str()
-                == crate::installed_browser::pointer_selector::HOST_OPERATION
+        if placement.host_calls.iter().any(|operation| {
+            operation.contract_id.as_str() == crate::installed_browser::pointer_selector::HOST_CALL
         }) {
             selectors[usize::from(node.node.0)] =
                 Some(crate::installed_browser::pointer_selector::PreparedSelector::new(placement)?);
@@ -272,13 +271,9 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
             .map_err(debug_error)?;
     }
     routes.seal().map_err(debug_error)?;
-    let mut bindings = FixedHostOperationBindings::<BROWSER_HOST_OPERATION_BINDINGS>::new(
-        BROWSER_HOST_OPERATIONS_PER_GEAR,
-    );
-    for operation in partitions
-        .iter()
-        .flat_map(|(_, part)| &part.host_operations)
-    {
+    let mut bindings =
+        FixedHostCallBindings::<BROWSER_HOST_CALL_BINDINGS>::new(BROWSER_HOST_CALLS_PER_GEAR);
+    for operation in partitions.iter().flat_map(|(_, part)| &part.host_calls) {
         bindings
             .install(operation.node, operation.binding)
             .map_err(debug_error)?;
@@ -299,7 +294,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
         remote_sign_bytes,
     )
     .map_err(debug_error)?;
-    let kernel = BrowserKernel::new_with_active_counts_and_host_operations(
+    let kernel = BrowserKernel::new_with_active_counts_and_host_calls(
         active_nodes,
         active_cords,
         nodes,

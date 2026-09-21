@@ -2,8 +2,8 @@
 //! Scheduling, queue admission and commit remain in the parent scheduler.
 use super::{CanonicalValue, SchedulerError, StepInputBytes, StepIo, StepOperation, StepOutcome};
 use crate::{
-    BoundedValueRef, HostOperationId, HostOperationOutcome, Operation, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, HostCallId, HostCallOutcome, Operation, OperationAction, OperationInput,
+    PortId, RequestId, ValueRef,
 };
 
 const PROTOCOL_FAILURE: crate::Failure = crate::Failure {
@@ -23,7 +23,7 @@ enum AdapterEvent {
     },
     HostCompleted {
         request: RequestId,
-        outcome: HostOperationOutcome,
+        outcome: HostCallOutcome,
     },
 }
 
@@ -34,7 +34,7 @@ impl AdapterEvent {
             Self::Value { port, value } => Some(OperationInput::Value { port, value }),
             Self::Closed { port } => Some(OperationInput::Closed { port }),
             Self::HostCompleted { request, outcome } => {
-                Some(OperationInput::HostOperationCompleted { request, outcome })
+                Some(OperationInput::HostCallCompleted { request, outcome })
             }
         }
     }
@@ -52,7 +52,7 @@ struct AdapterTransaction<const PORTS: usize> {
     event: AdapterEvent,
     outputs: [Option<ValueRef>; PORTS],
     canonical_output: Option<(PortId, CanonicalValue)>,
-    host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
+    host_request: Option<(RequestId, HostCallId, BoundedValueRef)>,
     host_cancellation: Option<RequestId>,
     retain_resumed_value: bool,
     released_values: [Option<ValueRef>; PORTS],
@@ -145,7 +145,7 @@ impl<O: Operation, const PORTS: usize> OperationDriver<O, PORTS> {
                     transaction.canonical_output = Some((port, value));
                     action = self.operation.advance();
                 }
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
                     operation,
                     input,
@@ -189,8 +189,8 @@ impl<O: Operation, const PORTS: usize> OperationDriver<O, PORTS> {
         &mut self,
         transaction: &mut AdapterTransaction<PORTS>,
     ) -> Result<(), SchedulerError> {
-        transaction.host_cancellation = self.operation.take_host_operation_cancellation();
-        if self.operation.take_host_operation_cancellation().is_some() {
+        transaction.host_cancellation = self.operation.take_host_call_cancellation();
+        if self.operation.take_host_call_cancellation().is_some() {
             return Err(SchedulerError::OperationProtocolViolation);
         }
         Ok(())
@@ -247,7 +247,7 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
                 }
                 AdapterEvent::HostCompleted { request, outcome } => self
                     .operation
-                    .resume_host_operation(request, outcome, input_bytes.host_output()),
+                    .resume_host_call(request, outcome, input_bytes.host_output()),
                 _ => {
                     let Some(input) = event.operation_input() else {
                         return StepOutcome::Fail(PROTOCOL_FAILURE);
@@ -337,15 +337,12 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
             }
         }
         if let Some((request, operation, input)) = transaction.host_request {
-            if io
-                .request_host_operation(request, operation, input)
-                .is_err()
-            {
+            if io.request_host_call(request, operation, input).is_err() {
                 return StepOutcome::Fail(PROTOCOL_FAILURE);
             }
         }
         if let Some(request) = transaction.host_cancellation {
-            if io.cancel_host_operation(request).is_err() {
+            if io.cancel_host_call(request).is_err() {
                 return StepOutcome::Fail(PROTOCOL_FAILURE);
             }
         }
@@ -362,12 +359,12 @@ impl<O: Operation, const PORTS: usize> StepOperation<PORTS> for OperationDriver<
         self.operation.cancel();
     }
 
-    fn accepts_input_while_host_operation_pending(&self) -> bool {
-        self.operation.accepts_input_while_host_operation_pending()
+    fn accepts_input_while_host_call_pending(&self) -> bool {
+        self.operation.accepts_input_while_host_call_pending()
     }
 
-    fn retains_host_operation_input(&self, request: RequestId, value: ValueRef) -> bool {
-        self.operation.retains_host_operation_input(request, value)
+    fn retains_host_call_input(&self, request: RequestId, value: ValueRef) -> bool {
+        self.operation.retains_host_call_input(request, value)
     }
 }
 

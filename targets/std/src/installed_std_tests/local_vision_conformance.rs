@@ -156,7 +156,7 @@ fn authored_local_vision_runs(
         conduit_core::BaseEnforcementClass::Cooperative
     );
     assert_eq!(
-        vision.host_operations[0].contract_id.as_str(),
+        vision.host_calls[0].contract_id.as_str(),
         expected_operation
     );
 

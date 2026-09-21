@@ -3,10 +3,10 @@
 use super::capstone_operations::{CurrentSelector, DriveSink};
 use conduit_kernel::{
     scheduler::{CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver},
-    BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId, KernelEvent,
-    NodeId, Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
-    ValueRef, ValueStorage,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallBinding, HostCallDisposition, HostCallId, KernelEvent, NodeId, Operation,
+    OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget, ValueRef,
+    ValueStorage,
 };
 
 pub(super) const OBSERVATION_NODE: NodeId = NodeId(0);
@@ -15,7 +15,7 @@ const STOPPED_NODE: NodeId = NodeId(2);
 const SELECT_NODE: NodeId = NodeId(3);
 pub(super) const DRIVE_NODE: NodeId = NodeId(4);
 pub(super) const OBSERVATION_REQUEST: RequestId = RequestId(1);
-const OPERATION: HostOperationId = HostOperationId(0);
+const OPERATION: HostCallId = HostCallId(0);
 const PORTS: usize = 3;
 const SIGNS: usize = 256;
 const SCALAR_BYTES: u32 = conduit_core::SCALAR_ENCODED_LEN as u32;
@@ -31,7 +31,7 @@ pub(super) struct ObservationSource {
 impl Operation for ObservationSource {
     fn start(&mut self) -> OperationAction {
         self.pending = true;
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: OBSERVATION_REQUEST,
             operation: OPERATION,
             input: BoundedValueRef::new(self.empty, 0).expect("empty request is exact"),
@@ -40,11 +40,11 @@ impl Operation for ObservationSource {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted {
+            OperationInput::HostCallCompleted {
                 request: OBSERVATION_REQUEST,
                 outcome,
             } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.failure.is_none() =>
             {
                 self.pending = false;
@@ -59,9 +59,9 @@ impl Operation for ObservationSource {
                     None => OperationAction::Complete,
                 }
             }
-            OperationInput::HostOperationCompleted { outcome, .. }
+            OperationInput::HostCallCompleted { outcome, .. }
                 if self.pending
-                    && outcome.disposition == HostOperationDisposition::Failed
+                    && outcome.disposition == HostCallDisposition::Failed
                     && outcome.failure.is_some() =>
             {
                 self.pending = false;
@@ -241,28 +241,28 @@ pub(super) fn prepare_scheduler(
     }
     routes.seal().map_err(|_| "capstone route seal failed")?;
 
-    let mut bindings = FixedHostOperationBindings::<5>::new(1);
+    let mut bindings = FixedHostCallBindings::<5>::new(1);
     bindings
         .install(
             OBSERVATION_NODE,
-            HostOperationBinding {
+            HostCallBinding {
                 operation: OPERATION,
                 maximum_input_bytes: 0,
                 maximum_output_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
             },
         )
-        .map_err(|_| "observation Host operation admission failed")?;
+        .map_err(|_| "observation Host Call admission failed")?;
     bindings
         .install(
             DRIVE_NODE,
-            HostOperationBinding {
+            HostCallBinding {
                 operation: OPERATION,
                 maximum_input_bytes: 2 * SCALAR_BYTES,
                 maximum_output_bytes: 0,
             },
         )
-        .map_err(|_| "drive Host operation admission failed")?;
-    bindings.seal().map_err(|_| "Host operation seal failed")?;
+        .map_err(|_| "drive Host Call admission failed")?;
+    bindings.seal().map_err(|_| "Host Call seal failed")?;
 
     let signs = FixedSignLog::new((SIGNS * core::mem::size_of::<KernelEvent>()) as u32)
         .map_err(|_| "capstone Sign admission failed")?;
@@ -310,7 +310,7 @@ pub(super) fn prepare_scheduler(
             },
         )
     });
-    FixedScheduler::new_with_host_operations(
+    FixedScheduler::new_with_host_calls(
         node_specs,
         cords,
         routes,

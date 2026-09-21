@@ -74,7 +74,7 @@ fn checked_calendar_request_prepares_then_emits_three_inert_candidates() {
         planned.configuration[0].value,
         ConfigurationValue::Structured(_)
     ));
-    assert!(planned.host_operations.is_empty());
+    assert!(planned.host_calls.is_empty());
     assert!(planned.resources.is_empty());
     assert!(planned.authority.is_empty());
 

@@ -7,11 +7,11 @@ use conduit_core::{
 };
 use conduit_data::MeasurementSample;
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
     OperationAction, OperationInput, PortId, RequestId,
 };
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/measurement-observation@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/measurement-observation@1";
 const IMPLEMENTATION: &str = "browser/kernel-measurement-observation@1";
 
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
@@ -57,8 +57,8 @@ fn offer() -> conduit_core::CapabilityOffer {
             implementation: IMPLEMENTATION,
             artifact: "conduit-browser-runtime/measurement-observation@1",
         },
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: HOST_OPERATION.into(),
+        vec![conduit_core::HostCallRequirement {
+            contract_id: HOST_CALL.into(),
             target_kind: Some(conduit_core::kind_id(conduit_data::MEASUREMENT_OBSERVATION_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
@@ -150,27 +150,25 @@ impl Operation for ObservationOperation {
                 && value.byte_len == conduit_core::QUANTITY_ENCODED_LEN as u32 =>
             {
                 self.pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input: BoundedValueRef::new(value, conduit_core::QUANTITY_ENCODED_LEN as u32)
                         .expect("exact Quantity"),
                 }
             }
-            OperationInput::HostOperationCompleted {
+            OperationInput::HostCallCompleted {
                 request: RequestId(0),
                 outcome,
             } if self.pending => {
                 self.pending = false;
                 self.completed = true;
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostOperationDisposition::Failed, None, Some(failure)) => {
+                    (HostCallDisposition::Completed, Some(output), None) => OperationAction::Emit {
+                        port: PortId(0),
+                        value: output.value,
+                    },
+                    (HostCallDisposition::Failed, None, Some(failure)) => {
                         OperationAction::Fail(failure)
                     }
                     _ => fail(),

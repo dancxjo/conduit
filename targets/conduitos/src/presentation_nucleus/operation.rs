@@ -1,6 +1,6 @@
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, Operation, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, HostCallDisposition, HostCallId, Operation, OperationAction, OperationInput,
+    PortId, RequestId, ValueRef,
 };
 
 use super::robotics_operation::{
@@ -72,9 +72,9 @@ impl Operation for PresentationOperation {
                     return invalid(1);
                 };
                 *pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
@@ -101,9 +101,9 @@ impl Operation for PresentationOperation {
                 *pending = true;
                 let request = RequestId(*next_request * 4 + u32::from(port.0));
                 *next_request += 1;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
@@ -122,9 +122,9 @@ impl Operation for PresentationOperation {
                     return invalid(2);
                 };
                 *pending = true;
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId(0),
-                    operation: HostOperationId(0),
+                    operation: HostCallId(0),
                     input,
                 }
             }
@@ -132,12 +132,12 @@ impl Operation for PresentationOperation {
                 Self::Transform {
                     pending, emitted, ..
                 },
-                OperationInput::HostOperationCompleted {
+                OperationInput::HostCallCompleted {
                     request: RequestId(0),
                     outcome,
                 },
             ) if *pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.failure.is_none() =>
             {
                 let Some(output) = outcome.output else {
@@ -154,9 +154,9 @@ impl Operation for PresentationOperation {
                 Self::LogicInputs {
                     pending, emitted, ..
                 },
-                OperationInput::HostOperationCompleted { outcome, .. },
+                OperationInput::HostCallCompleted { outcome, .. },
             ) if *pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.failure.is_none() =>
             {
                 *pending = false;
@@ -174,12 +174,12 @@ impl Operation for PresentationOperation {
                 Self::Sink {
                     pending, complete, ..
                 },
-                OperationInput::HostOperationCompleted {
+                OperationInput::HostCallCompleted {
                     request: RequestId(0),
                     outcome,
                 },
             ) if *pending
-                && outcome.disposition == HostOperationDisposition::Completed
+                && outcome.disposition == HostCallDisposition::Completed
                 && outcome.failure.is_none()
                 && outcome.output.is_none() =>
             {

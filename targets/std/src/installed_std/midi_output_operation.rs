@@ -1,8 +1,8 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId,
+    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
+    RequestId,
 };
 
 pub(super) static MIDI_OUTPUT_FACTORY: InstalledFactory = InstalledFactory {
@@ -42,12 +42,12 @@ impl MidiOutputOperation {
                 let request = RequestId(self.next_request);
                 self.next_request = self.next_request.saturating_add(1);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
                     operation: if port == PortId(0) {
-                        HostOperationId(1)
+                        HostCallId(1)
                     } else {
-                        HostOperationId(0)
+                        HostCallId(0)
                     },
                     input,
                 }
@@ -62,15 +62,14 @@ impl MidiOutputOperation {
                     OperationAction::Await
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request) =>
             {
                 self.pending = None;
                 if let Some(failure) = outcome.failure {
                     return OperationAction::Fail(failure);
                 }
-                if outcome.disposition != HostOperationDisposition::Completed
-                    || outcome.output.is_some()
+                if outcome.disposition != HostCallDisposition::Completed || outcome.output.is_some()
                 {
                     return InstalledOperation::fail(83);
                 }
@@ -119,7 +118,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.limits != offer.limits
         || placement.inputs.len() != 2
         || placement.inputs[0].port_id.as_str() != "notes"
@@ -145,8 +144,8 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     {
         return Err("planned music/play MIDI identity/resource/authority mismatch".into());
     }
-    for (authority, operation) in placement.authority.iter().zip(&placement.host_operations) {
-        if authority.host_operation_contract_id != operation.contract_id
+    for (authority, operation) in placement.authority.iter().zip(&placement.host_calls) {
+        if authority.host_call_contract_id != operation.contract_id
             || authority.subject_kind.as_str()
                 != operation
                     .target_kind
@@ -195,7 +194,7 @@ pub(super) fn execute(
     session: &mut crate::hosted_midi::MidiOutputSession,
     contract: &str,
     input: &[u8],
-) -> conduit_kernel::HostOperationOutcome {
+) -> conduit_kernel::HostCallOutcome {
     if contract == conduit_std_offers::MUSIC_PLAY_MIDI_NOTE_OPERATION {
         let Ok(event) = conduit_audio::MusicalNoteEvent::decode(input) else {
             return failed(conduit_kernel::FailureCode::InvalidInput, 84);
@@ -224,44 +223,40 @@ pub(super) fn execute(
     }
 }
 
-fn completed() -> conduit_kernel::HostOperationOutcome {
-    conduit_kernel::HostOperationOutcome {
-        disposition: HostOperationDisposition::Completed,
+fn completed() -> conduit_kernel::HostCallOutcome {
+    conduit_kernel::HostCallOutcome {
+        disposition: HostCallDisposition::Completed,
         output: None,
         failure: None,
     }
 }
 
-fn output_failure(
-    error: crate::hosted_midi::MidiOutputFailure,
-) -> conduit_kernel::HostOperationOutcome {
+fn output_failure(error: crate::hosted_midi::MidiOutputFailure) -> conduit_kernel::HostCallOutcome {
     use crate::hosted_midi::MidiOutputFailure;
     match error {
         MidiOutputFailure::BackendUnavailable => denied(85),
         MidiOutputFailure::Pressure => failed(conduit_kernel::FailureCode::StorageExhausted, 86),
-        MidiOutputFailure::ProviderLost => {
-            failed(conduit_kernel::FailureCode::HostOperationFailed, 87)
-        }
+        MidiOutputFailure::ProviderLost => failed(conduit_kernel::FailureCode::HostCallFailed, 87),
         MidiOutputFailure::InvalidLifecycle => {
             failed(conduit_kernel::FailureCode::InvalidLifecycle, 88)
         }
     }
 }
 
-fn denied(detail: u16) -> conduit_kernel::HostOperationOutcome {
-    conduit_kernel::HostOperationOutcome {
-        disposition: HostOperationDisposition::Denied,
+fn denied(detail: u16) -> conduit_kernel::HostCallOutcome {
+    conduit_kernel::HostCallOutcome {
+        disposition: HostCallDisposition::Denied,
         output: None,
         failure: Some(conduit_kernel::Failure {
-            code: conduit_kernel::FailureCode::HostOperationDenied,
+            code: conduit_kernel::FailureCode::HostCallDenied,
             detail,
         }),
     }
 }
 
-fn failed(code: conduit_kernel::FailureCode, detail: u16) -> conduit_kernel::HostOperationOutcome {
-    conduit_kernel::HostOperationOutcome {
-        disposition: HostOperationDisposition::Failed,
+fn failed(code: conduit_kernel::FailureCode, detail: u16) -> conduit_kernel::HostCallOutcome {
+    conduit_kernel::HostCallOutcome {
+        disposition: HostCallDisposition::Failed,
         output: None,
         failure: Some(conduit_kernel::Failure { code, detail }),
     }

@@ -12,7 +12,7 @@ pub struct EmbeddedImageBounds {
     pub maximum_cords: usize,
     pub maximum_routes: usize,
     pub maximum_route_targets: usize,
-    pub maximum_host_operations: usize,
+    pub maximum_host_calls: usize,
     pub maximum_resources: usize,
     pub maximum_sign_expectations: usize,
     pub maximum_configuration_entries: usize,
@@ -32,7 +32,7 @@ impl EmbeddedImageBounds {
         maximum_cords: u16::MAX as usize,
         maximum_routes: u16::MAX as usize,
         maximum_route_targets: u16::MAX as usize,
-        maximum_host_operations: u16::MAX as usize,
+        maximum_host_calls: u16::MAX as usize,
         maximum_resources: u16::MAX as usize,
         maximum_sign_expectations: u16::MAX as usize,
         maximum_configuration_entries: u16::MAX as usize,
@@ -182,7 +182,7 @@ pub struct GeneratedStaticRouteTarget {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct GeneratedHostOperation {
+pub struct GeneratedHostCall {
     pub node: u16,
     pub operation: u16,
     pub contract_id: String,
@@ -272,7 +272,7 @@ pub struct GeneratedEmbeddedPlan {
     pub remote_endpoints: Vec<GeneratedStaticRemoteEndpoint>,
     pub routes: Vec<GeneratedStaticRoute>,
     pub route_targets: Vec<GeneratedStaticRouteTarget>,
-    pub host_operations: Vec<GeneratedHostOperation>,
+    pub host_calls: Vec<GeneratedHostCall>,
     pub resources: Vec<GeneratedStaticResource>,
     pub signs: Vec<GeneratedStaticSign>,
     pub startup_dependencies: Vec<GeneratedStartupDependency>,

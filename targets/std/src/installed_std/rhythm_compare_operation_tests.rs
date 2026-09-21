@@ -1,5 +1,5 @@
 use super::*;
-use conduit_kernel::{HostOperationOutcome, ProtocolError};
+use conduit_kernel::{HostCallOutcome, ProtocolError};
 
 fn value(slot: u16, bytes: u32) -> ValueRef {
     ValueRef {
@@ -20,9 +20,9 @@ fn fresh_operation() -> RhythmCompareOperation {
     }
 }
 
-fn completed(output: Option<ValueRef>) -> HostOperationOutcome {
-    HostOperationOutcome {
-        disposition: HostOperationDisposition::Completed,
+fn completed(output: Option<ValueRef>) -> HostCallOutcome {
+    HostCallOutcome {
+        disposition: HostCallDisposition::Completed,
         output: output.map(|value| BoundedValueRef::new(value, 4096).unwrap()),
         failure: None,
     }
@@ -38,9 +38,9 @@ fn exact_ports_request_admitted_operations_without_retaining_inputs() {
             port: PortId(0),
             value: performance,
         }),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(0),
-            operation: HostOperationId(1),
+            operation: HostCallId(1),
             ..
         }
     ));
@@ -56,7 +56,7 @@ fn exact_ports_request_admitted_operations_without_retaining_inputs() {
         })
     ));
     assert_eq!(
-        operation.resume(OperationInput::HostOperationCompleted {
+        operation.resume(OperationInput::HostCallCompleted {
             request: RequestId(0),
             outcome: completed(None),
         }),
@@ -68,9 +68,9 @@ fn exact_ports_request_admitted_operations_without_retaining_inputs() {
             port: PortId(1),
             value: reference,
         }),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(1),
-            operation: HostOperationId(2),
+            operation: HostCallId(2),
             ..
         }
     ));
@@ -82,15 +82,15 @@ fn performance_close_drains_missed_feedback_before_exact_completion() {
     let mut operation = fresh_operation();
     assert!(matches!(
         operation.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(0),
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             ..
         }
     ));
     let feedback = value(2, 800);
     assert_eq!(
-        operation.resume(OperationInput::HostOperationCompleted {
+        operation.resume(OperationInput::HostCallCompleted {
             request: RequestId(0),
             outcome: completed(Some(feedback)),
         }),
@@ -101,14 +101,14 @@ fn performance_close_drains_missed_feedback_before_exact_completion() {
     );
     assert!(matches!(
         operation.advance(),
-        OperationAction::RequestHostOperation {
+        OperationAction::RequestHostCall {
             request: RequestId(1),
-            operation: HostOperationId(0),
+            operation: HostCallId(0),
             ..
         }
     ));
     assert_eq!(
-        operation.resume(OperationInput::HostOperationCompleted {
+        operation.resume(OperationInput::HostCallCompleted {
             request: RequestId(1),
             outcome: completed(None),
         }),
@@ -137,7 +137,7 @@ fn oversized_value_duplicate_close_and_wrong_completion_fail_closed() {
     ));
     assert_eq!(
         BoundedValueRef::new(oversized, MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32),
-        Err(ProtocolError::HostOperationInputExceeded)
+        Err(ProtocolError::HostCallInputExceeded)
     );
     let mut operation = fresh_operation();
     assert_eq!(

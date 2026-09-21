@@ -7,16 +7,16 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     kind_id, port_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, Kind, KindId, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
-    ResourceRequirement, INPUT_RESOURCE_CLASS,
+    CapabilityOffer, ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId,
+    Kind, KindId, KindIdentity, PortDescriptor, PortDirection, PortTemporal, ResourceRequirement,
+    INPUT_RESOURCE_CLASS,
 };
 
 use crate::{signal_value_kind, SIGNAL_ENCODED_LEN, SIGNAL_PORT};
 
 pub const LEVEL_INPUT_KIND: &str = "interaction/level";
 pub const MERGE_THREE_SIGNAL_KIND: &str = "flow/merge-three-signal";
-pub const AWAIT_LEVEL_HOST_OPERATION_CONTRACT: &str = "conduit.host/await-level@1";
+pub const AWAIT_LEVEL_HOST_CALL_CONTRACT: &str = "conduit.host/await-level@1";
 pub const LEVEL_INPUT_CONTRACT_REVISION: &str = "conduit.signal/interaction-level@1";
 pub const MERGE_THREE_SIGNAL_CONTRACT_REVISION: &str = "conduit.signal/flow-merge-three-signal@1";
 pub const LEVEL_INPUT_EXECUTION_PROFILE: &str = "conduit.signal/level-input-hosted@1";
@@ -57,9 +57,9 @@ pub fn merge_three_signal_outputs() -> Vec<PortDescriptor> {
     vec![signal_port(SIGNAL_PORT, PortDirection::Output)]
 }
 
-pub fn await_level_host_operation_requirement() -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(AWAIT_LEVEL_HOST_OPERATION_CONTRACT),
+pub fn await_level_host_call_requirement() -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(AWAIT_LEVEL_HOST_CALL_CONTRACT),
         target_kind: None,
         maximum_in_flight: 1,
         maximum_input_bytes: 1,
@@ -83,7 +83,7 @@ pub fn level_input_capability(
             execution_profile_id: ExecutionProfileId::from(LEVEL_INPUT_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(implementation_id),
             artifact_id: ArtifactId::from("conduit-signal/level-input-artifact-v1"),
-            host_operations: vec![await_level_host_operation_requirement()],
+            host_calls: vec![await_level_host_call_requirement()],
             resource_requirements: level_input_resource_requirements(),
             authority_requirements: Vec::new(),
         },
@@ -120,7 +120,7 @@ pub fn merge_three_signal_capability(
             execution_profile_id: ExecutionProfileId::from(MERGE_THREE_SIGNAL_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(implementation_id),
             artifact_id: ArtifactId::from("conduit-signal/merge-three-signal-artifact-v1"),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },

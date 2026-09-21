@@ -3,12 +3,12 @@
 use conduit_audio::{Gate, ToneIntent};
 
 use conduit_kernel::{
-    BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, KernelEvent, NodeId, Operation, OperationAction, OperationInput, PortId,
-    RequestId, RouteRange, RouteTarget, SignSink, ValueRef, ValueStorage,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, NodeId,
+    Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
+    SignSink, ValueRef, ValueStorage,
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver,
+        CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, OperationDriver,
         SchedulerError, SchedulerStatus,
     },
 };
@@ -21,8 +21,8 @@ use crate::{
 
 const SOURCE_NODE: NodeId = NodeId(0);
 const SINK_NODE: NodeId = NodeId(1);
-const FIXTURE_OPERATION: HostOperationId = HostOperationId(0);
-const TONE_OPERATION: HostOperationId = HostOperationId(0);
+const FIXTURE_OPERATION: HostCallId = HostCallId(0);
+const TONE_OPERATION: HostCallId = HostCallId(0);
 const PORTS: usize = 1;
 const EVENTS: usize = 4;
 const SIGN_CAPACITY: usize = 64;
@@ -41,9 +41,9 @@ impl Operation for SourceOperation {
 
     fn resume(&mut self, input: OperationInput) -> OperationAction {
         match input {
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if request == RequestId((self.next + 1) as u32)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -71,7 +71,7 @@ impl SourceOperation {
         self.values
             .get(self.next)
             .map_or(OperationAction::Complete, |_value| {
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request: RequestId((self.next + 1) as u32),
                     operation: FIXTURE_OPERATION,
                     input: BoundedValueRef::new(self.tokens[self.next], 8)
@@ -106,15 +106,15 @@ impl Operation for ToneOperation {
                 let request = RequestId(self.next_request);
                 self.next_request = self.next_request.saturating_add(1);
                 self.pending = Some(request);
-                OperationAction::RequestHostOperation {
+                OperationAction::RequestHostCall {
                     request,
                     operation: TONE_OPERATION,
                     input,
                 }
             }
-            OperationInput::HostOperationCompleted { request, outcome }
+            OperationInput::HostCallCompleted { request, outcome }
                 if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
+                    && outcome.disposition == HostCallDisposition::Completed
                     && outcome.output.is_none()
                     && outcome.failure.is_none() =>
             {
@@ -227,10 +227,10 @@ impl PcSpeakerKernel {
             }],
         )?;
         routes.seal()?;
-        let mut bindings = FixedHostOperationBindings::<2>::new(1);
+        let mut bindings = FixedHostCallBindings::<2>::new(1);
         bindings.install(
             SOURCE_NODE,
-            HostOperationBinding {
+            HostCallBinding {
                 operation: FIXTURE_OPERATION,
                 maximum_input_bytes: 8,
                 maximum_output_bytes: 0,
@@ -238,7 +238,7 @@ impl PcSpeakerKernel {
         )?;
         bindings.install(
             SINK_NODE,
-            HostOperationBinding {
+            HostCallBinding {
                 operation: TONE_OPERATION,
                 maximum_input_bytes: conduit_audio::TONE_INTENT_ENCODED_LEN as u32,
                 maximum_output_bytes: 0,
@@ -248,7 +248,7 @@ impl PcSpeakerKernel {
         let signs =
             FixedSignLog::new((SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32)?;
         Ok(Self {
-            scheduler: FixedScheduler::new_with_host_operations(
+            scheduler: FixedScheduler::new_with_host_calls(
                 [
                     NodeSpec {
                         input_cords: [None],
@@ -289,7 +289,7 @@ impl PcSpeakerKernel {
         })
     }
 
-    fn next_request(&mut self) -> Option<HostOperationRequest> {
+    fn next_request(&mut self) -> Option<HostCallRequest> {
         self.scheduler.next_host_request()
     }
 
@@ -297,20 +297,20 @@ impl PcSpeakerKernel {
         self.scheduler.host_value(value)
     }
 
-    fn complete(&mut self, request: HostOperationRequest) -> Result<(), SchedulerError> {
+    fn complete(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
         let expected = match request.node {
             SOURCE_NODE => FIXTURE_OPERATION,
             SINK_NODE => TONE_OPERATION,
-            _ => return Err(SchedulerError::InvalidHostOperationAccess),
+            _ => return Err(SchedulerError::InvalidHostCallAccess),
         };
         if request.operation != expected {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },

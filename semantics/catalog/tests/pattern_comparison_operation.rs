@@ -1,7 +1,7 @@
 #![cfg(feature = "kernel-operation")]
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
+    OperationAction, OperationInput, PortId, RequestId, ValueRef,
 };
 use conduit_semantic_catalog::PatternComparisonOperation;
 
@@ -22,9 +22,9 @@ fn host_input_bound_is_exact_and_oversize_refuses() {
                 port: PortId(0),
                 value: value(bound)
             }),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(0),
-                operation: HostOperationId(0),
+                operation: HostCallId(0),
                 input: BoundedValueRef::new(value(bound), bound).unwrap()
             }
         );
@@ -51,14 +51,14 @@ fn either_port_order_emits_once_then_requires_both_closures() {
             let request = RequestId(index as u32);
             assert!(
                 matches!(operation.resume(OperationInput::Value { port: PortId(port), value: value(10) }),
-                OperationAction::RequestHostOperation { request: actual, operation: HostOperationId(actual_port), .. }
+                OperationAction::RequestHostCall { request: actual, operation: HostCallId(actual_port), .. }
                 if actual == request && actual_port == port)
             );
             let output = (index == 1).then(|| BoundedValueRef::new(value(20), 4096).unwrap());
-            let action = operation.resume(OperationInput::HostOperationCompleted {
+            let action = operation.resume(OperationInput::HostCallCompleted {
                 request,
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output,
                     failure: None,
                 },
@@ -81,17 +81,17 @@ fn either_port_order_emits_once_then_requires_both_closures() {
                 port: PortId(0),
                 value: value(10),
             }),
-            OperationAction::RequestHostOperation {
+            OperationAction::RequestHostCall {
                 request: RequestId(2),
-                operation: HostOperationId(0),
+                operation: HostCallId(0),
                 input: BoundedValueRef::new(value(10), 4096).unwrap(),
             }
         );
         assert_eq!(
-            operation.resume(OperationInput::HostOperationCompleted {
+            operation.resume(OperationInput::HostCallCompleted {
                 request: RequestId(2),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                outcome: HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(BoundedValueRef::new(value(20), 4096).unwrap()),
                     failure: None,
                 },
@@ -121,10 +121,10 @@ fn stale_completion_and_cancelled_work_do_not_emit() {
         value: value(10),
     });
     operation.cancel();
-    let action = operation.resume(OperationInput::HostOperationCompleted {
+    let action = operation.resume(OperationInput::HostCallCompleted {
         request: RequestId(0),
-        outcome: HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        outcome: HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output: Some(BoundedValueRef::new(value(20), 4096).unwrap()),
             failure: None,
         },

@@ -17,7 +17,7 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_std_host::hosted_messaging::{messaging_std_offers, MESSAGING_HOST_OPERATION};
+use conduit_std_host::hosted_messaging::{messaging_std_offers, MESSAGING_HOST_CALL};
 
 const SOURCE: &str = include_str!("../../../forms/messaging-delivery/main.conduit");
 
@@ -72,8 +72,8 @@ fn canonical_form_constructs_and_routes_one_structured_message() {
     .unwrap();
     for placement in &plan.fragments[0].placements {
         assert_eq!(
-            placement.host_operations[0].contract_id.as_str(),
-            MESSAGING_HOST_OPERATION
+            placement.host_calls[0].contract_id.as_str(),
+            MESSAGING_HOST_CALL
         );
         assert!(placement.resources.is_empty());
         if placement.kind_id.as_str() == conduit_chat::MESSAGING_DELIVERY_KIND {

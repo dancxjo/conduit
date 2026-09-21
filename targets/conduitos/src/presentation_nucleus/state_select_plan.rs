@@ -22,8 +22,8 @@ pub(super) const SELECTOR_SOURCE_KIND: &str = "conduitos/fixture-select-bool-sou
 pub(super) const FALSE_SOURCE_KIND: &str = "conduitos/fixture-select-false-source";
 pub(super) const TRUE_SOURCE_KIND: &str = "conduitos/fixture-select-true-source";
 pub(super) const SINK_KIND: &str = "conduitos/fixture-select-sink";
-pub(super) const SINK_HOST_OPERATION: &str = "conduitos.fixture/capture-selected-scalar@1";
-const SOURCE_ADVANCE_HOST_OPERATION: &str = "conduitos.fixture/advance-select-source@1";
+pub(super) const SINK_HOST_CALL: &str = "conduitos.fixture/capture-selected-scalar@1";
+const SOURCE_ADVANCE_HOST_CALL: &str = "conduitos.fixture/advance-select-source@1";
 const SOURCE_REVISION: &str = "conduitos/fixture-select-source@1";
 const SINK_REVISION: &str = "conduitos/fixture-select-sink@1";
 const FIXTURE_ARTIFACT: &str = "conduitos/state-select-fixture@1";
@@ -185,8 +185,8 @@ fn source_offer(kind: &str, value_kind: &str, identity: String) -> CapabilityOff
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
         }],
-        host_operations: vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(SOURCE_ADVANCE_HOST_OPERATION),
+        host_calls: vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(SOURCE_ADVANCE_HOST_CALL),
             target_kind: Some(kind_id(kind)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
@@ -213,8 +213,8 @@ fn sink_offer() -> CapabilityOffer {
             temporal: PortTemporal::Current,
         }],
         outputs: Vec::new(),
-        host_operations: vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(SINK_HOST_OPERATION),
+        host_calls: vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(SINK_HOST_CALL),
             target_kind: Some(kind_id(SINK_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,

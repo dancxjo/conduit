@@ -9,10 +9,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, present_host_operation_requirement, process_owned_line_offer_with_limits,
-    resource_offer, resource_requirement, BaseImplementationId, BootId, CapabilityOffer,
-    HostAdvertisement, HostId, HostProfileId, LineId, LineOffer, LineScope, LineSecurity,
-    LinkLimits, OfferGeneration, Plan, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    kind_id, present_host_call_requirement, process_owned_line_offer_with_limits, resource_offer,
+    resource_requirement, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId,
+    HostProfileId, LineId, LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration, Plan,
+    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -257,7 +257,7 @@ fn text_presentation_fixture_offer() -> CapabilityOffer {
             implementation: "body-coordination/text-presentation@1",
             artifact: "body-coordination/fixture@1",
         },
-        vec![present_host_operation_requirement(
+        vec![present_host_call_requirement(
             kind_id("presentation/body-coordination-text"),
             conduit_text::MAX_TEXT_BYTES,
         )],

@@ -4,7 +4,7 @@ use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, protected_resource_requirement, ArtifactId, AuthorityContractId,
     AuthorityRequirement, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    FrontStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    FrontStartupParameter, HostCallContractId, HostCallRequirement, ImplementationId,
     ImplementationOffer, KindId, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
@@ -124,7 +124,7 @@ pub fn deterministic_source_extraction_offer(
             implementation_id: ImplementationId::from(DETERMINISTIC_EXTRACTION_IMPLEMENTATION),
             artifact_id: ArtifactId::from(DETERMINISTIC_EXTRACTION_ARTIFACT),
         },
-        host_operations: vec![source_extraction_operation(&contract)],
+        host_calls: vec![source_extraction_operation(&contract)],
         resource_requirements: vec![protected_resource_requirement(
             SOURCE_READER_RESOURCE_ROLE,
             SOURCE_READER_RESOURCE_CLASS,
@@ -132,18 +132,16 @@ pub fn deterministic_source_extraction_offer(
         )],
         authority_requirements: vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(SOURCE_READ_AUTHORITY),
-            host_operation_contract_id: HostOperationContractId::from(SOURCE_EXTRACTION_OPERATION),
+            host_call_contract_id: HostCallContractId::from(SOURCE_EXTRACTION_OPERATION),
             subject_kind: contract.kind_id,
         }],
         limits: contract.limits,
     })
 }
 
-pub fn source_extraction_operation(
-    contract: &SourceExtractionContract,
-) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(SOURCE_EXTRACTION_OPERATION),
+pub fn source_extraction_operation(contract: &SourceExtractionContract) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(SOURCE_EXTRACTION_OPERATION),
         target_kind: Some(contract.kind_id.clone()),
         maximum_in_flight: contract.limits.max_active_instances,
         maximum_input_bytes: conduit_core::MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES as u32,
