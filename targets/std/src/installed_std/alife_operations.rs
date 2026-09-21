@@ -6,6 +6,7 @@ use conduit_alife::{
 };
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -49,6 +50,196 @@ pub(super) struct ScalarFieldPresentationOperation {
 enum Pending {
     Initialize(RequestId),
     Step(RequestId),
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for OrbiumSeedOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), self.value)
+            .expect("ready Orbium seed output");
+        self.emitted = true;
+        StepOutcome::Progress
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for LeniaStepOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            match self.pending {
+                Some(Pending::Initialize(expected)) if expected == request => {
+                    if outcome.disposition != HostCallDisposition::Completed
+                        || outcome.output.is_some()
+                        || outcome.failure.is_some()
+                    {
+                        return StepOutcome::Fail(outcome.failure.unwrap_or(Failure {
+                            code: FailureCode::HostCallFailed,
+                            detail: 185,
+                        }));
+                    }
+                    io.consume_host_completion()
+                        .expect("observed Lenia initialization completion");
+                    self.pending = None;
+                    self.initialized = true;
+                    return StepOutcome::Progress;
+                }
+                Some(Pending::Step(expected)) if expected == request => {
+                    if outcome.disposition != HostCallDisposition::Completed
+                        || outcome.failure.is_some()
+                    {
+                        return StepOutcome::Fail(outcome.failure.unwrap_or(Failure {
+                            code: FailureCode::HostCallFailed,
+                            detail: 187,
+                        }));
+                    }
+                    let Some(output) = outcome.output else {
+                        return step_fail(FailureCode::HostCallFailed, 186);
+                    };
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed Lenia Step completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready Lenia field output");
+                    self.pending = None;
+                    self.next_tick += 1;
+                    return StepOutcome::Progress;
+                }
+                _ => return step_fail(FailureCode::InvalidLifecycle, 188),
+            }
+        }
+
+        if let Some(value) = io.input(PortId(0)) {
+            if self.initialized || self.pending.is_some() {
+                return step_fail(FailureCode::InvalidLifecycle, 184);
+            }
+            let Some(canonical) = input_bytes.input(PortId(0)) else {
+                return step_fail(FailureCode::InvalidInput, 181);
+            };
+            if LeniaFieldView::decode(canonical).is_err() {
+                return step_fail(FailureCode::InvalidInput, 181);
+            }
+            let Ok(input) = BoundedValueRef::new(value, LENIA_MAXIMUM_FIELD_BYTES) else {
+                return step_fail(FailureCode::InvalidInput, 181);
+            };
+            let request = RequestId(0);
+            io.consume(PortId(0)).expect("present initial Lenia field");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("Lenia initialization Host Call");
+            self.pending = Some(Pending::Initialize(request));
+            return StepOutcome::Progress;
+        }
+
+        if let Some(value) = io.input(PortId(1)) {
+            if !self.initialized
+                || !self.initial_closed
+                || self.pending.is_some()
+                || self.next_tick >= u32::from(conduit_alife::MAXIMUM_PRESENTED_FIELDS)
+            {
+                return step_fail(FailureCode::InvalidLifecycle, 184);
+            }
+            let Some(canonical) = input_bytes.input(PortId(1)) else {
+                return step_fail(FailureCode::InvalidInput, 182);
+            };
+            let Ok(sequence) = super::contract::decode_tick(canonical) else {
+                return step_fail(FailureCode::InvalidInput, 182);
+            };
+            if sequence != u64::from(self.next_tick) {
+                return step_fail(FailureCode::InvalidInput, 183);
+            }
+            let Ok(input) = BoundedValueRef::new(value, conduit_time::TICK_ENCODED_LEN) else {
+                return step_fail(FailureCode::InvalidInput, 182);
+            };
+            let request = RequestId(self.next_tick + 1);
+            io.consume(PortId(1)).expect("present Lenia tick");
+            io.request_host_call(request, HostCallId(1), input)
+                .expect("Lenia Step Host Call");
+            self.pending = Some(Pending::Step(request));
+            return StepOutcome::Progress;
+        }
+
+        if io.input_closed(PortId(0)) && self.initialized && !self.initial_closed {
+            io.consume_closed(PortId(0))
+                .expect("observed initial Lenia field closure");
+            self.initial_closed = true;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(1))
+            && self.initialized
+            && self.initial_closed
+            && self.pending.is_none()
+        {
+            io.consume_closed(PortId(1))
+                .expect("observed Lenia tick closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for ScalarFieldPresentationOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(FailureCode::InvalidLifecycle, 190);
+            }
+            io.consume_host_completion()
+                .expect("observed scalar-field Presentation completion");
+            self.pending = None;
+            if let Some(failure) = outcome.failure {
+                return StepOutcome::Fail(failure);
+            }
+            if outcome.disposition != HostCallDisposition::Completed || outcome.output.is_some() {
+                return step_fail(FailureCode::HostCallFailed, 189);
+            }
+            self.next += 1;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some()
+                || self.next >= u32::from(conduit_alife::MAXIMUM_PRESENTED_FIELDS)
+            {
+                return step_fail(FailureCode::InvalidLifecycle, 190);
+            }
+            let Ok(input) = BoundedValueRef::new(value, LENIA_MAXIMUM_FIELD_BYTES) else {
+                return step_fail(FailureCode::InvalidInput, 190);
+            };
+            let request = RequestId(self.next);
+            io.consume(PortId(0))
+                .expect("present scalar-field Presentation input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("scalar-field Presentation Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed scalar-field Presentation closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl OrbiumSeedOperation {
