@@ -8,7 +8,7 @@ use super::super::{
     write_typed_presentation_frame, FrameWriter, PreparedProjection, FRAME_CAPACITY,
     MAXIMUM_RECEIPTS, PORTS,
 };
-use super::operation::{CapacitySeal, ToggleShowBack};
+use super::back::{CapacitySeal, ToggleShowBack};
 use super::plan::exact_toggle_plan;
 use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, InfoBool, PlanFragment, BOOL_ENCODED_LEN,
