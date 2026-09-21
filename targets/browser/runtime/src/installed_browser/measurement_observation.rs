@@ -7,8 +7,8 @@ use conduit_core::{
 };
 use conduit_data::MeasurementSample;
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
-    OperationAction, OperationInput, PortId, RequestId,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(crate) const HOST_CALL: &str = "conduit.host/measurement-observation@1";
@@ -75,7 +75,7 @@ fn prepare(
 ) -> Result<BrowserOperation, String> {
     validate_placement(placement, &offer())?;
     configuration(placement)?;
-    Ok(BrowserOperation::installed(ObservationOperation {
+    Ok(BrowserOperation::installed_step(ObservationOperation {
         pending: false,
         completed: false,
     }))
@@ -135,50 +135,55 @@ struct ObservationOperation {
     completed: bool,
 }
 
-impl Operation for ObservationOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending
-                && !self.completed
-                && value.byte_len == conduit_core::QUANTITY_ENCODED_LEN as u32 =>
+impl<const PORTS: usize> StepOperation<PORTS> for ObservationOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if request != RequestId(0) || !self.pending {
+                return fail();
+            }
+            if outcome.disposition == HostCallDisposition::Completed
+                && outcome.output.is_some()
+                && !io.output_ready(PortId(0))
             {
-                self.pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(value, conduit_core::QUANTITY_ENCODED_LEN as u32)
-                        .expect("exact Quantity"),
+                return StepOutcome::Await;
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    io.consume_host_completion()
+                        .expect("observed measurement completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready measurement output");
+                    self.pending = false;
+                    self.completed = true;
+                    return StepOutcome::Progress;
                 }
-            }
-            OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending => {
-                self.pending = false;
-                self.completed = true;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => OperationAction::Emit {
-                        port: PortId(0),
-                        value: output.value,
-                    },
-                    (HostCallDisposition::Failed, None, Some(failure)) => {
-                        OperationAction::Fail(failure)
-                    }
-                    _ => fail(),
+                (HostCallDisposition::Failed, None, Some(failure)) => {
+                    return StepOutcome::Fail(failure)
                 }
+                _ => return fail(),
             }
-            OperationInput::Closed { port: PortId(0) } if !self.pending => {
-                OperationAction::Complete
-            }
-            _ => fail(),
         }
+        if let Some(value) = io.input(PortId(0)) {
+            if !self.pending
+                && !self.completed
+                && value.byte_len == conduit_core::QUANTITY_ENCODED_LEN as u32
+            {
+                let input = BoundedValueRef::new(value, conduit_core::QUANTITY_ENCODED_LEN as u32)
+                    .expect("exact Quantity");
+                io.consume(PortId(0)).expect("present measurement Quantity");
+                io.request_host_call(RequestId(0), HostCallId(0), input)
+                    .expect("measurement observation Host Call");
+                self.pending = true;
+                return StepOutcome::Progress;
+            }
+            return fail();
+        }
+        if io.input_closed(PortId(0)) && !self.pending {
+            io.consume_closed(PortId(0))
+                .expect("observed measurement closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -187,8 +192,8 @@ impl Operation for ObservationOperation {
     }
 }
 
-fn fail() -> OperationAction {
-    OperationAction::Fail(Failure {
+fn fail() -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::InvalidInput,
         detail: 61,
     })
