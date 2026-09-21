@@ -1,4 +1,4 @@
-use super::RecordingTimer;
+use super::TimerAdapter;
 use crate::hosted_vision::{FiniteHostedVisionBase, HostedVisionFrame};
 use crate::{StdHost, StdHostComposition, StdHostConfig};
 use conduit_core::{
@@ -13,6 +13,16 @@ use conduit_form::{
     StartupParameterSignature,
 };
 use std::collections::BTreeMap;
+
+struct VisionTimer;
+
+impl TimerAdapter for VisionTimer {
+    fn wait(&mut self, _: std::time::Duration) {}
+
+    fn monotonic_now_micros(&mut self) -> Option<u64> {
+        Some(41)
+    }
+}
 
 #[test]
 fn authored_motion_runs_through_protected_finite_base_and_production_kernel() {
@@ -32,7 +42,7 @@ fn authored_objects_run_through_protected_finite_base_and_production_kernel() {
         "objects",
         "detections",
         conduit_std_offers::LOCAL_VISION_OBJECTS_OPERATION,
-        conduit_semantic_catalog::local_vision_object_observations_type(),
+        conduit_semantic_catalog::vision_objects_type(),
     );
 }
 
@@ -164,7 +174,7 @@ fn authored_local_vision_runs(
         .run_fragment_to(
             plan.fragments[0].clone(),
             &mut Vec::with_capacity(2_048),
-            &mut RecordingTimer { waits: Vec::new() },
+            &mut VisionTimer,
         )
         .unwrap();
     assert!(matches!(

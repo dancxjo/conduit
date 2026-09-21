@@ -131,6 +131,8 @@ fn geometry_confidence_profile_and_evidence_class_refuse_exactly() {
     );
     object.confidence_permille = 800;
     object.provenance.evidence_class = VisualEvidenceClass::DeterministicDerived;
+    assert_eq!(object.validate(&profile), Ok(()));
+    object.provenance.evidence_class = VisualEvidenceClass::ModelDerived;
     assert_eq!(
         object.validate(&profile),
         Err(VisualObservationRefusal::WrongEvidenceClass)

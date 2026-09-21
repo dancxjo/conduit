@@ -318,7 +318,6 @@ fn record_value(
 mod tests {
     use super::*;
     use crate::{deterministic_vision_fixture, MAXIMUM_LOCAL_COMPONENTS};
-    use conduit_core::StructuredInfoValueShape;
 
     fn provenance() -> LocalVisionProvenance {
         LocalVisionProvenance {
@@ -327,68 +326,6 @@ mod tests {
             artifact_id: "conduit-std-host/continuous-local-vision@1".into(),
             run_id: "play/test-1/request-2".into(),
         }
-    }
-
-    #[test]
-    fn prepared_object_encoder_matches_reference_value() {
-        let image = deterministic_vision_fixture().unwrap().image;
-        let image_bytes = image.canonical_bytes().unwrap();
-        let mut components = [None; MAXIMUM_LOCAL_COMPONENTS];
-        components[0] = Some(PixelRegion {
-            x: 3,
-            y: 4,
-            width: 5,
-            height: 6,
-        });
-        let mut component_areas = [0; MAXIMUM_LOCAL_COMPONENTS];
-        component_areas[0] = 17;
-        let observation = ContinuousLocalVisionObservation {
-            sequence: u64::MAX,
-            motion: None,
-            components,
-            component_areas,
-            component_count: 1,
-            observed_component_count: 5,
-            components_truncated: true,
-        };
-        let provenance = provenance();
-        let expected =
-            local_vision_object_observations_value(image, &observation, 64, 48, &provenance)
-                .unwrap()
-                .canonical_bytes()
-                .unwrap();
-        let mut encoder = PreparedLocalVisionObjectEncoder::new(
-            &provenance.implementation_id,
-            &provenance.provider_instance_id,
-            &provenance.artifact_id,
-            64,
-            48,
-        )
-        .unwrap();
-        let actual = encoder
-            .encode(&image_bytes, &observation, &provenance.run_id)
-            .unwrap();
-        assert_eq!(actual, expected);
-        let decoded = StructuredInfoValue::from_canonical_bytes(actual).unwrap();
-        assert_eq!(
-            decoded.value_type(),
-            &local_vision_object_observations_type()
-        );
-        assert_eq!(leaf_count(record_field(&decoded, "emitted_count")), 1);
-        assert_eq!(leaf_count(record_field(&decoded, "observed_count")), 5);
-        assert_eq!(
-            variant_tag(record_field(&decoded, "truncation")),
-            "truncated"
-        );
-        let encoded_provenance = record_field(&decoded, "provenance");
-        assert_eq!(
-            leaf_text(record_field(encoded_provenance, "provider_instance")),
-            provenance.provider_instance_id
-        );
-        assert_eq!(
-            leaf_text(record_field(encoded_provenance, "run")),
-            provenance.run_id
-        );
     }
 
     #[test]
@@ -416,37 +353,5 @@ mod tests {
             local_vision_object_observations_value(image, &observation, 64, 48, &provenance()),
             Err(LocalVisionObservationRefusal::InvalidObservation)
         );
-    }
-
-    fn record_field<'a>(value: &'a StructuredInfoValue, name: &str) -> &'a StructuredInfoValue {
-        let StructuredInfoValueShape::Record(fields) = value.shape() else {
-            panic!("expected record")
-        };
-        fields
-            .iter()
-            .find(|field| field.name() == name)
-            .expect("expected field")
-            .value()
-    }
-
-    fn leaf_text(value: &StructuredInfoValue) -> &str {
-        let StructuredInfoValueShape::Leaf(value) = value.shape() else {
-            panic!("expected leaf")
-        };
-        core::str::from_utf8(value).unwrap()
-    }
-
-    fn leaf_count(value: &StructuredInfoValue) -> u64 {
-        let StructuredInfoValueShape::Leaf(value) = value.shape() else {
-            panic!("expected leaf")
-        };
-        conduit_core::decode_count(value).unwrap()
-    }
-
-    fn variant_tag(value: &StructuredInfoValue) -> &str {
-        let StructuredInfoValueShape::Variant { tag, .. } = value.shape() else {
-            panic!("expected variant")
-        };
-        tag
     }
 }

@@ -446,6 +446,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut image_text_record_hosts = image_text_record_back::prepare_hosts(fragment);
     let mut vision_request_sequence = 0_u64;
     let mut vision_run_id = String::with_capacity(active_play.active_play_id.as_str().len() + 64);
+    let vision_clock_basis = format!("{}/monotonic", fragment.boot_id.as_str());
     let mut address_detect_hosts = address_detect_back::prepare_hosts(fragment);
     #[cfg(any(test, feature = "local-model-proof"))]
     let mut recorded_speech_hosts = recorded_speech_back::prepare_hosts(fragment)?;
@@ -928,7 +929,16 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     if contract.as_str() == conduit_std_offers::LOCAL_VISION_MOTION_OPERATION {
                         vision.execute_motion(input, &vision_run_id)
                     } else {
-                        vision.execute_objects(input, &vision_run_id)
+                        let observed_at_micros = timer.monotonic_now_micros().ok_or_else(|| {
+                            "local Vision object observation requires admitted monotonic time"
+                                .to_string()
+                        })?;
+                        vision.execute_objects(
+                            input,
+                            &vision_run_id,
+                            observed_at_micros,
+                            &vision_clock_basis,
+                        )
                     };
                 let (disposition, output, failure) = match encoded {
                     Ok(encoded) => {

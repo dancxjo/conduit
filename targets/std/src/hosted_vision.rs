@@ -18,6 +18,7 @@ pub const MAXIMUM_HOSTED_VISION_RESOURCES: usize = 8;
 pub struct FiniteHostedVisionBase {
     provider_instance_id: String,
     provider: FiniteVisionProvider,
+    observation_images: Vec<Vec<u8>>,
     workspace: ContinuousLocalVision,
     last_frame: Option<usize>,
     last_observation: Option<ContinuousLocalVisionObservation>,
@@ -43,6 +44,25 @@ impl FiniteHostedVisionBase {
         {
             return Err(HostedVisionRefusal::InvalidOutput);
         }
+        let observation_images = frames
+            .iter()
+            .map(|frame| {
+                let image = conduit_human::ImageObservationReference::new(
+                    frame.resource.clone(),
+                    frame.width,
+                    frame.height,
+                    &frame.resource.content_profile,
+                )
+                .map_err(|_| HostedVisionRefusal::InvalidOutput)?;
+                conduit_semantic_catalog::image_observation_value(&image)
+                    .and_then(|value| {
+                        value
+                            .canonical_bytes()
+                            .map_err(|_| conduit_semantic_catalog::ImageTextValueRefusal::Malformed)
+                    })
+                    .map_err(|_| HostedVisionRefusal::InvalidOutput)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         let provider = FiniteVisionProvider::new(frames)?;
         let motion_encoder = conduit_semantic_catalog::PreparedLocalVisionMotionEncoder::new(
             conduit_std_offers::LOCAL_VISION_IMPLEMENTATION,
@@ -61,6 +81,7 @@ impl FiniteHostedVisionBase {
         Ok(Self {
             provider_instance_id,
             provider,
+            observation_images,
             workspace: ContinuousLocalVision::new(width, height, maximum_components)
                 .map_err(HostedVisionRefusal::LocalCv)?,
             last_frame: None,
@@ -131,6 +152,8 @@ impl FiniteHostedVisionBase {
         &mut self,
         input: &[u8],
         run_id: &str,
+        observed_at_micros: u64,
+        clock_basis: &str,
     ) -> Result<&[u8], HostedVisionRefusal> {
         let (frame_index, pixels) = self.provider.resolve_exact_canonical(input)?;
         if self.last_frame != Some(frame_index) {
@@ -151,7 +174,15 @@ impl FiniteHostedVisionBase {
             .as_ref()
             .ok_or(HostedVisionRefusal::InvalidOutput)?;
         self.object_encoder
-            .encode(input, observation, run_id)
+            .encode(
+                self.observation_images
+                    .get(frame_index)
+                    .ok_or(HostedVisionRefusal::InvalidOutput)?,
+                observation,
+                run_id,
+                observed_at_micros,
+                clock_basis,
+            )
             .map_err(|_| HostedVisionRefusal::InvalidOutput)
     }
 }
@@ -546,18 +577,24 @@ mod tests {
         )
         .unwrap();
         let objects = vision
-            .execute_objects(&encoded, "play/test/request-1")
+            .execute_objects(&encoded, "play/test/request-1", 41, "boot/test/monotonic")
             .unwrap()
             .to_vec();
         let object_value = StructuredInfoValue::from_canonical_bytes(&objects).unwrap();
         assert_eq!(
             object_value.value_type(),
-            &conduit_semantic_catalog::local_vision_object_observations_type()
+            &conduit_semantic_catalog::vision_objects_type()
         );
-        assert_eq!(record_field(&object_value, "source_image").unwrap(), &image);
+        let profile = reference(&encoded).content_profile;
+        let decoded =
+            conduit_semantic_catalog::object_observations_from_value(&object_value, &profile)
+                .unwrap();
+        assert_eq!(decoded.len(), 1);
+        assert_eq!(decoded[0].candidate_label, "bright-component");
+        assert_eq!(decoded[0].provenance.observed_at.ticks, 41);
         assert_eq!(
-            count(record_field(&object_value, "sequence").unwrap()).unwrap(),
-            1
+            decoded[0].provenance.observation_sign_id.as_str(),
+            "play/test/request-1/observation-0"
         );
         vision
             .execute_motion(&encoded, "play/test/request-2")

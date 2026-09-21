@@ -73,6 +73,28 @@ pub fn track_observations_value(
     Ok(StructuredInfoValue::sequence(vision_tracks_type(), values)?)
 }
 
+pub fn object_observations_value(
+    observations: &[ObjectObservation],
+    image_profile: &KindId,
+) -> Result<StructuredInfoValue, VisualValueRefusal> {
+    if observations.len() > 4 {
+        return Err(VisualValueRefusal::InvalidObservation);
+    }
+    let values = observations
+        .iter()
+        .map(|observation| {
+            observation
+                .validate(image_profile)
+                .map_err(|_| VisualValueRefusal::InvalidObservation)?;
+            object_value(observation)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(StructuredInfoValue::sequence(
+        crate::vision_objects_type(),
+        values,
+    )?)
+}
+
 pub fn visual_impression_value(
     impression: &VisualImpression,
     image_profile: &KindId,
