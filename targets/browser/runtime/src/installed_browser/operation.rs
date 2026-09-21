@@ -1,44 +1,28 @@
 //! Generic finite kernel verbs used by installed browser implementations.
 
 use conduit_core::Scalar;
-use conduit_kernel::scheduler::{
-    OperationDriver, StepInputBytes, StepIo, StepOperation, StepOutcome,
-};
+use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
 use conduit_kernel::ValueStorage;
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef,
 };
 
-struct LegacyBrowserOperation(Box<dyn Operation>);
-
 pub(crate) struct BrowserOperation {
-    legacy: Option<LegacyBrowserOperation>,
-    step: Option<OperationDriver<LegacyBrowserOperation, { super::BROWSER_PORTS_PER_GEAR }>>,
-    native: Option<Box<dyn StepOperation<{ super::BROWSER_PORTS_PER_GEAR }>>>,
+    step: Box<dyn StepOperation<{ super::BROWSER_PORTS_PER_GEAR }>>,
 }
 
 impl BrowserOperation {
-    pub(crate) fn installed(operation: impl Operation + 'static) -> Self {
-        Self {
-            legacy: Some(LegacyBrowserOperation(Box::new(operation))),
-            step: None,
-            native: None,
-        }
-    }
-
     pub(crate) fn installed_step(
         back: impl StepOperation<{ super::BROWSER_PORTS_PER_GEAR }> + 'static,
     ) -> Self {
         Self {
-            legacy: None,
-            step: None,
-            native: Some(Box::new(back)),
+            step: Box::new(back),
         }
     }
 
     pub(crate) fn source(value: ValueRef) -> Self {
-        Self::installed(SourceOperation {
+        Self::installed_step(SourceOperation {
             value,
             emitted: false,
         })
@@ -51,7 +35,7 @@ impl BrowserOperation {
         let request = values
             .store(&[])
             .map_err(|error| format!("store browser source request: {error:?}"))?;
-        Ok(Self::installed(HostSourceOperation {
+        Ok(Self::installed_step(HostSourceOperation {
             request,
             maximum_output_bytes,
             pending: None,
@@ -66,17 +50,16 @@ impl BrowserOperation {
         let initial = values
             .store(&[0])
             .map_err(|error| format!("store application initial request: {error:?}"))?;
-        Ok(Self::installed(ApplicationStateOperation {
+        Ok(Self::installed_step(ApplicationStateOperation {
             initial,
             maximum_input_bytes,
             pending: None,
             next: 0,
-            initial_sent: false,
         }))
     }
 
     pub(crate) fn unary(maximum_input_bytes: u32, _maximum_values: u32) -> Self {
-        Self::installed(UnaryOperation {
+        Self::installed_step(UnaryOperation {
             maximum_input_bytes,
             next_request: 0,
             pending: None,
@@ -84,24 +67,22 @@ impl BrowserOperation {
     }
 
     pub(crate) fn singleton_stream(maximum_bytes: u32) -> Self {
-        Self::installed(SingletonStreamOperation {
+        Self::installed_step(SingletonStreamOperation {
             maximum_bytes,
             emitted: false,
         })
     }
 
     pub(crate) fn exactly_one(maximum_bytes: u32) -> Self {
-        Self::installed(ExactlyOneOperation {
+        Self::installed_step(ExactlyOneOperation {
             maximum_bytes,
             held: None,
-            released: None,
             emitted: false,
-            retain_resumed: false,
         })
     }
 
     pub(crate) fn presentation(maximum_input_bytes: u32, _maximum_values: u32) -> Self {
-        Self::installed(PresentationOperation {
+        Self::installed_step(PresentationOperation {
             maximum_input_bytes,
             next_request: 0,
             pending: None,
@@ -113,27 +94,24 @@ impl BrowserOperation {
         false_value: ValueRef,
         true_value: ValueRef,
     ) -> Self {
-        Self::installed(CompareScalarOperation {
+        Self::installed_step(CompareScalarOperation {
             operator,
             operands: [None, None],
+            closed: [false; 2],
             decisions: [Some(false_value), Some(true_value)],
-            released: [None, None],
-            decided: false,
         })
     }
 
     pub(crate) fn inactive() -> Self {
-        Self::installed(InactiveOperation)
+        Self::installed_step(InactiveOperation)
     }
 
     pub(crate) fn select_scalar() -> Self {
-        Self::installed(SelectScalarOperation {
+        Self::installed_step(SelectScalarOperation {
             selector: None,
             selector_closed: false,
             candidates: [None; 2],
             seen: [false; 2],
-            released: [None; 2],
-            retain_resumed: false,
         })
     }
 }
@@ -150,67 +128,77 @@ struct ApplicationStateOperation {
     maximum_input_bytes: u32,
     pending: Option<RequestId>,
     next: u32,
-    initial_sent: bool,
 }
 
 impl ApplicationStateOperation {
-    fn request(&mut self, value: ValueRef, bound: u32) -> OperationAction {
+    fn request<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        value: ValueRef,
+        bound: u32,
+    ) -> Result<(), StepOutcome> {
         let request = RequestId(self.next);
-        self.pending = Some(request);
         match BoundedValueRef::new(value, bound) {
-            Ok(input) => OperationAction::RequestHostCall {
-                request,
-                operation: HostCallId(0),
-                input,
-            },
-            Err(_) => fail(5),
+            Ok(input) => {
+                io.request_host_call(request, HostCallId(0), input)
+                    .expect("application state Host Call");
+                self.pending = Some(request);
+                Ok(())
+            }
+            Err(_) => Err(fail(5)),
         }
     }
 }
 
-impl Operation for ApplicationStateOperation {
-    fn start(&mut self) -> OperationAction {
-        self.request(self.initial, 1)
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => self.request(value, self.maximum_input_bytes),
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.failure.is_none() =>
+impl<const PORTS: usize> StepOperation<PORTS> for ApplicationStateOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
             {
-                self.pending = None;
-                let Some(next) = self.next.checked_add(1) else {
-                    return identity_exhausted(5);
-                };
-                self.next = next;
-                self.initial_sent = true;
-                match outcome.output {
-                    Some(output) => OperationAction::Emit {
-                        port: PortId(0),
-                        value: output.value,
-                    },
-                    None => fail(5),
-                }
+                return fail(5);
             }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
+            let Some(output) = outcome.output else {
+                return fail(5);
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
             }
-            _ => fail(5),
+            let Some(next) = self.next.checked_add(1) else {
+                return identity_exhausted(5);
+            };
+            io.consume_host_completion()
+                .expect("observed application state completion");
+            io.send(PortId(0), output.value)
+                .expect("ready application state output");
+            self.pending = None;
+            self.next = next;
+            return StepOutcome::Progress;
         }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        if self.initial_sent {
-            OperationAction::Await
-        } else {
-            fail(5)
+        if self.pending.is_none() && self.next == 0 {
+            if let Err(outcome) = self.request(io, self.initial, 1) {
+                return outcome;
+            }
+            return StepOutcome::Progress;
         }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() {
+                return fail(5);
+            }
+            io.consume(PortId(0))
+                .expect("present application state input");
+            if let Err(outcome) = self.request(io, value, self.maximum_input_bytes) {
+                return outcome;
+            }
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed application state closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -219,51 +207,53 @@ impl Operation for ApplicationStateOperation {
 }
 
 impl HostSourceOperation {
-    fn request(&mut self) -> OperationAction {
+    fn request<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) {
         let request = RequestId(self.next);
-        self.pending = Some(request);
-        OperationAction::RequestHostCall {
+        io.request_host_call(
             request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(self.request, 0).expect("source request is empty"),
-        }
+            HostCallId(0),
+            BoundedValueRef::new(self.request, 0).expect("source request is empty"),
+        )
+        .expect("browser source Host Call");
+        self.pending = Some(request);
     }
 }
 
-impl Operation for HostSourceOperation {
-    fn start(&mut self) -> OperationAction {
-        self.request()
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.failure.is_none() =>
+impl<const PORTS: usize> StepOperation<PORTS> for HostSourceOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
             {
-                self.pending = None;
-                let Some(output) = outcome.output else {
-                    return fail(4);
-                };
-                if output.value.byte_len > self.maximum_output_bytes {
-                    return fail(4);
-                }
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
+                return fail(4);
             }
-            _ => fail(4),
+            let Some(output) = outcome.output else {
+                return fail(4);
+            };
+            if output.value.byte_len > self.maximum_output_bytes {
+                return fail(4);
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(next) = self.next.checked_add(1) else {
+                return identity_exhausted(4);
+            };
+            io.consume_host_completion()
+                .expect("observed browser source completion");
+            io.send(PortId(0), output.value)
+                .expect("ready browser source output");
+            self.pending = None;
+            self.next = next;
+            self.request(io);
+            return StepOutcome::Progress;
         }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        let Some(next) = self.next.checked_add(1) else {
-            return identity_exhausted(4);
-        };
-        self.next = next;
-        self.request()
+        if self.pending.is_none() {
+            self.request(io);
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -271,66 +261,9 @@ impl Operation for HostSourceOperation {
     }
 }
 
-impl Operation for LegacyBrowserOperation {
-    fn start(&mut self) -> OperationAction {
-        self.0.start()
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        self.0.resume(input)
-    }
-
-    fn accepts_input_while_host_call_pending(&self) -> bool {
-        self.0.accepts_input_while_host_call_pending()
-    }
-
-    fn retains_host_call_input(&self, request: RequestId, value: ValueRef) -> bool {
-        self.0.retains_host_call_input(request, value)
-    }
-
-    fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
-        self.0.take_host_call_cancellation()
-    }
-
-    fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
-        self.0.resume_value(port, value, canonical)
-    }
-
-    fn resume_host_call(
-        &mut self,
-        request: RequestId,
-        outcome: conduit_kernel::HostCallOutcome,
-        canonical: Option<&[u8]>,
-    ) -> OperationAction {
-        self.0.resume_host_call(request, outcome, canonical)
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        self.0.advance()
-    }
-
-    fn retains_resumed_value(&self) -> bool {
-        self.0.retains_resumed_value()
-    }
-
-    fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.0.take_released_value()
-    }
-
-    fn cancel(&mut self) {
-        self.0.cancel();
-    }
-}
-
 impl StepOperation<{ super::BROWSER_PORTS_PER_GEAR }> for BrowserOperation {
     fn step_committed(&mut self) {
-        if let Some(native) = self.native.as_mut() {
-            native.step_committed();
-            return;
-        }
-        if let Some(step) = self.step.as_mut() {
-            step.step_committed();
-        }
+        self.step.step_committed();
     }
 
     fn step(
@@ -338,86 +271,19 @@ impl StepOperation<{ super::BROWSER_PORTS_PER_GEAR }> for BrowserOperation {
         io: &mut StepIo<{ super::BROWSER_PORTS_PER_GEAR }>,
         input_bytes: &StepInputBytes<'_, { super::BROWSER_PORTS_PER_GEAR }>,
     ) -> StepOutcome {
-        if let Some(native) = self.native.as_mut() {
-            return native.step(io, input_bytes);
-        }
-        if self.step.is_none() {
-            let legacy = self.legacy.take().expect("browser Back initializes once");
-            match OperationDriver::new(legacy) {
-                Ok(step) => self.step = Some(step),
-                Err(_) => {
-                    return StepOutcome::Fail(Failure {
-                        code: FailureCode::InvalidLifecycle,
-                        detail: u16::MAX,
-                    });
-                }
-            }
-        }
-        self.step
-            .as_mut()
-            .expect("browser Step initialized")
-            .step(io, input_bytes)
+        self.step.step(io, input_bytes)
     }
 
     fn accepts_input_while_host_call_pending(&self) -> bool {
-        if let Some(native) = self.native.as_ref() {
-            return native.accepts_input_while_host_call_pending();
-        }
-        self.step
-            .as_ref()
-            .is_some_and(StepOperation::accepts_input_while_host_call_pending)
+        self.step.accepts_input_while_host_call_pending()
     }
 
     fn retains_host_call_input(&self, request: RequestId, value: ValueRef) -> bool {
-        if let Some(native) = self.native.as_ref() {
-            return native.retains_host_call_input(request, value);
-        }
-        self.step
-            .as_ref()
-            .is_some_and(|step| StepOperation::retains_host_call_input(step, request, value))
+        self.step.retains_host_call_input(request, value)
     }
 
     fn cancel(&mut self) {
-        if let Some(native) = self.native.as_mut() {
-            native.cancel();
-        } else if let Some(step) = self.step.as_mut() {
-            step.cancel();
-        } else if let Some(legacy) = self.legacy.as_mut() {
-            legacy.cancel();
-        }
-    }
-}
-
-// The remaining unit tests exercise the old verb-level fixtures directly.
-// Production browser execution enters only through `StepOperation` above.
-#[cfg(test)]
-impl Operation for BrowserOperation {
-    fn start(&mut self) -> OperationAction {
-        self.legacy
-            .as_mut()
-            .expect("unstarted browser fixture")
-            .start()
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        self.legacy
-            .as_mut()
-            .expect("unstarted browser fixture")
-            .resume(input)
-    }
-
-    fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
-        self.legacy
-            .as_mut()
-            .expect("unstarted browser fixture")
-            .resume_value(port, value, canonical)
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        self.legacy
-            .as_mut()
-            .expect("unstarted browser fixture")
-            .advance()
+        self.step.cancel();
     }
 }
 
@@ -431,107 +297,69 @@ struct SingletonStreamOperation {
     emitted: bool,
 }
 
-impl Operation for SingletonStreamOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.emitted && value.byte_len <= self.maximum_bytes => {
-                self.emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
-                }
+impl<const PORTS: usize> StepOperation<PORTS> for SingletonStreamOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = io.input(PortId(0)) {
+            if self.emitted || value.byte_len > self.maximum_bytes {
+                return fail(40);
             }
-            _ => fail(40),
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume(PortId(0)).expect("present singleton input");
+            io.send(PortId(0), value).expect("ready singleton output");
+            self.emitted = true;
+            return StepOutcome::Complete;
         }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        OperationAction::Complete
+        StepOutcome::Await
     }
 }
 
 struct ExactlyOneOperation {
     maximum_bytes: u32,
     held: Option<ValueRef>,
-    released: Option<ValueRef>,
     emitted: bool,
-    retain_resumed: bool,
 }
 
-impl Operation for ExactlyOneOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        self.retain_resumed = false;
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.held.is_none() && value.byte_len <= self.maximum_bytes => {
-                self.held = Some(value);
-                self.retain_resumed = true;
-                OperationAction::Await
+impl<const PORTS: usize> StepOperation<PORTS> for ExactlyOneOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = io.input(PortId(0)) {
+            if self.held.is_some() || value.byte_len > self.maximum_bytes {
+                return fail(41);
             }
-            OperationInput::Closed { port: PortId(0) } if !self.emitted => {
-                let Some(value) = self.held.take() else {
-                    return fail(41);
-                };
-                self.emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
-                }
+            self.held = Some(io.take_input(PortId(0)).expect("present exactly-one input"));
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && !self.emitted {
+            let Some(value) = self.held else {
+                return fail(41);
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
             }
-            _ => fail(41),
-        }
-    }
-
-    fn retains_resumed_value(&self) -> bool {
-        self.retain_resumed
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        OperationAction::Complete
-    }
-
-    fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.released.take()
-    }
-
-    fn cancel(&mut self) {
-        self.released = self.held.take();
-        self.retain_resumed = false;
-    }
-}
-
-impl Operation for SourceOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.value,
-        }
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        fail(1)
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            fail(1)
-        } else {
+            io.consume_closed(PortId(0))
+                .expect("observed exactly-one closure");
+            io.send(PortId(0), value).expect("ready exactly-one output");
+            self.held = None;
             self.emitted = true;
-            OperationAction::Complete
+            return StepOutcome::Complete;
         }
+        StepOutcome::Await
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for SourceOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return fail(1);
+        }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), self.value)
+            .expect("ready browser source output");
+        self.emitted = true;
+        StepOutcome::Complete
     }
 }
 
@@ -541,73 +369,65 @@ struct UnaryOperation {
     pending: Option<RequestId>,
 }
 
-impl Operation for UnaryOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => {
-                let request = RequestId(self.next_request);
-                self.pending = Some(request);
-                let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
-                    return fail(2);
-                };
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input,
+impl<const PORTS: usize> StepOperation<PORTS> for UnaryOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return fail(2);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, output, None) => {
+                    if output.is_some() && !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    let Some(next) = self.next_request.checked_add(1) else {
+                        return identity_exhausted(2);
+                    };
+                    io.consume_host_completion()
+                        .expect("observed unary Host Call completion");
+                    if let Some(output) = output {
+                        io.send(PortId(0), output.value)
+                            .expect("ready unary output");
+                    }
+                    self.pending = None;
+                    self.next_request = next;
+                    return StepOutcome::Progress;
                 }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                let Some(next) = self.next_request.checked_add(1) else {
-                    return identity_exhausted(2);
-                };
-                self.next_request = next;
-                match outcome.output {
-                    Some(output) => OperationAction::Emit {
-                        port: PortId(0),
-                        value: output.value,
-                    },
-                    None => OperationAction::Await,
+                (HostCallDisposition::Failed, None, Some(reason)) => {
+                    self.pending = None;
+                    return StepOutcome::Fail(reason);
                 }
+                (HostCallDisposition::Cancelled, None, None) => {
+                    self.pending = None;
+                    return StepOutcome::Fail(Failure {
+                        code: FailureCode::Cancelled,
+                        detail: 0,
+                    });
+                }
+                _ => return fail(2),
             }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Failed
-                    && outcome.output.is_none() =>
-            {
-                self.pending = None;
-                outcome
-                    .failure
-                    .map_or_else(|| fail(2), OperationAction::Fail)
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Cancelled
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                OperationAction::Fail(Failure {
-                    code: FailureCode::Cancelled,
-                    detail: 0,
-                })
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => fail(2),
         }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() {
+                return fail(2);
+            }
+            let input = match BoundedValueRef::new(value, self.maximum_input_bytes) {
+                Ok(input) => input,
+                Err(_) => return fail(2),
+            };
+            let request = RequestId(self.next_request);
+            io.consume(PortId(0)).expect("present unary input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("unary Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed unary input closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -621,59 +441,50 @@ struct PresentationOperation {
     pending: Option<RequestId>,
 }
 
-impl Operation for PresentationOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => {
-                let request = RequestId(self.next_request);
-                self.pending = Some(request);
-                let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
-                    return fail(3);
-                };
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input,
+impl<const PORTS: usize> StepOperation<PORTS> for PresentationOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return fail(3);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, None, None) => {
+                    let Some(next) = self.next_request.checked_add(1) else {
+                        return identity_exhausted(3);
+                    };
+                    io.consume_host_completion()
+                        .expect("observed presentation completion");
+                    self.pending = None;
+                    self.next_request = next;
+                    return StepOutcome::Progress;
                 }
+                (HostCallDisposition::Failed | HostCallDisposition::Denied, None, Some(reason)) => {
+                    return StepOutcome::Fail(reason)
+                }
+                _ => return fail(3),
             }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                let Some(next) = self.next_request.checked_add(1) else {
-                    return identity_exhausted(3);
-                };
-                self.next_request = next;
-                OperationAction::Await
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && matches!(
-                        outcome.disposition,
-                        HostCallDisposition::Failed | HostCallDisposition::Denied
-                    )
-                    && outcome.output.is_none() =>
-            {
-                self.pending = None;
-                outcome
-                    .failure
-                    .map_or_else(|| fail(3), OperationAction::Fail)
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => fail(3),
         }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() {
+                return fail(3);
+            }
+            let input = match BoundedValueRef::new(value, self.maximum_input_bytes) {
+                Ok(input) => input,
+                Err(_) => return fail(3),
+            };
+            let request = RequestId(self.next_request);
+            io.consume(PortId(0)).expect("present presentation input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("presentation Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed presentation input closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -688,203 +499,212 @@ struct SelectScalarOperation {
     selector_closed: bool,
     candidates: [Option<ValueRef>; 2],
     seen: [bool; 2],
-    released: [Option<ValueRef>; 2],
-    retain_resumed: bool,
 }
 
 impl SelectScalarOperation {
-    fn decide(&mut self) -> OperationAction {
+    fn decide<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
         if !self.seen.into_iter().all(|seen| seen) {
-            return OperationAction::Await;
+            return StepOutcome::Await;
         }
         let Some(selector) = self.selector else {
             return if self.selector_closed {
-                self.finish()
+                self.finish(io)
             } else {
-                OperationAction::Await
+                StepOutcome::Await
             };
         };
         let selected = usize::from(selector);
         let other = usize::from(!selector);
-        let Some(value) = self.candidates[selected].take() else {
-            return self.finish();
+        let Some(value) = self.candidates[selected] else {
+            return self.finish(io);
         };
-        self.released[0] = self.candidates[other].take();
-        self.retain_resumed = false;
-        OperationAction::Emit {
-            port: PortId(0),
-            value,
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
         }
+        io.send(PortId(0), value)
+            .expect("ready selected Scalar output");
+        self.candidates[selected] = None;
+        if let Some(unused) = self.candidates[other].take() {
+            io.discard(unused).expect("unselected Scalar candidate");
+        }
+        StepOutcome::Complete
     }
 
-    fn finish(&mut self) -> OperationAction {
-        self.released = [self.candidates[0].take(), self.candidates[1].take()];
-        OperationAction::Complete
+    fn finish<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        for value in &mut self.candidates {
+            if let Some(value) = value.take() {
+                io.discard(value).expect("unused Scalar candidate");
+            }
+        }
+        StepOutcome::Complete
     }
 }
 
-impl Operation for SelectScalarOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        self.retain_resumed = false;
-        match input {
-            OperationInput::Closed { port: PortId(0) } if self.selector.is_none() => {
-                self.selector_closed = true;
-                self.decide()
-            }
-            OperationInput::Closed {
-                port: PortId(1) | PortId(2),
-            } => {
-                let OperationInput::Closed { port } = input else {
-                    unreachable!()
-                };
-                let index = usize::from(port.0 - 1);
-                if self.seen[index] {
-                    return fail(30);
-                }
-                self.seen[index] = true;
-                self.decide()
-            }
-            _ => fail(30),
+impl<const PORTS: usize> StepOperation<PORTS> for SelectScalarOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if self.seen.into_iter().all(|seen| seen)
+            && (self.selector.is_some() || self.selector_closed)
+        {
+            return self.decide(io);
         }
-    }
-
-    fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
-        self.retain_resumed = false;
-        match port {
-            PortId(0)
-                if self.selector.is_none()
-                    && value.byte_len == conduit_core::BOOL_ENCODED_LEN as u32 =>
+        if let Some(value) = io.input(PortId(0)) {
+            if self.selector.is_some()
+                || self.selector_closed
+                || value.byte_len != conduit_core::BOOL_ENCODED_LEN as u32
             {
-                let Ok(selector) = conduit_core::InfoBool::decode(canonical) else {
-                    return fail(30);
-                };
-                self.selector = Some(selector.get());
+                return fail(30);
             }
-            PortId(1) | PortId(2) if value.byte_len == conduit_core::SCALAR_ENCODED_LEN as u32 => {
-                let index = usize::from(port.0 - 1);
-                if self.seen[index] || conduit_core::Scalar::decode(canonical).is_err() {
+            let Some(canonical) = input_bytes.input(PortId(0)) else {
+                return fail(30);
+            };
+            if canonical.len() != value.byte_len as usize {
+                return fail(30);
+            }
+            let Ok(selector) = conduit_core::InfoBool::decode(canonical) else {
+                return fail(30);
+            };
+            io.consume(PortId(0)).expect("present Scalar selector");
+            self.selector = Some(selector.get());
+            return StepOutcome::Progress;
+        }
+        for index in 0..2 {
+            let port = PortId(index as u16 + 1);
+            if let Some(value) = io.input(port) {
+                if self.seen[index] || value.byte_len != conduit_core::SCALAR_ENCODED_LEN as u32 {
                     return fail(30);
                 }
+                let Some(canonical) = input_bytes.input(port) else {
+                    return fail(30);
+                };
+                if canonical.len() != value.byte_len as usize
+                    || conduit_core::Scalar::decode(canonical).is_err()
+                {
+                    return fail(30);
+                }
+                self.candidates[index] =
+                    Some(io.take_input(port).expect("present Scalar candidate"));
                 self.seen[index] = true;
-                self.candidates[index] = Some(value);
-                self.retain_resumed = true;
+                return StepOutcome::Progress;
             }
-            _ => return fail(30),
         }
-        self.decide()
-    }
-
-    fn retains_resumed_value(&self) -> bool {
-        self.retain_resumed
-    }
-    fn advance(&mut self) -> OperationAction {
-        OperationAction::Complete
-    }
-    fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.released.iter_mut().find_map(Option::take)
-    }
-    fn cancel(&mut self) {
-        let _ = self.finish();
+        if io.input_closed(PortId(0)) && self.selector.is_none() && !self.selector_closed {
+            io.consume_closed(PortId(0))
+                .expect("observed Scalar selector closure");
+            self.selector_closed = true;
+            return StepOutcome::Progress;
+        }
+        for index in 0..2 {
+            let port = PortId(index as u16 + 1);
+            if io.input_closed(port) && !self.seen[index] {
+                io.consume_closed(port)
+                    .expect("observed Scalar candidate closure");
+                self.seen[index] = true;
+                return StepOutcome::Progress;
+            }
+        }
+        StepOutcome::Await
     }
 }
 
 struct CompareScalarOperation {
     operator: conduit_semantic_catalog::ScalarComparison,
     operands: [Option<Scalar>; 2],
+    closed: [bool; 2],
     decisions: [Option<ValueRef>; 2],
-    released: [Option<ValueRef>; 2],
-    decided: bool,
 }
 
-impl Operation for CompareScalarOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
-        let index = usize::from(port.0);
-        if index >= self.operands.len()
-            || self.operands[index].is_some()
-            || value.byte_len != conduit_core::SCALAR_ENCODED_LEN as u32
-        {
-            return fail(5);
-        }
-        let Ok(value) = Scalar::decode(canonical) else {
-            return fail(5);
-        };
-        self.operands[index] = Some(value);
+impl<const PORTS: usize> StepOperation<PORTS> for CompareScalarOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         let [Some(left), Some(right)] = self.operands else {
-            return OperationAction::Await;
-        };
-        let selected = usize::from(self.operator.evaluate(left, right));
-        let unused = usize::from(!self.operator.evaluate(left, right));
-        let Some(value) = self.decisions[selected].take() else {
-            return fail(5);
-        };
-        self.released[0] = self.decisions[unused].take();
-        self.decided = true;
-        OperationAction::Emit {
-            port: PortId(0),
-            value,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Closed { port } if usize::from(port.0) < self.operands.len() => {
-                if self.operands[usize::from(port.0)].is_none() {
-                    self.released = [self.decisions[0].take(), self.decisions[1].take()];
-                    OperationAction::Complete
-                } else {
-                    OperationAction::Await
+            for index in 0..2 {
+                let port = PortId(index as u16);
+                if let Some(value) = io.input(port) {
+                    if self.operands[index].is_some()
+                        || self.closed[index]
+                        || value.byte_len != conduit_core::SCALAR_ENCODED_LEN as u32
+                    {
+                        return fail(5);
+                    }
+                    let Some(canonical) = input_bytes.input(port) else {
+                        return fail(5);
+                    };
+                    if canonical.len() != value.byte_len as usize {
+                        return fail(5);
+                    }
+                    let Ok(value) = Scalar::decode(canonical) else {
+                        return fail(5);
+                    };
+                    io.consume(port).expect("present Scalar operand");
+                    self.operands[index] = Some(value);
+                    return StepOutcome::Progress;
                 }
             }
-            _ => fail(5),
+            for index in 0..2 {
+                let port = PortId(index as u16);
+                if io.input_closed(port) && !self.closed[index] {
+                    if self.operands[index].is_none() {
+                        io.consume_closed(port)
+                            .expect("observed missing Scalar operand closure");
+                        for decision in &mut self.decisions {
+                            if let Some(value) = decision.take() {
+                                io.discard(value).expect("unused comparison decision");
+                            }
+                        }
+                        return StepOutcome::Complete;
+                    }
+                    io.consume_closed(port)
+                        .expect("observed Scalar operand closure");
+                    self.closed[index] = true;
+                    return StepOutcome::Progress;
+                }
+            }
+            return StepOutcome::Await;
+        };
+        let selected = usize::from(self.operator.evaluate(left, right));
+        let unused = 1 - selected;
+        let Some(value) = self.decisions[selected] else {
+            return fail(5);
+        };
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
         }
-    }
-
-    fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.released.iter_mut().find_map(Option::take)
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        if self.decided {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
+        io.send(PortId(0), value)
+            .expect("ready Scalar comparison output");
+        self.decisions[selected] = None;
+        if let Some(value) = self.decisions[unused].take() {
+            io.discard(value).expect("unused comparison decision");
         }
+        StepOutcome::Complete
     }
 
     fn cancel(&mut self) {
         self.decisions = [None, None];
-        self.released = [None, None];
-        self.decided = true;
     }
 }
 
-impl Operation for InactiveOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Complete
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        fail(4)
+impl<const PORTS: usize> StepOperation<PORTS> for InactiveOperation {
+    fn step(&mut self, _: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        StepOutcome::Complete
     }
 }
 
-fn fail(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
+fn fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::InvalidLifecycle,
         detail,
     })
 }
 
-fn identity_exhausted(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
+fn identity_exhausted(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::IdentityCapacityExhausted,
         detail,
     })
