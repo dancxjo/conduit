@@ -1,11 +1,13 @@
 //! Native production-kernel half of the exact split Text Lab Plan.
 
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyModifiers, KeyTransition, KeymapDisposition};
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
+use conduit_kernel::scheduler::{
+    FixedScheduler, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+};
 use conduit_kernel::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
-    HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, Operation,
-    OperationAction, OperationInput, PortId, RemoteEndpointId, RequestId, ValueRef, ValueStorage,
+    HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, PortId,
+    RemoteEndpointId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
@@ -22,7 +24,7 @@ const ROUTE_SLOTS: usize = 3 * PORTS;
 const SIGN_ITEMS: u16 = 192;
 
 type NativeTextLabScheduler = FixedScheduler<
-    OperationDriver<NativeOperation, PORTS>,
+    NativeBack,
     HostedValueStore,
     HostedSignLog,
     3,
@@ -35,7 +37,7 @@ type NativeTextLabScheduler = FixedScheduler<
     3,
 >;
 
-enum NativeOperation {
+enum NativeBack {
     Keyboard {
         empty: ValueRef,
         pending: Option<RequestId>,
@@ -52,9 +54,9 @@ enum NativeOperation {
     },
 }
 
-impl NativeOperation {
-    fn fail(detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure {
+impl NativeBack {
+    fn fail(detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             detail,
         })
@@ -64,149 +66,156 @@ impl NativeOperation {
         empty: ValueRef,
         next: &mut u32,
         pending: &mut Option<RequestId>,
-    ) -> OperationAction {
+        io: &mut StepIo<PORTS>,
+    ) -> StepOutcome {
         if *next >= TEXT_LAB_MAXIMUM_VALUES as u32 {
-            return OperationAction::Complete;
+            return StepOutcome::Complete;
         }
         let request = RequestId(*next);
+        let input = BoundedValueRef::new(empty, 0).expect("keyboard request input is empty");
+        if io.request_host_call(request, HostCallId(0), input).is_err() {
+            return Self::fail(5);
+        }
         *next += 1;
         *pending = Some(request);
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(empty, 0).expect("keyboard request input is empty"),
-        }
+        StepOutcome::Progress
     }
 }
 
-impl Operation for NativeOperation {
-    fn start(&mut self) -> OperationAction {
-        match self {
-            Self::Keyboard {
-                empty,
-                pending,
-                next,
-                ..
-            } => Self::keyboard_request(*empty, next, pending),
-            Self::Keymap { .. } | Self::Presentation { .. } => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Keyboard {
-                    pending, emitted, ..
-                },
-                OperationInput::HostCallCompleted { request, outcome },
-            ) if *pending == Some(request)
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return Self::fail(1);
-                };
-                *pending = None;
-                *emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            (
-                Self::Keymap { pending, next },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if pending.is_none() && *next < TEXT_LAB_MAXIMUM_VALUES as u32 => {
-                let request = RequestId(*next);
-                *pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(
-                        value,
-                        conduit_human::KEY_EVENT_ENCODED_LEN as u32,
-                    ) {
-                        Ok(value) => value,
-                        Err(_) => return Self::fail(2),
-                    },
-                }
-            }
-            (
-                Self::Keymap { pending, next },
-                OperationInput::HostCallCompleted { request, outcome },
-            ) if *pending == Some(request)
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return Self::fail(3);
-                };
-                *pending = None;
-                *next += 1;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            (Self::Keymap { pending, .. }, OperationInput::Closed { port: PortId(0) })
-                if pending.is_none() =>
-            {
-                OperationAction::Complete
-            }
-            (
-                Self::Presentation { pending, next },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if pending.is_none() && *next < TEXT_LAB_MAXIMUM_VALUES as u32 => {
-                let request = RequestId(*next);
-                *pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(value, MAX_TEXT_BYTES) {
-                        Ok(value) => value,
-                        Err(_) => return Self::fail(4),
-                    },
-                }
-            }
-            (
-                Self::Presentation { pending, next },
-                OperationInput::HostCallCompleted { request, outcome },
-            ) if *pending == Some(request)
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                *pending = None;
-                *next += 1;
-                OperationAction::Await
-            }
-            (Self::Presentation { pending, .. }, OperationInput::Closed { port: PortId(0) })
-                if pending.is_none() =>
-            {
-                OperationAction::Complete
-            }
-            _ => Self::fail(5),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for NativeBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
             Self::Keyboard {
                 empty,
                 pending,
                 next,
                 emitted,
-            } if *emitted => {
-                *emitted = false;
-                Self::keyboard_request(*empty, next, pending)
+            } => {
+                if let Some(expected) = *pending {
+                    let Some((request, outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    let Some(output) = outcome.output else {
+                        return Self::fail(1);
+                    };
+                    if request != expected
+                        || outcome.disposition != HostCallDisposition::Completed
+                        || outcome.failure.is_some()
+                        || !io.output_ready(PortId(0))
+                        || io.consume_host_completion().is_err()
+                        || io.send(PortId(0), output.value).is_err()
+                    {
+                        return Self::fail(5);
+                    }
+                    *pending = None;
+                    *emitted = true;
+                    return StepOutcome::Progress;
+                }
+                if *emitted {
+                    *emitted = false;
+                }
+                Self::keyboard_request(*empty, next, pending, io)
             }
-            _ => OperationAction::Await,
+            Self::Keymap { pending, next } => {
+                if let Some(expected) = *pending {
+                    let Some((request, outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    let Some(output) = outcome.output else {
+                        return Self::fail(3);
+                    };
+                    if request != expected
+                        || outcome.disposition != HostCallDisposition::Completed
+                        || outcome.failure.is_some()
+                        || !io.output_ready(PortId(0))
+                        || io.consume_host_completion().is_err()
+                        || io.send(PortId(0), output.value).is_err()
+                    {
+                        return Self::fail(5);
+                    }
+                    *pending = None;
+                    *next += 1;
+                    return StepOutcome::Progress;
+                }
+                if let Some(value) = io.input(PortId(0)) {
+                    if *next >= TEXT_LAB_MAXIMUM_VALUES as u32 {
+                        return Self::fail(5);
+                    }
+                    let Ok(input) =
+                        BoundedValueRef::new(value, conduit_human::KEY_EVENT_ENCODED_LEN as u32)
+                    else {
+                        return Self::fail(2);
+                    };
+                    let request = RequestId(*next);
+                    if io.consume(PortId(0)).is_err()
+                        || io.request_host_call(request, HostCallId(0), input).is_err()
+                    {
+                        return Self::fail(5);
+                    }
+                    *pending = Some(request);
+                    return StepOutcome::Progress;
+                }
+                if io.input_closed(PortId(0)) {
+                    if io.consume_closed(PortId(0)).is_err() {
+                        return Self::fail(5);
+                    }
+                    return StepOutcome::Complete;
+                }
+                StepOutcome::Await
+            }
+            Self::Presentation { pending, next } => {
+                if let Some(expected) = *pending {
+                    let Some((request, outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    if request != expected
+                        || outcome.disposition != HostCallDisposition::Completed
+                        || outcome.output.is_some()
+                        || outcome.failure.is_some()
+                        || io.consume_host_completion().is_err()
+                    {
+                        return Self::fail(5);
+                    }
+                    *pending = None;
+                    *next += 1;
+                    return StepOutcome::Progress;
+                }
+                if let Some(value) = io.input(PortId(0)) {
+                    if *next >= TEXT_LAB_MAXIMUM_VALUES as u32 {
+                        return Self::fail(5);
+                    }
+                    let Ok(input) = BoundedValueRef::new(value, MAX_TEXT_BYTES) else {
+                        return Self::fail(4);
+                    };
+                    let request = RequestId(*next);
+                    if io.consume(PortId(0)).is_err()
+                        || io.request_host_call(request, HostCallId(0), input).is_err()
+                    {
+                        return Self::fail(5);
+                    }
+                    *pending = Some(request);
+                    return StepOutcome::Progress;
+                }
+                if io.input_closed(PortId(0)) {
+                    if io.consume_closed(PortId(0)).is_err() {
+                        return Self::fail(5);
+                    }
+                    return StepOutcome::Complete;
+                }
+                StepOutcome::Await
+            }
+        }
+    }
+
+    fn cancel(&mut self) {
+        match self {
+            Self::Keyboard { pending, .. }
+            | Self::Keymap { pending, .. }
+            | Self::Presentation { pending, .. } => *pending = None,
         }
     }
 }
@@ -269,29 +278,29 @@ impl NativeTextLabFragment {
         let mut values = HostedValueStore::new(6, MAX_TEXT_BYTES, MAX_TEXT_BYTES * 6)
             .map_err(|error| format!("{error:?}"))?;
         let empty = values.store(&[]).map_err(|error| format!("{error:?}"))?;
-        let mut drivers = Vec::with_capacity(3);
+        let mut backs = Vec::with_capacity(3);
         let mut kinds = Vec::with_capacity(3);
         for placement in &fragment.placements {
             let kind = placement.kind_id.as_str();
-            let operation = match kind {
-                KEYBOARD_KIND => NativeOperation::Keyboard {
+            let back = match kind {
+                KEYBOARD_KIND => NativeBack::Keyboard {
                     empty,
                     pending: None,
                     next: 0,
                     emitted: false,
                 },
-                KEYMAP_KIND => NativeOperation::Keymap {
+                KEYMAP_KIND => NativeBack::Keymap {
                     pending: None,
                     next: 0,
                 },
-                TEXT_PRESENTATION_KIND => NativeOperation::Presentation {
+                TEXT_PRESENTATION_KIND => NativeBack::Presentation {
                     pending: None,
                     next: 0,
                 },
                 _ => return Err(format!("unsupported native Text Lab Kind {kind}")),
             };
             kinds.push(kind.to_string());
-            drivers.push(OperationDriver::new(operation).map_err(|error| format!("{error:?}"))?);
+            backs.push(back);
         }
         let sign_bytes = u32::from(SIGN_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
@@ -311,7 +320,7 @@ impl NativeTextLabFragment {
                 .map_err(|_| "native Cord width")?,
             routes,
             bindings,
-            drivers.try_into().map_err(|_| "native driver width")?,
+            backs.try_into().map_err(|_| "native Back width")?,
             values,
             HostedSignLog::new_with_remote_storage(
                 SIGN_ITEMS,
