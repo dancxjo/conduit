@@ -12,11 +12,14 @@ use conduit_form::{
     ProfileCatalog, StartupCatalog,
 };
 use conduit_kernel::{
-    scheduler::{CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver},
+    scheduler::{
+        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepInputBytes, StepIo, StepOperation,
+        StepOutcome,
+    },
     BoundedValueRef, CordEndpoint, CordId, Failure, FailureCode, FixedHostCallBindings,
     FixedRoutes, HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog,
-    HostedValueStore, KernelEvent, KernelEventKind, NodeId, Operation, OperationAction,
-    OperationInput, PortId, RequestId, RouteRange, RouteTarget, SignQuery, ValueRef, ValueStorage,
+    HostedValueStore, KernelEvent, KernelEventKind, NodeId, PortId, RequestId, RouteRange,
+    RouteTarget, SignQuery, ValueRef, ValueStorage,
 };
 use conduit_std_host::{evolve_reaction_diffusion_hosted, reaction_diffusion_std_offer};
 
@@ -41,91 +44,71 @@ enum TestOperation {
     },
 }
 
-impl Operation for TestOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepOperation<1> for TestOperation {
+    fn step(&mut self, io: &mut StepIo<1>, bytes: &StepInputBytes<'_, 1>) -> StepOutcome {
         match self {
             Self::Source { value, emitted } => {
-                *emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: *value,
+                if *emitted {
+                    return StepOutcome::Complete;
                 }
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                io.send(PortId(0), *value).unwrap();
+                *emitted = true;
+                StepOutcome::Complete
             }
-            Self::Evolve { .. } => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        invalid(1)
-    }
-
-    fn resume_value(&mut self, port: PortId, value: ValueRef, bytes: &[u8]) -> OperationAction {
-        let Self::Evolve { pending, .. } = self else {
-            return invalid(2);
-        };
-        if port != PortId(0) || *pending || decode_input(bytes).is_err() {
-            return invalid(3);
-        }
-        *pending = true;
-        OperationAction::RequestHostCall {
-            request: REQUEST,
-            operation: OPERATION,
-            input: BoundedValueRef::new(value, MAX_INPUT_BYTES).unwrap(),
-        }
-    }
-
-    fn resume_host_call(
-        &mut self,
-        request: RequestId,
-        outcome: HostCallOutcome,
-        canonical: Option<&[u8]>,
-    ) -> OperationAction {
-        let Self::Evolve {
-            pending,
-            generation,
-        } = self
-        else {
-            return invalid(4);
-        };
-        if request != REQUEST || !*pending || outcome.disposition != HostCallDisposition::Completed
-        {
-            return invalid(5);
-        }
-        let (Some(_), Some(bytes)) = (outcome.output, canonical) else {
-            return invalid(6);
-        };
-        let Ok(state) = ReactionDiffusionFieldState::decode(bytes) else {
-            return invalid(7);
-        };
-        *pending = false;
-        *generation = Some(state.generation);
-        OperationAction::Complete
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source { emitted, .. } if *emitted => {
-                *emitted = false;
-                OperationAction::Complete
+            Self::Evolve {
+                pending,
+                generation,
+            } => {
+                if let Some((request, outcome)) = io.host_completion() {
+                    if request != REQUEST
+                        || !*pending
+                        || outcome.disposition != HostCallDisposition::Completed
+                        || outcome.failure.is_some()
+                    {
+                        return invalid(5);
+                    }
+                    let (Some(_), Some(canonical)) = (outcome.output, bytes.host_output()) else {
+                        return invalid(6);
+                    };
+                    let Ok(state) = ReactionDiffusionFieldState::decode(canonical) else {
+                        return invalid(7);
+                    };
+                    io.consume_host_completion().unwrap();
+                    *pending = false;
+                    *generation = Some(state.generation);
+                    return StepOutcome::Complete;
+                }
+                if *pending {
+                    return StepOutcome::Await;
+                }
+                let Some(value) = io.input(PortId(0)) else {
+                    return StepOutcome::Await;
+                };
+                let Some(canonical) = bytes.input(PortId(0)) else {
+                    return invalid(3);
+                };
+                if decode_input(canonical).is_err() {
+                    return invalid(3);
+                }
+                io.consume(PortId(0)).unwrap();
+                io.request_host_call(
+                    REQUEST,
+                    OPERATION,
+                    BoundedValueRef::new(value, MAX_INPUT_BYTES).unwrap(),
+                )
+                .unwrap();
+                *pending = true;
+                StepOutcome::Progress
             }
-            _ => OperationAction::Await,
         }
     }
 }
 
-type Scheduler = FixedScheduler<
-    OperationDriver<TestOperation, 1>,
-    HostedValueStore,
-    HostedSignLog,
-    2,
-    1,
-    1,
-    1,
-    1,
-    1,
-    2,
-    1,
->;
+type Scheduler =
+    FixedScheduler<TestOperation, HostedValueStore, HostedSignLog, 2, 1, 1, 1, 1, 1, 2, 1>;
 
 #[test]
 fn canonical_example_executes_the_hosted_reference_through_the_production_kernel() {
@@ -153,7 +136,7 @@ fn canonical_example_executes_the_hosted_reference_through_the_production_kernel
         .unwrap();
     scheduler.run(16).unwrap();
 
-    let TestOperation::Evolve { generation, .. } = scheduler.drivers()[1].operation() else {
+    let TestOperation::Evolve { generation, .. } = &scheduler.drivers()[1] else {
         panic!("evolution operation identity changed");
     };
     assert_eq!(*generation, Some(3));
@@ -284,16 +267,14 @@ fn scheduler() -> Scheduler {
         routes,
         bindings,
         [
-            OperationDriver::new(TestOperation::Source {
+            TestOperation::Source {
                 value: input_ref,
                 emitted: false,
-            })
-            .unwrap(),
-            OperationDriver::new(TestOperation::Evolve {
+            },
+            TestOperation::Evolve {
                 pending: false,
                 generation: None,
-            })
-            .unwrap(),
+            },
         ],
         values,
         signs,
@@ -349,8 +330,8 @@ fn decode_input(
     Ok((state, request))
 }
 
-fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
+fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::InvalidInput,
         detail,
     })
