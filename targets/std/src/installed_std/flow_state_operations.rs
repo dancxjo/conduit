@@ -1,6 +1,9 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDescriptor, PortDirection, SCALAR_ENCODED_LEN};
-use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef,
+};
 
 pub(super) static STATE_LATEST_SCALAR_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::STATE_LATEST_SCALAR_IMPLEMENTATION,
@@ -23,6 +26,75 @@ pub(super) struct StateLatestScalarOperation {
 pub(super) struct FlowTeeScalarOperation {
     pending: Option<ValueRef>,
     phase: u8,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for StateLatestScalarOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = io.input(PortId(0)) {
+            if value.byte_len != SCALAR_ENCODED_LEN as u32 {
+                return StepOutcome::Fail(flow_failure(12));
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let value = io.take_input(PortId(0)).expect("present latest input");
+            if let Some(previous) = self.held.replace(value) {
+                io.discard(previous).expect("one retained latest value");
+            }
+            io.send(PortId(0), value).expect("ready latest output");
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed latest input closure");
+            if let Some(held) = self.held.take() {
+                io.discard(held).expect("one retained latest value");
+            }
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.held = None;
+        self.released = None;
+        self.retain_resumed = false;
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for FlowTeeScalarOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = io.input(PortId(0)) {
+            if value.byte_len != SCALAR_ENCODED_LEN as u32 {
+                return StepOutcome::Fail(flow_failure(13));
+            }
+            if !io.output_ready(PortId(0)) || !io.output_ready(PortId(1)) {
+                return StepOutcome::Await;
+            }
+            io.consume(PortId(0)).expect("present tee input");
+            io.send(PortId(0), value).expect("ready first tee output");
+            io.send(PortId(1), value).expect("ready second tee output");
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed tee input closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.phase = 0;
+    }
+}
+
+fn flow_failure(detail: u16) -> Failure {
+    Failure {
+        code: FailureCode::InvalidLifecycle,
+        detail,
+    }
 }
 
 impl StateLatestScalarOperation {
