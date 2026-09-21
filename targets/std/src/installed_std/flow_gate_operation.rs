@@ -192,7 +192,10 @@ fn validate_flow_gate(placement: &PlannedGear) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::HostCallOutcome;
+    use conduit_kernel::{
+        scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+        HostCallOutcome,
+    };
 
     fn value(slot: u16, byte_len: u32) -> ValueRef {
         ValueRef {
@@ -200,6 +203,47 @@ mod tests {
             generation: 1,
             byte_len,
         }
+    }
+
+    fn step_value(
+        gate: &mut FlowGateScalarOperation,
+        port: PortId,
+        value: ValueRef,
+        output_ready: bool,
+    ) -> (StepOutcome, StepIo<2>) {
+        let mut inputs = [None; 2];
+        inputs[usize::from(port.0)] = Some(value);
+        let mut io = StepIo::test_frame(
+            inputs,
+            [false; 2],
+            [output_ready.then_some(SCALAR_ENCODED_LEN as u32), None],
+            None,
+            8,
+        );
+        let outcome = gate.step(&mut io, &StepInputBytes::test_frame([None; 2], None));
+        (outcome, io)
+    }
+
+    fn complete_enable(
+        gate: &mut FlowGateScalarOperation,
+        request: RequestId,
+        output: Option<BoundedValueRef>,
+    ) -> StepOutcome {
+        let mut io = StepIo::test_frame(
+            [None; 2],
+            [false; 2],
+            [None; 2],
+            Some((
+                request,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
+                    output,
+                    failure: None,
+                },
+            )),
+            8,
+        );
+        gate.step(&mut io, &StepInputBytes::test_frame([None; 2], None))
     }
 
     #[test]
@@ -213,64 +257,42 @@ mod tests {
             enable_closed: false,
         };
         let scalar = value(1, SCALAR_ENCODED_LEN as u32);
-        assert_eq!(
-            gate.resume(OperationInput::Value {
-                port: PortId(0),
-                value: scalar,
-            }),
-            OperationAction::Await
-        );
+        let (outcome, io) = step_value(&mut gate, PortId(0), scalar, false);
+        assert_eq!(outcome, StepOutcome::Progress);
+        assert!(io.test_consumed(PortId(0)));
+        assert!(io.test_output(PortId(0)).is_none());
 
         let enabled = value(2, BOOL_ENCODED_LEN as u32);
-        assert!(matches!(
-            gate.resume(OperationInput::Value {
-                port: PortId(1),
-                value: enabled,
-            }),
-            OperationAction::RequestHostCall {
-                request: RequestId(0),
-                ..
-            }
-        ));
+        let (outcome, io) = step_value(&mut gate, PortId(1), enabled, false);
+        assert_eq!(outcome, StepOutcome::Progress);
         assert_eq!(
-            gate.resume(OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome: HostCallOutcome {
-                    disposition: HostCallDisposition::Completed,
-                    output: Some(BoundedValueRef::new(enabled, 1).unwrap()),
-                    failure: None,
-                },
-            }),
-            OperationAction::Await
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(0))
         );
-        assert!(matches!(
-            gate.resume(OperationInput::Value {
-                port: PortId(0),
-                value: scalar,
-            }),
-            OperationAction::Emit { value, .. } if value == scalar
-        ));
+        assert_eq!(
+            complete_enable(
+                &mut gate,
+                RequestId(0),
+                Some(BoundedValueRef::new(enabled, 1).unwrap())
+            ),
+            StepOutcome::Progress
+        );
+        let (outcome, io) = step_value(&mut gate, PortId(0), scalar, true);
+        assert_eq!(outcome, StepOutcome::Progress);
+        assert_eq!(io.test_output(PortId(0)), Some(scalar));
 
         let disabled = value(3, BOOL_ENCODED_LEN as u32);
-        gate.resume(OperationInput::Value {
-            port: PortId(1),
-            value: disabled,
-        });
-        gate.resume(OperationInput::HostCallCompleted {
-            request: RequestId(1),
-            outcome: HostCallOutcome {
-                disposition: HostCallDisposition::Completed,
-                output: None,
-                failure: None,
-            },
-        });
         assert_eq!(
-            gate.resume(OperationInput::Value {
-                port: PortId(0),
-                value: scalar,
-            }),
-            OperationAction::Await
+            step_value(&mut gate, PortId(1), disabled, false).0,
+            StepOutcome::Progress
         );
+        assert_eq!(
+            complete_enable(&mut gate, RequestId(1), None),
+            StepOutcome::Progress
+        );
+        let (outcome, io) = step_value(&mut gate, PortId(0), scalar, true);
+        assert_eq!(outcome, StepOutcome::Progress);
+        assert!(io.test_output(PortId(0)).is_none());
     }
 
     #[test]
@@ -283,13 +305,15 @@ mod tests {
             data_closed: false,
             enable_closed: false,
         };
+        let mut io = StepIo::test_frame([None; 2], [false, true], [None; 2], None, 8);
         assert_eq!(
-            gate.resume(OperationInput::Closed { port: PortId(1) }),
-            OperationAction::Await
+            gate.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+            StepOutcome::Progress
         );
+        let mut io = StepIo::test_frame([None; 2], [true, false], [None; 2], None, 8);
         assert_eq!(
-            gate.resume(OperationInput::Closed { port: PortId(0) }),
-            OperationAction::Complete
+            gate.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+            StepOutcome::Complete
         );
         assert!(!decode_bool(&[0]).unwrap());
         assert!(decode_bool(&[1]).unwrap());
@@ -308,22 +332,15 @@ mod tests {
             enable_closed: false,
         };
         let boolean = value(4, BOOL_ENCODED_LEN as u32);
-        gate.resume(OperationInput::Value {
-            port: PortId(1),
-            value: boolean,
-        });
-        gate.cancel();
+        assert_eq!(
+            step_value(&mut gate, PortId(1), boolean, false).0,
+            StepOutcome::Progress
+        );
+        StepOperation::<2>::cancel(&mut gate);
         assert!(gate.pending_enable.is_none());
         assert!(matches!(
-            gate.resume(OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome: HostCallOutcome {
-                    disposition: HostCallDisposition::Completed,
-                    output: None,
-                    failure: None,
-                },
-            }),
-            OperationAction::Fail(_)
+            complete_enable(&mut gate, RequestId(0), None),
+            StepOutcome::Fail(_)
         ));
 
         let mut bounded = FlowGateScalarOperation {
@@ -334,12 +351,8 @@ mod tests {
             data_closed: false,
             enable_closed: false,
         };
-        assert!(matches!(
-            bounded.resume(OperationInput::Value {
-                port: PortId(1),
-                value: boolean,
-            }),
-            OperationAction::Fail(_)
-        ));
+        let (outcome, io) = step_value(&mut bounded, PortId(1), boolean, false);
+        assert!(matches!(outcome, StepOutcome::Fail(_)));
+        assert!(!io.test_consumed(PortId(1)));
     }
 }
