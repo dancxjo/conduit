@@ -146,6 +146,7 @@ mod toggle_back;
 mod typed_record_back;
 mod vector_search_back;
 mod vector_search_host;
+mod vision_describe_back;
 mod wav_artifact_back;
 mod whisper_speech_back;
 

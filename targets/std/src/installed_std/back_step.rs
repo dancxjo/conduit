@@ -170,6 +170,7 @@ installed_step_dispatch!(
     BodyConversationContext,
     LocalModel,
     LocalVision,
+    VisionDescribe,
     ModelText,
     GeneratedSpeechCommit,
     Navigation,

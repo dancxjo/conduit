@@ -649,7 +649,7 @@ impl StdHost {
             .map_err(|error| format!("finite vision Base advertisement: {error:?}"))?;
         advertisement
             .capabilities
-            .push(conduit_std_offers::local_vision_offers()[3].clone());
+            .push(conduit_std_offers::local_vision_offers()[4].clone());
         advertisement.resources.sort();
         normalize_capability_offers(&mut advertisement.capabilities)?;
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;

@@ -18,12 +18,16 @@ pub const LOCAL_VISION_OCR_PROFILE: &str = "conduit.std/local-vision-ocr@1";
 pub const LOCAL_VISION_OCR_IMPLEMENTATION: &str = "std/tesseract-ocr@1";
 pub const LOCAL_VISION_OCR_ARTIFACT: &str = "conduit-std-host/tesseract-ocr@1";
 pub const LOCAL_VISION_OCR_OPERATION: &str = "conduit.host/local-vision-ocr@1";
+pub const LOCAL_VISION_DESCRIBE_PROFILE: &str = "conduit.std/ollama-visual-description@1";
+pub const LOCAL_VISION_DESCRIBE_IMPLEMENTATION: &str = "std/ollama-visual-description@1";
+pub const LOCAL_VISION_DESCRIBE_ARTIFACT: &str = "conduit-std-host/ollama-vision@1";
+pub const LOCAL_VISION_DESCRIBE_OPERATION: &str = "conduit.host/visual-description@1";
 pub const LOCAL_VISION_TRACK_PROFILE: &str = "conduit.std/local-vision-track@1";
 pub const LOCAL_VISION_TRACK_IMPLEMENTATION: &str = "std/local-vision-track@1";
 pub const LOCAL_VISION_TRACK_ARTIFACT: &str = "conduit-std-host/local-vision-track@1";
 pub const LOCAL_VISION_TRACK_OPERATION: &str = "conduit.host/local-vision-track@1";
 
-pub fn local_vision_offers() -> [CapabilityOffer; 4] {
+pub fn local_vision_offers() -> [CapabilityOffer; 5] {
     [
         local_vision_offer(
             "local-vision-motion",
@@ -36,8 +40,42 @@ pub fn local_vision_offers() -> [CapabilityOffer; 4] {
             LOCAL_VISION_OBJECTS_OPERATION,
         ),
         local_ocr_offer(),
+        local_describe_offer(),
         local_track_offer(),
     ]
+}
+
+fn local_describe_offer() -> CapabilityOffer {
+    let contract = vision_contract(conduit_semantic_catalog::VISION_DESCRIBE_KIND);
+    let operation = HostCallContractId::from(LOCAL_VISION_DESCRIBE_OPERATION);
+    let target_kind = contract.kind_id.clone();
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from("local-vision-model-describe"),
+            execution_profile_id: ExecutionProfileId::from(LOCAL_VISION_DESCRIBE_PROFILE),
+            implementation_id: ImplementationId::from(LOCAL_VISION_DESCRIBE_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(LOCAL_VISION_DESCRIBE_ARTIFACT),
+            host_calls: vec![HostCallRequirement {
+                contract_id: operation.clone(),
+                target_kind: Some(target_kind.clone()),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+                maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            }],
+            resource_requirements: vec![protected_resource_requirement(
+                LOCAL_VISION_RESOURCE_ROLE,
+                LOCAL_VISION_RESOURCE_CLASS,
+                1,
+            )],
+            authority_requirements: vec![AuthorityRequirement {
+                contract_id: AuthorityContractId::from(LOCAL_VISION_READ_AUTHORITY),
+                host_call_contract_id: operation,
+                subject_kind: target_kind,
+            }],
+        },
+    )
+    .build()
 }
 
 fn local_ocr_offer() -> CapabilityOffer {
@@ -158,6 +196,10 @@ mod tests {
         );
         assert_eq!(
             offers[3].kind_id.as_str(),
+            conduit_semantic_catalog::VISION_DESCRIBE_KIND
+        );
+        assert_eq!(
+            offers[4].kind_id.as_str(),
             conduit_semantic_catalog::VISION_TRACK_KIND
         );
         assert_eq!(
@@ -180,6 +222,13 @@ mod tests {
             assert_eq!(offer.inputs.len(), 1);
             assert_eq!(offer.inputs[0].direction, PortDirection::Input);
             assert_eq!(offer.inputs[0].temporal, PortTemporal::Current);
+        }
+        assert_eq!(offers[3].inputs.len(), 4);
+        assert!(offers[3]
+            .inputs
+            .iter()
+            .all(|input| input.direction == PortDirection::Input));
+        for offer in offers.iter().take(4) {
             assert_eq!(offer.outputs.len(), 1);
             assert_eq!(offer.outputs[0].direction, PortDirection::Output);
             assert_eq!(offer.outputs[0].temporal, PortTemporal::Current);
@@ -198,8 +247,8 @@ mod tests {
                 offer.host_calls[0].contract_id
             );
         }
-        assert!(offers[3].resource_requirements.is_empty());
-        assert!(offers[3].authority_requirements.is_empty());
-        assert_eq!(offers[3].host_calls.len(), 1);
+        assert!(offers[4].resource_requirements.is_empty());
+        assert!(offers[4].authority_requirements.is_empty());
+        assert_eq!(offers[4].host_calls.len(), 1);
     }
 }
