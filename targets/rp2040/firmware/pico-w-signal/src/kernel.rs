@@ -7,12 +7,10 @@
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 use conduit_kernel::{
     scheduler::{
-        FixedScheduler, OperationDriver, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
-        StepOutcome,
+        FixedScheduler, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
     },
     BoundedValueRef, Failure, FailureCode, FixedSignLog, FixedValueStore, HostCallDisposition,
-    HostCallId, HostCallOutcome, NodeId, Operation, OperationAction, OperationInput,
-    PortId, RequestId, SignSink, ValueRef, ValueStorage,
+    HostCallId, HostCallOutcome, NodeId, PortId, RequestId, SignSink, ValueRef, ValueStorage,
 };
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 use conduit_signal::{
@@ -100,15 +98,15 @@ pub async fn run_signal_demo(
     let routes = generated_routes();
     let host_bindings = generated_host_bindings();
 
-    let pulse = PulseDriver::new(
+    let pulse = PulseBack::new(
         signal_values,
         wait_values,
         layout.configuration.count,
         layout.pulse_output_port,
         layout.wait_operation,
     );
-    let show = ShowDriver::new(layout.show_input_port, layout.present_operation);
-    let drivers = generated_drivers(layout.pulse_node, layout.show_node, pulse, show);
+    let show = ShowBack::new(layout.show_input_port, layout.present_operation);
+    let backs = generated_backs(layout.pulse_node, layout.show_node, pulse, show);
 
     let mut scheduler = FixedScheduler::<
         _,
@@ -127,7 +125,7 @@ pub async fn run_signal_demo(
         generated_cords(),
         routes,
         host_bindings,
-        drivers,
+        backs,
         values,
         sign,
     )
@@ -262,7 +260,7 @@ pub fn terminal_identity() -> TerminalIdentity {
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 type SignalScheduler<S, E> = FixedScheduler<
-    SignalDriver,
+    SignalBack,
     S,
     E,
     NODES,
@@ -312,33 +310,31 @@ fn fail_host_request<S: ValueStorage, E: SignSink>(
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-fn generated_drivers(
+fn generated_backs(
     pulse_node: NodeId,
     show_node: NodeId,
-    pulse: PulseDriver,
-    show: ShowDriver,
-) -> [SignalDriver; NODES] {
-    let pulse = OperationDriver::<_, PORTS>::new(pulse).expect("pulse driver valid");
-    let show = OperationDriver::<_, PORTS>::new(show).expect("show driver valid");
+    pulse: PulseBack,
+    show: ShowBack,
+) -> [SignalBack; NODES] {
     match (pulse_node.0, show_node.0) {
-        (0, 1) => [SignalDriver::Pulse(pulse), SignalDriver::Show(show)],
-        (1, 0) => [SignalDriver::Show(show), SignalDriver::Pulse(pulse)],
+        (0, 1) => [SignalBack::Pulse(pulse), SignalBack::Show(show)],
+        (1, 0) => [SignalBack::Show(show), SignalBack::Pulse(pulse)],
         _ => panic!("generated Signal image must have one pulse and one show node"),
     }
 }
 
 #[allow(
     clippy::large_enum_variant,
-    reason = "allocator-free firmware keeps operation drivers inline"
+    reason = "allocator-free firmware keeps Backs inline"
 )]
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-enum SignalDriver {
-    Pulse(OperationDriver<PulseDriver, PORTS>),
-    Show(OperationDriver<ShowDriver, PORTS>),
+enum SignalBack {
+    Pulse(PulseBack),
+    Show(ShowBack),
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-impl StepOperation<PORTS> for SignalDriver {
+impl StepOperation<PORTS> for SignalBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -359,7 +355,7 @@ impl StepOperation<PORTS> for SignalDriver {
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-struct PulseDriver {
+struct PulseBack {
     signal_values: [ValueRef; MAX_STORED_SIGNAL_VALUES],
     wait_values: [ValueRef; MAX_STORED_SIGNAL_VALUES],
     count: usize,
@@ -370,7 +366,7 @@ struct PulseDriver {
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-impl PulseDriver {
+impl PulseBack {
     fn new(
         signal_values: [ValueRef; MAX_STORED_SIGNAL_VALUES],
         wait_values: [ValueRef; MAX_STORED_SIGNAL_VALUES],
@@ -389,68 +385,68 @@ impl PulseDriver {
         }
     }
 
-    fn emit_current(&self) -> OperationAction {
-        if self.next >= self.count {
-            return OperationAction::Complete;
-        }
-        OperationAction::Emit {
-            port: self.output_port,
-            value: self.signal_values[self.next],
-        }
+    fn fail(code: FailureCode, detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure { code, detail })
     }
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-impl Operation for PulseDriver {
-    fn start(&mut self) -> OperationAction {
-        self.emit_current()
-    }
+impl StepOperation<PORTS> for PulseBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if let Some(expected) = self.pending_request {
+            let Some((request, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            if request != expected || io.consume_host_completion().is_err() {
+                return Self::fail(FailureCode::InvalidLifecycle, 1);
+            }
+            if outcome.disposition != HostCallDisposition::Completed {
+                return Self::fail(FailureCode::HostCallFailed, 2);
+            }
+            self.pending_request = None;
+        }
 
-    fn advance(&mut self) -> OperationAction {
+        if self.next >= self.count {
+            return StepOutcome::Complete;
+        }
+        if !io.output_ready(self.output_port) {
+            return StepOutcome::Await;
+        }
+        if io
+            .send(self.output_port, self.signal_values[self.next])
+            .is_err()
+        {
+            return Self::fail(FailureCode::InvalidLifecycle, 3);
+        }
         self.next += 1;
         if self.next >= self.count {
-            return OperationAction::Complete;
+            return StepOutcome::Complete;
         }
-        let req = RequestId(self.next as u32);
-        self.pending_request = Some(req);
-        OperationAction::RequestHostCall {
-            request: req,
-            operation: self.wait_operation,
-            input: BoundedValueRef {
-                value: self.wait_values[self.next],
-                admitted_bytes: WAIT_VALUE_BYTES,
-            },
+        let request = RequestId(self.next as u32);
+        if io
+            .request_host_call(
+                request,
+                self.wait_operation,
+                BoundedValueRef {
+                    value: self.wait_values[self.next],
+                    admitted_bytes: WAIT_VALUE_BYTES,
+                },
+            )
+            .is_err()
+        {
+            return Self::fail(FailureCode::InvalidLifecycle, 4);
         }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostCallCompleted { request, outcome } => {
-                if Some(request) != self.pending_request {
-                    return OperationAction::Fail(Failure {
-                        code: FailureCode::InvalidLifecycle,
-                        detail: 1,
-                    });
-                }
-                self.pending_request = None;
-                match outcome.disposition {
-                    HostCallDisposition::Completed => self.emit_current(),
-                    _ => OperationAction::Fail(Failure {
-                        code: FailureCode::HostCallFailed,
-                        detail: 2,
-                    }),
-                }
-            }
-            _ => OperationAction::Fail(Failure {
-                code: FailureCode::InvalidLifecycle,
-                detail: 3,
-            }),
-        }
+        self.pending_request = Some(request);
+        StepOutcome::Progress
     }
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-struct ShowDriver {
+struct ShowBack {
     input_port: PortId,
     present_operation: HostCallId,
     pending_request: Option<RequestId>,
@@ -458,7 +454,7 @@ struct ShowDriver {
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-impl ShowDriver {
+impl ShowBack {
     fn new(input_port: PortId, present_operation: HostCallId) -> Self {
         Self {
             input_port,
@@ -467,52 +463,59 @@ impl ShowDriver {
             presented: 0,
         }
     }
+
+    fn fail(code: FailureCode, detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure { code, detail })
+    }
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-impl Operation for ShowDriver {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value { port, value } => {
-                if port != self.input_port {
-                    return OperationAction::Fail(Failure {
-                        code: FailureCode::InvalidLifecycle,
-                        detail: 9,
-                    });
-                }
-                let req = RequestId(self.presented as u32);
-                self.pending_request = Some(req);
-                OperationAction::RequestHostCall {
-                    request: req,
-                    operation: self.present_operation,
-                    input: BoundedValueRef {
-                        value,
-                        admitted_bytes: SIGNAL_ENCODED_LEN,
-                    },
-                }
+impl StepOperation<PORTS> for ShowBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if let Some(expected) = self.pending_request {
+            let Some((request, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            if request != expected || io.consume_host_completion().is_err() {
+                return Self::fail(FailureCode::InvalidLifecycle, 10);
             }
-            OperationInput::HostCallCompleted { request, outcome } => {
-                if Some(request) != self.pending_request {
-                    return OperationAction::Fail(Failure {
-                        code: FailureCode::InvalidLifecycle,
-                        detail: 10,
-                    });
-                }
-                self.pending_request = None;
-                self.presented += 1;
-                match outcome.disposition {
-                    HostCallDisposition::Completed => OperationAction::Await,
-                    _ => OperationAction::Fail(Failure {
-                        code: FailureCode::HostCallFailed,
-                        detail: 11,
-                    }),
-                }
+            if outcome.disposition != HostCallDisposition::Completed {
+                return Self::fail(FailureCode::HostCallFailed, 11);
             }
-            OperationInput::Closed { .. } => OperationAction::Complete,
+            self.pending_request = None;
+            self.presented += 1;
+            return StepOutcome::Progress;
         }
+
+        if let Some(value) = io.input(self.input_port) {
+            let request = RequestId(self.presented as u32);
+            if io.consume(self.input_port).is_err()
+                || io
+                    .request_host_call(
+                        request,
+                        self.present_operation,
+                        BoundedValueRef {
+                            value,
+                            admitted_bytes: SIGNAL_ENCODED_LEN,
+                        },
+                    )
+                    .is_err()
+            {
+                return Self::fail(FailureCode::InvalidLifecycle, 9);
+            }
+            self.pending_request = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(self.input_port) {
+            if io.consume_closed(self.input_port).is_err() {
+                return Self::fail(FailureCode::InvalidLifecycle, 12);
+            }
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 }
