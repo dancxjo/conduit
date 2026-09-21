@@ -237,7 +237,7 @@ impl KernelProfile {
         bindings.install(
             NodeId(0),
             HostCallBinding {
-                operation: WAIT_OPERATION,
+                call: WAIT_OPERATION,
                 maximum_input_bytes: 16,
                 maximum_output_bytes: 16,
             },
@@ -245,7 +245,7 @@ impl KernelProfile {
         bindings.install(
             NodeId(1),
             HostCallBinding {
-                operation: PRESENT_OPERATION,
+                call: PRESENT_OPERATION,
                 maximum_input_bytes: 16,
                 maximum_output_bytes: 0,
             },
@@ -308,7 +308,7 @@ impl KernelProfile {
     pub fn timer_interest(request: HostCallRequest) -> Result<KernelInterest, SchedulerError> {
         if request.node != NodeId(0)
             || request.request != TIMER_REQUEST
-            || request.operation != WAIT_OPERATION
+            || request.call != WAIT_OPERATION
         {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
@@ -349,7 +349,7 @@ impl KernelProfile {
     pub fn complete_serial(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
         if request.node != NodeId(1)
             || request.request != PRESENT_REQUEST
-            || request.operation != PRESENT_OPERATION
+            || request.call != PRESENT_OPERATION
         {
             return Err(SchedulerError::InvalidHostCallAccess);
         }

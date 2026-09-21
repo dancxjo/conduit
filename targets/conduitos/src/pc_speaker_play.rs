@@ -222,7 +222,7 @@ impl PcSpeakerKernel {
         bindings.install(
             SOURCE_NODE,
             HostCallBinding {
-                operation: FIXTURE_OPERATION,
+                call: FIXTURE_OPERATION,
                 maximum_input_bytes: 8,
                 maximum_output_bytes: 0,
             },
@@ -230,7 +230,7 @@ impl PcSpeakerKernel {
         bindings.install(
             SINK_NODE,
             HostCallBinding {
-                operation: TONE_OPERATION,
+                call: TONE_OPERATION,
                 maximum_input_bytes: conduit_audio::TONE_INTENT_ENCODED_LEN as u32,
                 maximum_output_bytes: 0,
             },
@@ -294,7 +294,7 @@ impl PcSpeakerKernel {
             SINK_NODE => TONE_OPERATION,
             _ => return Err(SchedulerError::InvalidHostCallAccess),
         };
-        if request.operation != expected {
+        if request.call != expected {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
         self.scheduler.complete_host_call(

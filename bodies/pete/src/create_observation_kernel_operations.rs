@@ -151,7 +151,7 @@ pub(super) fn prepare_scheduler(maximum_output_bytes: u32) -> Result<Scheduler, 
         .install(
             SOURCE_NODE,
             HostCallBinding {
-                operation: OPERATION,
+                call: OPERATION,
                 maximum_input_bytes: 0,
                 maximum_output_bytes,
             },

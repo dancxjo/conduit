@@ -258,7 +258,7 @@ pub fn prepare_execution(
         .install(
             SOURCE_NODE,
             HostCallBinding {
-                operation: FIXTURE_OPERATION,
+                call: FIXTURE_OPERATION,
                 maximum_input_bytes: 8,
                 maximum_output_bytes: 0,
             },
@@ -268,7 +268,7 @@ pub fn prepare_execution(
         .install(
             SINK_NODE,
             HostCallBinding {
-                operation: OPL2_OPERATION,
+                call: OPL2_OPERATION,
                 maximum_input_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN as u32,
                 maximum_output_bytes: 0,
             },

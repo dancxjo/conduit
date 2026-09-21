@@ -183,7 +183,7 @@ use std::time::Duration;
 fn record_request(requests: &mut Vec<HostCallRequest>, request: HostCallRequest) {
     if !requests
         .iter()
-        .any(|observed| observed.node == request.node && observed.operation == request.operation)
+        .any(|observed| observed.node == request.node && observed.call == request.call)
     {
         requests.push(request);
     }
@@ -645,8 +645,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 .host_calls
                 .iter()
                 .find(|operation| {
-                    operation.node == cancellation.node
-                        && operation.operation == cancellation.operation
+                    operation.node == cancellation.node && operation.call == cancellation.call
                 })
                 .ok_or_else(|| "cancelled host request has no lowered identity".to_string())?;
             if cancelled_operation.contract_id.as_str() == audio_play_operation::HOST_CALL {
@@ -731,9 +730,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             let lowered_operation = lowered
                 .host_calls
                 .iter()
-                .find(|operation| {
-                    operation.node == request.node && operation.operation == request.operation
-                })
+                .find(|operation| operation.node == request.node && operation.call == request.call)
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
             if contract.as_str() == conduit_std_offers::MICROPHONE_CLIP_OPERATION {
@@ -2985,7 +2982,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 &lowered.identity,
                 request.node,
                 request.request,
-                request.operation,
+                request.call,
             )
             .map_err(|error| format!("bind std request identity: {error:?}"))?;
     }

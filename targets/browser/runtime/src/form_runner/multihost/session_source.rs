@@ -142,9 +142,7 @@ impl Session {
                 self.fragment
                     .placements
                     .get(usize::from(request.node.0))
-                    .and_then(|placement| {
-                        placement.host_calls.get(usize::from(request.operation.0))
-                    })
+                    .and_then(|placement| placement.host_calls.get(usize::from(request.call.0)))
                     .is_some_and(|operation| {
                         !matches!(
                             operation.contract_id.as_str(),
@@ -156,7 +154,7 @@ impl Session {
                     })
             }) {
                 let placement = &self.fragment.placements[usize::from(request.node.0)];
-                let operation = &placement.host_calls[usize::from(request.operation.0)];
+                let operation = &placement.host_calls[usize::from(request.call.0)];
                 if engine::transforms::complete_transform(
                     &mut self.scheduler,
                     placement,
@@ -175,7 +173,7 @@ impl Session {
                     .ok_or("multi-host input has no planned placement")?;
                 let operation = placement
                     .host_calls
-                    .get(usize::from(request.operation.0))
+                    .get(usize::from(request.call.0))
                     .ok_or("multi-host input has no planned Host Call")?;
                 if engine::transforms::complete_transform(
                     &mut self.scheduler,

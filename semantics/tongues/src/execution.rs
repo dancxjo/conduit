@@ -354,7 +354,7 @@ fn scheduler(
                     .iter()
                     .find(|op| op.node == node.node)
                     .ok_or("synthesis operation missing")?
-                    .operation,
+                    .call,
                 maximum_input_bytes: lowered
                     .host_calls
                     .iter()
@@ -370,7 +370,7 @@ fn scheduler(
                     .iter()
                     .find(|op| op.node == node.node)
                     .ok_or("presentation operation missing")?
-                    .operation,
+                    .call,
                 maximum_input_bytes: lowered
                     .host_calls
                     .iter()

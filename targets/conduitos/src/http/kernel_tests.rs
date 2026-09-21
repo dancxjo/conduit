@@ -501,9 +501,7 @@ fn run_ordinary_form() {
             let binding = lowered
                 .host_calls
                 .iter()
-                .find(|item| {
-                    item.node == request.node && item.binding.operation == request.operation
-                })
+                .find(|item| item.node == request.node && item.binding.call == request.call)
                 .unwrap();
             let input = kernel.host_value(request.input.value).unwrap();
             if binding.contract_id.as_str() == HOST_CALL {

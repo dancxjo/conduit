@@ -184,7 +184,7 @@ fn execute(copy: bool) -> (Vec<u64>, u16) {
                 .host_calls
                 .iter()
                 .find(|o| o.node == node.node)
-                .map(|o| o.binding.operation),
+                .map(|o| o.binding.call),
             pending: false,
         })
         .collect::<Vec<_>>();

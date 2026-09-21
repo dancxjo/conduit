@@ -43,7 +43,7 @@ impl TourSession {
             .position(|effect| {
                 effect.request.node == cancellation.node
                     && effect.request.request == cancellation.request
-                    && effect.request.operation == cancellation.operation
+                    && effect.request.call == cancellation.call
             })
             .ok_or("cancelled effect is not pending")?;
         self.host_outcomes.check_capacity()?;

@@ -337,9 +337,9 @@ fn render_host_calls(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     for operation in &plan.host_calls {
         writeln!(
             output,
-            "    (conduit_kernel::NodeId({}), conduit_kernel::HostCallBinding {{ operation: conduit_kernel::HostCallId({}), maximum_input_bytes: {}, maximum_output_bytes: {} }}),",
+            "    (conduit_kernel::NodeId({}), conduit_kernel::HostCallBinding {{ call: conduit_kernel::HostCallId({}), maximum_input_bytes: {}, maximum_output_bytes: {} }}),",
             operation.node,
-            operation.operation,
+            operation.call,
             operation.maximum_input_bytes,
             operation.maximum_output_bytes
         )

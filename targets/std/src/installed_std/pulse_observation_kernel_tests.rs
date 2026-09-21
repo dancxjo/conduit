@@ -113,7 +113,7 @@ fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
         .install(
             NodeId(2),
             HostCallBinding {
-                operation: HostCallId(0),
+                call: HostCallId(0),
                 maximum_input_bytes: 1,
                 maximum_output_bytes: 1,
             },

@@ -501,7 +501,7 @@ fn scheduler_admits_correlates_and_wakes_host_calls() {
         FixedSignLog::<64>::new(charge * 64).unwrap(),
     );
     assert_eq!(normalized.request, RequestId(7));
-    assert_eq!(normalized.operation, HostCallId(0));
+    assert_eq!(normalized.call, HostCallId(0));
     assert_eq!(normalized.input, [3]);
     assert_eq!(normalized.output_slot, 1);
     assert_eq!(normalized.used_items, 0);
@@ -660,7 +660,7 @@ fn cancellation_rejects_late_host_completion_and_releases_pending_input() {
 #[derive(Debug, Eq, PartialEq)]
 struct HostNormalized {
     request: RequestId,
-    operation: HostCallId,
+    call: HostCallId,
     input: [u8; 1],
     output_slot: u16,
     decisions: u32,
@@ -770,7 +770,7 @@ where
     };
     HostNormalized {
         request: request.request,
-        operation: request.operation,
+        call: request.call,
         input,
         output_slot: seen.slot,
         decisions: scheduler.decisions(),
@@ -820,7 +820,7 @@ fn host_output_bytes_are_borrowed_and_derived_output_uses_admitted_storage() {
         .install(
             NodeId(0),
             HostCallBinding {
-                operation: HostCallId(0),
+                call: HostCallId(0),
                 maximum_input_bytes: 0,
                 maximum_output_bytes: 3,
             },
@@ -933,7 +933,7 @@ where
         .install(
             binding_node,
             HostCallBinding {
-                operation: HostCallId(0),
+                call: HostCallId(0),
                 maximum_input_bytes: 4,
                 maximum_output_bytes: 4,
             },

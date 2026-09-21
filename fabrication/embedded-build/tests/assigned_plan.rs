@@ -228,7 +228,7 @@ fn requirements<'a>(
     AssignedPlanRequirements {
         host: AssignedIdentity::from_text(&plan.host_id),
         boot: AssignedIdentity::from_text(&plan.boot_id),
-        operations,
+        host_calls: operations,
         resources,
         remote_bindings: remotes,
     }

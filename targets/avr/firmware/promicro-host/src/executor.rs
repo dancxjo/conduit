@@ -194,7 +194,7 @@ fn execute<P: CreateUartProvider>(
     )
     .map_err(|_| ExecutionRefusal::Kernel)?;
     let request = kernel.start().map_err(|_| ExecutionRefusal::Kernel)?;
-    if request.request != REQUEST || request.operation != HOST_CALL {
+    if request.request != REQUEST || request.call != HOST_CALL {
         return Err(ExecutionRefusal::Kernel);
     }
     let observed = transition_oi_mode(provider, CreateOiModeRequest::Full, deadline_tick)

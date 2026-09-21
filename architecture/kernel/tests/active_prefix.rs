@@ -355,7 +355,7 @@ fn sealed_tables_cannot_reference_inactive_nodes_or_cords() {
         .install(
             NodeId(2),
             HostCallBinding {
-                operation: HostCallId(0),
+                call: HostCallId(0),
                 maximum_input_bytes: 1,
                 maximum_output_bytes: 0,
             },

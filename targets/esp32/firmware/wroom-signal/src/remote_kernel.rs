@@ -160,7 +160,7 @@ impl Esp32RemoteSignalKernel {
         loop {
             if let Some(request) = self.scheduler.next_host_request() {
                 if request.node != conduit_kernel::NodeId(0)
-                    || request.operation != conduit_kernel::HostCallId(0)
+                    || request.call != conduit_kernel::HostCallId(0)
                 {
                     return Err("kernel-host-request");
                 }

@@ -71,7 +71,7 @@ pub fn network_join_layout() -> Option<NetworkJoinLayout> {
         .find(|((candidate, _), (contract, _, _))| {
             *candidate == join_node && *contract == conduit_net::NETWORK_JOIN_HOST_CALL
         })
-        .map(|((_, binding), _)| binding.operation)?;
+        .map(|((_, binding), _)| binding.call)?;
     let join_output_port = generated::GENERATED_OUTPUT_PORTS
         .iter()
         .find(|(candidate, _, port, info)| {
@@ -100,7 +100,7 @@ pub fn network_join_layout() -> Option<NetworkJoinLayout> {
             *candidate == sign_node
                 && *contract == conduit_net::NETWORK_ATTACHMENT_SIGN_HOST_CALL
         })
-        .map(|((_, binding), _)| binding.operation)?;
+        .map(|((_, binding), _)| binding.call)?;
     Some(NetworkJoinLayout {
         join_node,
         join_input_port,

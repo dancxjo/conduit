@@ -486,7 +486,7 @@ impl BrowserSession {
             .identity
             .request(request.node, request.request)
             .ok_or(ERROR_COMPLETION_IDENTITY)?;
-        if request_identity.operation != request.operation {
+        if request_identity.call != request.call {
             return self.fail(ERROR_COMPLETION_IDENTITY);
         }
         let placement = self
@@ -943,7 +943,7 @@ fn write_common_frame(
     writer.text(active_play_id.as_str())?;
     writer.u16(request.node.0)?;
     writer.u32(request.request.0)?;
-    writer.u16(request.operation.0)?;
+    writer.u16(request.call.0)?;
     writer.text(contract_id.as_str())?;
     writer.text(placement_id.as_str())
 }

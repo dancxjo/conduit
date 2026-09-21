@@ -197,7 +197,7 @@ pub(super) fn prepare_scheduler(
         .install(
             OBSERVATION_NODE,
             HostCallBinding {
-                operation: OPERATION,
+                call: OPERATION,
                 maximum_input_bytes: 0,
                 maximum_output_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
             },
@@ -207,7 +207,7 @@ pub(super) fn prepare_scheduler(
         .install(
             DRIVE_NODE,
             HostCallBinding {
-                operation: OPERATION,
+                call: OPERATION,
                 maximum_input_bytes: 2 * SCALAR_BYTES,
                 maximum_output_bytes: 0,
             },

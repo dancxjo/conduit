@@ -345,7 +345,7 @@ impl TripleSource {
                 &self.lowered.identity,
                 request.node,
                 request.request,
-                request.operation,
+                request.call,
             )
             .map_err(|error| format!("{error:?}"))?;
         if request.node == self.pulse_node {

@@ -51,17 +51,17 @@ pub fn generate_embedded_plan(
     let host_calls = lowered
         .host_calls
         .iter()
-        .map(|operation| GeneratedHostCall {
-            node: operation.node.0,
-            operation: operation.operation.0,
-            contract_id: operation.contract_id.as_str().to_owned(),
-            target_kind: operation
+        .map(|call| GeneratedHostCall {
+            node: call.node.0,
+            call: call.call.0,
+            contract_id: call.contract_id.as_str().to_owned(),
+            target_kind: call
                 .target_kind
                 .as_ref()
                 .map(|kind| kind.as_str().to_owned()),
-            maximum_in_flight: operation.maximum_in_flight,
-            maximum_input_bytes: operation.binding.maximum_input_bytes,
-            maximum_output_bytes: operation.binding.maximum_output_bytes,
+            maximum_in_flight: call.maximum_in_flight,
+            maximum_input_bytes: call.binding.maximum_input_bytes,
+            maximum_output_bytes: call.binding.maximum_output_bytes,
         })
         .collect();
     let resources = lowered

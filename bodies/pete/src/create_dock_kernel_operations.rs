@@ -139,7 +139,7 @@ pub(super) fn prepare_dock_scheduler(request: [u8; 1]) -> Result<DockScheduler, 
         .install(
             DOCK_NODE,
             HostCallBinding {
-                operation: DOCK_OPERATION,
+                call: DOCK_OPERATION,
                 maximum_input_bytes: REQUEST_BYTES,
                 maximum_output_bytes: 0,
             },

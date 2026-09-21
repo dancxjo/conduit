@@ -558,7 +558,7 @@ impl DistributedSink {
         let signal = decode_signal_bytes(input).map_err(|_| ERROR_PRESENTATION)?;
         if projection.node != request.node
             || projection.signal != signal
-            || request_identity.operation != request.operation
+            || request_identity.call != request.call
         {
             return Err(ERROR_PRESENTATION);
         }

@@ -170,7 +170,7 @@ pub(super) fn prepare_drive_scheduler(
         .install(
             DRIVE_NODE,
             HostCallBinding {
-                operation: DRIVE_OPERATION,
+                call: DRIVE_OPERATION,
                 maximum_input_bytes: REQUEST_BYTES,
                 maximum_output_bytes: 0,
             },

@@ -223,7 +223,7 @@ fn generated_host_call(node: NodeId, contract_id: &str) -> Option<HostCallId> {
         .find(|((candidate_node, _), (candidate_contract, _, _))| {
             *candidate_node == node && *candidate_contract == contract_id
         })
-        .map(|((_, binding), _)| binding.operation)
+        .map(|((_, binding), _)| binding.call)
 }
 
 #[allow(dead_code)]

@@ -83,7 +83,7 @@ fn exercise(consume: bool) {
         .install(
             NodeId(1),
             HostCallBinding {
-                operation: HostCallId(0),
+                call: HostCallId(0),
                 maximum_input_bytes: 4,
                 maximum_output_bytes: 4,
             },

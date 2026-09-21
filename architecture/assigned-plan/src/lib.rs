@@ -100,7 +100,7 @@ impl AssignedPlanMaxima {
 pub struct AssignedPlanRequirements<'a> {
     pub host: AssignedIdentity,
     pub boot: AssignedIdentity,
-    pub operations: &'a [AssignedIdentity],
+    pub host_calls: &'a [AssignedIdentity],
     pub resources: &'a [u16],
     pub remote_bindings: &'a [AssignedRemoteBinding],
 }
@@ -187,10 +187,10 @@ pub fn decode_assigned_plan(
     }
 
     let mut seen = [0_u8; ASSIGNED_PLAN_COUNT_KINDS];
-    let mut operations = [false; 32];
+    let mut host_calls = [false; 32];
     let mut resources = [false; 32];
     let mut remotes = [false; 16];
-    if requirements.operations.len() > operations.len()
+    if requirements.host_calls.len() > host_calls.len()
         || requirements.resources.len() > resources.len()
         || requirements.remote_bindings.len() > remotes.len()
     {
@@ -264,13 +264,13 @@ pub fn decode_assigned_plan(
             ASSIGNED_HOST_CALL => {
                 let identity = read_identity(payload, 4)?;
                 let index = requirements
-                    .operations
+                    .host_calls
                     .iter()
                     .enumerate()
-                    .find(|(index, required)| !operations[*index] && **required == identity)
+                    .find(|(index, required)| !host_calls[*index] && **required == identity)
                     .map(|(index, _)| index)
                     .ok_or(AssignedPlanRefusal::UnknownOperation)?;
-                operations[index] = true;
+                host_calls[index] = true;
             }
             ASSIGNED_RESOURCE => {
                 let resource = read_u16(payload, 2)?;
@@ -307,7 +307,7 @@ pub fn decode_assigned_plan(
     if seen != counts {
         return Err(AssignedPlanRefusal::ExtraRecords);
     }
-    if operations[..requirements.operations.len()]
+    if host_calls[..requirements.host_calls.len()]
         .iter()
         .any(|seen| !seen)
     {

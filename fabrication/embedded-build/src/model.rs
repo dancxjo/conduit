@@ -184,7 +184,7 @@ pub struct GeneratedStaticRouteTarget {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GeneratedHostCall {
     pub node: u16,
-    pub operation: u16,
+    pub call: u16,
     pub contract_id: String,
     pub target_kind: Option<String>,
     pub maximum_in_flight: u16,

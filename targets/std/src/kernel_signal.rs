@@ -671,7 +671,7 @@ fn run_signal_profile<
                 &lowered.identity,
                 request.node,
                 request.request,
-                request.operation,
+                request.call,
             )
             .map_err(|error| format!("bind host request identity: {error:?}"))?;
     }

@@ -45,7 +45,7 @@ fn exact_plan_wiring_derives_authority_and_reaches_kernel_admission() {
         .install(
             NodeId(0),
             HostCallBinding {
-                operation: HostCallId(0),
+                call: HostCallId(0),
                 maximum_input_bytes: 512,
                 maximum_output_bytes: 512,
             },

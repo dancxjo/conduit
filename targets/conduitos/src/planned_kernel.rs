@@ -260,7 +260,7 @@ impl PlannedKernel {
     }
 
     pub fn timer_interest(request: HostCallRequest) -> Result<KernelInterest, SchedulerError> {
-        if request.node != TIMER_NODE || request.operation != conduit_kernel::HostCallId(0) {
+        if request.node != TIMER_NODE || request.call != conduit_kernel::HostCallId(0) {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
         Ok(KernelInterest {
@@ -302,7 +302,7 @@ impl PlannedKernel {
         &mut self,
         request: HostCallRequest,
     ) -> Result<(), SchedulerError> {
-        if request.node != PRESENT_NODE || request.operation != conduit_kernel::HostCallId(0) {
+        if request.node != PRESENT_NODE || request.call != conduit_kernel::HostCallId(0) {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
         self.scheduler.complete_host_call(

@@ -234,7 +234,7 @@ fn scheduler() -> Scheduler {
         .install(
             EVOLVE_NODE,
             HostCallBinding {
-                operation: OPERATION,
+                call: OPERATION,
                 maximum_input_bytes: MAX_INPUT_BYTES,
                 maximum_output_bytes: REACTION_DIFFUSION_MAXIMUM_STATE_BYTES,
             },

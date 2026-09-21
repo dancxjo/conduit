@@ -392,7 +392,7 @@ impl DistributedSource {
             .identity
             .request(request.node, request.request)
             .ok_or_else(|| "unbound std wait request identity".to_string())?;
-        if expected.operation != request.operation {
+        if expected.call != request.call {
             return Err("std wait request operation identity mismatch".to_string());
         }
         let bytes = self

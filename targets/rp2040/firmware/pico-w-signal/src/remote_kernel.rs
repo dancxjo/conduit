@@ -187,7 +187,7 @@ impl RemoteSignalKernel {
     ) -> UsbLinkResult<Signal> {
         loop {
             if let Some(request) = self.scheduler.next_host_request() {
-                if request.node != self.show_node || request.operation != self.present_operation {
+                if request.node != self.show_node || request.call != self.present_operation {
                     return Err(UsbLinkError::InvalidGeneratedEndpoint);
                 }
                 let signal = decode_signal_bytes(

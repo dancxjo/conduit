@@ -486,7 +486,7 @@ impl ToggleDistributedSink {
         if projection.node != request.node
             || projection.signal.sequence != self.receipts as u64
             || projection.signal.level != level
-            || request_identity.operation != request.operation
+            || request_identity.call != request.call
         {
             return Err(ERROR_PRESENTATION);
         }

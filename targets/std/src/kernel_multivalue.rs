@@ -1084,7 +1084,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                 &lowered.identity,
                 request.node,
                 request.request,
-                request.operation,
+                request.call,
             )
             .map_err(|error| format!("bind host request identity: {error:?}"))?;
     }

@@ -150,7 +150,7 @@ pub enum StepOutcome {
 pub struct HostCallRequest {
     pub node: NodeId,
     pub request: RequestId,
-    pub operation: HostCallId,
+    pub call: HostCallId,
     pub input: BoundedValueRef,
 }
 
@@ -158,7 +158,7 @@ pub struct HostCallRequest {
 pub struct HostCallCancellation {
     pub node: NodeId,
     pub request: RequestId,
-    pub operation: HostCallId,
+    pub call: HostCallId,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -298,7 +298,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
     fn consume_input(
         &mut self,
         port: PortId,
-        retain_for_operation: bool,
+        retain_for_call: bool,
     ) -> Result<ValueRef, SchedulerError> {
         self.charge_work(1)?;
         let index = usize::from(port.0);
@@ -312,7 +312,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
             return self.fail(SchedulerError::InvalidPortAccess);
         }
         self.consumed[index] = true;
-        self.retained_inputs[index] = retain_for_operation;
+        self.retained_inputs[index] = retain_for_call;
         Ok(value)
     }
 
@@ -388,14 +388,14 @@ impl<const PORTS: usize> StepIo<PORTS> {
     pub fn request_host_call(
         &mut self,
         request: RequestId,
-        operation: HostCallId,
+        call: HostCallId,
         input: BoundedValueRef,
     ) -> Result<(), SchedulerError> {
         self.charge_work(1)?;
         if self.host_request.is_some() {
             return self.fail(SchedulerError::InvalidHostCallAccess);
         }
-        self.host_request = Some((request, operation, input));
+        self.host_request = Some((request, call, input));
         Ok(())
     }
 
@@ -1425,7 +1425,7 @@ where
         Some(HostCallCancellation {
             node: pending.request.node,
             request: pending.request.request,
-            operation: pending.request.operation,
+            call: pending.request.call,
         })
     }
 
@@ -1914,8 +1914,7 @@ where
             }
         }
 
-        if let (Some((request, operation, input)), Some(binding)) =
-            (host_request, admitted_host_request)
+        if let (Some((request, call, input)), Some(binding)) = (host_request, admitted_host_request)
         {
             let slot = self
                 .pending_host_calls
@@ -1926,7 +1925,7 @@ where
                 request: HostCallRequest {
                     node: NodeId(as_u16(node)?),
                     request,
-                    operation,
+                    call,
                     input,
                 },
                 maximum_input_bytes: binding.maximum_input_bytes,
@@ -2046,7 +2045,7 @@ where
                 return Err(SchedulerError::HostCallCancellationDuplicate);
             }
         }
-        let admitted_host_request = if let Some((request, operation, input)) = host_request {
+        let admitted_host_request = if let Some((request, call, input)) = host_request {
             if self.last_host_request[node].is_some_and(|last| request <= last)
                 || self.pending_host_calls.iter().flatten().any(|pending| {
                     pending.request.node == node_id && pending.request.request == request
@@ -2070,7 +2069,7 @@ where
                 .host_bindings
                 .as_ref()
                 .ok_or(SchedulerError::InvalidHostCallAccess)?;
-            Some(bindings.admit_request(NodeId(as_u16(node)?), operation, input)?)
+            Some(bindings.admit_request(NodeId(as_u16(node)?), call, input)?)
         } else {
             None
         };

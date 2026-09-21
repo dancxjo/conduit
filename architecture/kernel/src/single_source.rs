@@ -161,7 +161,7 @@ pub struct SingleSourceExecutor<B, E> {
     back: B,
     signs: E,
     node: NodeId,
-    operation_id: HostCallId,
+    call_id: HostCallId,
     maximum_input_bytes: u32,
     maximum_output_bytes: u32,
     maximum_step_work: u16,
@@ -174,7 +174,7 @@ impl<B: StepOperation<1>, E: SignSink> SingleSourceExecutor<B, E> {
         back: B,
         signs: E,
         node: NodeId,
-        operation_id: HostCallId,
+        call_id: HostCallId,
         maximum_input_bytes: u32,
         maximum_output_bytes: u32,
         maximum_step_work: u16,
@@ -186,7 +186,7 @@ impl<B: StepOperation<1>, E: SignSink> SingleSourceExecutor<B, E> {
             back,
             signs,
             node,
-            operation_id,
+            call_id,
             maximum_input_bytes,
             maximum_output_bytes,
             maximum_step_work,
@@ -207,10 +207,10 @@ impl<B: StepOperation<1>, E: SignSink> SingleSourceExecutor<B, E> {
         if self.back.step(&mut io, &input_bytes) != StepOutcome::Progress {
             return Err(SingleSourceRefusal::InvalidStart);
         }
-        let Some((request, operation, input)) = io.single_source_start_request() else {
+        let Some((request, call, input)) = io.single_source_start_request() else {
             return Err(SingleSourceRefusal::InvalidStart);
         };
-        if operation != self.operation_id || input.value.byte_len > self.maximum_input_bytes {
+        if call != self.call_id || input.value.byte_len > self.maximum_input_bytes {
             return Err(SingleSourceRefusal::InvalidStart);
         }
         self.request = Some(request);
@@ -225,7 +225,7 @@ impl<B: StepOperation<1>, E: SignSink> SingleSourceExecutor<B, E> {
         Ok(HostCallRequest {
             node: self.node,
             request,
-            operation,
+            call,
             input,
         })
     }

@@ -18,7 +18,7 @@ impl ConsequentialEffectProvider for WifiBroadcastProvider {
     ) -> Result<PhysicalObservation, ConsequentialProviderFailure> {
         if self.calls != 0
             || request.resource_id != "wifi/bounded-broadcast"
-            || request.operation_id != "transmit-one-datagram"
+            || request.call_id != "transmit-one-datagram"
             || request.magnitude != 1
             || request.duration_ticks != 1
             || request.rate != 1

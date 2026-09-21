@@ -179,9 +179,7 @@ impl InstalledRemoteFragment {
             .lowered
             .host_calls
             .iter()
-            .find(|operation| {
-                operation.node == request.node && operation.operation == request.operation
-            })
+            .find(|operation| operation.node == request.node && operation.call == request.call)
             .ok_or_else(|| "remote host request has no lowered contract identity".to_string())?;
         let input = self
             .scheduler
@@ -212,9 +210,7 @@ impl InstalledRemoteFragment {
             .lowered
             .host_calls
             .iter()
-            .find(|operation| {
-                operation.node == request.node && operation.operation == request.operation
-            })
+            .find(|operation| operation.node == request.node && operation.call == request.call)
             .ok_or_else(|| "remote host request has no lowered contract identity".to_string())?;
         let contract = operation.contract_id.as_str();
         let maximum_output_bytes = operation.binding.maximum_output_bytes;
@@ -455,9 +451,7 @@ impl InstalledRemoteFragment {
             .lowered
             .host_calls
             .iter()
-            .find(|operation| {
-                operation.node == request.node && operation.operation == request.operation
-            })
+            .find(|operation| operation.node == request.node && operation.call == request.call)
             .ok_or_else(|| "remote host request has no lowered contract identity".to_string())?;
         let contract = operation.contract_id.as_str();
         let maximum_output_bytes = operation.binding.maximum_output_bytes;

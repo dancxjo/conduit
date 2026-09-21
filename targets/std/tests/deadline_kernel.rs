@@ -155,7 +155,7 @@ fn production_kernel_arms_cancels_replaces_and_completes_one_deadline() {
         .install(
             NodeId(0),
             HostCallBinding {
-                operation: HostCallId(0),
+                call: HostCallId(0),
                 maximum_input_bytes: 8,
                 maximum_output_bytes: 0,
             },

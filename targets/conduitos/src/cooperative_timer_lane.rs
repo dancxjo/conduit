@@ -115,7 +115,7 @@ impl AdmittedLane {
         bindings.install(
             TIMER_NODE,
             HostCallBinding {
-                operation: TIMER_CALL,
+                call: TIMER_CALL,
                 maximum_input_bytes: 8,
                 maximum_output_bytes: 0,
             },
@@ -167,7 +167,7 @@ impl AdmittedLane {
     fn validate_timer_request(request: HostCallRequest) -> Result<KernelInterest, SchedulerError> {
         if request.node != TIMER_NODE
             || request.request != TIMER_REQUEST
-            || request.operation != TIMER_CALL
+            || request.call != TIMER_CALL
         {
             return Err(SchedulerError::InvalidHostCallAccess);
         }

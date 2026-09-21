@@ -222,7 +222,7 @@ fn drive_with_boundary<'a>(
                 .ok_or_else(|| "browser request has no planned placement".to_string())?;
             let operation = placement
                 .host_calls
-                .get(usize::from(request.operation.0))
+                .get(usize::from(request.call.0))
                 .ok_or_else(|| "browser request has no planned Host Call".to_string())?;
             if resource_effect::matches(operation.contract_id.as_str()) {
                 if let Some(pending) = resource_effect::begin(scheduler, placement, request)? {

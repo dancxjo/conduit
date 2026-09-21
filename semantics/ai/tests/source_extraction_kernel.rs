@@ -212,7 +212,7 @@ fn scheduler(source: &SourceRef) -> Scheduler {
         .install(
             EXTRACTION_NODE,
             HostCallBinding {
-                operation: OPERATION,
+                call: OPERATION,
                 maximum_input_bytes: conduit_core::MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES as u32,
                 maximum_output_bytes: MAX_VALUE_BYTES,
             },

@@ -330,7 +330,7 @@ impl DistributedToggleSource {
             .identity
             .request(request.node, request.request)
             .ok_or_else(|| "unbound await-trigger request identity".to_string())?;
-        if expected.operation != request.operation {
+        if expected.call != request.call {
             return Err("await-trigger request operation identity mismatch".to_string());
         }
         writeln!(

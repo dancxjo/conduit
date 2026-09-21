@@ -221,7 +221,7 @@ impl PicoWifiBootstrapSource {
             .first()
             .map(|port| port.port)
             .ok_or_else(|| "credential source output missing".to_owned())?;
-        let operation = lowered.host_calls[0].binding.operation;
+        let operation = lowered.host_calls[0].binding.call;
         let back = CredentialBack {
             output_port,
             operation,
@@ -395,7 +395,7 @@ impl PicoWifiBootstrapSource {
 
     fn complete_credentials(&mut self, request: HostCallRequest) -> Result<(), String> {
         if request.node != self.operation_node
-            || request.operation != self.operation
+            || request.call != self.operation
             || request.request != RequestId(0)
         {
             return Err("credential Host Call identity mismatch".to_owned());

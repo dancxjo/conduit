@@ -234,9 +234,7 @@ impl BodyKernel {
                     let operation = self
                         .operations
                         .iter()
-                        .find(|op| {
-                            op.node == cancellation.node && op.operation == cancellation.operation
-                        })
+                        .find(|op| op.node == cancellation.node && op.call == cancellation.call)
                         .ok_or("Body cancellation has no exact operation")?;
                     if keyboard(&operation.contract_id) || button(&operation.contract_id) {
                         keys.cancel();
@@ -257,7 +255,7 @@ impl BodyKernel {
                 }
                 while let Some(request) = self.scheduler.next_host_request() {
                     if !self.requests.iter().any(|observed| {
-                        observed.node == request.node && observed.operation == request.operation
+                        observed.node == request.node && observed.call == request.call
                     }) {
                         if self.requests.len() == self.requests.capacity() {
                             return Err("Body observed-operation capacity exceeded".into());
@@ -267,7 +265,7 @@ impl BodyKernel {
                     let operation = self
                         .operations
                         .iter()
-                        .find(|op| op.node == request.node && op.operation == request.operation)
+                        .find(|op| op.node == request.node && op.call == request.call)
                         .ok_or("Body request has no exact partition operation")?;
                     let input = self
                         .scheduler

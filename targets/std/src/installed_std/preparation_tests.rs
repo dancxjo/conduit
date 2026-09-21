@@ -127,7 +127,7 @@ fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_ins
             let operation = lowered.partitions[partition]
                 .host_calls
                 .iter()
-                .find(|op| op.node == request.node && op.operation == request.operation)
+                .find(|op| op.node == request.node && op.call == request.call)
                 .unwrap();
             if operation.contract_id == conduit_core::wait_host_call_requirement().contract_id {
                 waits[partition] += 1;

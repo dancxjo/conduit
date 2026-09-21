@@ -423,7 +423,7 @@ impl PicoUsbSource {
             .identity
             .request(request.node, request.request)
             .ok_or_else(|| "unbound std wait request".to_owned())?;
-        if identity.operation != request.operation {
+        if identity.call != request.call {
             return Err("std wait operation identity mismatch".to_owned());
         }
         let duration = u64::from_le_bytes(

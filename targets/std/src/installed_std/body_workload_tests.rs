@@ -307,7 +307,7 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
                 .partitions
                 .iter()
                 .flat_map(|part| &part.host_calls)
-                .find(|op| op.node == request.node && op.operation == request.operation)
+                .find(|op| op.node == request.node && op.call == request.call)
                 .unwrap();
             let mut result = HostCallOutcome {
                 disposition: HostCallDisposition::Completed,

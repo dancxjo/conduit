@@ -205,7 +205,7 @@ pub fn prepare_speaker_execution(
         .install(
             SPEAKER_NODE,
             HostCallBinding {
-                operation: OPERATION,
+                call: OPERATION,
                 maximum_input_bytes: MAXIMUM_ADMITTED_SERIAL_BYTES as u32,
                 maximum_output_bytes: 0,
             },

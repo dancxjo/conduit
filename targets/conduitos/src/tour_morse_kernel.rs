@@ -205,7 +205,7 @@ impl TourMorseKernel {
         maximum: u32,
         output: &[u8],
     ) -> Result<(), SchedulerError> {
-        if request.node != node || request.operation != conduit_kernel::HostCallId(0) {
+        if request.node != node || request.call != conduit_kernel::HostCallId(0) {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
         let value = self.scheduler.store_host_value(output)?;
@@ -226,7 +226,7 @@ impl TourMorseKernel {
         &mut self,
         request: HostCallRequest,
     ) -> Result<(), SchedulerError> {
-        if request.operation != conduit_kernel::HostCallId(0)
+        if request.call != conduit_kernel::HostCallId(0)
             || (request.node != self.text_presentation_node && request.node != self.indicator_node)
         {
             return Err(SchedulerError::InvalidHostCallAccess);

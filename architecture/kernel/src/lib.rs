@@ -146,7 +146,7 @@ impl CordEndpoint {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HostCallBinding {
-    pub operation: HostCallId,
+    pub call: HostCallId,
     pub maximum_input_bytes: u32,
     pub maximum_output_bytes: u32,
 }
@@ -171,7 +171,7 @@ impl<const SLOTS: usize> FixedHostCallBindings<SLOTS> {
         if self.sealed {
             return Err(ProtocolError::HostCallTableSealed);
         }
-        let slot = self.slot(node, binding.operation)?;
+        let slot = self.slot(node, binding.call)?;
         if self.bindings[slot].is_some() {
             return Err(ProtocolError::HostCallTableInvalid);
         }
@@ -190,14 +190,14 @@ impl<const SLOTS: usize> FixedHostCallBindings<SLOTS> {
     pub fn admit_request(
         &self,
         node: NodeId,
-        operation: HostCallId,
+        call: HostCallId,
         input: BoundedValueRef,
     ) -> Result<HostCallBinding, ProtocolError> {
         if !self.sealed {
             return Err(ProtocolError::HostCallTableInvalid);
         }
         let binding =
-            self.bindings[self.slot(node, operation)?].ok_or(ProtocolError::HostCallMissing)?;
+            self.bindings[self.slot(node, call)?].ok_or(ProtocolError::HostCallMissing)?;
         if input.value.byte_len > binding.maximum_input_bytes
             || input.admitted_bytes > binding.maximum_input_bytes
         {
@@ -214,22 +214,22 @@ impl<const SLOTS: usize> FixedHostCallBindings<SLOTS> {
         if !self.sealed || self.maximum_gears_per_node == 0 {
             return Err(ProtocolError::HostCallTableInvalid);
         }
-        let operations_per_node = usize::from(self.maximum_gears_per_node);
+        let calls_per_node = usize::from(self.maximum_gears_per_node);
         for (slot, binding) in self.bindings.iter().enumerate() {
-            if binding.is_some() && slot / operations_per_node >= active_nodes {
+            if binding.is_some() && slot / calls_per_node >= active_nodes {
                 return Err(ProtocolError::HostCallTableInvalid);
             }
         }
         Ok(())
     }
 
-    fn slot(&self, node: NodeId, operation: HostCallId) -> Result<usize, ProtocolError> {
-        if operation.0 >= self.maximum_gears_per_node {
+    fn slot(&self, node: NodeId, call: HostCallId) -> Result<usize, ProtocolError> {
+        if call.0 >= self.maximum_gears_per_node {
             return Err(ProtocolError::HostCallMissing);
         }
         usize::from(node.0)
             .checked_mul(usize::from(self.maximum_gears_per_node))
-            .and_then(|base| base.checked_add(usize::from(operation.0)))
+            .and_then(|base| base.checked_add(usize::from(call.0)))
             .filter(|slot| *slot < SLOTS)
             .ok_or(ProtocolError::HostCallMissing)
     }

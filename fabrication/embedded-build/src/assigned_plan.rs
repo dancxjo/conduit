@@ -113,7 +113,7 @@ pub fn encode_assigned_plan(
     for operation in &plan.host_calls {
         let mut value = Vec::new();
         u16_to(&mut value, operation.node);
-        u16_to(&mut value, operation.operation);
+        u16_to(&mut value, operation.call);
         identity_to(&mut value, &operation.contract_id);
         optional_identity_to(&mut value, operation.target_kind.as_deref());
         u16_to(&mut value, operation.maximum_in_flight);

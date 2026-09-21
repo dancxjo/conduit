@@ -131,7 +131,7 @@ impl JoinKernel {
         crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelExecution);
         loop {
             if let Some(request) = self.scheduler.next_host_request() {
-                if request.node == self.sign_node && request.operation == self.sign_operation {
+                if request.node == self.sign_node && request.call == self.sign_operation {
                     let encoded = self
                         .scheduler
                         .host_value(request.input.value)
@@ -162,7 +162,7 @@ impl JoinKernel {
                     self.scheduler.step().map_err(UsbLinkError::Kernel)?;
                     return Ok(());
                 }
-                if request.node != self.node || request.operation != self.operation {
+                if request.node != self.node || request.call != self.operation {
                     return Err(UsbLinkError::InvalidGeneratedEndpoint);
                 }
                 let mut ssid = HString::<{ conduit_net::MAXIMUM_SSID_BYTES }>::new();

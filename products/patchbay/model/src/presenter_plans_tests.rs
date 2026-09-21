@@ -316,7 +316,7 @@ fn execute<const NODES: usize, const CORDS: usize>(
             .host_calls
             .iter()
             .find(|operation| operation.node == node.node)
-            .map(|operation| operation.operation);
+            .map(|operation| operation.call);
         prepared.push(PresentLeaf {
             input,
             host_call,
