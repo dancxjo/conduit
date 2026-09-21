@@ -7,8 +7,8 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
-    Failure, FailureCode, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
-    ValueRef,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    Failure, FailureCode, HostedValueStore, PortId,
 };
 
 const IMPLEMENTATION: &str = "browser/bounded-record-transcript@1";
@@ -45,75 +45,83 @@ struct TranscriptOperation {
     terminal_type: Vec<u8>,
 }
 
-impl Operation for TranscriptOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Closed { port: PortId(port) } if port < 3 => {
-                self.closed[usize::from(port)] = true;
-                if self.closed.iter().all(|closed| *closed) {
-                    OperationAction::Complete
-                } else {
-                    OperationAction::Await
-                }
+impl<const PORTS: usize> StepOperation<PORTS> for TranscriptOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        for port in [PortId(0), PortId(1), PortId(2)] {
+            let Some(value) = io.input(port) else {
+                continue;
+            };
+            let index = usize::from(port.0);
+            if self.closed[index]
+                || self.events >= self.maximum_events
+                || value.byte_len > MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
+            {
+                return fail(FailureCode::StorageExhausted, 2);
             }
-            _ => fail(FailureCode::InvalidLifecycle, 1),
-        }
-    }
-
-    fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
-        let index = usize::from(port.0);
-        if index >= 3
-            || self.closed[index]
-            || self.events >= self.maximum_events
-            || value.byte_len > MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
-        {
-            return fail(FailureCode::StorageExhausted, 2);
-        }
-        let result = match index {
-            0 | 1 => exact_leaf(canonical, &self.framed_type).and_then(|frame| {
-                self.transcript
-                    .record(
-                        if index == 0 {
-                            conduit_net::RecordTranscriptDirection::Sent
-                        } else {
-                            conduit_net::RecordTranscriptDirection::Received
-                        },
-                        frame,
-                    )
-                    .map(|_| ())
-                    .map_err(|_| ())
-            }),
-            _ => exact_leaf(canonical, &self.terminal_type)
-                .and_then(|wire| {
-                    conduit_net::decode_record_transcript_terminal(wire).map_err(|_| ())
-                })
-                .and_then(|terminal| {
+            if !io.output_ready(port) {
+                return StepOutcome::Await;
+            }
+            let Some(canonical) = input_bytes.input(port) else {
+                return fail(FailureCode::InvalidInput, 3);
+            };
+            let result = match index {
+                0 | 1 => exact_leaf(canonical, &self.framed_type).and_then(|frame| {
                     self.transcript
-                        .terminal(terminal)
+                        .record(
+                            if index == 0 {
+                                conduit_net::RecordTranscriptDirection::Sent
+                            } else {
+                                conduit_net::RecordTranscriptDirection::Received
+                            },
+                            frame,
+                        )
                         .map(|_| ())
                         .map_err(|_| ())
                 }),
-        };
-        if result.is_err() {
-            return fail(FailureCode::InvalidInput, 3);
+                _ => exact_leaf(canonical, &self.terminal_type)
+                    .and_then(|wire| {
+                        conduit_net::decode_record_transcript_terminal(wire).map_err(|_| ())
+                    })
+                    .and_then(|terminal| {
+                        self.transcript
+                            .terminal(terminal)
+                            .map(|_| ())
+                            .map_err(|_| ())
+                    }),
+            };
+            if result.is_err() {
+                return fail(FailureCode::InvalidInput, 3);
+            }
+            io.consume(port).expect("present transcript event");
+            io.send(port, value).expect("ready transcript output");
+            self.events += 1;
+            return StepOutcome::Progress;
         }
-        self.events += 1;
-        OperationAction::Emit { port, value }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
+        for port in [PortId(0), PortId(1), PortId(2)] {
+            let index = usize::from(port.0);
+            if io.input_closed(port) && !self.closed[index] {
+                io.consume_closed(port)
+                    .expect("observed transcript closure");
+                self.closed[index] = true;
+                return if self.closed.iter().all(|closed| *closed) {
+                    StepOutcome::Complete
+                } else {
+                    StepOutcome::Progress
+                };
+            }
+        }
+        StepOutcome::Await
     }
 }
 
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
     validate_placement(placement, &offer())?;
     let (items, events, frame_bytes, retained_bytes) = limits(placement)?;
-    Ok(BrowserOperation::installed(TranscriptOperation {
+    Ok(BrowserOperation::installed_step(TranscriptOperation {
         transcript: conduit_net::BoundedRecordTranscript::new(
             items,
             frame_bytes,
@@ -174,6 +182,6 @@ fn exact_leaf<'a>(canonical: &'a [u8], value_type: &[u8]) -> Result<&'a [u8], ()
     (node.len() == 5 + length).then_some(&node[5..]).ok_or(())
 }
 
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
+fn fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
