@@ -2,9 +2,7 @@
 
 use alloc::vec::Vec;
 use conduit_core::{InfoBool, SCALAR_ENCODED_LEN, Scalar};
-use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{CordSpec, FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
     FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, HostCallDisposition,
     HostCallOutcome, NodeId, SignSink, ValueStorage,
@@ -12,7 +10,7 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 
 use super::{
-    state_select_operation::StateSelectOperation,
+    state_select_operation::StateSelectBack,
     state_select_plan::{
         FALSE_SOURCE_KIND, PreparedStateSelect, SELECTOR_SOURCE_KIND, SINK_KIND, TRUE_SOURCE_KIND,
     },
@@ -30,7 +28,7 @@ const SIGNS: usize = 256;
 const MAXIMUM_OUTPUTS: usize = 4;
 
 type Kernel = FixedScheduler<
-    OperationDriver<StateSelectOperation, PORTS>,
+    StateSelectBack,
     FixedValueStore<VALUES, MAX_VALUE_BYTES>,
     FixedSignLog<SIGNS>,
     NODES,
@@ -250,39 +248,37 @@ fn scheduler(
     let false_values = store_scalar_sequence(&mut values, prepared.sequence.when_false)?;
     let true_values = store_scalar_sequence(&mut values, prepared.sequence.when_true)?;
     let mut sink = None;
-    let drivers = fragment
+    let backs = fragment
         .placements
         .iter()
         .enumerate()
-        .map(|(index, placement)| {
-            let operation = match placement.kind_id.as_str() {
-                SELECTOR_SOURCE_KIND => StateSelectOperation::Source {
-                    values: selector_values,
-                    phase: 0,
-                },
-                FALSE_SOURCE_KIND => StateSelectOperation::Source {
-                    values: false_values,
-                    phase: 0,
-                },
-                TRUE_SOURCE_KIND => StateSelectOperation::Source {
-                    values: true_values,
-                    phase: 0,
-                },
-                conduit_semantic_catalog::STATE_SELECT_KIND => StateSelectOperation::Select {
-                    selector: None,
-                    candidates: [None; 2],
-                    closed: [false; 3],
-                },
-                SINK_KIND => {
-                    sink = Some(NodeId(index as u16));
-                    StateSelectOperation::Sink {
-                        pending: false,
-                        next_request: 0,
-                    }
-                }
-                _ => return Err(StateSelectError::Shape),
-            };
-            OperationDriver::new(operation).map_err(|_| StateSelectError::KernelSetup(5))
+        .map(|(index, placement)| match placement.kind_id.as_str() {
+            SELECTOR_SOURCE_KIND => Ok(StateSelectBack::Source {
+                values: selector_values,
+                phase: 0,
+            }),
+            FALSE_SOURCE_KIND => Ok(StateSelectBack::Source {
+                values: false_values,
+                phase: 0,
+            }),
+            TRUE_SOURCE_KIND => Ok(StateSelectBack::Source {
+                values: true_values,
+                phase: 0,
+            }),
+            conduit_semantic_catalog::STATE_SELECT_KIND => Ok(StateSelectBack::Select {
+                selector: None,
+                candidates: [None; 2],
+                closed: [false; 3],
+                input_cursor: 0,
+            }),
+            SINK_KIND => {
+                sink = Some(NodeId(index as u16));
+                Ok(StateSelectBack::Sink {
+                    pending: false,
+                    next_request: 0,
+                })
+            }
+            _ => Err(StateSelectError::Shape),
         })
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
@@ -292,7 +288,7 @@ fn scheduler(
     )
     .map_err(|_| StateSelectError::KernelSetup(6))?;
     let kernel =
-        FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
+        FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, backs, values, signs)
             .map_err(|_| StateSelectError::KernelSetup(7))?;
     Ok(Scheduler {
         kernel,
