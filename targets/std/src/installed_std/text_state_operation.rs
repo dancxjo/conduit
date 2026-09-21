@@ -3,6 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId,
 };
@@ -21,6 +22,79 @@ pub(super) static SUBMIT_FACTORY: InstalledFactory = InstalledFactory {
 pub(super) struct TextStateOperation {
     pending: Option<RequestId>,
     next_request: u32,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TextStateOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(FailureCode::InvalidLifecycle, 4);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed text state Host Call completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready text state output");
+                    self.pending = None;
+                    StepOutcome::Progress
+                }
+                (HostCallDisposition::Completed, None, None) => {
+                    io.consume_host_completion()
+                        .expect("observed text state Host Call completion");
+                    self.pending = None;
+                    StepOutcome::Progress
+                }
+                (HostCallDisposition::Cancelled, None, None) => {
+                    io.consume_host_completion()
+                        .expect("observed cancelled text state Host Call");
+                    self.pending = None;
+                    step_fail(FailureCode::Cancelled, 0)
+                }
+                (HostCallDisposition::Failed, None, Some(failure)) => {
+                    io.consume_host_completion()
+                        .expect("observed failed text state Host Call");
+                    self.pending = None;
+                    StepOutcome::Fail(failure)
+                }
+                _ => step_fail(FailureCode::InvalidLifecycle, 3),
+            }
+        } else if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() {
+                return step_fail(FailureCode::InvalidLifecycle, 4);
+            }
+            let Ok(input) = BoundedValueRef::new(value, 4) else {
+                return step_fail(FailureCode::InvalidInput, 2);
+            };
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_fail(FailureCode::StorageExhausted, 1);
+            };
+            io.consume(PortId(0)).expect("present text state input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("single text state Host Call");
+            self.next_request = next;
+            self.pending = Some(request);
+            StepOutcome::Progress
+        } else if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed text state input closure");
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Await
+        }
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl TextStateOperation {

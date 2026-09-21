@@ -3,6 +3,7 @@ use conduit_core::{
     ConfigurationValue, InfoBool, PlannedGear, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
     RequestId, ValueRef,
 };
@@ -20,6 +21,101 @@ pub(super) struct FlowGateScalarOperation {
     maximum_enable_updates: u32,
     data_closed: bool,
     enable_closed: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for FlowGateScalarOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending_enable.map(|pending| pending.0) != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(gate_failure());
+            }
+            let (_, input) = self
+                .pending_enable
+                .expect("matching gate request has an input");
+            match outcome.output {
+                None => self.enabled = false,
+                Some(output)
+                    if output.value == input
+                        && output.admitted_bytes == BOOL_ENCODED_LEN as u32 =>
+                {
+                    self.enabled = true;
+                }
+                Some(_) => return StepOutcome::Fail(gate_failure()),
+            }
+            io.consume_host_completion()
+                .expect("observed gate Host Call completion");
+            self.pending_enable = None;
+            self.next_request = self.next_request.saturating_add(1);
+            return StepOutcome::Progress;
+        }
+        if self.pending_enable.is_some() {
+            return StepOutcome::Await;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if value.byte_len != SCALAR_ENCODED_LEN as u32 {
+                return StepOutcome::Fail(gate_failure());
+            }
+            if self.enabled && !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume(PortId(0)).expect("present gated data input");
+            if self.enabled {
+                io.send(PortId(0), value).expect("ready gated data output");
+            }
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(1)) {
+            if value.byte_len != BOOL_ENCODED_LEN as u32
+                || self.next_request >= self.maximum_enable_updates
+            {
+                return StepOutcome::Fail(gate_failure());
+            }
+            let Ok(input) = BoundedValueRef::new(value, BOOL_ENCODED_LEN as u32) else {
+                return StepOutcome::Fail(gate_failure());
+            };
+            let request = RequestId(self.next_request);
+            io.consume(PortId(1)).expect("present gate enable input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("single gate Host Call");
+            self.pending_enable = Some((request, value));
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && !self.data_closed {
+            io.consume_closed(PortId(0))
+                .expect("observed gate data closure");
+            self.data_closed = true;
+            return if self.enable_closed {
+                StepOutcome::Complete
+            } else {
+                StepOutcome::Progress
+            };
+        }
+        if io.input_closed(PortId(1)) && !self.enable_closed {
+            io.consume_closed(PortId(1))
+                .expect("observed gate enable closure");
+            self.enable_closed = true;
+            return if self.data_closed {
+                StepOutcome::Complete
+            } else {
+                StepOutcome::Progress
+            };
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending_enable = None;
+    }
+}
+
+fn gate_failure() -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail: 16,
+    }
 }
 
 impl FlowGateScalarOperation {

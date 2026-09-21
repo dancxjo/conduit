@@ -99,7 +99,7 @@ pub(super) enum InstalledOperation {
     RecognizedTurnCommit(RecognizedTurnCommitOperation),
     SpeechWindowToClip(SpeechWindowToClipOperation),
     SpeechResultToEventStream(SpeechResultToEventStreamOperation),
-    TypedState(Box<crate::state_value::TypedStateOperation>),
+    TypedState(Box<crate::state_value::TypedStateBack>),
     KeyboardInput(KeyboardInputOperation),
     ButtonInput(super::keyboard_input_operation::button::ButtonOperation),
     ButtonMapper(Box<super::keyboard_input_operation::button::indicator::Mapper>),

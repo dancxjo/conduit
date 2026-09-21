@@ -1,6 +1,9 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection, PortTemporal};
-use conduit_kernel::{OperationAction, OperationInput, PortId};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    OperationAction, OperationInput, PortId,
+};
 
 pub(super) static FLOW_BACKPRESSURE_FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::FLOW_BACKPRESSURE_STD_IMPLEMENTATION,
@@ -15,6 +18,25 @@ pub(super) static FLOW_COALESCE_LATEST_FACTORY: InstalledFactory = InstalledFact
 };
 
 pub(super) struct FlowPressureOperation;
+
+impl<const PORTS: usize> StepOperation<PORTS> for FlowPressureOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = io.input(PortId(0)) {
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume(PortId(0)).expect("present flow input");
+            io.send(PortId(0), value).expect("ready flow output");
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed flow input closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+}
 
 impl FlowPressureOperation {
     pub(super) fn start(&mut self) -> OperationAction {

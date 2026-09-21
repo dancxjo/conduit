@@ -1,24 +1,14 @@
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver, RemoteIngressOutcome,
-    SchedulerStatus,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, RemoteIngressOutcome, SchedulerStatus,
 };
-use conduit_kernel::state_delay::{operation::StateOperation, StateDelay};
+use conduit_kernel::state_delay::{back::StateBack, StateDelay};
 use conduit_kernel::{
     CordEndpoint, CordId, ExecutionDisposition, FixedRoutes, FixedSignLog, FixedValueStore,
     KernelEvent, NodeId, PortId, RemoteEndpointId, RouteRange, RouteTarget, ValueStorage,
 };
 
-type Play = FixedScheduler<
-    OperationDriver<StateOperation<1>, 1>,
-    FixedValueStore<4, 1>,
-    FixedSignLog<512>,
-    1,
-    2,
-    1,
-    2,
-    1,
-    1,
->;
+type Play =
+    FixedScheduler<StateBack<1>, FixedValueStore<4, 1>, FixedSignLog<512>, 1, 2, 1, 2, 1, 1>;
 
 fn play() -> Play {
     with_state(StateDelay::externally_continued(0, 1, &[0]).unwrap())
@@ -74,10 +64,7 @@ fn with_state(state: StateDelay<1>) -> Play {
             ),
         ],
         routes,
-        [
-            OperationDriver::new(StateOperation::new(state, PortId(0), PortId(0)).unwrap())
-                .unwrap(),
-        ],
+        [StateBack::new(state, PortId(0), PortId(0)).unwrap()],
         FixedValueStore::<4, 1>::new(4).unwrap(),
         signs,
     )
@@ -109,7 +96,7 @@ fn deliver(play: &mut Play, sequence: u64, expected: u8) {
 }
 
 #[test]
-fn input_wait_continued_operation_and_explicit_closure_are_distinct() {
+fn input_wait_continued_back_and_explicit_closure_are_distinct() {
     let mut play = play();
     idle(&mut play);
     assert_eq!(
@@ -119,7 +106,7 @@ fn input_wait_continued_operation_and_explicit_closure_are_distinct() {
     assert!(!ExecutionDisposition::QuiescentAwaitingInput.is_semantic_completion());
     deliver(&mut play, 0, 0);
     idle(&mut play);
-    assert_eq!(play.drivers()[0].operation().state().generation(), 0);
+    assert_eq!(play.drivers()[0].state().generation(), 0);
     for sequence in 0..16 {
         assert!(matches!(
             play.admit_remote_input(
@@ -134,10 +121,7 @@ fn input_wait_continued_operation_and_explicit_closure_are_distinct() {
         idle(&mut play);
         deliver(&mut play, sequence + 1, (sequence % 2) as u8);
         idle(&mut play);
-        assert_eq!(
-            play.drivers()[0].operation().state().generation(),
-            sequence + 1
-        );
+        assert_eq!(play.drivers()[0].state().generation(), sequence + 1);
         assert_eq!(play.values().used_items(), 0);
     }
     play.close_remote_input(RemoteEndpointId(0), CordId(0))
@@ -176,8 +160,8 @@ fn output_pressure_does_not_drop_the_queued_next_state() {
     idle(&mut play);
     deliver(&mut play, 1, 1);
     idle(&mut play);
-    assert_eq!(play.drivers()[0].operation().state().current(), &[1]);
-    assert_eq!(play.drivers()[0].operation().state().generation(), 1);
+    assert_eq!(play.drivers()[0].state().current(), &[1]);
+    assert_eq!(play.drivers()[0].state().generation(), 1);
     assert_eq!(play.values().used_items(), 0);
     play.cancel().unwrap();
     assert_eq!(play.step().unwrap(), SchedulerStatus::Cancelled);
@@ -210,26 +194,23 @@ fn a_larger_transition_allowance_executes_the_same_input_without_hiding_exhausti
                     ExecutionDisposition::WorkBudgetExhausted
                 );
                 assert!(!ExecutionDisposition::WorkBudgetExhausted.is_semantic_completion());
-                assert_eq!(play.drivers()[0].operation().state().generation(), 1);
-                assert_eq!(play.drivers()[0].operation().state().current(), &[1]);
+                assert_eq!(play.drivers()[0].state().generation(), 1);
+                assert_eq!(play.drivers()[0].state().current(), &[1]);
             } else {
                 idle(&mut play);
                 deliver(&mut play, sequence + 1, 1);
                 idle(&mut play);
-                assert_eq!(
-                    play.drivers()[0].operation().state().generation(),
-                    sequence + 1
-                );
+                assert_eq!(play.drivers()[0].state().generation(), sequence + 1);
             }
         }
     }
 }
 
 #[test]
-fn derived_emission_capacity_is_checked_before_operation_start() {
+fn derived_emission_capacity_is_checked_before_back_start() {
     let state = StateDelay::<65>::externally_continued(0, 65, &[0]).unwrap();
     assert!(matches!(
-        StateOperation::new(state, PortId(0), PortId(0)),
+        StateBack::new(state, PortId(0), PortId(0)),
         Err(conduit_kernel::state_delay::StateError::InvalidBounds)
     ));
 }
@@ -257,7 +238,7 @@ fn retirement_refuses_input_wait_and_preserves_state_after_explicit_cancellation
     assert!(retired.cancelled);
     assert_eq!(retired.values.used_items(), 0);
     let [driver] = retired.drivers;
-    let state = driver.into_operation().into_state();
+    let state = driver.into_state();
     assert_eq!(state.generation(), 1);
     assert_eq!(state.current(), &[1]);
     let (moved, evidence) = match state.try_transfer::<2>(7, 2) {
@@ -282,7 +263,7 @@ fn cancelling_a_pressured_update_retires_only_the_last_committed_state() {
         Err(_) => panic!("cancelled execution should retire"),
     };
     let [driver] = retired.drivers;
-    let state = driver.into_operation().into_state();
+    let state = driver.into_state();
     assert_eq!(
         state.current(),
         &[0],

@@ -1,6 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, HostCallOutcome, OperationAction,
     OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -47,6 +48,122 @@ pub(super) static TEXT_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory
 pub(super) struct TextLiteralOperation {
     value: ValueRef,
     emitted: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TextLiteralOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), self.value)
+            .expect("ready text literal output");
+        self.emitted = true;
+        StepOutcome::Progress
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TextTransformOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(step_failure(8));
+            }
+            let Some(output) = outcome.output else {
+                return StepOutcome::Fail(step_failure(8));
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume_host_completion()
+                .expect("observed text Host Call completion");
+            io.send(PortId(0), output.value)
+                .expect("ready text transform output");
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() || self.next >= self.maximum_values {
+                return StepOutcome::Fail(step_failure(8));
+            }
+            let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
+                return StepOutcome::Fail(step_failure(8));
+            };
+            let request = RequestId(self.next);
+            io.consume(PortId(0)).expect("present text input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("single text Host Call request");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed text input closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TextPresentationOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(step_failure(5));
+            }
+            io.consume_host_completion()
+                .expect("observed text Presentation completion");
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() || self.next >= self.maximum_values {
+                return StepOutcome::Fail(step_failure(5));
+            }
+            let Ok(input) = BoundedValueRef::new(value, MAX_TEXT_BYTES) else {
+                return StepOutcome::Fail(step_failure(5));
+            };
+            let request = RequestId(self.next);
+            io.consume(PortId(0))
+                .expect("present text Presentation input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("single text Presentation Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed text Presentation closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+fn step_failure(detail: u16) -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    }
 }
 
 pub(super) struct TextTransformOperation {

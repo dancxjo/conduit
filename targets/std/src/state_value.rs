@@ -1,9 +1,10 @@
-//! Typed finite State adapter for the ordinary kernel Operation driver.
+//! Typed finite State adapter for the ordinary kernel Step scheduler.
 use conduit_core::{
     PlannedGear, PlannedStateBoundary, PreparedStructuredValueValidator, StructuredInfoValue,
 };
 use conduit_kernel::{
-    state_delay::{operation::StateOperation, StateDelay},
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    state_delay::{back::StateBack, StateDelay},
     Failure, FailureCode, Operation, OperationAction, OperationInput, PortId, ValueRef,
 };
 
@@ -18,13 +19,56 @@ pub struct RetainedStdRun {
     pub states: Vec<RetainedTypedState>,
 }
 
-pub struct TypedStateOperation {
+impl<const PORTS: usize> StepOperation<PORTS> for TypedStateBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        let port = self.back.next_port();
+        if io.input(port).is_some() {
+            let Some(canonical) = input_bytes.input(port) else {
+                <StateBack<64> as StepOperation<PORTS>>::cancel(&mut self.back);
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidInput,
+                    detail: 9,
+                });
+            };
+            if let Err(error) = self.validator.validate(canonical) {
+                <StateBack<64> as StepOperation<PORTS>>::cancel(&mut self.back);
+                let capacity = matches!(
+                    error,
+                    conduit_core::StructuredInfoRefusal::CanonicalEncodingTooLarge
+                );
+                return StepOutcome::Fail(Failure {
+                    code: if capacity {
+                        FailureCode::StorageExhausted
+                    } else {
+                        FailureCode::InvalidInput
+                    },
+                    detail: if capacity { 1 } else { 9 },
+                });
+            }
+        }
+        <StateBack<64> as StepOperation<PORTS>>::step(&mut self.back, io, input_bytes)
+    }
+
+    fn step_committed(&mut self) {
+        <StateBack<64> as StepOperation<PORTS>>::step_committed(&mut self.back);
+    }
+
+    fn cancel(&mut self) {
+        <StateBack<64> as StepOperation<PORTS>>::cancel(&mut self.back);
+    }
+}
+
+pub struct TypedStateBack {
     binding: Option<continuity::StateExecutionBinding>,
-    operation: StateOperation<64>,
+    back: StateBack<64>,
     validator: PreparedStructuredValueValidator,
 }
 
-impl TypedStateOperation {
+impl TypedStateBack {
     /// Prepare all owned schema/storage before Play. Numeric identities must be
     /// supplied by the host's exact lowering tables, never selected at runtime.
     pub fn prepare(
@@ -44,11 +88,11 @@ impl TypedStateOperation {
             &state.initial_value,
         )
         .map_err(|error| format!("State storage: {error:?}"))?;
-        let operation = StateOperation::new(cell, next, current)
-            .map_err(|error| format!("State operation: {error:?}"))?;
+        let back = StateBack::new(cell, next, current)
+            .map_err(|error| format!("State back: {error:?}"))?;
         Ok(Self {
             binding: None,
-            operation,
+            back,
             validator,
         })
     }
@@ -85,26 +129,26 @@ impl TypedStateOperation {
     }
 
     pub fn current(&self) -> &[u8] {
-        self.operation.state().current()
+        self.back.state().current()
     }
     pub fn generation(&self) -> u64 {
-        self.operation.state().generation()
+        self.back.state().generation()
     }
 }
 
-impl Operation for TypedStateOperation {
+impl Operation for TypedStateBack {
     fn step_committed(&mut self) {
-        self.operation.step_committed();
+        Operation::step_committed(&mut self.back);
     }
     fn start(&mut self) -> OperationAction {
-        self.operation.start()
+        self.back.start()
     }
     fn resume(&mut self, input: OperationInput) -> OperationAction {
-        self.operation.resume(input)
+        self.back.resume(input)
     }
     fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
         if let Err(error) = self.validator.validate(canonical) {
-            self.operation.cancel();
+            Operation::cancel(&mut self.back);
             let capacity = matches!(
                 error,
                 conduit_core::StructuredInfoRefusal::CanonicalEncodingTooLarge
@@ -118,12 +162,12 @@ impl Operation for TypedStateOperation {
                 detail: if capacity { 1 } else { 9 },
             });
         }
-        self.operation.resume_value(port, value, canonical)
+        self.back.resume_value(port, value, canonical)
     }
     fn advance(&mut self) -> OperationAction {
-        self.operation.advance()
+        self.back.advance()
     }
     fn cancel(&mut self) {
-        self.operation.cancel();
+        Operation::cancel(&mut self.back);
     }
 }

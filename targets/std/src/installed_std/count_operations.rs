@@ -1,6 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection, PortTemporal};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, CanonicalValue, Failure, FailureCode, HostCallDisposition, HostCallId,
     OperationAction, OperationInput, PortId, RequestId,
 };
@@ -20,6 +21,116 @@ pub(super) static COUNT_PRESENTATION_FACTORY: InstalledFactory = InstalledFactor
 pub(super) struct StateCountOperation {
     current: u64,
     initial_emitted: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for StateCountOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if !self.initial_emitted {
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.send_canonical(
+                PortId(0),
+                CanonicalValue::new(&self.current.to_le_bytes()).expect("Count is eight bytes"),
+            )
+            .expect("ready initial Count output");
+            self.initial_emitted = true;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if value.byte_len != conduit_time::TICK_ENCODED_LEN || !io.output_ready(PortId(0)) {
+                return if value.byte_len == conduit_time::TICK_ENCODED_LEN {
+                    StepOutcome::Await
+                } else {
+                    StepOutcome::Fail(Failure {
+                        code: FailureCode::InvalidLifecycle,
+                        detail: 10,
+                    })
+                };
+            }
+            let Some(current) = self.current.checked_add(1) else {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::IdentityCapacityExhausted,
+                    detail: 10,
+                });
+            };
+            io.consume(PortId(0)).expect("present Count tick");
+            io.send_canonical(
+                PortId(0),
+                CanonicalValue::new(&current.to_le_bytes()).expect("Count is eight bytes"),
+            )
+            .expect("ready Count output");
+            self.current = current;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed Count input closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for CountPresentationOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidLifecycle,
+                    detail: 11,
+                });
+            }
+            io.consume_host_completion()
+                .expect("observed Count Presentation completion");
+            self.pending = None;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidLifecycle,
+                    detail: 11,
+                });
+            }
+            let Ok(input) =
+                BoundedValueRef::new(value, conduit_semantic_catalog::COUNT_ENCODED_LEN)
+            else {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidLifecycle,
+                    detail: 11,
+                });
+            };
+            let request = RequestId(self.next);
+            let Some(next) = self.next.checked_add(1) else {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::IdentityCapacityExhausted,
+                    detail: 11,
+                });
+            };
+            io.consume(PortId(0))
+                .expect("present Count Presentation input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("single Count Presentation Host Call");
+            self.pending = Some(request);
+            self.next = next;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed Count Presentation closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
 }
 
 pub(super) struct CountPresentationOperation {
