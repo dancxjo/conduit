@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-conduit-kernel = { path = "../../architecture/kernel", optional = true }
+conduit-kernel = { path = "../../architecture/kernel", optional = true, features = ["step-test-support"] }
 conduit-alife = { path = "../alife" }
 conduit-audio = { path = "../audio" }
 conduit-core = { path = "../../architecture/core" }

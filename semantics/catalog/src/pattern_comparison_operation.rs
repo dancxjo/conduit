@@ -1,8 +1,7 @@
 //! Shared finite two-input normalized-pattern comparison operation.
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub struct PatternComparisonOperation {
@@ -11,7 +10,6 @@ pub struct PatternComparisonOperation {
     next_request: u32,
     received: [bool; 2],
     closed: [bool; 2],
-    emitted: bool,
 }
 
 impl<const PORTS: usize> StepOperation<PORTS> for PatternComparisonOperation {
@@ -22,7 +20,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for PatternComparisonOperation {
             }
             match (outcome.disposition, outcome.output, outcome.failure) {
                 (HostCallDisposition::Completed, Some(output), None)
-                    if self.received == [true, true] && !self.emitted =>
+                    if self.received == [true, true] =>
                 {
                     if !io.output_ready(PortId(0)) {
                         return StepOutcome::Await;
@@ -32,7 +30,6 @@ impl<const PORTS: usize> StepOperation<PORTS> for PatternComparisonOperation {
                     io.send(PortId(0), output.value)
                         .expect("ready pattern comparison output");
                     self.pending = None;
-                    self.emitted = false;
                     self.received[0] = false;
                     return StepOutcome::Progress;
                 }
@@ -110,105 +107,6 @@ impl PatternComparisonOperation {
             next_request: 0,
             received: [false; 2],
             closed: [false; 2],
-            emitted: false,
         }
     }
-
-    pub fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(port @ 0..=1),
-                value,
-            } if self.pending.is_none() && !self.received[usize::from(port)] => {
-                self.received[usize::from(port)] = true;
-                let request = RequestId(self.next_request);
-                self.next_request = match self.next_request.checked_add(1) {
-                    Some(next) => next,
-                    None => return fail(FailureCode::StorageExhausted, 253),
-                };
-                self.pending = Some(request);
-                let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
-                    self.pending = None;
-                    return fail(FailureCode::InvalidInput, 254);
-                };
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(port),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None)
-                        if self.received == [true, true] && !self.emitted =>
-                    {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Completed, None, None) => OperationAction::Await,
-                    (HostCallDisposition::Cancelled, _, _) => fail(FailureCode::Cancelled, 0),
-                    (HostCallDisposition::Failed, None, Some(failure)) => {
-                        OperationAction::Fail(failure)
-                    }
-                    _ => fail(FailureCode::InvalidLifecycle, 250),
-                }
-            }
-            OperationInput::Closed {
-                port: PortId(port @ 0..=1),
-            } if self.pending.is_none() && !self.closed[usize::from(port)] => {
-                self.closed[usize::from(port)] = true;
-                if self.closed == [true, true] {
-                    OperationAction::Complete
-                } else {
-                    OperationAction::Await
-                }
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 251),
-        }
-    }
-
-    pub fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            self.emitted = false;
-            self.received[0] = false;
-        }
-        if self.closed == [true, true] {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub fn cancel(&mut self) {
-        self.pending = None;
-    }
-}
-
-impl conduit_kernel::Operation for PatternComparisonOperation {
-    fn start(&mut self) -> OperationAction {
-        Self::start(self)
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        Self::resume(self, input)
-    }
-    fn advance(&mut self) -> OperationAction {
-        Self::advance(self)
-    }
-    fn cancel(&mut self) {
-        Self::cancel(self)
-    }
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }
