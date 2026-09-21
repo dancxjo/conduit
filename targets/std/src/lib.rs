@@ -95,8 +95,14 @@ pub mod hosted_wav_artifact;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
+mod vision_ocr;
 mod vision_tracker;
+
 pub use installed_std::{InstalledRemoteFragment, RemoteHostWork, RemoteValueTransfer};
+pub use vision_ocr::{
+    encode_graymap, visit_tesseract_tsv, OcrCandidate, OcrProviderRefusal, TesseractOcrProvider,
+    MAXIMUM_OCR_ITEMS,
+};
 mod remote_host_fragment;
 pub use remote_host_fragment::AdmittedRemoteFragment;
 #[cfg(test)]
@@ -614,6 +620,13 @@ impl StdHost {
         let mut advertisement =
             composition::build_advertisement(config, composition, None, None, None, false);
         let mut base_registry = empty_base_registry();
+        let mut vision_capabilities = vec![
+            hosted_vision::FiniteHostedVisionBase::motion_offer(),
+            hosted_vision::FiniteHostedVisionBase::objects_offer(),
+        ];
+        if let Some(ocr_offer) = vision.ocr_offer() {
+            vision_capabilities.push(ocr_offer);
+        }
         base_registry
             .register(conduit_core::BaseProviderEntry {
                 base_id: conduit_core::HostBaseId::from("std/base/finite-vision"),
@@ -627,10 +640,7 @@ impl StdHost {
                 mechanism_family: conduit_core::HostBaseKindId::from("std.base/finite-vision@1"),
                 enforcement_class: conduit_core::BaseEnforcementClass::Cooperative,
                 lifecycle: conduit_core::BaseLifecycle::Ready,
-                capabilities: vec![
-                    hosted_vision::FiniteHostedVisionBase::motion_offer(),
-                    hosted_vision::FiniteHostedVisionBase::objects_offer(),
-                ],
+                capabilities: vision_capabilities,
                 resources: vec![hosted_vision::FiniteHostedVisionBase::resource_offer()],
             })
             .map_err(|error| format!("finite vision Base registration: {error:?}"))?;
@@ -639,7 +649,7 @@ impl StdHost {
             .map_err(|error| format!("finite vision Base advertisement: {error:?}"))?;
         advertisement
             .capabilities
-            .push(conduit_std_offers::local_vision_offers()[2].clone());
+            .push(conduit_std_offers::local_vision_offers()[3].clone());
         advertisement.resources.sort();
         normalize_capability_offers(&mut advertisement.capabilities)?;
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;

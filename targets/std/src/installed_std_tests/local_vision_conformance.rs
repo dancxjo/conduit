@@ -33,6 +33,7 @@ fn authored_motion_runs_through_protected_finite_base_and_production_kernel() {
         conduit_std_offers::LOCAL_VISION_MOTION_OPERATION,
         conduit_semantic_catalog::vision_motions_type(),
         false,
+        false,
     );
 }
 
@@ -45,6 +46,21 @@ fn authored_objects_run_through_protected_finite_base_and_production_kernel() {
         conduit_std_offers::LOCAL_VISION_OBJECTS_OPERATION,
         conduit_semantic_catalog::vision_tracks_type(),
         true,
+        false,
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn authored_ocr_runs_through_exact_provider_and_production_kernel() {
+    authored_local_vision_runs(
+        conduit_semantic_catalog::VISION_OCR_KIND,
+        "ocr",
+        "texts",
+        conduit_std_offers::LOCAL_VISION_OCR_OPERATION,
+        conduit_semantic_catalog::vision_texts_type(),
+        false,
+        true,
     );
 }
 
@@ -55,6 +71,7 @@ fn authored_local_vision_runs(
     expected_operation: &str,
     output_type: conduit_core::StructuredInfoType,
     track_objects: bool,
+    ocr: bool,
 ) {
     let image = conduit_semantic_catalog::deterministic_vision_fixture()
         .unwrap()
@@ -62,19 +79,37 @@ fn authored_local_vision_runs(
     let encoded = image.canonical_bytes().unwrap();
     let (_, resource, width, height) =
         crate::hosted_vision::decode_image_resource_for_test(&encoded);
-    let base = FiniteHostedVisionBase::new(
-        vec![HostedVisionFrame {
-            canonical_image: encoded.clone(),
-            resource,
-            width,
-            height,
-            grayscale_pixels: vec![0; usize::from(width) * usize::from(height)],
-        }],
+    let frame = HostedVisionFrame {
+        canonical_image: encoded.clone(),
+        resource,
         width,
         height,
-        4,
-        "finite-image-residence/plan-play-1",
-    )
+        grayscale_pixels: vec![0; usize::from(width) * usize::from(height)],
+    };
+    #[cfg(unix)]
+    let ocr_fixture = ocr.then(ocr_provider_fixture);
+    #[cfg(not(unix))]
+    let ocr_fixture: Option<(std::path::PathBuf, crate::TesseractOcrProvider)> = None;
+    let mut ocr_root = None;
+    let base = if let Some((root, provider)) = ocr_fixture {
+        ocr_root = Some(root);
+        FiniteHostedVisionBase::new_with_ocr(
+            vec![frame],
+            width,
+            height,
+            4,
+            "finite-image-residence/plan-play-1",
+            provider,
+        )
+    } else {
+        FiniteHostedVisionBase::new(
+            vec![frame],
+            width,
+            height,
+            4,
+            "finite-image-residence/plan-play-1",
+        )
+    }
     .unwrap();
     let mut host = StdHost::new_with_finite_vision(
         StdHostConfig {
@@ -211,7 +246,42 @@ fn authored_local_vision_runs(
             disposition: TerminalDisposition::Completed
         })
     ));
-    assert_eq!(report.kernel.unwrap().post_play_start_allocations, 0);
+    let allocations = report.kernel.unwrap().post_play_start_allocations;
+    if !ocr {
+        // The in-process local CV and tracking Backs remain allocation-free
+        // after Play starts. The OCR Back invokes an admitted external provider.
+        assert_eq!(allocations, 0);
+    }
+    if let Some(root) = ocr_root {
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(unix)]
+fn ocr_provider_fixture() -> (std::path::PathBuf, crate::TesseractOcrProvider) {
+    use std::fs;
+    use std::os::unix::fs::PermissionsExt;
+    use std::time::Duration;
+
+    let root =
+        std::env::temp_dir().join(format!("conduit-local-vision-ocr-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir(&root).unwrap();
+    let executable = root.join("tesseract");
+    fs::write(
+        &executable,
+        "#!/bin/sh\ncat >/dev/null\nprintf 'level\\tpage_num\\tblock_num\\tpar_num\\tline_num\\tword_num\\tleft\\ttop\\twidth\\theight\\tconf\\ttext\\n5\\t1\\t1\\t1\\t1\\t1\\t0\\t0\\t1\\t1\\t95.0\\tCANTUS\\n'\n",
+    )
+    .unwrap();
+    fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
+    let provider = crate::TesseractOcrProvider::prepare(
+        &executable,
+        "eng",
+        conduit_semantic_catalog::MAXIMUM_LOCAL_CV_PIXELS,
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    (root, provider)
 }
 
 fn catalogs(

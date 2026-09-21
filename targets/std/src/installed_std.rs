@@ -923,6 +923,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 contract.as_str(),
                 conduit_std_offers::LOCAL_VISION_MOTION_OPERATION
                     | conduit_std_offers::LOCAL_VISION_OBJECTS_OPERATION
+                    | conduit_std_offers::LOCAL_VISION_OCR_OPERATION
                     | conduit_std_offers::LOCAL_VISION_TRACK_OPERATION
             ) {
                 vision_request_sequence = vision_request_sequence
@@ -941,33 +942,41 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 let observed_at_micros = timer.monotonic_now_micros().ok_or_else(|| {
                     "local Vision observation requires admitted monotonic time".to_string()
                 })?;
-                let encoded =
-                    if contract.as_str() == conduit_std_offers::LOCAL_VISION_TRACK_OPERATION {
-                        vision_tracker
-                            .as_mut()
-                            .ok_or("local Vision tracker was not prepared")?
-                            .process(
-                                input,
-                                observed_at_micros,
-                                &vision_clock_basis,
-                                &vision_run_id,
-                            )
-                            .map_err(|_| crate::hosted_vision::HostedVisionRefusal::InvalidOutput)
+                let encoded = if contract.as_str()
+                    == conduit_std_offers::LOCAL_VISION_TRACK_OPERATION
+                {
+                    vision_tracker
+                        .as_mut()
+                        .ok_or("local Vision tracker was not prepared")?
+                        .process(
+                            input,
+                            observed_at_micros,
+                            &vision_clock_basis,
+                            &vision_run_id,
+                        )
+                        .map_err(|_| crate::hosted_vision::HostedVisionRefusal::InvalidOutput)
+                } else {
+                    let vision = vision
+                        .as_deref_mut()
+                        .ok_or_else(|| "local Vision request has no admitted Base".to_string())?;
+                    if contract.as_str() == conduit_std_offers::LOCAL_VISION_MOTION_OPERATION {
+                        vision.execute_motion(input, &vision_run_id)
+                    } else if contract.as_str() == conduit_std_offers::LOCAL_VISION_OCR_OPERATION {
+                        vision.execute_ocr(
+                            input,
+                            &vision_run_id,
+                            observed_at_micros,
+                            &vision_clock_basis,
+                        )
                     } else {
-                        let vision = vision.as_deref_mut().ok_or_else(|| {
-                            "local Vision request has no admitted Base".to_string()
-                        })?;
-                        if contract.as_str() == conduit_std_offers::LOCAL_VISION_MOTION_OPERATION {
-                            vision.execute_motion(input, &vision_run_id)
-                        } else {
-                            vision.execute_objects(
-                                input,
-                                &vision_run_id,
-                                observed_at_micros,
-                                &vision_clock_basis,
-                            )
-                        }
-                    };
+                        vision.execute_objects(
+                            input,
+                            &vision_run_id,
+                            observed_at_micros,
+                            &vision_clock_basis,
+                        )
+                    }
+                };
                 let (disposition, output, failure) = match encoded {
                     Ok(encoded) => {
                         let value = scheduler
