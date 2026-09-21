@@ -1,5 +1,5 @@
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef,
 };
 pub struct FrameOperation {
@@ -8,7 +8,7 @@ pub struct FrameOperation {
     pub operation: Option<HostCallId>,
     pub pending: bool,
 }
-impl<const PORTS: usize> StepOperation<PORTS> for FrameOperation {
+impl<const PORTS: usize> StepBack<PORTS> for FrameOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if !self.pending

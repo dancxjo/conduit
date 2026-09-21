@@ -3,7 +3,7 @@ use conduit_core::{
     ConfigurationValue, InfoBool, PlannedGear, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef,
 };
 
@@ -22,7 +22,7 @@ pub(super) struct FlowGateScalarOperation {
     enable_closed: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for FlowGateScalarOperation {
+impl<const PORTS: usize> StepBack<PORTS> for FlowGateScalarOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending_enable.map(|pending| pending.0) != Some(request)
@@ -193,7 +193,7 @@ fn validate_flow_gate(placement: &PlannedGear) -> Result<(), String> {
 mod tests {
     use super::*;
     use conduit_kernel::{
-        scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+        scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
         HostCallOutcome,
     };
 
@@ -336,7 +336,7 @@ mod tests {
             step_value(&mut gate, PortId(1), boolean, false).0,
             StepOutcome::Progress
         );
-        StepOperation::<2>::cancel(&mut gate);
+        StepBack::<2>::cancel(&mut gate);
         assert!(gate.pending_enable.is_none());
         assert!(matches!(
             complete_enable(&mut gate, RequestId(0), None),

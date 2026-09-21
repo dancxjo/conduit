@@ -108,7 +108,7 @@ fn assigned_plan_refuses_identity_inventory_capacity_and_global_mutations() {
             AssignedPlanMaxima::TINY_HOST,
             requirements(&local, &unknown_operation, &resources, &[])
         ),
-        Err(AssignedPlanRefusal::UnknownOperation)
+        Err(AssignedPlanRefusal::UnknownHostCall)
     );
 
     let mut route_maxima = AssignedPlanMaxima::TINY_HOST;

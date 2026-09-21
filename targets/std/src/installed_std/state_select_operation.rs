@@ -5,7 +5,7 @@ use conduit_core::{
     InfoBool, PlannedGear, PortDirection, Scalar, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     CanonicalValue, Failure, FailureCode, PortId,
 };
 
@@ -21,7 +21,7 @@ pub(super) struct StateSelectScalarOperation {
     closed: [bool; 3],
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for StateSelectScalarOperation {
+impl<const PORTS: usize> StepBack<PORTS> for StateSelectScalarOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

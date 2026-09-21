@@ -52,7 +52,7 @@ pub(super) static INSTALLATION: super::factory::BrowserInstallation =
 #[cfg(test)]
 mod tests {
     use conduit_kernel::{
-        scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+        scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
         PortId, ValueRef,
     };
 

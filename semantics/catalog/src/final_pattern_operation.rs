@@ -1,7 +1,7 @@
 //! Shared finite Flow-to-final-Value normalized-pattern selection.
 
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId, ValueRef,
 };
 
@@ -11,7 +11,7 @@ pub struct FinalNormalizedPatternOperation {
     maximum: u64,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for FinalNormalizedPatternOperation {
+impl<const PORTS: usize> StepBack<PORTS> for FinalNormalizedPatternOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some(value) = io.input(PortId(0)) {
             if self.accepted >= self.maximum {

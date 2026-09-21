@@ -2,7 +2,7 @@
 use super::*;
 use crate::installed_browser::BROWSER_PORTS_PER_GEAR;
 use conduit_form::{check_syntax_document, expand_canonical_form, parse_syntax_document};
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::ValueStorage;
 use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome, PortId, RequestId};
 use std::collections::BTreeMap;

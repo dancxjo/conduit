@@ -3,7 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{CapabilityOffer, PlannedGear};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
@@ -18,7 +18,7 @@ pub(super) struct MicrophoneClipOperation {
     emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for MicrophoneClipOperation {
+impl<const PORTS: usize> StepBack<PORTS> for MicrophoneClipOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;

@@ -4,7 +4,7 @@ use conduit_audio::{
 };
 use conduit_core::{CapabilityOffer, ConfigurationValue, HostCallRequirement, PlannedGear};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
@@ -35,7 +35,7 @@ pub(super) struct MusicSynthOperation {
     completed: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for MusicSynthOperation {
+impl<const PORTS: usize> StepBack<PORTS> for MusicSynthOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.completed {
             return StepOutcome::Complete;

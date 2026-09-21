@@ -3,7 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, ResourceClassId};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
     PortId, RequestId,
 };
@@ -25,7 +25,7 @@ pub(super) struct WhisperSpeechOperation {
     maximum_input_bytes: u32,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for WhisperSpeechOperation {
+impl<const PORTS: usize> StepBack<PORTS> for WhisperSpeechOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;

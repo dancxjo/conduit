@@ -1,7 +1,7 @@
 //! Generated remote-ingress execution through the shared Conduit scheduler.
 
 use conduit_kernel::scheduler::{
-    FixedScheduler, RemoteIngressOutcome, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
+    FixedScheduler, RemoteIngressOutcome, SchedulerStatus, StepInputBytes, StepIo, StepBack,
     StepOutcome,
 };
 use conduit_kernel::{
@@ -47,7 +47,7 @@ impl ShowBack {
     }
 }
 
-impl StepOperation<PORTS> for ShowBack {
+impl StepBack<PORTS> for ShowBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

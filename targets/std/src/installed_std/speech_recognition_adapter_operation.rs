@@ -7,7 +7,7 @@ use conduit_audio::{
 };
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef, ValueStorage,
 };
@@ -34,7 +34,7 @@ pub(super) struct SpeechWindowToClipOperation {
     emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for SpeechWindowToClipOperation {
+impl<const PORTS: usize> StepBack<PORTS> for SpeechWindowToClipOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;
@@ -124,7 +124,7 @@ pub(super) struct SpeechResultToEventStreamOperation {
     emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for SpeechResultToEventStreamOperation {
+impl<const PORTS: usize> StepBack<PORTS> for SpeechResultToEventStreamOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;

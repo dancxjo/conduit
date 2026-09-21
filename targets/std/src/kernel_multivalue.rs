@@ -17,8 +17,7 @@ use conduit_form::{
     CheckedForm, KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog,
 };
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
-    StepOutcome,
+    FixedScheduler, HostCallRequest, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
@@ -180,7 +179,7 @@ impl MultiValueBack {
     }
 }
 
-impl StepOperation<PORTS> for MultiValueBack {
+impl StepBack<PORTS> for MultiValueBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
@@ -23,7 +23,7 @@ pub(super) struct LocalModelOperation {
     input: Option<conduit_kernel::ValueRef>,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for LocalModelOperation {
+impl<const PORTS: usize> StepBack<PORTS> for LocalModelOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.stream_complete || (self.emitted && !self.flow && !self.stream) || self.closed {
             return StepOutcome::Complete;
@@ -260,7 +260,7 @@ fn prepare(
 mod tests {
     use super::*;
     use conduit_kernel::{
-        scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+        scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
         HostCallOutcome, ValueRef,
     };
 

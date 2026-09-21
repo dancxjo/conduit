@@ -103,7 +103,7 @@ pub struct LoweredPort {
 pub struct LoweredNode {
     pub node: NodeId,
     pub placement_id: PlacementId,
-    pub maximum_step_work: u16,
+    pub maximum_step_fuel: u16,
     pub inputs: Vec<LoweredPort>,
     pub outputs: Vec<LoweredPort>,
 }
@@ -615,7 +615,7 @@ pub fn lower_plan_fragment_for_profile(
             });
         }
         let input_cords = [None; FIXED_KERNEL_STORAGE_PORTS_PER_NODE];
-        let maximum_step_work = 1usize
+        let maximum_step_fuel = 1usize
             .checked_add(inputs.len())
             .and_then(|value| value.checked_add(outputs.len()))
             .and_then(|value| value.checked_add(placement.host_calls.len()))
@@ -635,13 +635,13 @@ pub fn lower_plan_fragment_for_profile(
         nodes.push(LoweredNode {
             node,
             placement_id: placement.placement_id.clone(),
-            maximum_step_work,
+            maximum_step_fuel,
             inputs,
             outputs,
         });
         node_specs.push(NodeSpec {
             input_cords,
-            maximum_step_work,
+            maximum_step_fuel,
         });
     }
 

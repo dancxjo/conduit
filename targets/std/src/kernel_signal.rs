@@ -6,8 +6,7 @@ use conduit_core::{
     ObservationKind, PlanFragment, TerminalDisposition, ValuePayload,
 };
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
-    StepOutcome,
+    FixedScheduler, HostCallRequest, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
@@ -124,7 +123,7 @@ impl SignalBack {
     }
 }
 
-impl StepOperation<PORTS> for SignalBack {
+impl StepBack<PORTS> for SignalBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

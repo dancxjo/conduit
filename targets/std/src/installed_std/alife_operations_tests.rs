@@ -1,6 +1,6 @@
 use super::*;
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallOutcome,
 };
 
@@ -12,12 +12,12 @@ fn value(slot: u16, byte_len: u32) -> ValueRef {
     }
 }
 
-fn initialized_operation() -> LeniaStepOperation {
+fn initialized_operation() -> LeniaStepBack {
     let seed = conduit_alife::orbium_seed(32, 32, 1)
         .unwrap()
         .encode()
         .unwrap();
-    let mut operation = LeniaStepOperation::new();
+    let mut operation = LeniaStepBack::new();
     let mut io = StepIo::test_frame(
         [Some(value(1, seed.len() as u32)), None],
         [false; 2],
@@ -154,7 +154,7 @@ fn reordered_tick_and_completion_after_cancel_remain_machine_readable_failures()
         ),
         StepOutcome::Progress
     );
-    StepOperation::<2>::cancel(&mut cancelled);
+    StepBack::<2>::cancel(&mut cancelled);
     let mut io = StepIo::test_frame(
         [None; 2],
         [false; 2],

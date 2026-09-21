@@ -4,7 +4,7 @@ use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_core::{ConfigurationValue, PlannedGear, QuantityUnit, Scalar};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 use conduit_semantic_catalog::{
@@ -141,7 +141,7 @@ struct QuantityOperation {
     cancelled: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for QuantityOperation {
+impl<const PORTS: usize> StepBack<PORTS> for QuantityOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if !self.pending || request.0.checked_add(1) != Some(self.next_request) {
@@ -286,7 +286,7 @@ mod tests {
             next_request: 1,
             cancelled: false,
         };
-        StepOperation::<1>::cancel(&mut operation);
+        StepBack::<1>::cancel(&mut operation);
         assert!(matches!(
             completion(
                 &mut operation,

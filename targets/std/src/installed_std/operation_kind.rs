@@ -1,7 +1,7 @@
 //! Closed inventory of operations installed in the production std kernel profile.
 
 use super::alife_operations::{
-    LeniaStepOperation, OrbiumSeedOperation, ScalarFieldPresentationOperation,
+    LeniaStepBack, OrbiumSeedOperation, ScalarFieldPresentationOperation,
 };
 use super::audio_play_operation::AudioPlayOperation;
 use super::body_chat_prompt_operation::BodyChatPromptOperation;
@@ -116,7 +116,7 @@ pub(super) enum InstalledOperation {
     TickPresentation(TickPresentationOperation),
     BoolPresentation(BoolPresentationOperation),
     OrbiumSeed(OrbiumSeedOperation),
-    LeniaStep(LeniaStepOperation),
+    LeniaStep(LeniaStepBack),
     ScalarFieldPresentation(ScalarFieldPresentationOperation),
     TextLiteral(TextLiteralOperation),
     TextUpper(TextTransformOperation),

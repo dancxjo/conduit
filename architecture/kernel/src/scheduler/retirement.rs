@@ -1,5 +1,5 @@
 //! Ownership handoff after scheduler execution is terminal and drained.
-use super::{FixedScheduler, SchedulerError, StepOperation};
+use super::{FixedScheduler, SchedulerError, StepBack};
 use crate::{KernelEventKind, NodeId, SignSink, ValueStorage};
 
 /// Retains the original drivers, storage and evidence without cloning State.
@@ -41,7 +41,7 @@ impl<
         PENDING_REQUESTS,
     >
 where
-    D: StepOperation<PORTS>,
+    D: StepBack<PORTS>,
     S: ValueStorage,
     E: SignSink,
 {

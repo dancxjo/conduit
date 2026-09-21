@@ -6,8 +6,8 @@ use conduit_kernel::{
     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, PortId, RequestId, SignSink,
     ValueRef, ValueStorage,
     scheduler::{
-        FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus, StepInputBytes, StepIo,
-        StepOperation, StepOutcome,
+        FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus, StepBack, StepInputBytes,
+        StepIo, StepOutcome,
     },
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
@@ -172,7 +172,7 @@ enum PlannedBack {
     Presentation(PresentationBack),
 }
 
-impl StepOperation<PORTS> for PlannedBack {
+impl StepBack<PORTS> for PlannedBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

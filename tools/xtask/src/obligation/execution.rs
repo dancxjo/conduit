@@ -2,8 +2,7 @@ use super::planning::*;
 use super::*;
 use conduit_core::bind_active_play;
 use conduit_kernel::scheduler::{
-    FixedScheduler, SchedulerError, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
-    StepOutcome,
+    FixedScheduler, SchedulerError, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
@@ -38,7 +37,7 @@ enum ObligationOperation {
     Execute { pending: bool },
 }
 
-impl StepOperation<PORTS> for ObligationOperation {
+impl StepBack<PORTS> for ObligationOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
             Self::Source { value, emitted } => {

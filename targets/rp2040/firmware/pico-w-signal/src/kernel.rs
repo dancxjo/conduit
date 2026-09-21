@@ -7,7 +7,7 @@
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 use conduit_kernel::{
     scheduler::{
-        FixedScheduler, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+        FixedScheduler, SchedulerStatus, StepInputBytes, StepIo, StepBack, StepOutcome,
     },
     BoundedValueRef, Failure, FailureCode, FixedSignLog, FixedValueStore, HostCallDisposition,
     HostCallId, HostCallOutcome, NodeId, PortId, RequestId, SignSink, ValueRef, ValueStorage,
@@ -334,7 +334,7 @@ enum SignalBack {
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-impl StepOperation<PORTS> for SignalBack {
+impl StepBack<PORTS> for SignalBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -391,7 +391,7 @@ impl PulseBack {
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-impl StepOperation<PORTS> for PulseBack {
+impl StepBack<PORTS> for PulseBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -470,7 +470,7 @@ impl ShowBack {
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-impl StepOperation<PORTS> for ShowBack {
+impl StepBack<PORTS> for ShowBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

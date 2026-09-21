@@ -95,7 +95,7 @@ unchanged after a complete host-enabled run.
 
 ## One Step protocol
 
-Every Back implements `StepOperation` directly. One invocation receives only
+Every Back implements `StepBack` directly. One invocation receives only
 the current bounded inputs and correlated Host Call completion, stages named
 Cord emissions or one planned Host Call through `StepIo`, and returns control
 to `FixedScheduler`. The scheduler preflights and commits that staged work as

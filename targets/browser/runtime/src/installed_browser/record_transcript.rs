@@ -7,7 +7,7 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, HostedValueStore, PortId,
 };
 
@@ -45,7 +45,7 @@ struct TranscriptOperation {
     terminal_type: Vec<u8>,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TranscriptOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TranscriptOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

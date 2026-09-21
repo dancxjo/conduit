@@ -34,7 +34,7 @@ pub fn encode_assigned_plan(
     for node in &plan.nodes {
         let mut value = Vec::new();
         u16_to(&mut value, node.node);
-        u16_to(&mut value, node.maximum_step_work);
+        u16_to(&mut value, node.maximum_step_fuel);
         identity_to(&mut value, &node.kind_id);
         identity_to(&mut value, &node.implementation_id);
         identity_to(&mut value, &node.artifact_id);

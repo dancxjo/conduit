@@ -3,7 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
@@ -19,7 +19,7 @@ pub(super) struct LocalVisionOperation {
     next_request: u32,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for LocalVisionOperation {
+impl<const PORTS: usize> StepBack<PORTS> for LocalVisionOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.closed {
             return StepOutcome::Complete;
@@ -144,7 +144,7 @@ fn prepare(
 mod tests {
     use super::*;
     use conduit_kernel::{
-        scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+        scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
         HostCallOutcome, ValueRef,
     };
 
@@ -201,7 +201,7 @@ mod tests {
             io.test_host_request().map(|request| request.0),
             Some(RequestId(1))
         );
-        StepOperation::<1>::cancel(&mut operation);
+        StepBack::<1>::cancel(&mut operation);
         assert!(operation.closed);
         assert!(!operation.pending);
     }

@@ -224,8 +224,8 @@ fn render_nodes(output: &mut String, plan: &GeneratedEmbeddedPlan) {
         }
         writeln!(
             output,
-            "], maximum_step_work: {} }},",
-            node.maximum_step_work
+            "], maximum_step_fuel: {} }},",
+            node.maximum_step_fuel
         )
         .expect("String writes cannot fail");
     }

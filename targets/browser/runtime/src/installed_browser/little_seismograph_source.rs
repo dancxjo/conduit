@@ -7,7 +7,7 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, PlannedGear, StructuredInfoType, StructuredInfoValue,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     HostedValueStore, PortId, ValueRef, ValueStorage,
 };
 
@@ -104,7 +104,7 @@ struct SourceOperation {
     next: usize,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for SourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for SourceOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         let Some((port, value)) = self.emissions.get(self.next).copied() else {
             return StepOutcome::Complete;

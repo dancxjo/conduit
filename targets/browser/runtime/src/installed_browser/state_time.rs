@@ -9,7 +9,7 @@ use conduit_core::{
     PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, CanonicalValue, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef,
     ValueStorage,
 };
@@ -219,7 +219,7 @@ impl TimeEveryOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TimeEveryOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TimeEveryOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -271,7 +271,7 @@ struct StateCountOperation {
     initial_emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for StateCountOperation {
+impl<const PORTS: usize> StepBack<PORTS> for StateCountOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if !self.initial_emitted {
             if !io.output_ready(PortId(0)) {

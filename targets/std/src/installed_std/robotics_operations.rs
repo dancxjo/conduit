@@ -4,7 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use super::robotics_effect::SimulatedDriveEffect;
 use conduit_core::{ConfigurationEntry, PlannedGear, Scalar, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, HostedValueStore, PortId, ValueRef, ValueStorage,
 };
 use conduit_robotics::{
@@ -49,7 +49,7 @@ pub(super) struct RoboticsSourceOperation {
     cancelled: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for RoboticsSourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for RoboticsSourceOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.cancelled {
             return StepOutcome::Fail(Failure {
@@ -92,7 +92,7 @@ pub(super) struct RoboticsDriveOperation {
     effect: Option<SimulatedDriveEffect>,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for RoboticsDriveOperation {
+impl<const PORTS: usize> StepBack<PORTS> for RoboticsDriveOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

@@ -8,7 +8,7 @@ use conduit_kernel::{
     RequestId, RouteRange, RouteTarget, SignSink, ValueRef, ValueStorage,
     scheduler::{
         CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, SchedulerStatus,
-        StepInputBytes, StepIo, StepOperation, StepOutcome,
+        StepBack, StepInputBytes, StepIo, StepOutcome,
     },
 };
 use conduit_semantic_catalog::{NormalizedNoteEvidence, SelectedSoundRealization};
@@ -153,7 +153,7 @@ enum Opl2Back {
     Music(MusicBack),
 }
 
-impl StepOperation<PORTS> for Opl2Back {
+impl StepBack<PORTS> for Opl2Back {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -283,11 +283,11 @@ pub fn prepare_execution(
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 4,
+                maximum_step_fuel: 4,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 4,
+                maximum_step_fuel: 4,
             },
         ],
         [CordSpec::local(

@@ -1,6 +1,6 @@
 use conduit_kernel::{
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepInputBytes, StepIo, StepOperation,
+        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo,
         StepOutcome,
     },
     BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
@@ -46,7 +46,7 @@ pub(super) enum DriveKernelOperation {
     Drive(CreateDriveOperation),
 }
 
-impl StepOperation<PORTS> for DriveKernelOperation {
+impl StepBack<PORTS> for DriveKernelOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
             Self::Source(source) => {
@@ -183,15 +183,15 @@ pub(super) fn prepare_drive_scheduler(
         [
             NodeSpec {
                 input_cords: [None, None],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [None, None],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0)), Some(CordId(1))],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
         ],
         [

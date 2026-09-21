@@ -69,7 +69,7 @@ pub(super) struct TestLocalModelSinkOperation {
     complete: bool,
 }
 
-impl<const PORTS: usize> conduit_kernel::scheduler::StepOperation<PORTS>
+impl<const PORTS: usize> conduit_kernel::scheduler::StepBack<PORTS>
     for TestLocalModelSourceOperation
 {
     fn step(
@@ -123,7 +123,7 @@ impl<const PORTS: usize> conduit_kernel::scheduler::StepOperation<PORTS>
     }
 }
 
-impl<const PORTS: usize> conduit_kernel::scheduler::StepOperation<PORTS>
+impl<const PORTS: usize> conduit_kernel::scheduler::StepBack<PORTS>
     for TestLocalModelSinkOperation
 {
     fn step(

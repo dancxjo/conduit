@@ -1,6 +1,6 @@
 use conduit_core::*;
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     ValueRef,
 };
 use conduit_plan_lowering::lowering::{
@@ -101,9 +101,9 @@ fn retained(plan: &Plan, next: &[u8]) -> RetainedTypedState {
         ),
         StepOutcome::Progress
     );
-    StepOperation::<1>::step_committed(&mut operation);
+    StepBack::<1>::step_committed(&mut operation);
     assert_eq!(operation.generation(), 1);
-    StepOperation::<1>::cancel(&mut operation);
+    StepBack::<1>::cancel(&mut operation);
     operation
         .try_retire()
         .unwrap_or_else(|failure| panic!("{}", failure.reason))
@@ -153,7 +153,7 @@ fn owned_state_moves_to_new_boot_and_larger_capacity_without_resetting_generatio
         .test_canonical_output()
         .expect("replacement publishes retained current");
     assert_eq!(value.as_slice(), next);
-    StepOperation::<1>::cancel(&mut continued);
+    StepBack::<1>::cancel(&mut continued);
     let second = continued
         .try_retire()
         .unwrap_or_else(|failure| panic!("{}", failure.reason));

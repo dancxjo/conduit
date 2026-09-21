@@ -2,7 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use super::timing_configuration::{self, TimingConfiguration};
 use conduit_core::{encode_monotonic_duration, InfoBool, PlannedGear, PortDirection, BOOL_INFO_ID};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef, ValueStorage,
 };
@@ -49,7 +49,7 @@ pub(super) struct TimeoutOperation {
     arm_after_emit: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for DebounceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for DebounceOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -212,7 +212,7 @@ impl DebounceOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TimeoutOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TimeoutOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)

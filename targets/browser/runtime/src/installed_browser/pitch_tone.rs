@@ -5,7 +5,7 @@ use super::{
 };
 use conduit_core::{kind_id, HostCallRequirement, PlannedGear, QUANTITY_ENCODED_LEN};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
     PortId, RequestId,
 };
@@ -64,7 +64,7 @@ fn invalid(detail: u16) -> StepOutcome {
     })
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for PitchTone {
+impl<const PORTS: usize> StepBack<PORTS> for PitchTone {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending == Some(request) && outcome.output.is_none() {

@@ -1,7 +1,7 @@
 //! Stateful semantic selection and terminal drive operation for the capstone.
 
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
@@ -16,7 +16,7 @@ pub(super) struct CurrentSelector {
     pub(super) closed: [bool; 3],
 }
 
-impl StepOperation<3> for CurrentSelector {
+impl StepBack<3> for CurrentSelector {
     fn step(&mut self, io: &mut StepIo<3>, bytes: &StepInputBytes<'_, 3>) -> StepOutcome {
         for index in 0..3 {
             let port = PortId(index as u16);
@@ -92,7 +92,7 @@ pub(super) struct DriveSink {
     pub(super) completed: bool,
 }
 
-impl StepOperation<3> for DriveSink {
+impl StepBack<3> for DriveSink {
     fn step(&mut self, io: &mut StepIo<3>, bytes: &StepInputBytes<'_, 3>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if request != DRIVE_REQUEST || !self.pending || outcome.output.is_some() {

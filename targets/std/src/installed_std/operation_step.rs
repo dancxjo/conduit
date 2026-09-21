@@ -1,21 +1,21 @@
 //! Direct finite-Step dispatch for every Back installed in the std profile.
 
 use super::operation_kind::InstalledOperation;
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::RequestId;
 
 macro_rules! installed_step_dispatch {
     ($( $(#[$attribute:meta])* $variant:ident ),+ $(,)?) => {
-        impl<const PORTS: usize> StepOperation<PORTS> for InstalledOperation {
+        impl<const PORTS: usize> StepBack<PORTS> for InstalledOperation {
             fn step_committed(&mut self) {
                 match self {
-                    Self::TypedState(operation) => StepOperation::<PORTS>::step_committed(operation.as_mut()),
-                    Self::ButtonMapper(operation) => StepOperation::<PORTS>::step_committed(operation.as_mut()),
-                    Self::MidiInput(operation) => StepOperation::<PORTS>::step_committed(operation.as_mut()),
-                    Self::TestPcmSource(operation) => StepOperation::<PORTS>::step_committed(operation.as_mut()),
+                    Self::TypedState(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
+                    Self::ButtonMapper(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
+                    Self::MidiInput(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
+                    Self::TestPcmSource(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     $(
                         $(#[$attribute])*
-                        Self::$variant(operation) => StepOperation::<PORTS>::step_committed(operation),
+                        Self::$variant(operation) => StepBack::<PORTS>::step_committed(operation),
                     )+
                     Self::Inactive => {}
                 }
@@ -27,13 +27,13 @@ macro_rules! installed_step_dispatch {
                 input_bytes: &StepInputBytes<'_, PORTS>,
             ) -> StepOutcome {
                 match self {
-                    Self::TypedState(operation) => StepOperation::<PORTS>::step(operation.as_mut(), io, input_bytes),
-                    Self::ButtonMapper(operation) => StepOperation::<PORTS>::step(operation.as_mut(), io, input_bytes),
-                    Self::MidiInput(operation) => StepOperation::<PORTS>::step(operation.as_mut(), io, input_bytes),
-                    Self::TestPcmSource(operation) => StepOperation::<PORTS>::step(operation.as_mut(), io, input_bytes),
+                    Self::TypedState(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
+                    Self::ButtonMapper(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
+                    Self::MidiInput(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
+                    Self::TestPcmSource(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     $(
                         $(#[$attribute])*
-                        Self::$variant(operation) => StepOperation::<PORTS>::step(operation, io, input_bytes),
+                        Self::$variant(operation) => StepBack::<PORTS>::step(operation, io, input_bytes),
                     )+
                     Self::Inactive => StepOutcome::Complete,
                 }
@@ -41,14 +41,14 @@ macro_rules! installed_step_dispatch {
 
             fn accepts_input_while_host_call_pending(&self) -> bool {
                 match self {
-                    Self::TypedState(operation) => StepOperation::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
-                    Self::ButtonMapper(operation) => StepOperation::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
-                    Self::MidiInput(operation) => StepOperation::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
-                    Self::TestPcmSource(operation) => StepOperation::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
+                    Self::TypedState(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
+                    Self::ButtonMapper(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
+                    Self::MidiInput(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
+                    Self::TestPcmSource(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     $(
                         $(#[$attribute])*
                         Self::$variant(operation) => {
-                            StepOperation::<PORTS>::accepts_input_while_host_call_pending(operation)
+                            StepBack::<PORTS>::accepts_input_while_host_call_pending(operation)
                         }
                     )+
                     Self::Inactive => false,
@@ -61,13 +61,13 @@ macro_rules! installed_step_dispatch {
                 value: conduit_kernel::ValueRef,
             ) -> bool {
                 match self {
-                    Self::TypedState(operation) => StepOperation::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
-                    Self::ButtonMapper(operation) => StepOperation::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
-                    Self::MidiInput(operation) => StepOperation::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
-                    Self::TestPcmSource(operation) => StepOperation::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
+                    Self::TypedState(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
+                    Self::ButtonMapper(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
+                    Self::MidiInput(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
+                    Self::TestPcmSource(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     $(
                         $(#[$attribute])*
-                        Self::$variant(operation) => StepOperation::<PORTS>::retains_host_call_input(operation, request, value),
+                        Self::$variant(operation) => StepBack::<PORTS>::retains_host_call_input(operation, request, value),
                     )+
                     Self::Inactive => false,
                 }
@@ -75,13 +75,13 @@ macro_rules! installed_step_dispatch {
 
             fn cancel(&mut self) {
                 match self {
-                    Self::TypedState(operation) => StepOperation::<PORTS>::cancel(operation.as_mut()),
-                    Self::ButtonMapper(operation) => StepOperation::<PORTS>::cancel(operation.as_mut()),
-                    Self::MidiInput(operation) => StepOperation::<PORTS>::cancel(operation.as_mut()),
-                    Self::TestPcmSource(operation) => StepOperation::<PORTS>::cancel(operation.as_mut()),
+                    Self::TypedState(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
+                    Self::ButtonMapper(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
+                    Self::MidiInput(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
+                    Self::TestPcmSource(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     $(
                         $(#[$attribute])*
-                        Self::$variant(operation) => StepOperation::<PORTS>::cancel(operation),
+                        Self::$variant(operation) => StepBack::<PORTS>::cancel(operation),
                     )+
                     Self::Inactive => {}
                 }

@@ -143,7 +143,7 @@ pub(super) fn prepare(
         .map_err(|_| WorksetRefusal::Kernel)?;
     let mut nodes = [NodeSpec {
         input_cords: [None; PORTS],
-        maximum_step_work: 1,
+        maximum_step_fuel: 1,
     }; NODES];
     for (target, spec) in nodes
         .iter_mut()

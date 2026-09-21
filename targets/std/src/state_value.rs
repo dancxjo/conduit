@@ -3,7 +3,7 @@ use conduit_core::{
     PlannedGear, PlannedStateBoundary, PreparedStructuredValueValidator, StructuredInfoValue,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     state_delay::{back::StateBack, StateDelay},
     Failure, FailureCode, PortId,
 };
@@ -19,7 +19,7 @@ pub struct RetainedStdRun {
     pub states: Vec<RetainedTypedState>,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TypedStateBack {
+impl<const PORTS: usize> StepBack<PORTS> for TypedStateBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -28,14 +28,14 @@ impl<const PORTS: usize> StepOperation<PORTS> for TypedStateBack {
         let port = self.back.next_port();
         if io.input(port).is_some() {
             let Some(canonical) = input_bytes.input(port) else {
-                <StateBack<64> as StepOperation<PORTS>>::cancel(&mut self.back);
+                <StateBack<64> as StepBack<PORTS>>::cancel(&mut self.back);
                 return StepOutcome::Fail(Failure {
                     code: FailureCode::InvalidInput,
                     detail: 9,
                 });
             };
             if let Err(error) = self.validator.validate(canonical) {
-                <StateBack<64> as StepOperation<PORTS>>::cancel(&mut self.back);
+                <StateBack<64> as StepBack<PORTS>>::cancel(&mut self.back);
                 let capacity = matches!(
                     error,
                     conduit_core::StructuredInfoRefusal::CanonicalEncodingTooLarge
@@ -50,15 +50,15 @@ impl<const PORTS: usize> StepOperation<PORTS> for TypedStateBack {
                 });
             }
         }
-        <StateBack<64> as StepOperation<PORTS>>::step(&mut self.back, io, input_bytes)
+        <StateBack<64> as StepBack<PORTS>>::step(&mut self.back, io, input_bytes)
     }
 
     fn step_committed(&mut self) {
-        <StateBack<64> as StepOperation<PORTS>>::step_committed(&mut self.back);
+        <StateBack<64> as StepBack<PORTS>>::step_committed(&mut self.back);
     }
 
     fn cancel(&mut self) {
-        <StateBack<64> as StepOperation<PORTS>>::cancel(&mut self.back);
+        <StateBack<64> as StepBack<PORTS>>::cancel(&mut self.back);
     }
 }
 

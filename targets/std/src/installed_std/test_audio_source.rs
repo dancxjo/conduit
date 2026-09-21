@@ -7,7 +7,7 @@ use conduit_core::{
 };
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, RequestId,
 };
 use conduit_kernel::{PortId, ValueRef, ValueStorage};
@@ -34,7 +34,7 @@ pub(super) struct TestPcmSourceOperation {
     pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TestPcmSourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestPcmSourceOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)

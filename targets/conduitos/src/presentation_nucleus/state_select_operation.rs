@@ -1,7 +1,7 @@
 //! Fixed-storage Backs for the portable current Scalar selector.
 
 use conduit_core::{BOOL_ENCODED_LEN, InfoBool, SCALAR_ENCODED_LEN, Scalar};
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{CanonicalValue, PortId, ValueRef};
 
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -44,7 +44,7 @@ impl StateSelectBack {
     }
 }
 
-impl StepOperation<PORTS> for StateSelectBack {
+impl StepBack<PORTS> for StateSelectBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

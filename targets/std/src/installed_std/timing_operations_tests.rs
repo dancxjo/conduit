@@ -1,6 +1,6 @@
 use super::{DebounceOperation, TimeoutOperation};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     HostCallDisposition, HostCallOutcome, PortId, RequestId, ValueRef,
 };
 

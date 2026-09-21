@@ -9,7 +9,7 @@ use conduit_core::{
     PortDirection, ValuePayload, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindProjection, ProfileCatalog};
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{HostedValueStore, PortId as KernelPortId};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
@@ -165,8 +165,7 @@ impl KernelOperationFactory for EchoFactory {
         &self,
         _placement: &PlannedGear,
         _values: &mut HostedValueStore,
-    ) -> Result<Box<dyn StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String>
-    {
+    ) -> Result<Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String> {
         if self.fail {
             Ok(Box::new(Fail))
         } else {
@@ -179,7 +178,7 @@ struct Echo;
 
 struct Fail;
 
-impl StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for Fail {
+impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for Fail {
     fn step(
         &mut self,
         _io: &mut StepIo<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
@@ -192,7 +191,7 @@ impl StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for Fail {
     }
 }
 
-impl StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for Echo {
+impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for Echo {
     fn step(
         &mut self,
         io: &mut StepIo<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,

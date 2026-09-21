@@ -6,7 +6,7 @@ use conduit_core::{
     StructuredInfoValue,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, HostedValueStore, PortId, RequestId,
     ValueRef, ValueStorage,
 };
@@ -34,7 +34,7 @@ pub(super) struct SourceOperation {
     pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for SourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for SourceOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -99,7 +99,7 @@ pub(super) struct SinkOperation {
     received: usize,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for SinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for SinkOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

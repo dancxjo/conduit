@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection, PortTemporal};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     PortId,
 };
 
@@ -19,7 +19,7 @@ pub(super) static FLOW_COALESCE_LATEST_FACTORY: InstalledFactory = InstalledFact
 
 pub(super) struct FlowPressureOperation;
 
-impl<const PORTS: usize> StepOperation<PORTS> for FlowPressureOperation {
+impl<const PORTS: usize> StepBack<PORTS> for FlowPressureOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some(value) = io.input(PortId(0)) {
             if !io.output_ready(PortId(0)) {
@@ -147,7 +147,7 @@ mod tests {
     use super::*;
     use conduit_core::{kind_id, SCALAR_ENCODED_LEN, SCALAR_INFO_ID};
     use conduit_kernel::{
-        scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+        scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
         ValueRef,
     };
 

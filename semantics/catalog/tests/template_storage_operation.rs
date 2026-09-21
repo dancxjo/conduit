@@ -1,6 +1,6 @@
 #![cfg(feature = "kernel-step")]
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
     PortId, RequestId, ValueRef,
 };
@@ -101,7 +101,7 @@ fn finite_commands_emit_exactly_then_refuse_excess_and_allow_closure() {
 fn cancellation_invalidates_pending_completion_and_host_failures_remain_exact() {
     let mut operation = TemplateStorageOperation::new(2, 4096);
     input(&mut operation, 10);
-    StepOperation::<1>::cancel(&mut operation);
+    StepBack::<1>::cancel(&mut operation);
     assert_eq!(
         completion(&mut operation, 0, completed()).0,
         StepOutcome::Fail(Failure {

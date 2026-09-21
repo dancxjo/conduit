@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, Scalar, SCALAR_ENCODED_LEN};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
@@ -40,7 +40,7 @@ pub(super) enum MathTransform {
     Deadband { radius: Scalar },
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for MathScalarOperation {
+impl<const PORTS: usize> StepBack<PORTS> for MathScalarOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.completed {
             return StepOutcome::Complete;

@@ -3,7 +3,7 @@
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserOperation;
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 
@@ -65,7 +65,7 @@ impl PointerSource {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for PointerSource {
+impl<const PORTS: usize> StepBack<PORTS> for PointerSource {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if !self.pending || request != RequestId(self.next) {

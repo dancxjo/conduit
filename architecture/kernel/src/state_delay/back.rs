@@ -1,7 +1,7 @@
 //! Exact-port Back for explicit State in the bounded Step scheduler.
 
 use super::{StateDelay, StateError};
-use crate::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use crate::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use crate::{CanonicalValue, Failure, FailureCode, PortId};
 
 /// This profile uses the kernel's existing bounded derived-value envelope.
@@ -14,7 +14,7 @@ pub struct StateBack<const BYTES: usize> {
     terminal: bool,
 }
 
-impl<const BYTES: usize, const PORTS: usize> StepOperation<PORTS> for StateBack<BYTES> {
+impl<const BYTES: usize, const PORTS: usize> StepBack<PORTS> for StateBack<BYTES> {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

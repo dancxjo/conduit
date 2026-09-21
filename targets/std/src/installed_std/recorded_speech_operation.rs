@@ -6,7 +6,7 @@ use conduit_core::{
     HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
@@ -26,7 +26,7 @@ pub(super) struct RecordedSpeechOperation {
     emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for RecordedSpeechOperation {
+impl<const PORTS: usize> StepBack<PORTS> for RecordedSpeechOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;

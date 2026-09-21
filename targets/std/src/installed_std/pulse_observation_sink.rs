@@ -2,7 +2,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{CapabilityId, CapabilityOffer, PlannedGear, PortDirection};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     HostedValueStore, PortId,
 };
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -45,7 +45,7 @@ fn prepare(
 pub(super) struct Sink {
     next: u32,
 }
-impl<const PORTS: usize> StepOperation<PORTS> for Sink {
+impl<const PORTS: usize> StepBack<PORTS> for Sink {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

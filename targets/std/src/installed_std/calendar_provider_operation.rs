@@ -3,7 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection, StructuredInfoValue};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef, ValueStorage,
 };
@@ -36,7 +36,7 @@ pub(super) struct CalendarProviderOperation {
     emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for CalendarProviderOperation {
+impl<const PORTS: usize> StepBack<PORTS> for CalendarProviderOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;

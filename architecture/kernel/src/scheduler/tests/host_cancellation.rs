@@ -13,7 +13,7 @@ enum CancellationBack {
     },
 }
 
-impl StepOperation<2> for CancellationBack {
+impl StepBack<2> for CancellationBack {
     fn step(&mut self, io: &mut StepIo<2>, _input_bytes: &StepInputBytes<'_, 2>) -> StepOutcome {
         match self {
             Self::Reset {

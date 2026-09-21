@@ -3,7 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
@@ -18,7 +18,7 @@ pub(super) struct RecordDeliveryStatusOperation {
     observations: u16,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for RecordDeliveryStatusOperation {
+impl<const PORTS: usize> StepBack<PORTS> for RecordDeliveryStatusOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if !self.pending || request != RequestId(u32::from(self.observations)) {

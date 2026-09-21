@@ -3,7 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
@@ -29,7 +29,7 @@ pub(super) struct TypedRecordOperation {
     complete: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TypedRecordOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TypedRecordOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.complete {
             return StepOutcome::Complete;

@@ -1,6 +1,6 @@
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, SchedulerStatus,
-    StepInputBytes, StepIo, StepOperation, StepOutcome,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, SchedulerStatus, StepBack,
+    StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
@@ -56,7 +56,7 @@ impl Driver {
     }
 }
 
-impl StepOperation<PORTS> for Driver {
+impl StepBack<PORTS> for Driver {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -116,14 +116,14 @@ impl StepOperation<PORTS> for Driver {
 fn node(input: Option<CordId>) -> NodeSpec<PORTS> {
     NodeSpec {
         input_cords: [input, None],
-        maximum_step_work: 4,
+        maximum_step_fuel: 4,
     }
 }
 
 fn inactive_node() -> NodeSpec<PORTS> {
     NodeSpec {
         input_cords: [Some(CordId(u16::MAX)), None],
-        maximum_step_work: 0,
+        maximum_step_fuel: 0,
     }
 }
 

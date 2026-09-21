@@ -1,15 +1,15 @@
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, StepInputBytes, StepIo,
-    StepOperation, StepOutcome,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, StepBack, StepInputBytes,
+    StepIo, StepOutcome,
 };
 use conduit_kernel::{
-    CordId, Failure, FailureCode, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent, NodeId,
-    PortId,
+    CordId, Failure, FailureCode, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent,
+    KernelEventKind, NodeId, PortId,
 };
 
 struct RefusingBack(Failure);
 
-impl StepOperation<1> for RefusingBack {
+impl StepBack<1> for RefusingBack {
     fn step(&mut self, _: &mut StepIo<1>, _: &StepInputBytes<'_, 1>) -> StepOutcome {
         StepOutcome::Fail(self.0)
     }
@@ -39,7 +39,7 @@ fn identical_detail_codes_do_not_erase_distinct_back_failures() {
             0,
             [NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             }],
             [CordSpec::local(
                 CordId(0),
@@ -59,5 +59,9 @@ fn identical_detail_codes_do_not_erase_distinct_back_failures() {
         )
         .unwrap();
         assert_eq!(play.step(), Err(SchedulerError::BackFailed(failure)));
+        assert!(play
+            .signs()
+            .events()
+            .any(|event| event.kind == KernelEventKind::BackFailed));
     }
 }

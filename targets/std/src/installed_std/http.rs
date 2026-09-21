@@ -5,7 +5,7 @@ use conduit_core::{
     HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef, ValueStorage,
 };
@@ -151,7 +151,7 @@ pub(super) struct HttpClientOperation {
     completed: u16,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for HttpClientOperation {
+impl<const PORTS: usize> StepBack<PORTS> for HttpClientOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.completed == conduit_web::HTTP_MAXIMUM_IN_FLIGHT {
             return StepOutcome::Complete;
@@ -221,7 +221,7 @@ pub(super) struct HttpServerOperation {
     accepted: u16,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for HttpServerOperation {
+impl<const PORTS: usize> StepBack<PORTS> for HttpServerOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((_, outcome)) = io.host_completion() {
             let Some(pending) = self.pending else {

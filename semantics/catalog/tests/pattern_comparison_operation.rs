@@ -1,6 +1,6 @@
 #![cfg(feature = "kernel-step")]
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
     PortId, RequestId, ValueRef,
 };
@@ -128,7 +128,7 @@ fn either_port_order_emits_once_then_requires_both_closures() {
 fn stale_completion_and_cancelled_work_do_not_emit() {
     let mut operation = PatternComparisonOperation::new(4096);
     input(&mut operation, 0, value(10));
-    StepOperation::<2>::cancel(&mut operation);
+    StepBack::<2>::cancel(&mut operation);
     assert_eq!(
         completion(
             &mut operation,

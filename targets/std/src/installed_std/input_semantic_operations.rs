@@ -5,7 +5,7 @@ use conduit_human::{
     CONDUIT_INTL_LAYOUT, CORE_CHORD_MAP, KEY_EVENT_ENCODED_LEN,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
@@ -37,7 +37,7 @@ pub(super) struct InputSemanticOperation {
     next: u32,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for KeyEventTeeOperation {
+impl<const PORTS: usize> StepBack<PORTS> for KeyEventTeeOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some(value) = io.input(PortId(0)) {
             if !conduit_semantic_catalog::key_event_tee_accepts_encoded_len(value.byte_len) {
@@ -69,7 +69,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for KeyEventTeeOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for InputSemanticOperation {
+impl<const PORTS: usize> StepBack<PORTS> for InputSemanticOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
@@ -385,7 +385,7 @@ mod tests {
             io.test_host_request().map(|request| request.0),
             Some(RequestId(0))
         );
-        StepOperation::<1>::cancel(&mut operation);
+        StepBack::<1>::cancel(&mut operation);
         let mut io = StepIo::test_frame([None], [true], [None], None, 8);
         assert_eq!(
             operation.step(&mut io, &StepInputBytes::test_frame([None], None)),

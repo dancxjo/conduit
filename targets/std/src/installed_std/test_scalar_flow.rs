@@ -7,7 +7,7 @@ use conduit_core::{
 };
 use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 
@@ -60,7 +60,7 @@ pub(super) struct TestScalarLiteralOperation {
     pub(super) emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TestScalarLiteralOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestScalarLiteralOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;
@@ -82,7 +82,7 @@ pub(super) struct TestScalarSinkOperation {
     expected: u64,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TestScalarSourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestScalarSourceOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -128,7 +128,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for TestScalarSourceOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TestScalarSinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestScalarSinkOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some(value) = io.input(PortId(0)) {
             if value.byte_len != SCALAR_ENCODED_LEN as u32 || self.seen >= self.expected {

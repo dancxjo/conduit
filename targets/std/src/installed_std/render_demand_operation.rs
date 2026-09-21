@@ -4,7 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_audio::AudioRenderDemand;
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, RequestId, ValueRef, ValueStorage,
 };
 
@@ -21,7 +21,7 @@ pub(super) struct AudioRenderDemandOperation {
     pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for AudioRenderDemandOperation {
+impl<const PORTS: usize> StepBack<PORTS> for AudioRenderDemandOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.next >= self.demands.len() {
             return StepOutcome::Complete;

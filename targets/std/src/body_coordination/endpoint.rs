@@ -1,6 +1,6 @@
 use conduit_core::{bind_active_play, ConfigurationValue, HostId, PlanFragment};
 use conduit_kernel::scheduler::{
-    FixedScheduler, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+    FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
@@ -49,7 +49,7 @@ impl CoordinationBack {
     }
 }
 
-impl StepOperation<PORTS> for CoordinationBack {
+impl StepBack<PORTS> for CoordinationBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

@@ -10,7 +10,7 @@ use conduit_kernel::{
     RequestId, RouteRange, RouteTarget, SignSink, ValueStorage,
     scheduler::{
         CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, SchedulerError,
-        SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+        SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
     },
 };
 
@@ -38,7 +38,7 @@ struct WaitBack {
     requested: bool,
 }
 
-impl StepOperation<PORTS> for WaitBack {
+impl StepBack<PORTS> for WaitBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -130,7 +130,7 @@ impl AdmittedLane {
             scheduler: FixedScheduler::new_with_host_calls(
                 [NodeSpec {
                     input_cords: [Some(CordId(0)); PORTS],
-                    maximum_step_work: 1,
+                    maximum_step_fuel: 1,
                 }],
                 [CordSpec::local(
                     CordId(0),

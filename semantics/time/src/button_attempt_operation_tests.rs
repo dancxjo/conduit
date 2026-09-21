@@ -115,7 +115,7 @@ fn shared_step_cancels_the_exact_deadline_before_consuming_the_next_transition()
     let next = store.store(b"next").unwrap();
     let marker = store.store(&[0]).unwrap();
     let mut operation = operation(&mut store, 3);
-    assert!(StepOperation::<1>::accepts_input_while_host_call_pending(
+    assert!(StepBack::<1>::accepts_input_while_host_call_pending(
         &operation
     ));
     assert_eq!(input(&mut operation, first).0, StepOutcome::Progress);

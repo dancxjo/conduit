@@ -597,7 +597,12 @@ pub use remote_sign::{remote_sign_storage_bytes, RemoteCordDirection, RemoteLife
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum KernelEventKind {
-    Decision,
+    /// A plan-owned fuel grant began one bounded Step.
+    StepFuelGranted,
+    /// A cooperative Back consumed its full grant and preserved continuation.
+    StepYielded,
+    /// A cooperative Back attempted to exceed its plan-owned grant.
+    StepFuelExceeded,
     ValueStored,
     ValueRouted,
     ValueConsumed,
@@ -1194,7 +1199,8 @@ impl SignQuery for HostedSignLog {
 fn transient_sign(kind: KernelEventKind) -> bool {
     !matches!(
         kind,
-        KernelEventKind::RemoteValueOffered
+        KernelEventKind::StepFuelExceeded
+            | KernelEventKind::RemoteValueOffered
             | KernelEventKind::RemoteValueAccepted
             | KernelEventKind::RemoteValueDelivered
             | KernelEventKind::RemoteOutputClosed

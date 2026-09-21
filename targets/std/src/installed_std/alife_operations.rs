@@ -6,7 +6,7 @@ use conduit_alife::{
 };
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef, ValueStorage,
 };
@@ -34,7 +34,7 @@ pub(super) struct OrbiumSeedOperation {
     emitted: bool,
 }
 
-pub(super) struct LeniaStepOperation {
+pub(super) struct LeniaStepBack {
     initialized: bool,
     initial_closed: bool,
     pending: Option<Pending>,
@@ -52,7 +52,7 @@ enum Pending {
     Step(RequestId),
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for OrbiumSeedOperation {
+impl<const PORTS: usize> StepBack<PORTS> for OrbiumSeedOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;
@@ -67,7 +67,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for OrbiumSeedOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for LeniaStepOperation {
+impl<const PORTS: usize> StepBack<PORTS> for LeniaStepBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -190,7 +190,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for LeniaStepOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for ScalarFieldPresentationOperation {
+impl<const PORTS: usize> StepBack<PORTS> for ScalarFieldPresentationOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
@@ -244,7 +244,7 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
 
 impl OrbiumSeedOperation {}
 
-impl LeniaStepOperation {
+impl LeniaStepBack {
     fn new() -> Self {
         Self {
             initialized: false,
@@ -330,7 +330,7 @@ fn prepare_lenia(
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledOperation, String> {
     parameters(placement)?;
-    Ok(InstalledOperation::LeniaStep(LeniaStepOperation::new()))
+    Ok(InstalledOperation::LeniaStep(LeniaStepBack::new()))
 }
 
 fn presentation_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {

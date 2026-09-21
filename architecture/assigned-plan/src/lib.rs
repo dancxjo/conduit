@@ -129,8 +129,9 @@ pub enum AssignedPlanRefusal {
     DigestMismatch,
     MalformedRecord,
     UnknownRecord(u8),
-    UnknownOperation,
-    MissingOperation,
+    UnknownHostCall,
+    MissingHostCall,
+    MissingBack,
     UnknownResource,
     MissingResource,
     StaleRemoteEndpoint,
@@ -269,7 +270,7 @@ pub fn decode_assigned_plan(
                     .enumerate()
                     .find(|(index, required)| !host_calls[*index] && **required == identity)
                     .map(|(index, _)| index)
-                    .ok_or(AssignedPlanRefusal::UnknownOperation)?;
+                    .ok_or(AssignedPlanRefusal::UnknownHostCall)?;
                 host_calls[index] = true;
             }
             ASSIGNED_RESOURCE => {
@@ -311,7 +312,7 @@ pub fn decode_assigned_plan(
         .iter()
         .any(|seen| !seen)
     {
-        return Err(AssignedPlanRefusal::MissingOperation);
+        return Err(AssignedPlanRefusal::MissingHostCall);
     }
     if resources[..requirements.resources.len()]
         .iter()

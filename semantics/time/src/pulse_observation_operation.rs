@@ -1,7 +1,7 @@
 //! Shared finite kernel operation for ordered nominal pulse observations.
 
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     CanonicalValue, Failure, FailureCode, PortId,
 };
 
@@ -24,7 +24,7 @@ pub struct PulseObservationOperation {
     lifecycle: Lifecycle,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for PulseObservationOperation {
+impl<const PORTS: usize> StepBack<PORTS> for PulseObservationOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

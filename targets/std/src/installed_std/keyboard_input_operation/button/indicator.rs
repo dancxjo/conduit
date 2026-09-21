@@ -2,7 +2,7 @@
 use crate::installed_std::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{CapabilityOffer, PlannedGear};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     CanonicalValue, Failure, FailureCode, HostedValueStore, PortId,
 };
 use conduit_semantic_catalog::{PreparedButtonIndicatorMapper, BUTTON_TRANSITION_MAXIMUM_VALUES};
@@ -39,7 +39,7 @@ pub(in crate::installed_std) struct Mapper {
     closed: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for Mapper {
+impl<const PORTS: usize> StepBack<PORTS> for Mapper {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

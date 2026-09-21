@@ -1,5 +1,5 @@
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepInputBytes, StepIo, StepBack, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, PortId, RequestId,
 };
 
@@ -13,7 +13,7 @@ pub(crate) struct JoinBack {
     completed: bool,
 }
 
-impl StepOperation<PORTS> for JoinBack {
+impl StepBack<PORTS> for JoinBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -77,7 +77,7 @@ pub(crate) struct AttachmentSignBack {
     completed: bool,
 }
 
-impl StepOperation<PORTS> for AttachmentSignBack {
+impl StepBack<PORTS> for AttachmentSignBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -157,7 +157,7 @@ impl NetworkBack {
     }
 }
 
-impl StepOperation<PORTS> for NetworkBack {
+impl StepBack<PORTS> for NetworkBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

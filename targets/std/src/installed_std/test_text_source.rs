@@ -7,7 +7,7 @@ use conduit_core::{
 };
 use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     PortId, ValueRef, ValueStorage,
 };
 
@@ -28,7 +28,7 @@ pub(super) struct TestTextSourceOperation {
     pub(super) next: usize,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TestTextSourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestTextSourceOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         let Some(value) = self.values.get(self.next).copied() else {
             return StepOutcome::Complete;

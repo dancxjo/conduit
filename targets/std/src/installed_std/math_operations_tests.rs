@@ -1,6 +1,6 @@
 use super::*;
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     HostCallOutcome, ValueRef,
 };
 
@@ -164,7 +164,7 @@ fn cancellation_clears_pending_transform_without_inventing_output() {
         operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
         StepOutcome::Progress
     );
-    StepOperation::<1>::cancel(&mut operation);
+    StepBack::<1>::cancel(&mut operation);
     assert!(operation.pending.is_none());
     assert!(operation.completed);
     let mut io = StepIo::test_frame(

@@ -7,7 +7,7 @@ use conduit_core::{
     HostCallContractId, HostCallRequirement, PlannedGear,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef, ValueStorage,
 };
@@ -147,7 +147,7 @@ impl CaptureOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for CaptureOperation {
+impl<const PORTS: usize> StepBack<PORTS> for CaptureOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if !self.pending || request != RequestId(self.next) {
@@ -200,7 +200,7 @@ struct PlaybackOperation {
     pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for PlaybackOperation {
+impl<const PORTS: usize> StepBack<PORTS> for PlaybackOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

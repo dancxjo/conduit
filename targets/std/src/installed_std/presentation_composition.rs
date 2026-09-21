@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_presentation::{
@@ -59,7 +59,7 @@ pub(super) struct GraphicsPresentationOperation {
     presented: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for GraphicsPresentationOperation {
+impl<const PORTS: usize> StepBack<PORTS> for GraphicsPresentationOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if request != RequestId(0) || !self.pending {
@@ -110,7 +110,7 @@ impl GraphicsPresentationOperation {}
 pub(super) struct PresentationSinkOperation;
 
 #[cfg(test)]
-impl<const PORTS: usize> StepOperation<PORTS> for PresentationSinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for PresentationSinkOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if io.input(PortId(0)).is_some() {
             io.consume(PortId(0))
@@ -131,7 +131,7 @@ impl PresentationSinkOperation {}
 
 impl PresentationCompositionOperation {}
 
-impl<const PORTS: usize> StepOperation<PORTS> for PresentationCompositionOperation {
+impl<const PORTS: usize> StepBack<PORTS> for PresentationCompositionOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some(value) = self.source {
             if self.emitted {

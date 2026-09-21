@@ -3,7 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId,
 };
 
@@ -22,7 +22,7 @@ pub(super) struct RecordTranscriptOperation {
     terminal_type: Vec<u8>,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for RecordTranscriptOperation {
+impl<const PORTS: usize> StepBack<PORTS> for RecordTranscriptOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

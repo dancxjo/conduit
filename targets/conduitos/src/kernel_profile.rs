@@ -6,7 +6,7 @@ use conduit_kernel::{
     RequestId, RouteRange, RouteTarget, SignSink, ValueRef,
     scheduler::{
         CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, SchedulerError,
-        SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+        SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
     },
 };
 
@@ -187,7 +187,7 @@ enum ProfileBack {
     Serial(SerialBack),
 }
 
-impl StepOperation<PORTS> for ProfileBack {
+impl StepBack<PORTS> for ProfileBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -255,7 +255,7 @@ impl KernelProfile {
         let nodes = [
             NodeSpec {
                 input_cords: [None; PORTS],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: {
@@ -263,7 +263,7 @@ impl KernelProfile {
                     cords[0] = Some(CordId(0));
                     cords
                 },
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
         ];
         let cords = [CordSpec::local(

@@ -3,7 +3,7 @@ use conduit_core::{
     ConfigurationValue, InfoBool, PlannedGear, Scalar, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     HostedValueStore, PortId, ValueRef, ValueStorage,
 };
 
@@ -52,7 +52,7 @@ pub(super) struct LogicCompareScalarOperation {
     decisions: DecisionValues,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for LogicCompareScalarOperation {
+impl<const PORTS: usize> StepBack<PORTS> for LogicCompareScalarOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -123,7 +123,7 @@ pub(super) struct LogicNotOperation {
     decisions: DecisionValues,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for LogicNotOperation {
+impl<const PORTS: usize> StepBack<PORTS> for LogicNotOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -200,7 +200,7 @@ pub(super) struct LogicSelectScalarOperation {
     candidate_seen: [bool; 2],
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for LogicSelectScalarOperation {
+impl<const PORTS: usize> StepBack<PORTS> for LogicSelectScalarOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

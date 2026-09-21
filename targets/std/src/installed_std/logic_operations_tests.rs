@@ -4,7 +4,7 @@ use super::{
 };
 use conduit_core::{InfoBool, Scalar, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     HostedValueStore, PortId, ValueRef, ValueStorage,
 };
 
@@ -260,7 +260,7 @@ fn cancellation_clears_all_operation_owned_decision_state() {
         StepOutcome::Progress
     );
     assert!(io.test_retained(PortId(1)));
-    StepOperation::<3>::cancel(&mut select);
+    StepBack::<3>::cancel(&mut select);
     assert_eq!(select.candidates, [None; 2]);
 
     let mut values = store();
@@ -280,6 +280,6 @@ fn cancellation_clears_all_operation_owned_decision_state() {
         ),
         StepOutcome::Progress
     );
-    StepOperation::<2>::cancel(&mut compare);
+    StepBack::<2>::cancel(&mut compare);
     assert_eq!(compare.operands, [None; 2]);
 }

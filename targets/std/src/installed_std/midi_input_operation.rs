@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, CanonicalValue, Failure, FailureCode, HostCallDisposition, HostCallId,
     HostCallOutcome, PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -23,7 +23,7 @@ pub(super) struct MidiInputOperation {
     emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for MidiInputOperation {
+impl<const PORTS: usize> StepBack<PORTS> for MidiInputOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

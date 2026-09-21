@@ -27,7 +27,7 @@ impl KernelTables {
             active_cords: 0,
             nodes: [NodeSpec {
                 input_cords: [None; PORTS],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             }; MAX_NODES],
             cords: [CordSpec {
                 cord: CordId(u16::MAX),

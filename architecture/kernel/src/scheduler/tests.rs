@@ -1,6 +1,6 @@
 use super::{
     AssignedPressurePolicy, CordCapacity, CordSpec, FixedScheduler, NodeSpec, RemoteIngressOutcome,
-    SchedulerError, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+    SchedulerError, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use crate::{
     BoundedValueRef, CanonicalValue, CordId, Failure, FailureCode, FixedHostCallBindings,
@@ -37,7 +37,7 @@ enum Driver {
     },
 }
 
-impl StepOperation<PORTS> for Driver {
+impl StepBack<PORTS> for Driver {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -115,7 +115,7 @@ impl StepOperation<PORTS> for Driver {
             Self::Sink { seen, len, stall } => {
                 if *stall && io.input(PortId(0)).is_some() {
                     *stall = false;
-                    io.exhaust_work_budget();
+                    io.exhaust_fuel();
                     return StepOutcome::Yield;
                 }
                 if let Some(value) = io.input(PortId(0)) {
@@ -166,7 +166,7 @@ enum HostDriver {
     },
 }
 
-impl StepOperation<PORTS> for HostDriver {
+impl StepBack<PORTS> for HostDriver {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -306,7 +306,7 @@ enum JoinDriver {
     Sink { seen: Option<ValueRef> },
 }
 
-impl StepOperation<PORTS> for JoinDriver {
+impl StepBack<PORTS> for JoinDriver {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -1034,11 +1034,11 @@ where
         [
             NodeSpec {
                 input_cords: [None, None],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0)), None],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             },
         ],
         [CordSpec::local(
@@ -1246,7 +1246,7 @@ where
 fn node(input_cords: [Option<CordId>; PORTS]) -> NodeSpec<PORTS> {
     NodeSpec {
         input_cords,
-        maximum_step_work: 3,
+        maximum_step_fuel: 3,
     }
 }
 

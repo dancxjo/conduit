@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection, PortTemporal};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, CanonicalValue, Failure, FailureCode, HostCallDisposition, HostCallId, PortId,
     RequestId,
 };
@@ -23,7 +23,7 @@ pub(super) struct StateCountOperation {
     initial_emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for StateCountOperation {
+impl<const PORTS: usize> StepBack<PORTS> for StateCountOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if !self.initial_emitted {
             if !io.output_ready(PortId(0)) {
@@ -72,7 +72,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for StateCountOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for CountPresentationOperation {
+impl<const PORTS: usize> StepBack<PORTS> for CountPresentationOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)

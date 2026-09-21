@@ -229,7 +229,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
 
     let inactive_node = NodeSpec {
         input_cords: [None; BROWSER_PORTS_PER_GEAR],
-        maximum_step_work: 1,
+        maximum_step_fuel: 1,
     };
     let mut nodes = [inactive_node; MAXIMUM_BROWSER_GEARS];
     for (destination, spec) in nodes

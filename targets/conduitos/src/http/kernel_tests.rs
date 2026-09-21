@@ -12,9 +12,7 @@ use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, PortId, RequestId, SignSink,
     ValueRef, ValueStorage,
-    scheduler::{
-        FixedScheduler, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
-    },
+    scheduler::{FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome},
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
@@ -164,7 +162,7 @@ enum PlannedBack {
     Sink(Sink),
 }
 
-impl StepOperation<PORTS> for PlannedBack {
+impl StepBack<PORTS> for PlannedBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

@@ -1,6 +1,6 @@
 use conduit_core::*;
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     PortId, ValueRef,
 };
 use conduit_semantic_catalog::state_value::*;
@@ -67,7 +67,7 @@ fn malformed_input_preserves_committed_state_and_is_not_completion() {
         0,
         "proposing output does not publish State"
     );
-    StepOperation::<1>::step_committed(&mut back);
+    StepBack::<1>::step_committed(&mut back);
     assert_eq!(back.current(), next);
     assert_eq!(back.generation(), 1);
     let before = back.current().to_vec();

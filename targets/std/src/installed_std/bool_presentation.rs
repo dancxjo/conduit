@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection, PortTemporal, BOOL_ENCODED_LEN};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
@@ -11,7 +11,7 @@ pub(super) fn present_stdout(output: &mut impl std::io::Write, input: &[u8]) -> 
     writeln!(output, "bool value={}", value.get()).map_err(|error| error.to_string())
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for BoolPresentationOperation {
+impl<const PORTS: usize> StepBack<PORTS> for BoolPresentationOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {

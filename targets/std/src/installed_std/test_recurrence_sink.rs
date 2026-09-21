@@ -7,7 +7,7 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId,
 };
 
@@ -25,7 +25,7 @@ pub(super) struct TestRecurrenceSinkOperation {
     received: u32,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TestRecurrenceSinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestRecurrenceSinkOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

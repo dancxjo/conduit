@@ -1,5 +1,5 @@
 use conduit_core::{ImplementationId, PlannedGear};
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::HostedValueStore;
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use std::collections::BTreeMap;
@@ -21,7 +21,7 @@ pub trait KernelOperationFactory: Send + Sync {
         &self,
         placement: &PlannedGear,
         values: &mut HostedValueStore,
-    ) -> Result<Box<dyn StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String>;
+    ) -> Result<Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String>;
 }
 
 #[derive(Default)]
@@ -59,12 +59,12 @@ impl KernelOperationRegistry {
 }
 
 pub(crate) struct BoxedKernelBack(
-    Box<dyn StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>,
+    Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>,
 );
 
 impl BoxedKernelBack {
     pub(crate) fn new(
-        back: Box<dyn StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>,
+        back: Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>,
     ) -> Self {
         Self(back)
     }
@@ -74,7 +74,7 @@ impl BoxedKernelBack {
     }
 }
 
-impl StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for BoxedKernelBack {
+impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for BoxedKernelBack {
     fn step_committed(&mut self) {
         self.0.step_committed();
     }
@@ -103,7 +103,7 @@ impl StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for BoxedKernelBack 
 
 struct Inactive;
 
-impl StepOperation<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for Inactive {
+impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for Inactive {
     fn step(
         &mut self,
         _io: &mut StepIo<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,

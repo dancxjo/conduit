@@ -3,7 +3,7 @@
 use super::capstone_operations::{CurrentSelector, DriveSink};
 use conduit_kernel::{
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepInputBytes, StepIo, StepOperation,
+        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo,
         StepOutcome,
     },
     BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
@@ -45,7 +45,7 @@ pub(super) enum CapstoneOperation {
     Drive(DriveSink),
 }
 
-impl StepOperation<PORTS> for CapstoneOperation {
+impl StepBack<PORTS> for CapstoneOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, bytes: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
             Self::Observation(source) => {
@@ -220,23 +220,23 @@ pub(super) fn prepare_scheduler(
     let node_specs = [
         NodeSpec {
             input_cords: [None; PORTS],
-            maximum_step_work: 2,
+            maximum_step_fuel: 2,
         },
         NodeSpec {
             input_cords: [None; PORTS],
-            maximum_step_work: 2,
+            maximum_step_fuel: 2,
         },
         NodeSpec {
             input_cords: [None; PORTS],
-            maximum_step_work: 2,
+            maximum_step_fuel: 2,
         },
         NodeSpec {
             input_cords: [Some(CordId(0)), Some(CordId(1)), Some(CordId(2))],
-            maximum_step_work: 3,
+            maximum_step_fuel: 3,
         },
         NodeSpec {
             input_cords: [Some(CordId(3)), Some(CordId(4)), None],
-            maximum_step_work: 3,
+            maximum_step_fuel: 3,
         },
     ];
     let cords = route_specs.map(|(source, source_port, sink, sink_port)| {

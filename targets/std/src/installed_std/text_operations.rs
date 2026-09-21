@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, HostCallOutcome, PortId, RequestId, ValueRef,
     ValueStorage,
 };
@@ -50,7 +50,7 @@ pub(super) struct TextLiteralOperation {
     emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TextLiteralOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TextLiteralOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;
@@ -65,7 +65,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for TextLiteralOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TextTransformOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TextTransformOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -115,7 +115,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for TextTransformOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TextPresentationOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TextPresentationOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)

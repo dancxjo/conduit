@@ -5,7 +5,7 @@ mod tests;
 use super::super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PreparedStructuredValueValidator};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
     PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -24,7 +24,7 @@ pub(crate) struct ButtonOperation {
     validator: PreparedStructuredValueValidator,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for ButtonOperation {
+impl<const PORTS: usize> StepBack<PORTS> for ButtonOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

@@ -1,6 +1,6 @@
 use super::{DelayOperation, ThrottleOperation};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     HostCallDisposition, HostCallOutcome, PortId, RequestId, ValueRef,
 };
 
@@ -23,7 +23,7 @@ fn completion(request: u32, disposition: HostCallDisposition) -> (RequestId, Hos
     )
 }
 
-fn input_step<O: StepOperation<1>>(
+fn input_step<O: StepBack<1>>(
     operation: &mut O,
     value: ValueRef,
     output_ready: bool,

@@ -1,6 +1,6 @@
 use super::*;
 use conduit_core::{ConfigurationEntry, ConfigurationValue};
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 
 fn placement() -> PlannedGear {
     let offer = conduit_std_offers::pulse_observe_offer();
@@ -121,7 +121,7 @@ fn malformed_order_and_cancel_have_distinct_terminal_details() {
             StepOutcome::Progress
         );
     }
-    StepOperation::<1>::cancel(&mut operation);
+    StepBack::<1>::cancel(&mut operation);
     let mut io = StepIo::test_frame([Some(tick())], [false], [Some(32)], None, 8);
     assert_eq!(
         operation.step(&mut io, &StepInputBytes::test_frame([Some(&[0; 8])], None)),

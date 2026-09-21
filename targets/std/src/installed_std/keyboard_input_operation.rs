@@ -4,7 +4,7 @@ pub(super) mod button;
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef, ValueStorage,
 };
@@ -22,7 +22,7 @@ pub(super) struct KeyboardInputOperation {
     emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for KeyboardInputOperation {
+impl<const PORTS: usize> StepBack<PORTS> for KeyboardInputOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

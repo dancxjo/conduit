@@ -6,7 +6,7 @@ use conduit_core::{
 };
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 
@@ -45,7 +45,7 @@ pub(super) struct TestTimingSourceOperation {
     pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TestTimingSinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestTimingSinkOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some(value) = io.input(PortId(0)) {
             if value.byte_len != 1 || self.received >= MAXIMUM_VALUES {
@@ -64,7 +64,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for TestTimingSinkOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TestTimingSourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestTimingSourceOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)

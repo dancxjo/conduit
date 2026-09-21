@@ -249,7 +249,7 @@ fn renderer_emits_fixed_current_kernel_tables() {
             implementation_id: "signal/pulse".to_owned(),
             artifact_id: "artifact/pulse".to_owned(),
             input_cords: [None; FIXED_KERNEL_STORAGE_PORTS_PER_NODE],
-            maximum_step_work: 2,
+            maximum_step_fuel: 2,
         }],
         input_ports: Vec::new(),
         output_ports: vec![GeneratedPort {

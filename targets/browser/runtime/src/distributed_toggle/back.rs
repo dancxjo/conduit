@@ -4,7 +4,7 @@
 //! and drives `presentation/bool` through the browser kernel.
 
 use conduit_core::BOOL_ENCODED_LEN;
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
@@ -34,7 +34,7 @@ impl ToggleShowBack {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for ToggleShowBack {
+impl<const PORTS: usize> StepBack<PORTS> for ToggleShowBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

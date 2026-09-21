@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_presentation::{LayoutFrame, MAX_LAYOUT_FRAME_BYTES};
@@ -36,7 +36,7 @@ pub(super) struct LayoutOperation {
 #[cfg(test)]
 pub(super) struct LayoutSinkOperation;
 #[cfg(test)]
-impl<const PORTS: usize> StepOperation<PORTS> for LayoutSinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for LayoutSinkOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if io.input(PortId(0)).is_some() {
             io.consume(PortId(0)).expect("present test layout input");
@@ -54,7 +54,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for LayoutSinkOperation {
 impl LayoutSinkOperation {}
 impl LayoutOperation {}
 
-impl<const PORTS: usize> StepOperation<PORTS> for LayoutOperation {
+impl<const PORTS: usize> StepBack<PORTS> for LayoutOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some(value) = self.source {
             if self.emitted {

@@ -1,6 +1,5 @@
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepInputBytes, StepIo, StepOperation,
-    StepOutcome,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, HostCallBinding,
@@ -22,7 +21,7 @@ enum DeadlineOperation {
     },
 }
 
-impl StepOperation<2> for DeadlineOperation {
+impl StepBack<2> for DeadlineOperation {
     fn step(&mut self, io: &mut StepIo<2>, _: &StepInputBytes<'_, 2>) -> StepOutcome {
         match self {
             Self::Reset {
@@ -168,11 +167,11 @@ fn production_kernel_arms_cancels_replaces_and_completes_one_deadline() {
     let nodes = [
         NodeSpec {
             input_cords: [Some(CordId(0)), None],
-            maximum_step_work: 3,
+            maximum_step_fuel: 3,
         },
         NodeSpec {
             input_cords: [None, None],
-            maximum_step_work: 3,
+            maximum_step_fuel: 3,
         },
     ];
     let cords = [CordSpec::local(

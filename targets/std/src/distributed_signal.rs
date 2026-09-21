@@ -5,8 +5,7 @@ use conduit_core::{bind_active_play, Observation, PlanFragment};
 #[cfg(test)]
 use conduit_core::{BaseImplementationId, CapabilityId, GearId};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
-    StepOutcome,
+    FixedScheduler, HostCallRequest, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
@@ -95,7 +94,7 @@ impl PulseBack {
     }
 }
 
-impl StepOperation<PORTS> for PulseBack {
+impl StepBack<PORTS> for PulseBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

@@ -7,7 +7,7 @@ use conduit_core::{
     HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
     PortId, RequestId,
 };
@@ -150,7 +150,7 @@ impl HysteresisOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for HysteresisOperation {
+impl<const PORTS: usize> StepBack<PORTS> for HysteresisOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             let Some((pending_request, operation)) = self.pending else {

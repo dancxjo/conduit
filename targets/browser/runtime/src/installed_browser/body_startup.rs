@@ -6,7 +6,7 @@ use super::{
 use conduit_body::{BodyStartup, StartupScope};
 use conduit_core::{CapabilityOffer, InfoBool, PlannedGear};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     HostedValueStore, PortId, ValueRef, ValueStorage,
 };
 
@@ -91,7 +91,7 @@ pub(crate) fn prepare_for_body(
 struct StartupSource {
     value: Option<ValueRef>,
 }
-impl<const PORTS: usize> StepOperation<PORTS> for StartupSource {
+impl<const PORTS: usize> StepBack<PORTS> for StartupSource {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         let Some(value) = self.value else {
             return StepOutcome::Complete;

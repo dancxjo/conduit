@@ -2,7 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use super::timing_configuration::{self, TimingConfiguration};
 use conduit_core::{encode_monotonic_duration, PlannedGear};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef, ValueStorage,
 };
@@ -44,7 +44,7 @@ pub(super) struct ThrottleOperation {
     closing: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for DelayOperation {
+impl<const PORTS: usize> StepBack<PORTS> for DelayOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
@@ -153,7 +153,7 @@ impl DelayOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for ThrottleOperation {
+impl<const PORTS: usize> StepBack<PORTS> for ThrottleOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)

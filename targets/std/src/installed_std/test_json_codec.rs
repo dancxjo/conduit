@@ -6,7 +6,7 @@ use conduit_core::{
 };
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 
@@ -59,7 +59,7 @@ pub(super) struct TestJsonSinkOperation {
     pending: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TestJsonSourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestJsonSourceOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;
@@ -74,7 +74,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for TestJsonSourceOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TestJsonSinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestJsonSinkOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if !self.pending

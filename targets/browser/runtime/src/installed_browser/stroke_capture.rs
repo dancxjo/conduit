@@ -7,7 +7,7 @@ use conduit_core::{
     ExecutionProfileId, HostCallRequirement, ImplementationId, PlannedGear, StructuredInfoValue,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
     PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -148,7 +148,7 @@ impl StrokeCaptureOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for StrokeCaptureOperation {
+impl<const PORTS: usize> StepBack<PORTS> for StrokeCaptureOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {

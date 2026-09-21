@@ -3,7 +3,7 @@ use conduit_core::{
     ConfigurationValue, InfoBool, PlannedGear, PortDirection, PortTemporal, BOOL_ENCODED_LEN,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId, ValueRef, ValueStorage,
 };
 
@@ -19,7 +19,7 @@ pub(super) struct StateToggleOperation {
     initial_emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for StateToggleOperation {
+impl<const PORTS: usize> StepBack<PORTS> for StateToggleOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if !self.initial_emitted {
             if !io.output_ready(PortId(0)) {
@@ -150,7 +150,7 @@ fn validate_state_toggle(placement: &PlannedGear) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+    use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 
     fn value(slot: u16, byte_len: u32) -> ValueRef {
         ValueRef {

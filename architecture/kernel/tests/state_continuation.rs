@@ -37,7 +37,7 @@ fn with_state(state: StateDelay<1>) -> Play {
     Play::new(
         [NodeSpec {
             input_cords: [Some(CordId(0))],
-            maximum_step_work: 4,
+            maximum_step_fuel: 4,
         }],
         [
             CordSpec::remote_ingress(

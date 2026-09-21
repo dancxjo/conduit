@@ -1,7 +1,6 @@
 use crate::{plan_speech_text, OutputCondition, SPECIMEN_TEXT};
 use conduit_kernel::scheduler::{
-    FixedScheduler, SchedulerError, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
-    StepOutcome,
+    FixedScheduler, SchedulerError, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
@@ -90,7 +89,7 @@ enum SpeechOperation {
     },
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for SpeechOperation {
+impl<const PORTS: usize> StepBack<PORTS> for SpeechOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
             Self::Source { value, emitted } => {

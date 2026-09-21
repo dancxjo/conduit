@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDescriptor, PortDirection, SCALAR_ENCODED_LEN};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId, ValueRef,
 };
 
@@ -28,7 +28,7 @@ pub(super) struct FlowTeeScalarOperation {
     phase: u8,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for StateLatestScalarOperation {
+impl<const PORTS: usize> StepBack<PORTS> for StateLatestScalarOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some(value) = io.input(PortId(0)) {
             if value.byte_len != SCALAR_ENCODED_LEN as u32 {
@@ -62,7 +62,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for StateLatestScalarOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for FlowTeeScalarOperation {
+impl<const PORTS: usize> StepBack<PORTS> for FlowTeeScalarOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some(value) = io.input(PortId(0)) {
             if value.byte_len != SCALAR_ENCODED_LEN as u32 {

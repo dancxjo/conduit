@@ -4,8 +4,7 @@ use super::presentation_validation::validate_presentation_invocation;
 use super::*;
 use conduit_core::{bind_active_play, BaseImplementationId};
 use conduit_kernel::scheduler::{
-    FixedScheduler, SchedulerError, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
-    StepOutcome,
+    FixedScheduler, SchedulerError, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
@@ -45,7 +44,7 @@ enum InteractionOperation {
     Apply { pending: bool },
 }
 
-impl StepOperation<PORTS> for InteractionOperation {
+impl StepBack<PORTS> for InteractionOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
             Self::Source { value, emitted } => {

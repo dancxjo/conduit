@@ -8,7 +8,7 @@ use conduit_core::{
     ResourceRequirement, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, HostedValueStore, PortId, ValueRef, ValueStorage,
 };
 
@@ -182,7 +182,7 @@ struct TemplateInitializerOperation {
     emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TemplateInitializerOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TemplateInitializerOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;

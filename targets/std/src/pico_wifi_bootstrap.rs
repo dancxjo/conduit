@@ -3,8 +3,7 @@
 
 use conduit_core::{bind_active_play, BootId, PlanFragment};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, SchedulerStatus, StepInputBytes, StepIo, StepOperation,
-    StepOutcome,
+    FixedScheduler, HostCallRequest, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
@@ -83,7 +82,7 @@ struct CredentialBack {
     output: conduit_kernel::ValueRef,
 }
 
-impl StepOperation<PORTS> for CredentialBack {
+impl StepBack<PORTS> for CredentialBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

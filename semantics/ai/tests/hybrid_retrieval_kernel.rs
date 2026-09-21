@@ -15,7 +15,7 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepInputBytes, StepIo, StepOperation,
+        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo,
         StepOutcome,
     },
     CordEndpoint, CordId, Failure, FailureCode, FixedRoutes, HostedSignLog, HostedValueStore,
@@ -53,7 +53,7 @@ enum TestOperation {
     Sink(SinkOperation),
 }
 
-impl StepOperation<4> for TestOperation {
+impl StepBack<4> for TestOperation {
     fn step(&mut self, io: &mut StepIo<4>, bytes: &StepInputBytes<'_, 4>) -> StepOutcome {
         match self {
             Self::Source(operation) => {
@@ -290,7 +290,7 @@ fn scheduler(stages: &[RetrievalStage<ExtractedSourceValue>], expected: &[u8]) -
     });
     let source_node = NodeSpec {
         input_cords: [None; 4],
-        maximum_step_work: 2,
+        maximum_step_fuel: 2,
     };
     let drivers = [
         source_driver(inputs[0]),
@@ -321,11 +321,11 @@ fn scheduler(stages: &[RetrievalStage<ExtractedSourceValue>], expected: &[u8]) -
                     Some(CordId(2)),
                     Some(CordId(3)),
                 ],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [Some(CordId(4)), None, None, None],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
         ],
         cord_specs,

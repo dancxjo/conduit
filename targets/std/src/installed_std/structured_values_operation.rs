@@ -6,7 +6,7 @@ use conduit_core::{
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 
@@ -25,7 +25,7 @@ pub(super) struct StructuredLiteralOperation {
     value: Option<ValueRef>,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for StructuredLiteralOperation {
+impl<const PORTS: usize> StepBack<PORTS> for StructuredLiteralOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         let Some(value) = self.value else {
             return StepOutcome::Complete;
@@ -47,7 +47,7 @@ pub(super) struct StructuredPresentationOperation {
     next: u32,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for StructuredPresentationOperation {
+impl<const PORTS: usize> StepBack<PORTS> for StructuredPresentationOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {

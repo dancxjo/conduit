@@ -2721,7 +2721,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     scheduler
                         .signs()
                         .events()
-                        .filter(|event| event.kind == conduit_kernel::KernelEventKind::Decision)
+                        .filter(|event| {
+                            event.kind == conduit_kernel::KernelEventKind::StepFuelGranted
+                        })
                         .last()
                         .map(|event| event.node),
                     failure.detail,

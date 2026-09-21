@@ -87,7 +87,7 @@ impl AssignedReceiver {
             },
         )
         .map_err(ReceiveRefusal::Assigned)?;
-        if plan.maximum_step_work < 3
+        if plan.maximum_step_fuel < 3
             || plan.maximum_output_bytes != 1
             || plan.output_port != 0
         {

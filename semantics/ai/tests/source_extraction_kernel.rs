@@ -10,8 +10,8 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerStatus, StepInputBytes, StepIo,
-        StepOperation, StepOutcome,
+        CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerStatus, StepBack,
+        StepInputBytes, StepIo, StepOutcome,
     },
     BoundedValueRef, CordEndpoint, CordId, Failure, FailureCode, FixedHostCallBindings,
     FixedRoutes, HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog,
@@ -48,7 +48,7 @@ enum TestOperation {
     Sink(SinkOperation),
 }
 
-impl StepOperation<1> for TestOperation {
+impl StepBack<1> for TestOperation {
     fn step(&mut self, io: &mut StepIo<1>, bytes: &StepInputBytes<'_, 1>) -> StepOutcome {
         match self {
             Self::Source(operation) => {
@@ -224,15 +224,15 @@ fn scheduler(source: &SourceRef) -> Scheduler {
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [Some(CordId(1))],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
         ],
         [

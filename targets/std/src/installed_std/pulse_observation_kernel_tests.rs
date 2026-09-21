@@ -2,8 +2,7 @@
 //! every execution decision use the production Step protocol and fixed scheduler.
 use super::*;
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepInputBytes, StepIo, StepOperation,
-    StepOutcome,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, HostCallBinding, HostCallDisposition, HostCallId,
@@ -25,7 +24,7 @@ enum Driver {
         pending: bool,
     },
 }
-impl StepOperation<1> for Driver {
+impl StepBack<1> for Driver {
     fn step(&mut self, io: &mut StepIo<1>, bytes: &StepInputBytes<'_, 1>) -> StepOutcome {
         match self {
             Self::Pulse(operation) => operation.step(io, bytes),
@@ -123,7 +122,7 @@ fn installed_pulse_stream_runs_in_production_kernel_with_capacity_one_cords() {
     let mut scheduler = FixedScheduler::<_, _, _, 3, 2, 1, 2, 3, 2, 3, 1>::new_with_host_calls(
         [None, Some(CordId(0)), Some(CordId(1))].map(|input| NodeSpec {
             input_cords: [input],
-            maximum_step_work: 3,
+            maximum_step_fuel: 3,
         }),
         [0, 1].map(|index| {
             CordSpec::local(

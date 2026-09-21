@@ -7,7 +7,7 @@ use conduit_core::{
     ExecutionProfileId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
     PortId, RequestId,
 };
@@ -212,16 +212,16 @@ fn offer_for(contract: Kind, implementation: &str, operations: &[&str]) -> Capab
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
     PreparedGardenStep::for_placement(placement)?
         .ok_or_else(|| "Garden operation selected another implementation".to_string())?;
-    Ok(BrowserOperation::installed_step(GardenStepOperation::new()))
+    Ok(BrowserOperation::installed_step(GardenStepBack::new()))
 }
 
-struct GardenStepOperation {
+struct GardenStepBack {
     prior_ready: bool,
     prior_closed: bool,
     pending: Option<(RequestId, HostCallId)>,
 }
 
-impl GardenStepOperation {
+impl GardenStepBack {
     const fn new() -> Self {
         Self {
             prior_ready: false,
@@ -231,7 +231,7 @@ impl GardenStepOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for GardenStepOperation {
+impl<const PORTS: usize> StepBack<PORTS> for GardenStepBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             let Some((expected, operation)) = self.pending else {
@@ -313,7 +313,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for GardenStepOperation {
     }
 }
 
-impl GardenStepOperation {
+impl GardenStepBack {
     fn request<const PORTS: usize>(
         &mut self,
         io: &mut StepIo<PORTS>,

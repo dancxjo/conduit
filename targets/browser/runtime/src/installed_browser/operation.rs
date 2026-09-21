@@ -1,7 +1,7 @@
 //! Generic finite kernel verbs used by installed browser implementations.
 
 use conduit_core::Scalar;
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::ValueStorage;
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
@@ -9,12 +9,12 @@ use conduit_kernel::{
 };
 
 pub(crate) struct BrowserOperation {
-    step: Box<dyn StepOperation<{ super::BROWSER_PORTS_PER_GEAR }>>,
+    step: Box<dyn StepBack<{ super::BROWSER_PORTS_PER_GEAR }>>,
 }
 
 impl BrowserOperation {
     pub(crate) fn installed_step(
-        back: impl StepOperation<{ super::BROWSER_PORTS_PER_GEAR }> + 'static,
+        back: impl StepBack<{ super::BROWSER_PORTS_PER_GEAR }> + 'static,
     ) -> Self {
         Self {
             step: Box::new(back),
@@ -150,7 +150,7 @@ impl ApplicationStateOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for ApplicationStateOperation {
+impl<const PORTS: usize> StepBack<PORTS> for ApplicationStateOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -219,7 +219,7 @@ impl HostSourceOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for HostSourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for HostSourceOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -261,7 +261,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for HostSourceOperation {
     }
 }
 
-impl StepOperation<{ super::BROWSER_PORTS_PER_GEAR }> for BrowserOperation {
+impl StepBack<{ super::BROWSER_PORTS_PER_GEAR }> for BrowserOperation {
     fn step_committed(&mut self) {
         self.step.step_committed();
     }
@@ -297,7 +297,7 @@ struct SingletonStreamOperation {
     emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for SingletonStreamOperation {
+impl<const PORTS: usize> StepBack<PORTS> for SingletonStreamOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some(value) = io.input(PortId(0)) {
             if self.emitted || value.byte_len > self.maximum_bytes {
@@ -321,7 +321,7 @@ struct ExactlyOneOperation {
     emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for ExactlyOneOperation {
+impl<const PORTS: usize> StepBack<PORTS> for ExactlyOneOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some(value) = io.input(PortId(0)) {
             if self.held.is_some() || value.byte_len > self.maximum_bytes {
@@ -348,7 +348,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for ExactlyOneOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for SourceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for SourceOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return fail(1);
@@ -369,7 +369,7 @@ struct UnaryOperation {
     pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for UnaryOperation {
+impl<const PORTS: usize> StepBack<PORTS> for UnaryOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
@@ -441,7 +441,7 @@ struct PresentationOperation {
     pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for PresentationOperation {
+impl<const PORTS: usize> StepBack<PORTS> for PresentationOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
@@ -540,7 +540,7 @@ impl SelectScalarOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for SelectScalarOperation {
+impl<const PORTS: usize> StepBack<PORTS> for SelectScalarOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -617,7 +617,7 @@ struct CompareScalarOperation {
     decisions: [Option<ValueRef>; 2],
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for CompareScalarOperation {
+impl<const PORTS: usize> StepBack<PORTS> for CompareScalarOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -690,7 +690,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for CompareScalarOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for InactiveOperation {
+impl<const PORTS: usize> StepBack<PORTS> for InactiveOperation {
     fn step(&mut self, _: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         StepOutcome::Complete
     }

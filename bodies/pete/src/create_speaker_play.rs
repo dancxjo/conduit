@@ -3,7 +3,7 @@
 use conduit_kernel::{
     scheduler::{
         CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, SchedulerStatus,
-        StepInputBytes, StepIo, StepOperation, StepOutcome,
+        StepBack, StepInputBytes, StepIo, StepOutcome,
     },
     BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, NodeId, PortId,
@@ -44,7 +44,7 @@ enum DriverOperation {
     Speaker(SpeakerOperation),
 }
 
-impl StepOperation<PORTS> for DriverOperation {
+impl StepBack<PORTS> for DriverOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
             Self::Source(source) => {
@@ -218,11 +218,11 @@ pub fn prepare_speaker_execution(
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
         ],
         [CordSpec::local(

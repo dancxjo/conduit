@@ -25,7 +25,7 @@ pub struct AssignedSingleSourceRequirements<'a> {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AssignedSingleSourceView {
     pub assigned: AssignedPlanView,
-    pub maximum_step_work: u16,
+    pub maximum_step_fuel: u16,
     pub maximum_output_bytes: u32,
     pub output_port: u16,
 }
@@ -110,7 +110,7 @@ fn decode_records(
     if required.resources.len() > resources.len() {
         return Err(AssignedPlanRefusal::MalformedRecord);
     }
-    let mut maximum_step_work = None;
+    let mut maximum_step_fuel = None;
     let mut maximum_output_bytes = None;
     let mut output_port = None;
     let mut host_call_seen = false;
@@ -133,7 +133,7 @@ fn decode_records(
             ASSIGNED_NODE => {
                 length == 52
                     && u16_at(payload, 0)? == 0
-                    && maximum_step_work.replace(u16_at(payload, 2)?).is_none()
+                    && maximum_step_fuel.replace(u16_at(payload, 2)?).is_none()
             }
             ASSIGNED_PORT => {
                 length == 37
@@ -219,8 +219,8 @@ fn decode_records(
             runtime_state_bytes,
             counts,
         },
-        maximum_step_work: maximum_step_work.ok_or(AssignedPlanRefusal::MissingOperation)?,
-        maximum_output_bytes: maximum_output_bytes.ok_or(AssignedPlanRefusal::MissingOperation)?,
+        maximum_step_fuel: maximum_step_fuel.ok_or(AssignedPlanRefusal::MissingBack)?,
+        maximum_output_bytes: maximum_output_bytes.ok_or(AssignedPlanRefusal::MissingHostCall)?,
         output_port: output_port.ok_or(AssignedPlanRefusal::MalformedRecord)?,
     })
 }
@@ -278,7 +278,7 @@ mod tests {
             requirements,
         )
         .unwrap();
-        assert_eq!(decoded.maximum_step_work, 3);
+        assert_eq!(decoded.maximum_step_fuel, 3);
         assert_eq!(decoded.maximum_output_bytes, 1);
         assert_eq!(decoded.output_port, 0);
 

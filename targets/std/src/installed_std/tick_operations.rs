@@ -10,7 +10,7 @@ use super::contract::{
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, CanonicalValue, Failure, FailureCode, HostCallDisposition, HostCallId, PortId,
     RequestId, ValueRef, ValueStorage,
 };
@@ -37,7 +37,7 @@ pub(super) struct TickOperation {
     cancelled: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TickOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TickOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.cancelled {
             return StepOutcome::Fail(tick_failure(FailureCode::Cancelled, 2));
@@ -318,7 +318,7 @@ pub(super) struct TestObserverOperation {
 }
 
 #[cfg(test)]
-impl<const PORTS: usize> StepOperation<PORTS> for TestObserverOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestObserverOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -423,7 +423,7 @@ mod tests {
             io.test_host_request().map(|request| (request.0, request.1)),
             Some((RequestId(0), HostCallId(0)))
         );
-        StepOperation::<1>::cancel(&mut operation);
+        StepBack::<1>::cancel(&mut operation);
         let mut io = StepIo::test_frame(
             [None],
             [false],

@@ -4,7 +4,7 @@ use crate::{
 };
 use conduit_core::{BootId, HostId};
 use conduit_kernel::scheduler::{
-    FixedScheduler, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+    FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
@@ -26,7 +26,7 @@ struct PresentLeaf {
     pending: bool,
 }
 
-impl StepOperation<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> for PresentLeaf {
+impl StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> for PresentLeaf {
     fn step(
         &mut self,
         io: &mut StepIo<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>,

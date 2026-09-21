@@ -9,7 +9,7 @@ use conduit_core::{
     PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     CanonicalValue, Failure, FailureCode, HostedValueStore, PortId,
 };
 
@@ -110,7 +110,7 @@ struct ButtonIndicatorOperation {
     emitted: u32,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for ButtonIndicatorOperation {
+impl<const PORTS: usize> StepBack<PORTS> for ButtonIndicatorOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

@@ -1,6 +1,6 @@
 use super::*;
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     HostCallOutcome,
 };
 
@@ -98,7 +98,7 @@ fn transitions_continue_in_one_play_until_explicit_stop() {
         assert_eq!(io.test_output(PortId(0)), Some(output));
         request(&mut source, u32::try_from(index).unwrap() + 1);
     }
-    StepOperation::<1>::cancel(&mut source);
+    StepBack::<1>::cancel(&mut source);
     assert!(source.terminal);
     assert!(source.pending.is_none());
 }
@@ -138,7 +138,7 @@ fn malformed_failure_and_late_completion_remain_distinct() {
         .0,
         StepOutcome::Fail(failure)
     );
-    StepOperation::<1>::cancel(&mut source);
+    StepBack::<1>::cancel(&mut source);
     assert_eq!(
         complete(
             &mut source,

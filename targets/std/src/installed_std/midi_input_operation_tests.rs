@@ -2,7 +2,7 @@ use super::*;
 use conduit_audio::{Gate, MusicalControl};
 
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     ValueRef,
 };
 use conduit_midi::{MidiMessage, ParsedMidi};
@@ -216,7 +216,7 @@ fn unsupported_protocol_observation_and_cancellation_fail_closed() {
             detail: 95
         }))
     );
-    StepOperation::<2>::cancel(&mut source);
+    StepBack::<2>::cancel(&mut source);
     assert_eq!(source.adapter.active_notes(), 0);
     assert!(source.pending.is_none());
 }

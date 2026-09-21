@@ -5,7 +5,7 @@ use super::recurrence_codec;
 use super::recurrence_encoding;
 use conduit_core::{ConfigurationValue, PlannedGear, StructuredInfoValue};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     PortId, ValueRef, ValueStorage,
 };
 use conduit_time::RecurrenceRule;
@@ -21,7 +21,7 @@ pub(super) struct RecurrenceOperation {
     emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for RecurrenceOperation {
+impl<const PORTS: usize> StepBack<PORTS> for RecurrenceOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;

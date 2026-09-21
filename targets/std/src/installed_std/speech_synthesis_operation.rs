@@ -3,7 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef, ValueStorage,
 };
@@ -44,7 +44,7 @@ pub(super) struct SpeechSynthesisOperation {
     finished: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for SpeechSynthesisOperation {
+impl<const PORTS: usize> StepBack<PORTS> for SpeechSynthesisOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.finished {
             return StepOutcome::Complete;
@@ -458,7 +458,7 @@ pub(super) fn prepare_fake_hosts(
 mod tests {
     use super::*;
     use conduit_kernel::{
-        scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+        scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
         HostCallOutcome,
     };
 

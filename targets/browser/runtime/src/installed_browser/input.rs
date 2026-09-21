@@ -6,7 +6,7 @@ use conduit_core::{
     kind_id, resource_requirement, HostCallContractId, HostCallRequirement, PlannedGear,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef, ValueStorage,
 };
@@ -164,7 +164,7 @@ fn continuous_input_step<const PORTS: usize>(
     StepOutcome::Await
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for ButtonOperation {
+impl<const PORTS: usize> StepBack<PORTS> for ButtonOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         continuous_input_step(self.request, &mut self.pending, &mut self.next, io)
     }
@@ -174,7 +174,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for ButtonOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for KeyboardOperation {
+impl<const PORTS: usize> StepBack<PORTS> for KeyboardOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         continuous_input_step(self.request, &mut self.pending, &mut self.next, io)
     }
@@ -203,7 +203,7 @@ mod tests {
     use super::*;
     use conduit_kernel::{HostCallOutcome, ValueRef};
 
-    fn initial<O: StepOperation<1>>(operation: &mut O) -> StepIo<1> {
+    fn initial<O: StepBack<1>>(operation: &mut O) -> StepIo<1> {
         let mut io = StepIo::test_frame([None], [false], [Some(4096)], None, 4);
         assert_eq!(
             operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
@@ -212,7 +212,7 @@ mod tests {
         io
     }
 
-    fn complete<O: StepOperation<1>>(
+    fn complete<O: StepBack<1>>(
         operation: &mut O,
         request: RequestId,
         output: BoundedValueRef,

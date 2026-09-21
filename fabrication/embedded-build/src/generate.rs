@@ -230,7 +230,7 @@ fn generate_nodes(
                 .get(index)
                 .ok_or(GenerationError::InconsistentLowering("node placement"))?;
             if placement.placement_id != node.placement_id
-                || spec.maximum_step_work != node.maximum_step_work
+                || spec.maximum_step_fuel != node.maximum_step_fuel
             {
                 return Err(GenerationError::InconsistentLowering("node table"));
             }
@@ -241,7 +241,7 @@ fn generate_nodes(
                 implementation_id: placement.implementation_id.as_str().to_owned(),
                 artifact_id: placement.artifact_id.as_str().to_owned(),
                 input_cords: spec.input_cords.map(|cord| cord.map(|cord| cord.0)),
-                maximum_step_work: node.maximum_step_work,
+                maximum_step_fuel: node.maximum_step_fuel,
             })
         })
         .collect()

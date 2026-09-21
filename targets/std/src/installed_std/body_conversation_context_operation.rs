@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    scheduler::{HostCallRequest, StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{HostCallRequest, StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
     PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -18,7 +18,7 @@ pub(super) struct BodyConversationContextOperation {
     next_request: u32,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for BodyConversationContextOperation {
+impl<const PORTS: usize> StepBack<PORTS> for BodyConversationContextOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         let Some(token) = self.token else {
             return step_fail(FailureCode::InvalidLifecycle, 1);

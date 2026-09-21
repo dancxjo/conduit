@@ -1,7 +1,7 @@
 //! Shared deterministic kernel operation for finite phase following.
 
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     CanonicalValue, Failure, FailureCode, PortId,
 };
 
@@ -68,7 +68,7 @@ impl Default for PhaseSynchronizationOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for PhaseSynchronizationOperation {
+impl<const PORTS: usize> StepBack<PORTS> for PhaseSynchronizationOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -313,7 +313,7 @@ mod tests {
         );
 
         let mut cancelled = PhaseSynchronizationOperation::new();
-        StepOperation::<2>::cancel(&mut cancelled);
+        StepBack::<2>::cancel(&mut cancelled);
         let mut io = StepIo::test_frame([None; 2], [true, false], [None; 2], None, 4);
         assert_eq!(
             cancelled.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),

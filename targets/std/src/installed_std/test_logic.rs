@@ -6,7 +6,7 @@ use conduit_core::{
 };
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId, ValueRef, ValueStorage,
 };
 
@@ -40,7 +40,7 @@ pub(super) struct TestLogicScriptOperation {
 
 pub(super) struct TestLogicSinkOperation;
 
-impl<const PORTS: usize> StepOperation<PORTS> for TestLogicScriptOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestLogicScriptOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         let Some(value) = self.values.get(self.next).copied() else {
             return StepOutcome::Complete;
@@ -55,7 +55,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for TestLogicScriptOperation {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TestLogicSinkOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TestLogicSinkOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

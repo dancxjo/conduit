@@ -1,6 +1,6 @@
 #![cfg(feature = "kernel-step")]
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
     PortId, RequestId, ValueRef,
 };
@@ -72,7 +72,7 @@ fn dropped_value_does_not_close_flow_and_next_match_emits() {
 fn cancel_rejects_late_completion() {
     let mut operation = StructuredSelectorOperation::new(4096);
     input(&mut operation);
-    StepOperation::<1>::cancel(&mut operation);
+    StepBack::<1>::cancel(&mut operation);
     assert_eq!(
         completion(&mut operation, 0, true).0,
         StepOutcome::Fail(Failure {

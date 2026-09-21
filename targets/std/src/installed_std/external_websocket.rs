@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef, ValueStorage,
 };
@@ -36,7 +36,7 @@ pub(super) struct ExternalWebSocketListenerOperation {
     after_emit: AfterEmit,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for ExternalWebSocketListenerOperation {
+impl<const PORTS: usize> StepBack<PORTS> for ExternalWebSocketListenerOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if request != RequestId(self.next_request.saturating_sub(1)) {

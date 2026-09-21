@@ -10,7 +10,7 @@ use conduit_core::{
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     CanonicalValue, Failure, FailureCode, PortId,
 };
 
@@ -32,7 +32,7 @@ struct InstrumentMapping {
     expression_control: u64,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for InstrumentMapOperation {
+impl<const PORTS: usize> StepBack<PORTS> for InstrumentMapOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

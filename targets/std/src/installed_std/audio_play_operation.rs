@@ -1,7 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{CapabilityOffer, PlannedGear, PortDirection};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
     PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -23,7 +23,7 @@ pub(super) struct AudioPlayOperation {
     closed: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for AudioPlayOperation {
+impl<const PORTS: usize> StepBack<PORTS> for AudioPlayOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
@@ -289,7 +289,7 @@ fn failure_outcome(error: crate::hosted_audio::PlaybackFailure) -> conduit_kerne
 mod tests {
     use super::*;
     use conduit_kernel::{
-        scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+        scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
         HostCallOutcome,
     };
 

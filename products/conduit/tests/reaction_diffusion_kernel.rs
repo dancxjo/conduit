@@ -13,7 +13,7 @@ use conduit_form::{
 };
 use conduit_kernel::{
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepInputBytes, StepIo, StepOperation,
+        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo,
         StepOutcome,
     },
     BoundedValueRef, CordEndpoint, CordId, Failure, FailureCode, FixedHostCallBindings,
@@ -44,7 +44,7 @@ enum TestOperation {
     },
 }
 
-impl StepOperation<1> for TestOperation {
+impl StepBack<1> for TestOperation {
     fn step(&mut self, io: &mut StepIo<1>, bytes: &StepInputBytes<'_, 1>) -> StepOutcome {
         match self {
             Self::Source { value, emitted } => {
@@ -246,11 +246,11 @@ fn scheduler() -> Scheduler {
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
         ],
         [CordSpec::local(

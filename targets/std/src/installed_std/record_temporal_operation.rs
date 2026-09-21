@@ -3,7 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     PortId, ValueRef,
 };
 
@@ -22,7 +22,7 @@ pub(super) struct RecordSingletonStreamOperation {
     emitted: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for RecordSingletonStreamOperation {
+impl<const PORTS: usize> StepBack<PORTS> for RecordSingletonStreamOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;
@@ -54,7 +54,7 @@ pub(super) struct RecordExactlyOneOperation {
     retain_resumed: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for RecordExactlyOneOperation {
+impl<const PORTS: usize> StepBack<PORTS> for RecordExactlyOneOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted {
             return StepOutcome::Complete;

@@ -1,6 +1,6 @@
 //! Step Backs for the distributed toggle source fragment.
 
-use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef,
@@ -51,7 +51,7 @@ impl ToggleSourceBack {
     }
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for ToggleSourceBack {
+impl<const PORTS: usize> StepBack<PORTS> for ToggleSourceBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

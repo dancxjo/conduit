@@ -1,7 +1,7 @@
 //! Shared kernel operation for a finite pressed-button timing attempt.
 use alloc::vec::Vec;
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef,
 };
@@ -24,7 +24,7 @@ pub struct TimedButtonAttemptOperation {
     input_closed: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for TimedButtonAttemptOperation {
+impl<const PORTS: usize> StepBack<PORTS> for TimedButtonAttemptOperation {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

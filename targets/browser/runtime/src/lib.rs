@@ -6,8 +6,8 @@ use conduit_core::{
     PROTOCOL_VERSION,
 };
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus, StepInputBytes, StepIo,
-    StepOperation, StepOutcome,
+    FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus, StepBack, StepInputBytes,
+    StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
@@ -223,7 +223,7 @@ impl SignalBack {
     }
 }
 
-impl StepOperation<PORTS> for SignalBack {
+impl StepBack<PORTS> for SignalBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

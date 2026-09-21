@@ -1,6 +1,6 @@
 use conduit_kernel::{
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepInputBytes, StepIo, StepOperation,
+        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo,
         StepOutcome,
     },
     BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
@@ -42,7 +42,7 @@ pub(super) enum DockKernelOperation {
     Dock(CreateDockOperation),
 }
 
-impl StepOperation<PORTS> for DockKernelOperation {
+impl StepBack<PORTS> for DockKernelOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
             Self::Source(source) => {
@@ -152,11 +152,11 @@ pub(super) fn prepare_dock_scheduler(request: [u8; 1]) -> Result<DockScheduler, 
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
         ],
         [CordSpec::local(

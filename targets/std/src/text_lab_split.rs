@@ -2,7 +2,7 @@
 
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyModifiers, KeyTransition, KeymapDisposition};
 use conduit_kernel::scheduler::{
-    FixedScheduler, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+    FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
@@ -82,7 +82,7 @@ impl NativeBack {
     }
 }
 
-impl StepOperation<PORTS> for NativeBack {
+impl StepBack<PORTS> for NativeBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,

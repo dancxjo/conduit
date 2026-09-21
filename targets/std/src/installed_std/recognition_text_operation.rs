@@ -3,7 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
@@ -20,7 +20,7 @@ pub(super) struct RecognitionTextOperation {
     flow: bool,
 }
 
-impl<const PORTS: usize> StepOperation<PORTS> for RecognitionTextOperation {
+impl<const PORTS: usize> StepBack<PORTS> for RecognitionTextOperation {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.emitted && !self.flow {
             return StepOutcome::Complete;
