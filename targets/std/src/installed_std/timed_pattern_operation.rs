@@ -3,6 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId,
 };
@@ -16,6 +17,63 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
 pub(super) struct TimedPatternOperation {
     pending: Option<RequestId>,
     completed: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TimedPatternOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.completed {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(FailureCode::InvalidLifecycle, 232);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed timed-pattern completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready timed-pattern output");
+                    self.pending = None;
+                    self.completed = true;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Cancelled, _, _) => {
+                    return step_fail(FailureCode::Cancelled, 0)
+                }
+                (HostCallDisposition::Failed, None, Some(failure)) => {
+                    return StepOutcome::Fail(failure)
+                }
+                _ => return step_fail(FailureCode::InvalidLifecycle, 231),
+            }
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() {
+                return step_fail(FailureCode::InvalidLifecycle, 232);
+            }
+            let Ok(input) = BoundedValueRef::new(value, MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32)
+            else {
+                return step_fail(FailureCode::InvalidInput, 230);
+            };
+            io.consume(PortId(0)).expect("present timed-pattern input");
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("timed-pattern Host Call");
+            self.pending = Some(RequestId(0));
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl TimedPatternOperation {
