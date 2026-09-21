@@ -1,6 +1,6 @@
 use super::*;
 use conduit_core::encode_monotonic_duration;
-use conduit_kernel::ValueStorage;
+use conduit_kernel::{HostCallOutcome, ValueStorage};
 
 fn operation(
     store: &mut conduit_kernel::HostedValueStore,
@@ -9,20 +9,51 @@ fn operation(
     let durations = (0..maximum_transitions)
         .map(|_| store.store(&encode_monotonic_duration(50)).unwrap())
         .collect();
-    TimedButtonAttemptOperation {
-        maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+    TimedButtonAttemptOperation::from_prepared_durations(
         durations,
-        released: Vec::with_capacity(maximum_transitions as usize + 1),
-        next_duration: 0,
-        next_request: 0,
-        pending: None,
-        cancellation: None,
-        queued_transition: None,
-        accepted_transitions: 0,
         maximum_transitions,
-        retain_resumed: false,
-        emitted_attempt: false,
-        completed_attempt: false,
+        conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+    )
+}
+
+fn input(operation: &mut TimedButtonAttemptOperation, value: ValueRef) -> (StepOutcome, StepIo<1>) {
+    let mut io = StepIo::test_frame(
+        [Some(value)],
+        [false],
+        [Some(
+            conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        )],
+        None,
+        8,
+    );
+    let outcome = operation.step(&mut io, &StepInputBytes::test_frame([None], None));
+    (outcome, io)
+}
+
+fn completion(
+    operation: &mut TimedButtonAttemptOperation,
+    request: RequestId,
+    outcome: HostCallOutcome,
+    bytes: Option<&[u8]>,
+) -> (StepOutcome, StepIo<1>) {
+    let mut io = StepIo::test_frame(
+        [None],
+        [false],
+        [Some(
+            conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        )],
+        Some((request, outcome)),
+        8,
+    );
+    let result = operation.step(&mut io, &StepInputBytes::test_frame([None], bytes));
+    (result, io)
+}
+
+fn completed(output: Option<BoundedValueRef>) -> HostCallOutcome {
+    HostCallOutcome {
+        disposition: HostCallDisposition::Completed,
+        output,
+        failure: None,
     }
 }
 
@@ -32,57 +63,31 @@ fn fired_deadline_is_a_distinct_timeout_failure() {
     let transition = store.store(b"transition").unwrap();
     let marker = store.store(&[0]).unwrap();
     let mut operation = operation(&mut store, 2);
-    assert!(matches!(
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: transition
-        }),
-        OperationAction::RequestHostCall {
-            operation: HostCallId(1),
-            ..
-        }
-    ));
-    assert!(matches!(
-        operation.resume_host_call(
-            RequestId(0),
-            HostCallOutcome {
-                disposition: HostCallDisposition::Completed,
-                output: Some(BoundedValueRef::new(marker, 1).unwrap()),
-                failure: None,
-            },
-            Some(&[0]),
-        ),
-        OperationAction::RequestHostCall {
-            operation: HostCallId(0),
-            ..
-        }
-    ));
-    assert!(matches!(
-        operation.resume(OperationInput::HostCallCompleted {
-            request: RequestId(1),
-            outcome: HostCallOutcome {
-                disposition: HostCallDisposition::Completed,
-                output: None,
-                failure: None,
-            }
-        }),
-        OperationAction::Fail(Failure {
-            code: FailureCode::HostCallFailed,
-            detail: 4
-        })
-    ));
+    let (outcome, io) = input(&mut operation, transition);
+    assert_eq!(outcome, StepOutcome::Progress);
+    assert_eq!(io.test_host_request().unwrap().1, HostCallId(1));
+    let (outcome, io) = completion(
+        &mut operation,
+        RequestId(0),
+        completed(Some(BoundedValueRef::new(marker, 1).unwrap())),
+        Some(&[0]),
+    );
+    assert_eq!(outcome, StepOutcome::Progress);
+    assert_eq!(io.test_host_request().unwrap().1, HostCallId(0));
+    assert_eq!(
+        completion(&mut operation, RequestId(1), completed(None), None,).0,
+        attempt_step_fail(FailureCode::HostCallFailed, 4)
+    );
 }
 
 #[test]
 fn closed_input_before_the_required_presses_is_not_timeout_or_exhaustion() {
     let mut store = conduit_kernel::HostedValueStore::new(8, 1024, 4096).unwrap();
     let mut operation = operation(&mut store, 2);
+    let mut io = StepIo::test_frame([None], [true], [None], None, 8);
     assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::Fail(Failure {
-            code: FailureCode::InvalidInput,
-            detail: 2
-        })
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        attempt_step_fail(FailureCode::InvalidInput, 2)
     );
 }
 
@@ -92,117 +97,61 @@ fn total_transition_exhaustion_is_not_timeout_or_malformed_input() {
     let first = store.store(b"released-1").unwrap();
     let second = store.store(b"released-2").unwrap();
     let mut operation = operation(&mut store, 1);
-    assert!(matches!(
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: first
-        }),
-        OperationAction::RequestHostCall { .. }
-    ));
-    assert!(matches!(
-        operation.resume_host_call(
-            RequestId(0),
-            HostCallOutcome {
-                disposition: HostCallDisposition::Completed,
-                output: None,
-                failure: None,
-            },
-            None,
-        ),
-        OperationAction::Await
-    ));
-    assert!(matches!(
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: second
-        }),
-        OperationAction::Fail(Failure {
-            code: FailureCode::StorageExhausted,
-            detail: 1
-        })
-    ));
+    assert_eq!(input(&mut operation, first).0, StepOutcome::Progress);
+    assert_eq!(
+        completion(&mut operation, RequestId(0), completed(None), None).0,
+        StepOutcome::Progress
+    );
+    assert_eq!(
+        input(&mut operation, second).0,
+        attempt_step_fail(FailureCode::StorageExhausted, 1)
+    );
 }
 
 #[test]
-fn shared_operation_retains_transition_until_exact_deadline_cancellation() {
+fn shared_step_cancels_the_exact_deadline_before_consuming_the_next_transition() {
     let mut store = conduit_kernel::HostedValueStore::new(12, 1024, 4096).unwrap();
     let first = store.store(b"first").unwrap();
     let next = store.store(b"next").unwrap();
     let marker = store.store(&[0]).unwrap();
-    let mut prepared = operation(&mut store, 3);
-    let operation: &mut dyn conduit_kernel::Operation = &mut prepared;
-    assert!(operation.accepts_input_while_host_call_pending());
-    assert!(matches!(
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: first
-        }),
-        OperationAction::RequestHostCall {
-            request: RequestId(0),
-            ..
-        }
+    let mut operation = operation(&mut store, 3);
+    assert!(StepOperation::<1>::accepts_input_while_host_call_pending(
+        &operation
     ));
-    assert!(matches!(
-        operation.resume_host_call(
-            RequestId(0),
-            HostCallOutcome {
-                disposition: HostCallDisposition::Completed,
-                output: Some(BoundedValueRef::new(marker, 1).unwrap()),
-                failure: None,
-            },
-            Some(&[0])
-        ),
-        OperationAction::RequestHostCall {
-            request: RequestId(1),
-            operation: HostCallId(0),
-            ..
-        }
-    ));
+    assert_eq!(input(&mut operation, first).0, StepOutcome::Progress);
+    let (_, deadline) = completion(
+        &mut operation,
+        RequestId(0),
+        completed(Some(BoundedValueRef::new(marker, 1).unwrap())),
+        Some(&[0]),
+    );
+    assert_eq!(deadline.test_host_request().unwrap().0, RequestId(1));
+
+    let (outcome, cancellation) = input(&mut operation, next);
+    assert_eq!(outcome, StepOutcome::Progress);
+    assert_eq!(cancellation.test_host_cancellation(), Some(RequestId(1)));
+    assert!(!cancellation.test_consumed(PortId(0)));
     assert_eq!(
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: next
-        }),
-        OperationAction::Await
-    );
-    assert!(operation.retains_resumed_value());
-    assert_eq!(operation.take_host_call_cancellation(), Some(RequestId(1)));
-    assert_eq!(operation.take_host_call_cancellation(), None);
-    assert!(
-        matches!(operation.resume_host_call(RequestId(1), HostCallOutcome {
-        disposition: HostCallDisposition::Cancelled, output: None, failure: None,
-    }, None), OperationAction::RequestHostCall { request: RequestId(2), operation: HostCallId(1), input } if input.value == next)
-    );
-    assert!(matches!(
-        operation.resume_host_call(
-            RequestId(2),
+        completion(
+            &mut operation,
+            RequestId(1),
             HostCallOutcome {
-                disposition: HostCallDisposition::Completed,
+                disposition: HostCallDisposition::Cancelled,
                 output: None,
                 failure: None,
             },
-            None
-        ),
-        OperationAction::RequestHostCall {
-            request: RequestId(3),
-            operation: HostCallId(0),
-            ..
-        }
-    ));
+            None,
+        )
+        .0,
+        StepOutcome::Progress
+    );
+    let (_, observation) = input(&mut operation, next);
+    assert_eq!(observation.test_host_request().unwrap().0, RequestId(2));
+    let (_, deadline) = completion(&mut operation, RequestId(2), completed(None), None);
+    assert_eq!(deadline.test_host_request().unwrap().0, RequestId(3));
     assert_eq!(
-        operation.resume_host_call(
-            RequestId(3),
-            HostCallOutcome {
-                disposition: HostCallDisposition::Completed,
-                output: None,
-                failure: None,
-            },
-            None
-        ),
-        OperationAction::Fail(Failure {
-            code: FailureCode::HostCallFailed,
-            detail: 4
-        })
+        completion(&mut operation, RequestId(3), completed(None), None,).0,
+        attempt_step_fail(FailureCode::HostCallFailed, 4)
     );
 }
 
@@ -211,12 +160,8 @@ fn observation_request_uses_the_callers_admitted_input_bound() {
     let mut store = conduit_kernel::HostedValueStore::new(8, 4096, 32768).unwrap();
     let value = store.store(b"transition").unwrap();
     let mut operation = TimedButtonAttemptOperation::from_prepared_durations(Vec::new(), 2, 4096);
-    let OperationAction::RequestHostCall { input, .. } = operation.resume(OperationInput::Value {
-        port: PortId(0),
-        value,
-    }) else {
-        panic!("transition must request clock observation");
-    };
-    assert_eq!(input.admitted_bytes, 4096);
-    assert_eq!(input.value, value);
+    let (_, io) = input(&mut operation, value);
+    let request = io.test_host_request().unwrap();
+    assert_eq!(request.2.admitted_bytes, 4096);
+    assert_eq!(request.2.value, value);
 }

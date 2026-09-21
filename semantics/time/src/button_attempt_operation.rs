@@ -2,8 +2,8 @@
 use alloc::vec::Vec;
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef,
 };
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Pending {
@@ -14,17 +14,14 @@ enum Pending {
 pub struct TimedButtonAttemptOperation {
     maximum_input_bytes: u32,
     durations: Vec<ValueRef>,
-    released: Vec<ValueRef>,
     next_duration: usize,
     next_request: u32,
     pending: Option<(RequestId, Pending)>,
     cancellation: Option<RequestId>,
-    queued_transition: Option<ValueRef>,
     accepted_transitions: u64,
     maximum_transitions: u64,
-    retain_resumed: bool,
-    emitted_attempt: bool,
     completed_attempt: bool,
+    input_closed: bool,
 }
 
 impl<const PORTS: usize> StepOperation<PORTS> for TimedButtonAttemptOperation {
@@ -115,6 +112,17 @@ impl<const PORTS: usize> StepOperation<PORTS> for TimedButtonAttemptOperation {
                 }
             }
         }
+        if self.input_closed {
+            if !self.completed_attempt || self.accepted_transitions != 0 {
+                return attempt_step_fail(FailureCode::InvalidInput, 2);
+            }
+            if let Some(value) = self.durations.pop() {
+                io.discard(value)
+                    .expect("one bounded button-attempt duration release");
+                return StepOutcome::Progress;
+            }
+            return StepOutcome::Complete;
+        }
         if let Some(value) = io.input(PortId(0)) {
             if self.accepted_transitions >= self.maximum_transitions {
                 return attempt_step_fail(FailureCode::StorageExhausted, 1);
@@ -123,10 +131,12 @@ impl<const PORTS: usize> StepOperation<PORTS> for TimedButtonAttemptOperation {
                 None => {
                     io.consume(PortId(0)).expect("present button transition");
                     self.accepted_transitions += 1;
-                    self.request_observation_step(io, value);
+                    if let Err(outcome) = self.request_observation_step(io, value) {
+                        return outcome;
+                    }
                     return StepOutcome::Progress;
                 }
-                Some((request, Pending::Deadline)) if self.queued_transition.is_none() => {
+                Some((request, Pending::Deadline)) => {
                     if self.cancellation == Some(request) {
                         return StepOutcome::Await;
                     }
@@ -141,12 +151,9 @@ impl<const PORTS: usize> StepOperation<PORTS> for TimedButtonAttemptOperation {
         if io.input_closed(PortId(0)) && self.pending.is_none() {
             io.consume_closed(PortId(0))
                 .expect("observed button-attempt closure");
-            while let Some(value) = self.durations.pop() {
-                io.discard(value)
-                    .expect("bounded button-attempt duration release");
-            }
+            self.input_closed = true;
             return if self.completed_attempt && self.accepted_transitions == 0 {
-                StepOutcome::Complete
+                StepOutcome::Progress
             } else {
                 attempt_step_fail(FailureCode::InvalidInput, 2)
             };
@@ -172,8 +179,8 @@ impl TimedButtonAttemptOperation {
         &mut self,
         io: &mut StepIo<PORTS>,
         value: ValueRef,
-    ) {
-        let request = self.next_request();
+    ) -> Result<(), StepOutcome> {
+        let request = self.next_request()?;
         io.request_host_call(
             request,
             HostCallId(1),
@@ -182,6 +189,7 @@ impl TimedButtonAttemptOperation {
         )
         .expect("button observation Host Call");
         self.pending = Some((request, Pending::Observe));
+        Ok(())
     }
 
     fn request_deadline_step<const PORTS: usize>(
@@ -192,7 +200,7 @@ impl TimedButtonAttemptOperation {
             return Err(attempt_step_fail(FailureCode::StorageExhausted, 276));
         };
         self.next_duration = 1;
-        let request = self.next_request();
+        let request = self.next_request()?;
         io.request_host_call(
             request,
             HostCallId(0),
@@ -219,236 +227,38 @@ impl TimedButtonAttemptOperation {
         TimedButtonAttemptOperation {
             maximum_input_bytes,
             durations,
-            released: Vec::with_capacity(maximum_transitions as usize + 1),
             next_duration: 0,
             next_request: 0,
             pending: None,
             cancellation: None,
-            queued_transition: None,
             accepted_transitions: 0,
             maximum_transitions,
-            retain_resumed: false,
-            emitted_attempt: false,
             completed_attempt: false,
+            input_closed: false,
         }
-    }
-
-    pub fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub fn resume(&mut self, input: OperationInput) -> OperationAction {
-        self.retain_resumed = false;
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.emitted_attempt && self.accepted_transitions < self.maximum_transitions => {
-                self.accepted_transitions += 1;
-                match self.pending {
-                    None => self.request_observation(value),
-                    Some((request, Pending::Deadline)) if self.queued_transition.is_none() => {
-                        self.retain_resumed = true;
-                        self.queued_transition = Some(value);
-                        self.cancellation = Some(request);
-                        OperationAction::Await
-                    }
-                    _ => fail(FailureCode::InvalidLifecycle, 271),
-                }
-            }
-            OperationInput::Value {
-                port: PortId(0), ..
-            } if self.accepted_transitions >= self.maximum_transitions => {
-                fail(FailureCode::StorageExhausted, 1)
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some((request, Pending::Deadline)) =>
-            {
-                self.resume_deadline(request, outcome)
-            }
-            OperationInput::Closed { port: PortId(0) }
-                if self.pending.is_none()
-                    && self.completed_attempt
-                    && self.accepted_transitions == 0 =>
-            {
-                self.release_unused_durations();
-                OperationAction::Complete
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                self.release_unused_durations();
-                fail(FailureCode::InvalidInput, 2)
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 272),
-        }
-    }
-
-    pub fn resume_host_call(
-        &mut self,
-        request: RequestId,
-        outcome: HostCallOutcome,
-        canonical: Option<&[u8]>,
-    ) -> OperationAction {
-        if self.pending != Some((request, Pending::Observe)) {
-            return self.resume(OperationInput::HostCallCompleted { request, outcome });
-        }
-        self.pending = None;
-        match (
-            outcome.disposition,
-            outcome.output,
-            outcome.failure,
-            canonical,
-        ) {
-            (HostCallDisposition::Completed, None, None, None) if self.next_duration > 0 => {
-                self.request_deadline()
-            }
-            (HostCallDisposition::Completed, None, None, None) => OperationAction::Await,
-            (HostCallDisposition::Completed, Some(_), None, Some([0])) => self.request_deadline(),
-            (HostCallDisposition::Completed, Some(output), None, Some(_)) => {
-                self.emitted_attempt = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            (HostCallDisposition::Cancelled, _, _, _) => fail(FailureCode::Cancelled, 0),
-            (HostCallDisposition::Failed, None, Some(failure), _) => OperationAction::Fail(failure),
-            _ => fail(FailureCode::InvalidLifecycle, 273),
-        }
-    }
-
-    pub fn advance(&mut self) -> OperationAction {
-        if self.emitted_attempt {
-            self.emitted_attempt = false;
-            self.completed_attempt = true;
-            self.accepted_transitions = 0;
-            self.next_duration = 0;
-        }
-        OperationAction::Await
     }
 
     pub fn cancel(&mut self) {
         self.pending = None;
         self.cancellation = None;
-        self.queued_transition = None;
-    }
-
-    pub fn retains_resumed_value(&self) -> bool {
-        self.retain_resumed
-    }
-
-    pub fn take_released_value(&mut self) -> Option<ValueRef> {
-        self.released.pop()
-    }
-
-    pub fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
-        self.cancellation.take()
     }
 
     pub fn allocation_capacity(&self) -> usize {
-        self.durations.capacity() + self.released.capacity()
+        self.durations.capacity()
     }
 
     pub fn retains_host_call_input(&self, value: ValueRef) -> bool {
         self.durations.contains(&value)
     }
 
-    fn resume_deadline(&mut self, request: RequestId, outcome: HostCallOutcome) -> OperationAction {
-        self.pending = None;
-        match (outcome.disposition, outcome.output, outcome.failure) {
-            (HostCallDisposition::Cancelled, None, None) => {
-                self.queued_transition.take().map_or_else(
-                    || fail(FailureCode::InvalidLifecycle, 274),
-                    |value| self.request_observation(value),
-                )
-            }
-            (HostCallDisposition::Completed, None, None) => {
-                self.release_unused_durations();
-                fail(FailureCode::HostCallFailed, 4)
-            }
-            (HostCallDisposition::Failed, None, Some(failure)) => OperationAction::Fail(failure),
-            _ => {
-                let _ = request;
-                fail(FailureCode::InvalidLifecycle, 275)
-            }
-        }
-    }
-
-    fn request_observation(&mut self, value: ValueRef) -> OperationAction {
-        let request = self.next_request();
-        self.pending = Some((request, Pending::Observe));
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(1),
-            input: BoundedValueRef::new(value, self.maximum_input_bytes)
-                .expect("button transition is bounded by its exact port"),
-        }
-    }
-
-    fn request_deadline(&mut self) -> OperationAction {
-        let Some(value) = self.durations.first().copied() else {
-            return fail(FailureCode::StorageExhausted, 276);
-        };
-        self.next_duration = 1;
-        let request = self.next_request();
-        self.pending = Some((request, Pending::Deadline));
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(0),
-            input: BoundedValueRef::new(value, 8)
-                .expect("deadline duration is exactly eight bytes"),
-        }
-    }
-
-    fn next_request(&mut self) -> RequestId {
+    fn next_request(&mut self) -> Result<RequestId, StepOutcome> {
         let request = RequestId(self.next_request);
-        self.next_request = self.next_request.saturating_add(1);
-        request
+        self.next_request = self
+            .next_request
+            .checked_add(1)
+            .ok_or_else(|| attempt_step_fail(FailureCode::IdentityCapacityExhausted, 277))?;
+        Ok(request)
     }
-
-    fn release_unused_durations(&mut self) {
-        self.released.append(&mut self.durations);
-    }
-}
-
-impl conduit_kernel::Operation for TimedButtonAttemptOperation {
-    fn start(&mut self) -> OperationAction {
-        Self::start(self)
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        Self::resume(self, input)
-    }
-    fn resume_host_call(
-        &mut self,
-        request: RequestId,
-        outcome: HostCallOutcome,
-        canonical: Option<&[u8]>,
-    ) -> OperationAction {
-        Self::resume_host_call(self, request, outcome, canonical)
-    }
-    fn advance(&mut self) -> OperationAction {
-        Self::advance(self)
-    }
-    fn cancel(&mut self) {
-        Self::cancel(self)
-    }
-    fn take_host_call_cancellation(&mut self) -> Option<RequestId> {
-        Self::take_host_call_cancellation(self)
-    }
-    fn take_released_value(&mut self) -> Option<ValueRef> {
-        Self::take_released_value(self)
-    }
-    fn retains_resumed_value(&self) -> bool {
-        Self::retains_resumed_value(self)
-    }
-    fn accepts_input_while_host_call_pending(&self) -> bool {
-        true
-    }
-    fn retains_host_call_input(&self, _request: RequestId, value: ValueRef) -> bool {
-        Self::retains_host_call_input(self, value)
-    }
-}
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }
 
 #[cfg(test)]
