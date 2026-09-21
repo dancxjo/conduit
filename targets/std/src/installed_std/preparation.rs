@@ -1,7 +1,7 @@
 //! Construct the finite operation driver set before Play start.
-use super::{catalog::factory, operation::InstalledOperation, MAX_NODES, PORTS};
+use super::{catalog::factory, operation::InstalledOperation, MAX_NODES};
 use conduit_core::PlanFragment;
-use conduit_kernel::{scheduler::OperationDriver, HostedValueStore};
+use conduit_kernel::HostedValueStore;
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
 pub(super) fn prepare_operations(
@@ -10,7 +10,7 @@ pub(super) fn prepare_operations(
     values: &mut HostedValueStore,
     play: &conduit_core::ActivePlayIdentity,
     mut retained: Option<&mut Vec<crate::state_value::RetainedTypedState>>,
-) -> Result<[OperationDriver<InstalledOperation, PORTS>; MAX_NODES], String> {
+) -> Result<[InstalledOperation; MAX_NODES], String> {
     if lowered.identity.plan_id != fragment.plan_id
         || lowered.identity.fragment_id != fragment.fragment_id
         || play.plan_id != fragment.plan_id
@@ -85,13 +85,9 @@ pub(super) fn prepare_operations(
         };
         operations[usize::from(state.node.0)] = InstalledOperation::TypedState(Box::new(operation));
     }
-    let drivers: [OperationDriver<InstalledOperation, PORTS>; MAX_NODES] = operations
+    let drivers: [InstalledOperation; MAX_NODES] = operations
         .into_iter()
-        .map(|operation| {
-            OperationDriver::new(operation)
-                .map_err(|error| format!("prepare installed operation: {error:?}"))
-        })
-        .collect::<Result<Vec<_>, _>>()?
+        .collect::<Vec<_>>()
         .try_into()
         .map_err(|_| "installed driver capacity changed".to_string())?;
     Ok(drivers)

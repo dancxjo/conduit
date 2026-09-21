@@ -4,7 +4,7 @@ use super::{
     InstalledOperation, InstalledScheduler, HOST_BINDING_SLOTS, HOST_CALLS_PER_NODE, MAX_CORDS,
     MAX_NODES, PORTS, ROUTE_SLOTS, ROUTE_TARGETS,
 };
-use conduit_kernel::scheduler::{CordSpec, NodeSpec, OperationDriver};
+use conduit_kernel::scheduler::{CordSpec, NodeSpec};
 use conduit_kernel::{
     CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
     NodeId, PortId,
@@ -97,7 +97,7 @@ impl KernelTables {
 
     pub(super) fn install(
         self,
-        drivers: [OperationDriver<InstalledOperation, PORTS>; MAX_NODES],
+        drivers: [InstalledOperation; MAX_NODES],
         values: HostedValueStore,
         sign: HostedSignLog,
     ) -> Result<InstalledScheduler, String> {

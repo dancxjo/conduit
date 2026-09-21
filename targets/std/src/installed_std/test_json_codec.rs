@@ -6,6 +6,7 @@ use conduit_core::{
 };
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
     RequestId, ValueRef, ValueStorage,
 };
@@ -57,6 +58,66 @@ pub(super) struct TestJsonSourceOperation {
 }
 pub(super) struct TestJsonSinkOperation {
     pending: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TestJsonSourceOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), self.value)
+            .expect("ready test JSON output");
+        self.emitted = true;
+        StepOutcome::Complete
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TestJsonSinkOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if !self.pending
+                || request != RequestId(0)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(conduit_kernel::Failure {
+                    code: conduit_kernel::FailureCode::InvalidLifecycle,
+                    detail: 105,
+                });
+            }
+            io.consume_host_completion()
+                .expect("observed test JSON presentation");
+            self.pending = false;
+            return StepOutcome::Complete;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending {
+                return StepOutcome::Fail(conduit_kernel::Failure {
+                    code: conduit_kernel::FailureCode::InvalidLifecycle,
+                    detail: 105,
+                });
+            }
+            io.consume(PortId(0)).expect("present test JSON input");
+            io.request_host_call(
+                RequestId(0),
+                HostCallId(0),
+                BoundedValueRef::new(value, conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32)
+                    .expect("bounded test JSON input"),
+            )
+            .expect("test JSON presentation Host Call");
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = false;
+    }
 }
 
 impl TestJsonSourceOperation {

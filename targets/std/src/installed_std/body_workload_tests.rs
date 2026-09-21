@@ -244,14 +244,11 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
         .max()
         .unwrap();
     let mut values = HostedValueStore::new(value_items, maximum_value_bytes, value_bytes).unwrap();
-    let mut drivers =
-        core::array::from_fn(|_| OperationDriver::new(InstalledOperation::inactive()).unwrap());
+    let mut drivers = core::array::from_fn(|_| InstalledOperation::inactive());
     for (fragment, part) in fragments.iter().zip(&lowered.partitions) {
         for node in &part.nodes {
-            drivers[usize::from(node.node.0)] = OperationDriver::new(
-                prepare_ordinary_operation(fragment, &node.placement_id, &mut values).unwrap(),
-            )
-            .unwrap();
+            drivers[usize::from(node.node.0)] =
+                prepare_ordinary_operation(fragment, &node.placement_id, &mut values).unwrap();
         }
     }
     let parts: Vec<_> = lowered.partitions.iter().collect();

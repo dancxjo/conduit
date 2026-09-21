@@ -77,6 +77,70 @@ pub(super) struct LogicCompareScalarOperation {
     decisions: DecisionValues,
 }
 
+impl<const PORTS: usize> StepOperation<PORTS> for LogicCompareScalarOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if let [Some(left), Some(right)] = self.operands {
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let selected = usize::from(self.operator.evaluate(left, right));
+            let unused = usize::from(selected == 0);
+            let Some(output) = self.decisions.values[selected].take() else {
+                return StepOutcome::Fail(logic_failure(20));
+            };
+            let Some(discard) = self.decisions.values[unused].take() else {
+                return StepOutcome::Fail(logic_failure(20));
+            };
+            io.send(PortId(0), output)
+                .expect("ready scalar-comparison output");
+            io.discard(discard)
+                .expect("unused scalar-comparison decision");
+            return StepOutcome::Complete;
+        }
+        for port in [PortId(0), PortId(1)] {
+            let index = usize::from(port.0);
+            if let Some(value) = io.input(port) {
+                if self.operands[index].is_some() || value.byte_len != SCALAR_ENCODED_LEN as u32 {
+                    return StepOutcome::Fail(logic_failure(20));
+                }
+                let Some(canonical) = input_bytes.input(port) else {
+                    return StepOutcome::Fail(logic_failure(20));
+                };
+                let Ok(scalar) = Scalar::decode(canonical) else {
+                    return StepOutcome::Fail(logic_failure(20));
+                };
+                io.consume(port).expect("present scalar-comparison input");
+                self.operands[index] = Some(scalar);
+                return StepOutcome::Progress;
+            }
+            if io.input_closed(port) && self.operands[index].is_none() {
+                let [first, second] = &mut self.decisions.values;
+                let Some(first) = first.take() else {
+                    return StepOutcome::Fail(logic_failure(20));
+                };
+                let Some(second) = second.take() else {
+                    return StepOutcome::Fail(logic_failure(20));
+                };
+                io.consume_closed(port)
+                    .expect("observed scalar-comparison closure");
+                io.discard(first).expect("unused comparison false value");
+                io.discard(second).expect("unused comparison true value");
+                return StepOutcome::Complete;
+            }
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.operands = [None; 2];
+        self.decisions.cancel();
+    }
+}
+
 impl LogicCompareScalarOperation {
     pub(super) fn start(&mut self) -> OperationAction {
         OperationAction::Await
@@ -251,6 +315,101 @@ pub(super) struct LogicSelectScalarOperation {
     candidate_seen: [bool; 2],
     released: [Option<ValueRef>; 2],
     retain_resumed: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for LogicSelectScalarOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if self.candidate_seen.into_iter().all(|seen| seen) {
+            if let Some(selector) = self.selector {
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                let selected = usize::from(selector);
+                let unselected = usize::from(!selector);
+                let Some(output) = self.candidates[selected].take() else {
+                    return self.discard_candidates(io);
+                };
+                io.send(PortId(0), output)
+                    .expect("ready scalar-selection output");
+                if let Some(discard) = self.candidates[unselected].take() {
+                    io.discard(discard)
+                        .expect("unused scalar-selection candidate");
+                }
+                return StepOutcome::Complete;
+            }
+            if self.selector_closed {
+                return self.discard_candidates(io);
+            }
+        }
+        for port in [PortId(0), PortId(1), PortId(2)] {
+            if let Some(value) = io.input(port) {
+                let Some(canonical) = input_bytes.input(port) else {
+                    return StepOutcome::Fail(logic_failure(22));
+                };
+                match port {
+                    PortId(0)
+                        if self.selector.is_none() && value.byte_len == BOOL_ENCODED_LEN as u32 =>
+                    {
+                        let Ok(selector) = InfoBool::decode(canonical) else {
+                            return StepOutcome::Fail(logic_failure(22));
+                        };
+                        io.consume(port).expect("present scalar selector");
+                        self.selector = Some(selector.get());
+                    }
+                    PortId(1) | PortId(2) if value.byte_len == SCALAR_ENCODED_LEN as u32 => {
+                        let index = usize::from(port.0 - 1);
+                        if self.candidate_seen[index] || Scalar::decode(canonical).is_err() {
+                            return StepOutcome::Fail(logic_failure(22));
+                        }
+                        let retained = io.take_input(port).expect("present scalar candidate");
+                        self.candidate_seen[index] = true;
+                        self.candidates[index] = Some(retained);
+                    }
+                    _ => return StepOutcome::Fail(logic_failure(22)),
+                }
+                return StepOutcome::Progress;
+            }
+            if io.input_closed(port) {
+                match port {
+                    PortId(0) if self.selector.is_none() && !self.selector_closed => {
+                        io.consume_closed(port).expect("observed selector closure");
+                        self.selector_closed = true;
+                    }
+                    PortId(1) | PortId(2) => {
+                        let index = usize::from(port.0 - 1);
+                        if self.candidate_seen[index] {
+                            continue;
+                        }
+                        io.consume_closed(port).expect("observed candidate closure");
+                        self.candidate_seen[index] = true;
+                    }
+                    _ => continue,
+                }
+                return StepOutcome::Progress;
+            }
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        LogicSelectScalarOperation::cancel(self);
+    }
+}
+
+impl LogicSelectScalarOperation {
+    fn discard_candidates<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        for candidate in &mut self.candidates {
+            if let Some(value) = candidate.take() {
+                io.discard(value)
+                    .expect("at most two unused scalar candidates");
+            }
+        }
+        StepOutcome::Complete
+    }
 }
 
 impl LogicSelectScalarOperation {

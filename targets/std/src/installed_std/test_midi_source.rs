@@ -10,6 +10,7 @@ use conduit_core::{
 };
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
     RequestId, ValueRef, ValueStorage,
 };
@@ -34,6 +35,57 @@ pub(super) struct TestMidiSourceOperation {
     yield_markers: [ValueRef; YIELD_COUNT],
     next: usize,
     pending: Option<RequestId>,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TestMidiSourceOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return midi_fixture_fail();
+            }
+            io.consume_host_completion()
+                .expect("observed MIDI fixture yield");
+            self.pending = None;
+            return StepOutcome::Progress;
+        }
+        let Some(value) = self.values.get(self.next).copied() else {
+            return StepOutcome::Complete;
+        };
+        let port = self.ports[self.next];
+        if !io.output_ready(port) {
+            return StepOutcome::Await;
+        }
+        io.send(port, value).expect("ready MIDI fixture output");
+        self.next += 1;
+        if self.next < self.values.len() {
+            let request = RequestId(self.next as u32);
+            io.request_host_call(
+                request,
+                HostCallId(0),
+                BoundedValueRef::new(self.yield_markers[self.next - 1], 1)
+                    .expect("test MIDI yield marker is one byte"),
+            )
+            .expect("MIDI fixture yield Host Call");
+            self.pending = Some(request);
+        }
+        StepOutcome::Progress
+    }
+
+    fn cancel(&mut self) {
+        self.next = self.values.len();
+        self.pending = None;
+    }
+}
+
+const fn midi_fixture_fail() -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail: 90,
+    })
 }
 
 impl TestMidiSourceOperation {

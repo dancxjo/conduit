@@ -5,7 +5,10 @@ use conduit_core::{
     PortTemporal, Scalar, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
 use conduit_form::{KindProjection, ProfileCatalog};
-use conduit_kernel::{OperationAction, PortId, ValueRef, ValueStorage};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    Failure, FailureCode, OperationAction, PortId, ValueRef, ValueStorage,
+};
 
 const KIND: &str = "conduit-test/logic-script";
 const REVISION: &str = "conduit-test/logic-script@1";
@@ -36,6 +39,45 @@ pub(super) struct TestLogicScriptOperation {
 }
 
 pub(super) struct TestLogicSinkOperation;
+
+impl<const PORTS: usize> StepOperation<PORTS> for TestLogicScriptOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        let Some(value) = self.values.get(self.next).copied() else {
+            return StepOutcome::Complete;
+        };
+        let port = PortId(u16::try_from(self.next).unwrap_or(u16::MAX));
+        if !io.output_ready(port) {
+            return StepOutcome::Await;
+        }
+        io.send(port, value).expect("ready logic fixture output");
+        self.next += 1;
+        StepOutcome::Progress
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TestLogicSinkOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        let Some(value) = io.input(PortId(0)) else {
+            return StepOutcome::Await;
+        };
+        let valid = value.byte_len == SCALAR_ENCODED_LEN as u32
+            && input_bytes
+                .input(PortId(0))
+                .is_some_and(|bytes| Scalar::decode(bytes) == Ok(Scalar::from_raw_microunits(-1)));
+        if !valid {
+            return StepOutcome::Fail(Failure {
+                code: FailureCode::InvalidLifecycle,
+                detail: 24,
+            });
+        }
+        io.consume(PortId(0)).expect("present logic fixture result");
+        StepOutcome::Complete
+    }
+}
 
 impl TestLogicScriptOperation {
     pub(super) fn start(&mut self) -> OperationAction {

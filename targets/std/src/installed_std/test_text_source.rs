@@ -6,7 +6,10 @@ use conduit_core::{
     PortDescriptor, PortDirection,
 };
 use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
-use conduit_kernel::{OperationAction, PortId, ValueRef, ValueStorage};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    OperationAction, PortId, ValueRef, ValueStorage,
+};
 
 pub(super) const TEST_TEXT_SOURCE_KIND: &str = "conduit-test/text-source";
 const TEST_TEXT_SOURCE_REVISION: &str = "conduit-test/text-source@1";
@@ -23,6 +26,20 @@ pub(super) static TEST_TEXT_SOURCE_FACTORY: InstalledFactory = InstalledFactory 
 pub(super) struct TestTextSourceOperation {
     pub(super) values: Vec<ValueRef>,
     pub(super) next: usize,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TestTextSourceOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        let Some(value) = self.values.get(self.next).copied() else {
+            return StepOutcome::Complete;
+        };
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), value).expect("ready test text output");
+        self.next += 1;
+        StepOutcome::Progress
+    }
 }
 
 impl TestTextSourceOperation {

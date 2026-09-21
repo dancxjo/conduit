@@ -57,17 +57,14 @@ fn real_partition_operations_use_global_slots_and_original_placement_identity() 
         )
         .unwrap();
         let offset = index * 2;
+        assert!(matches!(&drivers[offset], InstalledOperation::Tick(_)));
         assert!(matches!(
-            drivers[offset].operation(),
-            InstalledOperation::Tick(_)
-        ));
-        assert!(matches!(
-            drivers[offset + 1].operation(),
+            &drivers[offset + 1],
             InstalledOperation::TickPresentation(_)
         ));
         for (slot, driver) in drivers.iter().enumerate() {
             if slot < offset || slot >= offset + 2 {
-                assert!(matches!(driver.operation(), InstalledOperation::Inactive));
+                assert!(matches!(driver, InstalledOperation::Inactive));
             }
         }
     }
@@ -85,8 +82,7 @@ fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_ins
     let lowered =
         lower_local_fragment_set(&fragments, FIXED_KERNEL_STORAGE_PROFILE, bounds()).unwrap();
     let mut values = HostedValueStore::new(32, 64, 2048).unwrap();
-    let mut drivers =
-        core::array::from_fn(|_| OperationDriver::new(InstalledOperation::inactive()).unwrap());
+    let mut drivers = core::array::from_fn(|_| InstalledOperation::inactive());
     for (fragment, partition) in fragments.iter().zip(&lowered.partitions) {
         assert!(partition.states.is_empty());
         for node in &partition.nodes {
@@ -94,7 +90,7 @@ fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_ins
             // per-Form Plays or forge a constituent ActivePlayIdentity.
             let operation =
                 prepare_ordinary_operation(fragment, &node.placement_id, &mut values).unwrap();
-            drivers[usize::from(node.node.0)] = OperationDriver::new(operation).unwrap();
+            drivers[usize::from(node.node.0)] = operation;
         }
     }
     let partitions: Vec<_> = lowered.partitions.iter().collect();

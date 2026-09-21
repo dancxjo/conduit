@@ -5,7 +5,10 @@ use conduit_core::{
     PortTemporal,
 };
 use conduit_form::{KindProjection, ProfileCatalog};
-use conduit_kernel::{OperationAction, OperationInput, PortId};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    Failure, FailureCode, OperationAction, OperationInput, PortId,
+};
 
 pub(crate) const KIND: &str = "conduit-proof/speech-pcm-sink";
 const REVISION: &str = "conduit-proof/speech-pcm-sink@1";
@@ -21,6 +24,30 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
 
 pub(super) struct TestSpeechSinkOperation {
     blocks: u16,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TestSpeechSinkOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = io.input(PortId(0)) {
+            if value.byte_len > conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES
+                || self.blocks >= conduit_std_offers::PIPER_MAXIMUM_BLOCKS
+            {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidLifecycle,
+                    detail: 180,
+                });
+            }
+            io.consume(PortId(0)).expect("present test speech block");
+            self.blocks += 1;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.blocks != 0 {
+            io.consume_closed(PortId(0))
+                .expect("observed test speech closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
 }
 
 impl TestSpeechSinkOperation {

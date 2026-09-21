@@ -78,7 +78,7 @@ pub(super) fn finish(
             "State execution is not terminal and drained; continuity unavailable".to_string()
         })?;
         for driver in retired.drivers.into_iter().take(retired.active_nodes) {
-            if let InstalledOperation::TypedState(operation) = driver.into_operation() {
+            if let InstalledOperation::TypedState(operation) = driver {
                 let state = operation
                     .try_retire()
                     .map_err(|failure| format!("retire typed State: {}", failure.reason))?;

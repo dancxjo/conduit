@@ -1,6 +1,9 @@
 //! Shared finite Flow-to-final-Value normalized-pattern selection.
 
-use conduit_kernel::{Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    Failure, FailureCode, OperationAction, OperationInput, PortId, ValueRef,
+};
 
 pub struct FinalNormalizedPatternOperation {
     latest: Option<ValueRef>,
@@ -9,6 +12,50 @@ pub struct FinalNormalizedPatternOperation {
     maximum: u64,
     retain_resumed: bool,
     complete_after_emit: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for FinalNormalizedPatternOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = io.input(PortId(0)) {
+            if self.accepted >= self.maximum {
+                return step_fail(FailureCode::StorageExhausted, 1);
+            }
+            let retained = io
+                .take_input(PortId(0))
+                .expect("present final-pattern input");
+            debug_assert_eq!(retained, value);
+            if let Some(previous) = self.latest.replace(retained) {
+                io.discard(previous)
+                    .expect("one replaced final-pattern value per Step");
+            }
+            self.accepted += 1;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            let Some(value) = self.latest else {
+                return step_fail(FailureCode::InvalidInput, 2);
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume_closed(PortId(0))
+                .expect("observed final-pattern closure");
+            io.send(PortId(0), value)
+                .expect("ready final-pattern output");
+            self.latest = None;
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.latest = None;
+        self.released = None;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl FinalNormalizedPatternOperation {

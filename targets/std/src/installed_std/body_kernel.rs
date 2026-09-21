@@ -6,7 +6,7 @@ use super::{
 use crate::{hosted_keyboard::HostedKeyboardAdapter, RunControl, TimerAdapter};
 use conduit_core::{CancellationReason, FailureReason, PlanFragment, TerminalDisposition};
 use conduit_kernel::{
-    scheduler::{HostCallRequest, OperationDriver, SchedulerStatus},
+    scheduler::{HostCallRequest, SchedulerStatus},
     BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedSignLog, HostedValueStore,
     KernelEvent,
 };
@@ -147,17 +147,14 @@ impl BodyKernel {
         }
         let mut values = HostedValueStore::new(items.max(1), maximum, bytes.max(1))
             .map_err(|error| format!("Body value store: {error:?}"))?;
-        let mut drivers =
-            core::array::from_fn(|_| OperationDriver::new(InstalledOperation::inactive()).unwrap());
+        let mut drivers = core::array::from_fn(|_| InstalledOperation::inactive());
         for (fragment, part) in fragments.iter().zip(&lowered.partitions) {
             for node in &part.nodes {
-                drivers[usize::from(node.node.0)] =
-                    OperationDriver::new(preparation::prepare_ordinary_operation(
-                        fragment,
-                        &node.placement_id,
-                        &mut values,
-                    )?)
-                    .map_err(|error| format!("Body operation preparation: {error:?}"))?;
+                drivers[usize::from(node.node.0)] = preparation::prepare_ordinary_operation(
+                    fragment,
+                    &node.placement_id,
+                    &mut values,
+                )?;
             }
         }
         let tables = KernelTables::prepare(&lowered.partitions.iter().collect::<Vec<_>>())?;
