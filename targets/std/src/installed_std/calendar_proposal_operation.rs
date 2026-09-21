@@ -6,7 +6,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, StructuredInfoValue};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    OperationAction, OperationInput, PortId, ValueRef, ValueStorage,
+    PortId, ValueRef, ValueStorage,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -32,28 +32,6 @@ impl<const PORTS: usize> StepOperation<PORTS> for CalendarProposalOperation {
             .expect("ready calendar proposal output");
         self.emitted = true;
         StepOutcome::Progress
-    }
-}
-
-impl CalendarProposalOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.result,
-        }
-    }
-
-    pub(super) fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        InstalledOperation::fail(230)
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            InstalledOperation::fail(231)
-        } else {
-            self.emitted = true;
-            OperationAction::Complete
-        }
     }
 }
 

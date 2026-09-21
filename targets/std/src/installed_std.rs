@@ -54,7 +54,6 @@ mod model_text_operation;
 mod morse_operations;
 mod navigation_operations;
 mod operation;
-mod operation_cancellation;
 mod operation_capacity;
 mod operation_kind;
 mod operation_step;

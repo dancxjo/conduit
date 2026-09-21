@@ -2,8 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PortDirection, PortTemporal, BOOL_ENCODED_LEN};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
-    RequestId,
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) fn present_stdout(output: &mut impl std::io::Write, input: &[u8]) -> Result<(), String> {
@@ -84,53 +83,6 @@ impl BoolPresentationOperation {
             next: 0,
             maximum,
         }
-    }
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() && u64::from(self.next) < self.maximum => {
-                let request = RequestId(self.next);
-                self.pending = Some(request);
-                let Ok(input) = BoundedValueRef::new(value, BOOL_ENCODED_LEN as u32) else {
-                    return InstalledOperation::fail(47);
-                };
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) && outcome.failure.is_some() =>
-            {
-                self.pending = None;
-                OperationAction::Fail(outcome.failure.expect("checked failure"))
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostCallDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.next = self.next.saturating_add(1);
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(47),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
     }
 }
 

@@ -4,8 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) static FRAME: InstalledFactory =
@@ -93,60 +92,6 @@ const fn step_fail(detail: u16) -> StepOutcome {
         code: FailureCode::InvalidLifecycle,
         detail,
     })
-}
-
-impl TypedRecordOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending && !self.complete => {
-                self.pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(
-                        value,
-                        MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-                    ) {
-                        Ok(value) => value,
-                        Err(_) => return InstalledOperation::fail(162),
-                    },
-                }
-            }
-            OperationInput::HostCallCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return InstalledOperation::fail(163);
-                };
-                self.pending = false;
-                self.complete = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.pending => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(164),
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = false;
-        self.complete = true;
-    }
 }
 
 #[derive(Copy, Clone)]

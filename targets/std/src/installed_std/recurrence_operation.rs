@@ -6,7 +6,7 @@ use super::recurrence_encoding;
 use conduit_core::{ConfigurationValue, PlannedGear, StructuredInfoValue};
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    OperationAction, OperationInput, PortId, ValueRef, ValueStorage,
+    PortId, ValueRef, ValueStorage,
 };
 use conduit_time::RecurrenceRule;
 
@@ -33,28 +33,6 @@ impl<const PORTS: usize> StepOperation<PORTS> for RecurrenceOperation {
             .expect("ready recurrence result output");
         self.emitted = true;
         StepOutcome::Progress
-    }
-}
-
-impl RecurrenceOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.result,
-        }
-    }
-
-    pub(super) fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        InstalledOperation::fail(220)
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            InstalledOperation::fail(221)
-        } else {
-            self.emitted = true;
-            OperationAction::Complete
-        }
     }
 }
 

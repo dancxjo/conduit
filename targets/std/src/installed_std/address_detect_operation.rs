@@ -4,8 +4,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -18,7 +17,6 @@ pub(super) struct AddressDetectOperation {
     seen: [bool; 2],
     closed: [bool; 2],
     pending: Option<RequestId>,
-    deferred: Option<(u16, ValueRef)>,
     next_request: u32,
     emitted: bool,
 }
@@ -103,97 +101,11 @@ impl<const PORTS: usize> StepOperation<PORTS> for AddressDetectOperation {
 
     fn cancel(&mut self) {
         self.pending = None;
-        self.deferred = None;
     }
 }
 
 const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure { code, detail })
-}
-
-impl AddressDetectOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(port),
-                value,
-            } if port < 2 && !self.seen[usize::from(port)] => {
-                self.seen[usize::from(port)] = true;
-                if self.pending.is_some() {
-                    if self.deferred.replace((port, value)).is_some() {
-                        return fail(FailureCode::InvalidLifecycle, 14);
-                    }
-                    OperationAction::Await
-                } else {
-                    self.request(port, value)
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) =>
-            {
-                self.pending = None;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostCallDisposition::Completed, Some(output), None) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostCallDisposition::Completed, None, None) => self
-                        .deferred
-                        .take()
-                        .map_or(OperationAction::Await, |(port, value)| {
-                            self.request(port, value)
-                        }),
-                    (HostCallDisposition::Denied, _, _) => fail(FailureCode::HostCallDenied, 2),
-                    _ => fail(FailureCode::HostCallFailed, 13),
-                }
-            }
-            OperationInput::Closed { port: PortId(port) }
-                if port < 2 && self.seen[usize::from(port)] =>
-            {
-                OperationAction::Await
-            }
-            _ => fail(FailureCode::InvalidLifecycle, 14),
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-        self.deferred = None;
-    }
-
-    fn request(&mut self, port: u16, value: ValueRef) -> OperationAction {
-        let request = RequestId(self.next_request);
-        self.next_request = self.next_request.saturating_add(1);
-        self.pending = Some(request);
-        let maximum = if port == 0 {
-            conduit_text::MAX_TEXT_BYTES
-        } else {
-            conduit_text::MAX_ADDRESS_SET_VALUE_BYTES as u32
-        };
-        let Ok(input) = BoundedValueRef::new(value, maximum) else {
-            return fail(FailureCode::InvalidInput, 1);
-        };
-        OperationAction::RequestHostCall {
-            request,
-            operation: HostCallId(if port == 0 { 1 } else { 0 }),
-            input,
-        }
-    }
 }
 
 pub(super) enum HostCompletion<'a> {
@@ -308,14 +220,9 @@ fn prepare(
         seen: [false; 2],
         closed: [false; 2],
         pending: None,
-        deferred: None,
         next_request: 0,
         emitted: false,
     }))
-}
-
-fn fail(code: FailureCode, detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure { code, detail })
 }
 
 #[cfg(test)]
