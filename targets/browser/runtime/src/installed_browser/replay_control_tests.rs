@@ -43,6 +43,66 @@ fn completed(value: Option<ValueRef>) -> HostCallOutcome {
     }
 }
 
+fn input_step(
+    operation: &mut ReplayControlOperation,
+    port: PortId,
+    value: ValueRef,
+) -> (StepOutcome, StepIo<3>) {
+    let mut inputs = [None; 3];
+    inputs[usize::from(port.0)] = Some(value);
+    let mut io = StepIo::test_frame(
+        inputs,
+        [false; 3],
+        [
+            Some(super::super::MAXIMUM_BROWSER_VALUE_BYTES as u32),
+            Some(super::super::MAXIMUM_BROWSER_VALUE_BYTES as u32),
+            None,
+        ],
+        None,
+        5,
+    );
+    let outcome = operation.step(
+        &mut io,
+        &StepInputBytes::test_frame([None, None, None], None),
+    );
+    (outcome, io)
+}
+
+fn completion_step(
+    operation: &mut ReplayControlOperation,
+    request: RequestId,
+    outcome: HostCallOutcome,
+) -> (StepOutcome, StepIo<3>) {
+    let mut io = StepIo::test_frame(
+        [None; 3],
+        [false; 3],
+        [
+            Some(super::super::MAXIMUM_BROWSER_VALUE_BYTES as u32),
+            Some(super::super::MAXIMUM_BROWSER_VALUE_BYTES as u32),
+            None,
+        ],
+        Some((request, outcome)),
+        5,
+    );
+    let result = operation.step(
+        &mut io,
+        &StepInputBytes::test_frame([None, None, None], None),
+    );
+    (result, io)
+}
+
+fn close_step(
+    operation: &mut ReplayControlOperation,
+    closed: [bool; 3],
+) -> (StepOutcome, StepIo<3>) {
+    let mut io = StepIo::test_frame([None; 3], closed, [None; 3], None, 3);
+    let result = operation.step(
+        &mut io,
+        &StepInputBytes::test_frame([None, None, None], None),
+    );
+    (result, io)
+}
+
 fn placement() -> PlannedGear {
     let offer = offer();
     PlannedGear {
@@ -186,147 +246,103 @@ fn prepared_step_preserves_historical_and_playback_time_as_distinct_values() {
 #[test]
 fn state_output_becomes_the_owned_event_request_token() {
     let mut operation = ReplayControlOperation::new();
-    let OperationAction::RequestHostCall {
-        request,
-        operation: host_call,
-        ..
-    } = operation.resume(OperationInput::Value {
-        port: PortId(0),
-        value: value(1),
-    })
-    else {
-        panic!("timeline input must request its exact Host Call");
-    };
+    let (result, input) = input_step(&mut operation, PortId(0), value(1));
+    assert_eq!(result, StepOutcome::Progress);
+    let (request, host_call, _) = input.test_host_request().unwrap();
     assert_eq!(host_call, HostCallId(0));
     let state = value(2);
-    assert_eq!(
-        operation.resume(OperationInput::HostCallCompleted {
-            request,
-            outcome: completed(Some(state)),
-        }),
-        OperationAction::Emit {
-            port: PortId(1),
-            value: state,
-        }
-    );
-    let OperationAction::RequestHostCall {
-        request,
-        operation: host_call,
-        input,
-    } = operation.advance()
-    else {
-        panic!("state emission must request the correlated event");
-    };
+    let (result, state_io) = completion_step(&mut operation, request, completed(Some(state)));
+    assert_eq!(result, StepOutcome::Progress);
+    assert_eq!(state_io.test_output(PortId(1)), Some(state));
+    let (request, host_call, input) = state_io.test_host_request().unwrap();
     assert_eq!(host_call, HostCallId(0));
     assert_eq!(input.value, state);
     let event = value(3);
-    assert_eq!(
-        operation.resume(OperationInput::HostCallCompleted {
-            request,
-            outcome: completed(Some(event)),
-        }),
-        OperationAction::Emit {
-            port: PortId(0),
-            value: event,
-        }
-    );
-    assert_eq!(operation.advance(), OperationAction::Await);
+    let (result, event_io) = completion_step(&mut operation, request, completed(Some(event)));
+    assert_eq!(result, StepOutcome::Progress);
+    assert_eq!(event_io.test_output(PortId(0)), Some(event));
 }
 
 #[test]
 fn absent_event_and_closed_inputs_remain_explicit() {
     let mut operation = ReplayControlOperation::new();
-    let OperationAction::RequestHostCall { request, .. } =
-        operation.resume(OperationInput::Value {
-            port: PortId(2),
-            value: value(1),
-        })
-    else {
-        panic!("clock input must request its exact Host Call");
-    };
+    let (result, input) = input_step(&mut operation, PortId(2), value(1));
+    assert_eq!(result, StepOutcome::Progress);
+    let request = input.test_host_request().unwrap().0;
     assert_eq!(
-        operation.resume(OperationInput::HostCallCompleted {
-            request,
-            outcome: completed(None),
-        }),
-        OperationAction::Await
+        completion_step(&mut operation, request, completed(None)).0,
+        StepOutcome::Progress
     );
     assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::Await
+        close_step(&mut operation, [true, false, false]).0,
+        StepOutcome::Progress
     );
     assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(1) }),
-        OperationAction::Await
+        close_step(&mut operation, [true, true, false]).0,
+        StepOutcome::Progress
     );
     assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(2) }),
-        OperationAction::Complete
+        close_step(&mut operation, [true; 3]).0,
+        StepOutcome::Complete
     );
 }
 
 #[test]
-fn completed_requests_reuse_two_fixed_stage_identities_for_long_lived_replay() {
+fn completed_requests_use_monotonic_identities_for_long_lived_replay() {
     let mut operation = ReplayControlOperation::new();
     for sequence in 0..100_000 {
-        let OperationAction::RequestHostCall { request, .. } =
-            operation.resume(OperationInput::Value {
-                port: PortId(2),
-                value: value(1),
-            })
-        else {
-            panic!("clock input must request processing");
-        };
-        assert_eq!(request, RequestId(0), "processing request {sequence}");
-        assert!(matches!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request,
-                outcome: completed(Some(value(2))),
-            }),
-            OperationAction::Emit {
-                port: PortId(1),
-                ..
-            }
-        ));
-        let OperationAction::RequestHostCall { request, .. } = operation.advance() else {
-            panic!("state emission must request its event");
-        };
-        assert_eq!(request, RequestId(1), "event request {sequence}");
+        let (result, input) = input_step(&mut operation, PortId(2), value(1));
+        assert_eq!(result, StepOutcome::Progress);
+        let request = input.test_host_request().unwrap().0;
         assert_eq!(
-            operation.resume(OperationInput::HostCallCompleted {
-                request,
-                outcome: completed(None),
-            }),
-            OperationAction::Await
+            request,
+            RequestId(sequence * 2),
+            "processing request {sequence}"
+        );
+        let (result, state) = completion_step(&mut operation, request, completed(Some(value(2))));
+        assert_eq!(result, StepOutcome::Progress);
+        assert_eq!(state.test_output(PortId(1)), Some(value(2)));
+        let request = state.test_host_request().unwrap().0;
+        assert_eq!(
+            request,
+            RequestId(sequence * 2 + 1),
+            "event request {sequence}"
+        );
+        assert_eq!(
+            completion_step(&mut operation, request, completed(None)).0,
+            StepOutcome::Progress
         );
     }
-    assert_eq!(operation.next_request, 0);
+    assert_eq!(operation.next_request, Some(200_000));
 }
 
 #[test]
-fn a_noncurrent_reused_identity_cannot_complete_the_pending_stage() {
+fn a_noncurrent_identity_cannot_complete_the_pending_stage() {
     let mut operation = ReplayControlOperation::new();
-    let OperationAction::RequestHostCall { request, .. } =
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value: value(1),
-        })
-    else {
-        panic!("timeline input must request processing");
-    };
+    let (result, input) = input_step(&mut operation, PortId(0), value(1));
+    assert_eq!(result, StepOutcome::Progress);
+    let request = input.test_host_request().unwrap().0;
     assert_eq!(request, RequestId(0));
     assert_eq!(
-        operation.resume(OperationInput::HostCallCompleted {
-            request: RequestId(1),
-            outcome: completed(None),
-        }),
+        completion_step(&mut operation, RequestId(1), completed(None)).0,
         fail(14)
     );
     assert_eq!(
-        operation.resume(OperationInput::HostCallCompleted {
-            request,
-            outcome: completed(None),
-        }),
-        OperationAction::Await
+        completion_step(&mut operation, request, completed(None)).0,
+        StepOutcome::Progress
+    );
+}
+
+#[test]
+fn request_identity_exhaustion_is_explicit_before_the_event_stage() {
+    let mut operation = ReplayControlOperation::new();
+    operation.next_request = Some(u32::MAX);
+    let (result, input) = input_step(&mut operation, PortId(0), value(1));
+    assert_eq!(result, StepOutcome::Progress);
+    let request = input.test_host_request().unwrap().0;
+    assert_eq!(request, RequestId(u32::MAX));
+    assert_eq!(
+        completion_step(&mut operation, request, completed(Some(value(2)))).0,
+        StepOutcome::Fail(failure(FailureCode::IdentityCapacityExhausted, 15))
     );
 }

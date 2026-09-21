@@ -8,14 +8,14 @@ use conduit_core::{
     StructuredInfoType,
 };
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId, ValueRef,
+    HostedValueStore, PortId, RequestId, ValueRef,
 };
 
 pub(crate) const HOST_CALL: &str = "conduit.host/replay@1";
 const IMPLEMENTATION: &str = "browser/replay@1";
 const MAXIMUM_INPUTS: u32 = 64;
-const REQUEST_ID_SLOTS: u32 = 2;
 
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
     implementation_id: IMPLEMENTATION,
@@ -177,11 +177,13 @@ fn host_call(contract: &str, kind: &conduit_core::KindId) -> HostCallRequirement
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
     PreparedReplayControl::for_placement(placement)?
         .ok_or_else(|| "replay control placement selected another implementation".to_string())?;
-    Ok(BrowserOperation::installed(ReplayControlOperation::new()))
+    Ok(BrowserOperation::installed_step(
+        ReplayControlOperation::new(),
+    ))
 }
 
 struct ReplayControlOperation {
-    next_request: u32,
+    next_request: Option<u32>,
     stage: Stage,
     closed: [bool; 3],
 }
@@ -190,121 +192,126 @@ struct ReplayControlOperation {
 enum Stage {
     Awaiting,
     Processing(RequestId),
-    StateEmitted(ValueRef),
     EventPending(RequestId),
-    EventEmitted,
 }
 
 impl ReplayControlOperation {
     const fn new() -> Self {
         Self {
-            next_request: 0,
+            next_request: Some(0),
             stage: Stage::Awaiting,
             closed: [false; 3],
         }
     }
 
-    fn next(&mut self) -> RequestId {
-        let request = RequestId(self.next_request);
-        // The operation permits only one host request in flight. Its matching
-        // completion retires this identity before the next stage can request
-        // another, so two fixed stage identities are reusable for its entire
-        // continuous lifetime.
-        self.next_request = (self.next_request + 1) % REQUEST_ID_SLOTS;
-        request
+    fn next(&mut self) -> Result<RequestId, Failure> {
+        let next = self
+            .next_request
+            .ok_or_else(|| failure(FailureCode::IdentityCapacityExhausted, 15))?;
+        self.next_request = next.checked_add(1);
+        Ok(RequestId(next))
     }
 }
 
-impl Operation for ReplayControlOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
+impl<const PORTS: usize> StepOperation<PORTS> for ReplayControlOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            match self.stage {
+                Stage::Processing(expected) if expected == request => {
+                    let value = match completed_output(outcome) {
+                        Ok(value) => value,
+                        Err(failure) => return StepOutcome::Fail(failure),
+                    };
+                    let Some(value) = value else {
+                        io.consume_host_completion()
+                            .expect("observed replay processing completion");
+                        self.stage = Stage::Awaiting;
+                        return StepOutcome::Progress;
+                    };
+                    if !io.output_ready(PortId(1)) {
+                        return StepOutcome::Await;
+                    }
+                    let event_request = match self.next() {
+                        Ok(request) => request,
+                        Err(failure) => return StepOutcome::Fail(failure),
+                    };
+                    io.consume_host_completion()
+                        .expect("observed replay state completion");
+                    io.send(PortId(1), value)
+                        .expect("ready replay state output");
+                    io.request_host_call(
+                        event_request,
+                        HostCallId(0),
+                        BoundedValueRef::new(value, super::MAXIMUM_BROWSER_VALUE_BYTES as u32)
+                            .expect("replay state output is browser bounded"),
+                    )
+                    .expect("replay event Host Call");
+                    self.stage = Stage::EventPending(event_request);
+                    return StepOutcome::Progress;
+                }
+                Stage::EventPending(expected) if expected == request => {
+                    let value = match completed_output(outcome) {
+                        Ok(value) => value,
+                        Err(failure) => return StepOutcome::Fail(failure),
+                    };
+                    if value.is_some() && !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed replay event completion");
+                    if let Some(value) = value {
+                        io.send(PortId(0), value)
+                            .expect("ready replay event output");
+                    }
+                    self.stage = Stage::Awaiting;
+                    return StepOutcome::Progress;
+                }
+                _ => return fail(14),
+            }
+        }
 
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value { port, value }
-                if matches!(self.stage, Stage::Awaiting)
-                    && usize::from(port.0) < self.closed.len()
-                    && !self.closed[usize::from(port.0)]
-                    && value.byte_len <= super::MAXIMUM_BROWSER_VALUE_BYTES as u32 =>
-            {
-                let request = self.next();
-                if port.0 > 2 {
+        for index in 0..self.closed.len() {
+            let port = PortId(index as u16);
+            if let Some(value) = io.input(port) {
+                if !matches!(self.stage, Stage::Awaiting)
+                    || self.closed[index]
+                    || value.byte_len > super::MAXIMUM_BROWSER_VALUE_BYTES as u32
+                {
                     return fail(13);
                 }
+                let request = match self.next() {
+                    Ok(request) => request,
+                    Err(failure) => return StepOutcome::Fail(failure),
+                };
+                let input = BoundedValueRef::new(value, super::MAXIMUM_BROWSER_VALUE_BYTES as u32)
+                    .expect("replay input bound was checked");
+                io.consume(port).expect("present replay input");
+                io.request_host_call(request, HostCallId(0), input)
+                    .expect("replay processing Host Call");
                 self.stage = Stage::Processing(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(value, super::MAXIMUM_BROWSER_VALUE_BYTES as u32)
-                        .expect("replay input bound was checked"),
-                }
+                return StepOutcome::Progress;
             }
-            OperationInput::Closed { port }
-                if matches!(self.stage, Stage::Awaiting)
-                    && usize::from(port.0) < self.closed.len() =>
-            {
-                self.closed[usize::from(port.0)] = true;
-                if self.closed.into_iter().all(|closed| closed) {
-                    OperationAction::Complete
-                } else {
-                    OperationAction::Await
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome } if matches!(self.stage, Stage::Processing(expected) if expected == request) => {
-                match completed_output(outcome) {
-                    Ok(Some(value)) => {
-                        self.stage = Stage::StateEmitted(value);
-                        OperationAction::Emit {
-                            port: PortId(1),
-                            value,
-                        }
-                    }
-                    Ok(None) => {
-                        self.stage = Stage::Awaiting;
-                        OperationAction::Await
-                    }
-                    Err(failure) => OperationAction::Fail(failure),
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome } if matches!(self.stage, Stage::EventPending(expected) if expected == request) => {
-                match completed_output(outcome) {
-                    Ok(Some(value)) => {
-                        self.stage = Stage::EventEmitted;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value,
-                        }
-                    }
-                    Ok(None) => {
-                        self.stage = Stage::Awaiting;
-                        OperationAction::Await
-                    }
-                    Err(failure) => OperationAction::Fail(failure),
-                }
-            }
-            _ => fail(14),
         }
+        if matches!(self.stage, Stage::Awaiting) {
+            for index in 0..self.closed.len() {
+                let port = PortId(index as u16);
+                if io.input_closed(port) && !self.closed[index] {
+                    io.consume_closed(port)
+                        .expect("observed replay input closure");
+                    self.closed[index] = true;
+                    return if self.closed.into_iter().all(|closed| closed) {
+                        StepOutcome::Complete
+                    } else {
+                        StepOutcome::Progress
+                    };
+                }
+            }
+        }
+        StepOutcome::Await
     }
 
-    fn advance(&mut self) -> OperationAction {
-        match self.stage {
-            Stage::StateEmitted(value) => {
-                let request = self.next();
-                self.stage = Stage::EventPending(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(value, super::MAXIMUM_BROWSER_VALUE_BYTES as u32)
-                        .expect("replay state output is browser bounded"),
-                }
-            }
-            Stage::EventEmitted => {
-                self.stage = Stage::Awaiting;
-                OperationAction::Await
-            }
-            _ => fail(16),
-        }
+    fn cancel(&mut self) {
+        self.stage = Stage::Awaiting;
     }
 }
 
@@ -352,8 +359,8 @@ fn wrap_leaf(value_type: &[u8], payload: &[u8], output: &mut Vec<u8>) -> Result<
     Ok(())
 }
 
-fn fail(detail: u16) -> OperationAction {
-    OperationAction::Fail(failure(FailureCode::InvalidInput, detail))
+fn fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(failure(FailureCode::InvalidInput, detail))
 }
 
 fn failure(code: FailureCode, detail: u16) -> Failure {
