@@ -2,6 +2,7 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use super::timing_configuration::{self, TimingConfiguration};
 use conduit_core::{encode_monotonic_duration, PlannedGear};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -42,6 +43,230 @@ pub(super) struct ThrottleOperation {
     cancellation: Option<RequestId>,
     arm_after_emit: bool,
     closing: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for DelayOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(887);
+            }
+            if outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return outcome
+                    .failure
+                    .map_or_else(|| step_fail(887), StepOutcome::Fail);
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(value) = self.values.get(self.next_value).copied() else {
+                return step_fail(886);
+            };
+            io.consume_host_completion()
+                .expect("observed delay completion");
+            io.send(PortId(0), value).expect("ready delayed output");
+            self.pending = None;
+            self.next_value += 1;
+            self.continue_after_emit = false;
+            if self.next_value < self.values.len() {
+                if let Err(outcome) = self.request_deadline_step(io) {
+                    return outcome;
+                }
+            } else if self.closing {
+                self.discard_unused_durations(io);
+                return StepOutcome::Complete;
+            }
+            return StepOutcome::Progress;
+        }
+
+        if let Some(value) = io.input(PortId(0)) {
+            if self.closing || self.accepted_values >= self.maximum_values {
+                return step_fail(887);
+            }
+            let retained = io.take_input(PortId(0)).expect("present delay input");
+            debug_assert_eq!(retained, value);
+            self.values.push(retained);
+            self.accepted_values += 1;
+            if self.pending.is_none() && self.next_value + 1 == self.values.len() {
+                if let Err(outcome) = self.request_deadline_step(io) {
+                    return outcome;
+                }
+            }
+            return StepOutcome::Progress;
+        }
+
+        if io.input_closed(PortId(0)) && !self.closing {
+            io.consume_closed(PortId(0))
+                .expect("observed delay input closure");
+            self.closing = true;
+            if self.pending.is_none() {
+                if self.next_value < self.values.len() {
+                    if let Err(outcome) = self.request_deadline_step(io) {
+                        return outcome;
+                    }
+                } else {
+                    self.discard_unused_durations(io);
+                    return StepOutcome::Complete;
+                }
+            }
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn accepts_input_while_host_call_pending(&self) -> bool {
+        true
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.values.clear();
+    }
+}
+
+impl DelayOperation {
+    fn request_deadline_step<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+    ) -> Result<(), StepOutcome> {
+        let Some(input) = self.durations.get(self.next_request).copied() else {
+            return Err(step_fail(888));
+        };
+        let Ok(raw_request) = u32::try_from(self.next_request + 1) else {
+            return Err(step_fail(889));
+        };
+        let request = RequestId(raw_request);
+        let input = BoundedValueRef::new(input, 8).expect("delay duration is exactly eight bytes");
+        io.request_host_call(request, HostCallId(0), input)
+            .expect("delay deadline Host Call");
+        self.next_request += 1;
+        self.pending = Some(request);
+        Ok(())
+    }
+
+    fn discard_unused_durations<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) {
+        for value in self.durations.drain(self.next_request..) {
+            io.discard(value).expect("unused delay duration");
+        }
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for ThrottleOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return outcome
+                    .failure
+                    .map_or_else(|| step_fail(890), StepOutcome::Fail);
+            }
+            match outcome.disposition {
+                HostCallDisposition::Completed => {
+                    io.consume_host_completion()
+                        .expect("observed throttle deadline completion");
+                    self.pending = None;
+                    return StepOutcome::Progress;
+                }
+                HostCallDisposition::Cancelled if self.closing => {
+                    io.consume_host_completion()
+                        .expect("observed throttle deadline cancellation");
+                    self.pending = None;
+                    self.discard_unused_durations_step(io);
+                    return StepOutcome::Complete;
+                }
+                _ => return step_fail(890),
+            }
+        }
+
+        if let Some(value) = io.input(PortId(0)) {
+            if self.closing || self.accepted_values >= self.maximum_values {
+                return step_fail(890);
+            }
+            self.accepted_values += 1;
+            if self.pending.is_some() {
+                io.consume(PortId(0))
+                    .expect("present throttled input during deadline");
+                return StepOutcome::Progress;
+            }
+            if !io.output_ready(PortId(0)) {
+                self.accepted_values -= 1;
+                return StepOutcome::Await;
+            }
+            io.consume(PortId(0))
+                .expect("present leading throttle input");
+            io.send(PortId(0), value)
+                .expect("ready leading throttle output");
+            if let Err(outcome) = self.request_deadline_step(io) {
+                return outcome;
+            }
+            self.arm_after_emit = false;
+            return StepOutcome::Progress;
+        }
+
+        if io.input_closed(PortId(0)) && !self.closing {
+            io.consume_closed(PortId(0))
+                .expect("observed throttle input closure");
+            self.closing = true;
+            if let Some(request) = self.pending {
+                io.cancel_host_call(request)
+                    .expect("throttle deadline cancellation");
+                self.cancellation = Some(request);
+                return StepOutcome::Progress;
+            }
+            self.discard_unused_durations_step(io);
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn accepts_input_while_host_call_pending(&self) -> bool {
+        true
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.cancellation = None;
+    }
+}
+
+impl ThrottleOperation {
+    fn request_deadline_step<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+    ) -> Result<(), StepOutcome> {
+        let Some(input) = self.durations.get(self.next_request).copied() else {
+            return Err(step_fail(891));
+        };
+        let Ok(raw_request) = u32::try_from(self.next_request + 1) else {
+            return Err(step_fail(892));
+        };
+        let request = RequestId(raw_request);
+        let input =
+            BoundedValueRef::new(input, 8).expect("throttle duration is exactly eight bytes");
+        io.request_host_call(request, HostCallId(0), input)
+            .expect("throttle deadline Host Call");
+        self.next_request += 1;
+        self.pending = Some(request);
+        Ok(())
+    }
+
+    fn discard_unused_durations_step<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) {
+        for value in self.durations.drain(self.next_request..) {
+            io.discard(value).expect("unused throttle duration");
+        }
+    }
+}
+
+const fn step_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidLifecycle,
+        detail,
+    })
 }
 
 impl DelayOperation {
