@@ -2,9 +2,7 @@
 
 use alloc::vec::Vec;
 use conduit_core::Scalar;
-use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{CordSpec, FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
     FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, HostCallDisposition,
     HostCallOutcome, NodeId, ValueStorage,
@@ -12,7 +10,7 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 
 use super::{
-    flow_state_operation::FlowStateOperation,
+    flow_state_operation::FlowStateBack,
     flow_state_plan::{LEFT_SINK_KIND, PreparedFlowState, RIGHT_SINK_KIND, SOURCE_KIND},
 };
 
@@ -27,7 +25,7 @@ const VALUE_BYTES: usize = VALUES * MAX_VALUE_BYTES;
 const SIGNS: usize = 96;
 
 type Kernel = FixedScheduler<
-    OperationDriver<FlowStateOperation, PORTS>,
+    FlowStateBack,
     FixedValueStore<VALUES, MAX_VALUE_BYTES>,
     FixedSignLog<SIGNS>,
     NODES,
@@ -188,41 +186,31 @@ fn scheduler(
         .map_err(|_| FlowStateError::Value)?;
     let mut left = None;
     let mut right = None;
-    let drivers = fragment
+    let backs = fragment
         .placements
         .iter()
         .enumerate()
-        .map(|(index, placement)| {
-            let operation = match placement.kind_id.as_str() {
-                SOURCE_KIND => FlowStateOperation::Source {
-                    value: values
-                        .store(&value.encode())
-                        .map_err(|_| FlowStateError::Value)?,
-                    emitted: false,
-                },
-                conduit_semantic_catalog::LATEST_KIND => FlowStateOperation::Latest {
-                    held: None,
-                    released: None,
-                    retain_resumed: false,
-                },
-                conduit_semantic_catalog::TEE_KIND => FlowStateOperation::Tee {
-                    pending: None,
-                    phase: 0,
-                },
-                LEFT_SINK_KIND | RIGHT_SINK_KIND => {
-                    if placement.kind_id.as_str() == LEFT_SINK_KIND {
-                        left = Some(NodeId(index as u16));
-                    } else {
-                        right = Some(NodeId(index as u16));
-                    }
-                    FlowStateOperation::Sink {
-                        pending: false,
-                        complete: false,
-                    }
+        .map(|(index, placement)| match placement.kind_id.as_str() {
+            SOURCE_KIND => Ok(FlowStateBack::Source {
+                value: values
+                    .store(&value.encode())
+                    .map_err(|_| FlowStateError::Value)?,
+                emitted: false,
+            }),
+            conduit_semantic_catalog::LATEST_KIND => Ok(FlowStateBack::Latest { held: None }),
+            conduit_semantic_catalog::TEE_KIND => Ok(FlowStateBack::Tee),
+            LEFT_SINK_KIND | RIGHT_SINK_KIND => {
+                if placement.kind_id.as_str() == LEFT_SINK_KIND {
+                    left = Some(NodeId(index as u16));
+                } else {
+                    right = Some(NodeId(index as u16));
                 }
-                _ => return Err(FlowStateError::Shape),
-            };
-            OperationDriver::new(operation).map_err(|_| FlowStateError::Kernel)
+                Ok(FlowStateBack::Sink {
+                    pending: false,
+                    complete: false,
+                })
+            }
+            _ => Err(FlowStateError::Shape),
         })
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
@@ -232,7 +220,7 @@ fn scheduler(
     )
     .map_err(|_| FlowStateError::Kernel)?;
     let kernel =
-        FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
+        FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, backs, values, signs)
             .map_err(|_| FlowStateError::Kernel)?;
     Ok(Scheduler {
         kernel,
