@@ -3,6 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDirection, StructuredInfoValue};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -33,6 +34,89 @@ pub(super) struct CalendarProviderOperation {
     requires_prior: bool,
     pending: bool,
     emitted: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for CalendarProviderOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if !self.pending || request != RequestId(0) {
+                return step_fail(FailureCode::InvalidLifecycle, 244);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed calendar provider completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready calendar provider output");
+                    self.pending = false;
+                    self.emitted = true;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Denied, _, _) => {
+                    return step_fail(FailureCode::HostCallDenied, 241)
+                }
+                (HostCallDisposition::Cancelled, _, _) => {
+                    return step_fail(FailureCode::Cancelled, 242)
+                }
+                (HostCallDisposition::Failed, _, Some(failure)) => {
+                    return StepOutcome::Fail(failure)
+                }
+                _ => return step_fail(FailureCode::InvalidLifecycle, 243),
+            }
+        }
+
+        if self.requires_prior {
+            let Some(value) = io.input(PortId(0)) else {
+                return StepOutcome::Await;
+            };
+            if self.pending {
+                return step_fail(FailureCode::InvalidLifecycle, 244);
+            }
+            let Ok(input) = BoundedValueRef::new(
+                value,
+                conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES,
+            ) else {
+                return step_fail(FailureCode::InvalidInput, 245);
+            };
+            io.consume(PortId(0))
+                .expect("present prior calendar result");
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("calendar provider Host Call");
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+
+        if !self.pending {
+            let Some(value) = self.request else {
+                return step_fail(FailureCode::InvalidLifecycle, 240);
+            };
+            let Ok(input) = BoundedValueRef::new(
+                value,
+                conduit_semantic_catalog::CALENDAR_MAXIMUM_SEMANTIC_JSON_BYTES,
+            ) else {
+                return step_fail(FailureCode::InvalidInput, 245);
+            };
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("calendar provider Host Call");
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = false;
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl CalendarProviderOperation {
