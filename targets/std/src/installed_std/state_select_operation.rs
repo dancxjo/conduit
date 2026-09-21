@@ -173,6 +173,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduit_kernel::{scheduler::StepOutcome, ValueRef};
 
     fn bool_value(slot: u16, value: bool) -> (ValueRef, [u8; BOOL_ENCODED_LEN]) {
         (
@@ -206,42 +207,114 @@ mod tests {
         let (selector_false, false_bytes) = bool_value(1, false);
         let (requested, requested_bytes) = scalar_value(2, 100_000);
         let (stopped, stopped_bytes) = scalar_value(3, 0);
-        assert_eq!(
-            operation.resume_value(PortId(0), selector_false, &false_bytes),
-            OperationAction::Await
+        let mut io = StepIo::test_frame(
+            [Some(selector_false), None, None],
+            [false; 3],
+            [Some(SCALAR_ENCODED_LEN as u32), None, None],
+            None,
+            8,
         );
         assert_eq!(
-            operation.resume_value(PortId(1), requested, &requested_bytes),
-            OperationAction::Await
+            operation.step(
+                &mut io,
+                &StepInputBytes::test_frame([Some(&false_bytes), None, None], None)
+            ),
+            StepOutcome::Progress
         );
-        assert!(matches!(
-            operation.resume_value(PortId(2), stopped, &stopped_bytes),
-            OperationAction::EmitCanonical { value, .. }
-                if value.as_slice() == requested_bytes
-        ));
+        assert!(io.test_consumed(PortId(0)));
+        assert!(io.test_canonical_output().is_none());
+
+        let mut io = StepIo::test_frame(
+            [None, Some(requested), None],
+            [false; 3],
+            [Some(SCALAR_ENCODED_LEN as u32), None, None],
+            None,
+            8,
+        );
+        assert_eq!(
+            operation.step(
+                &mut io,
+                &StepInputBytes::test_frame([None, Some(&requested_bytes), None], None)
+            ),
+            StepOutcome::Progress
+        );
+        assert!(io.test_canonical_output().is_none());
+
+        let mut io = StepIo::test_frame(
+            [None, None, Some(stopped)],
+            [false; 3],
+            [Some(SCALAR_ENCODED_LEN as u32), None, None],
+            None,
+            8,
+        );
+        assert_eq!(
+            operation.step(
+                &mut io,
+                &StepInputBytes::test_frame([None, None, Some(&stopped_bytes)], None)
+            ),
+            StepOutcome::Progress
+        );
+        assert_eq!(
+            io.test_canonical_output()
+                .map(|(_, value)| value.as_slice()),
+            Some(requested_bytes.as_slice())
+        );
         let (selector_true, true_bytes) = bool_value(4, true);
-        assert!(matches!(
-            operation.resume_value(PortId(0), selector_true, &true_bytes),
-            OperationAction::EmitCanonical { value, .. }
-                if value.as_slice() == stopped_bytes
-        ));
+        let mut io = StepIo::test_frame(
+            [Some(selector_true), None, None],
+            [false; 3],
+            [Some(SCALAR_ENCODED_LEN as u32), None, None],
+            None,
+            8,
+        );
+        assert_eq!(
+            operation.step(
+                &mut io,
+                &StepInputBytes::test_frame([Some(&true_bytes), None, None], None)
+            ),
+            StepOutcome::Progress
+        );
+        assert_eq!(
+            io.test_canonical_output()
+                .map(|(_, value)| value.as_slice()),
+            Some(stopped_bytes.as_slice())
+        );
 
         let (replacement, replacement_bytes) = scalar_value(5, 1);
-        assert!(matches!(
-            operation.resume_value(PortId(2), replacement, &replacement_bytes),
-            OperationAction::EmitCanonical { value, .. }
-                if value.as_slice() == replacement_bytes
-        ));
-
-        for port in [PortId(0), PortId(1)] {
-            assert_eq!(
-                operation.resume(OperationInput::Closed { port }),
-                OperationAction::Await
-            );
-        }
-        assert_eq!(
-            operation.resume(OperationInput::Closed { port: PortId(2) }),
-            OperationAction::Complete
+        let mut io = StepIo::test_frame(
+            [None, None, Some(replacement)],
+            [false; 3],
+            [Some(SCALAR_ENCODED_LEN as u32), None, None],
+            None,
+            8,
         );
+        assert_eq!(
+            operation.step(
+                &mut io,
+                &StepInputBytes::test_frame([None, None, Some(&replacement_bytes)], None)
+            ),
+            StepOutcome::Progress
+        );
+        assert_eq!(
+            io.test_canonical_output()
+                .map(|(_, value)| value.as_slice()),
+            Some(replacement_bytes.as_slice())
+        );
+
+        for index in 0..3 {
+            let port = PortId(index);
+            let mut closed = [false; 3];
+            closed[usize::from(index)] = true;
+            let mut io = StepIo::test_frame([None; 3], closed, [None; 3], None, 8);
+            assert_eq!(
+                operation.step(&mut io, &StepInputBytes::test_frame([None; 3], None)),
+                if index == 2 {
+                    StepOutcome::Complete
+                } else {
+                    StepOutcome::Progress
+                }
+            );
+            assert!(io.test_consumed_closed(port));
+        }
     }
 }
