@@ -7,7 +7,7 @@ use conduit_body::{
     PurposeState, WakeLifecycleEvent, derive_fulfillment_readiness,
 };
 use conduit_presentation::{
-    ActionAvailability, ApplicationEventKind, Face, FaceContext, FaceFocus,
+    ActionAvailability, ApplicationEventKind, Face, FaceContext, FaceFocus, FaceRefusal,
     GenerativePresenterBounds, GenerativePresenterRefusal, GenerativePresenterRequest,
     OrifinaPresentationRefusal, Presentation, PresentationAction, PresentationActionAvailability,
     PresentationDisclosureLevel, PresentationError, PresentationMechanism, SemanticAction,
@@ -41,6 +41,7 @@ struct Guidance {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TutorialPresenterRefusal {
     InvalidPurpose(PurposeRefusal),
+    InvalidFace(FaceRefusal),
     InvalidPurposePresentation(OrifinaPresentationRefusal),
     InvalidActionPresentation(PresentationError),
     InvalidRequest(GenerativePresenterRefusal),
@@ -61,13 +62,22 @@ pub fn generative_request(
     let readiness =
         derive_fulfillment_readiness(&purpose).map_err(TutorialPresenterRefusal::InvalidPurpose)?;
     let guidance = guidance(body.evidence(), playback, &purpose);
-    let projection = project_orifina_purpose_presentation(
+    let purpose_projection = project_orifina_purpose_presentation(
         body.evidence().body.body_id.clone(),
         purpose.revision,
         &purpose,
         presentation_revision,
     )
     .map_err(TutorialPresenterRefusal::InvalidPurposePresentation)?;
+    let mut face = Face::project(
+        &body.evidence().body,
+        body.realization().map(|realization| &realization.wake),
+        presentation_revision,
+        FaceContext::Overview,
+        FaceFocus::Body,
+        vec![],
+    )
+    .map_err(TutorialPresenterRefusal::InvalidFace)?;
     let body_subject = format!("body/{}", body.evidence().body.body_id.as_str());
     let (identity, intent, label) = if matches!(readiness, FulfillmentReadiness::Ready { .. })
         && !matches!(body.evidence().body.state, BodyState::Fulfilled { .. })
@@ -84,34 +94,54 @@ pub fn generative_request(
             guidance.label,
         )
     };
-    let presentation = Presentation::new_with_semantics(
-        projection.revision,
-        projection.basis,
-        projection.subjects,
-        projection.relationships,
-        projection.properties,
-        projection.text,
-        vec![PresentationAction {
-            identity: identity.into(),
-            intent: intent.into(),
-            target: body_subject,
-            label: label.into(),
-            disclosure: PresentationDisclosureLevel::CurrentAction,
-            availability: PresentationActionAvailability::Available,
-        }],
-        projection.disclosures,
+    let purpose_subjects = purpose_projection
+        .subjects
+        .into_iter()
+        .filter(|subject| subject.identity != body_subject);
+    face.presentation.subjects.extend(purpose_subjects);
+    face.presentation
+        .relationships
+        .extend(purpose_projection.relationships);
+    face.presentation
+        .properties
+        .extend(purpose_projection.properties);
+    face.presentation.text.extend(purpose_projection.text);
+    face.presentation.disclosures.extend(
+        purpose_projection
+            .disclosures
+            .into_iter()
+            .filter(|disclosure| disclosure.subject != body_subject),
+    );
+    face.presentation
+        .basis
+        .sign_ids
+        .extend(purpose_projection.basis.sign_ids);
+    face.presentation.basis.sign_ids.sort();
+    face.presentation.basis.sign_ids.dedup();
+    face.presentation.actions.push(PresentationAction {
+        identity: identity.into(),
+        intent: intent.into(),
+        target: body_subject,
+        label: label.into(),
+        disclosure: PresentationDisclosureLevel::CurrentAction,
+        availability: PresentationActionAvailability::Available,
+    });
+    face.presentation = Presentation::new_with_interactions(
+        face.presentation.revision,
+        face.presentation.basis,
+        face.presentation.subjects,
+        face.presentation.relationships,
+        face.presentation.properties,
+        face.presentation.text,
+        face.presentation.actions,
+        face.presentation.inputs,
+        face.presentation.disclosures,
     )
     .map_err(TutorialPresenterRefusal::InvalidActionPresentation)?;
     GenerativePresenterRequest::from_face(
         request_identity,
         orifina_completion_presenter_policy(),
-        &Face {
-            context: FaceContext::Overview,
-            focus: FaceFocus::Body,
-            presentation,
-            application_actions: vec![],
-            operator_actions: vec![],
-        },
+        &face,
         None,
         GenerativePresenterBounds::reviewed_default(),
     )
