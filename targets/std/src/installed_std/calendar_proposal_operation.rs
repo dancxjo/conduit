@@ -4,7 +4,10 @@ use super::calendar_proposal_codec;
 use super::calendar_proposal_encoding;
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{ConfigurationValue, PlannedGear, StructuredInfoValue};
-use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef, ValueStorage};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    OperationAction, OperationInput, PortId, ValueRef, ValueStorage,
+};
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
     implementation_id: conduit_std_offers::CALENDAR_PROPOSAL_STD_IMPLEMENTATION,
@@ -15,6 +18,21 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
 pub(super) struct CalendarProposalOperation {
     result: ValueRef,
     emitted: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for CalendarProposalOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), self.result)
+            .expect("ready calendar proposal output");
+        self.emitted = true;
+        StepOutcome::Progress
+    }
 }
 
 impl CalendarProposalOperation {

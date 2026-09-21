@@ -4,7 +4,10 @@ use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use super::recurrence_codec;
 use super::recurrence_encoding;
 use conduit_core::{ConfigurationValue, PlannedGear, StructuredInfoValue};
-use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef, ValueStorage};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    OperationAction, OperationInput, PortId, ValueRef, ValueStorage,
+};
 use conduit_time::RecurrenceRule;
 
 pub(super) static FACTORY: InstalledFactory = InstalledFactory {
@@ -16,6 +19,21 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
 pub(super) struct RecurrenceOperation {
     result: ValueRef,
     emitted: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for RecurrenceOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), self.result)
+            .expect("ready recurrence result output");
+        self.emitted = true;
+        StepOutcome::Progress
+    }
 }
 
 impl RecurrenceOperation {
