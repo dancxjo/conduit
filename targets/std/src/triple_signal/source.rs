@@ -5,9 +5,7 @@ use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, BaseImplementationId, BootId, PlacementId,
     PlanFragment, PresentationId, SignId,
 };
-use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
     CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition, HostCallOutcome,
     HostedSignLog, HostedValueStore, KernelEventKind, NodeId, RemoteEndpointId, SignQuery,
@@ -24,7 +22,7 @@ use conduit_signal::{
 use conduit_signal_conformance::triple;
 use conduit_wire::{SessionBinding, SessionFrame, SessionMachine, SessionRole};
 
-use super::operation::TripleOperation;
+use super::operation::TripleBack;
 
 #[path = "prepare.rs"]
 mod prepare;
@@ -37,7 +35,7 @@ const STORED_BYTES: u32 = VALUES as u32 * SIGNAL_ENCODED_LEN + WAITS as u32 * 8;
 const SIGN_ITEMS: u16 = 512;
 
 type TripleScheduler = FixedScheduler<
-    OperationDriver<TripleOperation, PORTS>,
+    TripleBack,
     HostedValueStore,
     HostedSignLog,
     2,
@@ -86,7 +84,7 @@ struct RemoteBranch {
 struct CapacitySeal {
     values: (usize, usize),
     sign: usize,
-    drivers: usize,
+    backs: usize,
     identity: (usize, usize, usize),
     receipts: usize,
 }
@@ -427,11 +425,11 @@ impl TripleSource {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
             sign: self.scheduler.signs().allocation_capacity(),
-            drivers: self
+            backs: self
                 .scheduler
                 .drivers()
                 .iter()
-                .map(|driver| driver.operation().allocation_capacity())
+                .map(TripleBack::allocation_capacity)
                 .sum(),
             identity: self.identity.allocation_capacities(),
             receipts: self.receipts.capacity(),
