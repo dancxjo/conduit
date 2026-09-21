@@ -3,7 +3,7 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, KindId, PortDescriptor, PortDirection, PortTemporal, StructuredFieldType,
-    StructuredInfoType,
+    StructuredInfoType, StructuredVariantCase,
 };
 
 use crate::{image_resource_type, local_vision_object_observations_type};
@@ -35,14 +35,79 @@ fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
     StructuredInfoType::record(kind_id(kind), fields).expect("reviewed vision record")
 }
 
-fn bounded_text_collection(kind: &str, maximum: u16) -> StructuredInfoType {
+fn count() -> StructuredInfoType {
+    StructuredInfoType::leaf(kind_id("value/count")).expect("reviewed count")
+}
+
+fn unit() -> StructuredInfoType {
+    StructuredInfoType::leaf(kind_id("value/unit")).expect("reviewed unit")
+}
+
+fn case(name: &str, value_type: StructuredInfoType) -> StructuredVariantCase {
+    StructuredVariantCase::new(name, value_type).expect("reviewed vision case")
+}
+
+fn sequence(value_type: StructuredInfoType, capacity: u16) -> StructuredInfoType {
+    StructuredInfoType::sequence(value_type, capacity).expect("bounded vision sequence")
+}
+
+fn pixel_region_type() -> StructuredInfoType {
     record(
-        kind,
-        vec![field(
-            "items",
-            StructuredInfoType::collection(text(), Some(maximum))
-                .expect("bounded vision collection"),
-        )],
+        "vision/pixel-region@1",
+        vec![
+            field("height", count()),
+            field("width", count()),
+            field("x", count()),
+            field("y", count()),
+        ],
+    )
+}
+
+fn optional_pixel_region_type() -> StructuredInfoType {
+    StructuredInfoType::variant(
+        kind_id("vision/optional-pixel-region@1"),
+        vec![case("absent", unit()), case("present", pixel_region_type())],
+    )
+    .expect("reviewed optional pixel region")
+}
+
+fn temporal_instant_type() -> StructuredInfoType {
+    record(
+        "time/temporal-instant@1",
+        vec![
+            field("clock_basis", text()),
+            field("resolution_ticks", count()),
+            field("scale", text()),
+            field("ticks", count()),
+            field("uncertainty_ticks", count()),
+        ],
+    )
+}
+
+fn evidence_class_type() -> StructuredInfoType {
+    StructuredInfoType::variant(
+        kind_id("vision/observation-evidence-class@1"),
+        vec![
+            case("deterministic_derived", unit()),
+            case("model_derived", unit()),
+            case("statistical_candidate", unit()),
+        ],
+    )
+    .expect("reviewed visual evidence class")
+}
+
+fn observation_provenance_type() -> StructuredInfoType {
+    record(
+        "vision/observation-provenance@1",
+        vec![
+            field("artifact", text()),
+            field("evidence_class", evidence_class_type()),
+            field("implementation", text()),
+            field("observation_sign", text()),
+            field("observed_at", temporal_instant_type()),
+            field("provider_instance", text()),
+            field("run", text()),
+        ],
     )
 }
 
@@ -51,35 +116,94 @@ pub fn vision_motions_type() -> StructuredInfoType {
 }
 
 pub fn vision_texts_type() -> StructuredInfoType {
-    bounded_text_collection("vision/visible-texts@1", 8)
+    sequence(
+        record(
+            "vision/visible-text-observation@1",
+            vec![
+                field("confidence_permille", count()),
+                field("provenance", observation_provenance_type()),
+                field("region", optional_pixel_region_type()),
+                field("source_image", image_resource_type()),
+                field("text", text()),
+            ],
+        ),
+        8,
+    )
 }
 
 pub fn vision_tracks_type() -> StructuredInfoType {
-    bounded_text_collection("vision/tracks@1", 4)
+    sequence(
+        record(
+            "vision/track-observation@1",
+            vec![
+                field("continuity_confidence_permille", count()),
+                field("contributing_observation_signs", sequence(text(), 16)),
+                field("current_region", pixel_region_type()),
+                field("provenance", observation_provenance_type()),
+                field("source_image", image_resource_type()),
+                field("track", text()),
+                field("tracking_context", text()),
+            ],
+        ),
+        4,
+    )
 }
 
 pub fn visual_impression_type() -> StructuredInfoType {
     record(
         "vision/visual-impression@1",
         vec![
+            field("disposition", impression_disposition_type()),
             field("model", text()),
-            field("source_image_identity", text()),
+            field("prompt_contract_revision", text()),
+            field("provenance", observation_provenance_type()),
+            field("selected_observation_signs", sequence(text(), 24)),
+            field("source_image", image_resource_type()),
             field("text", text()),
         ],
     )
+}
+
+fn impression_disposition_type() -> StructuredInfoType {
+    StructuredInfoType::variant(
+        kind_id("vision/visual-impression-disposition@1"),
+        vec![case("complete", unit()), case("truncated", count())],
+    )
+    .expect("reviewed visual impression disposition")
 }
 
 pub fn visual_experience_type() -> StructuredInfoType {
     record(
         "vision/visual-experience@1",
         vec![
-            field("source_image_identity", text()),
             field(
-                "observation_sign_ids",
-                StructuredInfoType::collection(text(), Some(24))
-                    .expect("bounded observation identities"),
+                "observation_refs",
+                sequence(experience_observation_ref_type(), 24),
             ),
-            field("relation_revision", text()),
+            field("relations", sequence(experience_relation_type(), 32)),
+            field("source_image", image_resource_type()),
+        ],
+    )
+}
+
+fn experience_observation_ref_type() -> StructuredInfoType {
+    record(
+        "vision/experience-observation-ref@1",
+        vec![
+            field("evidence_class", evidence_class_type()),
+            field("observation_sign", text()),
+            field("value_kind", text()),
+        ],
+    )
+}
+
+fn experience_relation_type() -> StructuredInfoType {
+    record(
+        "vision/experience-relation@1",
+        vec![
+            field("kind", text()),
+            field("object_sign", text()),
+            field("subject_sign", text()),
         ],
     )
 }
