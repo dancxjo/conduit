@@ -1,7 +1,7 @@
 //! Generated remote-ingress execution through the shared Conduit scheduler.
 
 use conduit_kernel::scheduler::{
-    FixedScheduler, RemoteIngressOutcome, SchedulerStatus, StepInputBytes, StepIo, StepBack,
+    FixedScheduler, RemoteIngressOutcome, SchedulerStatus, StepBack, StepInputBytes, StepIo,
     StepOutcome,
 };
 use conduit_kernel::{
