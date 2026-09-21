@@ -3,6 +3,7 @@ use conduit_core::{
     ConfigurationValue, InfoBool, PlannedGear, Scalar, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     HostedValueStore, OperationAction, OperationInput, PortId, ValueRef, ValueStorage,
 };
 
@@ -133,6 +134,74 @@ impl LogicCompareScalarOperation {
 pub(super) struct LogicNotOperation {
     received: bool,
     decisions: DecisionValues,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for LogicNotOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if self.received {
+            return StepOutcome::Complete;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if value.byte_len != BOOL_ENCODED_LEN as u32 {
+                return StepOutcome::Fail(logic_failure(21));
+            }
+            let Some(canonical) = input_bytes.input(PortId(0)) else {
+                return StepOutcome::Fail(logic_failure(21));
+            };
+            let Ok(input) = InfoBool::decode(canonical) else {
+                return StepOutcome::Fail(logic_failure(21));
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let selected = usize::from(!input.get());
+            let unused = usize::from(input.get());
+            let Some(output) = self.decisions.values[selected].take() else {
+                return StepOutcome::Fail(logic_failure(21));
+            };
+            let Some(discard) = self.decisions.values[unused].take() else {
+                return StepOutcome::Fail(logic_failure(21));
+            };
+            io.consume(PortId(0)).expect("present logic/not input");
+            io.send(PortId(0), output).expect("ready logic/not output");
+            io.discard(discard).expect("unused logic/not decision");
+            self.received = true;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            let [first, second] = &mut self.decisions.values;
+            let Some(first) = first.take() else {
+                return StepOutcome::Fail(logic_failure(21));
+            };
+            let Some(second) = second.take() else {
+                return StepOutcome::Fail(logic_failure(21));
+            };
+            io.consume_closed(PortId(0))
+                .expect("observed logic/not input closure");
+            io.discard(first).expect("first unused logic/not decision");
+            io.discard(second)
+                .expect("second unused logic/not decision");
+            self.received = true;
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.received = false;
+        self.decisions.cancel();
+    }
+}
+
+const fn logic_failure(detail: u16) -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    }
 }
 
 impl LogicNotOperation {
