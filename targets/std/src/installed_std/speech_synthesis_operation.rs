@@ -87,6 +87,8 @@ impl<const PORTS: usize> StepOperation<PORTS> for SpeechSynthesisOperation {
                     if self.streaming && !self.input_closed {
                         StepOutcome::Progress
                     } else {
+                        io.discard(self.continuation)
+                            .expect("release speech continuation marker");
                         self.finished = true;
                         StepOutcome::Complete
                     }
@@ -134,6 +136,8 @@ impl<const PORTS: usize> StepOperation<PORTS> for SpeechSynthesisOperation {
                 .expect("observed speech synthesis stream closure");
             self.input_closed = true;
             if self.pending.is_none() && !self.started {
+                io.discard(self.continuation)
+                    .expect("release unused speech continuation marker");
                 self.finished = true;
                 StepOutcome::Complete
             } else {

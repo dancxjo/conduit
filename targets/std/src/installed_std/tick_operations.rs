@@ -390,6 +390,55 @@ pub(super) struct TestObserverOperation {
 }
 
 #[cfg(test)]
+impl<const PORTS: usize> StepOperation<PORTS> for TestObserverOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(conduit_kernel::Failure {
+                    code: conduit_kernel::FailureCode::InvalidLifecycle,
+                    detail: 3,
+                });
+            }
+            io.consume_host_completion()
+                .expect("observed tick fixture presentation");
+            self.pending = None;
+            self.next = self.next.saturating_add(1);
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() {
+                return StepOutcome::Await;
+            }
+            let request = RequestId(0x8000_0000 | self.next);
+            io.consume(PortId(0)).expect("present tick fixture input");
+            io.request_host_call(
+                request,
+                HostCallId(0),
+                BoundedValueRef::new(value, TICK_ENCODED_LEN)
+                    .expect("typed tick is exactly eight bytes"),
+            )
+            .expect("tick fixture Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed tick fixture closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+#[cfg(test)]
 impl TestObserverOperation {
     pub(super) fn start(&mut self) -> OperationAction {
         OperationAction::Await

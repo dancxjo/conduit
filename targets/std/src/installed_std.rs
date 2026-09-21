@@ -57,6 +57,7 @@ mod operation;
 mod operation_cancellation;
 mod operation_capacity;
 mod operation_kind;
+mod operation_step;
 mod pacing_operations;
 mod pattern_comparison_operation;
 mod pcm_profile_conversion_operation;
@@ -169,9 +170,7 @@ use conduit_core::{
     bind_active_play, bind_sign, kind_id, wait_host_call_requirement, CancellationReason,
     Observation, ObservationKind, PlanFragment, TerminalDisposition,
 };
-use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
     BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedSignLog, HostedValueStore,
     SignSink, ValueStorage,
@@ -205,7 +204,7 @@ const PENDING_REQUESTS: usize = MAX_NODES;
 const PROOF_PCM_CLIP_SOURCE_OPERATION: &str = "conduit.host/proof-recorded-pcm-clip@1";
 
 pub(in crate::installed_std) type InstalledScheduler = FixedScheduler<
-    OperationDriver<InstalledOperation, PORTS>,
+    InstalledOperation,
     HostedValueStore,
     HostedSignLog,
     MAX_NODES,
@@ -319,7 +318,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         preparation::prepare_operations(fragment, &lowered, &mut values, &active_play, retained)?;
     let driver_capacity_before = drivers
         .iter()
-        .map(|driver| driver.operation().allocation_capacity())
+        .map(InstalledOperation::allocation_capacity)
         .sum::<usize>();
     let value_allocation_before = values.allocation_capacities();
 
@@ -2938,10 +2937,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     };
 
     for driver in scheduler.drivers() {
-        robotics_effect::write_simulated_drive_effect(
-            _output,
-            driver.operation().simulated_drive_effect(),
-        )?;
+        robotics_effect::write_simulated_drive_effect(_output, driver.simulated_drive_effect())?;
     }
 
     #[cfg(test)]
@@ -2974,7 +2970,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let driver_capacity_after = scheduler
         .drivers()
         .iter()
-        .map(|driver| driver.operation().allocation_capacity())
+        .map(InstalledOperation::allocation_capacity)
         .sum::<usize>();
     let value_allocation_after = scheduler.values().allocation_capacities();
     let alife_capacity_after = alife_host.allocation_capacity();

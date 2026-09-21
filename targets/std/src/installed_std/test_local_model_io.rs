@@ -69,6 +69,89 @@ pub(super) struct TestLocalModelSinkOperation {
     complete: bool,
 }
 
+impl<const PORTS: usize> conduit_kernel::scheduler::StepOperation<PORTS>
+    for TestLocalModelSourceOperation
+{
+    fn step(
+        &mut self,
+        io: &mut conduit_kernel::scheduler::StepIo<PORTS>,
+        _: &conduit_kernel::scheduler::StepInputBytes<'_, PORTS>,
+    ) -> conduit_kernel::scheduler::StepOutcome {
+        use conduit_kernel::scheduler::StepOutcome;
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if self.hosted {
+            if let Some((request, outcome)) = io.host_completion() {
+                if request != conduit_kernel::RequestId(0) {
+                    return local_model_fixture_fail(145);
+                }
+                match (outcome.disposition, outcome.output, outcome.failure) {
+                    (conduit_kernel::HostCallDisposition::Completed, Some(output), None) => {
+                        if !io.output_ready(PortId(0)) {
+                            return StepOutcome::Await;
+                        }
+                        io.consume_host_completion()
+                            .expect("observed local-model fixture source");
+                        io.send(PortId(0), output.value)
+                            .expect("ready local-model fixture output");
+                        self.emitted = true;
+                        return StepOutcome::Complete;
+                    }
+                    (conduit_kernel::HostCallDisposition::Denied, _, _) => {
+                        return local_model_fixture_fail(143)
+                    }
+                    _ => return local_model_fixture_fail(144),
+                }
+            }
+            io.request_host_call(
+                conduit_kernel::RequestId(0),
+                conduit_kernel::HostCallId(0),
+                conduit_kernel::BoundedValueRef::new(self.value, 1)
+                    .expect("proof clip source marker is one admitted byte"),
+            )
+            .expect("local-model fixture Host Call");
+            return StepOutcome::Progress;
+        }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), self.value)
+            .expect("ready local-model fixture output");
+        self.emitted = true;
+        StepOutcome::Complete
+    }
+}
+
+impl<const PORTS: usize> conduit_kernel::scheduler::StepOperation<PORTS>
+    for TestLocalModelSinkOperation
+{
+    fn step(
+        &mut self,
+        io: &mut conduit_kernel::scheduler::StepIo<PORTS>,
+        _: &conduit_kernel::scheduler::StepInputBytes<'_, PORTS>,
+    ) -> conduit_kernel::scheduler::StepOutcome {
+        use conduit_kernel::scheduler::StepOutcome;
+        if self.complete {
+            return StepOutcome::Complete;
+        }
+        if io.input(PortId(0)).is_some() {
+            io.consume(PortId(0))
+                .expect("present local-model fixture input");
+            self.complete = true;
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+}
+
+const fn local_model_fixture_fail(detail: u16) -> conduit_kernel::scheduler::StepOutcome {
+    conduit_kernel::scheduler::StepOutcome::Fail(conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    })
+}
+
 impl TestLocalModelSourceOperation {
     pub(super) fn emit_or_complete(&self) -> OperationAction {
         if self.emitted {

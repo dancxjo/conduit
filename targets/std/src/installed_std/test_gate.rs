@@ -7,6 +7,7 @@ use conduit_core::{
 };
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
     RequestId, ValueRef, ValueStorage,
 };
@@ -49,6 +50,106 @@ pub(super) struct TestSlowScalarSinkOperation {
     pub(super) waits: Vec<ValueRef>,
     next: usize,
     pending: Option<RequestId>,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TestGateScriptOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return gate_fixture_fail(17);
+            }
+            let Some((port, value)) = self.items.get(self.next).copied() else {
+                return gate_fixture_fail(17);
+            };
+            if !io.output_ready(port) {
+                return StepOutcome::Await;
+            }
+            io.consume_host_completion()
+                .expect("observed gate fixture wait");
+            io.send(port, value).expect("ready gate fixture output");
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
+        }
+        let Some(wait) = self.waits.get(self.next).copied() else {
+            return StepOutcome::Complete;
+        };
+        if self.pending.is_none() {
+            let request = RequestId(u32::try_from(self.next).unwrap_or(u32::MAX));
+            io.request_host_call(
+                request,
+                HostCallId(0),
+                BoundedValueRef::new(wait, 8).expect("gate fixture wait is bounded"),
+            )
+            .expect("gate fixture wait Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TestSlowScalarSinkOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return gate_fixture_fail(18);
+            }
+            io.consume_host_completion()
+                .expect("observed slow sink wait");
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if value.byte_len != SCALAR_ENCODED_LEN as u32
+                || self.pending.is_some()
+                || self.next >= self.waits.len()
+            {
+                return gate_fixture_fail(18);
+            }
+            let request = RequestId(u32::try_from(self.next).unwrap_or(u32::MAX));
+            io.consume(PortId(0)).expect("present slow scalar input");
+            io.request_host_call(
+                request,
+                HostCallId(0),
+                BoundedValueRef::new(self.waits[self.next], 8)
+                    .expect("slow sink wait is exactly eight bytes"),
+            )
+            .expect("slow sink wait Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() && self.next == self.waits.len() {
+            io.consume_closed(PortId(0))
+                .expect("observed slow sink closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+const fn gate_fixture_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    })
 }
 
 impl TestGateScriptOperation {

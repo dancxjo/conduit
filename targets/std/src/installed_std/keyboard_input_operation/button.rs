@@ -5,6 +5,7 @@ mod tests;
 use super::super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, PreparedStructuredValueValidator};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome,
     HostedValueStore, OperationAction, PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -22,6 +23,76 @@ pub(crate) struct ButtonOperation {
     pending: Option<RequestId>,
     terminal: bool,
     validator: PreparedStructuredValueValidator,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for ButtonOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if self.terminal {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return button_step_fail(FailureCode::InvalidLifecycle, 3);
+            }
+            if let Some(failure) = outcome.failure {
+                return StepOutcome::Fail(failure);
+            }
+            match outcome.disposition {
+                HostCallDisposition::Completed => {
+                    let (Some(output), Some(canonical)) =
+                        (outcome.output, input_bytes.host_output())
+                    else {
+                        return button_step_fail(FailureCode::InvalidInput, 4);
+                    };
+                    if self.validator.validate(canonical).is_err() {
+                        return button_step_fail(FailureCode::InvalidInput, 5);
+                    }
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed button Host Call completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready button output");
+                    self.pending = None;
+                    return StepOutcome::Progress;
+                }
+                HostCallDisposition::Cancelled if outcome.output.is_none() => {
+                    return button_step_fail(FailureCode::Cancelled, 0)
+                }
+                _ => return button_step_fail(FailureCode::InvalidLifecycle, 6),
+            }
+        }
+        if self.pending.is_some() {
+            return StepOutcome::Await;
+        }
+        let request = RequestId(self.next);
+        let Some(next) = self.next.checked_add(1) else {
+            return button_step_fail(FailureCode::StorageExhausted, 2);
+        };
+        io.request_host_call(
+            request,
+            HostCallId(0),
+            BoundedValueRef::new(self.empty, 0).expect("pre-admitted empty keyboard request"),
+        )
+        .expect("button Host Call");
+        self.next = next;
+        self.pending = Some(request);
+        StepOutcome::Progress
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.terminal = true;
+    }
+}
+
+const fn button_step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl ButtonOperation {

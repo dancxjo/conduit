@@ -68,7 +68,7 @@ impl Operation for Fixture {
     }
     fn cancel(&mut self) {
         if let Self::Pulse(operation) = self {
-            operation.cancel();
+            conduit_kernel::Operation::cancel(operation);
         }
     }
 }

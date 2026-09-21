@@ -5,6 +5,7 @@ use conduit_core::{
     HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -150,6 +151,61 @@ pub(super) struct HttpClientOperation {
     completed: u16,
 }
 
+impl<const PORTS: usize> StepOperation<PORTS> for HttpClientOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.completed == conduit_web::HTTP_MAXIMUM_IN_FLIGHT {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if !self.pending || request != RequestId(u32::from(self.completed)) {
+                return http_step_fail(FailureCode::InvalidLifecycle, 4);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed HTTP response");
+                    io.send(PortId(0), output.value).expect("ready HTTP output");
+                    self.pending = false;
+                    self.completed += 1;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Denied, _, _) => {
+                    return http_step_fail(FailureCode::HostCallDenied, 1)
+                }
+                (HostCallDisposition::Cancelled, _, _) => {
+                    return http_step_fail(FailureCode::Cancelled, 2)
+                }
+                (HostCallDisposition::Failed, _, Some(failure)) => {
+                    return StepOutcome::Fail(failure)
+                }
+                _ => return http_step_fail(FailureCode::InvalidLifecycle, 3),
+            }
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending {
+                return http_step_fail(FailureCode::InvalidLifecycle, 4);
+            }
+            let input =
+                BoundedValueRef::new(value, conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES)
+                    .expect("planned HTTP request is bounded");
+            let request = RequestId(u32::from(self.completed));
+            io.consume(PortId(0)).expect("present HTTP request");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("HTTP client Host Call");
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = false;
+    }
+}
+
 impl HttpClientOperation {
     pub(super) fn start(&mut self) -> OperationAction {
         OperationAction::Await
@@ -220,6 +276,104 @@ pub(super) struct HttpServerOperation {
     released: Option<ValueRef>,
     pending: Option<ServerPending>,
     accepted: u16,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for HttpServerOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((_, outcome)) = io.host_completion() {
+            let Some(pending) = self.pending else {
+                return http_step_fail(FailureCode::InvalidLifecycle, 10);
+            };
+            match (
+                pending,
+                outcome.disposition,
+                outcome.output,
+                outcome.failure,
+            ) {
+                (ServerPending::Accept, HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion().expect("observed HTTP accept");
+                    io.send(PortId(0), output.value)
+                        .expect("ready accepted HTTP request");
+                    self.pending = None;
+                    self.accepted += 1;
+                    return StepOutcome::Progress;
+                }
+                (ServerPending::Respond, HostCallDisposition::Completed, None, None) => {
+                    io.consume_host_completion()
+                        .expect("observed HTTP response send");
+                    self.pending = None;
+                    if self.accepted == conduit_web::HTTP_MAXIMUM_IN_FLIGHT {
+                        io.discard(self.empty).expect("release empty HTTP command");
+                        self.released = None;
+                        return StepOutcome::Complete;
+                    }
+                    self.request_accept_step(io);
+                    return StepOutcome::Progress;
+                }
+                (_, HostCallDisposition::Denied, _, _) => {
+                    return http_step_fail(FailureCode::HostCallDenied, 11)
+                }
+                (_, HostCallDisposition::Cancelled, _, _) => {
+                    return http_step_fail(FailureCode::Cancelled, 12)
+                }
+                (_, HostCallDisposition::Failed, _, Some(failure)) => {
+                    return StepOutcome::Fail(failure)
+                }
+                _ => return http_step_fail(FailureCode::InvalidLifecycle, 13),
+            }
+        }
+        if self.pending.is_none() && self.accepted == 0 {
+            self.request_accept_step(io);
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() || self.accepted == 0 {
+                return http_step_fail(FailureCode::InvalidLifecycle, 14);
+            }
+            let input =
+                BoundedValueRef::new(value, conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES)
+                    .expect("planned HTTP response is bounded");
+            let request = RequestId(u32::from(self.accepted) * 2 - 1);
+            io.consume(PortId(0)).expect("present HTTP response");
+            io.request_host_call(request, HostCallId(1), input)
+                .expect("HTTP response Host Call");
+            self.pending = Some(ServerPending::Respond);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed HTTP response closure");
+            io.discard(self.empty).expect("release empty HTTP command");
+            self.released = None;
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.released = Some(self.empty);
+    }
+}
+
+impl HttpServerOperation {
+    fn request_accept_step<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) {
+        let request = RequestId(u32::from(self.accepted) * 2);
+        io.request_host_call(
+            request,
+            HostCallId(0),
+            BoundedValueRef::new(self.empty, 0).expect("empty HTTP accept command is bounded"),
+        )
+        .expect("HTTP accept Host Call");
+        self.pending = Some(ServerPending::Accept);
+    }
+}
+
+const fn http_step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl HttpServerOperation {

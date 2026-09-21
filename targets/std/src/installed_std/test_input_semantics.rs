@@ -10,6 +10,7 @@ use conduit_human::{
     CHORD_INFO_ID, KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID,
 };
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -47,6 +48,81 @@ pub(super) struct TestKeyEventSourceOperation {
 
 pub(super) struct TestChordSinkOperation {
     observed: u8,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TestKeyEventSourceOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return key_fixture_fail(60);
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(value) = self.values.get(self.next).copied() else {
+                return key_fixture_fail(60);
+            };
+            io.consume_host_completion()
+                .expect("observed key fixture wait");
+            io.send(PortId(0), value).expect("ready key fixture output");
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
+        }
+        let Some(wait) = self.waits.get(self.next).copied() else {
+            return StepOutcome::Complete;
+        };
+        if self.pending.is_none() {
+            let request = RequestId(u32::try_from(self.next).unwrap_or(u32::MAX));
+            io.request_host_call(
+                request,
+                HostCallId(0),
+                BoundedValueRef::new(wait, 8).expect("key fixture wait is bounded"),
+            )
+            .expect("key fixture wait Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TestChordSinkOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        let Some(_) = io.input(PortId(0)) else {
+            return StepOutcome::Await;
+        };
+        let valid = self.observed == 0
+            && input_bytes.input(PortId(0)).is_some_and(|bytes| {
+                ChordInfo::decode(bytes)
+                    .is_ok_and(|chord| chord.chord_id() == CoreChordId::CancelOrEscape)
+            });
+        if !valid {
+            return key_fixture_fail(63);
+        }
+        io.consume(PortId(0)).expect("present chord fixture input");
+        self.observed = 1;
+        StepOutcome::Complete
+    }
+}
+
+const fn key_fixture_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidInput,
+        detail,
+    })
 }
 
 impl TestKeyEventSourceOperation {

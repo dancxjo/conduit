@@ -6,6 +6,7 @@ use conduit_core::{
     StructuredInfoValue,
 };
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, HostedValueStore, OperationAction,
     OperationInput, PortId, RequestId, ValueRef, ValueStorage,
 };
@@ -31,6 +32,64 @@ pub(super) struct SourceOperation {
     pub(super) waits: Vec<ValueRef>,
     next: usize,
     pending: Option<RequestId>,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for SourceOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return structured_fixture_fail(154);
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(value) = self.values.get(self.next).copied() else {
+                return structured_fixture_fail(154);
+            };
+            io.consume_host_completion()
+                .expect("observed structured fixture wait");
+            io.send(PortId(0), value)
+                .expect("ready structured fixture output");
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
+        }
+        let Some(value) = self.values.get(self.next).copied() else {
+            return StepOutcome::Complete;
+        };
+        if self.pending.is_none() && !self.waits.is_empty() {
+            let Some(wait) = self.waits.get(self.next).copied() else {
+                return structured_fixture_fail(155);
+            };
+            let request = RequestId(u32::try_from(self.next).unwrap_or(u32::MAX));
+            io.request_host_call(
+                request,
+                HostCallId(0),
+                BoundedValueRef::new(wait, 8).expect("fixture wait is exactly eight bytes"),
+            )
+            .expect("structured fixture wait Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if self.pending.is_some() {
+            return StepOutcome::Await;
+        }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), value)
+            .expect("ready structured fixture output");
+        self.next += 1;
+        StepOutcome::Progress
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
 }
 
 impl SourceOperation {
@@ -97,6 +156,44 @@ impl SourceOperation {
 pub(super) struct SinkOperation {
     expected: Vec<Vec<Vec<u8>>>,
     received: usize,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for SinkOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if io.input(PortId(0)).is_some() {
+            let valid = input_bytes.input(PortId(0)).is_some_and(|canonical| {
+                self.expected.get(self.received).is_some_and(|choices| {
+                    choices
+                        .iter()
+                        .any(|expected| expected.as_slice() == canonical)
+                })
+            });
+            if !valid {
+                return structured_fixture_fail(150);
+            }
+            io.consume(PortId(0))
+                .expect("present structured fixture input");
+            self.received += 1;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.received == self.expected.len() {
+            io.consume_closed(PortId(0))
+                .expect("observed structured fixture closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+}
+
+const fn structured_fixture_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    })
 }
 
 impl SinkOperation {

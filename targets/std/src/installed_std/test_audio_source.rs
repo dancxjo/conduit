@@ -6,7 +6,11 @@ use conduit_core::{
     PortTemporal,
 };
 use conduit_form::{KindProjection, ProfileCatalog};
-use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallId, OperationInput, RequestId};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationInput,
+    RequestId,
+};
 use conduit_kernel::{OperationAction, PortId, ValueRef, ValueStorage};
 
 pub(super) const KIND: &str = "conduit-proof/pcm-specimen-source";
@@ -29,6 +33,51 @@ pub(super) struct TestPcmSourceOperation {
     yield_markers: [ValueRef; YIELDS],
     pub(super) next: usize,
     pending: Option<RequestId>,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TestPcmSourceOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidLifecycle,
+                    detail: 64,
+                });
+            }
+            io.consume_host_completion()
+                .expect("observed PCM fixture yield");
+            self.pending = None;
+            return StepOutcome::Progress;
+        }
+        let Some(value) = self.values.get(self.next).copied() else {
+            return StepOutcome::Complete;
+        };
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), value).expect("ready PCM fixture output");
+        self.next += 1;
+        if self.next < self.values.len() {
+            let request = RequestId(self.next as u32);
+            io.request_host_call(
+                request,
+                HostCallId(0),
+                BoundedValueRef::new(self.yield_markers[self.next - 1], 1)
+                    .expect("yield marker is one byte"),
+            )
+            .expect("PCM fixture yield Host Call");
+            self.pending = Some(request);
+        }
+        StepOutcome::Progress
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
 }
 
 impl TestPcmSourceOperation {

@@ -77,7 +77,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for MidiInputOperation {
             return StepOutcome::Progress;
         }
 
-        if self.pending.is_none() && !self.emitted {
+        if self.pending.is_none() {
             if self.next_request >= u32::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS)
             {
                 return step_failure(FailureCode::StorageExhausted, 101);
@@ -95,8 +95,7 @@ impl<const PORTS: usize> StepOperation<PORTS> for MidiInputOperation {
             self.emitted = false;
             return StepOutcome::Progress;
         }
-        self.emitted = false;
-        StepOutcome::Progress
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {

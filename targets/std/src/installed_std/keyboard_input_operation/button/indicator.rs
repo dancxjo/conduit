@@ -1,7 +1,11 @@
 //! Native installations for the shared semantic mapper and honest stdout sink.
 use crate::installed_std::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{CapabilityOffer, PlannedGear};
-use conduit_kernel::{CanonicalValue, HostedValueStore, OperationAction, OperationInput, PortId};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    CanonicalValue, Failure, FailureCode, HostedValueStore, OperationAction, OperationInput,
+    PortId,
+};
 use conduit_semantic_catalog::{PreparedButtonIndicatorMapper, BUTTON_TRANSITION_MAXIMUM_VALUES};
 
 pub(in crate::installed_std) static MAPPER: InstalledFactory = InstalledFactory {
@@ -34,6 +38,51 @@ pub(in crate::installed_std) struct Mapper {
     mapper: PreparedButtonIndicatorMapper,
     emitted: usize,
     closed: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for Mapper {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if io.input(PortId(0)).is_some() {
+            if self.closed || self.emitted == BUTTON_TRANSITION_MAXIMUM_VALUES as usize {
+                return mapper_step_fail(63);
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(bytes) = input_bytes.input(PortId(0)) else {
+                return mapper_step_fail(62);
+            };
+            let Ok(state) = self.mapper.map(bytes) else {
+                return mapper_step_fail(62);
+            };
+            io.consume(PortId(0)).expect("present button transition");
+            io.send_canonical(
+                PortId(0),
+                CanonicalValue::new(&state.encode()).expect("one bounded Boolean byte"),
+            )
+            .expect("ready button-indicator output");
+            self.emitted += 1;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && !self.closed {
+            io.consume_closed(PortId(0))
+                .expect("observed button-indicator closure");
+            self.closed = true;
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+}
+
+const fn mapper_step_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidLifecycle,
+        detail,
+    })
 }
 
 impl Mapper {

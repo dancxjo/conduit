@@ -6,7 +6,10 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, ImplementationOffer, KindIdentity, PlannedGear,
     PortDescriptor, PortDirection, PortTemporal,
 };
-use conduit_kernel::{Failure, FailureCode, OperationAction, OperationInput, PortId};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    Failure, FailureCode, OperationAction, OperationInput, PortId,
+};
 
 const KIND: &str = "conduit-test/recurrence-sink";
 const IMPLEMENTATION: &str = "conduit-test/recurrence-sink@1";
@@ -20,6 +23,41 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
 pub(super) struct TestRecurrenceSinkOperation {
     expected: u32,
     received: u32,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TestRecurrenceSinkOperation {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if io.input(PortId(0)).is_some() {
+            let Some(canonical) = input_bytes.input(PortId(0)) else {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidInput,
+                    detail: 230,
+                });
+            };
+            if canonical.is_empty()
+                || canonical.len() > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+                || self.received != 0
+            {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidInput,
+                    detail: 230,
+                });
+            }
+            io.consume(PortId(0)).expect("present recurrence fixture");
+            self.received = self.expected;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.received == self.expected {
+            io.consume_closed(PortId(0))
+                .expect("observed recurrence fixture closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
 }
 
 impl TestRecurrenceSinkOperation {

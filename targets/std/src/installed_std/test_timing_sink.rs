@@ -6,6 +6,7 @@ use conduit_core::{
 };
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
     RequestId, ValueRef, ValueStorage,
 };
@@ -43,6 +44,78 @@ pub(super) struct TestTimingSourceOperation {
     pub(super) waits: Vec<ValueRef>,
     next: usize,
     pending: Option<RequestId>,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TestTimingSinkOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = io.input(PortId(0)) {
+            if value.byte_len != 1 || self.received >= MAXIMUM_VALUES {
+                return timing_fixture_fail(789);
+            }
+            io.consume(PortId(0)).expect("present timing fixture input");
+            self.received += 1;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed timing fixture closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for TestTimingSourceOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return timing_fixture_fail(791);
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(value) = self.values.get(self.next).copied() else {
+                return timing_fixture_fail(790);
+            };
+            io.consume_host_completion()
+                .expect("observed timing fixture wait");
+            io.send(PortId(0), value)
+                .expect("ready timing fixture output");
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
+        }
+        let Some(wait) = self.waits.get(self.next).copied() else {
+            return StepOutcome::Complete;
+        };
+        if self.pending.is_none() {
+            let request = RequestId(u32::try_from(self.next).unwrap_or(u32::MAX));
+            io.request_host_call(
+                request,
+                HostCallId(0),
+                BoundedValueRef::new(wait, 8).expect("timing fixture wait is bounded"),
+            )
+            .expect("timing fixture wait Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+const fn timing_fixture_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    })
 }
 
 impl TestTimingSinkOperation {
