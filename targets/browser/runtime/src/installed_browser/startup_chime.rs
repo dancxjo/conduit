@@ -5,8 +5,9 @@ use super::{
 };
 use conduit_core::{kind_id, HostCallRequirement, PlannedGear};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
-    Operation, OperationAction, OperationInput, PortId, RequestId,
+    PortId, RequestId,
 };
 
 pub(crate) const IMPLEMENTATION: &str = "browser/startup-chime@1";
@@ -42,7 +43,7 @@ fn offer() -> conduit_core::CapabilityOffer {
 }
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
     validate_placement(placement, &offer())?;
-    Ok(BrowserOperation::installed(Chime {
+    Ok(BrowserOperation::installed_step(Chime {
         pending: None,
         next: 0,
     }))
@@ -51,37 +52,16 @@ struct Chime {
     pending: Option<RequestId>,
     next: u32,
 }
-fn invalid() -> OperationAction {
-    OperationAction::Fail(Failure {
+fn invalid() -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::InvalidLifecycle,
         detail: 1,
     })
 }
-impl Operation for Chime {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => {
-                let Ok(input) = BoundedValueRef::new(value, conduit_core::BOOL_ENCODED_LEN as u32)
-                else {
-                    return invalid();
-                };
-                let request = RequestId(self.next);
-                self.pending = Some(request);
-                OperationAction::RequestHostCall {
-                    request,
-                    operation: HostCallId(0),
-                    input,
-                }
-            }
-            OperationInput::HostCallCompleted { request, outcome }
-                if self.pending == Some(request) && outcome.output.is_none() =>
-            {
+impl<const PORTS: usize> StepOperation<PORTS> for Chime {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending == Some(request) && outcome.output.is_none() {
                 let valid = match outcome.disposition {
                     HostCallDisposition::Completed => outcome.failure.is_none(),
                     HostCallDisposition::Denied => outcome
@@ -95,21 +75,41 @@ impl Operation for Chime {
                 if !valid {
                     return invalid();
                 }
-                self.pending = None;
                 let Some(next) = self.next.checked_add(1) else {
-                    return OperationAction::Fail(Failure {
+                    return StepOutcome::Fail(Failure {
                         code: FailureCode::IdentityCapacityExhausted,
                         detail: 1,
                     });
                 };
+                io.consume_host_completion()
+                    .expect("observed startup-chime completion");
+                self.pending = None;
                 self.next = next;
-                OperationAction::Await
+                return StepOutcome::Progress;
             }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => invalid(),
+            return invalid();
         }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_none() {
+                let Ok(input) = BoundedValueRef::new(value, conduit_core::BOOL_ENCODED_LEN as u32)
+                else {
+                    return invalid();
+                };
+                let request = RequestId(self.next);
+                io.consume(PortId(0)).expect("present startup-chime input");
+                io.request_host_call(request, HostCallId(0), input)
+                    .expect("startup-chime Host Call");
+                self.pending = Some(request);
+                return StepOutcome::Progress;
+            }
+            return invalid();
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed startup-chime closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
     fn cancel(&mut self) {
         self.pending = None;

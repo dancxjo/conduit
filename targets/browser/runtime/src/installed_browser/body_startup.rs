@@ -6,7 +6,8 @@ use super::{
 use conduit_body::{BodyStartup, StartupScope};
 use conduit_core::{CapabilityOffer, InfoBool, PlannedGear};
 use conduit_kernel::{
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, ValueRef, ValueStorage,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    HostedValueStore, PortId, ValueRef, ValueStorage,
 };
 
 const WAKE_IMPLEMENTATION: &str = "browser/body-wake@1";
@@ -82,30 +83,26 @@ pub(crate) fn prepare_for_body(
     } else {
         None
     };
-    Ok(Some(BrowserOperation::installed(StartupSource { value })))
+    Ok(Some(BrowserOperation::installed_step(StartupSource {
+        value,
+    })))
 }
 
 struct StartupSource {
     value: Option<ValueRef>,
 }
-impl Operation for StartupSource {
-    fn start(&mut self) -> OperationAction {
-        match self.value.take() {
-            Some(value) => OperationAction::Emit {
-                port: PortId(0),
-                value,
-            },
-            None => OperationAction::Complete,
+impl<const PORTS: usize> StepOperation<PORTS> for StartupSource {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        let Some(value) = self.value else {
+            return StepOutcome::Complete;
+        };
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
         }
-    }
-    fn resume(&mut self, _: OperationInput) -> OperationAction {
-        OperationAction::Fail(conduit_kernel::Failure {
-            code: conduit_kernel::FailureCode::InvalidLifecycle,
-            detail: 1,
-        })
-    }
-    fn advance(&mut self) -> OperationAction {
-        OperationAction::Complete
+        io.send(PortId(0), value)
+            .expect("ready body-startup output");
+        self.value = None;
+        StepOutcome::Complete
     }
     fn cancel(&mut self) {
         self.value = None;
