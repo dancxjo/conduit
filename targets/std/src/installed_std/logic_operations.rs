@@ -29,7 +29,6 @@ use conduit_semantic_catalog::ScalarComparison as CompareOperator;
 
 struct DecisionValues {
     values: [Option<ValueRef>; 2],
-    released: [Option<ValueRef>; 2],
 }
 
 impl DecisionValues {
@@ -39,13 +38,11 @@ impl DecisionValues {
                 Some(store_bool(store, InfoBool::FALSE)?),
                 Some(store_bool(store, InfoBool::TRUE)?),
             ],
-            released: [None; 2],
         })
     }
 
     fn cancel(&mut self) {
         self.values = [None; 2];
-        self.released = [None; 2];
     }
 }
 
@@ -201,8 +198,6 @@ pub(super) struct LogicSelectScalarOperation {
     selector_closed: bool,
     candidates: [Option<ValueRef>; 2],
     candidate_seen: [bool; 2],
-    released: [Option<ValueRef>; 2],
-    retain_resumed: bool,
 }
 
 impl<const PORTS: usize> StepOperation<PORTS> for LogicSelectScalarOperation {
@@ -284,7 +279,10 @@ impl<const PORTS: usize> StepOperation<PORTS> for LogicSelectScalarOperation {
     }
 
     fn cancel(&mut self) {
-        LogicSelectScalarOperation::cancel(self);
+        self.selector = None;
+        self.selector_closed = false;
+        self.candidates = [None; 2];
+        self.candidate_seen = [false; 2];
     }
 }
 
@@ -297,17 +295,6 @@ impl LogicSelectScalarOperation {
             }
         }
         StepOutcome::Complete
-    }
-}
-
-impl LogicSelectScalarOperation {
-    pub(super) fn cancel(&mut self) {
-        self.selector = None;
-        self.selector_closed = false;
-        self.candidates = [None; 2];
-        self.candidate_seen = [false; 2];
-        self.released = [None; 2];
-        self.retain_resumed = false;
     }
 }
 
@@ -401,8 +388,6 @@ fn prepare_select(
             selector_closed: false,
             candidates: [None; 2],
             candidate_seen: [false; 2],
-            released: [None; 2],
-            retain_resumed: false,
         },
     ))
 }

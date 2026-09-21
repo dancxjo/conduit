@@ -4,7 +4,8 @@ use super::{
 };
 use conduit_core::{InfoBool, Scalar, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN};
 use conduit_kernel::{
-    HostedValueStore, OperationAction, OperationInput, PortId, ValueRef, ValueStorage,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    HostedValueStore, PortId, ValueRef, ValueStorage,
 };
 
 fn value(slot: u16, byte_len: usize) -> ValueRef {
@@ -40,8 +41,6 @@ fn test_select() -> LogicSelectScalarOperation {
         selector_closed: false,
         candidates: [None; 2],
         candidate_seen: [false; 2],
-        released: [None; 2],
-        retain_resumed: false,
     }
 }
 
@@ -63,26 +62,55 @@ fn compare_implements_the_complete_finite_operator_set_at_scalar_boundaries() {
     ] {
         let mut values = store();
         let mut compare = test_compare(operator, &mut values);
-        assert_eq!(
-            compare.resume_value(PortId(0), value(10, SCALAR_ENCODED_LEN), &left.encode()),
-            OperationAction::Await
+        let left_bytes = left.encode();
+        let mut io = StepIo::test_frame(
+            [Some(value(10, SCALAR_ENCODED_LEN)), None],
+            [false; 2],
+            [Some(BOOL_ENCODED_LEN as u32), None],
+            None,
+            8,
         );
-        let output =
-            match compare.resume_value(PortId(1), value(11, SCALAR_ENCODED_LEN), &right.encode()) {
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
-                } => value,
-                action => panic!("compare did not emit its exact decision: {action:?}"),
-            };
+        assert_eq!(
+            compare.step(
+                &mut io,
+                &StepInputBytes::test_frame([Some(&left_bytes), None], None)
+            ),
+            StepOutcome::Progress
+        );
+        let right_bytes = right.encode();
+        let mut io = StepIo::test_frame(
+            [None, Some(value(11, SCALAR_ENCODED_LEN))],
+            [false; 2],
+            [Some(BOOL_ENCODED_LEN as u32), None],
+            None,
+            8,
+        );
+        assert_eq!(
+            compare.step(
+                &mut io,
+                &StepInputBytes::test_frame([None, Some(&right_bytes)], None)
+            ),
+            StepOutcome::Progress
+        );
+        let mut io = StepIo::test_frame(
+            [None; 2],
+            [false; 2],
+            [Some(BOOL_ENCODED_LEN as u32), None],
+            None,
+            8,
+        );
+        assert_eq!(
+            compare.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+            StepOutcome::Complete
+        );
+        let output = io.test_output(PortId(0)).expect("exact decision output");
         assert_eq!(
             InfoBool::decode(values.get(output).expect("decision value remains stored"))
                 .expect("decision is canonical")
                 .get(),
             expected
         );
-        assert!(compare.take_released_value().is_some());
-        assert_eq!(compare.take_released_value(), None);
+        assert_eq!(io.test_discards().iter().flatten().count(), 1);
     }
 }
 
@@ -90,20 +118,27 @@ fn compare_implements_the_complete_finite_operator_set_at_scalar_boundaries() {
 fn not_rejects_noncanonical_bool_and_closure_releases_both_prepared_decisions() {
     let mut values = store();
     let mut not = test_not(&mut values);
+    let mut io = StepIo::test_frame(
+        [Some(value(4, BOOL_ENCODED_LEN))],
+        [false],
+        [Some(BOOL_ENCODED_LEN as u32)],
+        None,
+        8,
+    );
     assert!(matches!(
-        not.resume_value(PortId(0), value(4, BOOL_ENCODED_LEN), &[2]),
-        OperationAction::Fail(_)
+        not.step(&mut io, &StepInputBytes::test_frame([Some(&[2])], None)),
+        StepOutcome::Fail(_)
     ));
 
     let mut values = store();
     let mut not = test_not(&mut values);
+    let mut io = StepIo::test_frame([None], [true], [None], None, 8);
     assert_eq!(
-        not.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::Complete
+        not.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Complete
     );
-    assert!(not.take_released_value().is_some());
-    assert!(not.take_released_value().is_some());
-    assert_eq!(not.take_released_value(), None);
+    assert!(io.test_consumed_closed(PortId(0)));
+    assert_eq!(io.test_discards().iter().flatten().count(), 2);
 }
 
 #[test]
@@ -111,30 +146,66 @@ fn select_retains_unknown_candidates_then_transfers_only_the_selected_identity()
     let mut select = test_select();
     let when_false = value(1, SCALAR_ENCODED_LEN);
     let when_true = value(2, SCALAR_ENCODED_LEN);
-    assert_eq!(
-        select.resume_value(PortId(1), when_false, &Scalar::MIN.encode()),
-        OperationAction::Await
+    let false_bytes = Scalar::MIN.encode();
+    let mut io = StepIo::test_frame(
+        [None, Some(when_false), None],
+        [false; 3],
+        [Some(SCALAR_ENCODED_LEN as u32), None, None],
+        None,
+        8,
     );
-    assert!(select.retains_resumed_value());
     assert_eq!(
-        select.resume_value(PortId(2), when_true, &Scalar::MAX.encode()),
-        OperationAction::Await
-    );
-    assert!(select.retains_resumed_value());
-    assert_eq!(
-        select.resume_value(
-            PortId(0),
-            value(3, BOOL_ENCODED_LEN),
-            &InfoBool::TRUE.encode()
+        select.step(
+            &mut io,
+            &StepInputBytes::test_frame([None, Some(&false_bytes), None], None)
         ),
-        OperationAction::Emit {
-            port: PortId(0),
-            value: when_true,
-        }
+        StepOutcome::Progress
     );
-    assert!(!select.retains_resumed_value());
-    assert_eq!(select.take_released_value(), Some(when_false));
-    assert_eq!(select.take_released_value(), None);
+    assert!(io.test_retained(PortId(1)));
+    let true_bytes = Scalar::MAX.encode();
+    let mut io = StepIo::test_frame(
+        [None, None, Some(when_true)],
+        [false; 3],
+        [Some(SCALAR_ENCODED_LEN as u32), None, None],
+        None,
+        8,
+    );
+    assert_eq!(
+        select.step(
+            &mut io,
+            &StepInputBytes::test_frame([None, None, Some(&true_bytes)], None)
+        ),
+        StepOutcome::Progress
+    );
+    assert!(io.test_retained(PortId(2)));
+    let selector_bytes = InfoBool::TRUE.encode();
+    let mut io = StepIo::test_frame(
+        [Some(value(3, BOOL_ENCODED_LEN)), None, None],
+        [false; 3],
+        [Some(SCALAR_ENCODED_LEN as u32), None, None],
+        None,
+        8,
+    );
+    assert_eq!(
+        select.step(
+            &mut io,
+            &StepInputBytes::test_frame([Some(&selector_bytes), None, None], None)
+        ),
+        StepOutcome::Progress
+    );
+    let mut io = StepIo::test_frame(
+        [None; 3],
+        [false; 3],
+        [Some(SCALAR_ENCODED_LEN as u32), None, None],
+        None,
+        8,
+    );
+    assert_eq!(
+        select.step(&mut io, &StepInputBytes::test_frame([None; 3], None)),
+        StepOutcome::Complete
+    );
+    assert_eq!(io.test_output(PortId(0)), Some(when_true));
+    assert!(io.test_discards().contains(&Some(when_false)));
 }
 
 #[test]
@@ -142,37 +213,73 @@ fn select_unknown_selector_closure_releases_both_retained_candidates_atomically(
     let mut select = test_select();
     let when_false = value(1, SCALAR_ENCODED_LEN);
     let when_true = value(2, SCALAR_ENCODED_LEN);
-    select.resume_value(PortId(1), when_false, &Scalar::MIN.encode());
-    select.resume_value(PortId(2), when_true, &Scalar::MAX.encode());
+    for (port, candidate, bytes) in [
+        (PortId(1), when_false, Scalar::MIN.encode()),
+        (PortId(2), when_true, Scalar::MAX.encode()),
+    ] {
+        let mut inputs = [None; 3];
+        let mut canonical = [None; 3];
+        inputs[usize::from(port.0)] = Some(candidate);
+        canonical[usize::from(port.0)] = Some(bytes.as_slice());
+        let mut io = StepIo::test_frame(inputs, [false; 3], [None; 3], None, 8);
+        assert_eq!(
+            select.step(&mut io, &StepInputBytes::test_frame(canonical, None)),
+            StepOutcome::Progress
+        );
+    }
+    let mut io = StepIo::test_frame([None; 3], [true, false, false], [None; 3], None, 8);
     assert_eq!(
-        select.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::Complete
+        select.step(&mut io, &StepInputBytes::test_frame([None; 3], None)),
+        StepOutcome::Progress
     );
-    assert_eq!(select.take_released_value(), Some(when_false));
-    assert_eq!(select.take_released_value(), Some(when_true));
-    assert_eq!(select.take_released_value(), None);
+    let mut io = StepIo::test_frame([None; 3], [false; 3], [None; 3], None, 8);
+    assert_eq!(
+        select.step(&mut io, &StepInputBytes::test_frame([None; 3], None)),
+        StepOutcome::Complete
+    );
+    assert!(io.test_discards().contains(&Some(when_false)));
+    assert!(io.test_discards().contains(&Some(when_true)));
 }
 
 #[test]
 fn cancellation_clears_all_operation_owned_decision_state() {
     let mut select = test_select();
-    select.resume_value(
-        PortId(1),
-        value(1, SCALAR_ENCODED_LEN),
-        &Scalar::MIN.encode(),
+    let scalar = Scalar::MIN.encode();
+    let mut io = StepIo::test_frame(
+        [None, Some(value(1, SCALAR_ENCODED_LEN)), None],
+        [false; 3],
+        [None; 3],
+        None,
+        8,
     );
-    assert!(select.retains_resumed_value());
-    select.cancel();
-    assert!(!select.retains_resumed_value());
-    assert_eq!(select.take_released_value(), None);
+    assert_eq!(
+        select.step(
+            &mut io,
+            &StepInputBytes::test_frame([None, Some(&scalar), None], None)
+        ),
+        StepOutcome::Progress
+    );
+    assert!(io.test_retained(PortId(1)));
+    StepOperation::<3>::cancel(&mut select);
+    assert_eq!(select.candidates, [None; 2]);
 
     let mut values = store();
     let mut compare = test_compare("eq", &mut values);
-    compare.resume_value(
-        PortId(0),
-        value(2, SCALAR_ENCODED_LEN),
-        &Scalar::ZERO.encode(),
+    let zero = Scalar::ZERO.encode();
+    let mut io = StepIo::test_frame(
+        [Some(value(2, SCALAR_ENCODED_LEN)), None],
+        [false; 2],
+        [None; 2],
+        None,
+        8,
     );
-    compare.cancel();
-    assert_eq!(compare.take_released_value(), None);
+    assert_eq!(
+        compare.step(
+            &mut io,
+            &StepInputBytes::test_frame([Some(&zero), None], None)
+        ),
+        StepOutcome::Progress
+    );
+    StepOperation::<2>::cancel(&mut compare);
+    assert_eq!(compare.operands, [None; 2]);
 }
