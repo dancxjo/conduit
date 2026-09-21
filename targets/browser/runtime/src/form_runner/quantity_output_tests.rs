@@ -192,7 +192,7 @@ fn pointer_quantity_chain_preserves_incompatible_unit_failure_without_presentati
     }
     let error = error.expect("bounded downstream work must not be starved by the standing source");
     assert!(
-        error.contains("OperationFailed(Failure { code: InvalidInput, detail: 12 })"),
+        error.contains("BackFailed(Failure { code: InvalidInput, detail: 12 })"),
         "{error}"
     );
 }

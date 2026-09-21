@@ -25,7 +25,7 @@ impl Operation for RefusingOperation {
 }
 
 #[test]
-fn identical_detail_codes_do_not_erase_distinct_operation_failures() {
+fn identical_detail_codes_do_not_erase_distinct_back_failures() {
     type Play = FixedScheduler<
         OperationDriver<RefusingOperation, 1>,
         FixedValueStore<1, 1>,
@@ -76,6 +76,6 @@ fn identical_detail_codes_do_not_erase_distinct_operation_failures() {
             FixedSignLog::new((8 * core::mem::size_of::<KernelEvent>()) as u32).unwrap(),
         )
         .unwrap();
-        assert_eq!(play.step(), Err(SchedulerError::OperationFailed(failure)));
+        assert_eq!(play.step(), Err(SchedulerError::BackFailed(failure)));
     }
 }

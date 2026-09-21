@@ -261,7 +261,7 @@ impl RemoteSignalKernel {
             || !self
                 .scheduler
                 .signs()
-                .contains_kind(conduit_kernel::KernelEventKind::OperationCompleted)
+                .contains_kind(conduit_kernel::KernelEventKind::BackCompleted)
         {
             return Err(UsbLinkError::KernelTerminalInvariant);
         }

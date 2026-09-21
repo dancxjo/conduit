@@ -151,7 +151,7 @@ pub enum SingleSourceRefusal {
     InvalidStart,
     WrongRequest,
     InvalidCompletion,
-    OperationFailed(u16),
+    BackFailed(u16),
     SignCapacity,
     AlreadyStarted,
     AlreadyTerminal,
@@ -264,7 +264,7 @@ impl<B: StepOperation<1>, E: SignSink> SingleSourceExecutor<B, E> {
         let outcome = self.back.step(&mut io, &input_bytes);
         if let StepOutcome::Fail(failure) = outcome {
             self.terminal = true;
-            return Err(SingleSourceRefusal::OperationFailed(failure.detail));
+            return Err(SingleSourceRefusal::BackFailed(failure.detail));
         }
         if outcome != StepOutcome::Complete {
             return Err(SingleSourceRefusal::InvalidCompletion);
@@ -278,12 +278,7 @@ impl<B: StepOperation<1>, E: SignSink> SingleSourceExecutor<B, E> {
         self.back.step_committed();
         self.terminal = true;
         self.signs
-            .record(
-                self.node,
-                Some(port),
-                None,
-                KernelEventKind::OperationCompleted,
-            )
+            .record(self.node, Some(port), None, KernelEventKind::BackCompleted)
             .map_err(|_| SingleSourceRefusal::SignCapacity)?;
         Ok(SingleSourceOutput {
             port,

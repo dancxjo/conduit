@@ -44,7 +44,7 @@ fn production_kernel_owns_timer_to_serial_progress() {
         profile
             .scheduler
             .signs()
-            .contains_kind(KernelEventKind::OperationCompleted)
+            .contains_kind(KernelEventKind::BackCompleted)
     );
 }
 
@@ -73,7 +73,7 @@ fn base_failure_remains_failure_and_bounded_sign_eviction_stays_visible() {
     ));
     assert_eq!(
         profile.step(),
-        Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
+        Err(SchedulerError::BackFailed(conduit_kernel::Failure {
             code: conduit_kernel::FailureCode::HostCallFailed,
             detail: 11
         }))
@@ -96,10 +96,10 @@ fn base_failure_remains_failure_and_bounded_sign_eviction_stays_visible() {
         })
     );
     signs
-        .record(NodeId(0), None, None, KernelEventKind::OperationCompleted)
+        .record(NodeId(0), None, None, KernelEventKind::BackCompleted)
         .unwrap();
     assert_eq!(
-        signs.record(NodeId(0), None, None, KernelEventKind::OperationFailed),
+        signs.record(NodeId(0), None, None, KernelEventKind::BackFailed),
         Err(SignError::ItemCapacityExceeded)
     );
 }

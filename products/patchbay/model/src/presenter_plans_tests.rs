@@ -170,7 +170,7 @@ fn both_shapes_lower_and_execute_through_the_production_kernel_with_bounded_sign
     for signs in [&direct, &recursive] {
         assert!(signs.contains(&KernelEventKind::HostCallRequested));
         assert!(signs.contains(&KernelEventKind::HostCallCompleted));
-        assert!(signs.contains(&KernelEventKind::OperationCompleted));
+        assert!(signs.contains(&KernelEventKind::BackCompleted));
         assert!(signs.len() <= usize::from(SIGN_ITEMS));
     }
     assert!(recursive.len() > direct.len());

@@ -325,7 +325,7 @@ function targetFailure(state, operation, error) {
   const evidence = workflowFailure(
     state,
     operation,
-    boundedText(error?.code, 64) ? error.code : "OperationFailed",
+    boundedText(error?.code, 64) ? error.code : "BackFailed",
     error instanceof Error ? error.message : String(error),
   );
   return error?.evidence ? Object.freeze({ ...evidence, target_evidence: error.evidence }) : evidence;

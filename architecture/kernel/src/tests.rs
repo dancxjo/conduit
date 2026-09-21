@@ -186,7 +186,7 @@ fn fixed_sign_has_independent_item_and_byte_budgets() {
     )
     .unwrap();
     assert_eq!(
-        log.record(NodeId(2), None, None, KernelEventKind::OperationCompleted),
+        log.record(NodeId(2), None, None, KernelEventKind::BackCompleted),
         Err(SignError::ByteCapacityExceeded)
     );
     let mut events = log.events();
@@ -199,7 +199,7 @@ fn fixed_sign_has_independent_item_and_byte_budgets() {
 fn fixed_sign_evicts_transient_history_with_an_exact_gap_but_keeps_terminal_truth() {
     let charge = u32::try_from(core::mem::size_of::<KernelEvent>()).unwrap();
     let mut log = FixedSignLog::<3>::new(charge * 3).unwrap();
-    log.record(NodeId(0), None, None, KernelEventKind::OperationCompleted)
+    log.record(NodeId(0), None, None, KernelEventKind::BackCompleted)
         .unwrap();
     log.record(NodeId(1), None, None, KernelEventKind::ValueRouted)
         .unwrap();
@@ -209,7 +209,7 @@ fn fixed_sign_evicts_transient_history_with_an_exact_gap_but_keeps_terminal_trut
         .record(NodeId(3), None, None, KernelEventKind::HostCallRequested)
         .unwrap();
     assert_eq!(newest.sequence, 3);
-    assert!(log.contains_kind(KernelEventKind::OperationCompleted));
+    assert!(log.contains_kind(KernelEventKind::BackCompleted));
     assert_eq!(
         log.retention_gap(),
         Some(super::SignRetentionGap {
@@ -318,7 +318,7 @@ fn remote_sign_evicts_transient_history_but_preserves_remote_lifecycle_identity(
         })
     );
     assert_eq!(
-        log.record(NodeId(2), None, None, KernelEventKind::OperationCompleted),
+        log.record(NodeId(2), None, None, KernelEventKind::BackCompleted),
         Err(SignError::ItemCapacityExceeded)
     );
 }

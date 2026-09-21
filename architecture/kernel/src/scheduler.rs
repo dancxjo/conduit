@@ -551,7 +551,7 @@ pub enum SchedulerError {
     StepWorkExceeded,
     FalseProgress,
     DecisionLimitExceeded,
-    OperationFailed(crate::Failure),
+    BackFailed(crate::Failure),
     OperationProtocolViolation,
     HostCallCapacityExceeded,
     HostCallRequestDuplicate,
@@ -1546,7 +1546,7 @@ where
                     value: None,
                     fault_code: Some(code.detail),
                 });
-                return Err(SchedulerError::OperationFailed(code));
+                return Err(SchedulerError::BackFailed(code));
             }
             _ => {}
         }
@@ -1616,7 +1616,7 @@ where
                     NodeId(as_u16(node)?),
                     None,
                     None,
-                    KernelEventKind::OperationCompleted,
+                    KernelEventKind::BackCompleted,
                 )?;
                 self.signs.observe_debug(DebugRuntimeEvent {
                     node: NodeId(as_u16(node)?),

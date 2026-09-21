@@ -216,7 +216,7 @@ fn cancellation_and_host_input_failure_remain_distinct() {
     let mut failed = scheduler(true, true);
     assert_eq!(
         failed.step(),
-        Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
+        Err(SchedulerError::BackFailed(conduit_kernel::Failure {
             code: conduit_kernel::FailureCode::HostCallFailed,
             detail: 0x4b44
         }))

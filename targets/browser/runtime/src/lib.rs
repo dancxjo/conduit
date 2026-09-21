@@ -637,7 +637,7 @@ impl BrowserSession {
             loop {
                 match self.scheduler.step() {
                     Ok(SchedulerStatus::Progress { .. }) => continue,
-                    Ok(SchedulerStatus::Cancelled) | Err(SchedulerError::OperationFailed(_)) => {
+                    Ok(SchedulerStatus::Cancelled) | Err(SchedulerError::BackFailed(_)) => {
                         return self.fail(ERROR_TERMINAL_FAILURE)
                     }
                     Ok(SchedulerStatus::Drained | SchedulerStatus::Idle) | Err(_) => {
@@ -1001,7 +1001,7 @@ fn map_scheduler_error(error: SchedulerError) -> i32 {
         SchedulerError::Sign(SignError::ItemCapacityExceeded | SignError::ByteCapacityExceeded) => {
             ERROR_SIGN_EXHAUSTED
         }
-        SchedulerError::OperationFailed(_) | SchedulerError::Cancelled => ERROR_TERMINAL_FAILURE,
+        SchedulerError::BackFailed(_) | SchedulerError::Cancelled => ERROR_TERMINAL_FAILURE,
         _ => ERROR_KERNEL,
     }
 }

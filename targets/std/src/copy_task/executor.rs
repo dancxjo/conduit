@@ -489,9 +489,7 @@ fn execute_copy(
         }
         let status = match scheduler.step() {
             Ok(status) => status,
-            Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(_))
-                if result.is_some() =>
-            {
+            Err(conduit_kernel::scheduler::SchedulerError::BackFailed(_)) if result.is_some() => {
                 scheduler
                     .cancel()
                     .map_err(|error| format!("cancel failed copy kernel: {error:?}"))?;

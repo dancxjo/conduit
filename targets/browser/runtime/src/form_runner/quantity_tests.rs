@@ -47,7 +47,7 @@ fn browser_quantity_range_and_inexact_refusals_cross_admitted_kernel_requests() 
         let capacity = scheduler.values().allocation_capacities();
         let result = drive(&mut scheduler, &fragment);
         assert!(
-            matches!(result, Err(ref error) if error == &format!("OperationFailed(Failure {{ code: InvalidInput, detail: {detail} }})"))
+            matches!(result, Err(ref error) if error == &format!("BackFailed(Failure {{ code: InvalidInput, detail: {detail} }})"))
         );
         assert_eq!(scheduler.values().allocation_capacities(), capacity);
         assert!(scheduler

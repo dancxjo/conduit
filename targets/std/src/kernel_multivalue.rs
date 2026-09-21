@@ -1071,7 +1071,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                 && event.kind == KernelEventKind::InputClosed
         });
         let completed = scheduler.signs().events().find(|event| {
-            event.node == *node && event.kind == KernelEventKind::OperationCompleted
+            event.node == *node && event.kind == KernelEventKind::BackCompleted
         });
         matches!((closed, completed), (Some(closed), Some(completed)) if closed.sequence < completed.sequence)
     });

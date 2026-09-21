@@ -662,7 +662,7 @@ impl DistributedSource {
             || !self
                 .scheduler
                 .signs()
-                .contains_kind(KernelEventKind::OperationCompleted)
+                .contains_kind(KernelEventKind::BackCompleted)
             || self.capacity_seal() != self.seal
             || self.pressure_retries != 1
         {

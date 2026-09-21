@@ -651,8 +651,8 @@ pub enum KernelEventKind {
     HostCallRequested,
     HostCallCancellationRequested,
     HostCallCompleted,
-    OperationCompleted,
-    OperationFailed,
+    BackCompleted,
+    BackFailed,
     CancellationRequested,
     RunCancelled,
 }
@@ -1240,8 +1240,8 @@ fn transient_sign(kind: KernelEventKind) -> bool {
             | KernelEventKind::RemoteOutputClosed
             | KernelEventKind::RemoteInputAdmitted
             | KernelEventKind::RemoteInputClosed
-            | KernelEventKind::OperationCompleted
-            | KernelEventKind::OperationFailed
+            | KernelEventKind::BackCompleted
+            | KernelEventKind::BackFailed
             | KernelEventKind::RunCancelled
     )
 }

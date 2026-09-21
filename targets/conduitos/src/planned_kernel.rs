@@ -430,7 +430,7 @@ mod tests {
         ));
         assert_eq!(
             kernel.step(),
-            Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
+            Err(SchedulerError::BackFailed(conduit_kernel::Failure {
                 code: conduit_kernel::FailureCode::HostCallFailed,
                 detail: 11
             }))

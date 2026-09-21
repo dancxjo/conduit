@@ -398,7 +398,7 @@ fn attach_detach_and_fault_observation_do_not_change_execution_result() {
     .unwrap();
     assert_eq!(
         scheduler.step(),
-        Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
+        Err(SchedulerError::BackFailed(conduit_kernel::Failure {
             code: conduit_kernel::FailureCode::InvalidInput,
             detail: 17
         }))
@@ -461,7 +461,7 @@ fn attach_detach_and_fault_observation_do_not_change_execution_result() {
     .unwrap();
     assert_eq!(
         without_observer.step(),
-        Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
+        Err(SchedulerError::BackFailed(conduit_kernel::Failure {
             code: conduit_kernel::FailureCode::InvalidInput,
             detail: 17
         }))
