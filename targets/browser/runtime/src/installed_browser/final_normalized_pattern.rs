@@ -48,7 +48,7 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserO
     if !(1..=conduit_semantic_catalog::MAXIMUM_FINAL_PATTERN_VALUES).contains(&maximum) {
         return Err("final normalized-pattern value bound is outside browser limits".into());
     }
-    Ok(BrowserOperation::installed(
+    Ok(BrowserOperation::installed_step(
         conduit_semantic_catalog::FinalNormalizedPatternOperation::new(maximum),
     ))
 }

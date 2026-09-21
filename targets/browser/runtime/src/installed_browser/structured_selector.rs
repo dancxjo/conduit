@@ -141,7 +141,7 @@ fn validate(placement: &PlannedGear, selector: &StructuredSelector) -> Result<()
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
     let selector = selector_from_placement(placement)?;
     validate(placement, &selector)?;
-    Ok(BrowserOperation::installed(
+    Ok(BrowserOperation::installed_step(
         conduit_semantic_catalog::StructuredSelectorOperation::new(
             MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         ),

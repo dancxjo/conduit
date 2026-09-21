@@ -50,7 +50,7 @@ pub(super) fn prepare(
     _: &mut conduit_kernel::HostedValueStore,
 ) -> Result<super::BrowserOperation, String> {
     tolerance(placement)?;
-    Ok(super::BrowserOperation::installed(
+    Ok(super::BrowserOperation::installed_step(
         conduit_semantic_catalog::PatternComparisonOperation::new(
             super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
         ),

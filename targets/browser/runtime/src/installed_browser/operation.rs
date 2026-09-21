@@ -15,6 +15,7 @@ struct LegacyBrowserOperation(Box<dyn Operation>);
 pub(crate) struct BrowserOperation {
     legacy: Option<LegacyBrowserOperation>,
     step: Option<OperationDriver<LegacyBrowserOperation, { super::BROWSER_PORTS_PER_GEAR }>>,
+    native: Option<Box<dyn StepOperation<{ super::BROWSER_PORTS_PER_GEAR }>>>,
 }
 
 impl BrowserOperation {
@@ -22,6 +23,17 @@ impl BrowserOperation {
         Self {
             legacy: Some(LegacyBrowserOperation(Box::new(operation))),
             step: None,
+            native: None,
+        }
+    }
+
+    pub(crate) fn installed_step(
+        back: impl StepOperation<{ super::BROWSER_PORTS_PER_GEAR }> + 'static,
+    ) -> Self {
+        Self {
+            legacy: None,
+            step: None,
+            native: Some(Box::new(back)),
         }
     }
 
@@ -312,6 +324,10 @@ impl Operation for LegacyBrowserOperation {
 
 impl StepOperation<{ super::BROWSER_PORTS_PER_GEAR }> for BrowserOperation {
     fn step_committed(&mut self) {
+        if let Some(native) = self.native.as_mut() {
+            native.step_committed();
+            return;
+        }
         if let Some(step) = self.step.as_mut() {
             step.step_committed();
         }
@@ -322,6 +338,9 @@ impl StepOperation<{ super::BROWSER_PORTS_PER_GEAR }> for BrowserOperation {
         io: &mut StepIo<{ super::BROWSER_PORTS_PER_GEAR }>,
         input_bytes: &StepInputBytes<'_, { super::BROWSER_PORTS_PER_GEAR }>,
     ) -> StepOutcome {
+        if let Some(native) = self.native.as_mut() {
+            return native.step(io, input_bytes);
+        }
         if self.step.is_none() {
             let legacy = self.legacy.take().expect("browser Back initializes once");
             match OperationDriver::new(legacy) {
@@ -341,19 +360,27 @@ impl StepOperation<{ super::BROWSER_PORTS_PER_GEAR }> for BrowserOperation {
     }
 
     fn accepts_input_while_host_call_pending(&self) -> bool {
+        if let Some(native) = self.native.as_ref() {
+            return native.accepts_input_while_host_call_pending();
+        }
         self.step
             .as_ref()
             .is_some_and(StepOperation::accepts_input_while_host_call_pending)
     }
 
     fn retains_host_call_input(&self, request: RequestId, value: ValueRef) -> bool {
+        if let Some(native) = self.native.as_ref() {
+            return native.retains_host_call_input(request, value);
+        }
         self.step
             .as_ref()
             .is_some_and(|step| StepOperation::retains_host_call_input(step, request, value))
     }
 
     fn cancel(&mut self) {
-        if let Some(step) = self.step.as_mut() {
+        if let Some(native) = self.native.as_mut() {
+            native.cancel();
+        } else if let Some(step) = self.step.as_mut() {
             step.cancel();
         } else if let Some(legacy) = self.legacy.as_mut() {
             legacy.cancel();
