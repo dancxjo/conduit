@@ -1,10 +1,11 @@
 use conduit_core::{bind_active_play, ConfigurationValue, HostId, PlanFragment};
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
+use conduit_kernel::scheduler::{
+    FixedScheduler, SchedulerStatus, StepInputBytes, StepIo, StepOperation, StepOutcome,
+};
 use conduit_kernel::{
     BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
     HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore,
-    KernelEventKind, Operation, OperationAction, OperationInput, PortId, RemoteEndpointId,
-    RequestId, SignQuery, ValueRef, ValueStorage,
+    KernelEventKind, PortId, RemoteEndpointId, RequestId, SignQuery, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -21,7 +22,7 @@ const VALUE_ITEMS: u16 = 4;
 const VALUE_BYTES: u32 = MAX_TEXT_BYTES * VALUE_ITEMS as u32;
 
 type CoordinationScheduler = FixedScheduler<
-    OperationDriver<CoordinationOperation, PORTS>,
+    CoordinationBack,
     HostedValueStore,
     HostedSignLog,
     2,
@@ -34,77 +35,85 @@ type CoordinationScheduler = FixedScheduler<
     2,
 >;
 
-enum CoordinationOperation {
+enum CoordinationBack {
     Literal { value: ValueRef, emitted: bool },
     Presentation { pending: Option<RequestId> },
 }
 
-impl CoordinationOperation {
-    fn fail(detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure {
+impl CoordinationBack {
+    fn fail(detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             detail,
         })
     }
 }
 
-impl Operation for CoordinationOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for CoordinationBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
-            Self::Literal { value, .. } => OperationAction::Emit {
-                port: PortId(0),
-                value: *value,
-            },
-            Self::Presentation { .. } => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Presentation { pending },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if pending.is_none() => {
-                *pending = Some(RequestId(0));
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input: match BoundedValueRef::new(value, MAX_TEXT_BYTES) {
-                        Ok(value) => value,
-                        Err(_) => return Self::fail(1),
-                    },
+            Self::Literal { value, emitted } => {
+                if *emitted {
+                    return StepOutcome::Complete;
                 }
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                if io.send(PortId(0), *value).is_err() {
+                    return Self::fail(2);
+                }
+                *emitted = true;
+                StepOutcome::Progress
             }
-            (
-                Self::Presentation { pending },
-                OperationInput::HostCallCompleted { request, outcome },
-            ) if *pending == Some(request)
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                *pending = None;
-                OperationAction::Await
+            Self::Presentation { pending } => {
+                if let Some(expected) = *pending {
+                    let Some((request, outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    if request != expected
+                        || outcome.disposition != HostCallDisposition::Completed
+                        || outcome.output.is_some()
+                        || outcome.failure.is_some()
+                        || io.consume_host_completion().is_err()
+                    {
+                        return Self::fail(2);
+                    }
+                    *pending = None;
+                    return StepOutcome::Progress;
+                }
+                if let Some(value) = io.input(PortId(0)) {
+                    let Ok(input) = BoundedValueRef::new(value, MAX_TEXT_BYTES) else {
+                        return Self::fail(1);
+                    };
+                    if io.consume(PortId(0)).is_err()
+                        || io
+                            .request_host_call(RequestId(0), HostCallId(0), input)
+                            .is_err()
+                    {
+                        return Self::fail(2);
+                    }
+                    *pending = Some(RequestId(0));
+                    return StepOutcome::Progress;
+                }
+                if io.input_closed(PortId(0)) {
+                    if io.consume_closed(PortId(0)).is_err() {
+                        return Self::fail(2);
+                    }
+                    return StepOutcome::Complete;
+                }
+                StepOutcome::Await
             }
-            (Self::Presentation { pending }, OperationInput::Closed { port: PortId(0) })
-                if pending.is_none() =>
-            {
-                OperationAction::Complete
-            }
-            _ => Self::fail(2),
         }
     }
 
-    fn advance(&mut self) -> OperationAction {
+    fn cancel(&mut self) {
         match self {
-            Self::Literal { emitted, .. } if !*emitted => {
-                *emitted = true;
-                OperationAction::Complete
-            }
-            _ => OperationAction::Await,
+            Self::Literal { .. } => {}
+            Self::Presentation { pending } => *pending = None,
         }
     }
 }
@@ -158,7 +167,7 @@ impl CoordinationEndpoint {
             .map_err(|error| format!("{error:?}"))?;
         let mut drivers = Vec::with_capacity(2);
         for placement in &fragment.placements {
-            let operation = match placement.kind_id.as_str() {
+            let back = match placement.kind_id.as_str() {
                 TEXT_LITERAL_KIND => {
                     let text = placement
                         .configuration
@@ -175,15 +184,15 @@ impl CoordinationEndpoint {
                     let value = values
                         .store(text.as_bytes())
                         .map_err(|error| format!("{error:?}"))?;
-                    CoordinationOperation::Literal {
+                    CoordinationBack::Literal {
                         value,
                         emitted: false,
                     }
                 }
-                TEXT_PRESENTATION_KIND => CoordinationOperation::Presentation { pending: None },
+                TEXT_PRESENTATION_KIND => CoordinationBack::Presentation { pending: None },
                 kind => return Err(format!("unsupported coordination Kind {kind}")),
             };
-            drivers.push(OperationDriver::new(operation).map_err(|error| format!("{error:?}"))?);
+            drivers.push(back);
         }
         let mut routes = FixedRoutes::<ROUTE_SLOTS, 2>::new(PORTS as u16);
         for route in &lowered.routes {
