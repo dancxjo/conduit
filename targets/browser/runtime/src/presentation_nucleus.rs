@@ -1,9 +1,7 @@
 //! Browser-installed identities and execution for the portable presentation nucleus.
 
 use conduit_core::BaseImplementationId;
-use conduit_kernel::scheduler::{
-    FixedScheduler, HostCallRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
     HostCallDisposition, HostCallOutcome, ValueStorage,
@@ -30,7 +28,7 @@ pub use text_offer::{
     BROWSER_TEXT_UPPER_IMPLEMENTATION, BROWSER_TEXT_UPPER_PROFILE,
 };
 mod operation;
-use operation::NucleusOperation;
+use operation::NucleusBack;
 mod structured_execution;
 mod text_execution;
 use offers::{advertisement, fixture_catalog, fixture_startup_catalog};
@@ -75,7 +73,7 @@ const LAYOUT_FORM: &str = r#"form browser-layout-nucleus {
 }"#;
 
 type NucleusScheduler = FixedScheduler<
-    OperationDriver<NucleusOperation, PORTS>,
+    NucleusBack,
     FixedValueStore<VALUE_SLOTS, MAX_VALUE_BYTES>,
     FixedSignLog<SIGN_ITEMS>,
     MAX_NODES,
@@ -318,13 +316,13 @@ fn prepare_scheduler(
     bindings.seal().map_err(debug_error)?;
     let mut values = FixedValueStore::<VALUE_SLOTS, MAX_VALUE_BYTES>::new(VALUE_BYTES as u32)
         .map_err(debug_error)?;
-    let mut drivers = Vec::with_capacity(MAX_NODES);
+    let mut backs = Vec::with_capacity(MAX_NODES);
     for placement in &fragment.placements {
         let operation = match placement.kind_id.as_str() {
             conduit_semantic_catalog::LAYOUT_VIEWPORT_KIND => {
                 let value = conduit_semantic_catalog::execute_layout_source(placement)?;
                 let encoded = value.encode();
-                NucleusOperation::Source {
+                NucleusBack::Source {
                     value: values
                         .store(&encoded[..value.encoded_len()])
                         .map_err(debug_error)?,
@@ -334,36 +332,36 @@ fn prepare_scheduler(
             conduit_semantic_catalog::PRESENTATION_ICON_KIND => {
                 let value = conduit_semantic_catalog::execute_presentation_source(placement)?;
                 let encoded = value.encode();
-                NucleusOperation::Source {
+                NucleusBack::Source {
                     value: values
                         .store(&encoded[..value.encoded_len()])
                         .map_err(debug_error)?,
                     emitted: false,
                 }
             }
-            FIXTURE_GRAPHICS_KIND | FIXTURE_LAYOUT_KIND => NucleusOperation::Sink {
+            FIXTURE_GRAPHICS_KIND | FIXTURE_LAYOUT_KIND => NucleusBack::Sink {
                 maximum_input_bytes: placement.host_calls[0].maximum_input_bytes,
                 pending: false,
                 complete: false,
             },
-            _ => NucleusOperation::Transform {
+            _ => NucleusBack::Transform {
                 maximum_input_bytes: placement.host_calls[0].maximum_input_bytes,
                 pending: false,
                 emitted: false,
             },
         };
-        drivers.push(OperationDriver::new(operation).map_err(debug_error)?);
+        backs.push(operation);
     }
-    let drivers = drivers
+    let backs = backs
         .try_into()
-        .map_err(|_| "browser presentation driver table has the wrong size".to_string())?;
+        .map_err(|_| "browser presentation Back table has the wrong size".to_string())?;
     let signs = FixedSignLog::<SIGN_ITEMS>::new(
         lowered
             .sign_bytes
             .max((SIGN_ITEMS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
     )
     .map_err(debug_error)?;
-    FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
+    FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, backs, values, signs)
         .map_err(debug_error)
 }
 

@@ -1,9 +1,11 @@
+use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome};
 use conduit_kernel::{
-    BoundedValueRef, HostCallDisposition, HostCallId, Operation, OperationAction, OperationInput,
-    PortId, RequestId, ValueRef,
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef,
 };
 
-pub(super) enum NucleusOperation {
+const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
+
+pub(super) enum NucleusBack {
     Source {
         value: ValueRef,
         emitted: bool,
@@ -20,125 +22,126 @@ pub(super) enum NucleusOperation {
     },
 }
 
-impl Operation for NucleusOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepOperation<PORTS> for NucleusBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
-            Self::Source { value, emitted } if !*emitted => OperationAction::Emit {
-                port: PortId(0),
-                value: *value,
-            },
-            Self::Source { .. } => OperationAction::Complete,
-            Self::Transform { .. } | Self::Sink { .. } => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Transform {
-                    maximum_input_bytes,
-                    pending,
-                    emitted,
-                },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if !*pending && !*emitted => {
-                *pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(value, *maximum_input_bytes)
-                        .expect("portable presentation value is bounded"),
+            Self::Source { value, emitted } => {
+                if *emitted {
+                    return StepOutcome::Complete;
                 }
-            }
-            (
-                Self::Sink {
-                    maximum_input_bytes,
-                    pending,
-                    ..
-                },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if !*pending => {
-                *pending = true;
-                OperationAction::RequestHostCall {
-                    request: RequestId(0),
-                    operation: HostCallId(0),
-                    input: BoundedValueRef::new(value, *maximum_input_bytes)
-                        .expect("fixture manifestation value is bounded"),
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
                 }
-            }
-            (
-                Self::Transform {
-                    pending, emitted, ..
-                },
-                OperationInput::HostCallCompleted {
-                    request: RequestId(0),
-                    outcome,
-                },
-            ) if *pending
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return fail(3);
-                };
-                *pending = false;
+                if io.send(PortId(0), *value).is_err() {
+                    return fail(4);
+                }
                 *emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
+                StepOutcome::Complete
+            }
+            Self::Transform {
+                maximum_input_bytes,
+                pending,
+                emitted,
+            } => {
+                if *pending {
+                    let Some((RequestId(0), outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    if outcome.disposition != HostCallDisposition::Completed
+                        || outcome.failure.is_some()
+                    {
+                        return fail(4);
+                    }
+                    let Some(output) = outcome.output else {
+                        return fail(3);
+                    };
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    if io.consume_host_completion().is_err()
+                        || io.send(PortId(0), output.value).is_err()
+                    {
+                        return fail(4);
+                    }
+                    *pending = false;
+                    *emitted = true;
+                    return StepOutcome::Progress;
                 }
+                if let Some(value) = io.input(PortId(0)) {
+                    if *emitted {
+                        return fail(4);
+                    }
+                    let input = BoundedValueRef::new(value, *maximum_input_bytes)
+                        .expect("portable presentation value is bounded");
+                    if io.consume(PortId(0)).is_err()
+                        || io
+                            .request_host_call(RequestId(0), HostCallId(0), input)
+                            .is_err()
+                    {
+                        return fail(4);
+                    }
+                    *pending = true;
+                    return StepOutcome::Progress;
+                }
+                if io.input_closed(PortId(0)) {
+                    if io.consume_closed(PortId(0)).is_err() {
+                        return fail(4);
+                    }
+                    return StepOutcome::Complete;
+                }
+                StepOutcome::Await
             }
-            (
-                Self::Sink {
-                    pending, complete, ..
-                },
-                OperationInput::HostCallCompleted {
-                    request: RequestId(0),
-                    outcome,
-                },
-            ) if *pending
-                && outcome.disposition == HostCallDisposition::Completed
-                && outcome.failure.is_none()
-                && outcome.output.is_none() =>
-            {
-                *pending = false;
-                *complete = true;
-                OperationAction::Await
+            Self::Sink {
+                maximum_input_bytes,
+                pending,
+                complete,
+            } => {
+                if *pending {
+                    let Some((RequestId(0), outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    if outcome.disposition != HostCallDisposition::Completed
+                        || outcome.failure.is_some()
+                        || outcome.output.is_some()
+                        || io.consume_host_completion().is_err()
+                    {
+                        return fail(4);
+                    }
+                    *pending = false;
+                    *complete = true;
+                    return StepOutcome::Progress;
+                }
+                if let Some(value) = io.input(PortId(0)) {
+                    let input = BoundedValueRef::new(value, *maximum_input_bytes)
+                        .expect("fixture manifestation value is bounded");
+                    if io.consume(PortId(0)).is_err()
+                        || io
+                            .request_host_call(RequestId(0), HostCallId(0), input)
+                            .is_err()
+                    {
+                        return fail(4);
+                    }
+                    *pending = true;
+                    return StepOutcome::Progress;
+                }
+                if io.input_closed(PortId(0)) && *complete {
+                    if io.consume_closed(PortId(0)).is_err() {
+                        return fail(4);
+                    }
+                    return StepOutcome::Complete;
+                }
+                StepOutcome::Await
             }
-            (Self::Transform { pending, .. }, OperationInput::Closed { port: PortId(0) })
-                if !*pending =>
-            {
-                OperationAction::Complete
-            }
-            (
-                Self::Sink {
-                    pending, complete, ..
-                },
-                OperationInput::Closed { port: PortId(0) },
-            ) if !*pending && *complete => OperationAction::Complete,
-            _ => fail(4),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source { emitted, .. } => {
-                *emitted = true;
-                OperationAction::Complete
-            }
-            Self::Transform { .. } | Self::Sink { .. } => OperationAction::Await,
         }
     }
 }
 
-fn fail(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+fn fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
         detail,
     })
