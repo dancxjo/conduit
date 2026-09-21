@@ -5,8 +5,9 @@ use conduit_human::{
     CONDUIT_INTL_LAYOUT, CORE_CHORD_MAP, KEY_EVENT_ENCODED_LEN,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostCallDisposition, OperationAction, OperationInput,
-    PortId, RequestId,
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
+    OperationInput, PortId, RequestId,
 };
 
 pub(super) static KEY_EVENT_TEE_FACTORY: InstalledFactory = InstalledFactory {
@@ -35,6 +36,100 @@ pub(super) struct KeyEventTeeOperation {
 pub(super) struct InputSemanticOperation {
     pending: Option<RequestId>,
     next: u32,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for KeyEventTeeOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = io.input(PortId(0)) {
+            if !conduit_semantic_catalog::key_event_tee_accepts_encoded_len(value.byte_len) {
+                return step_fail(41);
+            }
+            if !io.output_ready(PortId(0)) || !io.output_ready(PortId(1)) {
+                return StepOutcome::Await;
+            }
+            io.consume(PortId(0)).expect("present key event for tee");
+            io.send(PortId(0), value)
+                .expect("ready first key-event tee output");
+            io.send(PortId(1), value)
+                .expect("ready second key-event tee output");
+            self.pending = None;
+            self.phase = 0;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed key-event tee closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.phase = 0;
+    }
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for InputSemanticOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(42);
+            }
+            if let Some(failure) = outcome.failure {
+                return StepOutcome::Fail(failure);
+            }
+            if outcome.disposition != HostCallDisposition::Completed {
+                return step_fail(42);
+            }
+            if outcome.output.is_some() && !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume_host_completion()
+                .expect("observed input semantic completion");
+            if let Some(output) = outcome.output {
+                io.send(PortId(0), output.value)
+                    .expect("ready input semantic output");
+            }
+            self.pending = None;
+            self.next = self.next.saturating_add(1);
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some()
+                || self.next >= u32::from(conduit_semantic_catalog::INPUT_SEMANTIC_MAXIMUM_VALUES)
+            {
+                return step_fail(42);
+            }
+            let Ok(input) = BoundedValueRef::new(value, KEY_EVENT_ENCODED_LEN as u32) else {
+                return step_fail(42);
+            };
+            let request = RequestId(self.next);
+            io.consume(PortId(0))
+                .expect("present input semantic key event");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("input semantic Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed input semantic closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+const fn step_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidLifecycle,
+        detail,
+    })
 }
 
 impl KeyEventTeeOperation {
