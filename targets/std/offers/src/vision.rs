@@ -14,8 +14,12 @@ pub const LOCAL_VISION_RESOURCE_ROLE: &str = "image-residence";
 pub const LOCAL_VISION_READ_AUTHORITY: &str = "conduit.authority/read-image-resource@1";
 pub const LOCAL_VISION_MOTION_OPERATION: &str = "conduit.host/local-vision-motion@1";
 pub const LOCAL_VISION_OBJECTS_OPERATION: &str = "conduit.host/local-vision-objects@1";
+pub const LOCAL_VISION_TRACK_PROFILE: &str = "conduit.std/local-vision-track@1";
+pub const LOCAL_VISION_TRACK_IMPLEMENTATION: &str = "std/local-vision-track@1";
+pub const LOCAL_VISION_TRACK_ARTIFACT: &str = "conduit-std-host/local-vision-track@1";
+pub const LOCAL_VISION_TRACK_OPERATION: &str = "conduit.host/local-vision-track@1";
 
-pub fn local_vision_offers() -> [CapabilityOffer; 2] {
+pub fn local_vision_offers() -> [CapabilityOffer; 3] {
     [
         local_vision_offer(
             "local-vision-motion",
@@ -27,7 +31,32 @@ pub fn local_vision_offers() -> [CapabilityOffer; 2] {
             vision_contract(conduit_semantic_catalog::VISION_OBJECTS_KIND),
             LOCAL_VISION_OBJECTS_OPERATION,
         ),
+        local_track_offer(),
     ]
+}
+
+fn local_track_offer() -> CapabilityOffer {
+    let contract = vision_contract(conduit_semantic_catalog::VISION_TRACK_KIND);
+    let target_kind = contract.kind_id.clone();
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from("local-vision-track"),
+            execution_profile_id: ExecutionProfileId::from(LOCAL_VISION_TRACK_PROFILE),
+            implementation_id: ImplementationId::from(LOCAL_VISION_TRACK_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(LOCAL_VISION_TRACK_ARTIFACT),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(LOCAL_VISION_TRACK_OPERATION),
+                target_kind: Some(target_kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+                maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            }],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+        },
+    )
+    .build()
 }
 
 fn local_vision_offer(capability: &str, contract: Kind, operation: &str) -> CapabilityOffer {
@@ -86,6 +115,10 @@ mod tests {
             conduit_semantic_catalog::VISION_OBJECTS_KIND
         );
         assert_eq!(
+            offers[2].kind_id.as_str(),
+            conduit_semantic_catalog::VISION_TRACK_KIND
+        );
+        assert_eq!(
             offers[1].kind_contract_revision.as_str(),
             conduit_semantic_catalog::VISION_LOCAL_OBJECTS_REVISION
         );
@@ -101,7 +134,7 @@ mod tests {
                 .value_kind()
                 .clone()
         );
-        for offer in offers {
+        for offer in offers.iter().take(2) {
             assert_eq!(offer.inputs.len(), 1);
             assert_eq!(offer.inputs[0].direction, PortDirection::Input);
             assert_eq!(offer.inputs[0].temporal, PortTemporal::Current);
@@ -123,5 +156,8 @@ mod tests {
                 offer.host_calls[0].contract_id
             );
         }
+        assert!(offers[2].resource_requirements.is_empty());
+        assert!(offers[2].authority_requirements.is_empty());
+        assert_eq!(offers[2].host_calls.len(), 1);
     }
 }

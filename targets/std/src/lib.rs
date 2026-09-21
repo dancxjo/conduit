@@ -95,6 +95,7 @@ pub mod hosted_wav_artifact;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
+mod vision_tracker;
 pub use installed_std::{InstalledRemoteFragment, RemoteHostWork, RemoteValueTransfer};
 mod remote_host_fragment;
 pub use remote_host_fragment::AdmittedRemoteFragment;
@@ -636,6 +637,9 @@ impl StdHost {
         base_registry
             .project_ready_into(&mut advertisement)
             .map_err(|error| format!("finite vision Base advertisement: {error:?}"))?;
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::local_vision_offers()[2].clone());
         advertisement.resources.sort();
         normalize_capability_offers(&mut advertisement.capabilities)?;
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
