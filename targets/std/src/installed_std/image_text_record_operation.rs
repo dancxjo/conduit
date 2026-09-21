@@ -1,6 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
     RequestId,
 };
@@ -14,6 +15,72 @@ pub(super) static FACTORY: InstalledFactory = InstalledFactory {
 pub(super) struct ImageTextRecordOperation {
     pending: bool,
     complete: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for ImageTextRecordOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.complete {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if request != RequestId(0)
+                || !self.pending
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(step_failure(161));
+            }
+            let Some(output) = outcome.output else {
+                return StepOutcome::Fail(step_failure(160));
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume_host_completion()
+                .expect("observed image-text record completion");
+            io.send(PortId(0), output.value)
+                .expect("ready typed image-text record output");
+            self.pending = false;
+            self.complete = true;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending {
+                return StepOutcome::Fail(step_failure(161));
+            }
+            let Ok(input) = BoundedValueRef::new(
+                value,
+                conduit_net::MAXIMUM_TYPED_RECORD_PAYLOAD_BYTES as u32,
+            ) else {
+                return StepOutcome::Fail(step_failure(159));
+            };
+            io.consume(PortId(0))
+                .expect("present image-text record input");
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("image-text record Host Call");
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && !self.pending {
+            io.consume_closed(PortId(0))
+                .expect("observed image-text record closure");
+            self.complete = true;
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = false;
+        self.complete = true;
+    }
+}
+
+const fn step_failure(detail: u16) -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    }
 }
 
 impl ImageTextRecordOperation {

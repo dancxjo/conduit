@@ -1,6 +1,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, OperationAction, OperationInput, PortId,
     RequestId,
 };
@@ -15,6 +16,89 @@ pub(super) struct ImageTextOperation {
     pending: Option<RequestId>,
     next: u32,
     complete: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for ImageTextOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.complete {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(step_failure(158));
+            }
+            if let Some(output) = outcome.output {
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                io.consume_host_completion()
+                    .expect("observed image-text Host Call completion");
+                io.send(PortId(0), output.value)
+                    .expect("ready image-text output");
+                self.pending = None;
+                self.complete = true;
+                return StepOutcome::Progress;
+            }
+            io.consume_host_completion()
+                .expect("observed partial image-text Host Call completion");
+            self.pending = None;
+            return StepOutcome::Progress;
+        }
+        for port in [PortId(0), PortId(1)] {
+            let Some(value) = io.input(port) else {
+                continue;
+            };
+            if self.pending.is_some() {
+                return StepOutcome::Fail(step_failure(158));
+            }
+            let maximum = if port == PortId(0) {
+                MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
+            } else {
+                conduit_human::MAXIMUM_IMAGE_TEXT_CAPTION_BYTES as u32
+            };
+            let Ok(input) = BoundedValueRef::new(value, maximum) else {
+                return StepOutcome::Fail(step_failure(157));
+            };
+            let request = RequestId(self.next);
+            let Some(next) = self.next.checked_add(1) else {
+                return StepOutcome::Fail(step_failure(157));
+            };
+            io.consume(port).expect("present image-text input");
+            io.request_host_call(
+                request,
+                HostCallId(if port == PortId(0) { 1 } else { 0 }),
+                input,
+            )
+            .expect("image-text Host Call");
+            self.next = next;
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        for port in [PortId(0), PortId(1)] {
+            if io.input_closed(port) && self.pending.is_none() {
+                io.consume_closed(port)
+                    .expect("observed image-text input closure");
+                self.complete = true;
+                return StepOutcome::Complete;
+            }
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.complete = true;
+    }
+}
+
+const fn step_failure(detail: u16) -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    }
 }
 
 impl ImageTextOperation {
