@@ -3,6 +3,7 @@
 use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, OperationAction,
     OperationInput, PortId, RequestId, ValueRef,
 };
@@ -20,6 +21,139 @@ pub(super) struct GeneratedSpeechCommitOperation {
     trigger: Option<ValueRef>,
     closing: bool,
     drain_after_emit: bool,
+}
+
+impl<const PORTS: usize> StepOperation<PORTS> for GeneratedSpeechCommitOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(FailureCode::InvalidLifecycle, 2);
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    let Some(trigger) = self.trigger else {
+                        return step_fail(FailureCode::InvalidLifecycle, 1);
+                    };
+                    let Some((next_request, next)) = self.next_request() else {
+                        return step_fail(FailureCode::StorageExhausted, 3);
+                    };
+                    let input =
+                        match BoundedValueRef::new(trigger, conduit_tongues::MAXIMUM_TEXT_BYTES) {
+                            Ok(input) => input,
+                            Err(_) => return step_fail(FailureCode::InvalidInput, 4),
+                        };
+                    io.consume_host_completion()
+                        .expect("observed generated-speech completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready generated speech segment output");
+                    io.request_host_call(next_request, HostCallId(1), input)
+                        .expect("generated-speech drain Host Call");
+                    self.next_request = next;
+                    self.pending = Some(next_request);
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Completed, None, None) => {
+                    io.consume_host_completion()
+                        .expect("observed empty generated-speech completion");
+                    self.pending = None;
+                    if self.closing {
+                        if let Some(trigger) = self.trigger.take() {
+                            io.discard(trigger)
+                                .expect("finished generated-speech trigger");
+                        }
+                        return StepOutcome::Complete;
+                    }
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Cancelled, _, _) => {
+                    return step_fail(FailureCode::Cancelled, 0)
+                }
+                (HostCallDisposition::Failed, None, Some(failure)) => {
+                    return StepOutcome::Fail(failure)
+                }
+                _ => return step_fail(FailureCode::InvalidLifecycle, 1),
+            }
+        }
+
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() || self.closing {
+                return step_fail(FailureCode::InvalidLifecycle, 2);
+            }
+            let input = match BoundedValueRef::new(value, conduit_tongues::MAXIMUM_TEXT_BYTES) {
+                Ok(input) => input,
+                Err(_) => return step_fail(FailureCode::InvalidInput, 4),
+            };
+            let Some((request, next)) = self.next_request() else {
+                return step_fail(FailureCode::StorageExhausted, 3);
+            };
+            if self.trigger == Some(value) {
+                io.consume(PortId(0))
+                    .expect("repeated generated text delta identity");
+            } else {
+                if let Some(previous) = self.trigger.take() {
+                    io.discard(previous)
+                        .expect("superseded generated-speech trigger");
+                }
+                self.trigger = Some(
+                    io.take_input(PortId(0))
+                        .expect("present generated text delta"),
+                );
+            }
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("generated-speech push Host Call");
+            self.next_request = next;
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+
+        if io.input_closed(PortId(0)) && self.pending.is_none() && !self.closing {
+            io.consume_closed(PortId(0))
+                .expect("observed generated text closure");
+            self.closing = true;
+            let Some(trigger) = self.trigger else {
+                return StepOutcome::Complete;
+            };
+            let input = match BoundedValueRef::new(trigger, conduit_tongues::MAXIMUM_TEXT_BYTES) {
+                Ok(input) => input,
+                Err(_) => return step_fail(FailureCode::InvalidInput, 4),
+            };
+            let Some((request, next)) = self.next_request() else {
+                return step_fail(FailureCode::StorageExhausted, 3);
+            };
+            io.request_host_call(request, HostCallId(2), input)
+                .expect("generated-speech close Host Call");
+            self.next_request = next;
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+
+    fn retains_host_call_input(&self, _request: RequestId, value: ValueRef) -> bool {
+        self.trigger == Some(value)
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.trigger = None;
+        self.closing = true;
+        self.drain_after_emit = false;
+    }
+}
+
+impl GeneratedSpeechCommitOperation {
+    fn next_request(&self) -> Option<(RequestId, u32)> {
+        self.next_request
+            .checked_add(1)
+            .map(|next| (RequestId(self.next_request), next))
+    }
+}
+
+const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
 }
 
 impl GeneratedSpeechCommitOperation {
