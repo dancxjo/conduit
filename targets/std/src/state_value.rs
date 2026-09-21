@@ -5,7 +5,7 @@ use conduit_core::{
 use conduit_kernel::{
     scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
     state_delay::{back::StateBack, StateDelay},
-    Failure, FailureCode, Operation, OperationAction, OperationInput, PortId, ValueRef,
+    Failure, FailureCode, PortId,
 };
 
 pub use crate::host_execution::continuity::StateContinuationRunFailure;
@@ -133,41 +133,5 @@ impl TypedStateBack {
     }
     pub fn generation(&self) -> u64 {
         self.back.state().generation()
-    }
-}
-
-impl Operation for TypedStateBack {
-    fn step_committed(&mut self) {
-        Operation::step_committed(&mut self.back);
-    }
-    fn start(&mut self) -> OperationAction {
-        self.back.start()
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        self.back.resume(input)
-    }
-    fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
-        if let Err(error) = self.validator.validate(canonical) {
-            Operation::cancel(&mut self.back);
-            let capacity = matches!(
-                error,
-                conduit_core::StructuredInfoRefusal::CanonicalEncodingTooLarge
-            );
-            return OperationAction::Fail(Failure {
-                code: if capacity {
-                    FailureCode::StorageExhausted
-                } else {
-                    FailureCode::InvalidInput
-                },
-                detail: if capacity { 1 } else { 9 },
-            });
-        }
-        self.back.resume_value(port, value, canonical)
-    }
-    fn advance(&mut self) -> OperationAction {
-        self.back.advance()
-    }
-    fn cancel(&mut self) {
-        Operation::cancel(&mut self.back);
     }
 }

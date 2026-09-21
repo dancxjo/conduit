@@ -1,5 +1,8 @@
 use conduit_core::*;
-use conduit_kernel::{Operation, OperationAction, PortId, ValueRef};
+use conduit_kernel::{
+    scheduler::{StepInputBytes, StepIo, StepOperation, StepOutcome},
+    ValueRef,
+};
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment_for_profile, LoweredState, FIXED_KERNEL_STORAGE_PROFILE,
 };
@@ -72,28 +75,35 @@ fn play(plan: &Plan, sequence: u64) -> ActivePlayIdentity {
 fn retained(plan: &Plan, next: &[u8]) -> RetainedTypedState {
     let mut operation =
         TypedStateBack::prepare_for_play(&plan.fragments[0], &lower(plan), &play(plan, 1)).unwrap();
-    assert!(matches!(
-        operation.start(),
-        OperationAction::EmitCanonical { .. }
-    ));
+    let mut initial_io = StepIo::test_frame([None], [false], [Some(64)], None, 4);
+    assert_eq!(
+        operation.step(&mut initial_io, &StepInputBytes::test_frame([None], None),),
+        StepOutcome::Progress
+    );
     let refused = operation.try_retire().err().unwrap();
     let mut operation = refused.source;
     assert_eq!(operation.generation(), 0);
-    assert!(matches!(
-        operation.resume_value(
-            PortId(0),
-            ValueRef {
-                slot: 0,
-                generation: 0,
-                byte_len: next.len() as u32,
-            },
-            next
+    let mut next_io = StepIo::test_frame(
+        [Some(ValueRef {
+            slot: 0,
+            generation: 0,
+            byte_len: next.len() as u32,
+        })],
+        [false],
+        [Some(64)],
+        None,
+        4,
+    );
+    assert_eq!(
+        operation.step(
+            &mut next_io,
+            &StepInputBytes::test_frame([Some(next)], None),
         ),
-        OperationAction::EmitCanonical { .. }
-    ));
-    operation.step_committed();
+        StepOutcome::Progress
+    );
+    StepOperation::<1>::step_committed(&mut operation);
     assert_eq!(operation.generation(), 1);
-    operation.cancel();
+    StepOperation::<1>::cancel(&mut operation);
     operation
         .try_retire()
         .unwrap_or_else(|failure| panic!("{}", failure.reason))
@@ -134,11 +144,16 @@ fn owned_state_moves_to_new_boot_and_larger_capacity_without_resetting_generatio
     .unwrap_or_else(|failure| panic!("{}", failure.reason));
     assert_eq!(continued.current(), next);
     assert_eq!(continued.generation(), 1);
-    match continued.start() {
-        OperationAction::EmitCanonical { value, .. } => assert_eq!(value.as_slice(), next),
-        other => panic!("replacement must publish retained current: {other:?}"),
-    }
-    continued.cancel();
+    let mut initial_io = StepIo::test_frame([None], [false], [Some(64)], None, 4);
+    assert_eq!(
+        continued.step(&mut initial_io, &StepInputBytes::test_frame([None], None),),
+        StepOutcome::Progress
+    );
+    let (_, value) = initial_io
+        .test_canonical_output()
+        .expect("replacement publishes retained current");
+    assert_eq!(value.as_slice(), next);
+    StepOperation::<1>::cancel(&mut continued);
     let second = continued
         .try_retire()
         .unwrap_or_else(|failure| panic!("{}", failure.reason));
