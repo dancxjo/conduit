@@ -16,7 +16,7 @@ pub const HOUSE_CONVERSATION_FORM_SOURCE: &str =
     include_str!("../../../forms/house-conversation/main.conduit");
 pub const BOUNDED_NAVIGATION_FORM_SOURCE: &str =
     include_str!("../../../forms/bounded-navigation/main.conduit");
-pub const HOMEOSTASIS_FORM_SOURCE: &str = include_str!("../../../forms/homeostasis/main.conduit");
+pub const HOMEOSTASIS_FORM_SOURCE: &str = include_str!("../forms/homeostasis.conduit");
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PeteWorkloadRole {
@@ -135,7 +135,7 @@ pub fn reviewed_pete_workload() -> Result<ReviewedPeteWorkload, PeteWorkloadRefu
         ),
         (
             PeteWorkloadRole::Homeostasis,
-            "homeostasis",
+            "pete-homeostasis",
             HOMEOSTASIS_FORM_SOURCE,
             false,
         ),
@@ -249,7 +249,7 @@ fn workload_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     conduit_semantic_catalog::install_robotics_structured_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_navigation_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_experience_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_homeostasis_catalogs(&mut startup, &mut profile)?;
+    crate::install_homeostasis_catalogs(&mut startup, &mut profile)?;
     conduit_time::install_historical_timeline_catalog(&mut startup, &mut profile)?;
     conduit_text::install_text_catalogs(&mut startup, &mut profile)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;

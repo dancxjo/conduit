@@ -463,12 +463,6 @@ title = "Portable Experiencer"
 entry = "experiencer"
 deterministic = { package = "conduit-human", test = "current_experience", case = "source_removal_marks_unavailable_instead_of_inventing_empty_truth" }
 [[forms]]
-slug = "homeostasis"
-title = "Homeostasis"
-entry = "homeostasis"
-deterministic = { package = "conduit-semantic-catalog", test = "homeostasis_form", case = "homeostasis_is_one_ordinary_checked_authority_free_form" }
-browser_safe_not_applicable = "homeostatic reduction is portable semantic work; live Pete source acquisition and attended rendering remain physical proof"
-[[forms]]
 slug = "vision"
 title = "Continuous Vision"
 entry = "vision"

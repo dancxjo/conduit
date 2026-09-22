@@ -8,6 +8,7 @@ publish = false
 conduit-body = { path = "../../../architecture/body" }
 conduit-ai = { path = "../../../semantics/ai" }
 conduit-core = { path = "../../../architecture/core" }
+conduit-human = { path = "../../../semantics/human" }
 conduit-pete = { path = "../../../bodies/pete" }
 conduit-planner = { path = "../../../architecture/planner" }
 conduit-std-host = { path = "../../../targets/std" }

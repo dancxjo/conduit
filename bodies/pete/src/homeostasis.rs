@@ -3,35 +3,14 @@
 //! These values describe internal condition. They grant no authority and carry
 //! no characterization such as hunger, fatigue, anxiety, or relief.
 
-use alloc::{string::String, vec, vec::Vec};
-use conduit_core::{kind_id, SignId, TemporalInstant};
+use conduit_core::{SignId, TemporalInstant};
+use std::{string::String, vec, vec::Vec};
 
-use crate::{
-    BodySelfObservation, ExperienceCertainty, ExperienceSourceRef, MAXIMUM_BODY_SELF_STATE_BYTES,
-};
+use conduit_human::{SourceAvailability, SourceObservation};
 
-pub const HOMEOSTATIC_STATE_KIND: &str = "experience/homeostatic-state@1";
-pub const HOMEOSTASIS_POLICY_REVISION: &str = "conduit.homeostasis/thresholds@1";
+pub const HOMEOSTATIC_STATE_KIND: &str = "pete/homeostatic-state@1";
+pub const HOMEOSTASIS_POLICY_REVISION: &str = "conduit.pete/homeostasis-thresholds@1";
 pub const MAXIMUM_HOMEOSTATIC_SOURCES: usize = 8;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SourceAvailability {
-    Present,
-    Missing,
-    Unavailable,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SourceObservation<T> {
-    pub source_identity: String,
-    pub availability: SourceAvailability,
-    pub value: Option<T>,
-    pub observation_sign_id: Option<SignId>,
-    pub observed_at: Option<TemporalInstant>,
-    pub freshness_limit_ticks: u64,
-    pub uncertainty_permille: u16,
-    pub calibration_profile_identity: Option<String>,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PowerCondition {
@@ -230,94 +209,6 @@ pub fn reduce_homeostasis(
             .unwrap_or(AvailabilityState::Unknown),
         source_observations: facts,
     })
-}
-
-impl HomeostaticState {
-    pub fn as_body_self_observation(
-        &self,
-        reduction_sign_id: SignId,
-        observed_at: TemporalInstant,
-    ) -> Result<BodySelfObservation, HomeostasisRefusal> {
-        let canonical_state = self.canonical_bytes();
-        if canonical_state.len() > MAXIMUM_BODY_SELF_STATE_BYTES {
-            return Err(HomeostasisRefusal::EncodingCapacity);
-        }
-        let mut source_refs = Vec::with_capacity(self.source_observations.len() * 2);
-        for fact in &self.source_observations {
-            source_refs.push(ExperienceSourceRef::Source {
-                source_id: fact.source_identity.clone(),
-            });
-            if let Some(sign) = &fact.observation_sign_id {
-                source_refs.push(ExperienceSourceRef::Sign(sign.clone()));
-            }
-        }
-        Ok(BodySelfObservation {
-            state_kind: kind_id(HOMEOSTATIC_STATE_KIND),
-            canonical_state,
-            observation_sign_id: reduction_sign_id,
-            observed_at,
-            certainty: if self.source_observations.iter().any(|fact| {
-                fact.availability != SourceAvailability::Present || fact.uncertainty_permille > 0
-            }) {
-                ExperienceCertainty::Uncertain
-            } else {
-                ExperienceCertainty::Certain
-            },
-            source_refs,
-        })
-    }
-
-    fn canonical_bytes(&self) -> Vec<u8> {
-        // A compact deterministic semantic encoding; presentation prose is
-        // intentionally absent. Exact source evidence remains in source_refs.
-        alloc::format!(
-            "policy={};energy={};charging={};thermal={};compute={};storage={};motion={};capability={}",
-            self.policy_revision,
-            energy_tag(self.energy),
-            self.charging.map_or("unknown", |value| if value { "true" } else { "false" }),
-            thermal_tag(self.thermal),
-            pressure_tag(self.compute_pressure),
-            pressure_tag(self.storage_pressure),
-            availability_tag(self.motion),
-            availability_tag(self.important_capability)
-        )
-        .into_bytes()
-    }
-}
-
-const fn energy_tag(value: EnergyState) -> &'static str {
-    match value {
-        EnergyState::Nominal => "nominal",
-        EnergyState::Low => "low",
-        EnergyState::Critical => "critical",
-        EnergyState::Unknown => "unknown",
-    }
-}
-
-const fn thermal_tag(value: ThermalState) -> &'static str {
-    match value {
-        ThermalState::Nominal => "nominal",
-        ThermalState::Constrained => "constrained",
-        ThermalState::Critical => "critical",
-        ThermalState::Unknown => "unknown",
-    }
-}
-
-const fn pressure_tag(value: ResourcePressureState) -> &'static str {
-    match value {
-        ResourcePressureState::Nominal => "nominal",
-        ResourcePressureState::High => "high",
-        ResourcePressureState::Critical => "critical",
-        ResourcePressureState::Unknown => "unknown",
-    }
-}
-
-const fn availability_tag(value: AvailabilityState) -> &'static str {
-    match value {
-        AvailabilityState::Available => "available",
-        AvailabilityState::Unavailable => "unavailable",
-        AvailabilityState::Unknown => "unknown",
-    }
 }
 
 fn validate_policy(policy: &HomeostasisPolicy) -> Result<(), HomeostasisRefusal> {
