@@ -109,9 +109,86 @@ jobs:
           retention-days: 14
           compression-level: 0
 
-  pages-carrier-with-conduitos:
+  three-body-journey:
     needs: [products, conduitos-spore-acceptance]
     if: always() && !cancelled() && needs.products.result == 'success' && needs.conduitos-spore-acceptance.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+          shared-key: three-body-journey
+      - name: Receive the staged browser Body and native Body evidence
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-staged-browser-products
+          path: target
+      - uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduitos-creche-acceptance-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/native-body
+      - name: Capture the browser Body journey in pinned Chromium
+        run: |
+          npm --prefix proof/browser ci --ignore-scripts --prefer-offline
+          node proof/browser/node_modules/@playwright/test/cli.js install chromium --with-deps
+          chmod 755 target/debug/conduit target/debug/conduit-browser-host
+          node proof/browser/node_modules/@playwright/test/cli.js test \
+            --config proof/browser/playwright.config.mjs \
+            proof/browser/workspace-membership.spec.mjs \
+            --project chromium --workers 1 --retries 0 \
+            --output "$RUNNER_TEMP/browser-body"
+      - name: Capture the structured-Face generative Body journey
+        run: |
+          docker run --detach --name conduit-ollama -p 11434:11434 \
+            ollama/ollama:0.12.3@sha256:36ccf1b4c161179a198a19e897aa0a1acd54cd5eeb6ab99c80f2ef50ba7fa106
+          docker cp conduit-ollama:/bin/ollama "$RUNNER_TEMP/ollama"
+          chmod 755 "$RUNNER_TEMP/ollama"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:11434/api/version >/dev/null; then break; fi
+            test "$attempt" -lt 30
+            sleep 1
+          done
+          PATH="$RUNNER_TEMP:$PATH" "$RUNNER_TEMP/ollama" pull gemma3:270m
+          PATH="$RUNNER_TEMP:$PATH" cargo xtask --json host prove-local-model --locked \
+            --model gemma3:270m --admitted-memory-mib 2048 --orifina-presenter \
+            > "$RUNNER_TEMP/model-body.json"
+      - name: Verify and publish the exact three-Body comparison
+        env:
+          EXACT_COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: |
+          native=$(find "$RUNNER_TEMP/native-body" -name journey-proof.json -type f -print -quit)
+          browser=$(find "$RUNNER_TEMP/browser-body" -name browser-body-journey.json -type f -print -quit)
+          screenshot=$(find "$RUNNER_TEMP/browser-body" -name browser-body-fulfilled.png -type f -print -quit)
+          test -n "$native" && test -n "$browser" && test -n "$screenshot"
+          cargo xtask evidence three-body-journey-contract --locked \
+            --commit "$EXACT_COMMIT" --output "$RUNNER_TEMP/three-bodies/contract.json"
+          node tools/ci/build-three-body-journey.mjs \
+            "$EXACT_COMMIT" "$native" "$browser" "$screenshot" \
+            "$RUNNER_TEMP/model-body.json" "$RUNNER_TEMP/three-bodies"
+          cargo xtask evidence three-body-journey --locked \
+            --commit "$EXACT_COMMIT" \
+            --contract "$RUNNER_TEMP/three-bodies/contract.json" \
+            --track "$RUNNER_TEMP/three-bodies/native-graphical/track.json" \
+            --track "$RUNNER_TEMP/three-bodies/browser-graphical/track.json" \
+            --track "$RUNNER_TEMP/three-bodies/hosted-generative/track.json" \
+            --output "$RUNNER_TEMP/three-bodies/index.json"
+      - name: Retain the exact three-Body Journey
+        uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: conduit-three-body-journey-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/three-bodies
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  pages-carrier-with-conduitos:
+    needs: [products, conduitos-spore-acceptance, three-body-journey]
+    if: always() && !cancelled() && needs.products.result == 'success' && needs.conduitos-spore-acceptance.result == 'success' && needs.three-body-journey.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -133,6 +210,11 @@ jobs:
         with:
           name: conduit-journey-gallery-${{ github.event.pull_request.head.sha }}
           path: target/journey-gallery-carrier
+      - name: Receive the exact three-Body Journey
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-three-body-journey-${{ github.event.pull_request.head.sha }}
+          path: target/three-body-journey
       - name: Append only validated promotion evidence and reseal the carrier
         run: |
           source_commit=$(git rev-parse HEAD)
@@ -143,6 +225,9 @@ jobs:
           cp -a target/pages-carrier-base/site target/pages-site
           node tools/ci/stage-journey-pages-evidence.mjs \
             target/journey-gallery-carrier/site target/pages-site "$source_commit"
+          cargo xtask evidence stage-three-body-journey --locked \
+            --publication-root target/three-body-journey \
+            --site-root target/pages-site --commit "$source_commit"
           node tools/ci/stage-conduitos-pages-evidence.mjs \
             target/conduitos-x86-batch/runs/product-journey/conduitos/x86_64/journey-frames \
             target/pages-site "$source_commit"

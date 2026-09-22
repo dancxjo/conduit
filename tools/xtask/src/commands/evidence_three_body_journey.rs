@@ -226,10 +226,11 @@ struct StepEvidence {
     sha256: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 struct ThreeBodyJourneyIndex {
-    schema: &'static str,
-    disposition: &'static str,
+    schema: String,
+    disposition: String,
     journey_id: String,
     git_commit: String,
     semantic_steps: Vec<ContractStep>,
@@ -252,8 +253,8 @@ pub(super) fn run(
         verify_artifacts(track, source)?;
     }
     let index = ThreeBodyJourneyIndex {
-        schema: INDEX_SCHEMA,
-        disposition: "complete",
+        schema: INDEX_SCHEMA.into(),
+        disposition: "complete".into(),
         journey_id: contract.journey_id,
         git_commit: contract.git_commit,
         semantic_steps: contract.steps,
@@ -261,6 +262,115 @@ pub(super) fn run(
     };
     publish(&index, &output)?;
     println!("THREE-BODY JOURNEY INDEX COMPLETE: {}", output.display());
+    Ok(())
+}
+
+pub(super) fn stage(
+    publication_root: PathBuf,
+    site_root: PathBuf,
+    expected_git_commit: String,
+) -> Result<(), String> {
+    if !valid_commit(&expected_git_commit) {
+        return Err("three-Body Journey staging requires an exact commit".into());
+    }
+    let index_path = publication_root.join("index.json");
+    let index: ThreeBodyJourneyIndex = read_bounded_json(&index_path)?;
+    if index.schema != INDEX_SCHEMA
+        || index.disposition != "complete"
+        || index.git_commit != expected_git_commit
+    {
+        return Err("three-Body Journey index is malformed or stale".into());
+    }
+    let contract = contract::canonical(&expected_git_commit);
+    validate(&contract, &index.tracks, &expected_git_commit)?;
+    if index.journey_id != contract.journey_id || index.semantic_steps.len() != contract.steps.len()
+    {
+        return Err("three-Body Journey index diverges from the canonical contract".into());
+    }
+    for track in &index.tracks {
+        let track_path = publication_root.join(&track.track_id).join("track.json");
+        let retained: BodyTrack = read_bounded_json(&track_path)?;
+        if retained.track_id != track.track_id || retained.body_id != track.body_id {
+            return Err(format!(
+                "retained track '{}' diverges from its index",
+                track.track_id
+            ));
+        }
+        verify_artifacts(&retained, &track_path)?;
+    }
+    if !publication_root.join("index.html").is_file() {
+        return Err("three-Body Journey publication lacks index.html".into());
+    }
+    let journeys = site_root.join("journeys");
+    let gallery_index = journeys.join("index.html");
+    let gallery_json = journeys.join("gallery.json");
+    if !gallery_index.is_file() || !gallery_json.is_file() {
+        return Err("Pages root lacks a built journeys gallery".into());
+    }
+    let gallery: serde_json::Value = read_bounded_json(&gallery_json)?;
+    if gallery
+        .get("current_commit")
+        .and_then(serde_json::Value::as_str)
+        != Some(expected_git_commit.as_str())
+    {
+        return Err("journeys gallery belongs to a different commit".into());
+    }
+    let current = journeys.join("current/three-bodies");
+    let historic = journeys
+        .join("commits")
+        .join(&expected_git_commit)
+        .join("three-bodies");
+    if current.exists() || historic.exists() {
+        return Err("three-Body Journey staging refuses overwrite".into());
+    }
+    copy_publication(&publication_root, &current)?;
+    copy_publication(&publication_root, &historic)?;
+    let mut html = std::fs::read_to_string(&gallery_index)
+        .map_err(|error| format!("read journeys gallery entrance: {error}"))?;
+    let marker = "<section class=\"cards\"";
+    let insertion = "<article class=\"journey-card\"><p class=\"eyebrow\">Three independent Bodies · one semantic contract</p><h2>Three Bodies, one Journey</h2><p>Follow ConduitOS, browser, and distributed conversational Bodies from birth through fulfillment—or compare the same semantic step across all three.</p><p class=\"card-boundary\">Boundary: semantic portability with independent realization identities; not pixel, wording, timing, or Body identity equality.</p><p><a class=\"primary\" href=\"current/three-bodies/\">Compare the Bodies</a></p></article>";
+    let position = html
+        .find(marker)
+        .and_then(|start| html[start..].find('>').map(|offset| start + offset + 1))
+        .ok_or("journeys gallery entrance lacks its cards section")?;
+    html.insert_str(position, insertion);
+    let history_marker = format!("<li><code>{expected_git_commit}</code>");
+    let history_position = html
+        .find(&history_marker)
+        .and_then(|start| html[start..].find("</li>").map(|offset| start + offset))
+        .ok_or("journeys gallery entrance lacks exact-commit history")?;
+    html.insert_str(
+        history_position,
+        &format!(" · <a href=\"commits/{expected_git_commit}/three-bodies/\">Three Bodies</a>"),
+    );
+    std::fs::write(&gallery_index, html)
+        .map_err(|error| format!("write journeys gallery entrance: {error}"))?;
+    println!("STAGED three-Body Journey for {expected_git_commit}");
+    Ok(())
+}
+
+fn copy_publication(source: &Path, destination: &Path) -> Result<(), String> {
+    std::fs::create_dir_all(destination)
+        .map_err(|error| format!("create three-Body Journey destination: {error}"))?;
+    for entry in std::fs::read_dir(source)
+        .map_err(|error| format!("read three-Body Journey publication: {error}"))?
+    {
+        let entry = entry.map_err(|error| format!("read publication entry: {error}"))?;
+        let kind = entry
+            .file_type()
+            .map_err(|error| format!("inspect publication entry: {error}"))?;
+        let target = destination.join(entry.file_name());
+        if kind.is_symlink() {
+            return Err("three-Body Journey publication refuses symlinks".into());
+        } else if kind.is_dir() {
+            copy_publication(&entry.path(), &target)?;
+        } else if kind.is_file() {
+            std::fs::copy(entry.path(), target)
+                .map_err(|error| format!("copy three-Body Journey artifact: {error}"))?;
+        } else {
+            return Err("three-Body Journey publication refuses special files".into());
+        }
+    }
     Ok(())
 }
 

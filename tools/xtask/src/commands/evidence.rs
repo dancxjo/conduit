@@ -25,6 +25,8 @@ enum EvidenceCommand {
     ThreeBodyJourney(ThreeBodyJourneyArgs),
     /// Write the canonical exact-commit contract for the three-Body Journey.
     ThreeBodyJourneyContract(ThreeBodyJourneyContractArgs),
+    /// Add an already-verified three-Body Journey to a built Pages gallery.
+    StageThreeBodyJourney(StageThreeBodyJourneyArgs),
     /// Retain native and pinned-browser pixels for one exact Presentation.
     OneFormTwoFronts(TwoFrontsArgs),
     /// Retain four exact checkpoints from the bounded Orbium/Lenia journey.
@@ -79,6 +81,21 @@ struct ThreeBodyJourneyContractArgs {
     /// New file that will receive the canonical contract.
     #[arg(long, default_value = "target/journeys/three-bodies/contract.json")]
     output: PathBuf,
+}
+
+#[derive(Args, Debug)]
+struct StageThreeBodyJourneyArgs {
+    /// Complete three-Body publication root containing the index, tracks, and artifacts.
+    #[arg(long)]
+    publication_root: PathBuf,
+
+    /// Built Pages root whose journeys gallery will receive the publication.
+    #[arg(long)]
+    site_root: PathBuf,
+
+    /// Exact accepted commit shared by the publication and Pages carrier.
+    #[arg(long)]
+    commit: String,
 }
 
 #[derive(Args, Debug)]
@@ -178,6 +195,10 @@ pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
         }
         EvidenceCommand::ThreeBodyJourneyContract(args) => {
             three_body_journey::write_contract(args.commit, args.output).map_err(Into::into)
+        }
+        EvidenceCommand::StageThreeBodyJourney(args) => {
+            three_body_journey::stage(args.publication_root, args.site_root, args.commit)
+                .map_err(Into::into)
         }
         EvidenceCommand::OneFormTwoFronts(args) => two_fronts::run(args.output),
         EvidenceCommand::LittleLife(args) => super::evidence_little_life::run(args.output),
