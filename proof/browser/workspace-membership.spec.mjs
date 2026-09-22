@@ -9,15 +9,31 @@ let entrance;
 test.beforeEach(async () => { entrance = await startStaticProduct("target/workspace-product", "/conduit/workspace/"); });
 test.afterEach(() => entrance?.child.kill());
 
-test("the ordinary face binds and admits one compiler-free reviewed browser Host", async ({ page }) => {
-  test.setTimeout(60_000);
+test("the ordinary face binds and admits one compiler-free reviewed browser Host", async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Firefly Choir", exact: true }).check();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  const bornBodyId = await page.evaluate(() => globalThis.__conduitWorkspace.current().body_id);
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  await page.locator('[data-inspect="lifecycle"]').click();
+  await expect(page.getByText("Exact lifecycle evidence", { exact: true })).toBeVisible();
+  await page.locator("[data-close-inspection]").click();
+  await page.getByRole("button", { name: "+ Forms", exact: true }).click();
+  await page.getByRole("textbox", { name: "Find a form", exact: true }).fill("desk");
+  await page.locator('[data-application-key^="library-form-"]').filter({ hasText: /^Desk Telegraph/u })
+    .getByRole("button", { name: "Use", exact: true }).click();
+  await expect(page.locator("#surface-title")).toHaveText("Desk Telegraph");
+  await page.locator("#form-input").click();
+  await page.keyboard.type("hello");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("[data-form-output] output:visible")).toHaveText("hello");
+  expect((await page.evaluate(() => globalThis.__conduitWorkspace.current())).workload_revision).toBe(1);
   await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
-  await expect(page.getByLabel("parts and hosts").getByRole("button", { name: "Invite another phone", exact: true })).toBeVisible();
+  await expect(page.getByLabel("parts and hosts").getByRole("button", { name: "Invite another host", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Add a host", exact: true }).click();
   await expect(page.getByRole("heading", { name: "What should this browser contribute?", exact: true })).toBeVisible();
@@ -180,10 +196,27 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
     evidence: globalThis.__conduitWorkspace.evidence(),
   }));
   expect(repaired.current.body_id).toBe(restored.current.body_id);
+  expect(repaired.current.body_id).toBe(bornBodyId);
   expect(repaired.evidence.realization.plan.plan_id).not.toBe(replan.playback.proposal.plan.plan_id);
   expect(repaired.evidence.evidence.wakes.at(-1).lifecycle).toBe("Playing");
-  await expect(page.locator('[data-application-key="tutorial-guidance"]:visible')).toContainText("Tutorial · continuity");
+  await expect(page.locator('[data-application-key="tutorial-guidance"]:visible')).toContainText("Tutorial · revised");
   await expect(page.locator('[data-application-key="tutorial-guidance"]:visible')).not.toContainText("Tutorial · repair");
+  await page.getByRole("button", { name: "lull body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
+  page.once("dialog", dialog => dialog.accept());
+  await page.getByRole("button", { name: "Finish body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Fulfilled");
+  const journeyReceipt = await page.evaluate(() => ({
+    current: globalThis.__conduitWorkspace.current(),
+    state: globalThis.__conduitWorkspace.state(),
+    evidence: globalThis.__conduitWorkspace.evidence(),
+  }));
+  await writeFile(testInfo.outputPath("browser-body-journey.json"), JSON.stringify({
+    ...journeyReceipt,
+    checkpoints: { joined: after, refused: replan, restored, repaired },
+    host_fabrication: evidence,
+  }, null, 2));
+  await page.screenshot({ path: testInfo.outputPath("browser-body-fulfilled.png"), fullPage: true });
 });
 
 test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context, browser }) => {

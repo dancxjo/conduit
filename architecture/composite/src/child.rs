@@ -230,6 +230,17 @@ impl ChildKernel {
             .map_err(debug)
     }
 
+    pub(crate) fn host_value(&self, value: conduit_kernel::ValueRef) -> Result<&[u8], String> {
+        self.scheduler.host_value(value).map_err(debug)
+    }
+
+    pub(crate) fn store_host_value(
+        &mut self,
+        bytes: &[u8],
+    ) -> Result<conduit_kernel::ValueRef, String> {
+        self.scheduler.store_host_value(bytes).map_err(debug)
+    }
+
     pub(crate) fn admit_boundary(
         &mut self,
         port_id: &SemanticPortId,

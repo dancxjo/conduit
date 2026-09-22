@@ -166,6 +166,7 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
     let quiescent = records
         .iter()
         .filter(|record| record["status"] == "quiescent-awaiting-input")
+        .filter(|record| record["workload_revision"] == 1)
         .filter(|record| {
             if record["input_count"].as_u64() != Some(0) {
                 return true;
@@ -179,11 +180,13 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
         })
         .collect::<Vec<_>>();
     let expected = expected();
-    if quiescent.len() > expected.len() {
-        return Err(refusal());
-    }
     let mut expected_index = 0;
     for record in &quiescent {
+        // Connectivity and inspection can re-project the already completed
+        // terminal foreground state without accepting another Form input.
+        if expected_index == expected.len() {
+            break;
+        }
         while expected_index < expected.len() {
             let candidate = expected[expected_index];
             let form = match candidate.form {

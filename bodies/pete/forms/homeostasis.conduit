@@ -1,0 +1,29 @@
+# Ordinary factual self-state reduction. Sources remain optional and typed;
+# the reducer owns no acquisition, effects, safety enforcement, or prose.
+form pete-homeostasis (
+    policy-revision: Text = "conduit.pete/homeostasis-thresholds@1"
+    energy-low-permille: Count = 250
+    energy-critical-permille: Count = 100
+    thermal-constrained-milli-celsius: Scalar = 75000
+    thermal-critical-milli-celsius: Scalar = 90000
+    pressure-high-permille: Count = 800
+    pressure-critical-permille: Count = 950
+    > power: PetePowerObservation...|
+    > thermal: PeteThermalObservation...|
+    > compute-pressure: PeteComputePressureObservation...|
+    > storage-pressure: PeteStoragePressureObservation...|
+    > motion-safety: PeteMotionSafetyObservation...|
+    > important-capability: PeteImportantCapabilityObservation...|
+    > reduction-at: PeteReductionInstant...|
+    state: PeteHomeostaticState >
+) {
+    reduce: pete/reduce-homeostasis(policy-revision = policy-revision, energy-low-permille = energy-low-permille, energy-critical-permille = energy-critical-permille, thermal-constrained-milli-celsius = thermal-constrained-milli-celsius, thermal-critical-milli-celsius = thermal-critical-milli-celsius, pressure-high-permille = pressure-high-permille, pressure-critical-permille = pressure-critical-permille)
+    power > reduce.power
+    thermal > reduce.thermal
+    compute-pressure > reduce.compute_pressure
+    storage-pressure > reduce.storage_pressure
+    motion-safety > reduce.motion_safety
+    important-capability > reduce.important_capability
+    reduction-at > reduce.reduction_at
+    reduce.state > state
+}
