@@ -14,7 +14,7 @@ use conduit_kernel::{
     CordId, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent, NodeId, PortId, RouteRange,
     RouteTarget, ValueRef, ValueStorage,
 };
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 const PORTS: usize = 1;
 const FORMS: usize = 3;
@@ -129,9 +129,29 @@ fn canonical_constituent(
         expanded.source_document_id.clone(),
         expanded.checked_form_id.clone(),
     );
-    let plan = host
-        .plan_expanded_local(&expanded)
-        .expect("reviewed Form plans onto the exact std Host offers");
+    let hosts = vec![host.advertisement().clone()];
+    let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)
+        .expect("reviewed Form places onto the exact std Host offers");
+    let connection_bases = BTreeMap::new();
+    let line_candidates = BTreeMap::new();
+    let plan = conduit_planner::plan_expanded_canonical_with_options(
+        &expanded,
+        &hosts,
+        &placements,
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
+        conduit_planner::PlanningOptions {
+            connection_bases: &connection_bases,
+            line_candidates: &line_candidates,
+            connection_item_capacity: 1,
+            connection_byte_capacity: 4_096,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .expect("reviewed Form plans onto the exact std Host offers");
     (resident, plan)
 }
 
