@@ -1,6 +1,6 @@
 //! Native standing lifecycle for one initial count, one timer bump, and explicit stop.
 
-use conduit_kernel::scheduler::{HostOperationRequest, SchedulerStatus};
+use conduit_kernel::scheduler::{HostCallRequest, SchedulerStatus};
 
 use crate::{
     composition::{MachineRunError, MachineRunReceipt},
@@ -70,11 +70,11 @@ where
                     &mut count_len,
                 )?;
             } else {
-                return Err(MachineRunError::UnexpectedHostOperation);
+                return Err(MachineRunError::UnexpectedHostCall);
             }
         }
         if count_len == 2
-            && prepared.kernel.pending_host_operations() == 1
+            && prepared.kernel.pending_host_calls() == 1
             && let Some(token) = timer_token
         {
             let cancelled = timer
@@ -104,7 +104,7 @@ where
                 idle_entries: idle.idle_count(),
                 serial_presentations: serial.presentation_count(),
                 clock_monotonic: clock.now() >= started,
-                pending_host_operations: 1,
+                pending_host_calls: 1,
                 overlap_witness: false,
                 timer_pending_during_text_progress: true,
                 physical_parallelism: false,
@@ -113,7 +113,7 @@ where
         match prepared.kernel.step().map_err(step_error)? {
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Idle => {
-                if prepared.kernel.pending_host_operations() == 0 {
+                if prepared.kernel.pending_host_calls() == 0 {
                     return Err(MachineRunError::FalseIdle);
                 }
                 idle.wait_for_interrupt()
@@ -131,9 +131,9 @@ fn step_error(_error: conduit_kernel::scheduler::SchedulerError) -> MachineRunEr
     MachineRunError::KernelFailure
 }
 
-fn timer_interest(request: HostOperationRequest) -> Result<KernelInterest, MachineRunError> {
-    if request.operation != conduit_kernel::HostOperationId(0) {
-        return Err(MachineRunError::UnexpectedHostOperation);
+fn timer_interest(request: HostCallRequest) -> Result<KernelInterest, MachineRunError> {
+    if request.call != conduit_kernel::HostCallId(0) {
+        return Err(MachineRunError::UnexpectedHostCall);
     }
     Ok(KernelInterest {
         node: request.node,
@@ -144,7 +144,7 @@ fn timer_interest(request: HostOperationRequest) -> Result<KernelInterest, Machi
 
 fn present_count<S: SerialBase>(
     kernel: &mut TourTimerKernel,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     serial: &mut S,
     counts: &mut [Option<u64>; 2],
     count_len: &mut usize,

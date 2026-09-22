@@ -40,7 +40,7 @@ pub fn lull_and_wake(
     signs: R1LullSigns,
 ) -> PicoResult<R1LullOutcome> {
     if !session_terminal {
-        return Err("R1 active Play is not quiescent at Lull".into());
+        return Err("R1 active play is not quiescent at Lull".into());
     }
     let lulled_wake = wake.lull(signs.wake_lulled).map_err(lifecycle_error)?;
     let retained = body

@@ -45,13 +45,15 @@ mod create_presentation;
 mod imu_control;
 #[path = "pete_capstone/pico_heartbeat.rs"]
 mod pico_heartbeat;
+#[path = "pete_capstone/physical_emergency.rs"]
+mod physical_emergency;
 #[path = "../radio.rs"]
 mod radio;
 #[path = "pete_capstone/uart_diagnostic.rs"]
 mod uart_diagnostic;
 // Compile the exact sealed capstone operations and fixed production-kernel
 // topology from their canonical source.  The firmware must not grow a second,
-// Pico-shaped scheduler or a lookalike copy of the portable Form.
+// Pico-shaped scheduler or a lookalike copy of the portable form.
 #[path = "../../../../../../bodies/pete/src/proof/capstone_kernel.rs"]
 mod capstone_kernel;
 #[path = "../../../../../../bodies/pete/src/proof/capstone_operations.rs"]
@@ -226,6 +228,16 @@ async fn serve_conduit_services(class: &mut InertCdc) -> ! {
             continue;
         };
         let request = &request[..request_length];
+        if physical_emergency::arm_request_matches(request) {
+            if physical_emergency::arm(request) {
+                physical_emergency::serve_receipt(class).await;
+            }
+            continue;
+        }
+        if physical_emergency::query_request_matches(request) {
+            physical_emergency::serve_receipt(class).await;
+            continue;
+        }
         if request == BOOTSEL_QUERY {
             let mut challenge = String::<BOOTSEL_FRAME_MAX>::new();
             if write!(
@@ -447,6 +459,7 @@ fn main() -> ! {
     let executor = EXECUTOR.init(Executor::new());
     executor.run(|spawner| {
         spawner.spawn(usb_device_task(device).unwrap());
+        spawner.spawn(physical_emergency::task(p.PIN_22).unwrap());
         spawner.spawn(
             create_control::task(
                 p.UART0,

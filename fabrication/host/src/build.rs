@@ -76,7 +76,7 @@ pub struct BuildManifest {
     pub post_build_actions: Vec<PostBuildAction>,
     pub reproducibility: Reproducibility,
     pub implementations: Vec<String>,
-    pub host_operations: Vec<String>,
+    pub host_calls: Vec<String>,
     pub resources: Vec<String>,
     pub resource_budgets: Vec<ResourceBudget>,
     pub bases: Vec<String>,
@@ -102,7 +102,7 @@ pub struct ImagePayload {
     pub fabrication_descriptor: Option<String>,
     pub profile_fragments: Vec<String>,
     pub implementations: Vec<String>,
-    pub host_operations: Vec<String>,
+    pub host_calls: Vec<String>,
     pub resources: Vec<String>,
     pub resource_budgets: Vec<ResourceBudget>,
     pub bases: Vec<String>,
@@ -243,7 +243,7 @@ pub fn build_host_image(
         fabrication_descriptor: profile.target.fabrication_descriptor.clone(),
         profile_fragments: sorted(profile.fragments.clone()),
         implementations: implementations.clone(),
-        host_operations: sorted(profile.host_operations.clone()),
+        host_calls: sorted(profile.host_calls.clone()),
         resources: sorted(
             profile
                 .resources
@@ -288,7 +288,7 @@ pub fn build_host_image(
         post_build_actions: fabrication.post_build_actions,
         reproducibility,
         implementations,
-        host_operations: payload.host_operations.clone(),
+        host_calls: payload.host_calls.clone(),
         resources: payload.resources.clone(),
         resource_budgets: payload.resource_budgets.clone(),
         bases: payload.bases.clone(),

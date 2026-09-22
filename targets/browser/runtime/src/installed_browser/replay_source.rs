@@ -1,15 +1,15 @@
 //! Browser realization of the reusable finite history-to-replay projection.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision, PlannedGear, StructuredInfoType,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
+    StructuredInfoType,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-replay-source@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-replay-source@1";
 const IMPLEMENTATION: &str = "browser/bounded-replay-source@1";
 
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
@@ -63,43 +63,39 @@ impl PreparedReplaySource {
 }
 
 fn offer() -> CapabilityOffer {
-    let definition = conduit_time::replay_source_kind_definition();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(IMPLEMENTATION),
-        kind_id: definition.kind_id.clone(),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_time::REPLAY_SOURCE_CONTRACT_REVISION,
-        ),
-        implementation: ImplementationOffer {
+    let contract = conduit_time::replay_source_semantic_contract();
+    let target_kind = contract.kind_id.clone();
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-time/bounded-replay-source@1"),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
+                target_kind: Some(target_kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                maximum_output_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(HOST_OPERATION),
-            target_kind: Some(definition.kind_id),
-            maximum_in_flight: 1,
-            maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-            maximum_output_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: (super::MAXIMUM_BROWSER_VALUE_BYTES * 2) as u32,
-        },
-    }
+    )
+    .narrow_capacity(CapabilityLimits {
+        max_active_instances: 1,
+        max_queue_items: 1,
+        max_queue_bytes: (super::MAXIMUM_BROWSER_VALUE_BYTES * 2) as u32,
+    })
+    .expect("browser replay-source capacity narrows its semantic contract")
+    .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     PreparedReplaySource::for_placement(placement)?
         .ok_or_else(|| "replay source placement selected another implementation".to_string())?;
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
         1,
     ))
@@ -142,4 +138,29 @@ fn wrap_leaf(value_type: &[u8], payload: &[u8], output: &mut Vec<u8>) -> Result<
 
 fn failure(code: FailureCode, detail: u16) -> Failure {
     Failure { code, detail }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn browser_replay_source_preserves_semantics_and_explicitly_narrows_capacity() {
+        let offer = super::offer();
+        let semantic = conduit_time::replay_source_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert_eq!(offer.limits.max_active_instances, 1);
+        assert_eq!(offer.limits.max_queue_items, 1);
+        assert_eq!(
+            offer.limits.max_queue_bytes,
+            (super::super::MAXIMUM_BROWSER_VALUE_BYTES * 2) as u32
+        );
+        assert!(offer.limits.max_active_instances < semantic.limits.max_active_instances);
+        assert!(offer.limits.max_queue_bytes < semantic.limits.max_queue_bytes);
+    }
 }

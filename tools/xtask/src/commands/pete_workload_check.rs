@@ -47,7 +47,7 @@ struct HostReport {
     target: String,
     bases: Vec<String>,
     implementations: Vec<String>,
-    host_operations: Vec<String>,
+    host_calls: Vec<String>,
     resources: Vec<String>,
     resource_budgets: serde_json::Value,
     bounds: serde_json::Value,
@@ -58,7 +58,7 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     if opts.dry_run {
         if !opts.quiet {
             println!(
-                "would check Pete's reviewed Forms and target-owned Host profiles without accessing physical devices"
+                "would check Pete's reviewed forms and target-owned Host profiles without accessing physical devices"
             );
         }
         return Ok(());
@@ -112,7 +112,7 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
             target: image.manifest.target,
             bases: image.manifest.bases,
             implementations: image.manifest.implementations,
-            host_operations: image.manifest.host_operations,
+            host_calls: image.manifest.host_calls,
             resources: image.manifest.resources,
             resource_budgets: serde_json::to_value(image.manifest.resource_budgets)?,
             bounds: serde_json::to_value(image.manifest.bounds)?,

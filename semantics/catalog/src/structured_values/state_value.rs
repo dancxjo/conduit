@@ -6,7 +6,7 @@
 use super::StructuredValueContract;
 use alloc::vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, FaceStartupParameter, KindContractRevision, PortDescriptor,
+    kind_id, port_id, CapabilityLimits, FrontStartupParameter, KindIdentity, PortDescriptor,
     PortDirection, PortTemporal, StructuredInfoRefusal, StructuredInfoType,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
@@ -18,7 +18,7 @@ pub const STATE_VALUE_REVISION: &str = "conduit.state/value@1";
 /// next value at a time, and completes only when the next input closes. Waiting
 /// for input has no predetermined semantic transition count.
 pub fn state_value_contract(
-    type_name: &str,
+    _type_name: &str,
     value_type: &StructuredInfoType,
 ) -> Result<StructuredValueContract, StructuredInfoRefusal> {
     let profile = value_type.profile()?;
@@ -29,13 +29,13 @@ pub fn state_value_contract(
         temporal,
     };
     Ok(StructuredValueContract {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: "initial".into(),
-            value_type: type_name.into(),
+            value_type: profile.value_kind().clone(),
             has_default: false,
         }],
         kind_id: kind_id(STATE_VALUE_KIND),
-        kind_contract_revision: KindContractRevision::from(STATE_VALUE_REVISION),
+        kind_contract_revision: KindIdentity::from(STATE_VALUE_REVISION),
         inputs: vec![port(
             "next",
             PortDirection::Input,

@@ -1,4 +1,4 @@
-//! The actual authored Forms reaching the browser's ordinary typed output effect.
+//! The actual authored forms reaching the browser's ordinary typed output effect.
 
 use super::*;
 
@@ -40,7 +40,7 @@ fn canonical_pocket_theremin_maps_separated_positions_in_one_play() {
             .pending
             .iter()
             .position(|pending| matches!(pending.effect, engine::BrowserHostEffect::PointerEvent))
-            .expect("same Play must remain armed for another pointer position");
+            .expect("same play must remain armed for another pointer position");
         let request = session.pending[pointer_index].request;
         let placement = session.fragments[0].placements[usize::from(request.node.0)]
             .placement_id
@@ -192,7 +192,7 @@ fn pointer_quantity_chain_preserves_incompatible_unit_failure_without_presentati
     }
     let error = error.expect("bounded downstream work must not be starved by the standing source");
     assert!(
-        error.contains("OperationFailed(Failure { code: InvalidInput, detail: 12 })"),
+        error.contains("BackFailed(Failure { code: InvalidInput, detail: 12 })"),
         "{error}"
     );
 }

@@ -27,7 +27,7 @@ export function createBrowserConfigurationOutfitter({ host, presentationFor, onC
       const target = document.createElement("p");
       target.textContent = `Target: Browser page (${catalog.target_id}) · bind reviewed superset`;
       const fieldset = document.createElement("fieldset");
-      const legend = document.createElement("legend"); legend.textContent = "What should this Host help with?";
+      const legend = document.createElement("legend"); legend.textContent = "What should this host help with?";
       fieldset.append(legend);
       for (const entry of catalog.entries) {
         const label = document.createElement("label");

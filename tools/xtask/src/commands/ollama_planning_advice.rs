@@ -286,9 +286,9 @@ fn request(
         "think": false,
         "format": proposal_schema(),
         "messages": [
-            {"role": "system", "content": "You are an optional Conduit planning adviser. Return only the requested typed proposal. Never invent identifiers. You do not create a Plan. Prefer the candidate with lower resource units."},
+            {"role": "system", "content": "You are an optional Conduit planning adviser. Return only the requested typed proposal. Never invent identifiers. You do not create a plan. Prefer the candidate with lower resource units."},
             {"role": "user", "content": format!(
-                "Checked Form: {}. Gear: advised/pulse. Exact candidates: {}. Use proposal_id=proposal/live-gpt-oss request_identity=request/live-gpt-oss run_identity=run/live-gpt-oss.",
+                "Checked form: {}. Gear: advised/pulse. Exact candidates: {}. Use proposal_id=proposal/live-gpt-oss request_identity=request/live-gpt-oss run_identity=run/live-gpt-oss.",
                 form.checked_form_id.as_str(),
                 serde_json::to_string(&candidates).map_err(|error| StepError::prereq(PROOF_ID, error.to_string()))?,
             )}

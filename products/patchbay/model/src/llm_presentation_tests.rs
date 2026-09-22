@@ -8,8 +8,8 @@ use conduit_ai::{
 use conduit_body::Body;
 use conduit_core::{
     ActivePlayId, ArtifactId, BootId, CapabilityId, CapabilityLimits, CheckedFormId,
-    ExecutionProfileId, ExpandedFormId, GearId, HostId, ImplementationId, KindContractRevision,
-    KindId, OfferGeneration, PlacementId, PlanId, SignId, SourceDocumentId,
+    ExecutionProfileId, ExpandedFormId, GearId, HostId, ImplementationId, KindId, KindIdentity,
+    OfferGeneration, PlacementId, PlanId, SignId, SourceDocumentId,
 };
 use conduit_presentation::PresentationPropertyValue;
 
@@ -91,6 +91,7 @@ fn placement(contract: &LlmSemanticContract) -> PlannedGear {
         capability_id: CapabilityId::from("local-model/llm/interpret"),
         implementation_id: ImplementationId::from("std/local-open-weight-model@1"),
         artifact_id: ArtifactId::from("ollama/gpt-oss/20b/q4"),
+        base: None,
         realization_characteristics: vec![],
         limits: CapabilityLimits {
             max_active_instances: 1,
@@ -99,7 +100,7 @@ fn placement(contract: &LlmSemanticContract) -> PlannedGear {
         },
         inputs: contract.inputs.clone(),
         outputs: contract.outputs.clone(),
-        host_operations: vec![],
+        host_calls: vec![],
         resources: vec![],
         authority: vec![],
         pool_references: vec![],
@@ -127,11 +128,11 @@ fn result(contract: &LlmSemanticContract) -> ModelDerivedResult {
     }
 }
 
-fn proposal(proposal_id: &str, operation_kind: &str) -> ModelEffectProposal {
+fn proposal(proposal_id: &str, back_kind: &str) -> ModelEffectProposal {
     ModelEffectProposal {
         proposal_id: proposal_id.into(),
         plan_id: PlanId::from("plan/llm"),
-        operation_kind: KindId::from(operation_kind),
+        back_kind: KindId::from(back_kind),
         canonical_arguments: br#"{"enabled":true}"#.to_vec(),
         rationale: "Await an ordinary authority decision".into(),
         evidence: vec![SignId::from("sign/observed-bird")],
@@ -263,7 +264,7 @@ fn shared_presentation_keeps_semantics_realization_provenance_and_effect_stages_
 fn stale_contract_invalid_offer_and_unbounded_stage_history_refuse() {
     let contract = llm_contract(LLM_INTERPRET_KIND).unwrap();
     let mut stale_placement = placement(&contract);
-    stale_placement.kind_contract_revision = KindContractRevision::from("stale");
+    stale_placement.kind_contract_revision = KindIdentity::from("stale");
     let truth = LlmPatchbayTruth {
         gear_identity: "gear/interpreter".into(),
         contract: &contract,

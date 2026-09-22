@@ -6,9 +6,9 @@ use conduit_body::{
 };
 use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, KindId, LinkBindingId, OfferGeneration, ResourceClassId, ResourceOffer,
-    ResourcePoolId, SignId, SourceDocumentId, PROTOCOL_VERSION,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindId,
+    KindIdentity, LinkBindingId, OfferGeneration, ResourceClassId, ResourceOffer, ResourcePoolId,
+    SignId, SourceDocumentId, PROTOCOL_VERSION,
 };
 
 fn capability(id: &str) -> CapabilityOffer {
@@ -17,7 +17,7 @@ fn capability(id: &str) -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from(id),
         kind_id: KindId::from(format!("kind/{id}")),
-        kind_contract_revision: KindContractRevision::from("kind/revision"),
+        kind_contract_revision: KindIdentity::from("kind/revision"),
         inputs: vec![],
         outputs: vec![],
         implementation: conduit_core::ImplementationOffer {
@@ -25,7 +25,7 @@ fn capability(id: &str) -> CapabilityOffer {
             implementation_id: ImplementationId::from(format!("implementation/{id}")),
             artifact_id: ArtifactId::from("artifact/reviewed"),
         },
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: CapabilityLimits {
@@ -44,6 +44,7 @@ fn observation() -> CandidateObservation {
             boot_id: BootId::from("boot/browser-a/1"),
             offer_generation: OfferGeneration(4),
             profile: HostProfileId::from("profile/friendly-browser"),
+            bases: vec![],
             resources: vec![
                 ResourceOffer {
                     content: None,

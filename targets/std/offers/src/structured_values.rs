@@ -6,8 +6,8 @@ mod flow_pressure;
 pub use flow_pressure::*;
 
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, CapabilityId,
-    CapabilityOffer, ExecutionProfileId, ImplementationId, ImplementationOffer,
+    kind_id, present_host_call_requirement, resource_requirement, ArtifactId, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, ImplementationId,
     PRESENTATION_RESOURCE_CLASS,
 };
 
@@ -48,21 +48,19 @@ fn offer(
         .or_else(|| contract.inputs.first())
         .expect("structured contract has one runtime port")
         .value_kind
-        .as_str();
-    CapabilityOffer {
-        startup_parameters: contract.startup_parameters,
-        shorthand: None,
-        capability_id: CapabilityId::from(format!(
-            "std-{}-{value_kind}",
-            if source {
-                "structured-literal"
-            } else {
-                "structured-presentation"
-            }
-        )),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: ImplementationOffer {
+        .as_str()
+        .to_string();
+    BackOfferBuilder::new(
+        contract.into(),
+        Back {
+            capability_id: CapabilityId::from(format!(
+                "std-{}-{value_kind}",
+                if source {
+                    "structured-literal"
+                } else {
+                    "structured-presentation"
+                }
+            )),
             execution_profile_id: ExecutionProfileId::from(if source {
                 STRUCTURED_LITERAL_STD_PROFILE
             } else {
@@ -78,25 +76,23 @@ fn offer(
             } else {
                 STRUCTURED_PRESENTATION_STD_ARTIFACT
             }),
+            host_calls: if source {
+                Vec::new()
+            } else {
+                vec![present_host_call_requirement(
+                    kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET),
+                    conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+                )]
+            },
+            resource_requirements: if source {
+                Vec::new()
+            } else {
+                vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)]
+            },
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: if source {
-            Vec::new()
-        } else {
-            vec![present_host_operation_requirement(
-                kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET),
-                conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-            )]
-        },
-        resource_requirements: if source {
-            Vec::new()
-        } else {
-            vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)]
-        },
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]

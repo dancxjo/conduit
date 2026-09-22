@@ -42,12 +42,13 @@ fn quiet_check_suppresses_human_output_without_hiding_json() {
 fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
     let root = crate::workspace::workspace_root().unwrap();
     let inventory = load_inventory(&root).unwrap();
-    let legacy_tour = inventory
+    let tutorial = inventory
         .forms
         .iter()
         .find(|form| form.slug == "tour")
-        .expect("legacy Tutorial remains explicitly inventoried for compatibility proof");
-    assert!(!legacy_tour.workspace_catalog);
+        .expect("resident Tutorial remains explicitly inventoried");
+    assert!(tutorial.workspace_catalog);
+    assert_eq!(tutorial.initial_body_order, Some(14));
     let report = build_report(&root, false, &GlobalOpts::default()).unwrap();
     let checks: Vec<_> = report
         .results
@@ -218,6 +219,7 @@ fn initial_body_bundle_is_selected_by_the_shared_inventory() {
         ("pocket-theremin", "pocket-theremin"),
         ("patchbay", "patchbay"),
         ("little-seismograph", "little-seismograph-display"),
+        ("tour", "tour"),
     ];
     assert_eq!(forms.len(), expected.len());
     for (form, (slug, entry)) in forms.iter().zip(expected) {

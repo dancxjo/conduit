@@ -3,16 +3,16 @@ extern crate std;
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, AuthorityGrant, AuthorityGrantId, BaseImplementationId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId,
-    HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
-    ImplementationOffer, KindContractRevision, OfferGeneration, PROTOCOL_VERSION, PortDescriptor,
-    PortDirection, PortTemporal, kind_id, port_id, resource_offer,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostCallContractId,
+    HostCallRequirement, HostId, HostProfileId, ImplementationId, ImplementationOffer,
+    KindIdentity, OfferGeneration, PROTOCOL_VERSION, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, resource_offer,
 };
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, KernelEvent, Operation,
-    OperationAction, OperationInput, PortId, RequestId, SignSink, ValueRef, ValueStorage,
-    scheduler::{FixedScheduler, OperationDriver, SchedulerStatus},
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, PortId, RequestId, SignSink,
+    ValueRef, ValueStorage,
+    scheduler::{FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome},
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
@@ -38,25 +38,20 @@ struct Source {
     emitted: bool,
 }
 
-impl Operation for Source {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.value,
-        }
-    }
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        invalid(1)
-    }
-    fn advance(&mut self) -> OperationAction {
+impl Source {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
         if self.emitted {
-            OperationAction::Complete
-        } else {
-            self.emitted = true;
-            OperationAction::Complete
+            return StepOutcome::Complete;
         }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        if io.send(PortId(0), self.value).is_err() {
+            return invalid(1);
+        }
+        self.emitted = true;
+        StepOutcome::Progress
     }
-    fn cancel(&mut self) {}
 }
 
 #[derive(Clone, Copy)]
@@ -65,46 +60,51 @@ struct Client {
     emitted: bool,
 }
 
-impl Operation for Client {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending && !self.emitted => {
-                self.pending = true;
-                OperationAction::RequestHostOperation {
-                    request: RequestId(0),
-                    operation: HostOperationId(0),
-                    input: BoundedValueRef::new(value, REQUEST_BYTES as u32).unwrap(),
-                }
-            }
-            OperationInput::HostOperationCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
-                && outcome.failure.is_none()
-                && outcome.output.is_some() =>
+impl Client {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        if self.pending {
+            let Some((request, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            let Some(output) = outcome.output else {
+                return invalid(2);
+            };
+            if request != RequestId(0)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
+                || !io.output_ready(PortId(0))
+                || io.consume_host_completion().is_err()
+                || io.send(PortId(0), output.value).is_err()
             {
-                self.pending = false;
-                self.emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: outcome.output.unwrap().value,
-                }
+                return invalid(2);
             }
-            OperationInput::Closed { port: PortId(0) } if self.emitted && !self.pending => {
-                OperationAction::Complete
-            }
-            _ => invalid(2),
+            self.pending = false;
+            self.emitted = true;
+            return StepOutcome::Progress;
         }
-    }
-    fn cancel(&mut self) {
-        self.pending = false;
+        if !self.emitted
+            && let Some(value) = io.input(PortId(0))
+        {
+            let Ok(input) = BoundedValueRef::new(value, REQUEST_BYTES as u32) else {
+                return invalid(2);
+            };
+            if io.consume(PortId(0)).is_err()
+                || io
+                    .request_host_call(RequestId(0), HostCallId(0), input)
+                    .is_err()
+            {
+                return invalid(2);
+            }
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        if self.emitted && io.input_closed(PortId(0)) {
+            if io.consume_closed(PortId(0)).is_err() {
+                return invalid(2);
+            }
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 }
 
@@ -114,85 +114,77 @@ struct Sink {
     observed: bool,
 }
 
-impl Operation for Sink {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending => {
-                self.pending = true;
-                OperationAction::RequestHostOperation {
-                    request: RequestId(0),
-                    operation: HostOperationId(0),
-                    input: BoundedValueRef::new(value, RESPONSE_BYTES as u32).unwrap(),
-                }
-            }
-            OperationInput::HostOperationCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
+impl Sink {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        if self.pending {
+            let Some((request, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            if request != RequestId(0)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+                || io.consume_host_completion().is_err()
             {
-                self.pending = false;
-                self.observed = true;
-                OperationAction::Await
+                return invalid(3);
             }
-            OperationInput::Closed { port: PortId(0) } if self.observed && !self.pending => {
-                OperationAction::Complete
-            }
-            _ => invalid(3),
+            self.pending = false;
+            self.observed = true;
+            return StepOutcome::Progress;
         }
-    }
-    fn cancel(&mut self) {
-        self.pending = false;
+        if let Some(value) = io.input(PortId(0)) {
+            let Ok(input) = BoundedValueRef::new(value, RESPONSE_BYTES as u32) else {
+                return invalid(3);
+            };
+            if io.consume(PortId(0)).is_err()
+                || io
+                    .request_host_call(RequestId(0), HostCallId(0), input)
+                    .is_err()
+            {
+                return invalid(3);
+            }
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        if self.observed && io.input_closed(PortId(0)) {
+            if io.consume_closed(PortId(0)).is_err() {
+                return invalid(3);
+            }
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 }
 
-enum PlannedOperation {
+enum PlannedBack {
     Source(Source),
     Client(Client),
     Sink(Sink),
 }
 
-impl Operation for PlannedOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepBack<PORTS> for PlannedBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
-            Self::Source(v) => v.start(),
-            Self::Client(v) => v.start(),
-            Self::Sink(v) => v.start(),
-        }
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Source(v) => v.resume(input),
-            Self::Client(v) => v.resume(input),
-            Self::Sink(v) => v.resume(input),
-        }
-    }
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source(v) => v.advance(),
-            Self::Client(v) => v.advance(),
-            Self::Sink(v) => v.advance(),
+            Self::Source(v) => v.step(io),
+            Self::Client(v) => v.step(io),
+            Self::Sink(v) => v.step(io),
         }
     }
     fn cancel(&mut self) {
         match self {
-            Self::Source(v) => v.cancel(),
-            Self::Client(v) => v.cancel(),
-            Self::Sink(v) => v.cancel(),
+            Self::Source(_) => {}
+            Self::Client(v) => v.pending = false,
+            Self::Sink(v) => v.pending = false,
         }
     }
 }
 
-const fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+const fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
         detail,
     })
@@ -222,8 +214,8 @@ fn fixture_offer(
         direction,
         temporal: PortTemporal::Flow { closes: true },
     };
-    let observe = (direction == PortDirection::Input).then(|| HostOperationRequirement {
-        contract_id: HostOperationContractId::from(OBSERVE_OPERATION),
+    let observe = (direction == PortDirection::Input).then(|| HostCallRequirement {
+        contract_id: HostCallContractId::from(OBSERVE_OPERATION),
         target_kind: Some(
             conduit_web::http_response_type()
                 .profile()
@@ -240,7 +232,7 @@ fn fixture_offer(
         shorthand: None,
         capability_id: CapabilityId::from(kind),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         inputs: (direction == PortDirection::Input)
             .then_some(vec![descriptor.clone()])
             .unwrap_or_default(),
@@ -252,7 +244,7 @@ fn fixture_offer(
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from("test/http-fixture@1"),
         },
-        host_operations: observe.into_iter().collect(),
+        host_calls: observe.into_iter().collect(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -264,7 +256,7 @@ fn fixture_offer(
 }
 
 fn catalogs() -> (conduit_form::StartupCatalog, conduit_form::ProfileCatalog) {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     conduit_web::install_http_catalogs(&mut startup, &mut profile).unwrap();
@@ -289,12 +281,12 @@ fn catalogs() -> (conduit_form::StartupCatalog, conduit_form::ProfileCatalog) {
             })
             .unwrap();
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: offer.kind_id,
                 kind_contract_revision: offer.kind_contract_revision,
                 inputs: offer.inputs,
                 outputs: offer.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .unwrap();
     }
@@ -308,6 +300,7 @@ fn advertisement() -> HostAdvertisement {
         boot_id: BootId::from("conduitos-http-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(PROFILE),
+        bases: vec![],
         resources: vec![resource_offer("conduitos-http-client-0", RESOURCE_CLASS, 1)],
         capabilities: vec![
             fixture_offer(
@@ -362,7 +355,7 @@ fn run_ordinary_form() {
     let grant = AuthorityGrant {
         grant_id: AuthorityGrantId::from("grant/conduitos-http-local"),
         contract_id: requirement.contract_id.clone(),
-        host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+        host_call_contract_id: requirement.host_call_contract_id.clone(),
         subject_kind: requirement.subject_kind.clone(),
         host_id: host.host_id.clone(),
         boot_id: host.boot_id.clone(),
@@ -413,7 +406,7 @@ fn run_ordinary_form() {
         .unwrap();
     assert_eq!(http.authority.len(), 1);
     assert_eq!(http.resources.len(), 1);
-    assert_eq!(http.host_operations[0].maximum_in_flight, 1);
+    assert_eq!(http.host_calls[0].maximum_in_flight, 1);
     let lowered = lower_plan_fragment(fragment).unwrap();
 
     let request = conduit_web::encode_request(&conduit_web::HttpRequest {
@@ -444,29 +437,29 @@ fn run_ordinary_form() {
             .unwrap();
     }
     routes.seal().unwrap();
-    let mut bindings = FixedHostOperationBindings::<9>::new(MAX_NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<9>::new(MAX_NODES as u16);
+    for operation in &lowered.host_calls {
         bindings.install(operation.node, operation.binding).unwrap();
     }
     bindings.seal().unwrap();
     let mut drivers = [None, None, None];
     for (index, placement) in fragment.placements.iter().enumerate() {
-        let operation = match placement.implementation_id.as_str() {
-            SOURCE_IMPLEMENTATION => PlannedOperation::Source(Source {
+        let back = match placement.implementation_id.as_str() {
+            SOURCE_IMPLEMENTATION => PlannedBack::Source(Source {
                 value: request_value,
                 emitted: false,
             }),
-            IMPLEMENTATION => PlannedOperation::Client(Client {
+            IMPLEMENTATION => PlannedBack::Client(Client {
                 pending: false,
                 emitted: false,
             }),
-            SINK_IMPLEMENTATION => PlannedOperation::Sink(Sink {
+            SINK_IMPLEMENTATION => PlannedBack::Sink(Sink {
                 pending: false,
                 observed: false,
             }),
             _ => panic!("unexpected implementation"),
         };
-        drivers[index] = Some(OperationDriver::<PlannedOperation, PORTS>::new(operation).unwrap());
+        drivers[index] = Some(back);
     }
     let [Some(first), Some(second), Some(third)] = drivers else {
         panic!("all drivers")
@@ -487,7 +480,7 @@ fn run_ordinary_form() {
         2,
         9,
         3,
-    >::new_with_host_operations(
+    >::new_with_host_calls(
         nodes,
         cords,
         routes,
@@ -504,24 +497,22 @@ fn run_ordinary_form() {
     for _ in 0..64 {
         while let Some(request) = kernel.next_host_request() {
             let binding = lowered
-                .host_operations
+                .host_calls
                 .iter()
-                .find(|item| {
-                    item.node == request.node && item.binding.operation == request.operation
-                })
+                .find(|item| item.node == request.node && item.binding.call == request.call)
                 .unwrap();
             let input = kernel.host_value(request.input.value).unwrap();
-            if binding.contract_id.as_str() == HOST_OPERATION {
+            if binding.contract_id.as_str() == HOST_CALL {
                 native
                     .exchange(input, true, &mut endpoint, &mut output)
                     .unwrap();
                 let value = kernel.store_host_value(output.as_bytes()).unwrap();
                 kernel
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: Some(
                                 BoundedValueRef::new(value, RESPONSE_BYTES as u32).unwrap(),
                             ),
@@ -533,11 +524,11 @@ fn run_ordinary_form() {
                 assert_eq!(binding.contract_id.as_str(), OBSERVE_OPERATION);
                 observed.extend_from_slice(input);
                 kernel
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: None,
                             failure: None,
                         },

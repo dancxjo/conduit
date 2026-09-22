@@ -130,7 +130,7 @@ pub fn live_indicator_advertisement(
         },
         inputs: conduit_signal::show_inputs(),
         outputs: Vec::new(),
-        host_operations: conduit_signal::show_host_operation_requirements(),
+        host_calls: conduit_signal::show_host_call_requirements(),
         resource_requirements: requirements,
         authority_requirements: vec![present_authority],
         limits: CapabilityLimits {
@@ -147,6 +147,7 @@ pub fn live_indicator_advertisement(
         boot_id: observation.boot_id.clone(),
         offer_generation: observation.offer_generation,
         profile: HostProfileId::from(INDICATOR_PROFILE),
+        bases: vec![],
         resources,
         planner_capabilities: Vec::new(),
         capabilities,

@@ -2,6 +2,22 @@ use std::fs;
 use std::path::PathBuf;
 
 #[test]
+fn workspace_feedback_does_not_wait_for_emulator_proof() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    let workspace = workflow
+        .split("\n  workspace-check:\n")
+        .nth(1)
+        .expect("workspace check job");
+    let needs = workspace
+        .lines()
+        .find(|line| line.trim_start().starts_with("needs:"))
+        .expect("workspace prerequisites");
+    assert_eq!(needs.trim(), "needs: classify");
+}
+
+#[test]
 fn explicit_dev_integration_dispatch_bootstraps_across_the_trusted_main_schema() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/dev-integration.yml"))
@@ -362,6 +378,18 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
         assert!(stage.contains(&format!("needs.{prerequisite}.result == 'success'")));
     }
     assert!(stage.contains("cargo +1.98.1 xtask host release-catalog"));
+    assert!(stage.contains("Build the reviewed Form bundles before release payload assembly"));
+    assert!(stage.contains("cargo +1.98.1 xtask forms bundle-initial-body"));
+    assert!(stage.contains("cargo +1.98.1 xtask forms bundle-workspace-catalog"));
+    assert!(stage.contains("target/reviewed-form-bundles/initial-body.conduit"));
+    assert!(stage.contains("target/reviewed-form-bundles/workspace-catalog.json"));
+    assert!(stage.contains("products/creche/tools/stage-creche-product.sh"));
+    let creche_stage =
+        fs::read_to_string(root.join("products/creche/tools/stage-creche-product.sh"))
+            .expect("read Creche staging contract");
+    assert!(creche_stage.contains("browser-relay-line.mjs"));
+    assert!(creche_stage.contains("release) test \"$file_count\" -le 131"));
+    assert!(creche_stage.contains("browser-proof) test \"$file_count\" -le 128"));
     assert!(stage.contains("--root target/creche-release-artifacts"));
     assert!(stage.contains("--generation \"${{ github.run_number }}\""));
 }

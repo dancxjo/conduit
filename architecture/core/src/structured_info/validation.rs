@@ -7,7 +7,7 @@ use super::{
 use alloc::vec::Vec;
 
 /// Retains one checked finite schema and its exact canonical prefix.
-/// Leaf payload meaning remains owned by its Kind; this validates the canonical
+/// Leaf payload meaning remains owned by its kind; this validates the canonical
 /// structured envelope, shape and bounds, not a second leaf-language checker.
 pub struct PreparedStructuredValueValidator {
     value_type: StructuredInfoType,
@@ -63,15 +63,26 @@ fn validate_node(
 ) -> Result<(), Refusal> {
     *remaining = remaining.checked_sub(1).ok_or(Refusal::TooManyNodes)?;
     match ty.shape() {
-        Shape::Leaf(_) => {
+        Shape::Leaf(kind) => {
             expect(cursor.byte()? == 0)?;
-            if cursor.bytes()?.len() > MAXIMUM_STRUCTURED_LEAF_BYTES {
+            let encoded = cursor.bytes()?;
+            if encoded.len() > MAXIMUM_STRUCTURED_LEAF_BYTES {
                 return Err(Refusal::LeafTooLarge);
             }
+            crate::validate_primitive_info(kind.as_str(), encoded)
+                .map_err(Refusal::InvalidPrimitiveLeaf)?;
         }
         Shape::Collection { element, length } => {
             expect(cursor.byte()? == 1)?;
             expect(cursor.length()? == usize::from(length))?;
+            for _ in 0..length {
+                validate_node(element, cursor, remaining)?;
+            }
+        }
+        Shape::Sequence { element, capacity } => {
+            expect(cursor.byte()? == 1)?;
+            let length = cursor.length()?;
+            expect(length <= usize::from(capacity))?;
             for _ in 0..length {
                 validate_node(element, cursor, remaining)?;
             }

@@ -87,11 +87,11 @@ fn exact_selection_is_checked_planned_and_played_before_state_changes() {
     assert!(receipt
         .signs
         .iter()
-        .any(|event| event.kind == KernelEventKind::HostOperationRequested));
+        .any(|event| event.kind == KernelEventKind::HostCallRequested));
     assert!(receipt
         .signs
         .iter()
-        .any(|event| event.kind == KernelEventKind::HostOperationCompleted));
+        .any(|event| event.kind == KernelEventKind::HostCallCompleted));
     let inspection = interaction.lines().join("\n");
     assert!(inspection.contains("kind=interaction/select"));
     assert!(inspection.contains("gears=request,apply"));
@@ -216,11 +216,11 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
     assert!(receipt
         .signs
         .iter()
-        .any(|event| event.kind == KernelEventKind::HostOperationCompleted));
+        .any(|event| event.kind == KernelEventKind::HostCallCompleted));
 }
 
 #[test]
-fn semantic_invocation_refusals_are_exact_and_do_not_reach_the_host_operation() {
+fn semantic_invocation_refusals_are_exact_and_do_not_reach_the_host_call() {
     let mut interaction = interaction();
     let presentation = invocation_presentation(PatchbayAction::OpenBack, "seed/example");
     let action_id = presentation.actions[0].identity.clone();
@@ -308,12 +308,12 @@ fn semantic_invocation_refusals_are_exact_and_do_not_reach_the_host_operation() 
             InteractionDisposition::Refused(expected),
             "mutation {mutation}"
         );
-        assert!(!invoked, "mutation {mutation} reached the host operation");
+        assert!(!invoked, "mutation {mutation} reached the Host Call");
     }
 }
 
 #[test]
-fn duplicate_semantic_delivery_is_refused_before_a_second_host_operation() {
+fn duplicate_semantic_delivery_is_refused_before_a_second_host_call() {
     let mut interaction = interaction();
     let presentation = invocation_presentation(PatchbayAction::OpenBack, "seed/example");
     let request = PatchbayInteractionRequest::invoke(
@@ -406,11 +406,50 @@ fn typed_edit_round_trips_through_form_plan_kernel_and_binary_value_without_pack
 }
 
 #[test]
+fn quantity_edit_round_trips_without_erasing_its_unit() {
+    let graph = count_graph();
+    let edit = PatchbayEdit::ConfigureGear {
+        basis: PatchbayEditBasis::new(
+            graph.source_document_id.clone(),
+            7,
+            graph.expanded_form_id.clone(),
+        )
+        .unwrap(),
+        subject_identity: "gear/count-demo/clock".into(),
+        key: "freq".into(),
+        value: ConfigurationValue::Quantity(conduit_core::Quantity::new(
+            250,
+            conduit_core::QuantityUnit::Millisecond,
+        )),
+    };
+    let mut interaction = interaction();
+    let request = PatchbayInteractionRequest::edit(
+        interaction.next_request_id("quantity").unwrap(),
+        edit.clone(),
+    )
+    .unwrap();
+    let receipt = interaction
+        .execute(Some(&graph), request.clone(), |_| {
+            PatchbayInvocationOutcome::Succeeded
+        })
+        .unwrap();
+    assert_eq!(receipt.request, request);
+    assert!(matches!(
+        receipt.request,
+        PatchbayInteractionRequest::Edit { edit: decoded, .. } if decoded == edit
+    ));
+}
+
+#[test]
 fn structured_configuration_is_inspectable_but_not_silently_scalar_edited() {
     let graph = count_graph();
     let value_type =
-        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/count@1")).unwrap();
-    let value = conduit_core::StructuredInfoValue::leaf(value_type.clone(), b"7".to_vec()).unwrap();
+        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/count")).unwrap();
+    let value = conduit_core::StructuredInfoValue::leaf(
+        value_type.clone(),
+        conduit_core::encode_count(7).to_vec(),
+    )
+    .unwrap();
     let structured = conduit_core::StructuredConfigurationValue::new(
         value_type.profile().unwrap().value_kind().clone(),
         value.canonical_bytes().unwrap(),

@@ -89,10 +89,10 @@ export const ESP32_CRECHE_TARGET_CONTRIBUTIONS = Object.freeze(PROFILES.map((tar
   bounds: BOUNDS,
   expected_join_contract: "conduit.esp32/browser-spawn-observation@1",
   target_profile: targetProfile.declaration,
-  createAdapter: ({ host }) => createEsp32CrecheTargetAdapter({ host, targetProfile }),
+  createAdapter: ({ host, prepareSpore = null }) => createEsp32CrecheTargetAdapter({ host, targetProfile, prepareSpore }),
 })));
 
-export function createEsp32CrecheTargetAdapter({ host, targetProfile, acquireSerial, observeSpawn }) {
+export function createEsp32CrecheTargetAdapter({ host, targetProfile, acquireSerial, observeSpawn, prepareSpore = null }) {
   if (!PROFILES.includes(targetProfile)) throw new TypeError("ESP32 Crèche adapter requires one package-owned exact profile");
   let activeBase = null;
   let activeDeployment = null;
@@ -159,17 +159,15 @@ export function createEsp32CrecheTargetAdapter({ host, targetProfile, acquireSer
     const targetBytes = encoder.encode(targetProfile.target.id);
     const digestBytes = encoder.encode(digest);
     try {
-      const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
-      input.set(entropy);
-      input.set(targetBytes, entropy.length);
-      input.set(digestBytes, entropy.length + targetBytes.length);
-      const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(
-        targetBytes.length,
-        digestBytes.length,
-        BigInt(nowMillis),
-      );
-      if (code < 0) throw outputError(host.runtime, "ESP32 spore preparation", code);
-      const prepared = readOutput(host.runtime);
+      const prepared = prepareSpore
+        ? await prepareSpore({ targetId: targetProfile.target.id, imageDigest: digest, nowMillis, entropy })
+        : (() => {
+          const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
+          input.set(entropy); input.set(targetBytes, entropy.length); input.set(digestBytes, entropy.length + targetBytes.length);
+          const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(targetBytes.length, digestBytes.length, BigInt(nowMillis));
+          if (code < 0) throw outputError(host.runtime, "ESP32 spore preparation", code);
+          return readOutput(host.runtime);
+        })();
       if (prepared.target_id !== targetProfile.target.id || prepared.image_content_digest !== digest
         || prepared.output !== "esp32-image" || prepared.fabrication_package_id !== "conduit-host-esp32@1") {
         refuse(targetProfile, mode, "bind", "BindingIdentity", "prepared invitation lost the selected ESP32 target or artifact identity");
@@ -227,7 +225,7 @@ export function createEsp32CrecheTargetAdapter({ host, targetProfile, acquireSer
       const prepared = binding.prepared;
       const nativeSpore = binding.nativeSpore;
       if (!nativeSpore?.segments || nativeSpore.spore_id !== prepared.spore_id) {
-        refuse(targetProfile, mode, "realize", "MissingArtifact", "exact Body-bound ESP32 Spore is missing before deployment");
+        refuse(targetProfile, mode, "realize", "MissingArtifact", "exact body-bound ESP32 Spore is missing before deployment");
       }
       const plan = await activeDeployment.sealDeployment({
         deploymentPlanId: `deployment-plan/${prepared.spore_id}`,

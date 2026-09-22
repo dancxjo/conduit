@@ -12,22 +12,23 @@ operation API.
 state-machine contract:
 
 ```text
-OperationInput
-  Value { port, value }
-  Closed { port }
-  HostOperationCompleted { request, outcome }
+Back::step(StepIo, StepInputBytes)
+  -> Progress
+  -> Await
+  -> Complete
+  -> Fail
 
-OperationAction
-  Await
-  Emit { port, value }
-  RequestHostOperation { request, operation, input }
-  Complete
-  Fail
+StepIo
+  input / input_closed
+  consume / consume_closed / discard
+  send / send_canonical
+  request_host_call / cancel_host_call
+  host_completion / consume_host_completion
 ```
 
-ports, nodes, cords, requests, and host operations are compact numeric
+ports, nodes, cords, requests, and Host Calls are compact numeric
 identities produced by lowering before play start. `FixedRoutes` and
-`FixedHostOperationBindings` are sealed lookup tables: emitting on one output
+`FixedHostCallBindings` are sealed lookup tables: emitting on one output
 cannot broadcast to another output, and an operation cannot invoke an
 unplanned host boundary.
 
@@ -67,16 +68,16 @@ and leaves the first cord untouched until both sides can commit. The fixed and
 hosted storage/sign profiles produce identical normalized decisions,
 outputs, closure, join rollback, and cancellation sign.
 
-## host-operation scheduler slice
+## Host Call scheduler slice
 
 A host-enabled scheduler is constructed with a sealed
-`FixedHostOperationBindings` table and a const-generic pending-request array.
+`FixedHostCallBindings` table and a const-generic pending-request array.
 An operation can atomically consume inputs and stage one bounded host request.
 Admission happens before queue/reference mutation; an absent binding, duplicate
 or retired request identity, full pending table, or oversized input rejects the
 step without consuming its inputs.
 
-The host pulls a numeric `HostOperationRequest`, reads only its bounded stored
+The host pulls a numeric `HostCallRequest`, reads only its bounded stored
 input, stores a budgeted outcome value, and completes the exact request. The
 scheduler validates the output byte bound, keeps the waiting node asleep until
 completion, then wakes it with the correlated outcome. Completion storage owns
@@ -92,23 +93,22 @@ The hosted profile also records its value-slot, per-slot byte-buffer, and
 sign-vector capacities at play start and proves those capacities are
 unchanged after a complete host-enabled run.
 
-## Public operation adapter
+## One Step protocol
 
-`OperationDriver` adapts the published `OperationInput`/`OperationAction`
-state machine into `FixedScheduler`. `Operation::advance` lets an operation
-produce more than one named output for one input; the adapter collects those
-actions in fixed arrays and publishes them as one scheduler transaction only
-when every target is ready. Defaulted ownership hooks preserve the required
-action vocabulary while allowing bounded state operations to retain a resumed
-value and release one superseded value.
+Every Back implements `StepBack` directly. One invocation receives only
+the current bounded inputs and correlated Host Call completion, stages named
+Cord emissions or one planned Host Call through `StepIo`, and returns control
+to `FixedScheduler`. The scheduler preflights and commits that staged work as
+one transaction. Bounded Back state may retain an explicitly taken value and
+later discard it; no second lifecycle protocol or translating adapter exists.
 
-The fixed and hosted profiles match for a public-operation source/tee/two-sink
-vector, including two tee emits committed from one input. A separate
-host-enabled adapter vector proves that a public `RequestHostOperation` action
-waits for and resumes from the exact correlated completion.
+The fixed and hosted profiles match for a Step-native source/tee/two-sink
+vector, including two outputs committed from one input. A separate
+host-enabled vector proves that a planned Host Call waits for and consumes the
+exact correlated completion.
 
 The final conformance vector drives four bounded host-generated tick values
-entirely through `OperationDriver`:
+entirely through the same Step protocol:
 
 ```text
 tick -> tee.left  -> filter -> show-a

@@ -1,10 +1,8 @@
 //! Ordinary generated network/join execution over the existing UsbCdc session.
 
-use conduit_kernel::scheduler::{
-    FixedScheduler, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{FixedScheduler, RemoteIngressOutcome, SchedulerStatus};
 use conduit_kernel::{
-    BoundedValueRef, FixedSignLog, FixedValueStore, HostOperationDisposition, HostOperationOutcome,
+    BoundedValueRef, FixedSignLog, FixedValueStore, HostCallDisposition, HostCallOutcome,
 };
 use conduit_wire::{SessionMachine, SessionMessage, SessionRole};
 use embassy_executor::Spawner;
@@ -21,7 +19,7 @@ use crate::network_image::{
     generated_routes, network_join_layout, CORDS, HOST_BINDING_SLOTS, NODES, PENDING_REQUESTS,
     PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_SIGN_BYTES, RUNTIME_SIGN_EVENTS,
 };
-use crate::network_operations::NetworkOperation;
+use crate::network_operations::NetworkBack;
 use crate::network_receipts::NetworkAttachmentIdentity;
 use crate::receipts::{RuntimeTranscriptIdentity, UsbCdc};
 use crate::usb::PicoUsbCdcLine;
@@ -40,7 +38,7 @@ async fn network_task(mut runner: embassy_net::Runner<'static, cyw43::NetDriver<
 }
 
 type JoinScheduler = FixedScheduler<
-    OperationDriver<NetworkOperation, PORTS>,
+    NetworkBack,
     FixedValueStore<QUEUE_SLOTS, { conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES as usize }>,
     FixedSignLog<RUNTIME_SIGN_EVENTS>,
     NODES,
@@ -58,9 +56,9 @@ struct JoinKernel {
     endpoint: conduit_kernel::RemoteEndpointId,
     cord: conduit_kernel::CordId,
     node: conduit_kernel::NodeId,
-    operation: conduit_kernel::HostOperationId,
+    host_call: conduit_kernel::HostCallId,
     sign_node: conduit_kernel::NodeId,
-    sign_operation: conduit_kernel::HostOperationId,
+    sign_host_call: conduit_kernel::HostCallId,
 }
 
 impl JoinKernel {
@@ -73,17 +71,14 @@ impl JoinKernel {
         )
         .map_err(UsbLinkError::Storage)?;
         let sign = FixedSignLog::new(RUNTIME_SIGN_BYTES).map_err(UsbLinkError::SignStorage)?;
-        let join = NetworkOperation::join(
+        let join = NetworkBack::join(
             layout.join_input_port,
             layout.join_output_port,
-            layout.join_operation,
+            layout.join_host_call,
         );
         let attachment_sign =
-            NetworkOperation::attachment_sign(layout.sign_input_port, layout.sign_operation);
-        let join = OperationDriver::new(join).map_err(UsbLinkError::Kernel)?;
-        let attachment_sign =
-            OperationDriver::new(attachment_sign).map_err(UsbLinkError::Kernel)?;
-        let drivers = match (layout.join_node.0, layout.sign_node.0) {
+            NetworkBack::attachment_sign(layout.sign_input_port, layout.sign_host_call);
+        let backs = match (layout.join_node.0, layout.sign_node.0) {
             (0, 1) => [join, attachment_sign],
             (1, 0) => [attachment_sign, join],
             _ => return Err(UsbLinkError::InvalidGeneratedEndpoint),
@@ -95,12 +90,12 @@ impl JoinKernel {
         let host_bindings =
             generated_host_bindings().map_err(|_| UsbLinkError::InvalidGeneratedEndpoint)?;
         crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelScheduler);
-        let scheduler = JoinScheduler::new_with_host_operations(
+        let scheduler = JoinScheduler::new_with_host_calls(
             nodes,
             cords,
             routes,
             host_bindings,
-            drivers,
+            backs,
             values,
             sign,
         )
@@ -110,9 +105,9 @@ impl JoinKernel {
             endpoint: remote.endpoint,
             cord: remote.cord,
             node: layout.join_node,
-            operation: layout.join_operation,
+            host_call: layout.join_host_call,
             sign_node: layout.sign_node,
-            sign_operation: layout.sign_operation,
+            sign_host_call: layout.sign_host_call,
         })
     }
 
@@ -136,7 +131,7 @@ impl JoinKernel {
         crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::KernelExecution);
         loop {
             if let Some(request) = self.scheduler.next_host_request() {
-                if request.node == self.sign_node && request.operation == self.sign_operation {
+                if request.node == self.sign_node && request.call == self.sign_host_call {
                     let encoded = self
                         .scheduler
                         .host_value(request.input.value)
@@ -147,18 +142,18 @@ impl JoinKernel {
                     if attachment.attachment_id != expected.attachment_id
                         || attachment.host_id != expected.host_id
                         || attachment.boot_id != expected.boot_id
-                        || attachment.interfront_pool_id != expected.interfront_pool_id
+                        || attachment.resource_pool_id != expected.resource_pool_id
                         || attachment.generation != expected.generation
                     {
                         return Err(UsbLinkError::InvalidNetworkJoin);
                     }
                     sign.write_network_attachment(expected).await?;
                     self.scheduler
-                        .complete_host_operation(
+                        .complete_host_call(
                             request.node,
                             request.request,
-                            HostOperationOutcome {
-                                disposition: HostOperationDisposition::Completed,
+                            HostCallOutcome {
+                                disposition: HostCallDisposition::Completed,
                                 output: None,
                                 failure: None,
                             },
@@ -167,7 +162,7 @@ impl JoinKernel {
                     self.scheduler.step().map_err(UsbLinkError::Kernel)?;
                     return Ok(());
                 }
-                if request.node != self.node || request.operation != self.operation {
+                if request.node != self.node || request.call != self.host_call {
                     return Err(UsbLinkError::InvalidGeneratedEndpoint);
                 }
                 let mut ssid = HString::<{ conduit_net::MAXIMUM_SSID_BYTES }>::new();
@@ -226,7 +221,7 @@ impl JoinKernel {
                         attachment_id: identity.attachment_id,
                         host_id: identity.host_id,
                         boot_id: identity.boot_id,
-                        interfront_pool_id: identity.interfront_pool_id,
+                        resource_pool_id: identity.resource_pool_id,
                         generation: identity.generation,
                     },
                     &mut attachment,
@@ -237,11 +232,11 @@ impl JoinKernel {
                     .store_host_value(&attachment[..attachment_len])
                     .map_err(UsbLinkError::Kernel)?;
                 self.scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: Some(
                                 BoundedValueRef::new(
                                     output,
@@ -338,7 +333,7 @@ pub async fn run(
         let _ = sign
             .write_network_failure(error.code(), attachment_identity(runtime))
             .await;
-        // This Play is terminal, but CDC 0 remains an exact-build BOOTSEL
+        // This play is terminal, but CDC 0 remains an exact-build BOOTSEL
         // recovery path across host disconnects.
         loop {
             crate::bootsel::wait_for_request(&mut link).await.ok();
@@ -511,7 +506,7 @@ pub(crate) fn attachment_identity<'a>(
         boot_id: runtime.boot_id(),
         active_play_id: runtime.active_play_id(),
         attachment_id: ATTACHMENT_ID,
-        interfront_pool_id: conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
+        resource_pool_id: conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
         generation: 1,
         sign_id: crate::network_image::ATTACHMENT_SIGN_ID,
     }

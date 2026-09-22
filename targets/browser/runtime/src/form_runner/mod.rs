@@ -10,12 +10,14 @@ mod gallery;
 mod host_abi;
 mod host_outcomes;
 mod multihost;
+mod pool_member_client_abi;
 mod protocol;
 mod remote_execution;
 mod session_cancellation;
 mod session_effects;
 mod session_projection;
 mod session_signs;
+mod shared_pool_abi;
 #[cfg(feature = "creche-surface")]
 pub(crate) mod workspace;
 
@@ -37,9 +39,9 @@ use protocol::{
 use std::collections::BTreeMap;
 
 struct TourSession {
-    /// Logical resource reservations retained for the lifetime of a Body Play.
+    /// Logical resource reservations retained for the lifetime of a body Play.
     _resource_admissions: Option<conduit_core::ResourceAdmissionOwner>,
-    cancellation: Option<conduit_kernel::scheduler::HostOperationCancellation>,
+    cancellation: Option<conduit_kernel::scheduler::HostCallCancellation>,
     scheduler: engine::TourScheduler,
     pending: Vec<engine::PendingHostEffect>,
     host_outcomes: host_outcomes::HostOutcomes,
@@ -240,7 +242,7 @@ impl TourSession {
             TourProgress::Effect(_)
             | TourProgress::Waiting { .. }
             | TourProgress::Cancellation { .. } => {
-                Err("Tour Play requested another Host effect before completion".into())
+                Err("Tour Play requested another host effect before completion".into())
             }
         }
     }

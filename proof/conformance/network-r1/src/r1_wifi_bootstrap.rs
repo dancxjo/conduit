@@ -48,6 +48,7 @@ pub fn r1_std_bootstrap_advertisement() -> HostAdvertisement {
         boot_id: conduit_core::BootId::from(R1_STD_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-r1-bootstrap"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![network_credentials_offer(
             CapabilityId::from(R1_CREDENTIALS_CAPABILITY_ID),
@@ -65,6 +66,7 @@ pub fn r1_pico_network_advertisement() -> HostAdvertisement {
         boot_id: conduit_core::BootId::from(R1_PICO_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rp2040-r1-wifi-station"),
+        bases: vec![],
         resources: vec![wifi_station_resource(R1_WIFI_POOL_ID)],
         capabilities: vec![
             network_join_offer(

@@ -5,8 +5,7 @@ use conduit_ai::{
 };
 use conduit_core::{kind_id, port_id, verify_plan, PlacementId, PlanId};
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, HostOperationBinding, HostOperationId, NodeId,
-    OperationAction, RequestId, ValueRef,
+    BoundedValueRef, FixedHostCallBindings, HostCallBinding, HostCallId, NodeId, ValueRef,
 };
 use model_effect_common::{proposal, reseal, wired_plan, EFFECT_KIND};
 
@@ -41,12 +40,12 @@ fn exact_plan_wiring_derives_authority_and_reaches_kernel_admission() {
         512,
     )
     .unwrap();
-    let mut bindings = FixedHostOperationBindings::<1>::new(1);
+    let mut bindings = FixedHostCallBindings::<1>::new(1);
     bindings
         .install(
             NodeId(0),
-            HostOperationBinding {
-                operation: HostOperationId(0),
+            HostCallBinding {
+                call: HostCallId(0),
                 maximum_input_bytes: 512,
                 maximum_output_bytes: 512,
             },
@@ -54,14 +53,7 @@ fn exact_plan_wiring_derives_authority_and_reaches_kernel_admission() {
         .unwrap();
     bindings.seal().unwrap();
     assert!(bindings
-        .admit(
-            NodeId(0),
-            OperationAction::RequestHostOperation {
-                request: RequestId(1),
-                operation: HostOperationId(0),
-                input,
-            },
-        )
+        .admit_request(NodeId(0), HostCallId(0), input,)
         .is_ok());
 }
 

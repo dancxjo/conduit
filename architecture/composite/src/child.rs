@@ -1,12 +1,11 @@
 use crate::boundary::augment_boundary_cords;
-use crate::{BoxedKernelOperation, KernelOperationRegistry};
+use crate::{BoxedKernelBack, KernelOperationRegistry};
 use conduit_core::{PlanFragment, PortDirection, PortId as SemanticPortId, ValuePayload};
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostOperationRequest, OperationDriver, RemoteIngressOutcome,
-    SchedulerStatus,
+    CordSpec, FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
-    CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes, HostedSignLog, HostedValueStore,
+    CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
     KernelEvent, NodeId, PortId, RemoteEndpointId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{LoweredPlanFragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
@@ -18,12 +17,12 @@ const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const MAX_QUEUE_SLOTS: usize = 256;
 const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
 const ROUTE_TARGETS: usize = MAX_CORDS;
-const HOST_OPERATIONS_PER_NODE: u16 = 8;
-const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_OPERATIONS_PER_NODE as usize;
+const HOST_CALLS_PER_NODE: u16 = 8;
+const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_CALLS_PER_NODE as usize;
 const PENDING_REQUESTS: usize = MAX_NODES;
 
 type ChildScheduler = FixedScheduler<
-    OperationDriver<BoxedKernelOperation, PORTS>,
+    BoxedKernelBack,
     HostedValueStore,
     HostedSignLog,
     MAX_NODES,
@@ -69,7 +68,7 @@ impl ChildKernel {
             || active_cords == 0
             || active_cords > MAX_CORDS
             || usize::from(lowered.cord_value_slots) > MAX_QUEUE_SLOTS
-            || lowered.host_operations.len() > HOST_BINDING_SLOTS
+            || lowered.host_calls.len() > HOST_BINDING_SLOTS
         {
             return Err("child exceeds the admitted kernel composite profile".into());
         }
@@ -118,29 +117,25 @@ impl ChildKernel {
             value_bytes.max(1),
         )
         .map_err(debug)?;
-        let mut operations = Vec::with_capacity(MAX_NODES);
+        let mut backs = Vec::with_capacity(MAX_NODES);
         for placement in &fragment.placements {
             let factory = registry
                 .get(&placement.implementation_id)
                 .ok_or_else(|| "installed implementation disappeared".to_string())?;
-            operations.push(BoxedKernelOperation::new(
+            backs.push(BoxedKernelBack::new(
                 factory.prepare(placement, &mut values)?,
             ));
         }
-        while operations.len() < MAX_NODES {
-            operations.push(BoxedKernelOperation::inactive());
+        while backs.len() < MAX_NODES {
+            backs.push(BoxedKernelBack::inactive());
         }
-        let drivers = operations
-            .into_iter()
-            .map(OperationDriver::new)
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(debug)?
+        let backs = backs
             .try_into()
-            .map_err(|_| "kernel composite driver capacity changed".to_string())?;
+            .map_err(|_| "kernel composite Back capacity changed".to_string())?;
 
         let inactive_node = conduit_kernel::scheduler::NodeSpec {
             input_cords: [None; PORTS],
-            maximum_step_work: 1,
+            maximum_step_fuel: 1,
         };
         let mut nodes = [inactive_node; MAX_NODES];
         nodes[..active_nodes].copy_from_slice(&lowered.node_specs);
@@ -169,14 +164,13 @@ impl ChildKernel {
                 .map_err(debug)?;
         }
         routes.seal().map_err(debug)?;
-        let mut host_operations =
-            FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(HOST_OPERATIONS_PER_NODE);
-        for operation in &lowered.host_operations {
-            host_operations
+        let mut host_calls = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(HOST_CALLS_PER_NODE);
+        for operation in &lowered.host_calls {
+            host_calls
                 .install(operation.node, operation.binding)
                 .map_err(debug)?;
         }
-        host_operations.seal().map_err(debug)?;
+        host_calls.seal().map_err(debug)?;
         let sign_bytes = u32::from(sign_items)
             .checked_mul(u32::try_from(core::mem::size_of::<KernelEvent>()).map_err(debug)?)
             .ok_or_else(|| "kernel composite Sign byte bound overflow".to_string())?;
@@ -190,14 +184,14 @@ impl ChildKernel {
             .ok_or_else(|| "kernel composite remote Sign byte bound overflow".to_string())?,
         )
         .map_err(debug)?;
-        let scheduler = ChildScheduler::new_with_active_counts_and_host_operations(
+        let scheduler = ChildScheduler::new_with_active_counts_and_host_calls(
             active_nodes,
             active_cords,
             nodes,
             cords,
             routes,
-            host_operations,
-            drivers,
+            host_calls,
+            backs,
             values,
             signs,
         )
@@ -221,18 +215,18 @@ impl ChildKernel {
         self.status
     }
 
-    pub(crate) fn next_host_request(&mut self) -> Option<HostOperationRequest> {
+    pub(crate) fn next_host_request(&mut self) -> Option<HostCallRequest> {
         self.scheduler.next_host_request()
     }
 
-    pub(crate) fn complete_host_operation(
+    pub(crate) fn complete_host_call(
         &mut self,
         node: NodeId,
         request: conduit_kernel::RequestId,
-        outcome: conduit_kernel::HostOperationOutcome,
+        outcome: conduit_kernel::HostCallOutcome,
     ) -> Result<(), String> {
         self.scheduler
-            .complete_host_operation(node, request, outcome)
+            .complete_host_call(node, request, outcome)
             .map_err(debug)
     }
 

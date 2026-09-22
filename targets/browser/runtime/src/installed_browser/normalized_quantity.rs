@@ -1,15 +1,19 @@
 //! Exact selected Quantity normalization through an admitted browser operation.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
+use conduit_core::{
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostCallRequirement, ImplementationId,
+};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
-    OperationAction, OperationInput, PortId, RequestId,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 use conduit_semantic_catalog::{NormalizedQuantityRefusal, PreparedNormalizedQuantity};
 use std::sync::OnceLock;
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/normalized-quantity-scalar@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/normalized-quantity-scalar@1";
 const IMPLEMENTATION: &str = "browser/kernel-normalized-quantity-scalar@1";
 static CONVERTER: OnceLock<PreparedNormalizedQuantity> = OnceLock::new();
 
@@ -20,40 +24,40 @@ pub(super) static NORMALIZE: BrowserInstallation = BrowserInstallation {
     perform: None,
 };
 
-fn offer() -> conduit_core::CapabilityOffer {
-    let contract = conduit_semantic_catalog::normalized_quantity_contract();
+fn offer() -> CapabilityOffer {
+    let contract = conduit_semantic_catalog::normalized_quantity_semantic_contract();
     let target_kind = Some(contract.kind_id.clone());
-    conduit_semantic_catalog::realization_offer(
+    BackOfferBuilder::new(
         contract,
-        conduit_semantic_catalog::NORMALIZED_QUANTITY_REVISION,
-        conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: IMPLEMENTATION,
-            execution_profile: IMPLEMENTATION,
-            implementation: IMPLEMENTATION,
-            artifact: "conduit-browser-runtime/normalized-quantity-scalar@1",
+        Back {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
+            execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
+            implementation_id: ImplementationId::from(IMPLEMENTATION),
+            artifact_id: ArtifactId::from("conduit-browser-runtime/normalized-quantity-scalar@1"),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HOST_CALL.into(),
+                target_kind,
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
+                maximum_output_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: HOST_OPERATION.into(),
-            target_kind,
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
-            maximum_output_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
-        }],
-        Vec::new(),
-        Vec::new(),
     )
+    .build()
 }
 
 fn prepare(
     placement: &conduit_core::PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     if !placement.configuration.is_empty() {
         return Err("normalized Quantity conversion accepts no configuration".into());
     }
     CONVERTER.get_or_init(PreparedNormalizedQuantity::new);
-    Ok(BrowserOperation::installed(NormalizeOperation {
+    Ok(BrowserBack::installed_step(NormalizeBack {
         pending: false,
         next_request: 0,
         cancelled: false,
@@ -81,68 +85,69 @@ fn failure(detail: u16) -> Failure {
     }
 }
 
-struct NormalizeOperation {
+struct NormalizeBack {
     pending: bool,
     next_request: u32,
     cancelled: bool,
 }
 
-impl Operation for NormalizeOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending && !self.cancelled => {
+impl<const PORTS: usize> StepBack<PORTS> for NormalizeBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if !self.pending || request.0.checked_add(1) != Some(self.next_request) {
+                return StepOutcome::Fail(failure(11));
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None)
+                    if output.admitted_bytes == 8 && output.value.byte_len == 8 =>
+                {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed normalized Quantity completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready normalized Quantity output");
+                    self.pending = false;
+                    return StepOutcome::Progress;
+                }
+                (HostCallDisposition::Failed, None, Some(reason)) => {
+                    return StepOutcome::Fail(reason)
+                }
+                _ => return StepOutcome::Fail(failure(11)),
+            }
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if !self.pending && !self.cancelled {
                 let Ok(input) = BoundedValueRef::new(
                     value,
                     conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
                 ) else {
-                    return OperationAction::Fail(failure(11));
+                    return StepOutcome::Fail(failure(11));
                 };
                 let request = RequestId(self.next_request);
                 let Some(next_request) = self.next_request.checked_add(1) else {
-                    return OperationAction::Fail(Failure {
+                    return StepOutcome::Fail(Failure {
                         code: FailureCode::IdentityCapacityExhausted,
                         detail: 15,
                     });
                 };
+                io.consume(PortId(0))
+                    .expect("present normalized Quantity input");
+                io.request_host_call(request, HostCallId(0), input)
+                    .expect("normalized Quantity Host Call");
                 self.next_request = next_request;
                 self.pending = true;
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(0),
-                    input,
-                }
+                return StepOutcome::Progress;
             }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending && request.0.checked_add(1) == Some(self.next_request) =>
-            {
-                self.pending = false;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None)
-                        if output.admitted_bytes == 8 && output.value.byte_len == 8 =>
-                    {
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostOperationDisposition::Failed, None, Some(reason)) => {
-                        OperationAction::Fail(reason)
-                    }
-                    _ => OperationAction::Fail(failure(11)),
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.pending => {
-                OperationAction::Complete
-            }
-            _ => OperationAction::Fail(failure(11)),
+            return StepOutcome::Fail(failure(11));
         }
+        if io.input_closed(PortId(0)) && !self.pending {
+            io.consume_closed(PortId(0))
+                .expect("observed normalized Quantity closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -178,21 +183,28 @@ mod tests {
         ] {
             let reason = transform(&bytes).unwrap_err();
             assert_eq!(reason, failure(detail));
-            let mut operation = NormalizeOperation {
+            let mut operation = NormalizeBack {
                 pending: true,
                 next_request: 1,
                 cancelled: false,
             };
-            assert_eq!(
-                operation.resume(OperationInput::HostOperationCompleted {
-                    request: RequestId(0),
-                    outcome: conduit_kernel::HostOperationOutcome {
-                        disposition: HostOperationDisposition::Failed,
+            let mut io = StepIo::test_frame(
+                [None],
+                [false],
+                [Some(8)],
+                Some((
+                    RequestId(0),
+                    conduit_kernel::HostCallOutcome {
+                        disposition: HostCallDisposition::Failed,
                         output: None,
                         failure: Some(reason),
                     },
-                }),
-                OperationAction::Fail(reason)
+                )),
+                4,
+            );
+            assert_eq!(
+                operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+                StepOutcome::Fail(reason)
             );
         }
     }

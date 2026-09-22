@@ -29,7 +29,7 @@ struct TimingProof {
 
 pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if opts.dry_run {
-        println!("check exact local Form; seal timing/resource basis; execute production kernel with deterministic clock; verify refusal and distinct terminal outcomes");
+        println!("check exact local form; seal timing/resource basis; execute production kernel with deterministic clock; verify refusal and distinct terminal outcomes");
         return Ok(());
     }
     let identities = BootIdentities {

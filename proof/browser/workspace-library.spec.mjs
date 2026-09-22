@@ -23,7 +23,7 @@ async function birth(page) {
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
 }
 
-test("five ordinary Forms start together beyond the old aggregate placement ceiling", async ({ page }) => {
+test("six ordinary forms start together beyond the old aggregate placement ceiling", async ({ page }) => {
   await page.goto(entrance.url);
   for (const title of ["Button Across the Room", "Pocket Theremin", "Firefly Choir"]) {
     await page.getByRole("checkbox", { name: title, exact: true }).check();
@@ -32,7 +32,7 @@ test("five ordinary Forms start together beyond the old aggregate placement ceil
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const state = await current(page);
-  expect(state.initial_forms).toHaveLength(5);
+  expect(state.initial_forms).toHaveLength(6);
   expect(state.refusal).toBeUndefined();
 });
 
@@ -52,14 +52,14 @@ test("repeated Wake and Lull compacts retained evidence instead of exhausting li
   expect((await current(page)).body_id).toBe(identity);
 });
 
-test("Use installs into the same Body; repeated Use preserves Play and removal survives reload", async ({ page }, testInfo) => {
+test("Use installs into the same body; repeated Use preserves Play and removal survives reload", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 1000 });
   await birth(page);
   const initial = await current(page);
   await openLibrary(page);
-  await expect(card(page, "Memory Lantern")).toContainText("In your Body");
+  await expect(card(page, "Memory Lantern")).toContainText("In your body");
   await page.screenshot({ path: testInfo.outputPath("workspace-form-library.png"), fullPage: true });
-  await page.getByRole("textbox", { name: "Find a Form", exact: true }).fill("desk");
+  await page.getByRole("textbox", { name: "Find a form", exact: true }).fill("desk");
   await card(page, "Desk Telegraph").getByRole("button", { name: "Use", exact: true }).click();
   await expect(page.locator("#surface-title")).toHaveText("Desk Telegraph");
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
@@ -68,10 +68,10 @@ test("Use installs into the same Body; repeated Use preserves Play and removal s
   expect(installed.here_part_id).toBe(initial.here_part_id);
   expect(installed.workload_revision).toBe(1);
   expect(installed.active_play_id).not.toBe(initial.active_play_id);
-  expect(installed.initial_forms).toHaveLength(2);
+  expect(installed.initial_forms).toHaveLength(3);
   const tutorial = page.locator('[data-body-tutorial]');
-  await expect(tutorial).toContainText("Invite another Host");
-  await tutorial.getByRole("button", { name: "Invite another Host", exact: true }).click();
+  await expect(tutorial).toContainText("Invite another host");
+  await tutorial.getByRole("button", { name: "Invite another host", exact: true }).click();
   await expect(page.getByRole("heading", { name: "parts and hosts", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "back to the surface", exact: true }).click();
   await page.locator("#form-input").focus();
@@ -88,7 +88,7 @@ test("Use installs into the same Body; repeated Use preserves Play and removal s
   await page.screenshot({ path: testInfo.outputPath("workspace-installed-form.png"), fullPage: true });
   await openLibrary(page);
   await card(page, "Desk Telegraph").getByRole("button", { name: "Remove", exact: true }).click();
-  await expect(card(page, "Desk Telegraph")).toContainText("Not in your Body");
+  await expect(card(page, "Desk Telegraph")).toContainText("Not in your body");
   await page.getByRole("button", { name: "back to the surface", exact: true }).click();
   await expect(page.locator("#surface-title")).toHaveText("Memory Lantern");
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
@@ -107,9 +107,9 @@ test("Use installs into the same Body; repeated Use preserves Play and removal s
 test("the reviewed shelf reveals conversation Forms without pretending this browser can run them", async ({ page }) => {
   await birth(page);
   await openLibrary(page);
-  await page.getByRole("textbox", { name: "Find a Form", exact: true }).fill("conversation");
+  await page.getByRole("textbox", { name: "Find a form", exact: true }).fill("conversation");
   await expect(card(page, "Body Chat")).toContainText("Needs capability");
-  await expect(card(page, "Body Chat")).toContainText("current Body supervisor and an admitted model realization");
+  await expect(card(page, "Body Chat")).toContainText("current body supervisor and an admitted model realization");
   await expect(card(page, "Live Conversation")).toContainText("Needs capability");
   await expect(card(page, "Live Conversation")).toContainText("live audio acquisition, streaming model generation, synthesis, and presentation");
   await expect(card(page, "Live Conversation")).toContainText("Text fallback: Body Chat");
@@ -120,7 +120,7 @@ test("the reviewed shelf reveals conversation Forms without pretending this brow
   await expect(page.getByText("4 Forms", { exact: true })).toBeVisible();
 });
 
-test("window focus loss retires the pending Play and lets the same Body wake again", async ({ page }) => {
+test("window focus loss retires the pending Play and lets the same body wake again", async ({ page }) => {
   await birth(page);
   const before = await current(page);
   await page.evaluate(() => window.dispatchEvent(new Event("blur")));
@@ -141,7 +141,9 @@ test("removing the final Form retains an empty Body that can acquire Forms again
   const initial = await current(page);
   await openLibrary(page);
   await card(page, "Memory Lantern").getByRole("button", { name: "Remove", exact: true }).click();
-  await expect(card(page, "Memory Lantern")).toContainText("Not in your Body");
+  await expect(card(page, "Memory Lantern")).toContainText("Not in your body");
+  await card(page, "Tutorial").getByRole("button", { name: "Remove", exact: true }).click();
+  await expect(card(page, "Tutorial")).toContainText("Not in your body");
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
   expect((await current(page)).initial_forms).toHaveLength(0);
   expect((await current(page)).active_play_id).toBeUndefined();
@@ -214,7 +216,7 @@ function handoffUrl(form) {
   return url.href;
 }
 
-test('a Gallery handoff installs in the retained Body and cannot reinstall a later removed Form on reload', async ({ page }) => {
+test('a Gallery handoff installs in the retained body and cannot reinstall a later removed Form on reload', async ({ page }) => {
   await birth(page);
   const initial = await current(page);
   const form = await reviewedForm(page, 'desk_telegraph');
@@ -223,20 +225,20 @@ test('a Gallery handoff installs in the retained Body and cannot reinstall a lat
   await expect(page.locator('#surface-title')).toHaveText('Desk Telegraph');
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   expect((await current(page)).body_id).toBe(initial.body_id);
-  expect((await current(page)).initial_forms).toHaveLength(2);
+  expect((await current(page)).initial_forms).toHaveLength(3);
   expect(new URL(page.url()).search).toBe('');
   await openLibrary(page);
   await card(page, 'Desk Telegraph').getByRole('button', { name: 'Remove', exact: true }).click();
-  await expect(card(page, 'Desk Telegraph')).toContainText('Not in your Body');
+  await expect(card(page, 'Desk Telegraph')).toContainText('Not in your body');
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   expect((await current(page)).initial_forms).toEqual(initial.initial_forms);
 });
 
-test('a new Gallery arrival selects the Form in the actual Crèche; a stale handoff leaves the Body usable', async ({ page }) => {
+test('a new Gallery arrival selects the form in the actual Crèche; a stale handoff leaves the body usable', async ({ page }) => {
   await page.goto(entrance.url);
-  await expect(page.getByRole('heading', { name: 'A Body of your own' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'A body of your own' })).toBeVisible();
   const form = await reviewedForm(page, 'desk_telegraph');
   await page.goto(handoffUrl(form));
   await expect(page.getByRole('checkbox', { name: 'Desk Telegraph', exact: true })).toBeChecked();
@@ -255,10 +257,11 @@ test('a new Gallery arrival selects the Form in the actual Crèche; a stale hand
 });
 
 for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text'], ['Pocket Theremin', 'pointer'], ['Secret Knock', 'button']]) {
-  test(`Gallery Form ${title} is resident and repeatedly usable in the Body`, async ({ page }, testInfo) => {
+  test(`Gallery Form ${title} is resident and repeatedly usable in the body`, async ({ page }, testInfo) => {
     await page.goto(entrance.url);
     await page.getByRole('checkbox', { name: 'Memory Lantern', exact: true }).uncheck();
     await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
+    await page.getByRole('checkbox', { name: 'Tutorial', exact: true }).uncheck();
     await page.getByRole('checkbox', { name: title, exact: true }).check();
     await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
     await page.getByRole('button', { name: 'wake body', exact: true }).click();
@@ -303,7 +306,7 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
 }
 
 
-test('pointer and text Forms share one Play and receive only their foreground input', async ({ page }) => {
+test('pointer and text Forms share one play and receive only their foreground input', async ({ page }) => {
   await birth(page);
   await openLibrary(page);
   await card(page, 'Pocket Theremin').getByRole('button', { name: 'Use', exact: true }).click();

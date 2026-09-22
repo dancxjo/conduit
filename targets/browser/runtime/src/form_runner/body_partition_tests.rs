@@ -108,7 +108,7 @@ fn run_distinct_plans_in_one_kernel() {
         assert_eq!(part.identity.plan_id, fragment.plan_id);
         assert_eq!(part.identity.fragment_id, fragment.fragment_id);
     }
-    // Unshifted independent numeric tables must not overwrite another Form.
+    // Unshifted independent numeric tables must not overwrite another form.
     let first = lower_plan_fragment(&fragments[0]).unwrap();
     let second = lower_plan_fragment(&fragments[1]).unwrap();
     assert!(preparation::prepare_partition_scheduler(&[(&fragments[1], &first)]).is_err());
@@ -120,7 +120,7 @@ fn run_distinct_plans_in_one_kernel() {
     .is_err());
 }
 
-// Internal session plumbing fixture, not a Body admission/start proof.
+// Internal session plumbing fixture, not a body admission/start proof.
 fn exercise_session_projection(
     fragments: &[PlanFragment],
     parts: &[(&PlanFragment, &LoweredPlanFragment)],

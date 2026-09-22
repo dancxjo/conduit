@@ -1,6 +1,6 @@
 //! Canonical discovery metadata for the supported user-facing Kind nucleus.
 //!
-//! Categories, tags, and icons help people find a Kind. They are deliberately
+//! Categories, tags, and icons help people find a kind. They are deliberately
 //! absent from Kind contracts and therefore cannot alter semantic identity.
 
 use conduit_alife::{LENIA_STEP_KIND, ORBIUM_SEED_KIND, SCALAR_FIELD_PRESENTATION_KIND};

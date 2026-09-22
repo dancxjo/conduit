@@ -553,13 +553,13 @@ pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[
     ),
     Step::new(
         "check.kernel.sink-no-output",
-        "test admitted_sink_host_operation_may_have_no_output_payload",
+        "test admitted_sink_host_call_may_have_no_output_payload",
         "cargo",
         &[
             "test",
             "-p",
             "conduit-kernel",
-            "admitted_sink_host_operation_may_have_no_output_payload",
+            "admitted_sink_host_call_may_have_no_output_payload",
         ],
     ),
     Step::typed(
@@ -668,7 +668,7 @@ pub const FORM_S3_STEPS: &[Step] = &[
     Step::new("check.form.composite-front-mapping-mutation", "test composite_definition_rejects_every_front_mapping_mutation", "cargo", &["test", "-p", "conduit-composite", "composite_definition_rejects_every_front_mapping_mutation"]),
     Step::new("check.form.composite-terminal-failure", "test named_front_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks", "cargo", &["test", "-p", "conduit-composite", "named_front_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks"]),
     Step::new("check.form.execution-identity-chain", "test execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct", "cargo", &["test", "-p", "conduit-core", "execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct"]),
-    Step::new("check.form.observatory-current-plan", "test projects exact current Plan truth", "cargo", &["test", "-p", "conduit-observatory", "projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof"]),
+    Step::new("check.form.observatory-current-plan", "test projects exact current plan truth", "cargo", &["test", "-p", "conduit-observatory", "projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof"]),
 ];
 
 pub const BROWSER_CHECK_STEPS: &[Step] = &[
@@ -679,10 +679,10 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         &["test", "-p", "conduit-browser-runtime"],
     ),
     Step::new(
-        "check.browser.host-operations",
-        "Prove finite generic browser Host operations and negative outcomes",
+        "check.browser.host-calls",
+        "Prove finite generic browser Host Calls and negative outcomes",
         "node",
-        &["--test", "proof/browser/browser-host-operations.test.mjs"],
+        &["--test", "proof/browser/browser-host-calls.test.mjs"],
     ),
     Step::new(
         "check.browser.creche-rendezvous",

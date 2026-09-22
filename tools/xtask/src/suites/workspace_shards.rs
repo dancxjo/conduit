@@ -7,7 +7,7 @@ macro_rules! package_test_shard {
             $id,
             $description,
             "cargo",
-            &["test", $("-p", $package,)+ $($trailing,)*],
+            &["test", "--no-fail-fast", $("-p", $package,)+ $($trailing,)*],
         );
     };
 }
@@ -26,6 +26,7 @@ package_test_shard!(
         "conduit-host-orange-pi",
         "conduit-host-raspberry-pi",
         "conduit-host-rp2040",
+        "conduit-emergency-keyword-spotter",
         "conduit-linear-framebuffer-fabrication",
         "conduit-rp2040-pio-audio-extension",
         "conduit-workspace-fabrication",
@@ -34,6 +35,7 @@ package_test_shard!(
         "conduit-alife",
         "conduit-audio",
         "conduit-data",
+        "conduit-finance",
         "conduit-human",
         "conduit-core",
         "conduit-create-oi",
@@ -79,6 +81,7 @@ package_test_shard!(
         "conduit-std-host",
         "conduit-std-offers",
         "conduit-browser-runtime",
+        "conduit-little-seismograph-fixture",
         "conduitos",
         "patchbay-hosted",
         "patchbay-model",
@@ -265,7 +268,12 @@ mod tests {
     fn every_test_shard_names_packages_with_an_explicit_package_flag() {
         for step in [&FOUNDATION_TEST_STEP, &HOST_TEST_STEP, &PRODUCT_TEST_STEP] {
             assert_eq!(step.args.first(), Some(&"test"), "{} command", step.id);
-            let options = &step.args[1..];
+            assert_eq!(
+                step.args[1], "--no-fail-fast",
+                "{} failure coverage",
+                step.id
+            );
+            let options = &step.args[2..];
             let package_end = options
                 .iter()
                 .position(|argument| *argument == "--features")

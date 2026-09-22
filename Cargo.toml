@@ -20,6 +20,7 @@ members = [
 	"semantics/catalog",
 	"semantics/chat",
 	"semantics/data",
+	"semantics/finance",
 	"semantics/human",
 	"semantics/language",
 	"semantics/net",
@@ -43,6 +44,7 @@ members = [
 	"mechanisms/devices/mpu6050",
 	"mechanisms/devices/ssd1306",
 	"mechanisms/implementations/linear-framebuffer-fabrication",
+	"mechanisms/implementations/emergency-keyword-spotter",
 	"mechanisms/implementations/synth",
 	"mechanisms/protocols/bluetooth",
 	"mechanisms/protocols/midi",
@@ -63,8 +65,9 @@ members = [
 	"products/patchbay/control",
 	"products/patchbay/native",
 	"bodies/pete",
+	"forms/little-seismograph/fixture",
 
-	# Exact Host, machine, board, and target-family realizations.
+	# Exact host, machine, board, and target-family realizations.
 	"targets/avr/fabrication",
 	"targets/browser/host",
 	"targets/browser/fabrication",

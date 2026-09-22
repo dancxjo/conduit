@@ -130,8 +130,8 @@ fn verify_membership_receipt(
         .and_then(|part| part.get("boot_id"))
         .and_then(serde_json::Value::as_str)
         .ok_or("membership receipt has no physical Pico Boot")?;
-    // Production R1 seals the Plan against its planned Pico slot, then binds the
-    // authenticated physical Boot at session start without mutating that Plan.
+    // Production R1 seals the plan against its planned Pico slot, then binds the
+    // authenticated physical Boot at session start without mutating that plan.
     let exact_plan = conduit_r1_network_conformance::exact_r1_control_plan(
         conduit_core::BootId::from(conduit_r1_network_conformance::R1_PICO_BOOT_ID),
         conduit_r1_network_conformance::R1SignalRouteSet::WebSocketOnly,

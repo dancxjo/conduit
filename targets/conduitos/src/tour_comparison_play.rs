@@ -76,7 +76,7 @@ where
         idle_entries: idle.idle_count(),
         serial_presentations: serial.presentation_count(),
         clock_monotonic: clock.now() >= started,
-        pending_host_operations: 0,
+        pending_host_calls: 0,
         overlap_witness: false,
         timer_pending_during_text_progress: false,
         physical_parallelism: false,
@@ -131,10 +131,10 @@ fn run_one<S: SerialBase, D: IdleBase>(
         match kernel.step().map_err(|_| MachineRunError::KernelFailure)? {
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Idle => {
-                if kernel.pending_host_operations() == 0 {
+                if kernel.pending_host_calls() == 0 {
                     return Err(MachineRunError::FalseIdle);
                 }
-                // Comparison host operations are local and synchronous; let
+                // Comparison Host Calls are local and synchronous; let
                 // the next ownership-loop iteration service them directly.
                 continue;
             }
@@ -202,7 +202,7 @@ fn transform(
                 .map_err(|_| MachineRunError::KernelFailure)
         }
         ComparisonNodeKind::Literal | ComparisonNodeKind::Indicator => {
-            Err(MachineRunError::UnexpectedHostOperation)
+            Err(MachineRunError::UnexpectedHostCall)
         }
     }
 }

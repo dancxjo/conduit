@@ -98,7 +98,7 @@ export function validateLoaderEvidence(evidence, profile, binding) {
   if (evidence.architecture !== profile.architecture) refuse("WrongArchitecture", "local loader receipt names a different architecture");
   if (evidence.image_content_digest !== binding.prepared?.image_content_digest
     || evidence.artifact_sha256 !== binding.nativeSpore?.content_digest
-    || evidence.artifact_bytes !== binding.nativeSpore?.bytes?.byteLength) refuse("StaleArtifact", "local loader receipt names a different Body-bound ISO identity");
+    || evidence.artifact_bytes !== binding.nativeSpore?.bytes?.byteLength) refuse("StaleArtifact", "local loader receipt names a different body-bound ISO identity");
   if (!profile.supportedCarriers.includes(evidence.carrier) || evidence.explicit_authority !== true || evidence.load_completed !== true) {
     refuse("LoaderEvidenceInvalid", "local loader receipt omitted a supported carrier, explicit authority, or completed load truth");
   }

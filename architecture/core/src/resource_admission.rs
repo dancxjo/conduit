@@ -2,7 +2,7 @@
 //!
 //! Planning can predict that a realization fits. This module represents the
 //! later resource-owner decision: all exact bindings are reserved against one
-//! current Host/Boot/offer generation or none are. Physical lane assignment is
+//! current host/Boot/offer generation or none are. Physical lane assignment is
 //! retained only as active-Play truth and never enters Plan identity.
 
 use alloc::{collections::BTreeSet, vec::Vec};
@@ -141,7 +141,7 @@ impl ResourceAdmissionOwner {
         {
             return Err(ResourceAdmissionRefusal::CapacityExceeded);
         }
-        // Staging is bounded pre-Play work. Commit only after every request
+        // Staging is bounded pre-play work. Commit only after every request
         // has passed the existing owner checks against cumulative demand.
         let mut candidate = self.clone();
         for request in requests {

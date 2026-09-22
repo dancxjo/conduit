@@ -153,7 +153,7 @@ test("admitted browser that stops renewing becomes unavailable only at lease exp
   await expect.poll(() => page.evaluate(() => globalThis.__browserPresence.state())).toBe("offline");
 });
 
-test("same running browser returns after session loss with exact Host and Boot", async ({ page }) => {
+test("same running browser returns after session loss with exact host and Boot", async ({ page }) => {
   const probe = await startPresenceProbe(["--reconnect"]);
   await page.goto(`/proof/browser/browser-presence.test.html?body=${encodeURIComponent(probe.url)}`);
   await expect.poll(() => page.evaluate(() => globalThis.__browserPresence?.presenceState())).toBe("available");

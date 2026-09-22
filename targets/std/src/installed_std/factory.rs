@@ -1,9 +1,9 @@
 //! Preparation and finite-budget contract for one installed operation family.
 
-use super::operation::InstalledOperation;
+use super::back::InstalledBack;
 use conduit_core::PlannedGear;
 
-pub(super) struct OperationBudget {
+pub(super) struct BackBudget {
     pub(super) value_items: u16,
     pub(super) value_bytes: u32,
     pub(super) host_requests: usize,
@@ -11,11 +11,9 @@ pub(super) struct OperationBudget {
     pub(super) maximum_value_bytes: u32,
 }
 
-pub(super) struct InstalledFactory {
+pub(super) struct BackFactory {
     pub(super) implementation_id: &'static str,
-    pub(super) budget: fn(&PlannedGear) -> Result<OperationBudget, String>,
-    pub(super) prepare: fn(
-        &PlannedGear,
-        &mut conduit_kernel::HostedValueStore,
-    ) -> Result<InstalledOperation, String>,
+    pub(super) budget: fn(&PlannedGear) -> Result<BackBudget, String>,
+    pub(super) prepare:
+        fn(&PlannedGear, &mut conduit_kernel::HostedValueStore) -> Result<InstalledBack, String>,
 }

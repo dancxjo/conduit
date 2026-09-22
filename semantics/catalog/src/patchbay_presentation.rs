@@ -1,10 +1,9 @@
 //! Canonical Patchbay presentation waist and first subject-specific Backs.
 
-use super::{StandardKindContract, TerminalBehavior};
+use super::{KindTerminalBehavior, StandardKindContract};
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal,
+    kind_id, port_id, CapabilityLimits, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const PATCHBAY_PRESENTATION_KIND: &str = "presentation/patchbay";
@@ -13,7 +12,7 @@ pub const PATCHBAY_PORT_KIND: &str = "patchbay/port";
 pub const PATCHBAY_CORD_KIND: &str = "patchbay/cord";
 pub const PATCHBAY_PRESENTATION_REVISION: &str = "conduit.patchbay/presentation@1";
 pub const PATCHBAY_PRESENTATION_INPUT: &str = "subject";
-pub const PATCHBAY_PRESENTATION_VALUE_KIND: &str = "value/text@1";
+pub const PATCHBAY_PRESENTATION_VALUE_KIND: &str = "value/text";
 pub const MAX_PATCHBAY_PRESENTATION_BYTES: u32 = 1_024;
 pub const PATCHBAY_ROOT_BACK_SOURCE: &str = "form presentation/patchbay (\n > subject: Text\n) {\n front: patchbay/gear-front\n port: patchbay/port\n cord: patchbay/cord\n subject > front.subject\n subject > port.subject\n subject > cord.subject\n}\n";
 pub const PATCHBAY_GEAR_FACE_BACK_SOURCE: &str = "form patchbay/gear-front (\n > subject: Text\n) {\n text: presentation/text\n viewport: layout/viewport(width = 320, height = 200, children = 3, child-width = 40, child-height = 30)\n inset: layout/inset(inset = 8)\n column: layout/column(gap = 3)\n icon: presentation/icon(icon = \"type\", accessibility-name = \"Patchbay\")\n frame: presentation/frame(role = \"panel\", accessibility-name = \"Gear Front\")\n rect: graphics/rect(style = \"stroke\")\n resolved-text: graphics/text(text = \"r\")\n resolved-icon: graphics/icon(icon = \"type\")\n manifest: presentation/graphics\n subject > text.text\n viewport > inset > column\n icon > frame > rect > resolved-text > resolved-icon > manifest.scene\n}\n";
@@ -57,13 +56,13 @@ fn contract(kind: &str, name: &str, summary: &str) -> StandardKindContract {
             temporal: PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 4,
             max_queue_bytes: MAX_PATCHBAY_PRESENTATION_BYTES,
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: kind == PATCHBAY_PRESENTATION_KIND,
         pico_manifestation_honest: false,
@@ -76,20 +75,14 @@ pub fn install_patchbay_presentation_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::KindSignature;
     for contract in patchbay_presentation_contracts() {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
             startup_parameters: Vec::new(),
         })?;
         profile
-            .insert(KindDefinition {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(PATCHBAY_PRESENTATION_REVISION),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: Vec::new(),
-            })
+            .insert_kind(contract.into_semantic_contract(PATCHBAY_PRESENTATION_REVISION))
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -113,7 +106,7 @@ pub fn install_patchbay_presentation_backs(
         backs
             .insert(
                 profile
-                    .get(&kind.into())
+                    .canonical_kind(&kind.into())
                     .ok_or_else(|| alloc::format!("missing Kind {kind}"))?,
                 &document,
                 kind,
@@ -130,7 +123,7 @@ mod tests {
     #[test]
     fn one_canonical_family_carries_subject_text_not_widget_or_renderer_types() {
         for contract in patchbay_presentation_contracts() {
-            assert_eq!(contract.inputs[0].value_kind.as_str(), "value/text@1");
+            assert_eq!(contract.inputs[0].value_kind.as_str(), "value/text");
             let rendered = alloc::format!("{contract:?}").to_ascii_lowercase();
             for forbidden in ["widget", "dom", "css", "framebuffer", "socket"] {
                 assert!(!rendered.contains(forbidden));

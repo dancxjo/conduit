@@ -1,6 +1,6 @@
 //! Optional browser snapshot operations; residence and authority come from Plan bindings.
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use crate::resource_snapshot::*;
 use conduit_core::*;
 use conduit_kernel::HostedValueStore;
@@ -50,7 +50,7 @@ fn base_offer(publish: bool) -> CapabilityOffer {
             implementation,
             artifact: "conduit-browser-runtime/resource-json@1",
         },
-        vec![HostOperationRequirement {
+        vec![HostCallRequirement {
             contract_id: operation.into(),
             target_kind: Some(kind.clone()),
             maximum_in_flight: 1,
@@ -60,7 +60,7 @@ fn base_offer(publish: bool) -> CapabilityOffer {
         Vec::new(),
         vec![AuthorityRequirement {
             contract_id: AUTHORITY_CONTRACT.into(),
-            host_operation_contract_id: operation.into(),
+            host_call_contract_id: operation.into(),
             subject_kind: kind,
         }],
     );
@@ -68,7 +68,7 @@ fn base_offer(publish: bool) -> CapabilityOffer {
     offer
 }
 
-/// Select one exact local durable generation into the Host's planning surface.
+/// Select one exact local durable generation into the host's planning surface.
 /// This does not grant authority; callers must supply the separately admitted grant.
 pub fn advertisement(
     host: HostId,
@@ -134,10 +134,10 @@ pub(crate) fn reference(placement: &PlannedGear) -> Result<BoundedResourceRef, S
     }
     Ok(reference)
 }
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let publish = placement.implementation_id.as_str() == WRITE;
     validate_placement(placement, &base_offer(publish))?;
     PreparedSnapshotRecord::prepare(placement, &reference(placement)?)
         .map_err(|error| format!("{error:?}"))?;
-    Ok(BrowserOperation::unary(if publish { 4096 } else { 512 }, 1))
+    Ok(BrowserBack::unary(if publish { 4096 } else { 512 }, 1))
 }

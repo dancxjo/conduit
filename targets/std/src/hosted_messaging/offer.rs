@@ -1,20 +1,16 @@
 //! Exact planned capability, resource, and authority for GitHub delivery.
 
-use conduit_chat::{
-    delivery_request_type, delivery_update_type, notification_event_type, portable_message_type,
-    MESSAGING_DELIVERY_KIND, MESSAGING_MESSAGE_KIND, MESSAGING_REVISION,
-};
+use conduit_chat::{delivery_request_type, messaging_semantic_contracts, MESSAGING_DELIVERY_KIND};
 use conduit_core::{
-    authority_grant, kind_id, port_id, resource_offer, resource_requirement, ArtifactId,
-    AuthorityContractId, AuthorityGrant, AuthorityRequirement, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, HostId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, ResourceOffer, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    authority_grant, kind_id, resource_offer, resource_requirement, ArtifactId,
+    AuthorityContractId, AuthorityGrant, AuthorityRequirement, Back, BackOfferBuilder,
+    CapabilityId, CapabilityOffer, ExecutionProfileId, HostCallContractId, HostCallRequirement,
+    HostId, ImplementationId, ResourceOffer, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const MESSAGING_PROFILE: &str = "std/messaging-deterministic-hosted@1";
 pub const MESSAGING_ARTIFACT: &str = "conduit-std-host/messaging-deterministic@1";
-pub const MESSAGING_HOST_OPERATION: &str = "conduit.host/messaging-deterministic@1";
+pub const MESSAGING_HOST_CALL: &str = "conduit.host/messaging-deterministic@1";
 pub const MESSAGING_DELIVERY_AUTHORITY: &str = "conduit.authority/messaging-deliver@1";
 
 pub const GITHUB_MESSAGING_RESOURCE_CLASS: &str =
@@ -27,70 +23,48 @@ const IMPLEMENTATION: &str = "std/kernel-messaging-github-issue-comment@1";
 const ARTIFACT: &str = "conduit-std-host/messaging-github-issue-comment@1";
 
 pub fn messaging_std_offers() -> Vec<CapabilityOffer> {
-    vec![
-        deterministic_offer(
-            MESSAGING_MESSAGE_KIND,
-            vec![],
-            vec![
-                port("message", &portable_message_type(), PortDirection::Output),
-                port("request", &delivery_request_type(), PortDirection::Output),
-            ],
-        ),
-        deterministic_offer(
-            MESSAGING_DELIVERY_KIND,
-            vec![port(
-                "request",
-                &delivery_request_type(),
-                PortDirection::Input,
-            )],
-            vec![
-                port(
-                    "notification",
-                    &notification_event_type(),
-                    PortDirection::Output,
-                ),
-                port("update", &delivery_update_type(), PortDirection::Output),
-            ],
-        ),
-    ]
+    messaging_semantic_contracts()
+        .into_iter()
+        .map(|contract| {
+            let kind = contract.kind_id.as_str().to_owned();
+            BackOfferBuilder::new(contract, deterministic_realization(&kind)).build()
+        })
+        .collect()
 }
 
 pub fn github_messaging_offer() -> CapabilityOffer {
-    let mut offer = messaging_std_offers()
+    let contract = messaging_semantic_contracts()
         .into_iter()
-        .find(|offer| offer.kind_id.as_str() == MESSAGING_DELIVERY_KIND)
-        .expect("reviewed messaging delivery offer");
-    offer.capability_id = CapabilityId::from("std/messaging-github-issue-comment@1");
-    offer.implementation.execution_profile_id = ExecutionProfileId::from(PROFILE);
-    offer.implementation.implementation_id = ImplementationId::from(IMPLEMENTATION);
-    offer.implementation.artifact_id = ArtifactId::from(ARTIFACT);
-    offer.host_operations[0].contract_id =
-        HostOperationContractId::from(GITHUB_MESSAGING_OPERATION);
-    offer.authority_requirements[0].contract_id = GITHUB_MESSAGING_AUTHORITY.into();
-    offer.authority_requirements[0].host_operation_contract_id =
-        HostOperationContractId::from(GITHUB_MESSAGING_OPERATION);
-    offer.resource_requirements = vec![resource_requirement(GITHUB_MESSAGING_RESOURCE_CLASS, 1)];
-    offer
+        .find(|contract| contract.kind_id.as_str() == MESSAGING_DELIVERY_KIND)
+        .expect("reviewed messaging delivery contract");
+    let operation_target = delivery_request_type()
+        .profile()
+        .expect("reviewed delivery request profile")
+        .value_kind()
+        .clone();
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from("std/messaging-github-issue-comment@1"),
+            execution_profile_id: ExecutionProfileId::from(PROFILE),
+            implementation_id: ImplementationId::from(IMPLEMENTATION),
+            artifact_id: ArtifactId::from(ARTIFACT),
+            host_calls: vec![host_call(
+                GITHUB_MESSAGING_OPERATION,
+                operation_target.clone(),
+            )],
+            resource_requirements: vec![resource_requirement(GITHUB_MESSAGING_RESOURCE_CLASS, 1)],
+            authority_requirements: vec![AuthorityRequirement {
+                contract_id: AuthorityContractId::from(GITHUB_MESSAGING_AUTHORITY),
+                host_call_contract_id: HostCallContractId::from(GITHUB_MESSAGING_OPERATION),
+                subject_kind: operation_target,
+            }],
+        },
+    )
+    .build()
 }
 
-fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -> PortDescriptor {
-    PortDescriptor {
-        port_id: port_id(name),
-        value_kind: value_type
-            .profile()
-            .expect("reviewed messaging profile")
-            .value_kind()
-            .clone(),
-        direction,
-        temporal: PortTemporal::Value,
-    }
-}
-
-fn deterministic_offer(
-    kind: &str,
-    inputs: Vec<PortDescriptor>,
-    outputs: Vec<PortDescriptor>,
-) -> CapabilityOffer {
+fn deterministic_realization(kind: &str) -> Back {
     let operation_target = if kind == MESSAGING_DELIVERY_KIND {
         delivery_request_type()
             .profile()
@@ -100,40 +74,31 @@ fn deterministic_offer(
     } else {
         kind_id(kind)
     };
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
+    Back {
         capability_id: CapabilityId::from(format!("std/{kind}@1")),
-        kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(MESSAGING_REVISION),
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(MESSAGING_PROFILE),
-            implementation_id: ImplementationId::from(format!("std/{kind}@1")),
-            artifact_id: ArtifactId::from(MESSAGING_ARTIFACT),
-        },
-        inputs,
-        outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(MESSAGING_HOST_OPERATION),
-            target_kind: Some(operation_target.clone()),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-            maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
+        execution_profile_id: ExecutionProfileId::from(MESSAGING_PROFILE),
+        implementation_id: ImplementationId::from(format!("std/{kind}@1")),
+        artifact_id: ArtifactId::from(MESSAGING_ARTIFACT),
+        host_calls: vec![host_call(MESSAGING_HOST_CALL, operation_target.clone())],
+        resource_requirements: vec![],
         authority_requirements: (kind == MESSAGING_DELIVERY_KIND)
             .then(|| AuthorityRequirement {
                 contract_id: AuthorityContractId::from(MESSAGING_DELIVERY_AUTHORITY),
-                host_operation_contract_id: HostOperationContractId::from(MESSAGING_HOST_OPERATION),
+                host_call_contract_id: HostCallContractId::from(MESSAGING_HOST_CALL),
                 subject_kind: operation_target,
             })
             .into_iter()
             .collect(),
-        limits: CapabilityLimits {
-            max_active_instances: 4,
-            max_queue_items: 4,
-            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
-        },
+    }
+}
+
+fn host_call(contract: &str, target_kind: conduit_core::KindId) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(contract),
+        target_kind: Some(target_kind),
+        maximum_in_flight: 1,
+        maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
     }
 }
 

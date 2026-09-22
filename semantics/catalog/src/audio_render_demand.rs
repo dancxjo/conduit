@@ -1,12 +1,12 @@
 //! Finite software-cadenced demand for exact PCM render intervals.
 
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_audio::AUDIO_RENDER_DEMAND_INFO_ID;
-use conduit_core::{kind_id, CapabilityLimits, ConfigurationValue, PortDirection};
+use conduit_core::{kind_id, CapabilityLimits, ConfigurationValue, Kind, PortDirection};
 
 pub const AUDIO_RENDER_DEMAND_KIND: &str = "audio/render-demand";
 pub const AUDIO_RENDER_DEMAND_REVISION: &str = "conduit.std/audio-render-demand@1";
@@ -38,7 +38,7 @@ pub fn audio_render_demand_contract() -> StandardKindContract {
             max_queue_bytes: u32::from(AUDIO_RENDER_MAXIMUM_BLOCKS)
                 * conduit_audio::AUDIO_RENDER_DEMAND_ENCODED_LEN as u32,
         },
-        terminal_behavior: TerminalBehavior::CompletesAfterFixedCount {
+        terminal_behavior: KindTerminalBehavior::CompletesAfterFixedCount {
             count: u64::from(AUDIO_RENDER_MAXIMUM_BLOCKS),
         },
         hosted_implementation_required: true,
@@ -48,7 +48,24 @@ pub fn audio_render_demand_contract() -> StandardKindContract {
     }
 }
 
-pub fn audio_render_demand_configuration() -> Vec<StandardConfigurationField> {
+pub fn audio_render_demand_semantic_contract() -> Kind {
+    let contract = audio_render_demand_contract();
+    Kind {
+        startup_parameters: super::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: AUDIO_RENDER_DEMAND_REVISION.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
+        limits: contract.limits,
+    }
+}
+
+pub fn audio_render_demand_configuration() -> Vec<KindConfigurationField> {
     vec![
         exact_u64(
             AUDIO_RENDER_BLOCK_FRAMES_KEY,
@@ -61,11 +78,11 @@ pub fn audio_render_demand_configuration() -> Vec<StandardConfigurationField> {
     ]
 }
 
-fn exact_u64(key: &str, value: u64) -> StandardConfigurationField {
-    StandardConfigurationField {
+fn exact_u64(key: &str, value: u64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::U64(value),
-        rule: StandardConfigurationRule::U64Range {
+        rule: KindConfigurationRule::U64Range {
             minimum: value,
             maximum: value,
         },
@@ -88,7 +105,7 @@ mod tests {
         assert_eq!(contract.configuration, audio_render_demand_configuration());
         assert_eq!(
             contract.terminal_behavior,
-            TerminalBehavior::CompletesAfterFixedCount {
+            KindTerminalBehavior::CompletesAfterFixedCount {
                 count: u64::from(AUDIO_RENDER_MAXIMUM_BLOCKS)
             }
         );

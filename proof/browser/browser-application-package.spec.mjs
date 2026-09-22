@@ -1,11 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { reviewAndBirth, openCrecheStep } from "./creche-test-actions.mjs";
 import { openTourStep, startTour, startStaticProduct } from "./tour-test-server.mjs";
 
 let entrance;
 
 test.beforeEach(async ({}, testInfo) => {
-  const creche = testInfo.title.startsWith("Crèche ") || testInfo.title.startsWith("browser Host reset ");
+  const creche = testInfo.title.startsWith("Crèche compatibility ");
   entrance = creche ? await startStaticProduct("target/creche-product", "/conduit/creche/") : await startTour();
 });
 test.afterEach(() => entrance?.child.kill());
@@ -17,24 +16,6 @@ async function mutatePackage(page, mutate) {
     mutate(manifest);
     await route.fulfill({ response, contentType: "application/json", body: JSON.stringify(manifest) });
   }, { times: 1 });
-}
-
-async function deleteStoredApplicationRecord(page, applicationIdentity, version, key) {
-  await page.evaluate(async ({ applicationIdentity, version, key }) => {
-    const request = indexedDB.open("conduit-browser-host-applications", 2);
-    const database = await new Promise((resolve, reject) => {
-      request.addEventListener("success", () => resolve(request.result), { once: true });
-      request.addEventListener("error", () => reject(request.error), { once: true });
-    });
-    const transaction = database.transaction("application-state", "readwrite");
-    transaction.objectStore("application-state").delete(`${applicationIdentity}@${version}\u0000${key}`);
-    await new Promise((resolve, reject) => {
-      transaction.addEventListener("complete", resolve, { once: true });
-      transaction.addEventListener("error", () => reject(transaction.error), { once: true });
-      transaction.addEventListener("abort", () => reject(transaction.error), { once: true });
-    });
-    database.close();
-  }, { applicationIdentity, version, key });
 }
 
 test("Tour drafts and an open reviewed Back endure a same-browser reload", async ({ page }) => {
@@ -137,208 +118,9 @@ test.skip("Tour migrates the finite legacy Book reading state without changing i
   expect(migrated.state).toEqual({ ...legacy, schema: "conduit.tour/reading-state@1" });
 });
 
-test("Crèche launches its exact admitted graph through bounded Host context", async ({ page }) => {
-  const requests = [];
-  page.on("request", (request) => {
-    if (request.url().startsWith("http:")) requests.push(new URL(request.url()).pathname);
-  });
+test("Crèche compatibility entrance redirects to the Workspace route", async ({ page }) => {
   await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  await expect(page.getByRole("heading", { name: "A Body of your own" })).toBeVisible();
-  const admission = await page.evaluate(() => ({
-    applicationId: globalThis.__conduitBrowserApplication.manifest.applicationId,
-    packageDigest: globalThis.__conduitBrowserApplication.manifest.packageDigest,
-    stateIdentity: globalThis.__conduitBrowserApplication.manifest.stateCompatibility.identity,
-    storageIdentity: globalThis.__conduitBrowserApplication.storage.applicationIdentity,
-    storagePackageDigest: globalThis.__conduitBrowserApplication.storage.packageDigest,
-    paths: globalThis.__conduitBrowserApplication.manifest.resources.map((resource) => resource.path),
-    resourceUrls: globalThis.__conduitBrowserApplication.manifest.resources.map((resource) => resource.url.href),
-  }));
-  expect(admission.applicationId).toBe("conduit.application/creche");
-  expect(admission.packageDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
-  expect(admission.storageIdentity).toBe(admission.stateIdentity);
-  expect(admission.storagePackageDigest).toBe(admission.packageDigest);
-  expect(admission.paths.length).toBeGreaterThan(0);
-  expect(admission.paths.length).toBeLessThanOrEqual(64);
-  expect(admission.paths).toContain("browser-host-identity.mjs");
-  expect(admission.paths).not.toContain("creche-names.mjs");
-  expect(admission.paths).toContain("runtime.wasm");
-  expect(admission.paths).toContain("creche-form-selection.mjs");
-  expect(admission.paths).toContain("application-syntax-presentation.mjs");
-  expect(admission.paths).toContain("creche-browser-configuration.mjs");
-  expect(admission.paths).toContain("targets/esp32/browser-deployment/rom-loader.mjs");
-  expect(admission.paths).toContain("targets/rp2040/browser-deployment/picoboot.mjs");
-  for (const [index, path] of admission.paths.entries()) {
-    const pathname = new URL(admission.resourceUrls[index]).pathname;
-    expect(requests.filter((request) => request === pathname), path).toHaveLength(1);
-  }
-  await expect(page.locator('style[data-application-resource="creche-style"]')).toHaveCount(1);
-});
-
-test("Crèche restores one validated Body session across same-browser reloads", async ({ page }) => {
-  await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  const birth = page.locator(".body-birth-runner");
-  await reviewAndBirth(page, birth);
-  const bodyId = await birth.getAttribute("data-body-id");
-  await openCrecheStep(page, "2. First Host");
-  await page.getByRole("button", { name: "Give this Body its first Host" }).click();
-  await page.evaluate(() => globalThis.__conduitCrecheDurability.settled());
-  const firstIncarnation = await page.evaluate(() => ({
-    hostId: globalThis.__conduitCrecheHost.hostId,
-    bootId: globalThis.__conduitCrecheHost.bootId,
-  }));
-
-  await page.reload();
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  await expect(page.locator('[data-application-key="host-identities"]')).toContainText(bodyId);
-  await expect(page.locator('.first-host-runner [data-application-key="host-status"]')).toContainText("one admitted browser Host");
-  const restored = await page.evaluate(() => {
-    const api = globalThis.__conduitCrecheHost.runtime;
-    const code = api.conduit_creche_current();
-    const bytes = new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len());
-    return {
-      code,
-      hostId: globalThis.__conduitCrecheHost.hostId,
-      bootId: globalThis.__conduitCrecheHost.bootId,
-      receipt: JSON.parse(new TextDecoder().decode(bytes)),
-    };
-  });
-  expect(restored.code).toBe(0);
-  expect(restored.hostId).toBe(firstIncarnation.hostId);
-  expect(restored.bootId).not.toBe(firstIncarnation.bootId);
-  expect(restored.receipt.body_id).toBe(bodyId);
-  expect(restored.receipt.host_id).toBe(restored.hostId);
-  expect(restored.receipt.boot_id).toBe(restored.bootId);
-  expect(restored.receipt.membership_revision).toBe(4);
-  expect(restored.receipt.raw_membership.events.at(-2).kind.HostDetached.prior_boot_id).toBe(firstIncarnation.bootId);
-  expect(restored.receipt.raw_membership.events.at(-1).kind.HostAttached.observation.boot_id).toBe(restored.bootId);
-
-  await openCrecheStep(page, "4. Graduate");
-  await page.getByRole("button", { name: "Finish without hosted Patchbay" }).click();
-  await page.evaluate(() => globalThis.__conduitCrecheDurability.settled());
-  await page.reload();
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  await expect(page.locator('[data-application-key="graduation-status"]')).toContainText("Graduated");
-  await expect(page.locator(".graduation-runner")).toHaveAttribute("data-body-id", bodyId);
-});
-
-test("Crèche leave, rejoin, revoke, and local finish preserve Body and Host distinctions", async ({ page }) => {
-  await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  await reviewAndBirth(page);
-  const bodyId = await page.locator(".body-birth-runner").getAttribute("data-body-id");
-  await openCrecheStep(page, "2. First Host");
-  await page.getByRole("button", { name: "Give this Body its first Host" }).click();
-  await openCrecheStep(page, "4. Graduate");
-  await page.getByRole("button", { name: "Host Patchbay on this Body" }).click();
-  await page.getByRole("button", { name: "End the Crèche" }).click();
-  await page.evaluate(() => globalThis.__conduitCrecheDurability.settled());
-  const durableHostId = await page.evaluate(() => globalThis.__conduitCrecheHost.hostId);
-
-  await page.getByRole("button", { name: "Leave Body" }).click();
-  await page.evaluate(() => globalThis.__conduitCrecheDurability.settled());
-  const left = await page.evaluate(async () => globalThis.__conduitBrowserApplication.storage.readJson("body-session"));
-  expect(left.receipt.body_id).toBe(bodyId);
-  expect(left.receipt.raw_membership.parts[0].state).toBe("Admitted");
-  expect(left.receipt.raw_membership.parts[0].current).toBeNull();
-
-  await page.reload();
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  expect(await page.evaluate(() => globalThis.__conduitCrecheHost.hostId)).toBe(durableHostId);
-  const returned = await page.evaluate(async () => globalThis.__conduitBrowserApplication.storage.readJson("body-session"));
-  expect(returned.receipt.body_id).toBe(bodyId);
-  expect(returned.receipt.raw_membership.parts[0].current.host_id).toBe(durableHostId);
-
-  await page.getByRole("button", { name: "End the Crèche" }).click();
-  await page.getByRole("button", { name: "Remove this browser from the Body" }).click();
-  await page.evaluate(() => globalThis.__conduitCrecheDurability.settled());
-  const revoked = await page.evaluate(async () => globalThis.__conduitBrowserApplication.storage.readJson("body-session"));
-  expect(revoked.receipt.body_id).toBe(bodyId);
-  expect(revoked.receipt.raw_membership.parts[0].state).toBe("Revoked");
-  expect(revoked.receipt.raw_membership.parts[0].current).toBeNull();
-
-  await page.getByRole("button", { name: "Finish and clear Crèche" }).click();
-  await expect(page.getByRole("button", { name: "Birth Body" })).toBeVisible();
-  expect(await page.evaluate(async () => globalThis.__conduitBrowserApplication.storage.readJson("body-session"))).toBeNull();
-  expect(await page.evaluate(() => globalThis.__conduitCrecheHost.hostId)).toBe(durableHostId);
-});
-
-test("browser Host reset is explicit and app state corruption never rotates identity silently", async ({ page }) => {
-  await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  const firstHost = await page.evaluate(async () => {
-    await globalThis.__conduitBrowserApplication.storage.writeJson("reset-proof", { retained: true });
-    const id = globalThis.__conduitCrecheHost.hostId;
-    await globalThis.__conduitCrecheHost.resetHostIdentity("conduit.browser/reset-host-identity@1");
-    return id;
-  });
-  await page.reload();
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  const afterReset = await page.evaluate(async () => ({
-    hostId: globalThis.__conduitCrecheHost.hostId,
-    applicationState: await globalThis.__conduitBrowserApplication.storage.readJson("reset-proof"),
-  }));
-  expect(afterReset.hostId).not.toBe(firstHost);
-  expect(afterReset.applicationState).toEqual({ retained: true });
-
-  await page.evaluate(async () => {
-    const request = indexedDB.open("conduit-browser-host-applications", 2);
-    const database = await new Promise((resolve, reject) => {
-      request.addEventListener("success", () => resolve(request.result), { once: true });
-      request.addEventListener("error", () => reject(request.error), { once: true });
-    });
-    const transaction = database.transaction("browser-host-identity", "readwrite");
-    transaction.objectStore("browser-host-identity").put({
-      schema: "conduit.browser/host-identity@1",
-      identity: "durable-browser-host",
-      hostId: "corrupt",
-      seed: [1],
-    });
-    await new Promise((resolve, reject) => {
-      transaction.addEventListener("complete", resolve, { once: true });
-      transaction.addEventListener("abort", () => reject(transaction.error), { once: true });
-      transaction.addEventListener("error", () => reject(transaction.error), { once: true });
-    });
-  });
-  await page.reload();
-  await expect(page.locator("body")).toContainText("durable browser Host identity is malformed; explicit Host reset is required");
-  expect(await page.evaluate(() => globalThis.__conduitCrecheHost)).toBeUndefined();
-});
-
-test("Crèche refuses changed durable Body evidence before restoring authority", async ({ page }) => {
-  await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  await reviewAndBirth(page);
-  await page.evaluate(() => globalThis.__conduitCrecheDurability.settled());
-  await page.evaluate(async () => {
-    const storage = globalThis.__conduitBrowserApplication.storage;
-    const snapshot = await storage.readJson("body-session");
-    snapshot.receipt.body_id += "-changed";
-    await storage.writeJson("body-session", snapshot);
-  });
-
-  await page.reload();
-  await expect(page.locator("#host-state")).toHaveText("Crèche unavailable");
-  await expect(page.locator("#workspace")).toHaveText("durable Crèche session identities disagree");
-  expect(await page.evaluate(() => globalThis.__conduitCrecheHost)).toBeUndefined();
-  await deleteStoredApplicationRecord(page, "conduit.application/creche-host-state", 1, "body-session");
-  await page.reload();
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-});
-
-test("Crèche refuses changed admitted code before application manifestation", async ({ page }) => {
-  await page.route("**/creche.mjs", async (route) => {
-    const response = await route.fetch();
-    const body = await response.text();
-    const changed = `${body.slice(0, -1)}${body.endsWith("\n") ? " " : "\n"}`;
-    expect(new TextEncoder().encode(changed)).toHaveLength(new TextEncoder().encode(body).length);
-    await route.fulfill({ response, body: changed });
-  }, { times: 1 });
-  await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Browser application refused");
-  await expect(page.locator("#workspace")).toHaveText("application resource application-module changed identity");
-  expect(await page.evaluate(() => globalThis.__conduitCrecheHost)).toBeUndefined();
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/conduit/workspace/");
 });
 
 test("Tour navigation is one finite Host-manifested view with stale and pressure refusal", async ({ page }) => {
@@ -408,7 +190,7 @@ test("browser Host refuses malformed and escaping application packages before la
   for (const [mutate, refusal] of [
     [(manifest) => { manifest.schema = "wrong"; }, "browser application package schema is unsupported"],
     [(manifest) => { manifest.resources[0].path = "https://example.com/tour.mjs"; }, "application resource path escapes the application package"],
-    [(manifest) => { manifest.resources.push(...Array.from({ length: 40 }, () => manifest.resources.at(-1))); }, "application package resource count is outside its admitted bound"],
+    [(manifest) => { manifest.resources.push(...Array.from({ length: 100 }, () => manifest.resources.at(-1))); }, "application package resource count is outside its admitted bound"],
   ]) {
     await mutatePackage(page, mutate);
     await page.goto(entrance.url);

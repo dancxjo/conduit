@@ -43,7 +43,7 @@ function raspberryPiOsProfile({ id, label, model, machine, manifest }) {
     os: "raspberry-pi-os-bookworm-64",
     package_id: "conduit-host-raspberry-pi@1",
     artifact_format: "native-bundle",
-    browser_role: "download Body-bound package only",
+    browser_role: "download body-bound package only",
     local_helper: "explicit package installer with separately supplied credentials",
     physical_boot_claimed: false,
   }),
@@ -133,7 +133,7 @@ function piOsContribution(profile) { return Object.freeze({
   carriers: Object.freeze({
     deployment: Object.freeze([]),
     installation: Object.freeze([
-      Object.freeze({ id: "conduit-carrier/browser-release-download@1", label: "Download Body-bound Raspberry Pi OS ZIP" }),
+      Object.freeze({ id: "conduit-carrier/browser-release-download@1", label: "Download body-bound Raspberry Pi OS ZIP" }),
     ]),
     attachment: Object.freeze([]),
     observation: Object.freeze([]),
@@ -141,7 +141,7 @@ function piOsContribution(profile) { return Object.freeze({
   bounds: EXISTING_COMPUTER_BOUNDS,
   expected_join_contract: "conduit.host/native-spawn-observation@1",
   target_profile: profile.declaration,
-  createAdapter: ({ host }) => createExistingComputerAdapter({ host, profile }),
+  createAdapter: ({ host, prepareSpore = null }) => createExistingComputerAdapter({ host, profile, prepareSpore }),
 }); }
 
 function bareMetalDeclaration(profile) { return Object.freeze({
@@ -154,7 +154,7 @@ function bareMetalDeclaration(profile) { return Object.freeze({
   image_format: "mbr-fat32-sd-image",
   boot_files: Object.freeze(["LICENCE.broadcom", "bootcode.bin", "config.txt", "fixup.dat", "kernel.img", "start.elf"]),
   carrier: "removable-sd-card",
-  browser_role: "download Body-bound SD image spore only",
+  browser_role: "download body-bound SD image spore only",
   local_helper: "explicit removable-media writer with raw block authority",
   browser_raw_block_authority: false,
   physical_flash_boot_uart_human_gated: true,
@@ -170,7 +170,7 @@ function bareMetalContribution(profile) { return Object.freeze({
   ]),
   carriers: Object.freeze({
     deployment: Object.freeze([
-      Object.freeze({ id: "conduit-carrier/removable-sd-download@1", label: "Download Body-bound IMG for explicit local SD writer" }),
+      Object.freeze({ id: "conduit-carrier/removable-sd-download@1", label: "Download body-bound IMG for explicit local SD writer" }),
     ]),
     installation: Object.freeze([]),
     attachment: Object.freeze([]),
@@ -179,7 +179,7 @@ function bareMetalContribution(profile) { return Object.freeze({
   bounds: BARE_METAL_BOUNDS,
   expected_join_contract: "conduit.conduitos/physical-uart-attestation-before-join@1",
   target_profile: bareMetalDeclaration(profile),
-  createAdapter: ({ host }) => createBareMetalAdapter({ host, profile }),
+  createAdapter: ({ host, prepareSpore = null }) => createBareMetalAdapter({ host, profile, prepareSpore }),
 }); }
 
 export const RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS = Object.freeze([
@@ -187,13 +187,13 @@ export const RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS = Object.freeze([
   ...[RASPBERRY_PI_B_PLUS_PROFILE, RASPBERRY_PI_ZERO_PROFILE, RASPBERRY_PI_ZERO_W_PROFILE, RASPBERRY_PI_ZERO_WH_PROFILE].map(bareMetalContribution),
 ]);
 
-export function createBareMetalAdapter({ host, imageWriter, profile = RASPBERRY_PI_B_PLUS_PROFILE } = {}) {
+export function createBareMetalAdapter({ host, imageWriter, profile = RASPBERRY_PI_B_PLUS_PROFILE, prepareSpore = null } = {}) {
   function createOptions({ mode }) {
     const note = document.createElement("p");
     note.className = "target-option-note";
     note.textContent = mode === "fabricate-new"
       ? `Conduit downloads the exact reviewed ${profile.target.label} SD image and binds it into a spore. A separate local writer must hold explicit raw block-device authority; this browser does not.`
-      : "This exact bare-metal substrate is fabricated as a new Host; it is not an existing OS installation or an already-running attachment.";
+      : "This exact bare-metal substrate is fabricated as a new host; it is not an existing OS installation or an already-running attachment.";
     return note;
   }
 
@@ -231,11 +231,15 @@ export function createBareMetalAdapter({ host, imageWriter, profile = RASPBERRY_
     const targetBytes = encoder.encode(profile.target.id);
     const digestBytes = encoder.encode(release.digest);
     try {
-      const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
-      input.set(entropy); input.set(targetBytes, entropy.length); input.set(digestBytes, entropy.length + targetBytes.length);
-      const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(targetBytes.length, digestBytes.length, BigInt(nowMillis));
-      if (code < 0) throw outputError(host.runtime, "Raspberry Pi spore preparation", code);
-      const prepared = readOutput(host.runtime);
+      const prepared = prepareSpore
+        ? await prepareSpore({ targetId: profile.target.id, imageDigest: release.digest, nowMillis, entropy })
+        : (() => {
+          const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
+          input.set(entropy); input.set(targetBytes, entropy.length); input.set(digestBytes, entropy.length + targetBytes.length);
+          const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(targetBytes.length, digestBytes.length, BigInt(nowMillis));
+          if (code < 0) throw outputError(host.runtime, "Raspberry Pi spore preparation", code);
+          return readOutput(host.runtime);
+        })();
       if (prepared.target_id !== profile.target.id || prepared.image_content_digest !== release.digest
         || prepared.output !== "sd-image" || prepared.fabrication_package_id !== profile.packageId
         || prepared.deployment_adapter !== profile.deploymentAdapter) {

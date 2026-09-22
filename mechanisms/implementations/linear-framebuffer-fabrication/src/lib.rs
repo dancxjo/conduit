@@ -13,7 +13,7 @@ fn package_catalog() -> PackageCatalogContribution {
             PresenterMetadata {
                 targets: vec!["std/x86_64/computer".into(), "conduitos/x86_64/pc".into()],
                 prerequisites: vec![
-                    PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                    PrerequisiteNode::HostCall("conduit.host/present@1".into()),
                     PrerequisiteNode::Facility("compositor/native@1".into()),
                     PrerequisiteNode::Resource("presentation/surface".into()),
                     PrerequisiteNode::Base("display/scanout".into()),

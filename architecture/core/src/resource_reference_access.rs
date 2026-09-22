@@ -1,4 +1,4 @@
-//! Admitted Host-local access to one portable bounded resource reference.
+//! Admitted host-local access to one portable bounded resource reference.
 
 use crate::{
     AuthorityContractId, AuthorityGrantId, BoundedResourceRef, KindId, ResourceClassId,

@@ -30,7 +30,7 @@ test("Body Workspace owns bootstrap while Crèche remains a thin compatibility e
   const selection = await readFile(new URL("../../products/creche/browser/creche-form-selection.mjs", import.meta.url), "utf8");
   assert.match(workspace, /\.\/body-bootstrap\.mjs/);
   assert.match(workspace, /\.\/reviewed-form-selection\.mjs/);
-  assert.doesNotMatch(workspace, /products\/creche|\.\.\/\.\.\/creche/);
+  assert.doesNotMatch(workspace, /products\/creche\/(?:browser\/)?(?:creche\.mjs|creche-lifecycle\.mjs|creche-form-selection\.mjs)|\.\.\/\.\.\/creche\/browser\/(?:creche\.mjs|creche-lifecycle\.mjs|creche-form-selection\.mjs)/);
   assert.match(lifecycle, /^\/\/ Compatibility entrance only\.[^\n]*\nexport \* from "\.\.\/\.\.\/workspace\/browser\/body-bootstrap\.mjs";\n$/);
   assert.match(selection, /^\/\/ Compatibility entrance only\.[^\n]*\nexport \* from "\.\.\/\.\.\/workspace\/browser\/reviewed-form-selection\.mjs";\n$/);
 });

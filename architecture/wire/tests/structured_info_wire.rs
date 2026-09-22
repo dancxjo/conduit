@@ -11,11 +11,11 @@ use conduit_wire::{
 const MAXIMUM_PAYLOAD_BYTES: u32 = 2_048;
 
 fn count_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(KindId::from("value/count@1")).unwrap()
+    StructuredInfoType::leaf(KindId::from("value/count")).unwrap()
 }
 
 fn text_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(KindId::from("value/text@1")).unwrap()
+    StructuredInfoType::leaf(KindId::from("value/text")).unwrap()
 }
 
 fn midi() -> StructuredInfoValue {

@@ -1,4 +1,4 @@
-//! Native half of the deterministic One Form, Two Fronts journey.
+//! Native half of the deterministic One form, Two Fronts journey.
 
 use crate::{png_capture::write_rgb_png, presentation::ordinary_front_door_lines, render};
 use conduit_core::{BootId, HostId, SignId};
@@ -29,7 +29,7 @@ pub(super) fn run(root: &Path) -> Result<(), String> {
         .form_ids()
         .into_iter()
         .next()
-        .ok_or("two-fronts entrance has no reviewed Form")?;
+        .ok_or("two-fronts entrance has no reviewed form")?;
     session.open_form(&form, session.revision())?;
     let projection = session.project()?;
     let lines = ordinary_front_door_lines(&projection.presentation, &projection.navigation, None)?;

@@ -10,7 +10,7 @@ use conduit_core::{
     PreparedStructuredValueValidator, StructuredInfoRefusal, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
-/// Owns every schema, identity, and byte buffer needed by the Play-time encoder.
+/// Owns every schema, identity, and byte buffer needed by the play-time encoder.
 pub struct PreparedLocalVisionMotionEncoder {
     image_validator: PreparedStructuredValueValidator,
     image_type_prefix: Vec<u8>,
@@ -182,16 +182,5 @@ fn count_field(output: &mut Vec<u8>, name: &str, value: u64) {
 }
 
 fn count(output: &mut Vec<u8>, value: u64) {
-    let mut digits = [0_u8; 20];
-    let mut cursor = digits.len();
-    let mut remaining = value;
-    loop {
-        cursor -= 1;
-        digits[cursor] = b'0' + (remaining % 10) as u8;
-        remaining /= 10;
-        if remaining == 0 {
-            break;
-        }
-    }
-    wire_leaf(output, &digits[cursor..]);
+    wire_leaf(output, &conduit_core::encode_count(value));
 }

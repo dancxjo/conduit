@@ -96,7 +96,7 @@ fn authority_grants(
         let host = hosts
             .iter()
             .find(|host| host.host_id == placement.host_id)
-            .ok_or("Workspace placement names no current Host")?;
+            .ok_or("Workspace placement names no current host")?;
         let capability = host
             .capabilities
             .iter()
@@ -219,24 +219,24 @@ mod tests {
         ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
         OfferGeneration, PROTOCOL_VERSION,
     };
-    use conduit_form::KindDefinition;
+    use conduit_form::KindProjection;
 
-    fn remote_offer(definition: &KindDefinition) -> CapabilityOffer {
+    fn remote_offer(definition: &KindProjection) -> CapabilityOffer {
         let slug = definition.kind_id.as_str().replace('/', "-");
         CapabilityOffer {
             startup_parameters: definition
                 .configuration
                 .iter()
-                .map(|field| conduit_core::FaceStartupParameter {
+                .map(|field| conduit_core::FrontStartupParameter {
                     name: field.key.clone(),
-                    value_type: match field.default_value {
-                        ConfigurationValue::Bool(_) => "Boolean",
-                        ConfigurationValue::I64(_) => "Scalar",
-                        ConfigurationValue::U64(_) => "Count",
-                        ConfigurationValue::Text(_) => "Text",
+                    value_type: conduit_core::kind_id(match field.default_value {
+                        ConfigurationValue::Bool(_) => "value/bool",
+                        ConfigurationValue::I64(_) => "value/scalar",
+                        ConfigurationValue::U64(_) => "value/count",
+                        ConfigurationValue::Text(_) => "value/text",
                         ConfigurationValue::Structured(ref value) => value.profile().as_str(),
-                    }
-                    .into(),
+                        ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
+                    }),
                     has_default: true,
                 })
                 .collect(),
@@ -251,7 +251,7 @@ mod tests {
             },
             inputs: definition.inputs.clone(),
             outputs: definition.outputs.clone(),
-            host_operations: vec![],
+            host_calls: vec![],
             resource_requirements: vec![],
             authority_requirements: vec![],
             limits: CapabilityLimits {
@@ -299,6 +299,7 @@ mod tests {
             boot_id: BootId::from("boot/orifinia-voice"),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("voice-host/profile@1"),
+            bases: vec![],
             resources: vec![],
             capabilities: expanded
                 .gears

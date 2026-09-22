@@ -3,13 +3,12 @@ use alloc::vec::Vec;
 use conduit_audio::{Gate, MusicalNoteEvent, NoteOccurrenceId};
 
 use conduit_kernel::{
-    BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, KernelEvent, NodeId, Operation, OperationAction, OperationInput, PortId,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, NodeId, PortId,
     RequestId, RouteRange, RouteTarget, SignSink, ValueRef, ValueStorage,
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver,
-        SchedulerStatus,
+        CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, SchedulerStatus,
+        StepBack, StepInputBytes, StepIo, StepOutcome,
     },
 };
 use conduit_semantic_catalog::{NormalizedNoteEvidence, SelectedSoundRealization};
@@ -22,111 +21,114 @@ use crate::{
 
 const SOURCE_NODE: NodeId = NodeId(0);
 const SINK_NODE: NodeId = NodeId(1);
-const FIXTURE_OPERATION: HostOperationId = HostOperationId(0);
-const OPL2_OPERATION: HostOperationId = HostOperationId(0);
+const FIXTURE_OPERATION: HostCallId = HostCallId(0);
+const OPL2_OPERATION: HostCallId = HostCallId(0);
 const PORTS: usize = 1;
 const EVENTS: usize = crate::opl2_plan::FIXTURE_EVENT_COUNT as usize;
 const SIGN_CAPACITY: usize = 256;
 
 #[derive(Clone, Copy)]
-struct SourceOperation {
+struct SourceBack {
     values: [ValueRef; EVENTS],
     tokens: [ValueRef; EVENTS],
     next: usize,
 }
 
-impl Operation for SourceOperation {
-    fn start(&mut self) -> OperationAction {
-        self.request_or_complete()
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostOperationCompleted { request, outcome }
-                if request == RequestId((self.next + 1) as u32)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: self.values[self.next],
-                }
-            }
-            _ => invalid(10),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        self.request_or_complete()
-    }
-
+impl SourceBack {
     fn cancel(&mut self) {
         self.next = EVENTS;
     }
-}
 
-impl SourceOperation {
-    fn request_or_complete(&self) -> OperationAction {
-        self.values
-            .get(self.next)
-            .map_or(OperationAction::Complete, |_| {
-                OperationAction::RequestHostOperation {
-                    request: RequestId((self.next + 1) as u32),
-                    operation: FIXTURE_OPERATION,
-                    input: BoundedValueRef::new(self.tokens[self.next], 8)
-                        .expect("fixture token is exactly admitted"),
-                }
-            })
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        if self.next == EVENTS {
+            return StepOutcome::Complete;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if request != RequestId((self.next + 1) as u32)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return invalid(10);
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            if io.consume_host_completion().is_err()
+                || io.send(PortId(0), self.values[self.next]).is_err()
+            {
+                return invalid(10);
+            }
+            self.next += 1;
+            return if self.next == EVENTS {
+                StepOutcome::Complete
+            } else {
+                StepOutcome::Progress
+            };
+        }
+        if io
+            .request_host_call(
+                RequestId((self.next + 1) as u32),
+                FIXTURE_OPERATION,
+                BoundedValueRef::new(self.tokens[self.next], 8)
+                    .expect("fixture token is exactly admitted"),
+            )
+            .is_err()
+        {
+            return invalid(10);
+        }
+        StepOutcome::Progress
     }
 }
 
 #[derive(Clone, Copy)]
-struct MusicOperation {
+struct MusicBack {
     pending: Option<RequestId>,
     next_request: u32,
 }
 
-impl Operation for MusicOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => {
-                let Ok(input) =
-                    BoundedValueRef::new(value, conduit_audio::NOTE_EVENT_ENCODED_LEN as u32)
-                else {
-                    return invalid(20);
-                };
-                let request = RequestId(self.next_request);
-                self.next_request = self.next_request.saturating_add(1);
-                self.pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: OPL2_OPERATION,
-                    input,
-                }
-            }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+impl MusicBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        if let Some(request) = self.pending {
+            let Some((completed, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            if completed != request
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+                || io.consume_host_completion().is_err()
             {
-                self.pending = None;
-                OperationAction::Await
+                return invalid(21);
             }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => invalid(21),
+            self.pending = None;
+            return StepOutcome::Progress;
         }
+        if let Some(value) = io.input(PortId(0)) {
+            let Ok(input) =
+                BoundedValueRef::new(value, conduit_audio::NOTE_EVENT_ENCODED_LEN as u32)
+            else {
+                return invalid(20);
+            };
+            let request = RequestId(self.next_request);
+            if io.consume(PortId(0)).is_err()
+                || io
+                    .request_host_call(request, OPL2_OPERATION, input)
+                    .is_err()
+            {
+                return invalid(21);
+            }
+            self.next_request = self.next_request.saturating_add(1);
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            if io.consume_closed(PortId(0)).is_err() {
+                return invalid(21);
+            }
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -134,8 +136,8 @@ impl Operation for MusicOperation {
     }
 }
 
-const fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+const fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
         detail,
     })
@@ -144,32 +146,22 @@ const fn invalid(detail: u16) -> OperationAction {
 #[derive(Clone, Copy)]
 #[expect(
     clippy::large_enum_variant,
-    reason = "fixed pre-Play fixture references avoid heap indirection in the freestanding kernel"
+    reason = "fixed pre-play fixture references avoid heap indirection in the freestanding kernel"
 )]
-enum Opl2Operation {
-    Source(SourceOperation),
-    Music(MusicOperation),
+enum Opl2Back {
+    Source(SourceBack),
+    Music(MusicBack),
 }
 
-impl Operation for Opl2Operation {
-    fn start(&mut self) -> OperationAction {
+impl StepBack<PORTS> for Opl2Back {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
-            Self::Source(operation) => operation.start(),
-            Self::Music(operation) => operation.start(),
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Source(operation) => operation.resume(input),
-            Self::Music(operation) => operation.resume(input),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source(operation) => operation.advance(),
-            Self::Music(operation) => operation.advance(),
+            Self::Source(back) => back.step(io),
+            Self::Music(back) => back.step(io),
         }
     }
 
@@ -181,9 +173,8 @@ impl Operation for Opl2Operation {
     }
 }
 
-type Driver = OperationDriver<Opl2Operation, PORTS>;
 type Scheduler = FixedScheduler<
-    Driver,
+    Opl2Back,
     FixedValueStore<{ EVENTS * 2 }, 1_536>,
     FixedSignLog<SIGN_CAPACITY>,
     2,
@@ -262,12 +253,12 @@ pub fn prepare_execution(
     routes
         .seal()
         .map_err(|_| PreparationError::KernelRejected)?;
-    let mut bindings = FixedHostOperationBindings::<2>::new(1);
+    let mut bindings = FixedHostCallBindings::<2>::new(1);
     bindings
         .install(
             SOURCE_NODE,
-            HostOperationBinding {
-                operation: FIXTURE_OPERATION,
+            HostCallBinding {
+                call: FIXTURE_OPERATION,
                 maximum_input_bytes: 8,
                 maximum_output_bytes: 0,
             },
@@ -276,8 +267,8 @@ pub fn prepare_execution(
     bindings
         .install(
             SINK_NODE,
-            HostOperationBinding {
-                operation: OPL2_OPERATION,
+            HostCallBinding {
+                call: OPL2_OPERATION,
                 maximum_input_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN as u32,
                 maximum_output_bytes: 0,
             },
@@ -288,15 +279,15 @@ pub fn prepare_execution(
         .map_err(|_| PreparationError::KernelRejected)?;
     let signs = FixedSignLog::new((SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32)
         .map_err(|_| PreparationError::KernelRejected)?;
-    let scheduler = FixedScheduler::new_with_host_operations(
+    let scheduler = FixedScheduler::new_with_host_calls(
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 4,
+                maximum_step_fuel: 4,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 4,
+                maximum_step_fuel: 4,
             },
         ],
         [CordSpec::local(
@@ -313,17 +304,15 @@ pub fn prepare_execution(
         routes,
         bindings,
         [
-            OperationDriver::new(Opl2Operation::Source(SourceOperation {
+            Opl2Back::Source(SourceBack {
                 values: references,
                 tokens,
                 next: 0,
-            }))
-            .map_err(|_| PreparationError::KernelRejected)?,
-            OperationDriver::new(Opl2Operation::Music(MusicOperation {
+            }),
+            Opl2Back::Music(MusicBack {
                 pending: None,
                 next_request: 1,
-            }))
-            .map_err(|_| PreparationError::KernelRejected)?,
+            }),
         ],
         store,
         signs,
@@ -453,16 +442,13 @@ pub use evidence::{Opl2ConformanceReport, cancel_with_evidence, run_with_evidenc
 mod voice;
 use voice::apply_event;
 
-fn complete(
-    scheduler: &mut Scheduler,
-    request: HostOperationRequest,
-) -> Result<(), PreparationError> {
+fn complete(scheduler: &mut Scheduler, request: HostCallRequest) -> Result<(), PreparationError> {
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },

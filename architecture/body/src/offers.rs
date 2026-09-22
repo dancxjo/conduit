@@ -1,9 +1,9 @@
-//! Finite resource allowances offered to one Body.
+//! Finite resource allowances offered to one body.
 //!
-//! A `ResourceOffer` remains the Host's unchanged description of a real pool.
-//! This module adds only a Body policy fence over that pool. Machine capacity
+//! A `ResourceOffer` remains the host's unchanged description of a real pool.
+//! This module adds only a body policy fence over that pool. Machine capacity
 //! stays adapter context, current availability stays a `ResourceObservation`,
-//! a Plan selection stays a `ResourceBinding`, and Play utilization stays the
+//! a plan selection stays a `ResourceBinding`, and Play utilization stays the
 //! observation's `utilized_units`; none is recast as another resource pool.
 
 use alloc::{string::String, vec::Vec};
@@ -18,10 +18,10 @@ use sha2::{Digest, Sha256};
 
 use crate::{BodyId, PartId};
 
-/// Maximum number of Host pools fenced by one Body envelope.
+/// Maximum number of Host pools fenced by one body envelope.
 pub const MAX_BODY_RESOURCE_ALLOWANCES: usize = 64;
 
-/// Stable identity of one exact Body resource-policy revision.
+/// Stable identity of one exact body resource-policy revision.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct BodyResourceEnvelopeId(String);
 
@@ -34,14 +34,14 @@ impl BodyResourceEnvelopeId {
 /// Body policy over an existing Host pool, not a smaller `ResourceOffer`.
 pub type BodyResourceAllowance = ResourceAllowance;
 
-/// Exact Body/Part fence over one current Host advertisement.
+/// Exact body/Part fence over one current host advertisement.
 ///
-/// It intentionally has no `WakeId`: the Body/Part relationship survives a
-/// Lull. A later preparation slice can snapshot this `envelope_id` for a Wake
+/// It intentionally has no `WakeId`: the body/Part relationship survives a
+/// Lull. A later preparation slice can snapshot this `envelope_id` for a wake
 /// or Plan without mutating the durable policy revision.
 ///
 /// The caller establishes that `part_id` is the membership relation currently
-/// attached to this Host/Boot. This constructor validates resource truth, not
+/// attached to this host/Boot. This constructor validates resource truth, not
 /// membership. The envelope deliberately cannot bypass validation through
 /// derived deserialization.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

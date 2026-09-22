@@ -10,17 +10,16 @@ use conduit_core::{
 };
 
 pub const GEOMETRY_REGION_TYPE: &str = "GeometryRegion";
-pub const ROBOTICS_RANGE_TYPE: &str = "RoboticsRangeSample";
 pub const LANGUAGE_ANNOTATION_TYPE: &str = "LanguageAnnotation";
 pub const MESSAGE_ENVELOPE_TYPE: &str = "MessageEnvelope";
 pub const EDUCATION_FEEDBACK_TYPE: &str = "EducationFeedback";
 
 fn text_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/text@1")).expect("text leaf is finite")
+    StructuredInfoType::leaf(kind_id("value/text")).expect("text leaf is finite")
 }
 
 fn count_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/count@1")).expect("count leaf is finite")
+    StructuredInfoType::leaf(kind_id("value/count")).expect("count leaf is finite")
 }
 
 fn bool_type() -> StructuredInfoType {
@@ -89,30 +88,6 @@ pub fn geometry_region_example() -> StructuredInfoValue {
         ],
     )
     .expect("reviewed geometry specimen matches its schema")
-}
-
-pub fn robotics_range_sample_type() -> StructuredInfoType {
-    StructuredInfoType::record(
-        kind_id("robotics/range-sample@2"),
-        vec![
-            field("distance", quantity_type()),
-            field("frame", text_type()),
-            field("uncertainty", quantity_type()),
-        ],
-    )
-    .expect("reviewed robotics schema is finite")
-}
-
-pub fn robotics_range_sample_example() -> StructuredInfoValue {
-    StructuredInfoValue::record(
-        robotics_range_sample_type(),
-        vec![
-            value_field("distance", quantity(850, QuantityUnit::Millimeter)),
-            value_field("frame", text("sensor/forward")),
-            value_field("uncertainty", quantity(5, QuantityUnit::Millimeter)),
-        ],
-    )
-    .expect("reviewed robotics specimen matches its schema")
 }
 
 pub fn language_annotation_type() -> StructuredInfoType {

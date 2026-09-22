@@ -4,7 +4,7 @@ use crate::{
 };
 use conduit_core::{
     kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId,
-    CapabilityId, HostOperationContractId,
+    CapabilityId, HostCallContractId,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
@@ -56,9 +56,9 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
         }],
     })?;
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: literal.kind_id,
-            kind_contract_revision: conduit_core::KindContractRevision::from(
+            kind_contract_revision: conduit_core::KindIdentity::from(
                 conduit_text::TEXT_LITERAL_CONTRACT_REVISION,
             ),
             inputs: literal.inputs,
@@ -66,10 +66,10 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
             configuration: literal
                 .configuration
                 .into_iter()
-                .map(|field| conduit_form::ConfigurationField {
+                .map(|field| conduit_form::KindConfigurationField {
                     key: field.key.into(),
                     default_value: field.default_value,
-                    validation: conduit_form::ConfigurationRule::TextBytes {
+                    rule: conduit_form::KindConfigurationRule::TextBytes {
                         maximum: field.maximum_text_bytes,
                     },
                 })
@@ -84,9 +84,9 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
     let mut fixture = speech_host_fixture(condition);
     let literal_contract = conduit_text::text_literal_semantics();
     let mut literal_offer = conduit_core::CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
+        startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "value".into(),
-            value_type: "Text".into(),
+            value_type: conduit_core::kind_id("value/text"),
             has_default: false,
         }],
         shorthand: None,
@@ -104,7 +104,7 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
         },
         inputs: literal_contract.inputs,
         outputs: literal_contract.outputs,
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: literal_contract.limits,
@@ -122,9 +122,7 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
             OutputCondition::PrimaryPlayback => AUDIO_OUTPUT_AUTHORITY,
             OutputCondition::DegradedWavArtifact => ARTIFACT_WRITE_AUTHORITY,
         }),
-        host_operation_contract_id: HostOperationContractId::from(
-            requirement.host_operation_contract_id.as_str(),
-        ),
+        host_call_contract_id: HostCallContractId::from(requirement.host_call_contract_id.as_str()),
         subject_kind: kind_id(AUDIO_PLAY_KIND),
         host_id: fixture.advertisement.host_id.clone(),
         boot_id: fixture.advertisement.boot_id.clone(),

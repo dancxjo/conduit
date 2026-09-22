@@ -1,11 +1,11 @@
 //! Deterministic arithmetic and rhythm-feedback realizations for education Info.
 
-use alloc::vec;
+use alloc::{string::ToString, vec};
 use conduit_core::{StructuredInfoRefusal, StructuredInfoValue, StructuredInfoValueShape};
 
 use crate::education_value::{
-    count_value, leaf_text, ratio_value, record_field, record_value, text_value, unit_value,
-    variant_payload_type,
+    count_value, leaf_count, leaf_text, ratio_value, record_field, record_value, text_value,
+    unit_value, variant_payload_type,
 };
 use crate::{
     education_answer_type, education_assessment_outcome_type, education_assessment_type,
@@ -74,7 +74,7 @@ pub fn deterministic_arithmetic_fixture() -> Result<EducationFixture, EducationI
             ),
             (
                 "hints",
-                StructuredInfoValue::collection(education_hints_type(), hints)?,
+                StructuredInfoValue::sequence(education_hints_type(), hints)?,
             ),
             ("prompt", text_value("What is 7 + 5?")),
             ("question_identity", text_value(question_identity)),
@@ -302,9 +302,10 @@ pub fn adapt_rhythm_feedback(
             "refused",
         ),
     };
-    let beat = leaf_text(record_field(timing, "beat")?)?;
-    let question_identity = ["question/rhythm-beat/", beat].concat();
-    let response_identity = ["response/rhythm-beat/", beat].concat();
+    let beat = leaf_count(record_field(timing, "beat")?)?;
+    let beat = beat.to_string();
+    let question_identity = ["question/rhythm-beat/", beat.as_str()].concat();
+    let response_identity = ["response/rhythm-beat/", beat.as_str()].concat();
     let outcome = StructuredInfoValue::variant(
         education_assessment_outcome_type(),
         outcome_tag,

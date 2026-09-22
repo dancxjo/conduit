@@ -1,8 +1,9 @@
 //! Minimal std Host bridge for provider-neutral model artifacts.
 
 use conduit_ai::{
-    model_content_digest, ModelArtifact, ModelCompatibilityRefusal, ModelInvocationEvidence,
-    ModelInvocationTerminal, ModelOperation, ModelRuntimeRealization, ModelSignature,
+    model_checkpoint_content_digest, model_content_digest, ModelArtifact, ModelCheckpoint,
+    ModelCompatibilityRefusal, ModelInvocationEvidence, ModelInvocationTerminal, ModelOperation,
+    ModelRuntimeRealization, ModelSignature,
 };
 use conduit_core::BoundedResourceRef;
 
@@ -13,6 +14,8 @@ pub enum HostedModelRefusal {
     ResourceUnavailable,
     ResourceExtentMismatch,
     ResourceContentMismatch,
+    CheckpointResourceExtentMismatch,
+    CheckpointResourceContentMismatch,
     EmptyInputIdentity,
     WorkNotAdmitted,
     AdapterRefused,
@@ -29,6 +32,7 @@ pub trait HostedModelAdapter {
     fn invoke(
         &mut self,
         artifact_bytes: &[u8],
+        checkpoint_bytes: Option<&[u8]>,
         operation: ModelOperation,
         input: &[u8],
         maximum_output_bytes: usize,
@@ -46,6 +50,7 @@ pub fn invoke_hosted_model(
     store: &impl ModelArtifactStore,
     adapter: &mut impl HostedModelAdapter,
     artifact: &ModelArtifact,
+    checkpoint: Option<&ModelCheckpoint>,
     signature: &ModelSignature,
     operation: ModelOperation,
     input_identity: [u8; 32],
@@ -67,7 +72,7 @@ pub fn invoke_hosted_model(
     }
     adapter
         .realization()
-        .admit(artifact)
+        .admit_checkpoint(artifact, checkpoint)
         .map_err(HostedModelRefusal::Compatibility)?;
     let artifact_bytes = store.load(&artifact.content)?;
     if u64::try_from(artifact_bytes.len()).ok() != Some(artifact.content.extent.bytes) {
@@ -76,7 +81,25 @@ pub fn invoke_hosted_model(
     if model_content_digest(&artifact_bytes) != artifact.content_identity() {
         return Err(HostedModelRefusal::ResourceContentMismatch);
     }
-    let output = adapter.invoke(&artifact_bytes, operation, input, maximum_output_bytes)?;
+    let checkpoint_bytes = checkpoint
+        .map(|checkpoint| {
+            let bytes = store.load(&checkpoint.content)?;
+            if u64::try_from(bytes.len()).ok() != Some(checkpoint.content.extent.bytes) {
+                return Err(HostedModelRefusal::CheckpointResourceExtentMismatch);
+            }
+            if model_checkpoint_content_digest(&bytes) != checkpoint.content.identity.digest() {
+                return Err(HostedModelRefusal::CheckpointResourceContentMismatch);
+            }
+            Ok(bytes)
+        })
+        .transpose()?;
+    let output = adapter.invoke(
+        &artifact_bytes,
+        checkpoint_bytes.as_deref(),
+        operation,
+        input,
+        maximum_output_bytes,
+    )?;
     if output.len() > maximum_output_bytes {
         return Err(HostedModelRefusal::AdapterFailed);
     }
@@ -84,7 +107,7 @@ pub fn invoke_hosted_model(
         output,
         evidence: ModelInvocationEvidence {
             artifact_identity: artifact.content_identity(),
-            checkpoint_identity: None,
+            checkpoint_identity: checkpoint.map(|value| value.content.identity.digest()),
             signature_identity: artifact.signature_identity,
             runtime_implementation_identity: adapter.realization().implementation_identity.clone(),
             runtime_build_identity: adapter.realization().runtime_build_identity.clone(),

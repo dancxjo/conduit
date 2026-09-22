@@ -1,6 +1,6 @@
 use conduit_core::{
     bind_active_play, bind_sign, seal_plan, AuthorityGrantId, BootId, CapabilityId, FormIdentity,
-    KindContractRevision, Observation, ObservationKind, Plan, PlanId, SignId, TerminalDisposition,
+    KindIdentity, Observation, ObservationKind, Plan, PlanId, SignId, TerminalDisposition,
 };
 use conduit_observatory::{
     CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport, LineReport,
@@ -141,6 +141,7 @@ fn requirements(
                 role_id: RoleId::from(placement.gear_id.as_str()),
                 gear_id: placement.gear_id.clone(),
                 checked_front: offer.checked_front(),
+                semantic_contract: offer.kind_contract_revision.clone(),
             }
         })
         .collect()
@@ -379,9 +380,18 @@ fn compatible_front_does_not_inherit_assignment_grant_plan_or_play() {
     let offer = &mut pico.capabilities[0];
     offer.capability_id = CapabilityId::from("replacement/equal-front-led");
     offer.kind_id = conduit_core::kind_id("replacement/show");
-    offer.kind_contract_revision = KindContractRevision::from("replacement/show@9");
+    offer.kind_contract_revision = KindIdentity::from("replacement/different-meaning@1");
     offer.implementation.implementation_id =
         conduit_core::ImplementationId::from("replacement/led-v9");
+    let semantically_different = accepted
+        .clone()
+        .old_boot_terminated(SignId::from("sign/local-old-terminal-different"))
+        .observe_replacement(available_host(pico.clone()))
+        .unwrap()
+        .assess(&old);
+    assert!(semantically_different.compatible_replacements.is_empty());
+
+    pico.capabilities[0].kind_contract_revision = old.assignments[0].semantic_contract.clone();
     let assessment = accepted
         .old_boot_terminated(SignId::from("sign/local-old-terminal"))
         .observe_replacement(available_host(pico))

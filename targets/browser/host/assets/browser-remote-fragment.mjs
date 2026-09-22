@@ -71,7 +71,7 @@ export function openBrowserRemoteFragment({ api, plan, host, preparation, observ
       !identity.active_play_id || !Array.isArray(preparation?.hello_frames) ||
       preparation.hello_frames.length < 1 || preparation.hello_frames.length > 16 ||
       !Array.isArray(observations)) {
-    throw new Error("remote preparation differs from the exact planned Host, Boot, or Play");
+    throw new Error("remote preparation differs from the exact planned host, Boot, or Play");
   }
   const helloFrames = preparation.hello_frames.map((frame, index) =>
     Array.from(boundedBytes(frame, `remote Hello ${index}`)));
@@ -147,7 +147,7 @@ export function openBrowserRemoteFragment({ api, plan, host, preparation, observ
         const bytes = present ? boundedBytes(output, "browser Host effect output") : new Uint8Array();
         if (present) write(api, bytes);
         const status = api.conduit_browser_remote_complete_effect(bytes.byteLength, present ? 1 : 0);
-        if (status !== 0) throw refusal(api, "browser remote Host effect completion", status);
+        if (status !== 0) throw refusal(api, "browser remote host effect completion", status);
       },
       offer(endpoint) {
         current();

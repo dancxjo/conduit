@@ -10,7 +10,7 @@ use alloc::{
 use conduit_core::*;
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ExpandedCanonicalForm,
-    KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
 };
 pub const FRAME_SOURCE: &str = "form frames {\n source: frame/source\n compose: frame/compose\n display: frame/display\n encoder: frame/encoder\n source > compose\n compose > display\n compose > encoder\n}\n";
 pub const FRAME_BYTES: u32 = 262144;
@@ -55,9 +55,9 @@ pub fn frame_resource_plan(
             temporal: PortTemporal::Value,
         };
         let kind = format!("frame/{name}");
-        let definition = KindDefinition {
+        let definition = KindProjection {
             kind_id: kind_id(&kind),
-            kind_contract_revision: KindContractRevision::from(format!("{kind}@1")),
+            kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
             inputs: if name == "source" {
                 vec![]
             } else {
@@ -135,11 +135,11 @@ pub fn frame_resource_plan(
                 },
                 inputs: definition.inputs.clone(),
                 outputs: definition.outputs.clone(),
-                host_operations: if source {
+                host_calls: if source {
                     vec![]
                 } else {
-                    vec![HostOperationRequirement {
-                        contract_id: HostOperationContractId::from(FRAME_OPERATION),
+                    vec![HostCallRequirement {
+                        contract_id: HostCallContractId::from(FRAME_OPERATION),
                         target_kind: Some(definition.kind_id.clone()),
                         maximum_in_flight: 1,
                         maximum_input_bytes: 512,
@@ -171,7 +171,7 @@ pub fn frame_resource_plan(
                 } else {
                     vec![AuthorityRequirement {
                         contract_id: AuthorityContractId::from(FRAME_AUTHORITY),
-                        host_operation_contract_id: HostOperationContractId::from(FRAME_OPERATION),
+                        host_call_contract_id: HostCallContractId::from(FRAME_OPERATION),
                         subject_kind: definition.kind_id.clone(),
                     }]
                 },
@@ -189,6 +189,7 @@ pub fn frame_resource_plan(
         boot_id,
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("host/frame@1"),
+        bases: vec![],
         resources: {
             let mut pools = vec![
                 input_resource,
@@ -216,7 +217,7 @@ pub fn frame_resource_plan(
         hosts[0]
             .capabilities
             .retain(|c| !matches!(c.kind_id.as_str(), "frame/display" | "frame/encoder"));
-        // The remote Host cannot satisfy the exact local Resource residence.
+        // The remote host cannot satisfy the exact local Resource residence.
         // No remote dereference implementation or Line is fabricated for it.
         hosts.push(remote);
     }

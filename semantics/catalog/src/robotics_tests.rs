@@ -44,12 +44,37 @@ fn robotics_catalog_rejects_invalid_observation_and_motion_configuration() {
     crate::install_robotics_catalogs(&mut startup, &mut profile).unwrap();
     for source in [
         "form invalid {\n battery: robotics/observe-battery(charge-permille = 1001)\n}\n",
-        "form invalid {\n range: robotics/observe-range(distance-mm = 1000001)\n}\n",
+        "form invalid {\n range: robotics/observe-range(distance = 1000001mm)\n}\n",
         "form invalid {\n drive: robotics/drive-differential(ttl-ms = 9)\n}\n",
         "form invalid {\n drive: robotics/drive-differential(minimum-clearance-mm = 250)\n}\n",
     ] {
         assert!(conduit_form::parse(source, &profile).is_err());
     }
+}
+
+#[cfg(feature = "form-catalog")]
+#[test]
+fn ordinary_robotics_form_retains_typed_distance_quantity() {
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    crate::install_robotics_catalogs(&mut startup, &mut profile).unwrap();
+    let syntax = conduit_form::parse_syntax_document(include_str!(
+        "../../../forms/robotics-range/main.conduit"
+    ));
+    let checked = conduit_form::check_syntax_document(&syntax, &startup)
+        .expect("ordinary robotics form checks");
+    let expanded =
+        conduit_form::expand_canonical_form_for_authoring(&checked, "robotics-range", &profile)
+            .expect("ordinary robotics form expands");
+    let distance = expanded.expanded.gears[0]
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "distance")
+        .expect("distance configuration exists");
+    assert_eq!(
+        distance.value,
+        ConfigurationValue::Quantity(Quantity::new(500, QuantityUnit::Millimeter))
+    );
 }
 
 #[test]

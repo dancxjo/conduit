@@ -5,8 +5,10 @@ use conduit_core::PlannedGear;
 mod ollama;
 pub(crate) mod ollama_present;
 mod ollama_stream;
+mod ollama_vision;
 pub use conduit_ai::{LocalModelKindProfile, MAXIMUM_LOCAL_MODEL_IDENTITY_BYTES};
 pub use ollama::{OllamaDiscovery, OllamaLocalModelAdapter};
+pub use ollama_vision::{HostedVisualModelAdapter, OllamaVisualModelAdapter, VisualModelOutput};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocalModelAdapterTerminal {
@@ -34,6 +36,11 @@ pub enum LocalModelStreamStep {
 
 pub trait HostedLocalModelAdapter: Send {
     fn offer(&self) -> &conduit_ai::LocalModelOffer;
+
+    /// Refresh provider availability without changing the stable offer.
+    fn current_pool_health(&self) -> conduit_core::PoolRealizationHealth {
+        conduit_core::PoolRealizationHealth::Unavailable
+    }
 
     fn execute(
         &mut self,
@@ -110,6 +117,66 @@ pub(crate) fn resource_offers(
             limits.maximum_queue_bytes.div_ceil(1024),
         ),
     ]
+}
+
+/// Project the canonical one-prompt/one-text front onto the same initialized
+/// local-model realization. This is an additional exact back, not an alias:
+/// it keeps the portable `ai/generate-text` meaning while retaining the
+/// model-specific artifact and finite resource obligations.
+pub(crate) fn generate_text_capability_offer(
+    offer: &conduit_ai::LocalModelOffer,
+) -> Result<conduit_core::CapabilityOffer, String> {
+    let generate = offer
+        .capability_offers()
+        .map_err(|error| format!("local-model capabilities: {error:?}"))?
+        .into_iter()
+        .find(|candidate| candidate.kind_id.as_str() == conduit_ai::LLM_GENERATE_KIND)
+        .ok_or_else(|| "local-model offer does not include generation".to_string())?;
+    let contract = conduit_ai::generate_text_contract();
+    let maximum_input_bytes = u32::try_from(offer.limits.work.maximum_input_bytes)
+        .map_err(|_| "local-model input bound exceeds the canonical Host Call".to_string())?;
+    let maximum_output_bytes = u32::try_from(offer.limits.work.maximum_output_bytes)
+        .map_err(|_| "local-model output bound exceeds the canonical Host Call".to_string())?;
+    Ok(conduit_core::CapabilityOffer {
+        startup_parameters: [
+            "maximum-input-bytes",
+            "maximum-context-tokens",
+            "maximum-output-tokens",
+            "temperature-milli",
+        ]
+        .into_iter()
+        .map(|name| conduit_core::FrontStartupParameter {
+            name: name.into(),
+            value_type: conduit_core::kind_id("value/count"),
+            has_default: true,
+        })
+        .collect(),
+        shorthand: None,
+        capability_id: conduit_core::CapabilityId::from("local-model/ai/generate-text"),
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        implementation: conduit_core::ImplementationOffer {
+            execution_profile_id: conduit_core::ExecutionProfileId::from(
+                "conduit.ai/generate-text-hosted@1",
+            ),
+            implementation_id: generate.implementation.implementation_id,
+            artifact_id: generate.implementation.artifact_id,
+        },
+        host_calls: vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(
+                conduit_ai::GENERATE_TEXT_HOST_CALL,
+            ),
+            target_kind: Some(conduit_core::KindId::from(conduit_ai::GENERATE_TEXT_KIND)),
+            maximum_in_flight: offer.limits.maximum_in_flight,
+            maximum_input_bytes,
+            maximum_output_bytes,
+        }],
+        resource_requirements: generate.resource_requirements,
+        authority_requirements: Vec::new(),
+        limits: generate.limits,
+    })
 }
 
 #[cfg(test)]

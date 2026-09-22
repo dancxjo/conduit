@@ -1,4 +1,4 @@
-//! Explicit zero-Body OPEN, JOIN, and BIRTH delivery actions.
+//! Explicit zero-body OPEN, JOIN, and BIRTH delivery actions.
 
 use super::{PatchbayHtmlServer, ServerError};
 use serde::Deserialize;

@@ -1,4 +1,4 @@
-//! Singular transaction for replacing a Body workload realization.
+//! Singular transaction for replacing a body workload realization.
 
 use alloc::string::String;
 

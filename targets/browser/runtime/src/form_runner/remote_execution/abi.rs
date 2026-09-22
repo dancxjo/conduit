@@ -1,4 +1,4 @@
-//! Finite production ABI for one browser-owned remote Plan fragment.
+//! Finite production ABI for one browser-owned remote plan fragment.
 
 use super::*;
 use crate::form_runner::engine::{BrowserHostEffect, DriveStatus};
@@ -156,7 +156,7 @@ pub extern "C" fn conduit_browser_remote_start(length: u32) -> i32 {
             .first()
             .filter(|first| active_play_id.iter().all(|current| current == *first))
             .cloned()
-            .ok_or_else(|| "remote grants differ on browser Active Play identity".to_string())?;
+            .ok_or_else(|| "remote grants differ on browser Active play identity".to_string())?;
         let execution = RemoteExecution::prepare(
             &start.plan,
             &start.host,
@@ -364,7 +364,7 @@ pub extern "C" fn conduit_browser_remote_exchange(length: u32) -> i32 {
 pub extern "C" fn conduit_browser_remote_drive() -> i32 {
     with_state(|state| {
         if state.pending.is_some() {
-            return Err("remote Host effect is already pending".into());
+            return Err("remote host effect is already pending".into());
         }
         match state.execution.drive()? {
             DriveStatus::Effect(pending) => {
@@ -377,9 +377,11 @@ pub extern "C" fn conduit_browser_remote_drive() -> i32 {
                 let mut effect = serde_json::json!({
                     "schema": "conduit.browser/remote-host-effect@1",
                     "active_play_id": state.active_play_id,
+                    "plan_id": state.execution.fragment.plan_id,
                     "placement_id": placement.placement_id,
                     "host_id": placement.host_id,
                     "boot_id": placement.boot_id,
+                    "request_sequence": pending.request.request.0,
                 });
                 let object = effect.as_object_mut().unwrap();
                 match &pending.effect {
@@ -423,6 +425,9 @@ pub extern "C" fn conduit_browser_remote_drive() -> i32 {
                     }
                     BrowserHostEffect::ApplicationEvent => {
                         object.insert("effect_kind".into(), "application-event".into());
+                    }
+                    BrowserHostEffect::TutorialPresenterRequest => {
+                        object.insert("effect_kind".into(), "tutorial-presenter-request".into());
                     }
                     BrowserHostEffect::Manifestation(manifestation) => {
                         object.insert("effect_kind".into(), "manifestation".into());

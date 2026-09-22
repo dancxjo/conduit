@@ -50,7 +50,7 @@ export const STD_EXISTING_COMPUTER_CONTRIBUTIONS = Object.freeze(PROFILES.map((t
   carriers: Object.freeze({
     deployment: Object.freeze([]),
     installation: Object.freeze([
-      Object.freeze({ id: "conduit-carrier/browser-release-download@1", label: "Download Body-bound native ZIP" }),
+      Object.freeze({ id: "conduit-carrier/browser-release-download@1", label: "Download body-bound native ZIP" }),
     ]),
     attachment: Object.freeze([
       Object.freeze({ id: "conduit-carrier/rendezvous-code@1", label: "One-use rendezvous code" }),
@@ -63,7 +63,7 @@ export const STD_EXISTING_COMPUTER_CONTRIBUTIONS = Object.freeze(PROFILES.map((t
   bounds: EXISTING_COMPUTER_BOUNDS,
   expected_join_contract: "conduit.host/native-spawn-observation@1",
   target_profile: targetProfile.declaration,
-  createAdapter: ({ host }) => createExistingComputerAdapter({ host, profile: targetProfile }),
+  createAdapter: ({ host, prepareSpore = null }) => createExistingComputerAdapter({ host, profile: targetProfile, prepareSpore }),
 })));
 
 function profile({ id, label, profileId, manifest, os, architecture, machine }) {

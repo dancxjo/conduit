@@ -30,6 +30,7 @@ fn host(profile: &str, resources: Vec<conduit_core::ResourceOffer>) -> HostAdver
         boot_id: BootId::from(format!("{profile}/boot")),
         offer_generation: OfferGeneration(7),
         profile: HostProfileId::from(profile),
+        bases: vec![],
         resources,
         capabilities: vec![],
         planner_capabilities: vec![],

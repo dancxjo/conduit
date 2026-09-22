@@ -16,6 +16,7 @@ mod product_execution;
 mod product_execution_tests;
 mod protected_task;
 mod release_obtain;
+mod rendezvous_relay;
 mod report_artifact;
 mod std_websocket_line;
 #[cfg(test)]
@@ -42,13 +43,13 @@ fn patchbay_process(
         && (body_evidence.is_some() || body_invitation.is_some() || !reviewed_forms.is_empty())
     {
         return Err(
-            "opening exported Body evidence or reviewed Forms currently requires `conduit patchbay --on browser`"
+            "opening exported Body evidence or reviewed forms currently requires `conduit patchbay --on browser`"
                 .into(),
         );
     }
     if body_evidence.is_none() && (body_invitation.is_some() || !reviewed_forms.is_empty()) {
         return Err(
-            "a Body invitation or reviewed Forms require exact exported Body evidence".into(),
+            "a body invitation or reviewed forms require exact exported Body evidence".into(),
         );
     }
     let mut command = std::process::Command::new(executable);
@@ -65,7 +66,7 @@ fn patchbay_process(
         command.arg("--body-invitation").arg(url);
     }
     if !reviewed_forms.len().is_multiple_of(2) {
-        return Err("each reviewed Form requires an exact LABEL and PATH".into());
+        return Err("each reviewed form requires an exact LABEL and PATH".into());
     }
     for pair in reviewed_forms.chunks(2) {
         command.arg("--form").arg(&pair[0]).arg(&pair[1]);
@@ -282,6 +283,7 @@ fn main() {
                 public_url,
                 tls_cert,
                 tls_key,
+                relay_descriptor,
                 authorize_network,
             } => host_rendezvous::serve(
                 &state_dir,
@@ -294,6 +296,7 @@ fn main() {
                     tls_key,
                     authorize_network,
                 },
+                relay_descriptor.as_deref(),
             ),
             command => construction::host(command),
         },
@@ -332,6 +335,56 @@ fn main() {
                 },
         } => durable_host::complete_body_join(&receipt, &state_dir, authorize_membership),
         cli::Command::Body { command } => construction::body(command),
+        cli::Command::RendezvousRelay {
+            command:
+                cli::RendezvousRelayCommand::Provision {
+                    relay_address,
+                    relay_url,
+                    server_identity,
+                    certificate_sha256,
+                    first_host_id,
+                    first_boot_id,
+                    second_host_id,
+                    second_boot_id,
+                    output,
+                    expires_in_seconds,
+                    maximum_attempts,
+                    authorize_provision,
+                },
+        } => rendezvous_relay::provision(rendezvous_relay::ProvisionOptions {
+            relay_address,
+            relay_url,
+            server_identity,
+            certificate_sha256,
+            first_host_id,
+            first_boot_id,
+            second_host_id,
+            second_boot_id,
+            output,
+            expires_in_seconds,
+            maximum_attempts,
+            authorize_provision,
+        }),
+        cli::Command::RendezvousRelay {
+            command:
+                cli::RendezvousRelayCommand::Serve {
+                    bind,
+                    public_url,
+                    tls_cert,
+                    tls_key,
+                    slot,
+                    accept_timeout_seconds,
+                    authorize_network,
+                },
+        } => rendezvous_relay::serve(rendezvous_relay::ServeOptions {
+            bind,
+            public_url,
+            tls_cert,
+            tls_key,
+            slot,
+            accept_timeout_seconds,
+            authorize_network,
+        }),
         cli::Command::Check { form, json } => match diagnostics::run(&form, json) {
             Ok(true) => Ok(()),
             Ok(false) => std::process::exit(1),

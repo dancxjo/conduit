@@ -1,4 +1,4 @@
-//! Exact Body bootstrap read from the native UF2's reserved final flash sector.
+//! Exact body bootstrap read from the native UF2's reserved final flash sector.
 
 use conduit_body::{
     validate_pico_spawn_provision, PicoSpawnProvision, MAX_PICO_ADMISSION_FRAME_BYTES,

@@ -148,7 +148,7 @@ fn main() -> Result<(), String> {
     if session.current_plan_id() != Some(&first_plan)
         || session.current_play_id() != Some(&first_play)
     {
-        return Err("browser admission mutated the active Plan or Play".into());
+        return Err("browser admission mutated the active plan or Play".into());
     }
     let line_subject = format!("line/{BROWSER_LINE_ID}");
     let mut before_loss_navigation = navigate_to_line_exact(&attached, &line_subject)?;
@@ -186,7 +186,7 @@ fn main() -> Result<(), String> {
     if session.current_plan_id() != Some(&first_plan)
         || session.current_play_id() != Some(&first_play)
     {
-        return Err("Line loss mutated the active Plan or Play".into());
+        return Err("Line loss mutated the active plan or Play".into());
     }
     let after_loss_cursor = navigate_to_line_exact(&line_lost, &line_subject)?
         .cursor()
@@ -274,7 +274,7 @@ fn main() -> Result<(), String> {
         "body_id": session.body().body_id.as_str(),
         "wake_id": session
             .wake()
-            .ok_or("front-door capstone requires a current Wake")?
+            .ok_or("front-door capstone requires a current wake")?
             .wake_id
             .as_str(),
         "original_selection": original_selection,

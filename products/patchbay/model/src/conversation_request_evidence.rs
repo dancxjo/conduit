@@ -1,4 +1,4 @@
-//! Privacy-preserving evidence for the Body truth consumed by a chat request.
+//! Privacy-preserving evidence for the body truth consumed by a chat request.
 
 use serde::{Deserialize, Serialize};
 

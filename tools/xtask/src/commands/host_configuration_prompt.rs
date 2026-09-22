@@ -29,7 +29,7 @@ pub(crate) fn prompt(
     let initial_target = existing
         .and_then(|configuration| descriptor_index(&descriptors, &configuration.target))
         .unwrap_or(0);
-    let mut target_prompt = cliclack::select("Choose the Host architecture")
+    let mut target_prompt = cliclack::select("Choose the host architecture")
         .initial_value(initial_target)
         .filter_mode();
     for (index, descriptor) in descriptors.iter().enumerate() {
@@ -61,7 +61,7 @@ pub(crate) fn prompt(
             .filter(|base| choices.iter().any(|(kind, _)| kind == &base.kind))
             .map(|base| base.kind.clone())
             .collect::<Vec<_>>();
-        let mut base_prompt = cliclack::multiselect("Choose the Bases this Host implements")
+        let mut base_prompt = cliclack::multiselect("Choose the Bases this host implements")
             .initial_values(initial)
             .max_rows(8);
         for (kind, implementations) in &choices {

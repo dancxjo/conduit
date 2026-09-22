@@ -9,7 +9,7 @@ use conduit_core::{bind_active_play, CapabilityId, GearId, SignId};
 use conduit_form::{parse, ProfileCatalog};
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
 use conduit_presentation::{
-    renderer_kind_definition, Manifestation, ManifestationAdmission, ManifestationError,
+    renderer_kind_projection, Manifestation, ManifestationAdmission, ManifestationError,
     ManifestationLifecycle, ManifestationSet, Presentation,
 };
 
@@ -18,7 +18,7 @@ const SHARED_FACE_SOURCE: &str =
 
 fn two_presenter_plan() -> (conduit_form::CheckedForm, conduit_core::Plan) {
     let mut catalog = ProfileCatalog::new();
-    catalog.insert(renderer_kind_definition()).unwrap();
+    catalog.insert(renderer_kind_projection()).unwrap();
     let form = parse(SHARED_FACE_SOURCE, &catalog).unwrap();
     let native = host(
         "native-host",

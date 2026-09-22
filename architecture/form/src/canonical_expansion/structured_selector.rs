@@ -1,20 +1,20 @@
 use super::*;
-use crate::{ConfigurationField, ConfigurationRule, KindDefinition};
+use crate::{KindConfigurationField, KindConfigurationRule, KindProjection};
 use conduit_core::{
-    ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    ConfigurationValue, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
     StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub fn structured_selector_definition(
     selector: &StructuredSelector,
     temporal: PortTemporal,
-) -> KindDefinition {
+) -> KindProjection {
     let kind_id = selector
         .kind_id(temporal)
         .expect("checked selector has a finite semantic identity");
-    KindDefinition {
+    KindProjection {
         kind_id,
-        kind_contract_revision: KindContractRevision::from("structured-info/selector-operation@1"),
+        kind_contract_revision: KindIdentity::from("structured-info/selector-operation@1"),
         inputs: vec![PortDescriptor {
             port_id: conduit_core::port_id("input"),
             value_kind: selector
@@ -37,14 +37,14 @@ pub fn structured_selector_definition(
             direction: PortDirection::Output,
             temporal,
         }],
-        configuration: vec![ConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "selector".to_string(),
             default_value: ConfigurationValue::Text(
                 selector
                     .canonical_hex()
                     .expect("checked selector has a finite canonical configuration"),
             ),
-            validation: ConfigurationRule::TextBytes {
+            rule: KindConfigurationRule::TextBytes {
                 maximum: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
             },
         }],
@@ -69,7 +69,7 @@ pub(super) fn resolve_selectors(
     environment: &BTreeMap<String, CanonicalStartupValue>,
     path: &[String],
     stack: &mut Vec<String>,
-    realization_backs: &mut Vec<conduit_core::RealizationBack>,
+    realization_backs: &mut Vec<conduit_core::FormBack>,
     depth: usize,
     gears: &mut Vec<CheckedGear>,
     connections: &mut Vec<CheckedConnection>,
@@ -132,10 +132,10 @@ pub(super) fn resolve_selectors(
         let gear = CheckedCanonicalGear {
             name: None,
             kind: key,
-            startup_parameters: vec![crate::StartupParameterSignature {
+            startup_parameters: vec![conduit_core::FrontStartupParameter {
                 name: "selector".to_string(),
-                value_type: "Text".to_string(),
-                default: None,
+                value_type: conduit_core::kind_id("value/text"),
+                has_default: false,
             }],
             startup_bindings: vec![crate::CheckedStartupBinding {
                 name: "selector".to_string(),

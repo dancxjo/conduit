@@ -31,7 +31,7 @@ fn ordinary_source_checks_plans_lowers_and_installs() {
     );
     assert!(prepared.planned_sign_items > 0 && prepared.planned_sign_bytes > 0);
     let [region] = prepared.plan.fragments[0].execution_regions.as_slice() else {
-        panic!("ordinary Plan must contain exactly one execution region");
+        panic!("ordinary plan must contain exactly one execution region");
     };
     assert_eq!(region.region_id.as_str(), "region/0");
     assert_eq!(region.admitted_placements.len(), ORDINARY_PLACEMENT_COUNT);

@@ -4,6 +4,10 @@ extern crate alloc;
 
 mod relay;
 pub use relay::*;
+mod relay_candidate;
+pub use relay_candidate::*;
+mod relay_service;
+pub use relay_service::*;
 #[cfg(feature = "noise-session")]
 mod supplied_x25519;
 mod transport;

@@ -78,9 +78,9 @@ fn hosted_http_is_opt_in_and_seals_resources_operations_and_authority() {
         .iter()
         .find(|offer| offer.kind_id.as_str() == conduit_web::HTTP_SERVER_KIND)
         .unwrap();
-    assert_eq!(client.host_operations.len(), 1);
+    assert_eq!(client.host_calls.len(), 1);
     assert_eq!(client.authority_requirements.len(), 1);
-    assert_eq!(server.host_operations.len(), 2);
+    assert_eq!(server.host_calls.len(), 2);
     assert_eq!(server.authority_requirements.len(), 2);
     assert_eq!(selected.advertisement().resources.len(), 2);
 }

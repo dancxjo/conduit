@@ -89,7 +89,7 @@ function cordVisual(properties, lens) {
   const pressure = properties.get("pressure");
   const hasLine = Boolean(properties.get("line-id"));
   if (lens === "play") {
-    const pressureKnown = pressure && pressure !== "not exposed by this Play";
+    const pressureKnown = pressure && pressure !== "not exposed by this play";
     const pressureLabel = pressureKnown ? pressure : "pressure unavailable";
     const terminal = /^(Completed|Failed|Cancelled)/.test(playState || "");
     return {
@@ -97,7 +97,7 @@ function cordVisual(properties, lens) {
       className: `cord-play ${pressureKnown ? "cord-pressure-known" : "cord-pressure-unknown"}`,
       // Motion means a non-terminal Play, never inferred Info delivery. The
       // pressure label remains visible so status animation cannot pose as a
-      // measurement the Play did not expose.
+      // measurement the play did not expose.
       animated: Boolean(properties.get("active-play-id")) && !terminal,
       strokeWidth: capacity.strokeWidth,
     };

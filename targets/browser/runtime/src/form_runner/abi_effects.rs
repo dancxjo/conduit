@@ -11,7 +11,7 @@ pub extern "C" fn conduit_browser_form_poll_effect() -> i32 {
     progress(|session| session.poll_effect())
 }
 
-/// Read-only exact observation of the current Play; no completion or restart.
+/// Read-only exact observation of the current play; no completion or restart.
 #[no_mangle]
 pub extern "C" fn conduit_browser_form_signs() -> i32 {
     clear_output();
@@ -28,7 +28,7 @@ pub extern "C" fn conduit_browser_form_signs() -> i32 {
     })
 }
 
-/// Input is exact Play identity, placement identity, then optional canonical output.
+/// Input is exact play identity, placement identity, then optional canonical output.
 #[no_mangle]
 pub extern "C" fn conduit_browser_form_complete_effect(
     play_length: usize,
@@ -229,14 +229,12 @@ mod tests {
 
     #[test]
     fn kernel_failure_category_and_detail_cross_the_completion_abi() {
-        use conduit_kernel::{
-            Failure, FailureCode, HostOperationDisposition, HostOperationOutcome,
-        };
+        use conduit_kernel::{Failure, FailureCode, HostCallDisposition, HostCallOutcome};
         let source = "form test {\n complete\n message: text/literal(\"SOS\")\n morse: text/morse(120)\n light: presentation/indicator\n message > morse > light\n}\n";
         for (code, expected) in [
-            (FailureCode::HostOperationFailed, "host_operation_failed"),
+            (FailureCode::HostCallFailed, "host_call_failed"),
             (FailureCode::StorageExhausted, "storage_exhausted"),
-            (FailureCode::HostOperationDenied, "host_operation_denied"),
+            (FailureCode::HostCallDenied, "host_call_denied"),
         ] {
             let (mut session, _) =
                 TourSession::prepare("browser/test", "boot/test", source, 1).unwrap();
@@ -246,14 +244,14 @@ mod tests {
             // The ordinary scheduler and engine must retain its category.
             session
                 .scheduler
-                .complete_host_operation(
+                .complete_host_call(
                     request.node,
                     request.request,
-                    HostOperationOutcome {
-                        disposition: if code == FailureCode::HostOperationDenied {
-                            HostOperationDisposition::Denied
+                    HostCallOutcome {
+                        disposition: if code == FailureCode::HostCallDenied {
+                            HostCallDisposition::Denied
                         } else {
-                            HostOperationDisposition::Failed
+                            HostCallDisposition::Failed
                         },
                         output: None,
                         failure: Some(Failure { code, detail: 42 }),

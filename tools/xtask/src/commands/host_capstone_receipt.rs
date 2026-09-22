@@ -1,4 +1,4 @@
-//! Bounded retained evidence for the Host fabrication capstone.
+//! Bounded retained evidence for the host fabrication capstone.
 
 use conduit_body::{BodyMembership, PartId};
 use conduit_core::{ArtifactId, Plan, SignId};

@@ -1,5 +1,8 @@
 use crate::NodeId;
 
+mod selection;
+pub use selection::*;
+
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct PoolId(pub u16);
 
@@ -156,6 +159,15 @@ impl<const SLOTS: usize, const SIGN: usize> FixedSharedPool<SLOTS, SIGN> {
         self.slots[..usize::from(self.maximum_members)]
             .iter()
             .filter(|slot| slot.state == MemberState::Active)
+            .count() as u16
+    }
+
+    pub fn population_for_realization(&self, realization: u16) -> u16 {
+        self.slots[..usize::from(self.maximum_members)]
+            .iter()
+            .filter(|slot| {
+                slot.state != MemberState::Empty && slot.placement.realization == realization
+            })
             .count() as u16
     }
 

@@ -5,6 +5,33 @@ use conduit_core::{
     ProtectedResourceGrant,
 };
 
+/// Closed-world policy for Cord realization mechanisms.
+///
+/// This is deliberately unrelated to `HostAdvertisement::bases`: advertised
+/// Base providers own capability/resource provenance, while this policy only
+/// permits an in-host Cord or one exact remotely offered Line mechanism.
+#[derive(Clone, Copy)]
+pub(crate) struct LineMechanismPolicy<'a> {
+    allowed: &'a [BaseImplementationId],
+}
+
+impl<'a> LineMechanismPolicy<'a> {
+    pub(crate) const fn new(allowed: &'a [BaseImplementationId]) -> Self {
+        Self { allowed }
+    }
+
+    pub(crate) fn permits_local(self) -> bool {
+        self.allowed.contains(&BaseImplementationId::from(
+            conduit_core::LOCAL_BASE_IMPLEMENTATION_ID,
+        ))
+    }
+
+    pub(crate) fn permits_remote(self, implementation: &BaseImplementationId) -> bool {
+        implementation.as_str() != conduit_core::LOCAL_BASE_IMPLEMENTATION_ID
+            && self.allowed.contains(implementation)
+    }
+}
+
 pub type ConnectionEndpoints = (GearId, PortId, GearId, PortId);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,14 +77,14 @@ pub enum PlannerError {
     WrongSemanticKind(String),
     WrongKindContractRevision(String),
     IncompatiblePortContract(String),
-    IncompatibleCheckedFace(String),
+    IncompatibleCheckedFront(String),
     InvalidHardRealizationRequirement(String),
     HardRealizationRequirementUnsatisfied(String),
     InvalidRealizationPolicy(String),
     InvalidResourceObservation(String),
     InvalidPlanningObservation(String),
     CurrentResourceObservationUnavailable(String),
-    InvalidHostOperationRequirement(String),
+    InvalidHostCallRequirement(String),
     InvalidResourceContract(String),
     ResourceContentRefused(conduit_core::ResourceContentRefusal),
     UnavailableResource(String),
@@ -106,7 +133,7 @@ impl core::fmt::Display for PlannerError {
             Self::IncompatiblePortContract(value) => {
                 write!(f, "incompatible port contract: {value}")
             }
-            Self::IncompatibleCheckedFace(value) => {
+            Self::IncompatibleCheckedFront(value) => {
                 write!(f, "incompatible checked front: {value}")
             }
             Self::InvalidHardRealizationRequirement(value) => {
@@ -127,8 +154,8 @@ impl core::fmt::Display for PlannerError {
             Self::CurrentResourceObservationUnavailable(value) => {
                 write!(f, "current resource observation unavailable: {value}")
             }
-            Self::InvalidHostOperationRequirement(value) => {
-                write!(f, "invalid host-operation requirement: {value}")
+            Self::InvalidHostCallRequirement(value) => {
+                write!(f, "invalid Host Call requirement: {value}")
             }
             Self::ResourceContentRefused(refusal) => {
                 write!(f, "resource content refused: {refusal:?}")

@@ -79,7 +79,7 @@ test("a synchronously completed Body retains its receipt before dispatch or reti
   assert.equal(f.count().cancels, 0);
 });
 
-test("acquisition reports owned slots without starting a Play or copying offer capacity", async () => {
+test("acquisition reports owned slots without starting a play or copying offer capacity", async () => {
   const f = fixture();
   const owner = acquireBrowserBodyHost(f);
   assert.equal(f.count().starts, 0);
@@ -120,7 +120,7 @@ test("wrong Boot, excessive demand, unsupported pools, and lost slots refuse", (
   owner.close();
 });
 
-test("a Plan selecting another admitted Host retains an exact pre-Play Line refusal", () => {
+test("a plan selecting another admitted host retains an exact pre-play Line refusal", () => {
   const f = fixture();
   f.proposal.plan.plan_id = "body-plan";
   f.proposal.plan.forms[0].form = { checked_form_id: "checked/form" };
@@ -163,7 +163,7 @@ test("Body placement admission follows the runtime envelope instead of a duplica
   assert.throws(() => acquireBrowserBodyHost(f), /placement bound exceeded/);
 });
 
-test("an exact externally managed distributed Form stays in the Body Plan but outside the local scheduler", () => {
+test("an exact externally managed distributed Form stays in the body Plan but outside the local scheduler", () => {
   const f = fixture();
   f.proposal.plan.forms[0].plan.plan_id = "plan/local";
   f.proposal.plan.forms.push({ plan: { plan_id: "plan/voice", fragments: [
@@ -230,7 +230,7 @@ test("pre-start refusal and an unknown WASM start outcome remain distinct", () =
   assert.equal(owner.close().startOutcome, "not-attempted");
 });
 
-test("first access to the Body input arena may replace the WASM memory buffer", () => {
+test("first access to the body input arena may replace the WASM memory buffer", () => {
   const f = fixture();
   f.api.conduit_browser_body_input_ptr = () => {
     const next = new ArrayBuffer(1024 * 1024);

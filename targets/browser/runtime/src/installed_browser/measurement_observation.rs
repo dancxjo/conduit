@@ -1,17 +1,17 @@
 //! Exact Quantity-to-MeasurementSample work in the ordinary browser kernel.
 
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     ConfigurationValue, PlannedGear, StructuredInfoValue, TemporalInstant, TemporalScale,
 };
 use conduit_data::MeasurementSample;
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
-    OperationAction, OperationInput, PortId, RequestId,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/measurement-observation@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/measurement-observation@1";
 const IMPLEMENTATION: &str = "browser/kernel-measurement-observation@1";
 
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
@@ -31,10 +31,10 @@ fn offer() -> conduit_core::CapabilityOffer {
             inputs: definition.inputs,
             outputs: definition.outputs,
             configuration: vec![
-                conduit_semantic_catalog::StandardConfigurationField {
+                conduit_semantic_catalog::KindConfigurationField {
                     key: "clock-basis".into(),
                     default_value: ConfigurationValue::Text("control-occurrence".into()),
-                    rule: conduit_semantic_catalog::StandardConfigurationRule::TextBytes {
+                    rule: conduit_semantic_catalog::KindConfigurationRule::TextBytes {
                         maximum: conduit_data::MAXIMUM_MEASUREMENT_CLOCK_BASIS_BYTES,
                     },
                 },
@@ -44,7 +44,7 @@ fn offer() -> conduit_core::CapabilityOffer {
                 max_queue_items: 1,
                 max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
             },
-            terminal_behavior: conduit_semantic_catalog::TerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
+            terminal_behavior: conduit_semantic_catalog::KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
             hosted_implementation_required: true,
             browser_manifestation_honest: false,
             pico_manifestation_honest: false,
@@ -57,8 +57,8 @@ fn offer() -> conduit_core::CapabilityOffer {
             implementation: IMPLEMENTATION,
             artifact: "conduit-browser-runtime/measurement-observation@1",
         },
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: HOST_OPERATION.into(),
+        vec![conduit_core::HostCallRequirement {
+            contract_id: HOST_CALL.into(),
             target_kind: Some(conduit_core::kind_id(conduit_data::MEASUREMENT_OBSERVATION_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
@@ -72,10 +72,10 @@ fn offer() -> conduit_core::CapabilityOffer {
 fn prepare(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     configuration(placement)?;
-    Ok(BrowserOperation::installed(ObservationOperation {
+    Ok(BrowserBack::installed_step(ObservationBack {
         pending: false,
         completed: false,
     }))
@@ -130,57 +130,60 @@ fn perform(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, S
     })
 }
 
-struct ObservationOperation {
+struct ObservationBack {
     pending: bool,
     completed: bool,
 }
 
-impl Operation for ObservationOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending
-                && !self.completed
-                && value.byte_len == conduit_core::QUANTITY_ENCODED_LEN as u32 =>
+impl<const PORTS: usize> StepBack<PORTS> for ObservationBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if request != RequestId(0) || !self.pending {
+                return fail();
+            }
+            if outcome.disposition == HostCallDisposition::Completed
+                && outcome.output.is_some()
+                && !io.output_ready(PortId(0))
             {
-                self.pending = true;
-                OperationAction::RequestHostOperation {
-                    request: RequestId(0),
-                    operation: HostOperationId(0),
-                    input: BoundedValueRef::new(value, conduit_core::QUANTITY_ENCODED_LEN as u32)
-                        .expect("exact Quantity"),
+                return StepOutcome::Await;
+            }
+            match (outcome.disposition, outcome.output, outcome.failure) {
+                (HostCallDisposition::Completed, Some(output), None) => {
+                    io.consume_host_completion()
+                        .expect("observed measurement completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready measurement output");
+                    self.pending = false;
+                    self.completed = true;
+                    return StepOutcome::Progress;
                 }
-            }
-            OperationInput::HostOperationCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending => {
-                self.pending = false;
-                self.completed = true;
-                match (outcome.disposition, outcome.output, outcome.failure) {
-                    (HostOperationDisposition::Completed, Some(output), None) => {
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (HostOperationDisposition::Failed, None, Some(failure)) => {
-                        OperationAction::Fail(failure)
-                    }
-                    _ => fail(),
+                (HostCallDisposition::Failed, None, Some(failure)) => {
+                    return StepOutcome::Fail(failure)
                 }
+                _ => return fail(),
             }
-            OperationInput::Closed { port: PortId(0) } if !self.pending => {
-                OperationAction::Complete
-            }
-            _ => fail(),
         }
+        if let Some(value) = io.input(PortId(0)) {
+            if !self.pending
+                && !self.completed
+                && value.byte_len == conduit_core::QUANTITY_ENCODED_LEN as u32
+            {
+                let input = BoundedValueRef::new(value, conduit_core::QUANTITY_ENCODED_LEN as u32)
+                    .expect("exact Quantity");
+                io.consume(PortId(0)).expect("present measurement Quantity");
+                io.request_host_call(RequestId(0), HostCallId(0), input)
+                    .expect("measurement observation Host Call");
+                self.pending = true;
+                return StepOutcome::Progress;
+            }
+            return fail();
+        }
+        if io.input_closed(PortId(0)) && !self.pending {
+            io.consume_closed(PortId(0))
+                .expect("observed measurement closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -189,8 +192,8 @@ impl Operation for ObservationOperation {
     }
 }
 
-fn fail() -> OperationAction {
-    OperationAction::Fail(Failure {
+fn fail() -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::InvalidInput,
         detail: 61,
     })

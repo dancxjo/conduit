@@ -10,7 +10,7 @@ use smoltcp::iface::SocketStorage;
 
 use crate::{
     arch::VirtioNetReady,
-    bounded_websocket::{self, WebSocketError},
+    bounded_websocket::{BinaryWebSocketIo, BoundedWebSocket, WebSocketError},
     virtio_tcp::{VirtioTcpEndpoint, VirtioTcpError},
     virtio_tcp_stream::VirtioTcpStream,
 };
@@ -38,6 +38,11 @@ pub enum VirtioTlsError {
     Read,
     Close,
     WebSocket(WebSocketError),
+}
+
+pub(crate) enum VirtioWebSocketRunError<E> {
+    Transport(VirtioTlsError),
+    Operation(E),
 }
 
 impl VirtioTlsError {
@@ -71,12 +76,6 @@ pub fn exchange(
     expected_response_bytes: usize,
     maximum_polls: u32,
 ) -> Result<VirtioTlsReceipt, VirtioTlsError> {
-    if server_name.is_empty()
-        || pinned_certificate_der.is_empty()
-        || pinned_certificate_der.len() > MAXIMUM_CERTIFICATE_BYTES
-    {
-        return Err(VirtioTlsError::InvalidDescriptor);
-    }
     if request.is_empty() || request.len() > u16::MAX as usize {
         return Err(VirtioTlsError::RequestTooLarge);
     }
@@ -87,6 +86,60 @@ pub fn exchange(
         return Err(VirtioTlsError::ResponseTooLarge);
     }
 
+    let ((), tcp_polls) = with_websocket(
+        device,
+        tcp_seed,
+        tls_seed,
+        websocket_seed,
+        endpoint,
+        server_name,
+        pinned_certificate_der,
+        maximum_polls,
+        |websocket| {
+            websocket
+                .send_binary(request)
+                .map_err(VirtioTlsError::WebSocket)?;
+            let received = websocket
+                .receive_binary(response)
+                .map_err(VirtioTlsError::WebSocket)?;
+            if received != expected_response_bytes {
+                return Err(VirtioTlsError::ResponseTooLarge);
+            }
+            Ok(())
+        },
+    )
+    .map_err(|error| match error {
+        VirtioWebSocketRunError::Transport(error) | VirtioWebSocketRunError::Operation(error) => {
+            error
+        }
+    })?;
+    Ok(VirtioTlsReceipt {
+        tcp_polls,
+        transmitted_plaintext_bytes: request.len() as u16,
+        received_plaintext_bytes: expected_response_bytes as u16,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn with_websocket<T, E>(
+    device: VirtioNetReady,
+    tcp_seed: u64,
+    tls_seed: [u8; 32],
+    websocket_seed: [u8; 32],
+    endpoint: VirtioTcpEndpoint,
+    server_name: &str,
+    pinned_certificate_der: &[u8],
+    maximum_polls: u32,
+    operation: impl FnOnce(&mut dyn BinaryWebSocketIo) -> Result<T, E>,
+) -> Result<(T, u32), VirtioWebSocketRunError<E>> {
+    if server_name.is_empty()
+        || pinned_certificate_der.is_empty()
+        || pinned_certificate_der.len() > MAXIMUM_CERTIFICATE_BYTES
+    {
+        return Err(VirtioWebSocketRunError::Transport(
+            VirtioTlsError::InvalidDescriptor,
+        ));
+    }
     let mut tcp_receive = [0; TCP_BUFFER_BYTES];
     let mut tcp_transmit = [0; TCP_BUFFER_BYTES];
     let mut socket_storage = [SocketStorage::EMPTY];
@@ -99,7 +152,7 @@ pub fn exchange(
         &mut tcp_transmit,
         &mut socket_storage,
     )
-    .map_err(VirtioTlsError::Tcp)?;
+    .map_err(|error| VirtioWebSocketRunError::Transport(VirtioTlsError::Tcp(error)))?;
     let mut tls_receive = [0; TLS_RECORD_BUFFER_BYTES];
     let mut tls_transmit = [0; TLS_RECORD_BUFFER_BYTES];
     let config = TlsConfig::new()
@@ -112,24 +165,29 @@ pub fn exchange(
     let mut tls =
         TlsConnection::<_, Aes128GcmSha256>::new(stream, &mut tls_receive, &mut tls_transmit);
     tls.open(TlsContext::new(&config, provider))
-        .map_err(classify_handshake)?;
-    bounded_websocket::exchange(
+        .map_err(|error| VirtioWebSocketRunError::Transport(classify_handshake(error)))?;
+    let mut websocket = BoundedWebSocket::connect(
         &mut tls,
         ErasedChaCha::new(websocket_seed),
         server_name,
         "/conduit",
-        request,
-        response,
-        expected_response_bytes,
     )
-    .map_err(VirtioTlsError::WebSocket)?;
-    let stream = tls.close().map_err(|(_, _)| VirtioTlsError::Close)?;
-    let tcp_polls = stream.close_tcp().map_err(VirtioTlsError::Tcp)?;
-    Ok(VirtioTlsReceipt {
-        tcp_polls,
-        transmitted_plaintext_bytes: request.len() as u16,
-        received_plaintext_bytes: expected_response_bytes as u16,
-    })
+    .map_err(|error| VirtioWebSocketRunError::Transport(VirtioTlsError::WebSocket(error)))?;
+    let result = operation(&mut websocket);
+    let websocket_close = websocket.close();
+    let tls_close = tls.close();
+    let tcp_close = match tls_close {
+        Ok(stream) => stream.close_tcp().map_err(VirtioTlsError::Tcp),
+        Err(_) => Err(VirtioTlsError::Close),
+    };
+    let value = match result {
+        Ok(value) => value,
+        Err(error) => return Err(VirtioWebSocketRunError::Operation(error)),
+    };
+    websocket_close
+        .map_err(|error| VirtioWebSocketRunError::Transport(VirtioTlsError::WebSocket(error)))?;
+    let tcp_polls = tcp_close.map_err(VirtioWebSocketRunError::Transport)?;
+    Ok((value, tcp_polls))
 }
 
 fn classify_handshake(error: TlsError) -> VirtioTlsError {

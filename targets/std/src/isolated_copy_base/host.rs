@@ -1,5 +1,6 @@
 pub struct IsolatedFileHost {
     host: crate::StdHost,
+    registry: conduit_core::BaseRegistry,
     provider: crate::IsolatedFileBaseConfig,
 }
 
@@ -30,13 +31,51 @@ impl IsolatedFileHost {
             offer.implementation.implementation_id.as_str()
                 != conduit_std_offers::COPY_FILE_IMPLEMENTATION
         });
-        host.advertisement
-            .capabilities
-            .push(conduit_std_offers::isolated_copy_file_offer());
+        let isolated_offer = conduit_std_offers::isolated_copy_file_offer();
+        let maximum_advertised_capabilities =
+            u16::try_from(host.advertisement.capabilities.len().saturating_add(1))
+                .map_err(|_| "std Host capability inventory exceeds Base registry bounds")?;
+        let maximum_advertised_resources = u16::try_from(host.advertisement.resources.len().max(1))
+            .map_err(|_| "std Host resource inventory exceeds Base registry bounds")?;
+        let mut registry = conduit_core::BaseRegistry::new(conduit_core::BaseRegistryLimits {
+            maximum_bases: 1,
+            maximum_capabilities_per_base: 1,
+            maximum_resources_per_base: 0,
+            maximum_advertised_capabilities,
+            maximum_advertised_resources,
+        })
+        .map_err(|error| format!("isolated file Base registry: {error:?}"))?;
+        registry
+            .register(conduit_core::BaseProviderEntry {
+                base_id: conduit_core::HostBaseId::from("std/base/isolated-file-copy"),
+                provider_instance_id: provider.base_instance_id.clone(),
+                provider_generation: provider.provider_generation,
+                implementation_id: conduit_core::BaseImplementationId::from(
+                    conduit_std_offers::ISOLATED_COPY_FILE_IMPLEMENTATION,
+                ),
+                mechanism_family: conduit_core::HostBaseKindId::from("conduit.base/file-copy@1"),
+                enforcement_class: conduit_core::BaseEnforcementClass::OsCapabilityMediated,
+                lifecycle: conduit_core::BaseLifecycle::Ready,
+                capabilities: vec![isolated_offer],
+                resources: Vec::new(),
+            })
+            .map_err(|error| format!("isolated file Base registration: {error:?}"))?;
+        registry
+            .project_ready_into(&mut host.advertisement)
+            .map_err(|error| format!("isolated file Base advertisement: {error:?}"))?;
+        host.advertisement.capabilities.sort_by(|left, right| {
+            left.capability_id
+                .as_str()
+                .cmp(right.capability_id.as_str())
+        });
         host.kernel_resources =
             crate::kernel_preparation::KernelResourceLedger::new(&host.advertisement)
                 .map_err(|error| format!("isolated file Base resources: {error}"))?;
-        Ok(Self { host, provider })
+        Ok(Self {
+            host,
+            registry,
+            provider,
+        })
     }
 
     pub fn host(&self) -> &crate::StdHost {
@@ -45,6 +84,10 @@ impl IsolatedFileHost {
 
     pub fn host_mut(&mut self) -> &mut crate::StdHost {
         &mut self.host
+    }
+
+    pub fn registry(&self) -> &conduit_core::BaseRegistry {
+        &self.registry
     }
 
     pub fn run_copy_fragment(

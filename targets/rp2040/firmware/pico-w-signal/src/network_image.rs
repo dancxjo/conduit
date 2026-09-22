@@ -5,7 +5,7 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/pico_network_image.rs"));
 }
 
-use conduit_kernel::{FixedHostOperationBindings, FixedRoutes, HostOperationId, NodeId, PortId};
+use conduit_kernel::{FixedHostCallBindings, FixedRoutes, HostCallId, NodeId, PortId};
 
 pub const NODES: usize = generated::GENERATED_NODES.len();
 pub const CORDS: usize = generated::GENERATED_CORDS.len();
@@ -16,9 +16,9 @@ pub const QUEUE_SLOTS: usize = generated::CORD_VALUE_SLOTS as usize;
 // the number of populated routes.
 pub const ROUTE_SLOTS: usize = NODES * PORTS;
 pub const ROUTE_TARGETS: usize = generated::GENERATED_ROUTE_TARGETS.len();
-pub const HOST_BINDING_SLOTS: usize = generated::GENERATED_HOST_OPERATIONS.len();
-pub const PENDING_REQUESTS: usize = generated::GENERATED_HOST_OPERATIONS.len();
-// Generated SIGN_ITEMS/SIGN_BYTES are the Plan's mandatory identity-bearing
+pub const HOST_BINDING_SLOTS: usize = generated::GENERATED_HOST_CALLS.len();
+pub const PENDING_REQUESTS: usize = generated::GENERATED_HOST_CALLS.len();
+// Generated SIGN_ITEMS/SIGN_BYTES are the plan's mandatory identity-bearing
 // Sign budget. The kernel event log has a distinct fixed in-memory profile:
 // its byte charge is target-specific `KernelEvent` storage, not serialized
 // mandatory-Sign identity bytes.
@@ -45,10 +45,10 @@ pub struct NetworkJoinLayout {
     pub join_node: NodeId,
     pub join_input_port: PortId,
     pub join_output_port: PortId,
-    pub join_operation: HostOperationId,
+    pub join_host_call: HostCallId,
     pub sign_node: NodeId,
     pub sign_input_port: PortId,
-    pub sign_operation: HostOperationId,
+    pub sign_host_call: HostCallId,
 }
 
 pub fn network_join_layout() -> Option<NetworkJoinLayout> {
@@ -65,13 +65,13 @@ pub fn network_join_layout() -> Option<NetworkJoinLayout> {
                 && *info == conduit_net::NETWORK_JOIN_REQUEST_KIND
         })
         .map(|(_, port, _, _)| *port)?;
-    let join_operation = generated::GENERATED_HOST_OPERATIONS
+    let join_host_call = generated::GENERATED_HOST_CALLS
         .iter()
-        .zip(generated::GENERATED_HOST_OPERATION_IDENTITIES.iter())
+        .zip(generated::GENERATED_HOST_CALL_IDENTITIES.iter())
         .find(|((candidate, _), (contract, _, _))| {
-            *candidate == join_node && *contract == conduit_net::NETWORK_JOIN_HOST_OPERATION
+            *candidate == join_node && *contract == conduit_net::NETWORK_JOIN_HOST_CALL
         })
-        .map(|((_, binding), _)| binding.operation)?;
+        .map(|((_, binding), _)| binding.call)?;
     let join_output_port = generated::GENERATED_OUTPUT_PORTS
         .iter()
         .find(|(candidate, _, port, info)| {
@@ -93,22 +93,22 @@ pub fn network_join_layout() -> Option<NetworkJoinLayout> {
                 && *info == conduit_net::NETWORK_ATTACHMENT_KIND
         })
         .map(|(_, port, _, _)| *port)?;
-    let sign_operation = generated::GENERATED_HOST_OPERATIONS
+    let sign_host_call = generated::GENERATED_HOST_CALLS
         .iter()
-        .zip(generated::GENERATED_HOST_OPERATION_IDENTITIES.iter())
+        .zip(generated::GENERATED_HOST_CALL_IDENTITIES.iter())
         .find(|((candidate, _), (contract, _, _))| {
             *candidate == sign_node
-                && *contract == conduit_net::NETWORK_ATTACHMENT_SIGN_HOST_OPERATION
+                && *contract == conduit_net::NETWORK_ATTACHMENT_SIGN_HOST_CALL
         })
-        .map(|((_, binding), _)| binding.operation)?;
+        .map(|((_, binding), _)| binding.call)?;
     Some(NetworkJoinLayout {
         join_node,
         join_input_port,
         join_output_port,
-        join_operation,
+        join_host_call,
         sign_node,
         sign_input_port,
-        sign_operation,
+        sign_host_call,
     })
 }
 
@@ -138,9 +138,9 @@ pub fn generated_routes(
 }
 
 pub fn generated_host_bindings(
-) -> Result<FixedHostOperationBindings<HOST_BINDING_SLOTS>, conduit_kernel::ProtocolError> {
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(1);
-    for (node, binding) in generated::GENERATED_HOST_OPERATIONS {
+) -> Result<FixedHostCallBindings<HOST_BINDING_SLOTS>, conduit_kernel::ProtocolError> {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(1);
+    for (node, binding) in generated::GENERATED_HOST_CALLS {
         bindings.install(node, binding)?;
     }
     bindings.seal()?;

@@ -404,7 +404,7 @@ fn validate(
     }
     if !has_distributed_body {
         return Err(
-            "at least one Body must retain multi-Host, Line, and distributed Plan truth".into(),
+            "at least one body must retain multi-host, Line, and distributed Plan truth".into(),
         );
     }
     Ok(())
@@ -544,7 +544,7 @@ fn validate_step(
         .as_deref()
         .is_some_and(|body| body != track.body_id)
     {
-        return Err(format!("{} step cites another Body", track.track_id));
+        return Err(format!("{} step cites another body", track.track_id));
     }
     if observed.provenance.host_id.as_deref().is_some_and(|host| {
         !track
@@ -552,7 +552,7 @@ fn validate_step(
             .iter()
             .any(|candidate| candidate.host_id == host)
     }) {
-        return Err(format!("{} step cites another Host", track.track_id));
+        return Err(format!("{} step cites another host", track.track_id));
     }
     if let Some(boot) = observed.provenance.boot_id.as_deref() {
         let matching_host = observed.provenance.host_id.as_deref().is_some_and(|host| {
@@ -563,7 +563,7 @@ fn validate_step(
         });
         if !matching_host {
             return Err(format!(
-                "{} step cites a Boot outside its exact Host pair",
+                "{} step cites a Boot outside its exact host pair",
                 track.track_id
             ));
         }

@@ -1,6 +1,6 @@
 use conduit_ai::{
     ACCELERATOR_SLOT_RESOURCE, CPU_EXECUTION_RESOURCE, DATA_EGRESS_CHARACTERISTIC,
-    GENERATE_TEXT_HOST_OPERATION, MAXIMUM_CONTEXT_CHARACTERISTIC, REMOTE_GENERATE_TEXT_AUTHORITY,
+    GENERATE_TEXT_HOST_CALL, MAXIMUM_CONTEXT_CHARACTERISTIC, REMOTE_GENERATE_TEXT_AUTHORITY,
 };
 use conduit_core::{
     CharacteristicId, CharacteristicUnit, ComputePerformanceClassId, ComputeServiceGuarantee,
@@ -68,9 +68,9 @@ fn one_hard_language_reads_every_reviewed_subject_without_copying_facts() {
             value: PlannerFactValue::Boolean(false),
         },
         PlannerPredicate::Equal {
-            fact: PlannerFactRef::RequiresHostOperation(
-                conduit_core::HostOperationContractId::from(GENERATE_TEXT_HOST_OPERATION),
-            ),
+            fact: PlannerFactRef::RequiresHostCall(conduit_core::HostCallContractId::from(
+                GENERATE_TEXT_HOST_CALL,
+            )),
             value: PlannerFactValue::Boolean(true),
         },
         PlannerPredicate::AtLeast {
@@ -403,7 +403,7 @@ fn retained_r2_variants_lower_into_the_common_fact_vocabulary() {
     let resource = conduit_core::ResourceClassId::from(CPU_EXECUTION_RESOURCE);
     let characteristic = CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC);
     let authority = conduit_core::AuthorityContractId::from(REMOTE_GENERATE_TEXT_AUTHORITY);
-    let operation = conduit_core::HostOperationContractId::from(GENERATE_TEXT_HOST_OPERATION);
+    let operation = conduit_core::HostCallContractId::from(GENERATE_TEXT_HOST_CALL);
     let cases = [
         RealizationPreference::MinimizeResourceUnits(resource.clone()),
         RealizationPreference::MaximizeComputeServiceGuarantee(resource.clone()),
@@ -413,7 +413,7 @@ fn retained_r2_variants_lower_into_the_common_fact_vocabulary() {
         },
         RealizationPreference::MaximizeQueueItems,
         RealizationPreference::MaximizeQueueBytes,
-        RealizationPreference::PreferWithoutHostOperation(operation.clone()),
+        RealizationPreference::PreferWithoutHostCall(operation.clone()),
         RealizationPreference::PreferWithoutAuthority(authority.clone()),
         RealizationPreference::MinimizeCharacteristicCount(characteristic.clone()),
         RealizationPreference::MaximizeCharacteristicCount(characteristic.clone()),
@@ -437,7 +437,7 @@ fn retained_r2_variants_lower_into_the_common_fact_vocabulary() {
             },
             PlannerFactRef::OfferQueueItems,
             PlannerFactRef::OfferQueueBytes,
-            PlannerFactRef::RequiresHostOperation(operation),
+            PlannerFactRef::RequiresHostCall(operation),
             PlannerFactRef::RequiresAuthority(authority),
             PlannerFactRef::RealizationCharacteristic(characteristic.clone()),
             PlannerFactRef::RealizationCharacteristic(characteristic.clone()),

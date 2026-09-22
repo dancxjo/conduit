@@ -43,7 +43,7 @@ fn live_drained_play_stays_attached_until_explicit_cancellation() {
     });
 
     assert!(control.wait_until_quiescent(Duration::from_secs(2)));
-    assert!(!handle.is_finished(), "quiescence must not finish the Play");
+    assert!(!handle.is_finished(), "quiescence must not finish the play");
     control
         .request_stop(RunControlRequestId::new("test/operator-stop").unwrap())
         .unwrap();

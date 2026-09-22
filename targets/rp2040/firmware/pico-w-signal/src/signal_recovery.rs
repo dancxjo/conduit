@@ -94,7 +94,7 @@ pub async fn run(
         {
             remain_bootsel(link).await
         }
-        // Plan B reached reciprocal terminal agreement. The Body may Lull and
+        // Plan B reached reciprocal terminal agreement. The body may Lull and
         // a later Wake may query Plan C without rebooting this Pico.
     }
 }

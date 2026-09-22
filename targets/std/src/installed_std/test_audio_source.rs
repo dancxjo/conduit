@@ -1,15 +1,16 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation, AUDIO_PCM_INFO_ID};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, ImplementationId, KindContractRevision, PlannedGear, PortDescriptor,
-    PortDirection, PortTemporal,
+    ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
+    PortTemporal,
 };
-use conduit_form::{KindDefinition, ProfileCatalog};
+use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationInput, RequestId,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, RequestId,
 };
-use conduit_kernel::{OperationAction, PortId, ValueRef, ValueStorage};
+use conduit_kernel::{PortId, ValueRef, ValueStorage};
 
 pub(super) const KIND: &str = "conduit-proof/pcm-specimen-source";
 const REVISION: &str = "conduit-proof/pcm-specimen-source@1";
@@ -20,64 +21,65 @@ const BLOCKS: u16 = 96;
 const YIELDS: usize = BLOCKS as usize - 1;
 pub(super) const YIELD_OPERATION: &str = "conduit-proof/audio-source-yield@1";
 
-pub(super) static FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
     budget,
     prepare,
 };
 
-pub(super) struct TestPcmSourceOperation {
+pub(super) struct TestPcmSourceBack {
     pub(super) values: [ValueRef; BLOCKS as usize],
     yield_markers: [ValueRef; YIELDS],
     pub(super) next: usize,
     pending: Option<RequestId>,
 }
 
-impl TestPcmSourceOperation {
-    pub(super) fn emit_or_complete(&self) -> OperationAction {
-        self.values
-            .get(self.next)
-            .copied()
-            .map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                port: PortId(0),
-                value,
-            })
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+impl<const PORTS: usize> StepBack<PORTS> for TestPcmSourceBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
             {
-                self.pending = None;
-                self.emit_or_complete()
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidLifecycle,
+                    detail: 64,
+                });
             }
-            _ => InstalledOperation::fail(64),
+            io.consume_host_completion()
+                .expect("observed PCM fixture yield");
+            self.pending = None;
+            return StepOutcome::Progress;
         }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
+        let Some(value) = self.values.get(self.next).copied() else {
+            return StepOutcome::Complete;
+        };
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), value).expect("ready PCM fixture output");
         self.next += 1;
-        if self.next >= self.values.len() {
-            return OperationAction::Complete;
+        if self.next < self.values.len() {
+            let request = RequestId(self.next as u32);
+            io.request_host_call(
+                request,
+                HostCallId(0),
+                BoundedValueRef::new(self.yield_markers[self.next - 1], 1)
+                    .expect("yield marker is one byte"),
+            )
+            .expect("PCM fixture yield Host Call");
+            self.pending = Some(request);
         }
-        let request = RequestId(self.next as u32);
-        self.pending = Some(request);
-        OperationAction::RequestHostOperation {
-            request,
-            operation: HostOperationId(0),
-            input: BoundedValueRef::new(self.yield_markers[self.next - 1], 1)
-                .expect("yield marker is one byte"),
-        }
+        StepOutcome::Progress
     }
 
-    pub(super) fn cancel(&mut self) {
+    fn cancel(&mut self) {
         self.pending = None;
     }
 }
+
+impl TestPcmSourceBack {}
 
 pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {
@@ -85,7 +87,7 @@ pub(super) fn offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-pcm-source"),
         kind_id: kind_id(KIND),
-        kind_contract_revision: KindContractRevision::from(REVISION),
+        kind_contract_revision: KindIdentity::from(REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
@@ -93,8 +95,8 @@ pub(super) fn offer() -> CapabilityOffer {
         },
         inputs: Vec::new(),
         outputs: outputs(),
-        host_operations: vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(YIELD_OPERATION),
+        host_calls: vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(YIELD_OPERATION),
             target_kind: None,
             maximum_in_flight: 1,
             maximum_input_bytes: 1,
@@ -112,12 +114,12 @@ pub(super) fn offer() -> CapabilityOffer {
 
 pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(KIND),
-            kind_contract_revision: KindContractRevision::from(REVISION),
+            kind_contract_revision: KindIdentity::from(REVISION),
             inputs: Vec::new(),
             outputs: outputs(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .expect("test PCM source kind is unique");
 }
@@ -139,7 +141,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id.as_str() != ARTIFACT
         || !placement.inputs.is_empty()
         || placement.outputs != outputs()
-        || placement.host_operations != offer().host_operations
+        || placement.host_calls != offer().host_calls
         || !placement.resources.is_empty()
         || !placement.authority.is_empty()
         || !placement.configuration.is_empty()
@@ -149,9 +151,9 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     Ok(())
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: BLOCKS + YIELDS as u16,
         value_bytes: BLOCKS as u32 * conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES
             + YIELDS as u32,
@@ -164,7 +166,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
     let stored: [Result<ValueRef, String>; BLOCKS as usize] = core::array::from_fn(|index| {
         let frame_count = conduit_semantic_catalog::AUDIO_PLAY_ALSA_PERIOD_FRAMES;
@@ -203,14 +205,12 @@ fn prepare(
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
         .map_err(|_| "test PCM yield count changed")?;
-    Ok(InstalledOperation::TestPcmSource(Box::new(
-        TestPcmSourceOperation {
-            values: stored
-                .try_into()
-                .map_err(|_| "test PCM block count changed")?,
-            yield_markers,
-            next: 0,
-            pending: None,
-        },
-    )))
+    Ok(InstalledBack::TestPcmSource(Box::new(TestPcmSourceBack {
+        values: stored
+            .try_into()
+            .map_err(|_| "test PCM block count changed")?,
+        yield_markers,
+        next: 0,
+        pending: None,
+    })))
 }

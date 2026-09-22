@@ -1,16 +1,15 @@
 //! Browser-owned bounded PCM capture and safe playback installations.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    kind_id, resource_requirement, ArtifactId, AuthorityContractId, AuthorityRequirement,
-    CapabilityId, CapabilityOffer, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
-    PlannedGear,
+    kind_id, resource_requirement, AuthorityContractId, AuthorityRequirement, CapabilityOffer,
+    HostCallContractId, HostCallRequirement, PlannedGear,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 pub(crate) const CAPTURE_IMPLEMENTATION: &str = "browser/pcm-push-to-talk@1";
@@ -44,29 +43,19 @@ pub(crate) static PLAYBACK: BrowserInstallation = BrowserInstallation {
     perform: None,
 };
 
-fn identity(implementation: &str) -> ImplementationOffer {
-    ImplementationOffer {
-        execution_profile_id: ExecutionProfileId::from(PROFILE),
-        implementation_id: ImplementationId::from(implementation),
-        artifact_id: ArtifactId::from(ARTIFACT),
-    }
-}
-
 pub(crate) fn capture_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::audio_capture_push_to_talk_contract();
-    CapabilityOffer {
-        startup_parameters: conduit_semantic_catalog::startup_front(&contract.configuration),
-        shorthand: None,
-        capability_id: CapabilityId::from(CAPTURE_IMPLEMENTATION),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_REVISION,
-        ),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: identity(CAPTURE_IMPLEMENTATION),
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(CAPTURE_OPERATION),
+    conduit_semantic_catalog::realization_offer(
+        contract,
+        conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
+            capability: CAPTURE_IMPLEMENTATION,
+            execution_profile: PROFILE,
+            implementation: CAPTURE_IMPLEMENTATION,
+            artifact: ARTIFACT,
+        },
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(CAPTURE_OPERATION),
             target_kind: Some(kind_id(
                 conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_KIND,
             )),
@@ -75,56 +64,52 @@ pub(crate) fn capture_offer() -> CapabilityOffer {
             maximum_output_bytes: conduit_audio::MAXIMUM_PCM_FRAME_BYTES
                 + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32,
         }],
-        resource_requirements: vec![resource_requirement(CAPTURE_RESOURCE, 1)],
-        authority_requirements: vec![AuthorityRequirement {
+        vec![resource_requirement(CAPTURE_RESOURCE, 1)],
+        vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(CAPTURE_AUTHORITY),
-            host_operation_contract_id: HostOperationContractId::from(CAPTURE_OPERATION),
+            host_call_contract_id: HostCallContractId::from(CAPTURE_OPERATION),
             subject_kind: kind_id(conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_KIND),
         }],
-        limits: contract.limits,
-    }
+    )
 }
 
 pub(crate) fn playback_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::audio_play_contract();
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id: CapabilityId::from(PLAY_IMPLEMENTATION),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::AUDIO_PLAY_REVISION,
-        ),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: identity(PLAY_IMPLEMENTATION),
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(PLAY_OPERATION),
+    conduit_semantic_catalog::realization_offer(
+        contract,
+        conduit_semantic_catalog::AUDIO_PLAY_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
+            capability: PLAY_IMPLEMENTATION,
+            execution_profile: PROFILE,
+            implementation: PLAY_IMPLEMENTATION,
+            artifact: ARTIFACT,
+        },
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(PLAY_OPERATION),
             target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_audio::MAXIMUM_PCM_FRAME_BYTES
                 + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32,
             maximum_output_bytes: 0,
         }],
-        resource_requirements: vec![resource_requirement(PLAY_RESOURCE, 1)],
-        authority_requirements: vec![AuthorityRequirement {
+        vec![resource_requirement(PLAY_RESOURCE, 1)],
+        vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(PLAY_AUTHORITY),
-            host_operation_contract_id: HostOperationContractId::from(PLAY_OPERATION),
+            host_call_contract_id: HostCallContractId::from(PLAY_OPERATION),
             subject_kind: kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
         }],
-        limits: contract.limits,
-    }
+    )
 }
 
 fn prepare_capture(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &capture_offer())?;
     let request = values
         .store(&[0])
         .map_err(|error| format!("store browser microphone request: {error:?}"))?;
-    Ok(BrowserOperation::installed(CaptureOperation {
+    Ok(BrowserBack::installed_step(CaptureBack {
         request,
         next: 0,
         pending: false,
@@ -135,77 +120,73 @@ fn prepare_capture(
 fn prepare_playback(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &playback_offer())?;
-    Ok(BrowserOperation::installed(PlaybackOperation {
+    Ok(BrowserBack::installed_step(PlaybackBack {
         next: 0,
         pending: None,
-        input_closed: false,
     }))
 }
 
-struct CaptureOperation {
+struct CaptureBack {
     request: ValueRef,
     next: u32,
     pending: bool,
     completed: bool,
 }
 
-impl CaptureOperation {
-    fn request(&mut self) -> OperationAction {
+impl CaptureBack {
+    fn request<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) {
+        io.request_host_call(
+            RequestId(self.next),
+            HostCallId(0),
+            BoundedValueRef::new(self.request, 1).expect("capture request is one byte"),
+        )
+        .expect("browser capture Host Call");
         self.pending = true;
-        OperationAction::RequestHostOperation {
-            request: RequestId(self.next),
-            operation: HostOperationId(0),
-            input: BoundedValueRef::new(self.request, 1).expect("capture request is one byte"),
-        }
     }
 }
 
-impl Operation for CaptureOperation {
-    fn start(&mut self) -> OperationAction {
-        self.request()
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending && request == RequestId(self.next) =>
-            {
-                self.pending = false;
-                if outcome.disposition != HostOperationDisposition::Completed
-                    || outcome.failure.is_some()
-                {
-                    return host_failure(outcome.disposition);
-                }
-                match outcome.output {
-                    Some(output) => OperationAction::Emit {
-                        port: PortId(0),
-                        value: output.value,
-                    },
-                    None => {
-                        self.completed = true;
-                        OperationAction::Complete
-                    }
-                }
+impl<const PORTS: usize> StepBack<PORTS> for CaptureBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if !self.pending || request != RequestId(self.next) {
+                return invalid(1);
             }
-            _ => invalid(1),
+            if outcome.disposition != HostCallDisposition::Completed || outcome.failure.is_some() {
+                return host_failure(outcome.disposition);
+            }
+            let Some(output) = outcome.output else {
+                io.consume_host_completion()
+                    .expect("observed completed browser capture");
+                self.pending = false;
+                self.completed = true;
+                return StepOutcome::Complete;
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(next) = self.next.checked_add(1) else {
+                return identity_exhausted();
+            };
+            io.consume_host_completion()
+                .expect("observed browser capture frame");
+            io.send(PortId(0), output.value)
+                .expect("ready browser capture output");
+            self.pending = false;
+            if next >= MAXIMUM_CAPTURE_REQUESTS {
+                self.completed = true;
+                return StepOutcome::Complete;
+            }
+            self.next = next;
+            self.request(io);
+            return StepOutcome::Progress;
         }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        if self.completed || self.pending {
-            return invalid(2);
+        if !self.pending && !self.completed {
+            self.request(io);
+            return StepOutcome::Progress;
         }
-        let Some(next) = self.next.checked_add(1) else {
-            return identity_exhausted();
-        };
-        if next >= MAXIMUM_CAPTURE_REQUESTS {
-            self.completed = true;
-            return OperationAction::Complete;
-        }
-        self.next = next;
-        self.request()
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -214,102 +195,97 @@ impl Operation for CaptureOperation {
     }
 }
 
-struct PlaybackOperation {
+struct PlaybackBack {
     next: u32,
     pending: Option<RequestId>,
-    input_closed: bool,
 }
 
-impl Operation for PlaybackOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                self.input_closed = true;
-                OperationAction::Complete
+impl<const PORTS: usize> StepBack<PORTS> for PlaybackBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return invalid(3);
             }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request) =>
+            if outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
+                || outcome.output.is_some()
             {
-                self.pending = None;
-                if outcome.disposition != HostOperationDisposition::Completed
-                    || outcome.failure.is_some()
-                    || outcome.output.is_some()
-                {
-                    host_failure(outcome.disposition)
-                } else if self.input_closed {
-                    OperationAction::Complete
-                } else {
-                    OperationAction::Await
-                }
+                return host_failure(outcome.disposition);
             }
-            _ => invalid(3),
+            let Some(next) = self.next.checked_add(1) else {
+                return identity_exhausted();
+            };
+            io.consume_host_completion()
+                .expect("observed browser playback completion");
+            self.pending = None;
+            self.next = next;
+            return StepOutcome::Progress;
         }
-    }
-
-    fn resume_value(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> OperationAction {
-        if port != PortId(0) || self.pending.is_some() || self.input_closed {
-            return invalid(4);
-        }
-        let Ok((header, payload)) = conduit_audio::PcmFrameHeader::decode_frame(canonical) else {
-            return invalid(5);
-        };
-        if header.validate_payload(payload).is_err() {
-            return invalid(6);
-        }
-        let request = RequestId(self.next);
-        self.pending = Some(request);
-        OperationAction::RequestHostOperation {
-            request,
-            operation: HostOperationId(0),
-            input: BoundedValueRef::new(
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() {
+                return invalid(4);
+            }
+            let Some(canonical) = input_bytes.input(PortId(0)) else {
+                return invalid(5);
+            };
+            if canonical.len() != value.byte_len as usize {
+                return invalid(5);
+            }
+            let Ok((header, payload)) = conduit_audio::PcmFrameHeader::decode_frame(canonical)
+            else {
+                return invalid(5);
+            };
+            if header.validate_payload(payload).is_err() {
+                return invalid(6);
+            }
+            let request = RequestId(self.next);
+            let input = BoundedValueRef::new(
                 value,
                 conduit_audio::MAXIMUM_PCM_FRAME_BYTES
                     + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32,
             )
-            .expect("validated PCM fits the playback operation"),
+            .expect("validated PCM fits the playback operation");
+            io.consume(PortId(0)).expect("present PCM frame");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("browser playback Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
         }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        let Some(next) = self.next.checked_add(1) else {
-            return identity_exhausted();
-        };
-        self.next = next;
-        if self.input_closed {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed PCM input closure");
+            return StepOutcome::Complete;
         }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
         self.pending = None;
-        self.input_closed = true;
     }
 }
 
-fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
+fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::InvalidInput,
         detail,
     })
 }
 
-fn host_failure(disposition: HostOperationDisposition) -> OperationAction {
+fn host_failure(disposition: HostCallDisposition) -> StepOutcome {
     let code = match disposition {
-        HostOperationDisposition::Denied => FailureCode::HostOperationDenied,
-        HostOperationDisposition::Cancelled => FailureCode::Cancelled,
-        _ => FailureCode::HostOperationFailed,
+        HostCallDisposition::Denied => FailureCode::HostCallDenied,
+        HostCallDisposition::Cancelled => FailureCode::Cancelled,
+        _ => FailureCode::HostCallFailed,
     };
-    OperationAction::Fail(Failure { code, detail: 7 })
+    StepOutcome::Fail(Failure { code, detail: 7 })
 }
 
-fn identity_exhausted() -> OperationAction {
-    OperationAction::Fail(Failure {
+fn identity_exhausted() -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::IdentityCapacityExhausted,
         detail: 8,
     })
@@ -318,6 +294,15 @@ fn identity_exhausted() -> OperationAction {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduit_kernel::HostCallOutcome;
+
+    fn value(slot: u16, byte_len: usize) -> ValueRef {
+        ValueRef {
+            slot,
+            generation: 1,
+            byte_len: byte_len as u32,
+        }
+    }
 
     #[test]
     fn browser_pcm_offers_seal_distinct_resource_and_authority_truth() {
@@ -327,7 +312,7 @@ mod tests {
             conduit_semantic_catalog::AUDIO_CAPTURE_PUSH_TO_TALK_KIND
         );
         assert_eq!(
-            capture.host_operations[0].contract_id.as_str(),
+            capture.host_calls[0].contract_id.as_str(),
             CAPTURE_OPERATION
         );
         assert_eq!(
@@ -339,7 +324,7 @@ mod tests {
             CAPTURE_AUTHORITY
         );
         assert_eq!(
-            capture.host_operations[0].target_kind,
+            capture.host_calls[0].target_kind,
             Some(capture.authority_requirements[0].subject_kind.clone())
         );
         assert_eq!(
@@ -352,10 +337,7 @@ mod tests {
             playback.kind_id.as_str(),
             conduit_semantic_catalog::AUDIO_PLAY_KIND
         );
-        assert_eq!(
-            playback.host_operations[0].contract_id.as_str(),
-            PLAY_OPERATION
-        );
+        assert_eq!(playback.host_calls[0].contract_id.as_str(), PLAY_OPERATION);
         assert_eq!(
             playback.resource_requirements[0].class_id.as_str(),
             PLAY_RESOURCE
@@ -363,6 +345,102 @@ mod tests {
         assert_eq!(
             playback.authority_requirements[0].contract_id.as_str(),
             PLAY_AUTHORITY
+        );
+    }
+
+    #[test]
+    fn capture_preserves_pending_frame_under_output_pressure_and_rearms() {
+        let mut operation = CaptureBack {
+            request: value(0, 1),
+            next: 0,
+            pending: false,
+            completed: false,
+        };
+        let mut start = StepIo::test_frame([None], [false], [Some(64)], None, 4);
+        assert_eq!(
+            operation.step(&mut start, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert_eq!(
+            start.test_host_request().map(|request| request.0),
+            Some(RequestId(0))
+        );
+        let frame = value(1, 32);
+        let outcome = HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
+            output: Some(BoundedValueRef::new(frame, 64).unwrap()),
+            failure: None,
+        };
+        let mut blocked =
+            StepIo::test_frame([None], [false], [None], Some((RequestId(0), outcome)), 5);
+        assert_eq!(
+            operation.step(&mut blocked, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Await
+        );
+        assert!(operation.pending);
+        assert_eq!(operation.next, 0);
+        let mut ready = StepIo::test_frame(
+            [None],
+            [false],
+            [Some(64)],
+            Some((RequestId(0), outcome)),
+            5,
+        );
+        assert_eq!(
+            operation.step(&mut ready, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert_eq!(ready.test_output(PortId(0)), Some(frame));
+        assert_eq!(
+            ready.test_host_request().map(|request| request.0),
+            Some(RequestId(1))
+        );
+    }
+
+    #[test]
+    fn playback_validates_pcm_before_request_and_completes_after_closure() {
+        let payload = [0_u8; 4];
+        let frame = conduit_audio::PcmFrameHeader::new(
+            conduit_audio::PcmSampleRepresentation::Signed16LittleEndian,
+            16_000,
+            conduit_audio::PcmChannelLayout::Mono,
+            2,
+            1,
+            0,
+            false,
+        )
+        .unwrap()
+        .encode_frame(&payload)
+        .unwrap();
+        let input = value(1, frame.len());
+        let mut operation = PlaybackBack {
+            next: 0,
+            pending: None,
+        };
+        let mut io = StepIo::test_frame([Some(input)], [false], [None], None, 4);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([Some(&frame)], None),),
+            StepOutcome::Progress
+        );
+        assert_eq!(
+            io.test_host_request().map(|request| request.0),
+            Some(RequestId(0))
+        );
+        let completion = HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
+            output: None,
+            failure: None,
+        };
+        let mut completed =
+            StepIo::test_frame([None], [false], [None], Some((RequestId(0), completion)), 4);
+        assert_eq!(
+            operation.step(&mut completed, &StepInputBytes::test_frame([None], None),),
+            StepOutcome::Progress
+        );
+        let mut closed = StepIo::test_frame([None], [true], [None], None, 4);
+        assert_eq!(
+            operation.step(&mut closed, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Complete
         );
     }
 }

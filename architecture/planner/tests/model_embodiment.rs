@@ -16,7 +16,7 @@ fn embodiment_observation_is_derived_from_the_sealed_plan() {
         &plan,
         ActivePlayId::from("play/model-effect"),
         &PlacementId::from("placement/proposer"),
-        &kind_id("value/text@1"),
+        &kind_id("value/text"),
         &kind_id(EFFECT_KIND),
         "proposal/model/plan-derived".into(),
         ProposalDecisionOutcome::Authorized {
@@ -52,7 +52,7 @@ fn mutation_after_sealing_cannot_change_the_observed_situation() {
             &plan,
             ActivePlayId::from("play/mutated"),
             &PlacementId::from("placement/proposer"),
-            &kind_id("value/text@1"),
+            &kind_id("value/text"),
             &kind_id(EFFECT_KIND),
             "proposal/mutated".into(),
             ProposalDecisionOutcome::Refused(conduit_ai::ProposalRefusal::UnwiredOperation),
@@ -79,7 +79,7 @@ fn three_sealed_forms_mechanically_add_expression_then_narrow_effect_power() {
                 plan,
                 ActivePlayId::from(format!("play/embodied/{index}")),
                 &PlacementId::from("placement/model"),
-                &kind_id("value/text@1"),
+                &kind_id("value/text"),
                 &kind_id("effect/indicator-set@1"),
                 format!("proposal/embodied/{index}"),
                 if authorized {
@@ -103,7 +103,7 @@ fn three_sealed_forms_mechanically_add_expression_then_narrow_effect_power() {
         body_id: "body/embodied".into(),
         perception_value_kind: kind_id("perception/scene-summary@1"),
         state_value_kind: kind_id("robotics/battery-state@1"),
-        expressive_value_kind: kind_id("value/text@1"),
+        expressive_value_kind: kind_id("value/text"),
         protected_effect_kind: kind_id("effect/indicator-set@1"),
         views,
         ambient_host_access: false,
@@ -111,13 +111,10 @@ fn three_sealed_forms_mechanically_add_expression_then_narrow_effect_power() {
 
     receipt.validate().unwrap();
     assert_eq!(receipt.views[0].wired_outputs, Vec::<KindId>::new());
-    assert_eq!(
-        receipt.views[1].wired_outputs,
-        vec![kind_id("value/text@1")]
-    );
+    assert_eq!(receipt.views[1].wired_outputs, vec![kind_id("value/text")]);
     assert_eq!(
         receipt.views[2].wired_outputs,
-        vec![kind_id("llm/proposal-result@1"), kind_id("value/text@1")]
+        vec![kind_id("llm/proposal-result@1"), kind_id("value/text")]
     );
 }
 
@@ -142,7 +139,7 @@ fn graph_plan(stage: usize) -> Plan {
         port("state", "robotics/battery-state@1", PortDirection::Input),
     ];
     placements[2].outputs = vec![
-        port("expression", "value/text@1", PortDirection::Output),
+        port("expression", "value/text", PortDirection::Output),
         port("proposal", "llm/proposal-result@1", PortDirection::Output),
     ];
     let mut connections = vec![
@@ -165,7 +162,7 @@ fn graph_plan(stage: usize) -> Plan {
     ];
     if stage > 0 {
         let mut presenter = gear("placement/presenter", "presentation/text@1");
-        presenter.inputs = vec![port("text", "value/text@1", PortDirection::Input)];
+        presenter.inputs = vec![port("text", "value/text", PortDirection::Input)];
         placements.push(presenter);
         connections.push(connection(
             "model-presenter",
@@ -173,7 +170,7 @@ fn graph_plan(stage: usize) -> Plan {
             "expression",
             "placement/presenter",
             "text",
-            "value/text@1",
+            "value/text",
         ));
     }
     if stage > 1 {
@@ -183,8 +180,8 @@ fn graph_plan(stage: usize) -> Plan {
             "llm/proposal-result@1",
             PortDirection::Input,
         )];
-        effect.host_operations = vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from("conduit.host/present-value@1"),
+        effect.host_calls = vec![HostCallRequirement {
+            contract_id: HostCallContractId::from("conduit.host/present-value@1"),
             target_kind: Some(kind_id("effect/indicator-set@1")),
             maximum_in_flight: 1,
             maximum_input_bytes: 1_024,
@@ -193,9 +190,7 @@ fn graph_plan(stage: usize) -> Plan {
         effect.authority = vec![AuthorityBinding {
             grant_id: AuthorityGrantId::from("grant/indicator-only"),
             contract_id: AuthorityContractId::from("authority/indicator-set@1"),
-            host_operation_contract_id: HostOperationContractId::from(
-                "conduit.host/present-value@1",
-            ),
+            host_call_contract_id: HostCallContractId::from("conduit.host/present-value@1"),
             subject_kind: kind_id("effect/indicator-set@1"),
             host_id: HostId::from("host/a"),
             boot_id: BootId::from("boot/a"),
@@ -255,7 +250,7 @@ fn gear(id: &str, kind: &str) -> PlannedGear {
         placement_id: PlacementId::from(id),
         gear_id: GearId::from("gear/model"),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("conduit.{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("conduit.{kind}@1")),
         execution_profile_id: ExecutionProfileId::from("test/hosted@1"),
         configuration: vec![],
         host_id: HostId::from("host/a"),
@@ -264,6 +259,7 @@ fn gear(id: &str, kind: &str) -> PlannedGear {
         capability_id: CapabilityId::from(format!("capability/{id}")),
         implementation_id: ImplementationId::from("ollama/gpt-oss:20b/exact-digest"),
         artifact_id: ArtifactId::from("artifact/gpt-oss:20b"),
+        base: None,
         realization_characteristics: vec![],
         limits: CapabilityLimits {
             max_active_instances: 1,
@@ -272,7 +268,7 @@ fn gear(id: &str, kind: &str) -> PlannedGear {
         },
         inputs: vec![],
         outputs: vec![],
-        host_operations: vec![],
+        host_calls: vec![],
         resources: vec![],
         authority: vec![],
         pool_references: vec![],

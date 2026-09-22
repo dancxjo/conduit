@@ -4,10 +4,10 @@ use conduit_core::{
     ActivePlayId, AdmittedLine, ArtifactId, AuthorityBinding, AuthorityRequirement, BootId,
     CapabilityId, CapabilityLimits, CheckedFormId, ConnectionId, ConnectionTerminalDisposition,
     DeviceAssociation, ExecutionProfileId, ExecutionRegionId, ExecutionScheduling, ExpandedFormId,
-    FragmentId, HostAdvertisement, HostBaseId, HostBaseKindId, HostId, HostOperationRequirement,
-    HostProfileId, ImplementationId, KindContractRevision, KindId, LineOffer, Observation,
-    OfferGeneration, PlacementId, Plan, PlanId, PlannerCapabilityOffer, PortDescriptor,
-    PresentationId, ResourceBinding, ResourceOffer, ResourceRequirement, SignId, SourceDocumentId,
+    FragmentId, HostAdvertisement, HostBaseId, HostBaseKindId, HostCallRequirement, HostId,
+    HostProfileId, ImplementationId, KindId, KindIdentity, LineOffer, Observation, OfferGeneration,
+    PlacementId, Plan, PlanId, PlannerCapabilityOffer, PortDescriptor, PresentationId,
+    ResourceBinding, ResourceOffer, ResourceRequirement, SignId, SourceDocumentId,
     TerminalDisposition,
 };
 use serde::{Deserialize, Serialize};
@@ -90,6 +90,12 @@ pub struct BaseReport {
     pub provider_instance_id: conduit_core::BaseInstanceId,
     pub provider_generation: u64,
     pub kind_id: HostBaseKindId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub implementation_id: Option<conduit_core::BaseImplementationId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enforcement_class: Option<conduit_core::BaseEnforcementClass>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lifecycle: Option<conduit_core::BaseLifecycle>,
     pub state: OperationalState,
     pub capacity_units: u64,
 }
@@ -238,12 +244,12 @@ pub struct CapabilityRow {
     pub boot_id: BootId,
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub execution_profile_id: ExecutionProfileId,
     pub implementation_id: ImplementationId,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
-    pub host_operations: Vec<HostOperationRequirement>,
+    pub host_calls: Vec<HostCallRequirement>,
     pub resource_requirements: Vec<ResourceRequirement>,
     pub authority_requirements: Vec<AuthorityRequirement>,
     pub limits: CapabilityLimits,
@@ -308,11 +314,11 @@ pub struct PlacementRow {
     pub offer_generation: OfferGeneration,
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub execution_profile_id: ExecutionProfileId,
     pub implementation_id: ImplementationId,
     pub artifact_id: ArtifactId,
-    pub host_operations: Vec<HostOperationRequirement>,
+    pub host_calls: Vec<HostCallRequirement>,
     pub resources: Vec<ResourceBinding>,
     pub authority: Vec<AuthorityBinding>,
 }

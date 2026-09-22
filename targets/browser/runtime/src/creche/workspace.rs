@@ -31,7 +31,7 @@ struct CatalogFallback {
 }
 
 pub(crate) fn workspace_evidence() -> Result<BodyBiographyEvidence, String> {
-    super::session::biography().ok_or_else(|| "Birth a Body before arriving".into())
+    super::session::biography().ok_or_else(|| "Birth a body before arriving".into())
 }
 
 pub(crate) fn handoff_workspace() {
@@ -150,12 +150,12 @@ fn catalog_form_plan(
         1 => crate::installed_browser::PresentationProfile::Quantity,
         2 => crate::installed_browser::PresentationProfile::NormalizedDurations,
         3 => crate::installed_browser::PresentationProfile::PatternComparison,
-        _ => return Err("reviewed Form has an unsupported presentation profile".into()),
+        _ => return Err("reviewed form has an unsupported presentation profile".into()),
     };
     let document =
         super::initial_forms::check_source_for_presentation(&entry.source, presentation)?;
     if document.source_document_id.as_str() != entry.source_document_id {
-        return Err("reviewed Form has stale source identity".into());
+        return Err("reviewed form has stale source identity".into());
     }
     let form = document
         .forms
@@ -163,7 +163,7 @@ fn catalog_form_plan(
         .find(|form| {
             form.name == entry.entry && form.checked_form_id.as_str() == entry.checked_form_id
         })
-        .ok_or("reviewed Form has stale checked identity")?;
+        .ok_or("reviewed form has stale checked identity")?;
     let (startup, mut profile) = crate::installed_browser::catalogs_for_presentation(presentation)?;
     let offers = crate::installed_browser::catalogs::install_checked_structured_selectors(
         &document,

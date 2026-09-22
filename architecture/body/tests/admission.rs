@@ -40,6 +40,7 @@ fn advertisement(host: &str, boot: &str, generation: u64) -> HostAdvertisement {
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(generation),
         profile: HostProfileId::from("profile/admission-test"),
+        bases: vec![],
         resources: Vec::new(),
         capabilities: Vec::new(),
         planner_capabilities: Vec::new(),

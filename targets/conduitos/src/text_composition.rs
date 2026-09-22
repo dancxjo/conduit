@@ -86,7 +86,7 @@ where
                 continue;
             }
             if !kernel.is_presentation_request(&request) {
-                return Err(MachineRunError::UnexpectedHostOperation);
+                return Err(MachineRunError::UnexpectedHostCall);
             }
             {
                 let value = kernel
@@ -106,12 +106,12 @@ where
         match kernel.step().map_err(|_| MachineRunError::KernelFailure)? {
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Idle => {
-                if kernel.pending_host_operations() == 0 {
+                if kernel.pending_host_calls() == 0 {
                     return Err(MachineRunError::FalseIdle);
                 }
                 // The pending operations in this runner are local, synchronous
                 // host requests. Return to the ownership loop so it can service
-                // them; no external fact has been admitted to wake this Play.
+                // them; no external fact has been admitted to wake this play.
                 continue;
             }
             SchedulerStatus::Drained => {
@@ -123,7 +123,7 @@ where
                     idle_entries: idle.idle_count(),
                     serial_presentations: serial.presentation_count(),
                     clock_monotonic: clock.now() >= started,
-                    pending_host_operations: kernel.pending_host_operations() as u8,
+                    pending_host_calls: kernel.pending_host_calls() as u8,
                     overlap_witness: false,
                     timer_pending_during_text_progress: false,
                     physical_parallelism: false,

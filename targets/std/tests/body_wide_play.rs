@@ -7,8 +7,8 @@ use conduit_form::{
     StartupCatalog,
 };
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerStatus, StepInputBytes, StepIo,
-    StepOperation, StepOutcome,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerStatus, StepBack, StepInputBytes,
+    StepIo, StepOutcome,
 };
 use conduit_kernel::{
     CordId, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent, NodeId, PortId, RouteRange,
@@ -39,7 +39,7 @@ struct FormDriver {
     work: Work,
 }
 
-impl StepOperation<PORTS> for FormDriver {
+impl StepBack<PORTS> for FormDriver {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -123,15 +123,15 @@ fn canonical_constituent(
         .expect("the installed ordered-record queue catalog is disjoint");
     let syntax = parse_syntax_document(source);
     assert_eq!(syntax.round_trip(), source);
-    let checked = check_syntax_document(&syntax, &startup).expect("reviewed Form checks");
-    let expanded = expand_canonical_form(&checked, root, &profiles).expect("reviewed Form expands");
+    let checked = check_syntax_document(&syntax, &startup).expect("reviewed form checks");
+    let expanded = expand_canonical_form(&checked, root, &profiles).expect("reviewed form expands");
     let resident = ResidentForm::new(
         expanded.source_document_id.clone(),
         expanded.checked_form_id.clone(),
     );
     let plan = host
         .plan_expanded_local(&expanded)
-        .expect("reviewed Form plans onto the exact std Host offers");
+        .expect("reviewed form plans onto the exact std Host offers");
     (resident, plan)
 }
 
@@ -203,7 +203,7 @@ fn three_reviewed_forms_progress_in_one_body_play_through_one_production_kernel_
     let second_value = values.store(&[2]).unwrap();
     let node = |input| NodeSpec {
         input_cords: [input],
-        maximum_step_work: 2,
+        maximum_step_fuel: 2,
     };
     let cord = |index: u16, source: u16, sink: u16| {
         CordSpec::local(

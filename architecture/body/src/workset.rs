@@ -1,4 +1,4 @@
-//! Exact bounded set of Forms currently intended by one Body.
+//! Exact bounded set of Forms currently intended by one body.
 //!
 //! An entry is only the existing source/check identity pair. It deliberately
 //! does not introduce a `ProgramId` or another semantic object around Form.

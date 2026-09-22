@@ -11,10 +11,10 @@ use alloc::{
 use conduit_core::CapabilityLimits;
 #[cfg(feature = "form-catalog")]
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 #[cfg(feature = "form-catalog")]
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -306,7 +306,7 @@ impl BodyChatPromptState {
             let prompt = Prompt {
                 schema: "conduit.body/chat-prompt-value@2",
                 request_identity: &request_identity,
-                instruction: "Answer as this Body, briefly and only from the supplied current Body truth and explicitly labeled conversation history. Never claim an action occurred merely because it was requested.",
+                instruction: "Answer as this body, briefly and only from the supplied current body truth and explicitly labeled conversation history. Never claim an action occurred merely because it was requested.",
                 current_message: message,
                 history: &recent_history,
                 body: &self.model_context,
@@ -362,10 +362,10 @@ fn decode_message(bytes: &[u8]) -> Result<&str, BodyChatRefusal> {
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn body_chat_prompt_definition() -> KindDefinition {
-    KindDefinition {
+pub fn body_chat_prompt_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(BODY_CHAT_PROMPT_KIND),
-        kind_contract_revision: KindContractRevision::from(BODY_CHAT_PROMPT_REVISION),
+        kind_contract_revision: KindIdentity::from(BODY_CHAT_PROMPT_REVISION),
         inputs: vec![
             port(
                 "message",
@@ -393,10 +393,10 @@ pub fn body_chat_prompt_definition() -> KindDefinition {
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn body_conversation_context_definition() -> KindDefinition {
-    KindDefinition {
+pub fn body_conversation_context_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(BODY_CONVERSATION_CONTEXT_KIND),
-        kind_contract_revision: KindContractRevision::from(BODY_CONVERSATION_CONTEXT_REVISION),
+        kind_contract_revision: KindIdentity::from(BODY_CONVERSATION_CONTEXT_REVISION),
         inputs: vec![],
         outputs: vec![PortDescriptor {
             port_id: port_id("context"),
@@ -455,9 +455,9 @@ pub fn install_body_chat_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(BODY_CHAT_FORM_KIND),
-            kind_contract_revision: KindContractRevision::from(BODY_CHAT_FORM_REVISION),
+            kind_contract_revision: KindIdentity::from(BODY_CHAT_FORM_REVISION),
             inputs: vec![],
             outputs: vec![],
             configuration: vec![],
@@ -470,5 +470,37 @@ pub fn body_chat_prompt_limits() -> CapabilityLimits {
         max_active_instances: 1,
         max_queue_items: MAXIMUM_BODY_CHAT_HISTORY_ITEMS as u16,
         max_queue_bytes: MAXIMUM_BODY_CHAT_PROMPT_BYTES as u32,
+    }
+}
+
+#[cfg(feature = "form-catalog")]
+pub fn body_chat_prompt_semantic_contract() -> Kind {
+    semantic_contract(body_chat_prompt_definition(), body_chat_prompt_limits())
+}
+
+#[cfg(feature = "form-catalog")]
+pub fn body_conversation_context_semantic_contract() -> Kind {
+    semantic_contract(
+        body_conversation_context_definition(),
+        CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: MAXIMUM_BODY_CHAT_CONTEXT_BYTES as u32,
+        },
+    )
+}
+
+#[cfg(feature = "form-catalog")]
+fn semantic_contract(definition: KindProjection, limits: CapabilityLimits) -> Kind {
+    Kind {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits,
     }
 }

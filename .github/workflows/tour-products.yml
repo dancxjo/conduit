@@ -187,7 +187,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.browser_runtime_required == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
         with:
@@ -215,8 +215,10 @@ jobs:
           cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/patchbay-runtime.wasm
           cargo build --locked -p patchbay-html --bin patchbay-static-assets
           cp target/debug/patchbay-static-assets target/browser-product-runtimes/patchbay-static-assets
-          cargo build --locked -p patchbay-html --bin patchbay-html -p patchbay-native --bin browser-parts-capstone --bin webchat-server -p conduit-std-host --bin browser-admission-probe
-          cp target/debug/patchbay-html target/debug/browser-parts-capstone target/debug/webchat-server target/debug/browser-admission-probe target/browser-product-runtimes/
+          cargo build --locked -p patchbay-html --bin patchbay-html -p patchbay-native --bin browser-parts-capstone --bin webchat-server -p conduit-std-host --bin browser-admission-probe --bin protected-line-browser-peer
+          cargo build --locked -p conduit --bin conduit
+          cargo build --locked -p conduit-std-host --features native-webrtc --bin native-webrtc-line-probe
+          cp target/debug/conduit target/debug/patchbay-html target/debug/browser-parts-capstone target/debug/webchat-server target/debug/browser-admission-probe target/debug/protected-line-browser-peer target/debug/native-webrtc-line-probe target/browser-product-runtimes/
       - uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-browser-product-runtimes
@@ -395,9 +397,9 @@ jobs:
         run: |
           mkdir -p target/debug target/wasm32-unknown-unknown/release
           cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
-          cp target/browser-product-runtimes/patchbay-html target/browser-product-runtimes/browser-parts-capstone target/browser-product-runtimes/webchat-server target/browser-product-runtimes/browser-admission-probe target/debug/
+          cp target/browser-product-runtimes/conduit target/browser-product-runtimes/patchbay-html target/browser-product-runtimes/browser-parts-capstone target/browser-product-runtimes/webchat-server target/browser-product-runtimes/browser-admission-probe target/browser-product-runtimes/protected-line-browser-peer target/browser-product-runtimes/native-webrtc-line-probe target/debug/
           cp target/browser-product-runtimes/patchbay-runtime.wasm target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm
-          chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-parts-capstone target/debug/webchat-server target/debug/browser-admission-probe
+          chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-parts-capstone target/debug/webchat-server target/debug/browser-admission-probe target/debug/native-webrtc-line-probe
           chmod 755 target/browser-product-runtimes/patchbay-static-assets
           site/tools/stage-pages-root.sh target/pages-root
           products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
@@ -415,6 +417,9 @@ jobs:
             target/debug/browser-parts-capstone
             target/debug/webchat-server
             target/debug/browser-admission-probe
+            target/debug/protected-line-browser-peer
+            target/debug/conduit
+            target/debug/native-webrtc-line-probe
             target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm
             target/pages-root
             target/tour-product
@@ -443,9 +448,9 @@ jobs:
       matrix:
         include:
           - shard: browser-host
-            specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs proof/browser/home-host.spec.mjs
+            specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs proof/browser/home-host.spec.mjs proof/browser/protected-line.spec.mjs proof/browser/native-webrtc-line.spec.mjs
           - shard: creche-workspace
-            specs: proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
+            specs: proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-birth-naming.spec.mjs proof/browser/workspace-body-execution.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
           - shard: pages
             specs: proof/browser/pages-front-door.spec.mjs proof/browser/home-cross-front.spec.mjs proof/browser/web-accessibility.spec.mjs
     name: browser-admission-${{ matrix.shard }}
@@ -464,7 +469,7 @@ jobs:
           name: conduit-development-browser-products
           path: target
       - name: Restore executable Host permission
-        run: chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-parts-capstone target/debug/webchat-server target/debug/browser-admission-probe
+        run: chmod 755 target/debug/conduit target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-parts-capstone target/debug/webchat-server target/debug/browser-admission-probe target/debug/protected-line-browser-peer target/debug/native-webrtc-line-probe
       - name: Prove foreground input and Body retirement contracts
         if: matrix.shard == 'creche-workspace'
         run: node --test proof/browser/browser-body-input.test.mjs proof/browser/browser-body-host.test.mjs proof/browser/workspace-handoff.test.mjs
@@ -901,13 +906,18 @@ jobs:
       needs.conduitos-releases.result == 'success' &&
       needs.conduitos-oci-provenance.result == 'success'
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@1.98.1
+      - name: Build the reviewed Form bundles before release payload assembly
+        run: |
+          mkdir -p target/reviewed-form-bundles
+          cargo +1.98.1 xtask forms bundle-initial-body --output target/reviewed-form-bundles/initial-body.conduit
+          cargo +1.98.1 xtask forms bundle-workspace-catalog --output target/reviewed-form-bundles/workspace-catalog.json
       - name: Download the reviewed browser product runtimes
         uses: ./.github/actions/download-artifact-retry
         with:
@@ -963,7 +973,7 @@ jobs:
         run: |
           mkdir -p target/debug
           cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
-          cp target/browser-product-runtimes/patchbay-html target/browser-product-runtimes/browser-parts-capstone target/browser-product-runtimes/webchat-server target/browser-product-runtimes/browser-admission-probe target/debug/
+          cp target/browser-product-runtimes/conduit target/browser-product-runtimes/patchbay-html target/browser-product-runtimes/browser-parts-capstone target/browser-product-runtimes/webchat-server target/browser-product-runtimes/browser-admission-probe target/browser-product-runtimes/protected-line-browser-peer target/browser-product-runtimes/native-webrtc-line-probe target/debug/
           mkdir -p target/wasm32-unknown-unknown/release
           cp target/browser-product-runtimes/patchbay-runtime.wasm target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm
           chmod 755 target/debug/conduit-browser-host
@@ -975,8 +985,8 @@ jobs:
           mkdir -p target/pages-root/supply-chain/conduitos-x86_64-pc
           cp -a target/conduitos-x86_64-oci/. target/pages-root/supply-chain/conduitos-x86_64-pc/
           products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
-          products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
-          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product target/creche-release-artifacts
+          products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts release target/reviewed-form-bundles/initial-body.conduit
+          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product target/creche-release-artifacts target/reviewed-form-bundles/initial-body.conduit target/reviewed-form-bundles/workspace-catalog.json
           products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
           products/home/tools/stage-home-product.sh target/browser-product-runtimes/home-runtime.wasm target/home-product
       - name: Retain the exact staged products once for parallel consumers
@@ -989,6 +999,9 @@ jobs:
             target/debug/browser-parts-capstone
             target/debug/webchat-server
             target/debug/browser-admission-probe
+            target/debug/protected-line-browser-peer
+            target/debug/conduit
+            target/debug/native-webrtc-line-probe
             target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm
             target/pages-root
             target/tour-product
@@ -1016,9 +1029,9 @@ jobs:
           - shard: tour
             specs: proof/browser/executable-tour.spec.mjs
           - shard: browser-host
-            specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs proof/browser/home-host.spec.mjs
+            specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/fourth-product-conformance.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs proof/browser/home-host.spec.mjs proof/browser/protected-line.spec.mjs proof/browser/native-webrtc-line.spec.mjs
           - shard: creche-machines
-            specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/creche-workload.spec.mjs proof/browser/creche-naming.spec.mjs proof/browser/creche-body-execution.spec.mjs proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
+            specs: proof/browser/creche-avr.spec.mjs proof/browser/creche-orange-pi.spec.mjs proof/browser/creche-raspberry-pi.spec.mjs proof/browser/creche-conduitos.spec.mjs proof/browser/creche-native-zip.spec.mjs proof/browser/creche-native-disk.spec.mjs proof/browser/creche-browser-configuration.spec.mjs proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-birth-naming.spec.mjs proof/browser/workspace-body-execution.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/workspace-membership.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
           - shard: pages
             specs: proof/browser/pages-front-door.spec.mjs proof/browser/home-cross-front.spec.mjs proof/browser/web-accessibility.spec.mjs
     name: browser-proof-${{ matrix.shard }}
@@ -1038,7 +1051,7 @@ jobs:
           name: conduit-staged-browser-products
           path: target
       - name: Restore executable Host permission
-        run: chmod 755 target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-parts-capstone target/debug/webchat-server target/debug/browser-admission-probe
+        run: chmod 755 target/debug/conduit target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-parts-capstone target/debug/webchat-server target/debug/browser-admission-probe target/debug/protected-line-browser-peer target/debug/native-webrtc-line-probe
       - name: Prove foreground input and Body retirement contracts
         if: matrix.shard == 'creche-machines'
         run: node --test proof/browser/browser-body-input.test.mjs proof/browser/browser-body-host.test.mjs proof/browser/workspace-handoff.test.mjs
@@ -1104,7 +1117,7 @@ jobs:
           --workers 1
           --retries 0
           --grep-invert
-          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms|Hosts chapter shows the exact installed offers"
+          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms|Hosts chapter shows the exact installed offers|every Tour page and Crèche step|staged Tour and Crèche each boot|missing ESP32 release in the prefixed staged Crèche|standalone Crèche physical Host|two Bodies seal distinct spores|same Crèche lifecycle|physical workflow renders one adapter-owned catalog|exact browser release becomes a body-bound spore|native Linux target produces an exact spore|Windows and macOS native releases|target-neutral Crèche consumes exact C3|unavailable generic ESP32 release|ESP32 Crèche adapter refuses|physical target catalog refuses|physical workflow cancels one bounded catalog operation|shared physical workflow delegates final admission|Add a physical Host|graduation retains the same body|graduation can finish"
       - name: Retain the browser two-profile fabrication report
         if: matrix.shard == 'creche-machines'
         uses: ./.github/actions/upload-artifact-retry
@@ -1274,11 +1287,11 @@ jobs:
           node products/creche/tools/stage-legacy-routes.mjs target/pages-site
           echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
           test -f target/pages-site/tour/tour.application.json
-          grep -Fq 'Redirecting to your Body' target/pages-site/tour/index.html
+          grep -Fq 'Redirecting to your body' target/pages-site/tour/index.html
           grep -Fq '../../workspace/' target/pages-site/tour/meet-one-gear/index.html
           test -f target/pages-site/book/index.html
           test -f target/pages-site/creche/index.html
-          grep -Fq 'Redirecting to your Body' target/pages-site/creche/index.html
+          grep -Fq 'Redirecting to your body' target/pages-site/creche/index.html
           test -f target/pages-site/creche/creche.application.json
           test -f target/pages-site/workspace/workspace.application.json
           test -f target/pages-site/creche/runtime.wasm

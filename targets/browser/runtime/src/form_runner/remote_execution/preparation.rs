@@ -60,10 +60,10 @@ pub(super) fn validate<'a>(
             } else if host.host_id == binding.sink.host_id && host.boot_id == binding.sink.boot_id {
                 (sink, &binding.sink_active_play_id)
             } else {
-                return Err("current Host/Boot does not own this grant".into());
+                return Err("current host/Boot does not own this grant".into());
             };
         if expected_play != play || fragment.is_some_and(|prior| prior != owned) {
-            return Err("Line grants do not name one exact remote Play".into());
+            return Err("Line grants do not name one exact remote play".into());
         }
         fragment = Some(owned);
     }
@@ -72,7 +72,7 @@ pub(super) fn validate<'a>(
         || fragment.boot_id != host.boot_id
         || fragment.offer_generation != host.offer_generation
     {
-        return Err("stale remote Play or Host generation".into());
+        return Err("stale remote play or Host generation".into());
     }
     let installed =
         crate::installed_browser::advertisement(host.host_id.clone(), host.boot_id.clone());
@@ -95,7 +95,7 @@ pub(super) fn validate<'a>(
             || gear.limits != offer.limits
             || gear.inputs != offer.inputs
             || gear.outputs != offer.outputs
-            || gear.host_operations != offer.host_operations
+            || gear.host_calls != offer.host_calls
             || !gear.authority.is_empty()
             || !offer.authority_requirements.is_empty()
         {

@@ -9,13 +9,13 @@ use wire::*;
 use crate::{RendererSnapshot, SnapshotError};
 use conduit_core::{bind_active_play, BootId, HostId, PlanFragment, SignId};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
+    FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus, StepBack,
+    StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RemoteEndpointId,
-    RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
+    HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, PortId,
+    RemoteEndpointId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
@@ -40,17 +40,8 @@ const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const SIGN_ITEMS: u16 = 64;
 const FRAME_BYTES: usize = CROSS_HOST_MAXIMUM_FRAME_BYTES as usize;
 
-type SourceScheduler = FixedScheduler<
-    OperationDriver<ProjectOperation, PORTS>,
-    HostedValueStore,
-    HostedSignLog,
-    1,
-    1,
-    PORTS,
-    1,
-    PORTS,
-    1,
->;
+type SourceScheduler =
+    FixedScheduler<ProjectBack, HostedValueStore, HostedSignLog, 1, 1, PORTS, 1, PORTS, 1>;
 
 #[derive(Debug)]
 pub enum CrossHostRendererError {
@@ -65,7 +56,7 @@ pub enum CrossHostRendererError {
 
 impl core::fmt::Display for CrossHostRendererError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(formatter, "cross-Host renderer failed: {self:?}")
+        write!(formatter, "cross-host renderer failed: {self:?}")
     }
 }
 
@@ -77,68 +68,83 @@ impl From<SnapshotError> for CrossHostRendererError {
     }
 }
 
-struct ProjectOperation {
+struct ProjectBack {
     value: ValueRef,
+    emitted: bool,
 }
 
-impl Operation for ProjectOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.value,
+impl StepBack<PORTS> for ProjectBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
         }
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        OperationAction::Fail(Failure {
-            code: FailureCode::InvalidLifecycle,
-            detail: 1,
-        })
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        OperationAction::Complete
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        if io.send(PortId(0), self.value).is_err() {
+            return StepOutcome::Fail(Failure {
+                code: FailureCode::InvalidLifecycle,
+                detail: 1,
+            });
+        }
+        self.emitted = true;
+        StepOutcome::Complete
     }
 }
 
-struct RenderOperation {
+struct RenderBack {
     pending: Option<RequestId>,
 }
 
-impl Operation for RenderOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => {
+impl StepBack<PORTS> for RenderBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if self.pending.is_none() {
+            if let Some(value) = io.input(PortId(0)) {
                 let request = RequestId(1);
-                self.pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(0),
-                    input: BoundedValueRef::new(value, MAX_RENDERER_VALUE_BYTES)
-                        .expect("planned Presentation value uses its admitted byte bound"),
+                if io.consume(PortId(0)).is_err()
+                    || io
+                        .request_host_call(
+                            request,
+                            HostCallId(0),
+                            BoundedValueRef::new(value, MAX_RENDERER_VALUE_BYTES)
+                                .expect("planned Presentation value uses its admitted byte bound"),
+                        )
+                        .is_err()
+                {
+                    return StepOutcome::Fail(Failure {
+                        code: FailureCode::InvalidLifecycle,
+                        detail: 2,
+                    });
                 }
+                self.pending = Some(request);
+                return StepOutcome::Progress;
             }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+            return StepOutcome::Await;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending == Some(request)
+                && outcome.disposition == HostCallDisposition::Completed
+                && outcome.output.is_none()
+                && outcome.failure.is_none()
+                && io.consume_host_completion().is_ok()
             {
                 self.pending = None;
-                OperationAction::Complete
+                return StepOutcome::Complete;
             }
-            _ => OperationAction::Fail(Failure {
+            return StepOutcome::Fail(Failure {
                 code: FailureCode::InvalidLifecycle,
-                detail: 2,
-            }),
+                detail: 3,
+            });
         }
+        StepOutcome::Await
     }
 }
 
@@ -195,7 +201,7 @@ fn fragment_for<'a>(
     plan.fragments
         .iter()
         .find(|fragment| &fragment.host_id == host)
-        .ok_or_else(|| CrossHostRendererError::Plan("planned Host fragment missing".into()))
+        .ok_or_else(|| CrossHostRendererError::Plan("planned host fragment missing".into()))
 }
 
 fn lowered_remote(
@@ -317,8 +323,10 @@ impl Source {
                 .try_into()
                 .map_err(|_| CrossHostRendererError::Kernel("source Cord table width".into()))?,
             routes,
-            [OperationDriver::new(ProjectOperation { value })
-                .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?],
+            [ProjectBack {
+                value,
+                emitted: false,
+            }],
             values,
             sign_log()?,
         )

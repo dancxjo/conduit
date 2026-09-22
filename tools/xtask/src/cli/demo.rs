@@ -11,7 +11,7 @@ pub struct DemoArgs {
 pub enum DemoCommand {
     /// Open the executable Conduit Tour through the browser Host.
     Tour,
-    /// Birth a Body and arrive in its listening Forms through the browser Host.
+    /// Birth a body and arrive in its listening Forms through the browser Host.
     Workspace(crate::commands::workspace::WorkspaceArgs),
     /// Run the native Signal Form through the production kernel.
     Std,
@@ -19,7 +19,7 @@ pub enum DemoCommand {
     Triple,
     /// Build and launch the native Patchbay from this checkout.
     Patchbay(PatchbayDemoArgs),
-    /// Let one Body BIRTH and open its canonical native Parts experience.
+    /// Let one body BIRTH and open its canonical native Parts experience.
     BodyMembership,
     /// Open the authored physical-environment Patchbay demonstration.
     Environment,
@@ -70,7 +70,7 @@ pub struct LightSwitchDemoArgs {
 
 #[derive(Args, Debug, Default)]
 pub struct PatchbayDemoArgs {
-    /// Select the Host realization used to manifest the shared entrance.
+    /// Select the host realization used to manifest the shared entrance.
     #[arg(long, value_enum, default_value_t = PatchbayHost::Native)]
     pub on: PatchbayHost,
     /// Run the finite first-run authoring-to-Play acceptance journey.

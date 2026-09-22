@@ -1,10 +1,10 @@
 //! Pure-kernel browser realizations of explicit framed-record temporal adapters.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    ImplementationId, ImplementationOffer, KindContractRevision, PlannedGear,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    ImplementationId, Kind, PlannedGear,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -27,60 +27,46 @@ pub(super) static EXACTLY_ONE: BrowserInstallation = BrowserInstallation {
 
 fn singleton_offer() -> CapabilityOffer {
     offer(
-        conduit_net::record_singleton_stream_definition(),
+        conduit_net::record_singleton_stream_semantic_contract(),
         SINGLETON_IMPLEMENTATION,
     )
 }
 
 fn exactly_one_offer() -> CapabilityOffer {
     offer(
-        conduit_net::record_exactly_one_definition(),
+        conduit_net::record_exactly_one_semantic_contract(),
         EXACTLY_ONE_IMPLEMENTATION,
     )
 }
 
-fn offer(definition: conduit_form::KindDefinition, implementation: &str) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: Some((
-            definition.inputs[0].port_id.clone(),
-            definition.outputs[0].port_id.clone(),
-        )),
-        capability_id: CapabilityId::from(implementation),
-        kind_id: definition.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_net::RECORD_TEMPORAL_CONTRACT_REVISION,
-        ),
-        implementation: ImplementationOffer {
+fn offer(contract: Kind, implementation: &str) -> CapabilityOffer {
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from("browser/record-temporal@1"),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from("conduit-net/record-temporal@1"),
+            host_calls: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 4,
-            max_queue_bytes: MAXIMUM * 4,
-        },
-    }
+    )
+    .build()
 }
 
 fn prepare_singleton(
     placement: &PlannedGear,
     _: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &singleton_offer())?;
-    Ok(BrowserOperation::singleton_stream(MAXIMUM))
+    Ok(BrowserBack::singleton_stream(MAXIMUM))
 }
 
 fn prepare_exactly_one(
     placement: &PlannedGear,
     _: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &exactly_one_offer())?;
-    Ok(BrowserOperation::exactly_one(MAXIMUM))
+    Ok(BrowserBack::exactly_one(MAXIMUM))
 }

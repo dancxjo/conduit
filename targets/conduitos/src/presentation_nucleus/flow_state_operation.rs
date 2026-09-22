@@ -1,208 +1,154 @@
-//! Operations owned only by the bounded `state/latest > flow/tee` proof.
+//! Backs owned only by the bounded `state/latest > flow/tee` proof.
 
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, Operation, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef,
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef,
 };
 
-pub(super) enum FlowStateOperation {
-    Source {
-        value: ValueRef,
-        emitted: bool,
-    },
-    Latest {
-        held: Option<ValueRef>,
-        released: Option<ValueRef>,
-        retain_resumed: bool,
-    },
-    Tee {
-        pending: Option<ValueRef>,
-        phase: u8,
-    },
-    Sink {
-        pending: bool,
-        complete: bool,
-    },
+const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
+
+pub(super) enum FlowStateBack {
+    Source { value: ValueRef, emitted: bool },
+    Latest { held: Option<ValueRef> },
+    Tee,
+    Sink { pending: bool, complete: bool },
 }
 
-impl Operation for FlowStateOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepBack<PORTS> for FlowStateBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
-            Self::Source { value, emitted } if !*emitted => OperationAction::Emit {
-                port: PortId(0),
-                value: *value,
-            },
-            Self::Source { .. } => OperationAction::Complete,
-            _ => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Latest {
-                    held,
-                    released,
-                    retain_resumed,
-                },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if value.byte_len == conduit_core::SCALAR_ENCODED_LEN as u32 => {
-                *released = held.replace(value);
-                *retain_resumed = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
+            Self::Source { value, emitted } => {
+                if *emitted {
+                    return StepOutcome::Complete;
                 }
-            }
-            (
-                Self::Latest {
-                    held,
-                    released,
-                    retain_resumed,
-                },
-                OperationInput::Closed { port: PortId(0) },
-            ) => {
-                *retain_resumed = false;
-                *released = held.take();
-                OperationAction::Complete
-            }
-            (
-                Self::Tee { pending, phase },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if value.byte_len == conduit_core::SCALAR_ENCODED_LEN as u32 && pending.is_none() => {
-                *pending = Some(value);
-                *phase = 1;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
                 }
-            }
-            (Self::Tee { pending, .. }, OperationInput::Closed { port: PortId(0) })
-                if pending.is_none() =>
-            {
-                OperationAction::Complete
-            }
-            (
-                Self::Sink { pending, .. },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if !*pending => {
-                let Ok(input) =
-                    BoundedValueRef::new(value, conduit_core::SCALAR_ENCODED_LEN as u32)
-                else {
-                    return invalid(51);
-                };
-                *pending = true;
-                OperationAction::RequestHostOperation {
-                    request: RequestId(0),
-                    operation: HostOperationId(0),
-                    input,
+                if io.send(PortId(0), *value).is_err() {
+                    return invalid(50);
                 }
-            }
-            (
-                Self::Sink { pending, complete },
-                OperationInput::HostOperationCompleted {
-                    request: RequestId(0),
-                    outcome,
-                },
-            ) if *pending
-                && outcome.disposition == HostOperationDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                *pending = false;
-                *complete = true;
-                OperationAction::Await
-            }
-            (Self::Sink { pending, complete }, OperationInput::Closed { port: PortId(0) })
-                if !*pending && *complete =>
-            {
-                OperationAction::Complete
-            }
-            _ => invalid(50),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source { emitted, .. } => {
                 *emitted = true;
-                OperationAction::Complete
+                StepOutcome::Complete
             }
-            Self::Tee {
-                pending: Some(value),
-                phase: 1,
-            } => {
-                let value = *value;
-                if let Self::Tee { phase, .. } = self {
-                    *phase = 2;
-                }
-                OperationAction::Emit {
-                    port: PortId(1),
-                    value,
-                }
-            }
-            Self::Tee {
-                pending: Some(_),
-                phase: 2,
-            } => {
-                if let Self::Tee { pending, phase } = self {
-                    *pending = None;
-                    *phase = 0;
-                }
-                OperationAction::Await
-            }
-            _ => OperationAction::Await,
-        }
-    }
-
-    fn retains_resumed_value(&self) -> bool {
-        matches!(
-            self,
-            Self::Latest {
-                retain_resumed: true,
-                ..
-            }
-        )
-    }
-
-    fn take_released_value(&mut self) -> Option<ValueRef> {
-        match self {
-            Self::Latest { released, .. } => released.take(),
-            _ => None,
+            Self::Latest { held } => step_latest(held, io),
+            Self::Tee => step_tee(io),
+            Self::Sink { pending, complete } => step_sink(pending, complete, io),
         }
     }
 
     fn cancel(&mut self) {
-        match self {
-            Self::Latest {
-                held,
-                released,
-                retain_resumed,
-            } => {
-                *held = None;
-                *released = None;
-                *retain_resumed = false;
-            }
-            Self::Tee { pending, phase } => {
-                *pending = None;
-                *phase = 0;
-            }
-            _ => {}
+        if let Self::Latest { held } = self {
+            *held = None;
         }
     }
 }
 
-fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+fn step_latest(held: &mut Option<ValueRef>, io: &mut StepIo<PORTS>) -> StepOutcome {
+    if let Some(value) = io.input(PortId(0)) {
+        if value.byte_len != conduit_core::SCALAR_ENCODED_LEN as u32 {
+            return invalid(50);
+        }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        if io.take_input(PortId(0)).is_err() {
+            return invalid(50);
+        }
+        if let Some(previous) = held.replace(value)
+            && io.discard(previous).is_err()
+        {
+            return invalid(50);
+        }
+        if io.send(PortId(0), value).is_err() {
+            return invalid(50);
+        }
+        return StepOutcome::Progress;
+    }
+    if io.input_closed(PortId(0)) {
+        if io.consume_closed(PortId(0)).is_err() {
+            return invalid(50);
+        }
+        if let Some(value) = held.take()
+            && io.discard(value).is_err()
+        {
+            return invalid(50);
+        }
+        return StepOutcome::Complete;
+    }
+    StepOutcome::Await
+}
+
+fn step_tee(io: &mut StepIo<PORTS>) -> StepOutcome {
+    if let Some(value) = io.input(PortId(0)) {
+        if value.byte_len != conduit_core::SCALAR_ENCODED_LEN as u32 {
+            return invalid(50);
+        }
+        if !io.output_ready(PortId(0)) || !io.output_ready(PortId(1)) {
+            return StepOutcome::Await;
+        }
+        if io.consume(PortId(0)).is_err()
+            || io.send(PortId(0), value).is_err()
+            || io.send(PortId(1), value).is_err()
+        {
+            return invalid(50);
+        }
+        return StepOutcome::Progress;
+    }
+    if io.input_closed(PortId(0)) {
+        if io.consume_closed(PortId(0)).is_err() {
+            return invalid(50);
+        }
+        return StepOutcome::Complete;
+    }
+    StepOutcome::Await
+}
+
+fn step_sink(pending: &mut bool, complete: &mut bool, io: &mut StepIo<PORTS>) -> StepOutcome {
+    if *pending {
+        let Some((request, outcome)) = io.host_completion() else {
+            return StepOutcome::Await;
+        };
+        if request != RequestId(0)
+            || outcome.disposition != HostCallDisposition::Completed
+            || outcome.output.is_some()
+            || outcome.failure.is_some()
+            || io.consume_host_completion().is_err()
+        {
+            return invalid(50);
+        }
+        *pending = false;
+        *complete = true;
+        return StepOutcome::Progress;
+    }
+    if let Some(value) = io.input(PortId(0)) {
+        let Ok(input) = BoundedValueRef::new(value, conduit_core::SCALAR_ENCODED_LEN as u32) else {
+            return invalid(51);
+        };
+        if io.consume(PortId(0)).is_err()
+            || io
+                .request_host_call(RequestId(0), HostCallId(0), input)
+                .is_err()
+        {
+            return invalid(50);
+        }
+        *pending = true;
+        return StepOutcome::Progress;
+    }
+    if io.input_closed(PortId(0)) && *complete {
+        if io.consume_closed(PortId(0)).is_err() {
+            return invalid(50);
+        }
+        return StepOutcome::Complete;
+    }
+    StepOutcome::Await
+}
+
+fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
         detail,
     })

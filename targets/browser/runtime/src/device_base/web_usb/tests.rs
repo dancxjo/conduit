@@ -3,7 +3,7 @@ use super::*;
 fn configuration() -> UsbConfiguration {
     UsbConfiguration {
         configuration_value: 1,
-        interfront_number: 2,
+        interface_number: 2,
         alternate_setting: 0,
         in_endpoint: 3,
         out_endpoint: 4,
@@ -24,7 +24,7 @@ fn offer() -> UsbAcquisitionOffer {
         host_id: HostId::from("browser/one"),
         boot_id: BootId::from("browser-boot/one"),
         offer_generation: OfferGeneration(1),
-        operation_contract: HostOperationContractId::from(USB_ACQUIRE_OPERATION),
+        operation_contract: HostCallContractId::from(USB_ACQUIRE_OPERATION),
         request_authority_contract: AuthorityContractId::from(USB_REQUEST_AUTHORITY),
         maximum_in_flight: 1,
         maximum_result_bytes: MAXIMUM_USB_RESULT_BYTES as u32,
@@ -40,8 +40,8 @@ fn authority() -> UsbAcquisitionAuthority {
     }
 }
 
-fn operation() -> HostOperationId {
-    HostOperationId::from("usb-acquire/one")
+fn operation() -> HostCallId {
+    HostCallId::from("usb-acquire/one")
 }
 
 fn request() -> UsbAcquisitionRequest {
@@ -56,10 +56,12 @@ fn resource() -> AcquiredUsbResource {
     AcquiredUsbResource {
         host_id: HostId::from("browser/one"),
         boot_id: BootId::from("browser-boot/one"),
+        offer_generation: OfferGeneration(1),
         handle_id: ResourceHandleId::from("usb/opaque-one"),
         class_id: ResourceClassId::from(USB_RESOURCE_CLASS),
         base_implementation_id: BaseImplementationId::from(USB_BASE_IMPLEMENTATION),
         base_instance_id: BaseInstanceId::from("usb-base/one"),
+        provider_generation: 1,
         configuration: configuration(),
         transfer_bounds: bounds(),
         use_authority_contract: AuthorityContractId::from(USB_USE_AUTHORITY),
@@ -95,6 +97,42 @@ fn acquired() -> BrowserUsbSession {
     session
 }
 
+fn advertisement(generation: u64) -> HostAdvertisement {
+    HostAdvertisement {
+        protocol_version: conduit_core::PROTOCOL_VERSION,
+        host_id: offer().host_id,
+        boot_id: offer().boot_id,
+        offer_generation: OfferGeneration(generation),
+        profile: conduit_core::HostProfileId::from("browser/device-base-test@1"),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    }
+}
+
+#[test]
+fn acquired_and_lost_usb_resources_project_canonical_base_truth() {
+    let mut session = acquired();
+    let mut current = advertisement(2);
+    session.project_current_base(&mut current).unwrap();
+    assert_eq!(current.bases.len(), 1);
+    assert_eq!(
+        current.bases[0].provider_instance_id,
+        resource().base_instance_id
+    );
+    assert_eq!(current.bases[0].provider_generation, 1);
+    assert_eq!(current.resources.len(), 1);
+
+    session
+        .terminate_resource(BrowserUsbTerminal::DeviceLost)
+        .unwrap();
+    let mut after_loss = advertisement(3);
+    session.project_current_base(&mut after_loss).unwrap();
+    assert!(after_loss.bases.is_empty());
+    assert!(after_loss.resources.is_empty());
+}
+
 fn playing() -> BrowserUsbSession {
     let mut session = acquired();
     let resource = resource();
@@ -107,6 +145,7 @@ fn playing() -> BrowserUsbSession {
                 class_id: resource.class_id.clone(),
                 base_implementation_id: resource.base_implementation_id.clone(),
                 base_instance_id: resource.base_instance_id.clone(),
+                provider_generation: resource.provider_generation,
                 configuration: resource.configuration,
                 transfer_bounds: resource.transfer_bounds,
             },
@@ -128,7 +167,7 @@ fn explicit_acquisition_yields_exact_resource_then_bounded_use() {
         resource.base_implementation_id.as_str(),
         USB_BASE_IMPLEMENTATION
     );
-    assert_eq!(resource.configuration.interfront_number, 2);
+    assert_eq!(resource.configuration.interface_number, 2);
     session
         .begin_transfer(UsbTransferKind::Bulk, UsbTransferDirection::Out, None)
         .unwrap();
@@ -239,6 +278,7 @@ fn stale_resource_and_wrong_use_authority_never_start_use() {
         class_id: resource.class_id,
         base_implementation_id: resource.base_implementation_id,
         base_instance_id: resource.base_instance_id,
+        provider_generation: resource.provider_generation,
         configuration: resource.configuration,
         transfer_bounds: resource.transfer_bounds,
     };
@@ -266,6 +306,9 @@ fn pressure_transfer_status_loss_and_cancellation_are_distinct() {
         session.phase(),
         &BrowserUsbPhase::Terminal(BrowserUsbTerminal::TransferStalled)
     );
+    let mut degraded = advertisement(3);
+    session.project_current_base(&mut degraded).unwrap();
+    assert!(degraded.bases.is_empty());
 
     let mut lost = acquired();
     lost.terminate_resource(BrowserUsbTerminal::DeviceLost)

@@ -17,13 +17,13 @@ pub(super) fn literal(build_id: &str) -> CapabilityOffer<'_> {
         contract_revision: "conduit.std/text-literal@1",
         implementation: TEXT_LITERAL_IMPLEMENTATION,
         artifact_build: build_id,
-        host_operation: None,
+        host_call: None,
         required_base: BaseKind::Memory,
         secondary_base: None,
         input: None,
         output: Some(PortOffer {
             name: "text",
-            value_kind: "value/text@1",
+            value_kind: "value/text",
             direction: PortDirection::Output,
             closes: true,
         }),
@@ -39,7 +39,7 @@ pub(super) fn upper(build_id: &str) -> CapabilityOffer<'_> {
         contract_revision: conduit_text::TEXT_UPPER_CONTRACT_REVISION,
         implementation: TEXT_UPPER_IMPLEMENTATION,
         artifact_build: build_id,
-        host_operation: Some(crate::functional_offers::TEXT_UPPER_HOST_OPERATION),
+        host_call: Some(crate::functional_offers::TEXT_UPPER_HOST_CALL),
         required_base: BaseKind::Memory,
         secondary_base: None,
         input: Some(PortOffer {
@@ -66,12 +66,12 @@ pub(super) fn presentation(build_id: &str) -> CapabilityOffer<'_> {
         contract_revision: "conduit.std/presentation-text@1",
         implementation: TEXT_PRESENTATION_IMPLEMENTATION,
         artifact_build: build_id,
-        host_operation: Some("conduit.host/present@1"),
+        host_call: Some("conduit.host/present@1"),
         required_base: BaseKind::Serial,
         secondary_base: None,
         input: Some(PortOffer {
             name: "text",
-            value_kind: "value/text@1",
+            value_kind: "value/text",
             direction: PortDirection::Input,
             closes: true,
         }),
@@ -88,7 +88,7 @@ pub(super) fn morse(build_id: &str) -> CapabilityOffer<'_> {
         contract_revision: conduit_text::TEXT_MORSE_CONTRACT_REVISION,
         implementation: TEXT_MORSE_IMPLEMENTATION,
         artifact_build: build_id,
-        host_operation: Some("conduit.host/text-to-morse@1"),
+        host_call: Some("conduit.host/text-to-morse@1"),
         required_base: BaseKind::Memory,
         secondary_base: None,
         input: Some(PortOffer {
@@ -115,7 +115,7 @@ pub(super) fn indicator(build_id: &str) -> CapabilityOffer<'_> {
         contract_revision: conduit_semantic_catalog::INDICATOR_PRESENTATION_CONTRACT_REVISION,
         implementation: INDICATOR_PRESENTATION_IMPLEMENTATION,
         artifact_build: build_id,
-        host_operation: Some("conduit.host/present-indicator@1"),
+        host_call: Some("conduit.host/present-indicator@1"),
         required_base: BaseKind::Serial,
         secondary_base: None,
         input: Some(PortOffer {
@@ -134,7 +134,7 @@ pub(super) fn indicator(build_id: &str) -> CapabilityOffer<'_> {
 pub(super) fn characters(build_id: &str) -> CapabilityOffer<'_> {
     composition_leaf(
         build_id,
-        LeafFace {
+        LeafFront {
             kind: conduit_text::TEXT_CHARACTERS_KIND,
             input_name: "in",
             input_kind: conduit_text::TEXT_VALUE_KIND,
@@ -149,7 +149,7 @@ pub(super) fn characters(build_id: &str) -> CapabilityOffer<'_> {
 pub(super) fn morse_lookup(build_id: &str) -> CapabilityOffer<'_> {
     composition_leaf(
         build_id,
-        LeafFace {
+        LeafFront {
             kind: conduit_text::MORSE_LOOKUP_KIND,
             input_name: "in",
             input_kind: conduit_text::MORSE_CHARACTERS_VALUE_KIND,
@@ -164,7 +164,7 @@ pub(super) fn morse_lookup(build_id: &str) -> CapabilityOffer<'_> {
 pub(super) fn morse_intersperse(build_id: &str) -> CapabilityOffer<'_> {
     composition_leaf(
         build_id,
-        LeafFace {
+        LeafFront {
             kind: conduit_text::MORSE_INTERSPERSE_KIND,
             input_name: "in",
             input_kind: conduit_text::MORSE_SYMBOL_GROUPS_VALUE_KIND,
@@ -179,7 +179,7 @@ pub(super) fn morse_intersperse(build_id: &str) -> CapabilityOffer<'_> {
 pub(super) fn morse_flatten(build_id: &str) -> CapabilityOffer<'_> {
     composition_leaf(
         build_id,
-        LeafFace {
+        LeafFront {
             kind: conduit_text::MORSE_FLATTEN_KIND,
             input_name: "in",
             input_kind: conduit_text::MORSE_GAPPED_GROUPS_VALUE_KIND,
@@ -194,7 +194,7 @@ pub(super) fn morse_flatten(build_id: &str) -> CapabilityOffer<'_> {
 pub(super) fn morse_symbols_to_pattern(build_id: &str) -> CapabilityOffer<'_> {
     composition_leaf(
         build_id,
-        LeafFace {
+        LeafFront {
             kind: conduit_text::MORSE_SYMBOLS_TO_PATTERN_KIND,
             input_name: "in",
             input_kind: conduit_text::MORSE_SYMBOLS_VALUE_KIND,
@@ -206,7 +206,7 @@ pub(super) fn morse_symbols_to_pattern(build_id: &str) -> CapabilityOffer<'_> {
     )
 }
 
-struct LeafFace {
+struct LeafFront {
     kind: &'static str,
     input_name: &'static str,
     input_kind: &'static str,
@@ -217,7 +217,7 @@ struct LeafFace {
 
 fn composition_leaf<'a>(
     build_id: &'a str,
-    front: LeafFace,
+    front: LeafFront,
     implementation: &'static str,
 ) -> CapabilityOffer<'a> {
     CapabilityOffer {
@@ -225,7 +225,7 @@ fn composition_leaf<'a>(
         contract_revision: conduit_text::MORSE_COMPOSITION_CONTRACT_REVISION,
         implementation,
         artifact_build: build_id,
-        host_operation: Some(implementation),
+        host_call: Some(implementation),
         required_base: BaseKind::Memory,
         secondary_base: None,
         input: Some(PortOffer {

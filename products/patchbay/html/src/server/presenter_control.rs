@@ -1,4 +1,4 @@
-//! Typed Presenter-topology requests through the ordinary Body planning owner.
+//! Typed Presenter-topology requests through the ordinary body planning owner.
 
 use super::{PatchbayHtmlServer, ServerError};
 use conduit_core::{PlanId, SignId};

@@ -61,7 +61,7 @@ pub struct SpawnInvitationClaim {
 }
 
 impl SpawnInvitationClaim {
-    /// Validate the portable, public portion before a Host elects to sign it.
+    /// Validate the portable, public portion before a host elects to sign it.
     /// This grants no membership, presence, or authority.
     pub fn inspect(&self, now_millis: u64) -> Result<(), AdmissionRefusal> {
         crate::identity::validate_ids(&[self.invitation_id.as_str(), self.body_id.as_str()])?;

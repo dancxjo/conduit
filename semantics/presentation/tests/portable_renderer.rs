@@ -8,7 +8,7 @@ use conduit_form::{check_syntax_document, parse_syntax_document, KindSignature, 
 use conduit_planner::{default_placements, PlannerError};
 use conduit_presentation::{
     Manifestation, ManifestationError, ManifestationFailure, ManifestationLifecycle, Presentation,
-    PresentationError, PresentationText,
+    PresentationError, PresentationText, MANIFESTATION_VALUE_KIND, PRESENTATION_VALUE_KIND,
 };
 mod common;
 use common::{checked_renderer_form, host, plan_for, presentation, DOM_RESOURCE, WAYLAND_RESOURCE};
@@ -58,7 +58,7 @@ fn unchanged_front_plans_to_exact_wayland_and_dom_realizations() {
     assert_ne!(native.artifact_id, browser.artifact_id);
     assert_ne!(native.host_id, browser.host_id);
     assert_ne!(native.boot_id, browser.boot_id);
-    assert_ne!(native.host_operations, browser.host_operations);
+    assert_ne!(native.host_calls, browser.host_calls);
     assert_ne!(native.resources[0].class_id, browser.resources[0].class_id);
 }
 
@@ -71,6 +71,7 @@ fn headless_host_is_valid_but_cannot_invent_a_renderer_offer() {
         boot_id: BootId::from("headless-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("headless@1"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![],
         planner_capabilities: vec![],
@@ -84,6 +85,18 @@ fn headless_host_is_valid_but_cannot_invent_a_renderer_offer() {
 #[test]
 fn renderer_front_can_be_composed_as_an_ordinary_form_back() {
     let mut startup = StartupCatalog::new();
+    startup
+        .insert_value_kind_alias(
+            "Presentation",
+            conduit_core::kind_id(PRESENTATION_VALUE_KIND),
+        )
+        .unwrap();
+    startup
+        .insert_value_kind_alias(
+            "Manifestation",
+            conduit_core::kind_id(MANIFESTATION_VALUE_KIND),
+        )
+        .unwrap();
     startup
         .insert(KindSignature {
             kind: "presentation/renderer".into(),

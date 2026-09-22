@@ -6,12 +6,12 @@ mod tests;
 
 use super::application_delivery::NativeApplication;
 use super::{AdmittedFormInput, PreparedNativeWorkset, WorksetRefusal};
-use crate::keyboard_text_operations::PlannedOperation;
+use crate::keyboard_text_backs::PlannedBack;
 use alloc::boxed::Box;
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyTransition};
 use conduit_kernel::{
     FixedSignLog, FixedValueStore, KernelEvent, NodeId,
-    scheduler::{FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus},
+    scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus},
 };
 use conduit_semantic_catalog::BoundedTextState;
 
@@ -21,7 +21,7 @@ const CORDS: usize = 10;
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const SIGN_ITEMS: usize = 1024;
 type Scheduler = FixedScheduler<
-    OperationDriver<PlannedOperation, PORTS>,
+    PlannedBack,
     FixedValueStore<10, 3072>,
     FixedSignLog<SIGN_ITEMS>,
     NODES,
@@ -68,7 +68,7 @@ impl PlayRefusal {
         match self {
             Self::Preparation => "native-body-play-preparation-refused",
             Self::Kernel => "native-body-kernel-boundary-refused",
-            Self::Scheduler(_) => "native-body-kernel-operation-refused",
+            Self::Scheduler(_) => "native-body-kernel-step-refused",
             Self::HostFailure(failure) => failure.code.as_str(),
             Self::Foreground => "native-body-foreground-unavailable",
             Self::InputOwnership => "native-body-input-ownership-unavailable",
@@ -106,7 +106,7 @@ pub struct NativeWorksetPlay {
     bindings: [Option<Binding>; NODES],
     keymaps: [ConduitIntlKeymap; FORMS],
     editors: [Option<BoundedTextState>; FORMS],
-    pending: [Option<HostOperationRequest>; FORMS],
+    pending: [Option<HostCallRequest>; FORMS],
     held: [Option<u8>; 256],
     presentations: [Option<NativePresentation>; FORMS],
     application_views: [Option<conduit_presentation::ApplicationView>; FORMS],
@@ -119,7 +119,7 @@ pub struct NativeWorksetPlay {
 
 impl NativeWorksetPlay {
     #[cfg(test)]
-    pub(crate) fn pending_requests(&self) -> [Option<HostOperationRequest>; FORMS] {
+    pub(crate) fn pending_requests(&self) -> [Option<HostCallRequest>; FORMS] {
         self.pending
     }
     pub fn prepare(prepared: &PreparedNativeWorkset) -> Result<Self, WorksetRefusal> {

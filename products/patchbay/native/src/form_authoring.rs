@@ -100,7 +100,7 @@ impl PatchbayApplication {
         sink: &PatchbaySubjectRef,
     ) -> Result<(), String> {
         if source.expanded_form_id != sink.expanded_form_id {
-            return Err("Ports come from different checked Form revisions".into());
+            return Err("Ports come from different checked form revisions".into());
         }
         let basis = self.edit_basis(source.expanded_form_id.clone())?;
         self.dispatch_authoring_edit(PatchbayEdit::ConnectPorts {
@@ -116,7 +116,7 @@ impl PatchbayApplication {
         endpoint: &PatchbaySubjectRef,
     ) -> Result<(), String> {
         if cord.expanded_form_id != endpoint.expanded_form_id {
-            return Err("Cord and Port come from different checked Form revisions".into());
+            return Err("Cord and Port come from different checked form revisions".into());
         }
         let basis = self.edit_basis(cord.expanded_form_id.clone())?;
         self.dispatch_authoring_edit(PatchbayEdit::RerouteCord {

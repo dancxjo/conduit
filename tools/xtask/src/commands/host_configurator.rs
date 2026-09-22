@@ -62,7 +62,7 @@ pub fn run(path: Option<&Path>, opts: &GlobalOpts) -> Result<(), Box<dyn std::er
     if !cliclack::confirm(if editing {
         "Save these Host recipe changes?"
     } else {
-        "Create this Host recipe?"
+        "Create this host recipe?"
     })
     .initial_value(true)
     .interact()?

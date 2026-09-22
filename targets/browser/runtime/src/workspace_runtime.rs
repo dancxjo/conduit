@@ -70,6 +70,17 @@ enum Request {
         image_content_digest: String,
         selection: crate::creche::BrowserConfigurationSelection,
     },
+    PreparePhysicalSpore {
+        host_id: HostId,
+        boot_id: BootId,
+        secret: Vec<u8>,
+        nonce: [u8; 32],
+        now_millis: u64,
+        expires_at_millis: u64,
+        target_id: String,
+        image_content_digest: Option<String>,
+        reviewed_image: Option<Vec<u8>>,
+    },
     AdmitInvitation {
         host_id: HostId,
         boot_id: BootId,
@@ -98,6 +109,11 @@ enum Request {
     },
     TutorialView {
         revision: u32,
+        playback: conduit_workspace_model::tutorial::TutorialPlayback,
+    },
+    TutorialPresenterInput {
+        request_identity: String,
+        presentation_revision: u64,
         playback: conduit_workspace_model::tutorial::TutorialPlayback,
     },
     InvitationView {
@@ -245,7 +261,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
         match request {
             Request::Arrive { advertisement } => {
                 if slot.is_some() {
-                    return Err("Workspace already has a Body".into());
+                    return Err("Workspace already has a body".into());
                 }
                 let evidence = crate::creche::workspace_evidence()?;
                 let body = WorkspaceBody::open(evidence).map_err(debug)?;
@@ -271,7 +287,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 advertisement,
             } => {
                 if slot.is_some() {
-                    return Err("Workspace already has a Body".into());
+                    return Err("Workspace already has a body".into());
                 }
                 let fulfilled = matches!(evidence.body.state, BodyState::Fulfilled { .. });
                 let body = if fulfilled {
@@ -291,7 +307,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 if admissions.body_id != body.evidence().body_id {
                     return Err(Refusal::new(
                         "Admission.WrongBody",
-                        "Retained admission state names another Body",
+                        "Retained admission state names another body",
                     ));
                 }
                 let bytes = snapshot_with_offers(&body, offers.hosts())?;
@@ -301,9 +317,9 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 return Ok(bytes);
             }
             Request::OpenAdmitted { evidence, admission, host_id, boot_id, advertisement } => {
-                if slot.is_some() { return Err("Workspace already has a Body".into()); }
+                if slot.is_some() { return Err("Workspace already has a body".into()); }
                 if admission.body_id != evidence.body_id {
-                    return Err(Refusal::new("Admission.WrongBody", "Admission state names another Body"));
+                    return Err(Refusal::new("Admission.WrongBody", "Admission state names another body"));
                 }
                 let body = WorkspaceBody::open_admitted(*evidence, &host_id, &boot_id).map_err(debug)?;
                 let mut offers = CurrentHostOffers::new();
@@ -397,6 +413,46 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     selection,
                 )
                 .map_err(|message| Refusal::new("Fabrication.Prepare", &message))?;
+                let response = encode(&prepared)?;
+                ADMISSIONS.with(|admissions| *admissions.borrow_mut() = Some(next_admissions));
+                return Ok(response);
+            }
+            Request::PreparePhysicalSpore {
+                host_id,
+                boot_id,
+                secret,
+                nonce,
+                now_millis,
+                expires_at_millis,
+                target_id,
+                image_content_digest,
+                reviewed_image,
+            } => {
+                let secret_bytes = <[u8; 32]>::try_from(secret.as_slice()).map_err(|_| {
+                    Refusal::new("Admission.WeakSecret", "Invitation secret must have exactly 32 bytes")
+                })?;
+                let invitation_secret = SpawnInvitationSecret::from_csprng_bytes(secret_bytes)
+                    .map_err(|error| Refusal::new(&format!("Admission.{error:?}"), "Invitation entropy was refused"))?;
+                let mut next_admissions = ADMISSIONS.with(|admissions| {
+                    admissions.borrow().clone().ok_or("Workspace admission state is missing")
+                })?;
+                let claim = candidate.issue_invitation(
+                    &mut next_admissions,
+                    invitation_secret,
+                    nonce,
+                    now_millis,
+                    expires_at_millis,
+                    &host_id,
+                    &boot_id,
+                ).map_err(debug)?;
+                let prepared = crate::creche::prepare_workspace_physical(
+                    candidate.evidence(),
+                    &claim,
+                    &secret_bytes,
+                    &target_id,
+                    image_content_digest.as_deref(),
+                    reviewed_image.as_deref(),
+                ).map_err(|message| Refusal::new("Fabrication.Prepare", &message))?;
                 let response = encode(&prepared)?;
                 ADMISSIONS.with(|admissions| *admissions.borrow_mut() = Some(next_admissions));
                 return Ok(response);
@@ -495,6 +551,22 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")))?;
                 return view.encode()
                     .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")));
+            }
+            Request::TutorialPresenterInput {
+                request_identity,
+                presentation_revision,
+                playback,
+            } => {
+                let request = conduit_workspace_model::tutorial::generative_request(
+                    current,
+                    request_identity,
+                    presentation_revision,
+                    playback,
+                )
+                .map_err(|error| {
+                    Refusal::new("TutorialPresenterRequest", format!("{error:?}"))
+                })?;
+                return encode(&request);
             }
             Request::InvitationView { invitation_id, body_id, body_name, expires_at_millis,
                 transfer_uri, revision, clipboard_available, share_available } => {
@@ -615,7 +687,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
             | Request::Restore { .. }
             | Request::OpenAdmitted { .. }
             | Request::InspectInvitation { .. } => {
-                unreachable!("handled before current Body")
+                unreachable!("handled before current body")
             }
         }
         let bytes = snapshot(&candidate)?;
@@ -723,7 +795,7 @@ fn conversation_context(body: &WorkspaceBody) -> Result<BodyConversationContext,
     let realization = body.realization().ok_or_else(|| {
         Refusal::new(
             "BodyContext.NotAwake",
-            "Body conversation context requires one current Wake/Plan",
+            "Body conversation context requires one current wake/Plan",
         )
     })?;
     if evidence.body.state
@@ -733,7 +805,7 @@ fn conversation_context(body: &WorkspaceBody) -> Result<BodyConversationContext,
     {
         return Err(Refusal::new(
             "BodyContext.NotAwake",
-            "Body conversation context is available only while this Body is awake",
+            "Body conversation context is available only while this body is awake",
         ));
     }
     let hosts = evidence
@@ -798,7 +870,7 @@ fn current_host_offers() -> Vec<HostAdvertisement> {
 fn host_offer_refusal(error: conduit_workspace_model::CurrentHostOfferError) -> Refusal {
     Refusal::new(
         "HostOffer",
-        format!("current Host offer refused: {error:?}"),
+        format!("current host offer refused: {error:?}"),
     )
 }
 
@@ -808,7 +880,7 @@ fn validate_offer_bytes(offers: &CurrentHostOffers) -> Result<(), Refusal> {
     if bytes.len() > HOST_OFFERS_BYTES {
         return Err(Refusal::new(
             "HostOffer.Bound",
-            "current Host offers exceed the Workspace observation bound",
+            "current host offers exceed the Workspace observation bound",
         ));
     }
     Ok(())

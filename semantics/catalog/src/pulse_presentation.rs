@@ -2,10 +2,10 @@
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection,
 };
 
-use super::{StandardKindContract, TerminalBehavior};
+use super::{KindTerminalBehavior, StandardKindContract};
 
 pub const PULSE_PRESENTATION_KIND: &str = "presentation/pulse";
 pub const PULSE_PRESENTATION_CONTRACT_REVISION: &str = "conduit.presentation/pulse-observation@2";
@@ -16,7 +16,7 @@ pub fn pulse_presentation_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(PULSE_PRESENTATION_KIND),
         plain_name: "Pulse presentation".to_string(),
-        summary: "Manifest each exact pulse observation while its Play remains alive.".to_string(),
+        summary: "Manifest each exact pulse observation while its play remains alive.".to_string(),
         inputs: vec![PortDescriptor {
             port_id: port_id("pulse"),
             value_kind: kind_id(conduit_time::PULSE_OBSERVATION_VALUE_KIND),
@@ -24,13 +24,13 @@ pub fn pulse_presentation_contract() -> StandardKindContract {
             temporal: conduit_core::PortTemporal::Flow { closes: false },
         }],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 1,
             max_queue_bytes: conduit_time::PULSE_OBSERVATION_ENCODED_LEN as u32,
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
@@ -49,12 +49,12 @@ pub fn pulse_tone_presentation_contract() -> StandardKindContract {
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn pulse_presentation_kind_definition() -> conduit_form::KindDefinition {
-    use conduit_form::KindDefinition;
+pub fn pulse_presentation_kind_projection() -> conduit_form::KindProjection {
+    use conduit_form::KindProjection;
     let contract = pulse_presentation_contract();
-    KindDefinition {
+    KindProjection {
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(PULSE_PRESENTATION_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(PULSE_PRESENTATION_CONTRACT_REVISION),
         inputs: contract.inputs,
         outputs: contract.outputs,
         configuration: vec![],
@@ -62,11 +62,11 @@ pub fn pulse_presentation_kind_definition() -> conduit_form::KindDefinition {
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn pulse_tone_presentation_kind_definition() -> conduit_form::KindDefinition {
-    let mut definition = pulse_presentation_kind_definition();
+pub fn pulse_tone_presentation_kind_projection() -> conduit_form::KindProjection {
+    let mut definition = pulse_presentation_kind_projection();
     definition.kind_id = kind_id(PULSE_TONE_PRESENTATION_KIND);
     definition.kind_contract_revision =
-        KindContractRevision::from(PULSE_TONE_PRESENTATION_CONTRACT_REVISION);
+        KindIdentity::from(PULSE_TONE_PRESENTATION_CONTRACT_REVISION);
     definition
 }
 
@@ -79,11 +79,11 @@ pub fn install_pulse_presentation_catalog(
     for (kind, definition) in [
         (
             PULSE_PRESENTATION_KIND,
-            pulse_presentation_kind_definition(),
+            pulse_presentation_kind_projection(),
         ),
         (
             PULSE_TONE_PRESENTATION_KIND,
-            pulse_tone_presentation_kind_definition(),
+            pulse_tone_presentation_kind_projection(),
         ),
     ] {
         startup.insert(KindSignature {

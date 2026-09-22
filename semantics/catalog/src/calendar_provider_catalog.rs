@@ -1,4 +1,4 @@
-//! Portable Form contracts for bounded calendar-provider interactions.
+//! Portable form contracts for bounded calendar-provider interactions.
 //!
 //! The semantic JSON payloads are validated by the selected realization. They
 //! contain portable calendar meaning only; provider, account, credential,
@@ -11,12 +11,13 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, StructuredConfigurationValue, StructuredFieldType, StructuredFieldValue,
-    StructuredInfoType, StructuredInfoValue,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredConfigurationValue,
+    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 pub const CALENDAR_READ_KIND: &str = "calendar/read-events";
@@ -118,6 +119,52 @@ pub fn calendar_provider_contracts() -> [CalendarProviderKindContract; 6] {
     ]
 }
 
+pub fn calendar_provider_semantic_contracts() -> Vec<Kind> {
+    calendar_provider_contracts()
+        .into_iter()
+        .map(calendar_provider_semantic_contract)
+        .collect()
+}
+
+pub fn calendar_provider_semantic_contract(contract: CalendarProviderKindContract) -> Kind {
+    let inputs = match (contract.input_type, contract.input_port) {
+        (Some(value_type), Some(port_name)) => vec![semantic_port(
+            port_name,
+            &value_type(),
+            PortDirection::Input,
+        )],
+        (None, None) => Vec::new(),
+        _ => unreachable!("reviewed calendar provider input contract"),
+    };
+    Kind {
+        startup_parameters: vec![FrontStartupParameter {
+            name: "request".into(),
+            value_type: calendar_request_type(&contract)
+                .profile()
+                .expect("reviewed calendar request profile")
+                .value_kind()
+                .clone(),
+            has_default: false,
+        }],
+        shorthand: None,
+        kind_id: kind_id(contract.kind),
+        kind_contract_revision: KindIdentity::from(contract.revision),
+        inputs,
+        outputs: vec![semantic_port(
+            contract.output_port,
+            &(contract.output_type)(),
+            PortDirection::Output,
+        )],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: CALENDAR_MAXIMUM_RESULT_BYTES,
+        },
+    }
+}
+
 const fn contract(
     kind: &'static str,
     revision: &'static str,
@@ -194,7 +241,10 @@ pub fn install_calendar_provider_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    for contract in calendar_provider_contracts() {
+    for (contract, semantic_contract) in calendar_provider_contracts()
+        .into_iter()
+        .zip(calendar_provider_semantic_contracts())
+    {
         let request_type = calendar_request_type(&contract);
         startup
             .insert_structured_type(contract.request_type_name, request_type.clone())
@@ -212,24 +262,13 @@ pub fn install_calendar_provider_catalogs(
         let request_profile = request_type
             .profile()
             .map_err(|error| format!("{error:?}"))?;
-        let inputs = match (contract.input_type, contract.input_port) {
-            (Some(value_type), Some(port_name)) => {
-                vec![port(port_name, &value_type(), PortDirection::Input)?]
-            }
-            (None, None) => Vec::new(),
-            _ => return Err("calendar provider input contract is inconsistent".into()),
-        };
         profile
-            .insert(KindDefinition {
-                kind_id: kind_id(contract.kind),
-                kind_contract_revision: KindContractRevision::from(contract.revision),
-                inputs,
-                outputs: vec![port(
-                    contract.output_port,
-                    &(contract.output_type)(),
-                    PortDirection::Output,
-                )?],
-                configuration: vec![ConfigurationField {
+            .insert(KindProjection {
+                kind_id: semantic_contract.kind_id,
+                kind_contract_revision: semantic_contract.kind_contract_revision,
+                inputs: semantic_contract.inputs,
+                outputs: semantic_contract.outputs,
+                configuration: vec![KindConfigurationField {
                     key: "request".into(),
                     default_value: ConfigurationValue::Structured(
                         StructuredConfigurationValue::new(
@@ -244,7 +283,7 @@ pub fn install_calendar_provider_catalogs(
                             "default calendar provider request is invalid".to_string()
                         })?,
                     ),
-                    validation: ConfigurationRule::Structured {
+                    rule: KindConfigurationRule::Structured {
                         profile: request_profile.value_kind().clone(),
                     },
                 }],
@@ -252,6 +291,14 @@ pub fn install_calendar_provider_catalogs(
             .map_err(|error| error.to_string())?;
     }
     Ok(())
+}
+
+fn semantic_port(
+    name: &str,
+    value_type: &StructuredInfoType,
+    direction: PortDirection,
+) -> PortDescriptor {
+    port(name, value_type, direction).expect("reviewed calendar provider port profile")
 }
 
 fn semantic_envelope(kind: &str) -> StructuredInfoType {
@@ -267,7 +314,7 @@ fn record(kind: &str, field_name: &str) -> StructuredInfoType {
         kind_id(kind),
         vec![StructuredFieldType::new(
             field_name,
-            StructuredInfoType::leaf(kind_id("value/text@1")).expect("reviewed text leaf"),
+            StructuredInfoType::leaf(kind_id("value/text")).expect("reviewed text leaf"),
         )
         .expect("reviewed calendar envelope field")],
     )
@@ -276,7 +323,7 @@ fn record(kind: &str, field_name: &str) -> StructuredInfoType {
 
 fn default_envelope(value_type: StructuredInfoType) -> Result<StructuredInfoValue, String> {
     let value = StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/text@1")).map_err(|error| format!("{error:?}"))?,
+        StructuredInfoType::leaf(kind_id("value/text")).map_err(|error| format!("{error:?}"))?,
         b"{}".to_vec(),
     )
     .map_err(|error| format!("{error:?}"))?;

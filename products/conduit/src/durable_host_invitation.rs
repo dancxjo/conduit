@@ -72,20 +72,20 @@ pub(crate) fn issue_body_invitation(state_dir: &Path, ttl_seconds: u64) -> Resul
     let body = installation
         .body_state
         .as_ref()
-        .ok_or("this installed Host does not own a Body")?;
+        .ok_or("this installed host does not own a body")?;
     recover_admission_transaction(state_dir, Path::new(&body.biography_path))?;
     let biography_bytes = bounded_read(Path::new(&body.biography_path), 2 * 1024 * 1024)?;
     if digest(&biography_bytes) != body.biography_sha256 {
-        return Err("retained Body biography no longer matches its exact identity".into());
+        return Err("retained body biography no longer matches its exact identity".into());
     }
     let biography: conduit_body::BodyBiographyEvidence =
         serde_json::from_slice(&biography_bytes)
-            .map_err(|error| format!("retained Body biography: {error}"))?;
+            .map_err(|error| format!("retained body biography: {error}"))?;
     biography
         .validate()
-        .map_err(|error| format!("retained Body biography refused: {error:?}"))?;
+        .map_err(|error| format!("retained body biography refused: {error:?}"))?;
     if biography.body_id.as_str() != body.body_id {
-        return Err("retained Body biography belongs to another Body".into());
+        return Err("retained body biography belongs to another body".into());
     }
     let body_id = biography.body_id;
     let admission_path = state_dir.join("body").join("admission.json");
@@ -94,7 +94,7 @@ pub(crate) fn issue_body_invitation(state_dir: &Path, ttl_seconds: u64) -> Resul
         let manager: AdmissionManager = serde_json::from_slice(&bytes)
             .map_err(|error| format!("Body admission state: {error}"))?;
         if manager.body_id != body_id {
-            return Err("Body admission state belongs to another Body".into());
+            return Err("Body admission state belongs to another body".into());
         }
         manager
     } else {
@@ -134,13 +134,13 @@ pub(crate) fn admit_body_request(
     authorize_admission: bool,
 ) -> Result<(), String> {
     if !authorize_admission {
-        return Err("admitting a Host into this Body requires --authorize-admission".into());
+        return Err("admitting a host into this body requires --authorize-admission".into());
     }
     let mut installation = read_installation(&state_dir.join("installation.json"))?;
     let body = installation
         .body_state
         .as_ref()
-        .ok_or("this installed Host does not own a Body")?;
+        .ok_or("this installed host does not own a body")?;
     let biography_path = std::path::PathBuf::from(&body.biography_path);
     recover_admission_transaction(state_dir, &biography_path)?;
     let request_bytes = if request_path == Path::new("-") {
@@ -159,15 +159,15 @@ pub(crate) fn admit_body_request(
     }
     let biography_bytes = bounded_read(&biography_path, 2 * 1024 * 1024)?;
     if digest(&biography_bytes) != body.biography_sha256 {
-        return Err("retained Body biography no longer matches its exact identity".into());
+        return Err("retained body biography no longer matches its exact identity".into());
     }
     let mut biography: BodyBiographyEvidence = serde_json::from_slice(&biography_bytes)
-        .map_err(|error| format!("retained Body biography: {error}"))?;
+        .map_err(|error| format!("retained body biography: {error}"))?;
     biography
         .validate()
-        .map_err(|error| format!("retained Body biography refused: {error:?}"))?;
+        .map_err(|error| format!("retained body biography refused: {error:?}"))?;
     if biography.body_id != request.body_id || biography.body_id.as_str() != body.body_id {
-        return Err("admission request belongs to another Body".into());
+        return Err("admission request belongs to another body".into());
     }
     let admission_path = state_dir.join("body/admission.json");
     let mut admission: AdmissionManager =
@@ -196,9 +196,9 @@ pub(crate) fn admit_body_request(
     let authority_host = HostId::from(installation.host_id.as_str());
     let runtime: RuntimeStatus =
         serde_json::from_slice(&bounded_read(&state_dir.join("runtime.json"), 64 * 1024)?)
-            .map_err(|error| format!("durable Host runtime status: {error}"))?;
+            .map_err(|error| format!("durable host runtime status: {error}"))?;
     if runtime.schema != RUNTIME_SCHEMA || runtime.host_id != installation.host_id {
-        return Err("durable Host runtime status is stale or belongs to another Host".into());
+        return Err("durable host runtime status is stale or belongs to another host".into());
     }
     let authority_boot = BootId::from(runtime.boot_id.as_str());
     let prior_events = biography.membership.events.len();
@@ -243,7 +243,7 @@ pub(crate) fn admit_body_request(
         play_created: false,
     };
     let biography_bytes = serde_json::to_vec_pretty(&biography)
-        .map_err(|error| format!("encode admitted Body biography: {error}"))?;
+        .map_err(|error| format!("encode admitted body biography: {error}"))?;
     installation
         .body_state
         .as_mut()
@@ -292,7 +292,7 @@ fn recover_admission_transaction(state_dir: &Path, biography_path: &Path) -> Res
                     || body.biography_sha256 != digest(&biography_bytes)
             })
     {
-        return Err("Body admission transaction lost its exact Body identity".into());
+        return Err("Body admission transaction lost its exact body identity".into());
     }
     transaction
         .biography
@@ -318,11 +318,11 @@ pub(crate) fn accept_body_invitation(
     authorize_join: bool,
 ) -> Result<(), String> {
     if !authorize_join {
-        return Err("accepting a Body invitation requires --authorize-join".into());
+        return Err("accepting a body invitation requires --authorize-join".into());
     }
     let installation = read_installation(&state_dir.join("installation.json"))?;
     if installation.body_state.is_some() || installation.joined_body_state.is_some() {
-        return Err("this installed Host already owns a Body".into());
+        return Err("this installed host already owns a body".into());
     }
     let bytes = if invitation_path == Path::new("-") {
         bounded_stdin(64 * 1024)?
@@ -343,9 +343,9 @@ pub(crate) fn accept_body_invitation(
         .map_err(|error| format!("Body invitation secret refused: {error:?}"))?;
     let runtime_bytes = bounded_read(&state_dir.join("runtime.json"), 64 * 1024)?;
     let runtime: RuntimeStatus = serde_json::from_slice(&runtime_bytes)
-        .map_err(|error| format!("durable Host runtime status: {error}"))?;
+        .map_err(|error| format!("durable host runtime status: {error}"))?;
     if runtime.schema != RUNTIME_SCHEMA || runtime.host_id != installation.host_id {
-        return Err("durable Host runtime status is stale or belongs to another Host".into());
+        return Err("durable host runtime status is stale or belongs to another host".into());
     }
     let host = StdHost::new_with_config(StdHostConfig {
         host_id: HostId::from(runtime.host_id.as_str()),

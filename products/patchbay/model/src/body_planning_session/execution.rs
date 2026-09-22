@@ -103,8 +103,8 @@ impl BodyPlanningSession {
             .ok_or(BodyExecutionClaimError::UnknownClaim)
     }
 
-    /// Accept only the exact Wake produced by ordinary browser Body start.
-    /// A Host lost between claim and report still started; retain that fact and
+    /// Accept only the exact wake produced by ordinary browser Body start.
+    /// A host lost between claim and report still started; retain that fact and
     /// then apply the recorded loss, instead of fabricating a pre-start refusal.
     pub fn report_execution_started(
         &mut self,

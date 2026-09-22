@@ -77,7 +77,7 @@ impl HostFabricationPackage for AvrProMicroFabricationPackage {
                 os: None,
                 host_core: "host-core/conduitos@1".into(),
                 presenter: None,
-                host_operations: Vec::new(),
+                host_calls: Vec::new(),
                 toolchain_identity: "arduino-cli:1.5.1+arduino-avr:1.8.8+sparkfun-avr:1.1.13"
                     .into(),
                 builder_adapter: BUILDER_ADAPTER.into(),

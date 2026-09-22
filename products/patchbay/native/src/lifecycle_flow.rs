@@ -38,7 +38,7 @@ impl Default for LifecycleFlow {
         Self {
             state_code: "FORM_UNAVAILABLE",
             state_text: "FORM unavailable".into(),
-            detail: "Open a checked Form to begin".into(),
+            detail: "Open a checked form to begin".into(),
             exact_basis: "body=none wake=none plan=none play=none".into(),
             actions: Vec::with_capacity(MAX_LIFECYCLE_ACTIONS),
         }
@@ -57,7 +57,7 @@ impl PatchbayApplication {
             return flow(
                 "FORM_UNCHECKED",
                 "FORM unchecked",
-                "Fix the Form before Birth",
+                "Fix the form before Birth",
                 [],
             );
         }
@@ -83,7 +83,7 @@ impl PatchbayApplication {
                 PatchbayMode::BornLulled => flow(
                     "BODY_LULLED",
                     "BODY born · LULLED",
-                    "Wake creates a new exact Wake identity",
+                    "Wake creates a new exact wake identity",
                     [action(PatchbayAction::Wake, "WAKE", "F5")],
                 ),
                 PatchbayMode::Awake(lifecycle) => self.awake_flow(lifecycle),
@@ -132,7 +132,7 @@ impl PatchbayApplication {
             WakeLifecycle::AwaitingPlay => flow(
                 "PLAN_READY",
                 "PLAN ready",
-                "Exact Plan admitted; no Play active",
+                "Exact plan admitted; no Play active",
                 [
                     action(PatchbayAction::Play, "PLAY", "F7"),
                     action(PatchbayAction::Lull, "LULL", "Shift+F6"),
@@ -151,14 +151,14 @@ impl PatchbayApplication {
                 flow(
                     "PLAY_UNSATISFIED",
                     "PLAY unsatisfied",
-                    "Stop the active Play before replacement planning",
+                    "Stop the active play before replacement planning",
                     [action(PatchbayAction::Stop, "STOP", "Esc")],
                 )
             }
             WakeLifecycle::Unsatisfied | WakeLifecycle::AwaitingReplacement => flow(
                 "PLAY_UNSATISFIED",
                 "PLAY unsatisfied",
-                "The current Plan cannot continue",
+                "The current plan cannot continue",
                 [
                     action(PatchbayAction::Plan, "REPLAN", "F6"),
                     action(PatchbayAction::Lull, "LULL", "Shift+F6"),
@@ -173,7 +173,7 @@ impl PatchbayApplication {
             WakeLifecycle::Failed => flow(
                 "WAKE_FAILED",
                 "WAKE failed",
-                "Failure is terminal for this Wake",
+                "Failure is terminal for this wake",
                 [action(PatchbayAction::Wake, "WAKE", "F5")],
             ),
             WakeLifecycle::Lulled => flow(

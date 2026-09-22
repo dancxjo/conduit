@@ -42,6 +42,7 @@ fn plan(source: &str) -> conduit_core::Plan {
         boot_id: BootId::from("boot/r4/1"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("host/r4@1"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![
             deterministic_rerank_offer("pid-rerank").unwrap(),
@@ -86,7 +87,7 @@ fn ordinary_answer_front_consumes_query_and_structured_context_without_prompt_se
         GROUNDED_ANSWER_VALUE_KIND
     );
     let offer = ordinary_rag_answer_offer("pid-answer").unwrap();
-    assert!(offer.host_operations.is_empty());
+    assert!(offer.host_calls.is_empty());
     assert!(offer.resource_requirements.is_empty());
     assert!(offer.authority_requirements.is_empty());
     let debug = format!("{contract:?}{offer:?}");

@@ -43,7 +43,7 @@ pub fn run_native_home_journey() -> Result<NativeHomeJourneyReceipt, String> {
     let run = home.submit_text("run hello");
     require(
         run == Some(NativeHomeRequest::RunForm(0)),
-        "Prompt did not preserve the exact Form request",
+        "Prompt did not preserve the exact form request",
     )?;
     steps.push(FORM_RUN_STEP_ID);
     let execution = execute_installed_form(0)?;
@@ -57,7 +57,7 @@ pub fn run_native_home_journey() -> Result<NativeHomeJourneyReceipt, String> {
     let patchbay = home.accept(HomeEvent::Activate);
     require(
         patchbay == Some(NativeHomeRequest::OpenPatchbay),
-        "Patchbay did not preserve the exact Host request",
+        "Patchbay did not preserve the exact host request",
     )?;
     let patchbay_opening = open_patchbay_presentation()?;
     steps.push(PATCHBAY_OPENED_STEP_ID);

@@ -17,7 +17,7 @@ pub const USB_LINE_MAXIMUM_FRAME_BYTES: u32 = 1_024;
 pub struct UsbLineRealization {
     pub controller_id: [u8; 32],
     pub device_id: [u8; 32],
-    pub interfront_id: [u8; 32],
+    pub interface_id: [u8; 32],
     pub input_endpoint_id: [u8; 32],
     pub output_endpoint_id: [u8; 32],
     pub attachment_epoch: u32,
@@ -80,7 +80,7 @@ impl UsbLineRealization {
         let identities = [
             self.controller_id,
             self.device_id,
-            self.interfront_id,
+            self.interface_id,
             self.input_endpoint_id,
             self.output_endpoint_id,
         ];

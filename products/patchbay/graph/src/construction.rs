@@ -122,7 +122,7 @@ impl PatchbayGraph {
             .inputs()
             .iter()
             .cloned()
-            .map(|descriptor| PatchbayFacePort {
+            .map(|descriptor| PatchbayFrontPort {
                 identity: front_port_identity(PortDirection::Input, descriptor.port_id.as_str()),
                 descriptor,
             })
@@ -132,7 +132,7 @@ impl PatchbayGraph {
             .outputs()
             .iter()
             .cloned()
-            .map(|descriptor| PatchbayFacePort {
+            .map(|descriptor| PatchbayFrontPort {
                 identity: front_port_identity(PortDirection::Output, descriptor.port_id.as_str()),
                 descriptor,
             })

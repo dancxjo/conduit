@@ -151,11 +151,11 @@ fn parts_view_derives_here_attached_offline_candidates_and_plan_truth() {
     assert!(view
         .truth_explanation
         .in_plan
-        .contains("does not mean a Play is active"));
+        .contains("does not mean a play is active"));
     assert!(view
         .truth_explanation
         .playing
-        .contains("does not rewrite that Plan"));
+        .contains("does not rewrite that plan"));
     assert_eq!(membership, retained_membership);
     assert_eq!(candidates, retained_candidates);
 }

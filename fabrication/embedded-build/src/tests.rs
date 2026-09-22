@@ -2,10 +2,10 @@ use conduit_core::{
     mandatory_sign_storage_requirement, seal_plan, ArtifactId, BaseImplementationId, BootId,
     CancellationPolicy, CapabilityId, CapabilityLimits, CheckedFormId, ConfigurationEntry,
     ConfigurationValue, ConnectionId, ExecutionProfileId, ExpandedFormId, ExpectedSign,
-    ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId, ImplementationId,
-    KindContractRevision, KindId, OfferGeneration, PlacementId, PlanFragment, PlanId,
-    PlannedConnection, PlannedGear, PortDescriptor, PortDirection, PortId, SignStorageBudget,
-    SourceDocumentId, StartupDependency, TerminalPolicy,
+    ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId, ImplementationId, KindId,
+    KindIdentity, OfferGeneration, PlacementId, PlanFragment, PlanId, PlannedConnection,
+    PlannedGear, PortDescriptor, PortDirection, PortId, SignStorageBudget, SourceDocumentId,
+    StartupDependency, TerminalPolicy,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_signal::{signal_profile_catalog, SIGNAL_ENCODED_LEN};
@@ -159,7 +159,7 @@ fn unchanged_signal_form_plans_lowers_and_generates_one_fixed_image() {
             maximum_cords: 1,
             maximum_routes: 1,
             maximum_route_targets: 1,
-            maximum_host_operations: 2,
+            maximum_host_calls: 2,
             maximum_resources: 2,
             maximum_sign_expectations: 8,
             maximum_configuration_entries: 3,
@@ -188,7 +188,7 @@ fn unchanged_signal_form_plans_lowers_and_generates_one_fixed_image() {
     assert!(rendered.contains("pub const GENERATED_NODES"));
     assert!(rendered.contains("pub const GENERATED_CORDS"));
     assert!(rendered.contains("pub const GENERATED_ROUTES"));
-    assert!(rendered.contains("pub const GENERATED_HOST_OPERATIONS"));
+    assert!(rendered.contains("pub const GENERATED_HOST_CALLS"));
     assert!(!rendered.contains("ExecutionPlan"));
 }
 
@@ -249,7 +249,7 @@ fn renderer_emits_fixed_current_kernel_tables() {
             implementation_id: "signal/pulse".to_owned(),
             artifact_id: "artifact/pulse".to_owned(),
             input_cords: [None; FIXED_KERNEL_STORAGE_PORTS_PER_NODE],
-            maximum_step_work: 2,
+            maximum_step_fuel: 2,
         }],
         input_ports: Vec::new(),
         output_ports: vec![GeneratedPort {
@@ -267,7 +267,7 @@ fn renderer_emits_fixed_current_kernel_tables() {
         remote_endpoints: Vec::new(),
         routes: Vec::new(),
         route_targets: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resources: Vec::new(),
         signs: Vec::new(),
         startup_dependencies: Vec::new(),
@@ -355,7 +355,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 placement_id: source.clone(),
                 gear_id: GearId::from("source"),
                 kind_id: KindId::from("test/source"),
-                kind_contract_revision: KindContractRevision::from("test/source@1"),
+                kind_contract_revision: KindIdentity::from("test/source@1"),
                 execution_profile_id: ExecutionProfileId::from("test/source-fixed@1"),
                 configuration: vec![ConfigurationEntry {
                     key: "count".to_owned(),
@@ -367,6 +367,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 capability_id: CapabilityId::from("source-capability"),
                 implementation_id: ImplementationId::from("test/source-impl"),
                 artifact_id: ArtifactId::from("test/source-artifact"),
+                base: None,
                 realization_characteristics: Vec::new(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
@@ -375,7 +376,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 },
                 inputs: Vec::new(),
                 outputs: vec![output],
-                host_operations: Vec::new(),
+                host_calls: Vec::new(),
                 resources: Vec::new(),
                 authority: Vec::new(),
                 pool_references: Vec::new(),
@@ -384,15 +385,16 @@ fn sealed_current_fragment() -> PlanFragment {
                 placement_id: sink.clone(),
                 gear_id: GearId::from("sink"),
                 kind_id: KindId::from("test/sink"),
-                kind_contract_revision: KindContractRevision::from("test/sink@1"),
+                kind_contract_revision: KindIdentity::from("test/sink@1"),
                 execution_profile_id: ExecutionProfileId::from("test/sink-fixed@1"),
-                configuration: Vec::new(),
+                configuration: Default::default(),
                 host_id: host_id.clone(),
                 boot_id: boot_id.clone(),
                 offer_generation: OfferGeneration(1),
                 capability_id: CapabilityId::from("sink-capability"),
                 implementation_id: ImplementationId::from("test/sink-impl"),
                 artifact_id: ArtifactId::from("test/sink-artifact"),
+                base: None,
                 realization_characteristics: Vec::new(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
@@ -401,7 +403,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 },
                 inputs: vec![input],
                 outputs: Vec::new(),
-                host_operations: Vec::new(),
+                host_calls: Vec::new(),
                 resources: Vec::new(),
                 authority: Vec::new(),
                 pool_references: Vec::new(),

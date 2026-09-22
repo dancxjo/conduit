@@ -28,6 +28,7 @@ pub fn exact_hybrid_plan(policy_identity: &str, maximum_value_bytes: u32) -> con
         boot_id: BootId::from("boot/hybrid/1"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("host/hybrid@1"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![deterministic_hybrid_retrieval_offer("pid-7").unwrap()],
         planner_capabilities: vec![],

@@ -68,7 +68,7 @@ pub struct StdDriveArgs {
     /// Assert that the Create is securely supported with every drive wheel off the floor.
     #[arg(long)]
     confirm_wheels_off_floor: bool,
-    /// Exact token emitted by a refused floor attempt for this Plan and attachment.
+    /// Exact token emitted by a refused floor attempt for this plan and attachment.
     #[arg(long)]
     reduced_safety_floor_ack: Option<String>,
     /// Deadline for each bounded correlated Create observation.

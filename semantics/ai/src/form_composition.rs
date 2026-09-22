@@ -63,10 +63,10 @@ pub enum CandidateFormRefusal {
     },
 }
 
-/// Admits a model result as an inert candidate after ordinary Form checking and expansion.
+/// Admits a model result as an inert candidate after ordinary form checking and expansion.
 ///
 /// This function has no host, planner, or runtime input and therefore cannot grant authority,
-/// reserve resources, create a Plan, or start a Play.
+/// reserve resources, create a plan, or start a play.
 pub fn admit_candidate_form(
     request: &FormCompositionRequest,
     result: ModelDerivedResult,

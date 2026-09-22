@@ -116,7 +116,7 @@ mod tests {
     #[test]
     fn only_ordinary_user_preconditions_are_nonterminal() {
         assert!(is_ordinary_form_refusal(
-            "select a Gear before duplicating it"
+            "select a gear before duplicating it"
         ));
         assert!(!is_ordinary_form_refusal("interaction failed"));
         assert!(!is_ordinary_form_refusal(

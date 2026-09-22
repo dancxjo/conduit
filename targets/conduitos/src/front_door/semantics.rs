@@ -26,7 +26,7 @@ impl FrontDoor {
         let birth = if !self.lifecycle_authority_admitted {
             unavailable(
                 "authority/not-admitted",
-                "No admitted authority can create a Body from this entrance.",
+                "No admitted authority can create a body from this entrance.",
             )
         } else if status == JourneyStatus::FormOpened {
             PresentationActionAvailability::Available
@@ -162,7 +162,7 @@ pub(super) fn lifecycle_summary(journey: &JourneyProjection) -> &'static str {
         JourneyStatus::World => "Body none; the entrance Form is ready for inert inspection.",
         JourneyStatus::FormOpened => "Form open; inspection has created no effect.",
         JourneyStatus::BornLulled => "Body born and retained; Wake is available.",
-        JourneyStatus::Awake => "Wake active; an exact Plan is required before Play.",
+        JourneyStatus::Awake => "Wake active; an exact plan is required before Play.",
         JourneyStatus::Planned => "Exact immutable Plan ready; Play is available.",
         JourneyStatus::QuiescentAwaitingInput => {
             "Play quiescent; the same admitted kernel awaits keyboard input."

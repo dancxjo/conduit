@@ -34,9 +34,13 @@ fn classification(error: &PlannerError) -> Option<(&'static str, &'static str)> 
     match error {
         PlannerError::UnknownCapability(_) => Some((
             "CND-PLN-006",
-            "no front-compatible realization is available",
+            "no semantically eligible front-compatible realization is available",
         )),
-        PlannerError::IncompatibleCheckedFace(_) => Some((
+        PlannerError::WrongKindContractRevision(_) => Some((
+            "CND-PLN-015",
+            "selected realization has a different semantic contract",
+        )),
+        PlannerError::IncompatibleCheckedFront(_) => Some((
             "CND-PLN-012",
             "selected realization has a different canonical checked front",
         )),
@@ -53,7 +57,7 @@ fn classification(error: &PlannerError) -> Option<(&'static str, &'static str)> 
             "selected realization has an incompatible port contract",
         )),
         PlannerError::InvalidFormIdentity(_) => {
-            Some(("CND-PLN-001", "checked Form identity is invalid"))
+            Some(("CND-PLN-001", "checked form identity is invalid"))
         }
         _ => None,
     }
@@ -84,7 +88,7 @@ mod tests {
     fn front_mismatch_is_structured_without_nominal_or_private_detail() {
         let diagnostic = structured_planner_diagnostic(
             &checked_form(),
-            &PlannerError::IncompatibleCheckedFace(
+            &PlannerError::IncompatibleCheckedFront(
                 "gear secret front differs from host-local secret".into(),
             ),
         )
@@ -108,7 +112,21 @@ mod tests {
         assert_eq!(diagnostic.code, "CND-PLN-006");
         assert_eq!(
             diagnostic.summary,
-            "no front-compatible realization is available"
+            "no semantically eligible front-compatible realization is available"
+        );
+    }
+
+    #[test]
+    fn semantic_contract_mismatch_is_distinct_from_front_mismatch() {
+        let diagnostic = structured_planner_diagnostic(
+            &checked_form(),
+            &PlannerError::WrongKindContractRevision("private semantic identity".into()),
+        )
+        .unwrap();
+        assert_eq!(diagnostic.code, "CND-PLN-015");
+        assert_eq!(
+            diagnostic.summary,
+            "selected realization has a different semantic contract"
         );
     }
 

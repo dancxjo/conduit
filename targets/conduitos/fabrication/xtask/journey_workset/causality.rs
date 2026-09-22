@@ -41,7 +41,7 @@ pub(in super::super) fn validate(
     {
         return Err(ConduitosError::refusal(
             "product-journey-causality-invalid",
-            "exact Plan/Play/result/LULL causality did not match the product contract",
+            "exact plan/Play/result/LULL causality did not match the product contract",
         ));
     }
     for identity in ["profile_id", "build_id", "image_id", "host_id", "boot_id"] {

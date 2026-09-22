@@ -1,7 +1,7 @@
 use super::*;
 use conduit_human::{KeyModifiers, KeyTransition};
 
-fn idle(kernel: &mut KeyboardTextKernel) -> (HostOperationRequest, Option<PresentationFragment>) {
+fn idle(kernel: &mut KeyboardTextKernel) -> (HostCallRequest, Option<PresentationFragment>) {
     let mut pending = None;
     let mut result = None;
     for _ in 0..256 {
@@ -68,7 +68,7 @@ fn thousands_of_keys_reuse_values_and_retain_a_truthful_sign_gap_in_one_kernel()
     kernel.cancel().unwrap();
     assert_eq!(kernel.step().unwrap(), SchedulerStatus::Cancelled);
     assert_eq!(kernel.scheduler.values().used_items(), 0);
-    assert_eq!(kernel.scheduler.pending_host_operation_count(), 0);
+    assert_eq!(kernel.scheduler.pending_host_call_count(), 0);
     assert!(
         kernel
             .complete_keyboard(

@@ -87,7 +87,7 @@ impl DurableBodyContinuity {
         Ok(())
     }
     /// Record that the current Boot for an admitted Part is no longer observed.
-    /// The durable membership claim remains valid and the Body keeps existing.
+    /// The durable membership claim remains valid and the body keeps existing.
     pub fn observe_offline(&mut self, part: &PartId) -> Result<(), BodyContinuityRefusal> {
         if !self.claims.iter().any(|claim| &claim.part_id == part) {
             return Err(BodyContinuityRefusal::UnknownPart);
@@ -108,7 +108,7 @@ impl DurableBodyContinuity {
         self.current.retain(|runtime| &runtime.part_id != part);
         Ok(())
     }
-    /// Declare the Body extinct only after every Part membership has been
+    /// Declare the body extinct only after every Part membership has been
     /// explicitly revoked.
     pub fn declare_extinct(&mut self) -> Result<(), BodyContinuityRefusal> {
         if !self.claims.is_empty() {

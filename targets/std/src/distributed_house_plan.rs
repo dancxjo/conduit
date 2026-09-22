@@ -1,4 +1,4 @@
-//! Exact multi-Host planning proof for the unchanged spoken House conversation.
+//! Exact multi-host planning proof for the unchanged spoken House conversation.
 
 use conduit_core::{
     authority_grant, process_owned_line_offer_with_limits, AuthorityGrant, BaseImplementationId,
@@ -256,7 +256,7 @@ fn authority_grants(
         let host = hosts
             .iter()
             .find(|host| host.host_id == placement.host_id)
-            .ok_or("distributed House placement names no current Host")?;
+            .ok_or("distributed House placement names no current host")?;
         let capability = host
             .capabilities
             .iter()

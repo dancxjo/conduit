@@ -8,7 +8,7 @@ use conduit_core::CheckedFormId;
 pub(crate) fn checked_identity(
     meaning: (&str, FormCompletionPolicy),
     parameters: &[CheckedStartupParameter],
-    runtime_front: &conduit_core::CheckedFace,
+    runtime_front: &conduit_core::CheckedFront,
     shorthand: Option<(&str, &str)>,
     gears: &[CheckedCanonicalGear],
     cords: &[CheckedCanonicalCord],
@@ -61,7 +61,7 @@ pub(crate) fn checked_identity(
         push_field(&mut canonical, &pool.maximum_members.to_string());
         for parameter in pool.member_front.startup_parameters() {
             push_field(&mut canonical, &parameter.name);
-            push_field(&mut canonical, &parameter.value_type);
+            push_field(&mut canonical, parameter.value_type.as_str());
             push_field(
                 &mut canonical,
                 if parameter.has_default {

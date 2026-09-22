@@ -63,7 +63,7 @@ struct ManifestResource {
 }
 
 /// Builds a package manifest whose identities cover the exact bytes returned
-/// by `resource`. The resolver is the Host's finite inventory boundary.
+/// by `resource`. The resolver is the host's finite inventory boundary.
 pub fn build_manifest<'a>(
     template_bytes: &[u8],
     mut resource: impl FnMut(&str) -> Option<&'a [u8]>,

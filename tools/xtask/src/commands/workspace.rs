@@ -1,4 +1,4 @@
-//! Repository entrance for retained Body arrival through the browser Host.
+//! Repository entrance for retained body arrival through the browser Host.
 use crate::cli::GlobalOpts;
 use crate::process::{run_step, Step};
 use crate::workspace::workspace_root;
@@ -17,9 +17,35 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
         run_step(
             &Step::new(
                 "demo.workspace.rendezvous-host",
-                "Build the installed Host entrance used by running-Host proof",
+                "Build the installed host entrance used by running-Host proof",
                 "cargo",
                 &["build", "-p", "conduit"],
+            ),
+            &root,
+            opts,
+        )?;
+        run_step(
+            &Step::new(
+                "demo.workspace.browser-proof-helpers",
+                "Build the supported Workspace execution and membership proof helpers",
+                "cargo",
+                &[
+                    "build",
+                    "-p",
+                    "patchbay-html",
+                    "--bin",
+                    "patchbay-html",
+                    "-p",
+                    "patchbay-native",
+                    "--bin",
+                    "browser-parts-capstone",
+                    "--bin",
+                    "webchat-server",
+                    "-p",
+                    "conduit-std-host",
+                    "--bin",
+                    "browser-admission-probe",
+                ],
             ),
             &root,
             opts,
@@ -71,7 +97,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     run_step(
         &Step::new(
             "demo.workspace.runtime",
-            "Build the shared Crèche and ordinary Body execution runtime",
+            "Build the shared Crèche and ordinary body execution runtime",
             "cargo",
             &[
                 "build",
@@ -95,7 +121,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     run_step(
         &Step::new(
             "demo.workspace.package",
-            "Stage the exact Body arrival application",
+            "Stage the exact body arrival application",
             "sh",
             &[
                 "products/workspace/tools/stage-workspace-product.sh",
@@ -141,6 +167,8 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
                     "--retries",
                     "0",
                     "workspace-arrival.spec.mjs",
+                    "workspace-birth-naming.spec.mjs",
+                    "workspace-body-execution.spec.mjs",
                     "workspace-membership.spec.mjs",
                     "workspace-library.spec.mjs",
                     "workspace-resident-applications.spec.mjs",
@@ -153,7 +181,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
         run_step(
             &Step::new(
                 "demo.workspace.host",
-                "Open the Body arrival experience",
+                "Open the body arrival experience",
                 "cargo",
                 &[
                     "run",

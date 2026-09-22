@@ -20,6 +20,7 @@ mod instrument_conformance;
 mod json_conformance;
 mod layout_conformance;
 mod local_vision_conformance;
+mod local_vision_description_conformance;
 mod logic_conformance;
 mod math_conformance;
 mod midi_input_conformance;
@@ -29,6 +30,7 @@ mod pattern_comparison_conformance;
 mod presentation_composition;
 mod recurrence_conformance;
 mod remote_fragment_conformance;
+mod remote_vision_conformance;
 mod rhythm_compare_conformance;
 mod robotics_conformance;
 mod secret_knock_body_admission;
@@ -150,7 +152,7 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
         })
     ));
     let kernel = report.kernel.expect("kernel report exists");
-    // Execution identity retains the two exact Host-operation bindings, not
+    // Execution identity retains the two exact Host Call bindings, not
     // one unbounded entry per recurring or finite invocation sequence.
     assert_eq!(kernel.identity.lengths(), (2, 0, 1));
     assert_eq!(
@@ -328,7 +330,7 @@ fn mutated_tick_executable_identity_fails_before_any_wait() {
         .iter_mut()
         .find(|placement| placement.kind_id.as_str() == installed_std::contract::TICK_KIND)
         .expect("tick placement exists");
-    tick.kind_contract_revision = conduit_core::KindContractRevision::from("wrong/tick@1");
+    tick.kind_contract_revision = conduit_core::KindIdentity::from("wrong/tick@1");
     let mut output = Vec::with_capacity(1_024);
     let mut timer = RecordingTimer { waits: Vec::new() };
     let error = host
@@ -530,7 +532,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
         &mut timer,
         &crate::RunControl::default(),
     )
-    .expect_err("an implementation absent from the Plan cannot substitute at runtime");
+    .expect_err("an implementation absent from the plan cannot substitute at runtime");
     assert!(
         error.contains("InvalidFragment"),
         "unexpected rejection: {error}"
@@ -552,8 +554,7 @@ fn every_text_presentation_executable_identity_mutation_fails_before_output() {
     let mutations: [fn(&mut conduit_core::PlannedGear); 14] = [
         |placement| placement.kind_id = conduit_core::KindId::from("wrong/text"),
         |placement| {
-            placement.kind_contract_revision =
-                conduit_core::KindContractRevision::from("wrong/text@1")
+            placement.kind_contract_revision = conduit_core::KindIdentity::from("wrong/text@1")
         },
         |placement| {
             placement.execution_profile_id =
@@ -571,7 +572,7 @@ fn every_text_presentation_executable_identity_mutation_fails_before_output() {
         |placement| placement.offer_generation = conduit_core::OfferGeneration(99),
         |placement| placement.configuration[0].value = conduit_core::ConfigurationValue::U64(5),
         |placement| {
-            placement.host_operations[0].target_kind =
+            placement.host_calls[0].target_kind =
                 Some(conduit_core::KindId::from("wrong/presentation"))
         },
         |placement| {

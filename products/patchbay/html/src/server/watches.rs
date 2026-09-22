@@ -1,4 +1,4 @@
-//! Host-owned mutation of finite debugger Watch presentation state.
+//! host-owned mutation of finite debugger Watch presentation state.
 
 use super::{PatchbayHtmlServer, ServerError};
 use serde::Deserialize;

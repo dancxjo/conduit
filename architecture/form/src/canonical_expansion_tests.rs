@@ -1,11 +1,45 @@
 use crate::prelude::*;
 
 use crate::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, ConfigurationValue, KindDefinition, KindSignature, ProfileCatalog,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationValue,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
-use conduit_core::{kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection};
+use conduit_core::{
+    kind_id, port_id, CapabilityLimits, FrontStartupParameter, Kind, KindIdentity, PortDescriptor,
+    PortDirection,
+};
+
+fn canonical_kind(projection: KindProjection) -> Kind {
+    let startup_parameters = projection
+        .configuration
+        .iter()
+        .map(|field| FrontStartupParameter {
+            name: field.key.clone(),
+            value_type: field.default_value.semantic_kind(),
+            has_default: true,
+        })
+        .collect();
+    let shorthand = match (projection.inputs.as_slice(), projection.outputs.as_slice()) {
+        ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
+        _ => None,
+    };
+    Kind {
+        startup_parameters,
+        shorthand,
+        kind_id: projection.kind_id,
+        kind_contract_revision: projection.kind_contract_revision,
+        inputs: projection.inputs,
+        outputs: projection.outputs,
+        configuration: projection.configuration,
+        semantic_laws: Vec::new(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: 1,
+        },
+    }
+}
 
 fn port(name: &str, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
@@ -18,6 +52,9 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
 
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
+    startup
+        .insert_value_kind_alias("ChatMessage", kind_id("chat/message@1"))
+        .unwrap();
     for signature in [
         KindSignature {
             kind: "test/source".into(),
@@ -48,43 +85,43 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     }
     let mut profile = ProfileCatalog::new();
     for definition in [
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id("test/source"),
-            kind_contract_revision: KindContractRevision::from("test/source@1"),
+            kind_contract_revision: KindIdentity::from("test/source@1"),
             inputs: vec![],
             outputs: vec![port("out", PortDirection::Output)],
             configuration: vec![],
         },
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id("test/use-pool"),
-            kind_contract_revision: KindContractRevision::from("test/use-pool@1"),
+            kind_contract_revision: KindIdentity::from("test/use-pool@1"),
             inputs: vec![],
             outputs: vec![],
             configuration: vec![],
         },
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id("test/pass"),
-            kind_contract_revision: KindContractRevision::from("test/pass@1"),
+            kind_contract_revision: KindIdentity::from("test/pass@1"),
             inputs: vec![port("in", PortDirection::Input)],
             outputs: vec![port("out", PortDirection::Output)],
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "count".into(),
                 default_value: ConfigurationValue::U64(1),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: 8,
                 },
             }],
         },
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id("test/sink"),
-            kind_contract_revision: KindContractRevision::from("test/sink@1"),
+            kind_contract_revision: KindIdentity::from("test/sink@1"),
             inputs: vec![port("in", PortDirection::Input)],
             outputs: vec![],
             configuration: vec![],
         },
     ] {
-        profile.insert(definition).unwrap();
+        profile.insert_kind(canonical_kind(definition)).unwrap();
     }
     (startup, profile)
 }
@@ -98,14 +135,14 @@ fn selected_canonical_back_changes_only_expansion_identity_and_records_exact_pro
             startup_parameters: vec![],
         })
         .unwrap();
-    let high = KindDefinition {
+    let high = KindProjection {
         kind_id: kind_id("test/high"),
-        kind_contract_revision: KindContractRevision::from("test/high@1"),
+        kind_contract_revision: KindIdentity::from("test/high@1"),
         inputs: vec![port("in", PortDirection::Input)],
         outputs: vec![port("out", PortDirection::Output)],
         configuration: vec![],
     };
-    profile.insert(high.clone()).unwrap();
+    profile.insert_kind(canonical_kind(high.clone())).unwrap();
 
     let user = check_syntax_document(
         &parse_syntax_document(
@@ -124,7 +161,13 @@ fn selected_canonical_back_changes_only_expansion_identity_and_records_exact_pro
     )
     .unwrap();
     let mut backs = crate::CanonicalBackCatalog::new();
-    backs.insert(&high, &back_document, "test/high").unwrap();
+    backs
+        .insert(
+            profile.canonical_kind(&high.kind_id).unwrap(),
+            &back_document,
+            "test/high",
+        )
+        .unwrap();
     let recursive =
         crate::expand_canonical_form_with_backs(&user, "main", &profile, &backs).unwrap();
 
@@ -157,7 +200,7 @@ fn canonical_back_refuses_a_front_that_differs_from_the_high_level_kind() {
     let mut backs = crate::CanonicalBackCatalog::new();
     let error = backs
         .insert(
-            profile.get(&kind_id("test/pass")).unwrap(),
+            profile.canonical_kind(&kind_id("test/pass")).unwrap(),
             &document,
             "wrong",
         )
@@ -171,7 +214,7 @@ fn canonical_back_refuses_a_front_that_differs_from_the_high_level_kind() {
 #[test]
 fn exact_back_admission_refuses_stale_source_and_checked_form_identities() {
     let (startup, profile) = catalogs();
-    let high = profile.get(&kind_id("test/pass")).unwrap();
+    let high = profile.canonical_kind(&kind_id("test/pass")).unwrap();
     let document = check_syntax_document(
         &parse_syntax_document(
             "form test/pass (\n count: Count = 1\n in: test/value > out: test/value\n) {\n leaf: test/pass(count)\n in > leaf > out\n}\n",
@@ -185,10 +228,10 @@ fn exact_back_admission_refuses_stale_source_and_checked_form_identities() {
     assert!(matches!(
         backs.insert_exact(
             high,
-            &[StartupParameterSignature {
+            &[conduit_core::FrontStartupParameter {
                 name: "count".into(),
-                value_type: "Count".into(),
-                default: Some("1".into()),
+                value_type: conduit_core::kind_id("value/count"),
+                has_default: true,
             }],
             &document,
             "test/pass",
@@ -200,10 +243,10 @@ fn exact_back_admission_refuses_stale_source_and_checked_form_identities() {
     assert!(matches!(
         backs.insert_exact(
             high,
-            &[StartupParameterSignature {
+            &[conduit_core::FrontStartupParameter {
                 name: "count".into(),
-                value_type: "Count".into(),
-                default: Some("1".into()),
+                value_type: conduit_core::kind_id("value/count"),
+                has_default: true,
             }],
             &document,
             "test/pass",
@@ -216,10 +259,10 @@ fn exact_back_admission_refuses_stale_source_and_checked_form_identities() {
     backs
         .insert_exact(
             high,
-            &[StartupParameterSignature {
+            &[conduit_core::FrontStartupParameter {
                 name: "count".into(),
-                value_type: "Count".into(),
-                default: Some("1".into()),
+                value_type: conduit_core::kind_id("value/count"),
+                has_default: true,
             }],
             &document,
             "test/pass",
@@ -411,7 +454,7 @@ fn expanded_identity_rejects_graph_contract_and_provenance_mutation() {
     let baseline = expand(source, "main");
 
     let mut gear = baseline.clone();
-    gear.gears[0].kind_contract_revision = KindContractRevision::from("mutated@1");
+    gear.gears[0].kind_contract_revision = KindIdentity::from("mutated@1");
     assert_eq!(gear.validate_expansion().unwrap_err().code, "CND-FRM-049");
 
     let mut cord = baseline.clone();
@@ -455,9 +498,9 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
     }
     let mut profile = ProfileCatalog::new();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("state/count"),
-            kind_contract_revision: KindContractRevision::from("state/count@1"),
+            kind_contract_revision: KindIdentity::from("state/count@1"),
             inputs: vec![PortDescriptor {
                 port_id: port_id("bump"),
                 value_kind: kind_id("value/tick@1"),
@@ -466,7 +509,7 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
             }],
             outputs: vec![PortDescriptor {
                 port_id: port_id("value"),
-                value_kind: kind_id("value/count@1"),
+                value_kind: kind_id("value/count"),
                 direction: PortDirection::Output,
                 temporal: conduit_core::PortTemporal::Current,
             }],
@@ -474,9 +517,9 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("test/ticks"),
-            kind_contract_revision: KindContractRevision::from("test/ticks@1"),
+            kind_contract_revision: KindIdentity::from("test/ticks@1"),
             inputs: vec![],
             outputs: vec![PortDescriptor {
                 port_id: port_id("tick"),
@@ -488,12 +531,12 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("test/current"),
-            kind_contract_revision: KindContractRevision::from("test/current@1"),
+            kind_contract_revision: KindIdentity::from("test/current@1"),
             inputs: vec![PortDescriptor {
                 port_id: port_id("value"),
-                value_kind: kind_id("value/count@1"),
+                value_kind: kind_id("value/count"),
                 direction: PortDirection::Input,
                 temporal: conduit_core::PortTemporal::Current,
             }],

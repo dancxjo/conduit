@@ -22,7 +22,7 @@ pub struct HostedFormExecution {
     pub line_offers: Vec<LineOffer>,
 }
 
-/// Check, expand, plan, admit, and execute one authored Form on the real local std Host.
+/// Check, expand, plan, admit, and execute one authored form on the real local std Host.
 ///
 /// This is the library-shaped equivalent of `conduit run`, retained so a native
 /// application presenter does not create a second execution kernel or shell out

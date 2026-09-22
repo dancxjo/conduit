@@ -35,7 +35,7 @@ enum BodyCommand {
         /// Start from a named composition; defaults to minimal unless --host is supplied.
         #[arg(long, value_enum)]
         template: Option<BodyTemplate>,
-        /// Add or replace one Host entry as NAME=HOST-CONFIGURATION.
+        /// Add or replace one host entry as NAME=HOST-CONFIGURATION.
         #[arg(long = "host", value_name = "NAME=CONFIGURATION")]
         hosts: Vec<HostAssignment>,
         /// Destination `.body.conduit` file.
@@ -47,11 +47,11 @@ enum BodyCommand {
     },
     /// List the built-in Body compositions and repository Host recipes they use.
     Templates,
-    /// Validate a Body description and every referenced Host configuration without artifacts.
+    /// Validate a body description and every referenced Host configuration without artifacts.
     Check { path: PathBuf },
-    /// Display the checked Body, target packages, Bases, join modes, and deployment readiness.
+    /// Display the checked body, target packages, Bases, join modes, and deployment readiness.
     Show { path: PathBuf },
-    /// Build one Spore per selected Host through the existing Host IMAGE path.
+    /// Build one Spore per selected host through the existing Host IMAGE path.
     Build {
         path: PathBuf,
         #[arg(long)]

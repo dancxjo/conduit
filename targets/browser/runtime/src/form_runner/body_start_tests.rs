@@ -5,6 +5,47 @@ mod fixture;
 pub(in crate::form_runner) use fixture::{request, request_from_sources};
 
 #[test]
+fn checked_tutorial_form_projects_current_body_truth_inside_its_admitted_play() {
+    let request = request_from_sources(&[include_str!("../../../../../forms/tour/main.conduit")]);
+    let body_id = request.plan.body_id.clone();
+    let (mut session, started) = prepare(request).unwrap();
+    let mut progress = started.progress;
+    let effect = loop {
+        let TourProgress::Effect(effect) = progress else {
+            panic!("resident Tutorial stopped before its application view")
+        };
+        match *effect {
+            TourHostEffect::ApplicationEvent(_) => {
+                progress = session.advance_with_output(&[0]).unwrap();
+            }
+            TourHostEffect::Manifestation(effect) => break effect,
+            _ => progress = session.advance().unwrap(),
+        }
+    };
+    assert_eq!(
+        effect.presentation_kind,
+        conduit_semantic_catalog::APPLICATION_VIEW_PRESENTATION_KIND
+    );
+    let view = conduit_presentation::ApplicationView::decode(
+        effect
+            .application_view
+            .as_deref()
+            .expect("resident Tutorial carries its encoded semantic view"),
+    )
+    .unwrap();
+    assert!(view.nodes.iter().any(|node| {
+        node.text.contains("Purpose · exact readiness") && node.text.contains("not ready")
+    }));
+    assert!(view
+        .actions
+        .iter()
+        .any(|action| action.id == "body.use-current"));
+    assert_eq!(session.active_play_id, started.play.active_play_id);
+    assert_eq!(started.play.body_id, body_id);
+    assert_eq!(session.cancel().unwrap().disposition, "cancelled");
+}
+
+#[test]
 fn ordinary_five_form_body_is_not_confined_to_the_single_form_gear_table() {
     let sources = (0..5)
         .map(|index| format!("form body_{index} {{\n message: text/literal(\"hello\")\n first: text/upper\n second: text/upper\n result: presentation/text\n message > first > second > result\n}}\n"))
@@ -239,7 +280,7 @@ fn canonical_signal_garden_and_unrelated_text_complete_in_one_body_play() {
         match progress {
             TourProgress::Effect(effect) => {
                 let TourHostEffect::Manifestation(value) = *effect else {
-                    panic!("deterministic Garden source must not request a Host effect")
+                    panic!("deterministic Garden source must not request a host effect")
                 };
                 assert_eq!(value.active_play_id, started.play.active_play_id.as_str());
                 assert!(original

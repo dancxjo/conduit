@@ -73,14 +73,14 @@ fn find<'a>(
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn historical_timeline_kind_definition() -> conduit_form::KindDefinition {
+pub fn historical_timeline_kind_projection() -> conduit_form::KindProjection {
     use alloc::{string::ToString, vec};
     use conduit_core::{
-        kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+        kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
         StructuredInfoType, MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES,
         MAXIMUM_TEMPORAL_IDENTITY_BYTES,
     };
-    use conduit_form::{ConfigurationField, ConfigurationRule};
+    use conduit_form::{KindConfigurationField, KindConfigurationRule};
     let value_kind = |identity| {
         StructuredInfoType::leaf(kind_id(identity))
             .expect("reviewed history value identity")
@@ -89,11 +89,9 @@ pub fn historical_timeline_kind_definition() -> conduit_form::KindDefinition {
             .value_kind()
             .clone()
     };
-    conduit_form::KindDefinition {
+    conduit_form::KindProjection {
         kind_id: kind_id(crate::HISTORICAL_TIMELINE_KIND),
-        kind_contract_revision: KindContractRevision::from(
-            crate::HISTORICAL_TIMELINE_CONTRACT_REVISION,
-        ),
+        kind_contract_revision: KindIdentity::from(crate::HISTORICAL_TIMELINE_CONTRACT_REVISION),
         inputs: alloc::vec![PortDescriptor {
             port_id: port_id("command"),
             value_kind: value_kind(crate::HISTORICAL_TIMELINE_COMMAND_INFO_ID),
@@ -107,26 +105,26 @@ pub fn historical_timeline_kind_definition() -> conduit_form::KindDefinition {
             temporal: PortTemporal::Value,
         }],
         configuration: vec![
-            ConfigurationField {
+            KindConfigurationField {
                 key: "value-profile".to_string(),
-                default_value: ConfigurationValue::Text("value/text@1".to_string()),
-                validation: ConfigurationRule::TextBytes {
+                default_value: ConfigurationValue::Text("value/text".to_string()),
+                rule: KindConfigurationRule::TextBytes {
                     maximum: MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES as u32,
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "clock-basis".to_string(),
                 default_value: ConfigurationValue::Text("history/event-clock".to_string()),
-                validation: ConfigurationRule::TextBytes {
+                rule: KindConfigurationRule::TextBytes {
                     maximum: MAXIMUM_TEMPORAL_IDENTITY_BYTES as u32,
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "time-scale".to_string(),
                 default_value: ConfigurationValue::Text(
                     HISTORICAL_TIME_SCALE_MILLISECONDS.to_string(),
                 ),
-                validation: ConfigurationRule::TextOneOf {
+                rule: KindConfigurationRule::TextOneOf {
                     values: vec![
                         HISTORICAL_TIME_SCALE_SECONDS.to_string(),
                         HISTORICAL_TIME_SCALE_MILLISECONDS.to_string(),
@@ -135,40 +133,77 @@ pub fn historical_timeline_kind_definition() -> conduit_form::KindDefinition {
                     ],
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "maximum-entries".to_string(),
                 default_value: ConfigurationValue::U64(16),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: crate::MAXIMUM_HISTORICAL_TIMELINE_ENTRIES as u64,
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "maximum-referenced-bytes".to_string(),
                 default_value: ConfigurationValue::U64(1_048_576),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: crate::MAXIMUM_HISTORICAL_REFERENCED_BYTES,
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "overflow-policy".to_string(),
                 default_value: ConfigurationValue::Text(HISTORICAL_OVERFLOW_REFUSE.to_string()),
-                validation: ConfigurationRule::TextOneOf {
+                rule: KindConfigurationRule::TextOneOf {
                     values: vec![
                         HISTORICAL_OVERFLOW_REFUSE.to_string(),
                         HISTORICAL_OVERFLOW_EVICT_OLDEST_WITH_GAP.to_string(),
                     ],
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "first-sequence".to_string(),
                 default_value: ConfigurationValue::U64(0),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 0,
                     maximum: u64::MAX - 1,
                 },
             },
         ],
+    }
+}
+
+#[cfg(feature = "form-catalog")]
+pub fn historical_timeline_semantic_contract() -> conduit_core::Kind {
+    use conduit_core::{kind_id, CapabilityLimits, FrontStartupParameter};
+
+    let definition = historical_timeline_kind_projection();
+    conduit_core::Kind {
+        startup_parameters: [
+            ("value-profile", "value/text"),
+            ("clock-basis", "value/text"),
+            ("time-scale", "value/text"),
+            ("maximum-entries", "value/count"),
+            ("maximum-referenced-bytes", "value/count"),
+            ("overflow-policy", "value/text"),
+            ("first-sequence", "value/count"),
+        ]
+        .into_iter()
+        .map(|(name, value_type)| FrontStartupParameter {
+            name: name.into(),
+            value_type: kind_id(value_type),
+            has_default: true,
+        })
+        .collect(),
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 1,
+            max_queue_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
     }
 }

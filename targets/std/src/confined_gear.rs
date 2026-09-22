@@ -18,7 +18,7 @@ const OUTPUT_OFFSET: usize = 32 * 1024;
 pub enum RealizationClass {
     ConfinedThirdParty,
     TrustedNative,
-    LegacyCooperativeNative,
+    CooperativeNative,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -87,7 +87,7 @@ pub enum ConfinedRefusal {
     MemoryLimit,
     InputLimit,
     OutputLimit,
-    FuelExhausted,
+    InstructionFuelPreempted,
     HostCallLimit,
     MissingAuthority,
     ForgedSlot,
@@ -228,7 +228,7 @@ pub fn execute<P: ConfinedBaseProvider>(
         .map_err(|_| ConfinedRefusal::ArtifactInvalid)?;
     let output_len = run.call(&mut store, input.len() as i32).map_err(|error| {
         if error.as_trap_code() == Some(TrapCode::OutOfFuel) {
-            ConfinedRefusal::FuelExhausted
+            ConfinedRefusal::InstructionFuelPreempted
         } else {
             store.data().refusal.clone().unwrap_or_else(|| {
                 let _ = error;

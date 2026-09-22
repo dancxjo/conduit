@@ -1,6 +1,6 @@
 use super::*;
 use conduit_core::{ConfigurationEntry, ConfigurationValue};
-use conduit_kernel::Operation;
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 
 fn placement() -> PlannedGear {
     let offer = conduit_std_offers::pulse_observe_offer();
@@ -20,19 +20,22 @@ fn placement() -> PlannedGear {
         capability_id: offer.capability_id,
         implementation_id: offer.implementation.implementation_id,
         artifact_id: offer.implementation.artifact_id,
+        base: None,
         realization_characteristics: vec![],
         limits: offer.limits,
         inputs: offer.inputs,
         outputs: offer.outputs,
-        host_operations: offer.host_operations,
+        host_calls: offer.host_calls,
         resources: vec![],
         authority: vec![],
         pool_references: vec![],
     }
 }
-fn prepared() -> (InstalledOperation, HostedValueStore) {
+fn prepared() -> (conduit_time::PulseObservationBack, HostedValueStore) {
     let mut values = HostedValueStore::new(128, 8, 1024).unwrap();
-    let operation = prepare(&placement(), &mut values).unwrap();
+    let InstalledBack::PulseObserve(operation) = prepare(&placement(), &mut values).unwrap() else {
+        panic!("pulse preparation returned another Back");
+    };
     (operation, values)
 }
 fn tick() -> ValueRef {
@@ -62,75 +65,92 @@ fn factory_checks_exact_identity_and_needs_no_lifetime_output_allocation() {
     );
     let (mut operation, values) = prepared();
     let before = values.allocation_capacities();
-    let operation_capacity = operation.allocation_capacity();
-    assert_eq!(operation.start(), OperationAction::Await);
+    let back_capacity = operation.allocation_capacity();
     for sequence in 0..2 {
-        let OperationAction::EmitCanonical {
-            port: PortId(0),
-            value,
-        } = operation.resume_value(PortId(0), tick(), &conduit_time::encode_tick(sequence))
-        else {
-            panic!("exact pulse output");
-        };
+        let encoded = conduit_time::encode_tick(sequence);
+        let mut io = StepIo::test_frame([Some(tick())], [false], [Some(32)], None, 8);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([Some(&encoded)], None)),
+            StepOutcome::Progress
+        );
+        let value = io
+            .test_canonical_output()
+            .map(|(_, value)| value)
+            .expect("exact pulse output");
         let pulse = conduit_time::decode_pulse_observation(value.as_slice()).unwrap();
         assert_eq!((pulse.sequence, pulse.period_ms), (sequence as u32, 320));
-        assert_eq!(operation.advance(), OperationAction::Await);
     }
+    let mut io = StepIo::test_frame([None], [true], [None], None, 8);
     assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::Complete
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Complete
     );
     assert_eq!(values.allocation_capacities(), before);
-    assert_eq!(operation.allocation_capacity(), operation_capacity);
+    assert_eq!(operation.allocation_capacity(), back_capacity);
 }
 
 #[test]
 fn malformed_order_and_cancel_have_distinct_terminal_details() {
     let (mut operation, _) = prepared();
-    operation.start();
+    let mut io = StepIo::test_frame([Some(tick())], [false], [Some(32)], None, 8);
     assert_eq!(
-        operation.resume_value(PortId(1), tick(), &[0; 8]),
-        failure(FailureCode::InvalidPort, 480)
+        operation.step(&mut io, &StepInputBytes::test_frame([Some(&[0; 7])], None)),
+        StepOutcome::Fail(Failure {
+            code: FailureCode::InvalidInput,
+            detail: 481,
+        })
     );
+    let out_of_order = conduit_time::encode_tick(1);
+    let mut io = StepIo::test_frame([Some(tick())], [false], [Some(32)], None, 8);
     assert_eq!(
-        operation.resume_value(PortId(0), tick(), &[0; 7]),
-        failure(FailureCode::InvalidInput, 481)
+        operation.step(
+            &mut io,
+            &StepInputBytes::test_frame([Some(&out_of_order)], None)
+        ),
+        StepOutcome::Fail(Failure {
+            code: FailureCode::InvalidInput,
+            detail: 482,
+        })
     );
+    for sequence in 0..2 {
+        let encoded = conduit_time::encode_tick(sequence);
+        let mut io = StepIo::test_frame([Some(tick())], [false], [Some(32)], None, 8);
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame([Some(&encoded)], None)),
+            StepOutcome::Progress
+        );
+    }
+    StepBack::<1>::cancel(&mut operation);
+    let mut io = StepIo::test_frame([Some(tick())], [false], [Some(32)], None, 8);
     assert_eq!(
-        operation.resume_value(PortId(0), tick(), &conduit_time::encode_tick(1)),
-        failure(FailureCode::InvalidInput, 482)
+        operation.step(&mut io, &StepInputBytes::test_frame([Some(&[0; 8])], None)),
+        StepOutcome::Fail(Failure {
+            code: FailureCode::Cancelled,
+            detail: 484,
+        })
     );
-    assert!(matches!(
-        operation.resume_value(PortId(0), tick(), &[0; 8]),
-        OperationAction::EmitCanonical { .. }
-    ));
-    operation.advance();
-    assert!(matches!(
-        operation.resume_value(PortId(0), tick(), &conduit_time::encode_tick(1)),
-        OperationAction::EmitCanonical { .. }
-    ));
-    operation.cancel();
+    let mut io = StepIo::test_frame([None], [true], [None], None, 8);
     assert_eq!(
-        operation.resume_value(PortId(0), tick(), &[0; 8]),
-        failure(FailureCode::Cancelled, 484)
-    );
-    assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(0) }),
-        failure(FailureCode::Cancelled, 484)
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Fail(Failure {
+            code: FailureCode::Cancelled,
+            detail: 484,
+        })
     );
 }
 
 #[test]
 fn closure_requires_no_minimum_count_and_refuses_late_values() {
     let (mut operation, _) = prepared();
-    operation.start();
+    let mut io = StepIo::test_frame([None], [true], [None], None, 8);
     assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(0) }),
-        OperationAction::Complete
+        operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Complete
     );
+    let mut io = StepIo::test_frame([Some(tick())], [false], [Some(32)], None, 8);
     assert!(matches!(
-        operation.resume_value(PortId(0), tick(), &[0; 8]),
-        OperationAction::Fail(Failure {
+        operation.step(&mut io, &StepInputBytes::test_frame([Some(&[0; 8])], None)),
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             ..
         })

@@ -12,6 +12,201 @@ use conduit_workspace_model::{
 };
 
 #[test]
+fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
+    let body = born();
+    let request = conduit_workspace_model::tutorial::generative_request(
+        &body,
+        "request/orifina/initial".into(),
+        11,
+        conduit_workspace_model::tutorial::TutorialPlayback::Lulled,
+    )
+    .unwrap();
+    assert_eq!(
+        request.policy.template_contract_revision,
+        conduit_presentation::ORIFINA_COMPLETION_POLICY_REVISION
+    );
+    assert_eq!(request.semantic_data.presentation.revision, 11);
+    assert_eq!(
+        request.semantic_data.presentation.basis.body_id.as_ref(),
+        Some(&body.evidence().body.body_id)
+    );
+    assert!(
+        request
+            .semantic_data
+            .presentation
+            .properties
+            .iter()
+            .any(|property| {
+                property.name == "readiness"
+                    && property.value
+                        == conduit_presentation::PresentationPropertyValue::Text("not-ready".into())
+            })
+    );
+    assert!(
+        request
+            .semantic_data
+            .presentation
+            .properties
+            .iter()
+            .any(|property| {
+                property.name == "workload-revision"
+                    && property.value == conduit_presentation::PresentationPropertyValue::Count(0)
+            })
+    );
+    assert!(
+        request
+            .semantic_data
+            .presentation
+            .subjects
+            .iter()
+            .any(|subject| {
+                subject.role == conduit_presentation::PresentationRole::Form
+                    && subject.identity == "form/checked/morse"
+            })
+    );
+    assert!(
+        request
+            .semantic_data
+            .presentation
+            .actions
+            .iter()
+            .any(|action| action.identity == "body.wake")
+    );
+    assert!(
+        !request
+            .semantic_data
+            .presentation
+            .actions
+            .iter()
+            .any(|action| action.identity == "body.fulfill")
+    );
+}
+
+#[test]
+fn playing_tutorial_request_uses_the_canonical_face_execution_projection() {
+    let mut body = born();
+    let play = start(&mut body);
+    let realization = body.realization().unwrap();
+    let request = conduit_workspace_model::tutorial::generative_request(
+        &body,
+        "request/orifina/playing".into(),
+        13,
+        conduit_workspace_model::tutorial::TutorialPlayback::Playing,
+    )
+    .unwrap();
+    let presentation = &request.semantic_data.presentation;
+
+    assert_eq!(
+        presentation.basis.wake_id.as_ref(),
+        Some(&realization.wake.wake_id)
+    );
+    assert!(presentation.subjects.iter().any(|subject| {
+        subject.role == conduit_presentation::PresentationRole::Plan
+            && subject.identity == format!("plan/{}", realization.plan.plan_id.as_str())
+    }));
+    assert!(presentation.subjects.iter().any(|subject| {
+        subject.role == conduit_presentation::PresentationRole::Play
+            && subject.identity == format!("play/{}", play.active_play_id.as_str())
+    }));
+    assert_eq!(body.realization().unwrap().play.as_ref(), Some(&play));
+}
+
+#[test]
+fn exact_tutorial_completion_only_presents_fulfillment_as_an_operator_choice() {
+    let mut body = born();
+    let proposal = body
+        .propose(plans(&body), &host(), &boot())
+        .unwrap()
+        .clone();
+    body.fail(
+        &host(),
+        &boot(),
+        vec![conduit_body::WakeRejectionEvidence {
+            reason_code: "execution.line-unavailable".into(),
+            category: "Connectivity".into(),
+            stage: "Body execution".into(),
+            resource: "execution-line".into(),
+            required: 1,
+            available: 0,
+            host_id: host(),
+            boot_id: boot(),
+            plan_id: Some(proposal.plan.plan_id.clone()),
+            checked_form_ids: proposal
+                .plan
+                .forms
+                .iter()
+                .map(|form| form.form.checked_form_id.clone())
+                .collect(),
+        }],
+    )
+    .unwrap();
+    let play = start(&mut body);
+    body.lull(&host(), &boot(), Some(&play)).unwrap();
+
+    let mut evidence = body.evidence().clone();
+    let mut membership = evidence.membership.clone();
+    let other_part = PartId::bind(&evidence.body_id, "other", 1).unwrap();
+    let other_proof = MembershipProofId::bind("proof/other").unwrap();
+    let admitted = membership
+        .admit(
+            &evidence.body_id,
+            membership.revision,
+            other_part.clone(),
+            other_proof.clone(),
+            "sign/admit-other".into(),
+        )
+        .unwrap();
+    let joined = membership
+        .observe_present(
+            &evidence.body_id,
+            membership.revision,
+            &other_part,
+            AuthenticatedHostObservation {
+                host_id: "host/other".into(),
+                boot_id: "boot/other".into(),
+                offer_generation: OfferGeneration(1),
+                proof_id: other_proof,
+                sequence: 1,
+            },
+            "sign/join-other".into(),
+        )
+        .unwrap();
+    let next = evidence.records.last().unwrap().sequence + 1;
+    evidence
+        .append_membership_events(membership, &[(admitted, next), (joined, next + 1)])
+        .unwrap();
+    let body = WorkspaceBody::open(evidence).unwrap();
+    let request = conduit_workspace_model::tutorial::generative_request(
+        &body,
+        "request/orifina/ready".into(),
+        12,
+        conduit_workspace_model::tutorial::TutorialPlayback::Completed,
+    )
+    .unwrap();
+    assert!(
+        request
+            .semantic_data
+            .presentation
+            .properties
+            .iter()
+            .any(|property| {
+                property.name == "readiness"
+                    && property.value
+                        == conduit_presentation::PresentationPropertyValue::Text("ready".into())
+            })
+    );
+    assert!(
+        request
+            .semantic_data
+            .presentation
+            .actions
+            .iter()
+            .any(|action| action.identity == "body.fulfill")
+    );
+    assert!(matches!(body.evidence().body.state, BodyState::Lulled));
+}
+
+#[test]
 fn tutorial_guidance_is_a_renderer_neutral_revision_bound_application_view() {
     let body = born();
     let view = conduit_workspace_model::tutorial::presentation(
@@ -23,7 +218,7 @@ fn tutorial_guidance_is_a_renderer_neutral_revision_bound_application_view() {
     .lower()
     .unwrap();
     assert_eq!(view.revision, 7);
-    assert!(view.nodes.iter().any(|node| node.text == "Wake this Body"));
+    assert!(view.nodes.iter().any(|node| node.text == "Wake this body"));
     assert!(view.actions.iter().any(|action| action.id == "body.wake"));
     assert!(view.nodes.iter().any(|node| {
         node.text.contains("Purpose · exact readiness") && node.text.contains("not ready")
@@ -46,7 +241,7 @@ fn revised_tutorial_uses_the_shared_host_invitation_action() {
     assert!(
         view.nodes
             .iter()
-            .any(|node| node.text == "Invite another Host")
+            .any(|node| node.text == "Invite another host")
     );
     assert!(
         view.actions
@@ -160,7 +355,7 @@ fn repaired_wake_advances_tutorial_guidance_from_fault_to_continuity() {
         repaired
             .nodes
             .iter()
-            .any(|node| node.text == "The same Body woke again")
+            .any(|node| node.text == "The same body woke again")
     );
     assert!(
         !repaired
@@ -352,6 +547,7 @@ fn advertisement(host_id: HostId, boot_id: BootId, generation: u64) -> HostAdver
         boot_id,
         offer_generation: OfferGeneration(generation),
         profile: HostProfileId::from("test/current-offers@1"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![],
         planner_capabilities: vec![],
@@ -988,7 +1184,7 @@ fn library_keeps_reviewed_forms_visible_when_the_body_is_at_capacity() {
         },
         LibraryEntry {
             form: form("another"),
-            title: "Another reviewed Form".into(),
+            title: "Another reviewed form".into(),
             search_text: "candidate".into(),
             availability: LibraryAvailability::Available,
             graceful_fallback: None,
@@ -999,7 +1195,7 @@ fn library_keeps_reviewed_forms_visible_when_the_body_is_at_capacity() {
     let semantic = library.presentation(&body, 10, "candidate").unwrap();
     let encoded = format!("{semantic:?}");
     assert!(encoded.contains("Body at capacity"));
-    assert!(encoded.contains("Remove a Form before adding another"));
+    assert!(encoded.contains("Remove a form before adding another"));
     let lowered = semantic.lower().unwrap();
     assert!(
         !lowered

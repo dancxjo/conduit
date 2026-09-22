@@ -93,7 +93,7 @@ fn canonical_document_roles_share_tokens_declarations_values_and_diagnostics() {
     assert!(!document.tokens.is_empty());
     assert!(document.forms.is_empty());
     let [host] = document.constructions().expect("Host role parses") else {
-        panic!("one Host construction document is required");
+        panic!("one host construction document is required");
     };
     assert_eq!(host.role, ConstructionRole::Host);
     assert_eq!(host.name.text, "specimen");

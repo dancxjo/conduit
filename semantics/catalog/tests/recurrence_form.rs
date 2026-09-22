@@ -52,6 +52,7 @@ fn host(offer: CapabilityOffer) -> HostAdvertisement {
         boot_id: conduit_core::BootId::from("boot/recurrence"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/recurrence-proof@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: vec![offer],

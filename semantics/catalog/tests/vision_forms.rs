@@ -1,8 +1,8 @@
 use conduit_core::{
     process_owned_line_offer_with_limits, ArtifactId, BaseImplementationId, BootId,
     BoundedResourceRef, CapabilityId, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, LinkLimits, OfferGeneration, Quantity, QuantityUnit, StructuredInfoTypeShape,
-    StructuredInfoValue, StructuredInfoValueShape, PROTOCOL_VERSION,
+    ImplementationId, LinkLimits, OfferGeneration, Quantity, QuantityUnit, StructuredInfoType,
+    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
@@ -65,6 +65,67 @@ fn continuous_vision_is_checked_bounded_and_provider_neutral() {
     assert_eq!(
         conduit_semantic_catalog::reviewed_flow_pressure_policy(&flow.kind_id),
         Some(conduit_core::DeliveryPressurePolicy::CoalesceLatest)
+    );
+}
+
+#[test]
+fn continuous_vision_ports_carry_exact_observation_and_model_provenance() {
+    fn record_fields(value: &StructuredInfoType) -> Vec<&str> {
+        let StructuredInfoTypeShape::Record { fields, .. } = value.shape() else {
+            panic!("expected a record")
+        };
+        fields.iter().map(|field| field.name()).collect()
+    }
+
+    let texts = conduit_semantic_catalog::vision_texts_type();
+    let StructuredInfoTypeShape::Sequence { element, capacity } = texts.shape() else {
+        panic!("visible text must be a bounded sequence")
+    };
+    assert_eq!(capacity, 8);
+    assert_eq!(
+        record_fields(element),
+        [
+            "confidence_permille",
+            "provenance",
+            "region",
+            "source_image",
+            "text"
+        ]
+    );
+
+    let tracks = conduit_semantic_catalog::vision_tracks_type();
+    let StructuredInfoTypeShape::Sequence { element, capacity } = tracks.shape() else {
+        panic!("tracks must be a bounded sequence")
+    };
+    assert_eq!(capacity, 4);
+    assert_eq!(
+        record_fields(element),
+        [
+            "continuity_confidence_permille",
+            "contributing_observation_signs",
+            "current_region",
+            "provenance",
+            "source_image",
+            "track",
+            "tracking_context",
+        ]
+    );
+
+    assert_eq!(
+        record_fields(&conduit_semantic_catalog::visual_impression_type()),
+        [
+            "disposition",
+            "model",
+            "prompt_contract_revision",
+            "provenance",
+            "selected_observation_signs",
+            "source_image",
+            "text",
+        ]
+    );
+    assert_eq!(
+        record_fields(&conduit_semantic_catalog::visual_experience_type()),
+        ["observations", "relations", "source_image"]
     );
 }
 
@@ -296,7 +357,7 @@ fn image_resource_and_detection_metadata_flow_through_one_ordinary_form() {
             .find(|placement| placement.kind_id.as_str() == kind)
             .unwrap();
         assert_eq!(
-            placement.host_operations[0].contract_id.as_str(),
+            placement.host_calls[0].contract_id.as_str(),
             DOMAIN_PROOF_OPERATION
         );
         assert!(placement.resources.is_empty());
@@ -408,6 +469,7 @@ fn host() -> HostAdvertisement {
         boot_id: BootId::from("boot/vision-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/vision-proof@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: vision_proof_offers(),

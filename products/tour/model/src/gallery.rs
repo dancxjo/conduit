@@ -103,7 +103,7 @@ impl TourGalleryState {
                             detail: if entry.runnable {
                                 "Ready to explore in your browser".into()
                             } else {
-                                "Needs another Host implementation".into()
+                                "Needs another host implementation".into()
                             },
                         },
                         vec![],
@@ -144,7 +144,7 @@ impl TourGalleryState {
                             node(
                                 &format!("form-add-{index}"),
                                 PresentationMechanism::Link {
-                                    label: "Use in your Body".into(),
+                                    label: "Use in your body".into(),
                                     destination: entry.handoff.clone(),
                                 },
                                 vec![],
@@ -191,7 +191,7 @@ impl TourGalleryState {
                     node(
                         "gallery-search",
                         PresentationMechanism::FormField(FormField {
-                            label: "Search reviewed Forms".into(),
+                            label: "Search reviewed forms".into(),
                             help: "Find a title, an idea, or a kind of Gear.".into(),
                             error: over_capacity
                                 .then(|| "Search is outside the admitted bound.".into()),
@@ -200,7 +200,7 @@ impl TourGalleryState {
                             input_action: SemanticAction {
                                 identity: "gallery.search".into(),
                                 event: ApplicationEventKind::Input,
-                                label: "Search reviewed Forms".into(),
+                                label: "Search reviewed forms".into(),
                                 availability: ActionAvailability::Available,
                             },
                             kind: FieldKind::Text,

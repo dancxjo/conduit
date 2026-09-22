@@ -7,10 +7,10 @@ use conduit_audio::{
 use conduit_core::{
     kind_id, port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ConfigurationValue, ExecutionProfileId, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, ImplementationOffer, KindContractRevision, OfferGeneration,
+    HostProfileId, ImplementationId, ImplementationOffer, KindIdentity, OfferGeneration,
     PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
-use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
+use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
 use serde::Serialize;
 
 use super::super::CatalogError;
@@ -80,7 +80,7 @@ pub(super) fn build() -> Result<LossyAdapterProof, CatalogError> {
         return Err(CatalogError::new(
             "sound-adapter-plan-not-exact",
             format!(
-                "adapter implementation or policy configuration was not sealed into the Plan: implementation={} configuration={:?}",
+                "adapter implementation or policy configuration was not sealed into the plan: implementation={} configuration={:?}",
                 adapter.implementation_id.as_str(),
                 adapter.configuration
             ),
@@ -115,7 +115,7 @@ fn catalog() -> Result<ProfileCatalog, CatalogError> {
     Ok(catalog)
 }
 
-fn source_definition() -> KindDefinition {
+fn source_definition() -> KindProjection {
     definition(
         SOURCE_KIND,
         Vec::new(),
@@ -124,7 +124,7 @@ fn source_definition() -> KindDefinition {
     )
 }
 
-fn adapter_definition() -> KindDefinition {
+fn adapter_definition() -> KindProjection {
     definition(
         ADAPTER_KIND,
         vec![port("notes", MUSIC_NOTE_INFO_ID, PortDirection::Input)],
@@ -137,7 +137,7 @@ fn adapter_definition() -> KindDefinition {
     )
 }
 
-fn sink_definition() -> KindDefinition {
+fn sink_definition() -> KindProjection {
     definition(
         SINK_KIND,
         vec![port("tone", SOUND_TONE_INFO_ID, PortDirection::Input)],
@@ -150,11 +150,11 @@ fn definition(
     kind: &str,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
-    configuration: Vec<ConfigurationField>,
-) -> KindDefinition {
-    KindDefinition {
+    configuration: Vec<KindConfigurationField>,
+) -> KindProjection {
+    KindProjection {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs,
         outputs,
         configuration,
@@ -170,11 +170,11 @@ fn port(name: &str, info: &str, direction: PortDirection) -> PortDescriptor {
     }
 }
 
-fn text_policy(key: &str, value: &str) -> ConfigurationField {
-    ConfigurationField {
+fn text_policy(key: &str, value: &str) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.into(),
         default_value: ConfigurationValue::Text(value.into()),
-        validation: ConfigurationRule::TextOneOf {
+        rule: KindConfigurationRule::TextOneOf {
             values: vec![value.into()],
         },
     }
@@ -208,6 +208,7 @@ fn host(catalog: &ProfileCatalog) -> Result<HostAdvertisement, CatalogError> {
         boot_id: BootId::from("sound-adapter-reference-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("conduit-conformance/sound-adapter@1"),
+        bases: vec![],
         resources: Vec::new(),
         capabilities,
         planner_capabilities: Vec::new(),
@@ -222,14 +223,15 @@ fn capability(catalog: &ProfileCatalog, kind: &str) -> Result<CapabilityOffer, C
         startup_parameters: definition
             .configuration
             .iter()
-            .map(|field| conduit_core::FaceStartupParameter {
+            .map(|field| conduit_core::FrontStartupParameter {
                 name: field.key.clone(),
                 value_type: match field.default_value {
-                    ConfigurationValue::Bool(_) => "Boolean",
-                    ConfigurationValue::U64(_) => "Count",
-                    ConfigurationValue::I64(_) => "Scalar",
-                    ConfigurationValue::Text(_) => "Text",
+                    ConfigurationValue::Bool(_) => "value/bool",
+                    ConfigurationValue::U64(_) => "value/count",
+                    ConfigurationValue::I64(_) => "value/scalar",
+                    ConfigurationValue::Text(_) => "value/text",
                     ConfigurationValue::Structured(ref value) => value.profile().as_str(),
+                    ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
                 }
                 .into(),
                 has_default: true,
@@ -250,7 +252,7 @@ fn capability(catalog: &ProfileCatalog, kind: &str) -> Result<CapabilityOffer, C
         },
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {

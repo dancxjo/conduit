@@ -1,6 +1,8 @@
 import { acquireBrowserBodyHost } from "../../../targets/browser/host/assets/browser-body-host.mjs";
 
 export function openWorkspacePlay({ host, session, source, planningLines, inputTarget, outputRoot, foregroundForm, onState,
+  presentationRootFor, onApplicationEvent,
+  onTutorialPresenterRequest,
   prepareExternal = async () => null, acquireBody = acquireBrowserBodyHost }) {
   let adapter = null, external = null, proposal = null, started = null, terminal = null, transition = false;
   const publish = (state, detail = '', error = null) => onState({ state, detail, play: started?.play, terminal,
@@ -10,7 +12,7 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
         receipt.active_play_id !== started?.play.active_play_id ||
         !['completed', 'cancelled', 'failed'].includes(receipt.disposition) ||
         typeof receipt.terminal_sign_id !== 'string' || !receipt.terminal_sign_id) {
-      throw new Error('The Host has not supplied the terminal receipt for this Play');
+      throw new Error('The host has not supplied the terminal receipt for this play');
     }
     terminal = receipt;
   };
@@ -23,21 +25,22 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
     await session.lull(started.play);
   };
   if (session.current()?.state === 'FULFILLED') {
-    publish('Fulfilled', 'This Body is complete. Its biography remains available for inspection.');
+    publish('Fulfilled', 'This body is complete. Its biography remains available for inspection.');
   } else {
-    publish('Lulled', 'This Body is retained. Wake it to start its Forms.');
+    publish('Lulled', 'This body is retained. Wake it to start its forms.');
   }
   return Object.freeze({
     async wake(authorizeAudio = false) {
       if (adapter || transition) return;
       transition = true; terminal = null; started = null;
-      publish('Preparing', 'Checking the installed Forms');
+      publish('Preparing', 'Checking the installed forms');
       try {
         proposal = await session.propose(source, planningLines(), authorizeAudio);
         publish('Preparing', 'Acquiring the required capabilities');
         external = await prepareExternal(proposal);
         adapter = acquireBody({ api: host.runtime, hostId: host.hostId, bootId: host.bootId, proposal,
-          inputTarget, outputRoot, foregroundForm,
+          inputTarget, outputRoot, foregroundForm, presentationRootFor, onApplicationEvent,
+          onTutorialPresenterRequest,
           externallyManagedPlanIds: external ? [external.planId] : [] });
         started = adapter.start(1);
         await session.started(started);
@@ -54,7 +57,7 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
             throw new Error('The external Form did not supply its exact terminal outcome');
           }
           if (receipt?.schema === 'conduit.browser/pending-effects@1' && receipt.disposition === 'quiescent_awaiting_input' && receipt.active_play_id === started.play.active_play_id && receipt.pending_effects === 0) {
-            publish('Idle', 'Its Forms are awake. Their current work has finished.');
+            publish('Idle', 'Its forms are awake. Their current work has finished.');
             return;
           }
           requireTerminal(receipt);
@@ -94,7 +97,7 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
           }
         } catch (failure) { cleanupError = failure; }
         if (session.persistenceFailure()) {
-          publish(terminal ? 'Stopped' : 'Refused', `Your Body could not be saved. ${terminal ? 'Its Forms have stopped. ' : ''}Reopen to recover the last saved state. ${error.message}`, error);
+          publish(terminal ? 'Stopped' : 'Refused', `Your body could not be saved. ${terminal ? 'Its forms have stopped. ' : ''}Reopen to recover the last saved state. ${error.message}`, error);
         } else {
           publish(adapter ? 'Failed' : 'Refused', [error.message, cleanupError?.message].filter(Boolean).join(' · '), error);
         }
@@ -105,10 +108,10 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
       transition = true;
       try {
         await stop();
-        publish('Lulled', 'Your Body is retained. Its Forms can wake again.');
+        publish('Lulled', 'Your body is retained. Its forms can wake again.');
       } catch (error) {
         publish(terminal ? 'Stopped' : 'Failed', terminal
-          ? `Its Forms have stopped, but your Body could not be saved. Reopen to recover the last saved state. ${error.message}`
+          ? `Its forms have stopped, but your body could not be saved. Reopen to recover the last saved state. ${error.message}`
           : error.message, error);
       } finally { transition = false; }
     },
@@ -117,25 +120,25 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
       transition = true;
       try {
         if (adapter) await stop();
-        if (session.current().state !== 'LULLED') throw new Error('The current Play has not been retired');
+        if (session.current().state !== 'LULLED') throw new Error('The current play has not been retired');
         await session.fulfill();
-        publish('Fulfilled', 'This Body is complete. Its biography remains available for inspection.');
+        publish('Fulfilled', 'This body is complete. Its biography remains available for inspection.');
       } catch (error) {
         publish(session.persistenceFailure() ? 'Stopped' : 'Refused', error.message, error);
         throw error;
       } finally { transition = false; }
     },
     async changeWorkset(edit, form, expectedRevision) {
-      if (transition) throw new Error('A Body transition is already in progress');
+      if (transition) throw new Error('A body transition is already in progress');
       if (session.persistenceFailure()) throw session.persistenceFailure();
       transition = true;
       try {
         // The view's revision is checked again at the authoritative mutation.
-        if (session.current().workload_revision !== expectedRevision) throw new Error('The installed Forms changed. Reopen the chooser.');
+        if (session.current().workload_revision !== expectedRevision) throw new Error('The installed forms changed. Reopen the chooser.');
         if (adapter) await stop();
-        if (session.current().state !== 'LULLED') throw new Error('The current Play has not been retired');
+        if (session.current().state !== 'LULLED') throw new Error('The current play has not been retired');
         await session.changeWorkset(edit, form, source, expectedRevision);
-        publish('Lulled', 'Your installed Forms have been saved.');
+        publish('Lulled', 'Your installed forms have been saved.');
       } catch (error) {
         publish(session.persistenceFailure() ? 'Stopped' : session.current().state === 'LULLED' ? 'Refused' : 'Failed', error.message, error);
         throw error;

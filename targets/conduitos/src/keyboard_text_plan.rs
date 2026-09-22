@@ -39,8 +39,8 @@ pub struct KeyboardTextFormIdentity {
     pub expanded_form_id: conduit_core::ExpandedFormId,
 }
 
-/// Check the IMAGE-embedded platform-neutral Form without selecting a Host,
-/// producing a Plan, or admitting any runtime effect.
+/// Check the IMAGE-embedded platform-neutral Form without selecting a host,
+/// producing a plan, or admitting any runtime effect.
 pub fn checked_form_identity() -> Result<KeyboardTextFormIdentity, PreparationError> {
     let form = checked_expanded_form()?;
     Ok(KeyboardTextFormIdentity {
@@ -162,9 +162,8 @@ pub fn validate(
         || keymap.configuration[0].key.as_str() != "layout"
         || keymap.configuration[0].value
             != conduit_core::ConfigurationValue::Text(conduit_human::CONDUIT_INTL_LAYOUT.into())
-        || keymap.host_operations.len() != 1
-        || keymap.host_operations[0].contract_id.as_str()
-            != crate::functional_offers::KEYMAP_HOST_OPERATION
+        || keymap.host_calls.len() != 1
+        || keymap.host_calls[0].contract_id.as_str() != crate::functional_offers::KEYMAP_HOST_CALL
     {
         return Err(PreparationError::PlanRejected);
     }
@@ -223,7 +222,7 @@ pub(crate) fn append_keymap_offer(advertisement: &mut HostAdvertisement, build_i
     keymap.implementation.execution_profile_id = ExecutionProfileId::from(KEYMAP_EXECUTION_PROFILE);
     keymap.implementation.implementation_id = ImplementationId::from(KEYMAP_IMPLEMENTATION);
     keymap.implementation.artifact_id = ArtifactId::from(format!("conduitos-build/{build_id}"));
-    // Keymap transforms an admitted value in memory. Its Host operation has its
+    // Keymap transforms an admitted value in memory. Its Host Call has its
     // own planned in-flight bound; it does not use a keyboard controller slot.
     keymap.resource_requirements = vec![resource_requirement(
         "conduit.resource/runtime-memory@1",
@@ -276,7 +275,7 @@ mod tests {
                 mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
                 controller_id: [3; 32],
                 device_id: [4; 32],
-                interfront_id: [5; 32],
+                interface_id: [5; 32],
                 endpoint_id: [6; 32],
                 report_buffers: 2,
                 transition_slots: 8,
@@ -319,8 +318,8 @@ mod tests {
             .iter()
             .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::KEYMAP_KIND)
             .unwrap();
-        assert_eq!(keymap.host_operations.len(), 1);
-        assert_eq!(keymap.host_operations[0].maximum_in_flight, 1);
+        assert_eq!(keymap.host_calls.len(), 1);
+        assert_eq!(keymap.host_calls[0].maximum_in_flight, 1);
         offer.keyboard.as_mut().unwrap().realization.operation_slots = 0;
         assert!(prepare(&identities, &offer, "build").is_err());
     }

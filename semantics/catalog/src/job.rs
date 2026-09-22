@@ -1,6 +1,6 @@
 //! Portable bounded job semantics.
 //!
-//! An executable is semantic resource Info, not a path or command line. A Host
+//! An executable is semantic resource Info, not a path or command line. A host
 //! must separately admit and bind that reference before realizing the request.
 
 use alloc::{string::String, vec, vec::Vec};
@@ -181,15 +181,15 @@ fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
 }
 
 fn unit_type() -> StructuredInfoType {
-    leaf("value/unit@1")
+    leaf("value/unit")
 }
 
 fn text_type() -> StructuredInfoType {
-    leaf("value/text@1")
+    leaf("value/text")
 }
 
 fn count_type() -> StructuredInfoType {
-    leaf("value/count@1")
+    leaf("value/count")
 }
 
 fn optional_text_type() -> StructuredInfoType {
@@ -271,7 +271,7 @@ pub fn job_output_type() -> StructuredInfoType {
         "process/job-output@1",
         vec![
             field("complete_artifact", artifact),
-            field("inline", leaf("value/bytes@1")),
+            field("inline", leaf("value/bytes")),
             field("pressure", pressure),
             field("profile", job_output_profile_type()),
         ],

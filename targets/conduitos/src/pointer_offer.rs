@@ -3,20 +3,20 @@
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, KindContractRevision,
-    PortDescriptor, PortDirection, PortTemporal, kind_id, port_id, resource_offer,
+    HostCallContractId, HostCallRequirement, ImplementationId, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal, kind_id, port_id, resource_offer,
 };
 
 pub const POINTER_IMPLEMENTATION: &str = "conduitos/usb-hid-pointer@1";
 pub const POINTER_EXECUTION_PROFILE: &str = "conduitos/usb-input-cooperative@1";
 pub const PS2_POINTER_IMPLEMENTATION: &str = "conduitos/ps2-pointer@1";
 pub const PS2_INPUT_EXECUTION_PROFILE: &str = "conduitos/ps2-input-cooperative@1";
-pub const NEXT_POINTER_EVENT_HOST_OPERATION: &str = "conduit.host/input-next-pointer-event@1";
+pub const NEXT_POINTER_EVENT_HOST_CALL: &str = "conduit.host/input-next-pointer-event@1";
 pub const POINTER_EVENT_SLOTS: u16 = 8;
 pub const POINTER_OPERATION_SLOTS: u16 = 1;
 pub const POINTER_EVENT_MAXIMUM_BYTES: u32 = 512;
 pub const POINTER_DEVICE_RESOURCE: &str = "conduitos.resource/pointer-device-instance@1";
-pub const POINTER_INTERFACE_RESOURCE: &str = "conduitos.resource/pointer-interfront-instance@1";
+pub const POINTER_INTERFACE_RESOURCE: &str = "conduitos.resource/pointer-interface-instance@1";
 pub const POINTER_ENDPOINT_RESOURCE: &str = "conduitos.resource/pointer-endpoint-instance@1";
 pub const POINTER_REPORT_RESOURCE: &str = "conduitos.resource/pointer-report-buffer@1";
 pub const POINTER_TRANSITION_RESOURCE: &str = "conduitos.resource/pointer-event-slot@1";
@@ -27,7 +27,7 @@ pub struct PointerRealization {
     pub mechanism: PointerMechanism,
     pub controller_id: [u8; 32],
     pub device_id: [u8; 32],
-    pub interfront_id: [u8; 32],
+    pub interface_id: [u8; 32],
     pub endpoint_id: [u8; 32],
     pub report_buffers: u16,
     pub event_slots: u16,
@@ -41,10 +41,17 @@ pub enum PointerMechanism {
 }
 
 impl PointerMechanism {
-    const fn implementation(self) -> &'static str {
+    pub(crate) const fn implementation(self) -> &'static str {
         match self {
             Self::UsbHid => POINTER_IMPLEMENTATION,
             Self::Ps2 => PS2_POINTER_IMPLEMENTATION,
+        }
+    }
+
+    pub(crate) const fn base_implementation(self) -> &'static str {
+        match self {
+            Self::UsbHid => crate::keyboard_offer::XHCI_BASE_IMPLEMENTATION,
+            Self::Ps2 => crate::keyboard_offer::I8042_BASE_IMPLEMENTATION,
         }
     }
 
@@ -75,7 +82,7 @@ impl PointerRealization {
         let identities = [
             self.controller_id,
             self.device_id,
-            self.interfront_id,
+            self.interface_id,
             self.endpoint_id,
         ];
         if identities.contains(&[0; 32]) {
@@ -118,7 +125,7 @@ pub(crate) fn append_to_advertisement(
             1_u32,
         ),
         (realization.device_id, POINTER_DEVICE_RESOURCE, 1),
-        (realization.interfront_id, POINTER_INTERFACE_RESOURCE, 1),
+        (realization.interface_id, POINTER_INTERFACE_RESOURCE, 1),
         (realization.endpoint_id, POINTER_ENDPOINT_RESOURCE, 1),
         (
             realization.endpoint_id,
@@ -183,7 +190,7 @@ pub(crate) fn append_to_advertisement(
             shorthand: None,
             capability_id: CapabilityId::from("conduitos/input-pointer@1"),
             kind_id: kind_id(conduit_semantic_catalog::POINTER_SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from(
+            kind_contract_revision: KindIdentity::from(
                 conduit_semantic_catalog::GENERALIZED_INPUT_REVISION,
             ),
             implementation: conduit_core::ImplementationOffer {
@@ -200,8 +207,8 @@ pub(crate) fn append_to_advertisement(
                 direction: PortDirection::Output,
                 temporal: PortTemporal::Value,
             }],
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(NEXT_POINTER_EVENT_HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(NEXT_POINTER_EVENT_HOST_CALL),
                 target_kind: Some(kind_id(conduit_semantic_catalog::POINTER_EVENT_INFO_ID)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: 0,
@@ -228,7 +235,7 @@ mod tests {
             mechanism: PointerMechanism::UsbHid,
             controller_id: [1; 32],
             device_id: [2; 32],
-            interfront_id: [3; 32],
+            interface_id: [3; 32],
             endpoint_id: [4; 32],
             report_buffers: 2,
             event_slots: POINTER_EVENT_SLOTS,
@@ -238,12 +245,20 @@ mod tests {
 
     #[test]
     fn exact_device_chain_and_capacities_are_required() {
+        assert_eq!(
+            PointerMechanism::UsbHid.base_implementation(),
+            crate::keyboard_offer::XHCI_BASE_IMPLEMENTATION
+        );
+        assert_ne!(
+            PointerMechanism::UsbHid.base_implementation(),
+            PointerMechanism::UsbHid.implementation()
+        );
         assert_eq!(realization().validate(), Ok(()));
         let mut empty = realization();
         empty.endpoint_id = [0; 32];
         assert_eq!(empty.validate(), Err(PointerOfferError::EmptyIdentity));
         let mut duplicate = realization();
-        duplicate.endpoint_id = duplicate.interfront_id;
+        duplicate.endpoint_id = duplicate.interface_id;
         assert_eq!(
             duplicate.validate(),
             Err(PointerOfferError::DuplicateIdentity)
@@ -269,6 +284,7 @@ mod tests {
             boot_id: BootId::from("boot"),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("profile"),
+            bases: vec![],
             resources: vec![resource_offer(
                 &controller_pool,
                 crate::keyboard_offer::CONTROLLER_RESOURCE,
@@ -302,6 +318,6 @@ mod tests {
         );
         assert_eq!(capability.outputs[0].port_id.as_str(), "pointer");
         assert_eq!(capability.limits.max_queue_items, POINTER_EVENT_SLOTS);
-        assert_eq!(capability.host_operations[0].maximum_in_flight, 1);
+        assert_eq!(capability.host_calls[0].maximum_in_flight, 1);
     }
 }

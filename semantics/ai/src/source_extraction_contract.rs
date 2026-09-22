@@ -4,8 +4,8 @@ use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, protected_resource_requirement, ArtifactId, AuthorityContractId,
     AuthorityRequirement, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    FaceStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
+    FrontStartupParameter, HostCallContractId, HostCallRequirement, ImplementationId,
+    ImplementationOffer, KindId, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
 
@@ -33,7 +33,7 @@ pub const MAXIMUM_EXTRACTION_PROCESS_IDENTITY_BYTES: usize = 256;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SourceExtractionContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub maximum_source_bytes: u32,
@@ -54,7 +54,7 @@ pub enum SourceExtractionOfferInvalidity {
 pub fn source_extraction_contract() -> SourceExtractionContract {
     SourceExtractionContract {
         kind_id: kind_id(SOURCE_EXTRACTION_KIND),
-        kind_contract_revision: KindContractRevision::from(SOURCE_EXTRACTION_REVISION),
+        kind_contract_revision: KindIdentity::from(SOURCE_EXTRACTION_REVISION),
         inputs: vec![port(
             "source",
             SOURCE_REFERENCE_VALUE_KIND,
@@ -79,7 +79,7 @@ pub fn source_extraction_contract() -> SourceExtractionContract {
     }
 }
 
-pub fn source_extraction_startup_parameters() -> Vec<FaceStartupParameter> {
+pub fn source_extraction_startup_parameters() -> Vec<FrontStartupParameter> {
     [
         "profile",
         "maximum-source-bytes",
@@ -90,9 +90,13 @@ pub fn source_extraction_startup_parameters() -> Vec<FaceStartupParameter> {
         "maximum-work-units",
     ]
     .into_iter()
-    .map(|name| FaceStartupParameter {
+    .map(|name| FrontStartupParameter {
         name: name.into(),
-        value_type: if name == "profile" { "Text" } else { "Count" }.into(),
+        value_type: kind_id(if name == "profile" {
+            "value/text"
+        } else {
+            "value/count"
+        }),
         has_default: true,
     })
     .collect()
@@ -120,7 +124,7 @@ pub fn deterministic_source_extraction_offer(
             implementation_id: ImplementationId::from(DETERMINISTIC_EXTRACTION_IMPLEMENTATION),
             artifact_id: ArtifactId::from(DETERMINISTIC_EXTRACTION_ARTIFACT),
         },
-        host_operations: vec![source_extraction_operation(&contract)],
+        host_calls: vec![source_extraction_operation(&contract)],
         resource_requirements: vec![protected_resource_requirement(
             SOURCE_READER_RESOURCE_ROLE,
             SOURCE_READER_RESOURCE_CLASS,
@@ -128,18 +132,16 @@ pub fn deterministic_source_extraction_offer(
         )],
         authority_requirements: vec![AuthorityRequirement {
             contract_id: AuthorityContractId::from(SOURCE_READ_AUTHORITY),
-            host_operation_contract_id: HostOperationContractId::from(SOURCE_EXTRACTION_OPERATION),
+            host_call_contract_id: HostCallContractId::from(SOURCE_EXTRACTION_OPERATION),
             subject_kind: contract.kind_id,
         }],
         limits: contract.limits,
     })
 }
 
-pub fn source_extraction_operation(
-    contract: &SourceExtractionContract,
-) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(SOURCE_EXTRACTION_OPERATION),
+pub fn source_extraction_operation(contract: &SourceExtractionContract) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(SOURCE_EXTRACTION_OPERATION),
         target_kind: Some(contract.kind_id.clone()),
         maximum_in_flight: contract.limits.max_active_instances,
         maximum_input_bytes: conduit_core::MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES as u32,
@@ -175,7 +177,7 @@ pub fn install_source_extraction_catalog(
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
 
@@ -197,16 +199,16 @@ pub fn install_source_extraction_catalog(
         ],
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
             configuration: vec![
-                ConfigurationField {
+                KindConfigurationField {
                     key: "profile".into(),
                     default_value: conduit_core::ConfigurationValue::Text("text-utf8".into()),
-                    validation: ConfigurationRule::TextOneOf {
+                    rule: KindConfigurationRule::TextOneOf {
                         values: vec![
                             "text-utf8".into(),
                             "structured-items".into(),
@@ -237,11 +239,11 @@ fn count_parameter(name: &str, maximum: u32) -> conduit_form::StartupParameterSi
 }
 
 #[cfg(feature = "form-catalog")]
-fn count_field(name: &str, maximum: u32) -> conduit_form::ConfigurationField {
-    conduit_form::ConfigurationField {
+fn count_field(name: &str, maximum: u32) -> conduit_form::KindConfigurationField {
+    conduit_form::KindConfigurationField {
         key: name.into(),
         default_value: conduit_core::ConfigurationValue::U64(u64::from(maximum)),
-        validation: conduit_form::ConfigurationRule::U64Range {
+        rule: conduit_form::KindConfigurationRule::U64Range {
             minimum: 1,
             maximum: u64::from(maximum),
         },

@@ -43,8 +43,8 @@ Candidate evidence retains the identity assigned at offer through commit or
 abort. A finite transition-budget realization continues to report its distinct
 budget refusal. Checked-form execution and cross-play continuity use the installed hosted
 state path described below; #2688 and #2691 retain the wider acceptance scope.
-The kernel `StateOperation` adapter exposes this cell through exact next/current
-ports in the existing `OperationDriver` and fixed scheduler. Its profile admits
+The kernel `StateOperation` Back exposes this cell through exact next/current
+ports in the fixed scheduler's Step protocol. Its profile admits
 at most the existing canonical-emission byte envelope; larger cells refuse
 construction. Input closure completes this adapter, while awaiting input remains
 nonterminal. Output pressure retains the pending emission. The scheduler tests
@@ -84,7 +84,7 @@ state obligation.
 These are concrete hosted implementation and conformance surfaces:
 
 - [lowering admission](../../architecture/plan-lowering/src/lowering/admission.rs);
-- [typed-state host operation](../../targets/std/src/state_value.rs);
+- [typed-state Host Call](../../targets/std/src/state_value.rs);
 - [owned continuation](../../targets/std/src/state_value/continuity.rs);
 - [installed-state conformance](../../targets/std/src/installed_std_tests/typed_state_conformance.rs);
 - [ownership and forgery tests](../../targets/std/tests/owned_state_continuity.rs).

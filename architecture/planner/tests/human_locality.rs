@@ -244,7 +244,7 @@ fn human_facing_gears_stay_local_while_heavy_work_uses_an_ordinary_peer_plan() {
     let observations = observations(&hosts);
     let lines = lines(&hosts);
     let plan = plan_fixture(&form, &hosts, &observations, &lines)
-        .expect("explicit locality and capacity policy produce one ordinary Plan");
+        .expect("explicit locality and capacity policy produce one ordinary plan");
 
     assert!(verify_plan(&plan));
     let placement = |gear: &str| {
@@ -252,7 +252,7 @@ fn human_facing_gears_stay_local_while_heavy_work_uses_an_ordinary_peer_plan() {
             .iter()
             .flat_map(|fragment| &fragment.placements)
             .find(|planned| planned.gear_id.as_str() == gear)
-            .expect("planned Gear")
+            .expect("planned gear")
             .host_id
             .as_str()
     };
@@ -302,7 +302,7 @@ fn insufficient_or_lost_line_refuses_replacement_without_mutating_the_old_plan()
             &accepted.plan_id,
             SignId::from("human-locality/play-line-unsatisfied"),
         )
-        .expect("ordinary lifecycle records the active Play as unsatisfied");
+        .expect("ordinary lifecycle records the active play as unsatisfied");
     assert_eq!(wake.lifecycle, conduit_body::WakeLifecycle::Unsatisfied);
 }
 
@@ -438,13 +438,13 @@ fn remote_capacity_cannot_override_authority_or_data_locality_requirements() {
         .iter_mut()
         .find(|offer| offer.kind_id.as_str() == "text/upper")
         .unwrap();
-    let operation = remote_upper.host_operations[0].contract_id.clone();
+    let operation = remote_upper.host_calls[0].contract_id.clone();
     remote_upper
         .authority_requirements
         .push(conduit_core::AuthorityRequirement {
             contract_id: authority.clone(),
-            host_operation_contract_id: operation,
-            subject_kind: conduit_core::kind_id("value/text@1"),
+            host_call_contract_id: operation,
+            subject_kind: conduit_core::kind_id("value/text"),
         });
     let observations = observations(&hosts);
     let heavy = form

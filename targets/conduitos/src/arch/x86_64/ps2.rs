@@ -264,7 +264,7 @@ impl Ps2Input {
     }
 
     /// Read at most one controller byte, retaining decoder prefixes between
-    /// calls so other admitted Host work can run while input is incomplete.
+    /// calls so other admitted host work can run while input is incomplete.
     pub fn poll_keyboard(&mut self) -> Result<Option<HidKeyTransition>, Ps2Error> {
         if let Some(transition) = self.pending_keyboard.take() {
             return Ok(Some(transition));

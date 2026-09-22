@@ -94,7 +94,12 @@ impl SystemRecord {
             }
             let front = offer.checked_front();
             if front != requirement.checked_front {
-                return Err(ContinuityError::CheckedFaceMismatch(
+                return Err(ContinuityError::CheckedFrontMismatch(
+                    requirement.role_id.as_str().into(),
+                ));
+            }
+            if offer.kind_contract_revision != requirement.semantic_contract {
+                return Err(ContinuityError::SelectedRealizationMismatch(
                     requirement.role_id.as_str().into(),
                 ));
             }
@@ -106,6 +111,7 @@ impl SystemRecord {
                 implementation_id: placement.implementation_id.clone(),
                 artifact_id: placement.artifact_id.clone(),
                 checked_front: front,
+                semantic_contract: offer.kind_contract_revision.clone(),
             });
         }
 

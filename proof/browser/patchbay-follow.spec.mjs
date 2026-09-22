@@ -12,7 +12,7 @@ function startServer() {
 const openRelatedSubjects=page=>page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});
 const openForm=async page=>{await page.getByRole("button",{name:"Form",exact:true}).focus();await page.keyboard.press("Enter");await page.locator("#toggle-inspector").focus();await page.keyboard.press("Enter");};
 
-test("exact Gear realization FOLLOW crosses Program and Body then returns",async({page})=>{
+test("exact gear realization FOLLOW crosses Program and Body then returns",async({page})=>{
   const server=startServer();
   try {
     const url=await server.url;await page.goto(url);

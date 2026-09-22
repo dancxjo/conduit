@@ -1,4 +1,4 @@
-//! Retained, renderer-neutral Patchbay application over exact Form/Plan truth.
+//! Retained, renderer-neutral Patchbay application over exact form/Plan truth.
 #![no_std]
 
 extern crate alloc;
@@ -291,7 +291,7 @@ impl PatchbayApplicationPort {
                 Some(0),
                 ApplicationComponent::Main,
                 "active-forms",
-                "Active Forms on this Body",
+                "Active forms on this body",
                 "",
                 0,
                 None,

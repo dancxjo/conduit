@@ -6,10 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 use crate::{
     tabular_person_row_type, tabular_query_outcome_type, tabular_query_result_type,
@@ -22,6 +22,39 @@ pub const TABULAR_PROVIDER_KIND: &str = "tabular/person-query-four";
 pub const TABULAR_FILTER_KIND: &str = "tabular/filter-active-four";
 pub const TABULAR_REVISION: &str = "conduit.std/tabular-query@1";
 
+pub fn tabular_semantic_contracts() -> Vec<Kind> {
+    let result = tabular_query_result_type();
+    [
+        (
+            TABULAR_PROVIDER_KIND,
+            vec![],
+            vec![port("result", &result, PortDirection::Output)],
+        ),
+        (
+            TABULAR_FILTER_KIND,
+            vec![port("result", &result, PortDirection::Input)],
+            vec![port("result", &result, PortDirection::Output)],
+        ),
+    ]
+    .into_iter()
+    .map(|(kind, inputs, outputs)| Kind {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id(kind),
+        kind_contract_revision: KindIdentity::from(TABULAR_REVISION),
+        inputs,
+        outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 4,
+            max_queue_bytes: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
+        },
+    })
+    .collect()
+}
+
 pub fn install_tabular_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
@@ -31,33 +64,24 @@ pub fn install_tabular_catalogs(
             .insert_structured_type(name, value_type)
             .map_err(|error| error.to_string())?;
     }
-    for kind in [TABULAR_PROVIDER_KIND, TABULAR_FILTER_KIND] {
+    for contract in tabular_semantic_contracts() {
         startup
             .insert(KindSignature {
-                kind: kind.into(),
+                kind: contract.kind_id.as_str().to_string(),
                 startup_parameters: vec![],
             })
             .map_err(|error| error.to_string())?;
+        profile
+            .insert(KindProjection {
+                kind_id: contract.kind_id,
+                kind_contract_revision: contract.kind_contract_revision,
+                inputs: contract.inputs,
+                outputs: contract.outputs,
+                configuration: vec![],
+            })
+            .map_err(|error| error.to_string())?;
     }
-    let result = tabular_query_result_type();
-    profile
-        .insert(KindDefinition {
-            kind_id: kind_id(TABULAR_PROVIDER_KIND),
-            kind_contract_revision: KindContractRevision::from(TABULAR_REVISION),
-            inputs: vec![],
-            outputs: vec![port("result", &result, PortDirection::Output)],
-            configuration: vec![],
-        })
-        .map_err(|error| error.to_string())?;
-    profile
-        .insert(KindDefinition {
-            kind_id: kind_id(TABULAR_FILTER_KIND),
-            kind_contract_revision: KindContractRevision::from(TABULAR_REVISION),
-            inputs: vec![port("result", &result, PortDirection::Input)],
-            outputs: vec![port("result", &result, PortDirection::Output)],
-            configuration: vec![],
-        })
-        .map_err(|error| error.to_string())
+    Ok(())
 }
 
 fn tabular_types() -> Vec<(&'static str, StructuredInfoType)> {

@@ -3,13 +3,13 @@
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, GearId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    ImplementationOffer, KindContractRevision, LineOffer, LineScope, LineSecurity, LinkLimits,
+    ImplementationOffer, KindIdentity, LineOffer, LineScope, LineSecurity, LinkLimits,
     OfferGeneration, Plan, PortDirection, PROTOCOL_VERSION,
 };
-use conduit_form::{parse, KindDefinition, ProfileCatalog};
+use conduit_form::{parse, KindProjection, ProfileCatalog};
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use conduit_presentation::{
-    renderer_inputs, renderer_kind_definition, MAX_RENDERER_VALUE_BYTES, RENDERER_CONTRACT_REVISION,
+    renderer_inputs, renderer_kind_projection, MAX_RENDERER_VALUE_BYTES, RENDERER_CONTRACT_REVISION,
 };
 use std::collections::BTreeMap;
 
@@ -84,10 +84,10 @@ pub fn cross_host_renderer_plan(
 fn renderer_form() -> Result<conduit_form::CheckedForm, String> {
     let mut catalog = ProfileCatalog::new();
     catalog
-        .insert(project_kind_definition())
+        .insert(project_kind_projection())
         .map_err(|error| error.to_string())?;
     catalog
-        .insert(renderer_kind_definition())
+        .insert(renderer_kind_projection())
         .map_err(|error| error.to_string())?;
     parse(
         "form cross-host-patchbay {\n    project: presentation/patchbay-project\n    renderer: presentation/renderer\n    project.presentation > renderer.presentation\n}\n",
@@ -96,15 +96,15 @@ fn renderer_form() -> Result<conduit_form::CheckedForm, String> {
     .map_err(|error| error.to_string())
 }
 
-fn project_kind_definition() -> KindDefinition {
+fn project_kind_projection() -> KindProjection {
     let mut output = renderer_inputs().remove(0);
     output.direction = PortDirection::Output;
-    KindDefinition {
+    KindProjection {
         kind_id: PRESENTATION_PROJECT_KIND.into(),
-        kind_contract_revision: KindContractRevision::from(RENDERER_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(RENDERER_CONTRACT_REVISION),
         inputs: Vec::new(),
         outputs: vec![output],
-        configuration: Vec::new(),
+        configuration: Default::default(),
     }
 }
 
@@ -117,13 +117,14 @@ fn source_host(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
         boot_id,
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("presentation/source-host@1"),
+        bases: vec![],
         resources: Vec::new(),
         capabilities: vec![CapabilityOffer {
             startup_parameters: Vec::new(),
             shorthand: None,
             capability_id: CapabilityId::from(PRESENTATION_PROJECT_CAPABILITY),
             kind_id: PRESENTATION_PROJECT_KIND.into(),
-            kind_contract_revision: KindContractRevision::from(RENDERER_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(RENDERER_CONTRACT_REVISION),
             implementation: ImplementationOffer {
                 execution_profile_id: ExecutionProfileId::from("presentation/project-hosted@1"),
                 implementation_id: ImplementationId::from("patchbay/project-presentation@1"),
@@ -131,7 +132,7 @@ fn source_host(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
             },
             inputs: Vec::new(),
             outputs: vec![output],
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
             limits: CapabilityLimits {

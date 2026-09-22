@@ -21,6 +21,7 @@ fn advertisement() -> BrowserAdmissionIngress {
             boot_id: BootId::from("browser/frame-boot"),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("browser/frame-profile"),
+            bases: vec![],
             resources: Vec::new(),
             capabilities: Vec::new(),
             planner_capabilities: Vec::new(),
@@ -112,6 +113,7 @@ fn canonical_grant_for(role: BrowserWebRtcRole, base: BaseImplementationId) -> B
             BootId::from("boot/browser")
         },
         session_hello,
+        bootstrap: None,
     }
 }
 
@@ -390,6 +392,51 @@ fn bounded_webrtc_grant_request_and_reply_round_trip() {
             Err(BrowserAdmissionFrameError::InvalidGrant)
         );
     }
+}
+
+#[test]
+fn webrtc_bootstrap_bounds_ephemeral_turn_without_making_it_line_authority() {
+    let configuration = WebRtcBootstrapConfiguration {
+        provider_implementation_id: "operator/coturn@1".into(),
+        issued_at_millis: 1_000,
+        expires_at_millis: 61_000,
+        transport_policy: WebRtcIceTransportPolicy::RelayOnly,
+        ice_servers: vec![
+            WebRtcIceServer {
+                urls: vec!["stun:turn.example:3478".into()],
+                username: None,
+                credential: None,
+            },
+            WebRtcIceServer {
+                urls: vec!["turns:turn.example:5349?transport=tcp".into()],
+                username: Some("session/7".into()),
+                credential: Some("ephemeral-secret".into()),
+            },
+        ],
+    };
+    assert_eq!(configuration.validate(2_000), Ok(()));
+    let mut rendezvous = BrowserWebRtcRendezvous::default();
+    assert_eq!(
+        rendezvous.configure_bootstrap(configuration.clone(), 2_000),
+        Ok(())
+    );
+    let mut grant = canonical_grant();
+    grant.bootstrap = Some(configuration);
+    assert_eq!(grant.validate(), Ok(()));
+
+    let mut durable = grant.bootstrap.clone().unwrap();
+    durable.expires_at_millis = durable.issued_at_millis + MAX_WEBRTC_BOOTSTRAP_LIFETIME_MILLIS + 1;
+    assert_eq!(
+        durable.validate(2_000),
+        Err(BrowserAdmissionFrameError::InvalidGrant)
+    );
+    let mut anonymous_turn = grant.bootstrap.unwrap();
+    anonymous_turn.ice_servers[1].username = None;
+    anonymous_turn.ice_servers[1].credential = None;
+    assert_eq!(
+        anonymous_turn.validate(2_000),
+        Err(BrowserAdmissionFrameError::InvalidGrant)
+    );
 }
 
 #[test]

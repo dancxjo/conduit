@@ -81,14 +81,14 @@ impl Session {
             .iter()
             .find(|fragment| fragment.host_id == exact.source_host.host_id)
             .cloned()
-            .ok_or_else(|| "multi-Host source fragment is missing".to_string())?;
+            .ok_or_else(|| "multi-host source fragment is missing".to_string())?;
         let sink_fragment = exact
             .plan
             .fragments
             .iter()
             .find(|fragment| fragment.host_id == exact.sink_host.host_id)
             .cloned()
-            .ok_or_else(|| "multi-Host sink fragment is missing".to_string())?;
+            .ok_or_else(|| "multi-host sink fragment is missing".to_string())?;
         let fragment = match role {
             Role::Source => source_fragment.clone(),
             Role::Sink => sink_fragment.clone(),
@@ -98,13 +98,13 @@ impl Session {
             .remote_endpoints
             .first()
             .map(|remote| remote.direction)
-            .ok_or_else(|| "multi-Host fragment has no remote endpoint".to_string())?;
+            .ok_or_else(|| "multi-host fragment has no remote endpoint".to_string())?;
         if !matches!(
             (role, direction),
             (Role::Source, RemoteCordDirection::Egress)
                 | (Role::Sink, RemoteCordDirection::Ingress)
         ) {
-            return Err("multi-Host fragment has the wrong remote direction".into());
+            return Err("multi-host fragment has the wrong remote direction".into());
         }
         let source_active = bind_active_play(
             &exact.plan.plan_id,
@@ -122,7 +122,7 @@ impl Session {
         .active_play_id;
         let projection = protocol::projection(&exact.plan, play_sequence)?;
         if projection.cord.line_id != exact.line.line_id.as_str() {
-            return Err("multi-Host Plan projection changed the selected Line".into());
+            return Err("multi-host Plan projection changed the selected Line".into());
         }
         let stage = match role {
             Role::Source => Stage::Offered,
@@ -186,18 +186,18 @@ impl Session {
             (Role::Source, Stage::Accepted, "delivered") => self.source_delivered(frame),
             (Role::Sink, Stage::Accepted, "close") => self.sink_close(frame),
             (Role::Source, Stage::Closing, "terminal") => self.source_terminal(frame),
-            _ => Err("multi-Host Line frame arrived in the wrong exact lifecycle phase".into()),
+            _ => Err("multi-host Line frame arrived in the wrong exact lifecycle phase".into()),
         }
     }
 
     pub(super) fn complete_manifestation(&mut self) -> Result<Output, String> {
         if self.role != Role::Sink || self.stage != Stage::Presenting {
-            return Err("multi-Host presentation completion arrived in the wrong phase".into());
+            return Err("multi-host presentation completion arrived in the wrong phase".into());
         }
         let pending = self
             .pending
             .take()
-            .ok_or_else(|| "multi-Host sink has no pending presentation".to_string())?;
+            .ok_or_else(|| "multi-host sink has no pending presentation".to_string())?;
         engine::complete_host_effect(&mut self.scheduler, &pending)?;
         self.stage = Stage::Accepted;
         let output = Output::Line {
@@ -222,7 +222,7 @@ impl Session {
         if newly_cancelled {
             self.scheduler
                 .cancel()
-                .map_err(|error| format!("cancel multi-Host scheduler: {error:?}"))?;
+                .map_err(|error| format!("cancel multi-host scheduler: {error:?}"))?;
         }
         if newly_cancelled {
             if let Some(transcript) = &mut self.transcript {
@@ -249,7 +249,7 @@ impl Session {
         }
         self.scheduler
             .cancel()
-            .map_err(|error| format!("cancel terminated multi-Host scheduler: {error:?}"))?;
+            .map_err(|error| format!("cancel terminated multi-host scheduler: {error:?}"))?;
         if self.role == Role::Source {
             for delivery in &mut self.deliveries {
                 if !delivery.is_terminal() {
@@ -304,14 +304,14 @@ impl Session {
         let pending = match engine::drive(&mut self.scheduler, &self.fragment)? {
             DriveStatus::Effect(pending) => pending,
             DriveStatus::Quiescent | DriveStatus::SemanticCompleted => {
-                return Err("multi-Host sink completed before presentation".into())
+                return Err("multi-host sink completed before presentation".into())
             }
             DriveStatus::Waiting { .. } => {
-                return Err("multi-Host sink awaits a pending effect".into())
+                return Err("multi-host sink awaits a pending effect".into())
             }
         };
         if !matches!(pending.effect, BrowserHostEffect::Manifestation(_)) {
-            return Err("multi-Host sink requested a non-presentation Host effect".into());
+            return Err("multi-host sink requested a non-presentation Host effect".into());
         }
         let manifestation = self.project_manifestation(&pending)?;
         self.pending = Some(pending);
@@ -396,16 +396,16 @@ impl Session {
     fn drive_to_complete(&mut self) -> Result<(), String> {
         loop {
             if self.scheduler.next_host_request().is_some() {
-                return Err("multi-Host terminal path retained an unexpected Host effect".into());
+                return Err("multi-host terminal path retained an unexpected Host effect".into());
             }
             match self.scheduler.step().map_err(debug_error)? {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Drained => return Ok(()),
                 SchedulerStatus::Idle => {
-                    return Err("multi-Host fragment became idle before terminal truth".into())
+                    return Err("multi-host fragment became idle before terminal truth".into())
                 }
                 SchedulerStatus::Cancelled => {
-                    return Err("multi-Host fragment was cancelled before terminal truth".into())
+                    return Err("multi-host fragment was cancelled before terminal truth".into())
                 }
             }
         }
@@ -413,13 +413,13 @@ impl Session {
 
     fn project_manifestation(&mut self, pending: &PendingHostEffect) -> Result<TourEffect, String> {
         let BrowserHostEffect::Manifestation(manifestation) = &pending.effect else {
-            return Err("multi-Host pending effect is not a manifestation".into());
+            return Err("multi-host pending effect is not a manifestation".into());
         };
         let placement = self
             .fragment
             .placements
             .get(usize::from(pending.request.node.0))
-            .ok_or_else(|| "multi-Host presentation has no planned placement".to_string())?;
+            .ok_or_else(|| "multi-host presentation has no planned placement".to_string())?;
         let observation_sequence = pending.request.request.0;
         let presentation = bind_presentation(
             &self.sink_active_play_id,
@@ -478,7 +478,7 @@ impl Session {
             || (!allow_payload && !frame.payload.is_empty())
             || (allow_payload && frame.payload.is_empty())
         {
-            return Err("multi-Host Line frame does not match the exact planned identity".into());
+            return Err("multi-host Line frame does not match the exact planned identity".into());
         }
         Ok(())
     }

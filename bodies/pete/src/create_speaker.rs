@@ -1,15 +1,15 @@
 //! Exact Create 1 Open Interface speaker contract.
 //!
 //! The constants below are pinned to the original Create OI v2 specification,
-//! not the later Create 2 contract. Encoding is mechanism-side; portable Forms
+//! not the later Create 2 contract. Encoding is mechanism-side; portable forms
 //! continue to use `music/play` meaning.
 
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId,
     AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
-    OfferGeneration, RealizationAdvertisement, PROTOCOL_VERSION,
+    ExecutionProfileId, HostAdvertisement, HostCallContractId, HostCallRequirement, HostId,
+    ImplementationId, ImplementationOffer, KindIdentity, OfferGeneration, RealizationAdvertisement,
+    PROTOCOL_VERSION,
 };
 
 pub const SONG_OPCODE: u8 = 140;
@@ -195,13 +195,14 @@ pub fn live_speaker_advertisement(
         boot_id: observation.boot_id.clone(),
         offer_generation: observation.offer_generation,
         profile: conduit_core::HostProfileId::from(SPEAKER_PROFILE),
+        bases: vec![],
         resources,
         capabilities: vec![CapabilityOffer {
             startup_parameters: Vec::new(),
             shorthand: None,
             capability_id: CapabilityId::from(SPEAKER_CAPABILITY),
             kind_id: contract.kind_id,
-            kind_contract_revision: KindContractRevision::from(
+            kind_contract_revision: KindIdentity::from(
                 conduit_semantic_catalog::MUSIC_PLAY_REVISION,
             ),
             implementation: ImplementationOffer {
@@ -211,8 +212,8 @@ pub fn live_speaker_advertisement(
             },
             inputs: contract.inputs,
             outputs: contract.outputs,
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(SPEAKER_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(SPEAKER_OPERATION),
                 target_kind: Some(kind_id(conduit_audio::MUSIC_NOTE_INFO_ID)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM_ADMITTED_SERIAL_BYTES as u32,
@@ -221,7 +222,7 @@ pub fn live_speaker_advertisement(
             resource_requirements: requirements,
             authority_requirements: vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(SPEAKER_AUTHORITY),
-                host_operation_contract_id: HostOperationContractId::from(SPEAKER_OPERATION),
+                host_call_contract_id: HostCallContractId::from(SPEAKER_OPERATION),
                 subject_kind: kind_id(conduit_audio::MUSIC_NOTE_INFO_ID),
             }],
             limits: CapabilityLimits {

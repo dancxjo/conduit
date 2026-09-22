@@ -236,7 +236,7 @@ pub(super) fn begin(
         || arrival.advertisement.offer_generation != expected_offer_generation
     {
         let _ = refuse(&mut arrival.socket, "stale-return-advertisement");
-        return Err("browser return advertisement changed exact Host truth".into());
+        return Err("browser return advertisement changed exact host truth".into());
     }
     let expires_at_millis = now_millis
         .checked_add(RETURN_CHALLENGE_LIFETIME_MILLIS)

@@ -2,8 +2,8 @@ import { openBrowserApplicationStorage } from "./browser-application-storage.mjs
 import { createApplicationPresentationHost } from "./application-presentation.mjs";
 
 const PACKAGE_SCHEMA = "conduit.browser/application-package@1";
-const MAXIMUM_PACKAGE_BYTES = 32 * 1024;
-const MAXIMUM_RESOURCES = 64;
+const MAXIMUM_PACKAGE_BYTES = 48 * 1024;
+const MAXIMUM_RESOURCES = 96;
 const MAXIMUM_DEPENDENCIES = 16;
 const MAXIMUM_HOST_IMPLEMENTATIONS = 16;
 const MAXIMUM_RESOURCE_BYTES = 16 * 1024 * 1024;

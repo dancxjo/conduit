@@ -1,11 +1,11 @@
-//! Ordinary Form contracts for transport-neutral typed-record framing.
+//! Ordinary form contracts for transport-neutral typed-record framing.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::{FRAMED_TYPED_RECORD_INFO_ID, TYPED_RECORD_INFO_ID};
 
@@ -41,19 +41,41 @@ pub fn install_typed_record_catalogs(
     Ok(())
 }
 
-fn text_record_definitions() -> [KindDefinition; 2] {
+pub fn typed_record_semantic_contract(kind: &str) -> Option<Kind> {
+    typed_record_definitions()
+        .into_iter()
+        .chain(text_record_definitions())
+        .find(|definition| definition.kind_id.as_str() == kind)
+        .map(|definition| Kind {
+            startup_parameters: vec![],
+            shorthand: None,
+            kind_id: definition.kind_id,
+            kind_contract_revision: definition.kind_contract_revision,
+            inputs: definition.inputs,
+            outputs: definition.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
+            limits: CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: 4,
+                max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 * 4,
+            },
+        })
+}
+
+fn text_record_definitions() -> [KindProjection; 2] {
     let record = typed_record_type();
     [
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id(TEXT_TO_TYPED_RECORD_KIND),
-            kind_contract_revision: KindContractRevision::from(TEXT_RECORD_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(TEXT_RECORD_CONTRACT_REVISION),
             inputs: vec![text_port("text", PortDirection::Input)],
             outputs: vec![port("record", &record, PortDirection::Output)],
             configuration: vec![],
         },
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id(TYPED_RECORD_TO_TEXT_KIND),
-            kind_contract_revision: KindContractRevision::from(TEXT_RECORD_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(TEXT_RECORD_CONTRACT_REVISION),
             inputs: vec![port("record", &record, PortDirection::Input)],
             outputs: vec![text_port("text", PortDirection::Output)],
             configuration: vec![],
@@ -80,20 +102,20 @@ pub fn framed_typed_record_type() -> StructuredInfoType {
         .expect("the framed typed-record identity is finite")
 }
 
-fn typed_record_definitions() -> [KindDefinition; 2] {
+fn typed_record_definitions() -> [KindProjection; 2] {
     let record = typed_record_type();
     let frame = framed_typed_record_type();
     [
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id(TYPED_RECORD_FRAME_KIND),
-            kind_contract_revision: KindContractRevision::from(TYPED_RECORD_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(TYPED_RECORD_CONTRACT_REVISION),
             inputs: vec![port("record", &record, PortDirection::Input)],
             outputs: vec![port("frame", &frame, PortDirection::Output)],
             configuration: vec![],
         },
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id(TYPED_RECORD_DEFRAME_KIND),
-            kind_contract_revision: KindContractRevision::from(TYPED_RECORD_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(TYPED_RECORD_CONTRACT_REVISION),
             inputs: vec![port("frame", &frame, PortDirection::Input)],
             outputs: vec![port("record", &record, PortDirection::Output)],
             configuration: vec![],
@@ -107,5 +129,27 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Value,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_codec_has_one_exact_finite_semantic_contract() {
+        for kind in [
+            TYPED_RECORD_FRAME_KIND,
+            TYPED_RECORD_DEFRAME_KIND,
+            TEXT_TO_TYPED_RECORD_KIND,
+            TYPED_RECORD_TO_TEXT_KIND,
+        ] {
+            let contract = typed_record_semantic_contract(kind).expect("reviewed codec exists");
+            assert_eq!(contract.kind_id.as_str(), kind);
+            assert_eq!(contract.inputs.len(), 1);
+            assert_eq!(contract.outputs.len(), 1);
+            assert_eq!(contract.limits.max_queue_items, 4);
+        }
+        assert!(typed_record_semantic_contract("record/not-a-codec").is_none());
     }
 }

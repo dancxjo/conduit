@@ -8,12 +8,13 @@ use conduit_form::{
     ProfileCatalog, StartupCatalog,
 };
 use conduit_presentation::{install_geometry_catalogs, robotics_pose2_type};
-use conduit_semantic_catalog::{
-    deterministic_robotics_structured_fixture, install_robotics_structured_catalogs,
-    pose_sample_value, range_sample_value, robotics_motion_request_type, robotics_pose_sample_type,
-    robotics_range_observation_type, robotics_twist_interval_type, twist_interval_value,
-    RoboticsStructuredRefusal, ROBOTICS_BODY_FRAME,
+use conduit_robotics::{
+    deterministic_robotics_structured_fixture, pose_sample_value, range_sample_value,
+    robotics_motion_request_type, robotics_pose_sample_type, robotics_range_observation_type,
+    robotics_twist_interval_type, twist_interval_value, RoboticsStructuredRefusal,
+    ROBOTICS_BODY_FRAME,
 };
+use conduit_semantic_catalog::install_robotics_structured_catalogs;
 
 const SOURCE: &str = include_str!("../../../forms/robotics-diversity/main.conduit");
 
@@ -187,7 +188,7 @@ fn physical_motion_authority_is_narrower_than_observation_capability() {
     );
     assert_eq!(
         motion.authority_requirements[0]
-            .host_operation_contract_id
+            .host_call_contract_id
             .as_str(),
         MOTION_PROOF_OPERATION
     );
@@ -219,6 +220,7 @@ fn host() -> HostAdvertisement {
         boot_id: BootId::from("boot/robotics-structured-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/robotics-structured-proof@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: robotics_structured_proof_offers(),

@@ -1,6 +1,6 @@
 //! Finite optional purpose and deterministic Fulfillment readiness.
 //!
-//! These are semantic facts for a Body application. They grant no lifecycle
+//! These are semantic facts for a body application. They grant no lifecycle
 //! authority, contain no Presenter policy, and name no realizing Host.
 
 use alloc::{string::String, vec::Vec};

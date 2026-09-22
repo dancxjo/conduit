@@ -98,6 +98,9 @@ pub fn validate(
         return Err(PreparationError::PlanRejected);
     }
     let placement = &fragment.placements[0];
+    let Some(base) = &placement.base else {
+        return Err(PreparationError::PlanRejected);
+    };
     if placement.kind_id.as_str() != conduit_semantic_catalog::KEYBOARD_KIND
         || placement.kind_contract_revision
             != conduit_semantic_catalog::keyboard_contract_revision()
@@ -110,6 +113,11 @@ pub fn validate(
                 | (PS2_INPUT_EXECUTION_PROFILE, PS2_KEYBOARD_IMPLEMENTATION)
         )
         || placement.artifact_id.as_str() != alloc::format!("conduitos-build/{build_id}")
+        || base.base_id.as_str() != crate::identity::hex(&keyboard.realization.controller_id)
+        || base.provider_instance_id.as_str()
+            != crate::identity::hex(&keyboard.realization.endpoint_id)
+        || base.provider_generation != offer.generation
+        || base.enforcement_class != conduit_core::BaseEnforcementClass::ConduitOsKernelEnforced
         || !placement.inputs.is_empty()
         || placement.outputs != conduit_semantic_catalog::keyboard_outputs()
     {
@@ -192,7 +200,7 @@ mod tests {
                 mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
                 controller_id: [3; 32],
                 device_id: [4; 32],
-                interfront_id: [5; 32],
+                interface_id: [5; 32],
                 endpoint_id: [6; 32],
                 report_buffers: 2,
                 transition_slots: 8,
@@ -222,6 +230,10 @@ mod tests {
             offer.runtime_arena_bytes,
         );
         assert!(prepare(&identities, &absent, "build").is_err());
+        let absent_advertisement =
+            crate::ordinary_plan::advertisement(&identities, &absent, "build").unwrap();
+        assert!(absent_advertisement.bases.is_empty());
+        assert!(!absent_advertisement.capabilities.is_empty());
 
         let prepared = prepare(&identities, &offer, "build").unwrap();
         let mut stale = offer;
@@ -246,6 +258,34 @@ mod tests {
         assert_eq!(
             prepare(&identities, &exhausted, "build").err(),
             Some(PreparationError::OfferMismatch)
+        );
+    }
+
+    #[test]
+    fn provider_restart_seals_a_fresh_generation_and_refuses_the_stale_plan() {
+        let (identities, offer) = fixture();
+        let original = prepare(&identities, &offer, "build").unwrap();
+        let mut replacement_offer = fixture().1;
+        replacement_offer.generation = 2;
+        let replacement = prepare(&identities, &replacement_offer, "build").unwrap();
+
+        assert_eq!(
+            replacement.plan.fragments[0].placements[0]
+                .base
+                .as_ref()
+                .unwrap()
+                .provider_generation,
+            2
+        );
+        assert_ne!(original.plan.plan_id, replacement.plan.plan_id);
+        assert_eq!(
+            validate(
+                &original.plan,
+                &replacement.advertisement,
+                &replacement_offer,
+                "build",
+            ),
+            Err(PreparationError::PlanRejected)
         );
     }
 }

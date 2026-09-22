@@ -24,15 +24,15 @@ fn leaf(kind: &str) -> StructuredInfoType {
 }
 
 fn text_type() -> StructuredInfoType {
-    leaf("value/text@1")
+    leaf("value/text")
 }
 
 fn count_type() -> StructuredInfoType {
-    leaf("value/count@1")
+    leaf("value/count")
 }
 
 fn unit_type() -> StructuredInfoType {
-    leaf("value/unit@1")
+    leaf("value/unit")
 }
 
 fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {
@@ -60,7 +60,7 @@ pub fn education_hint_type() -> StructuredInfoType {
 }
 
 pub fn education_hints_type() -> StructuredInfoType {
-    StructuredInfoType::collection(education_hint_type(), Some(MAXIMUM_EDUCATION_HINTS))
+    StructuredInfoType::sequence(education_hint_type(), MAXIMUM_EDUCATION_HINTS)
         .expect("bounded education hints")
 }
 

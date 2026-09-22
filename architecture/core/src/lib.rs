@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 
 mod base_capability;
 mod base_registry;
+mod capability_offer;
 mod characteristic;
 mod completion;
 mod configuration;
@@ -28,6 +29,7 @@ mod interop;
 mod plan_realization;
 mod port;
 mod preparation;
+mod primitive_info;
 mod quantity;
 mod resource;
 mod resource_canonical;
@@ -43,8 +45,8 @@ mod route;
 mod shared_pool;
 mod state_delay;
 mod stream_sampling;
-pub use plan_fingerprint::compute_fragment_id;
 use plan_fingerprint::compute_plan_id;
+pub use plan_fingerprint::{compute_checked_front_fingerprint, compute_fragment_id};
 mod structured_info;
 mod temporal;
 mod temporal_civil_conversion;
@@ -53,10 +55,14 @@ mod temporal_quantity;
 
 pub use base_capability::*;
 pub use base_registry::*;
+pub use capability_offer::*;
 pub use characteristic::*;
 pub use completion::*;
 pub use conduit_assigned_plan::*;
-pub use configuration::{ConfigurationEntry, ConfigurationValue, StructuredConfigurationValue};
+pub use configuration::{
+    ConfigurationEntry, ConfigurationValue, KindConfigurationField, KindConfigurationRule,
+    KindSemanticLaw, KindTerminalBehavior, StructuredConfigurationValue,
+};
 pub use consequential_effect::*;
 pub use control_loop::*;
 pub use deadline::*;
@@ -64,15 +70,16 @@ pub use delivery::*;
 pub use device::*;
 pub use execution::*;
 pub use execution_fusion::*;
-pub use front::{CheckedFace, FaceStartupParameter};
+pub use front::{CheckedFront, FrontStartupParameter};
 pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
 };
 pub use info::*;
 pub use interop::*;
-pub use plan_realization::RealizationBack;
+pub use plan_realization::FormBack;
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use preparation::*;
+pub use primitive_info::*;
 pub use quantity::*;
 pub use resource::*;
 pub use resource_acquisition::*;
@@ -94,9 +101,9 @@ pub use temporal_quantity::*;
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
 pub const DEFAULT_CONNECTION_BYTE_CAPACITY: u32 = 64;
-pub const WAIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/wait@1";
-pub const PRESENT_HOST_OPERATION_CONTRACT: &str = "conduit.host/present@1";
-pub const AWAIT_TRIGGER_HOST_OPERATION_CONTRACT: &str = "conduit.host/await-trigger@1";
+pub const WAIT_HOST_CALL_CONTRACT: &str = "conduit.host/wait@1";
+pub const PRESENT_HOST_CALL_CONTRACT: &str = "conduit.host/present@1";
+pub const AWAIT_TRIGGER_HOST_CALL_CONTRACT: &str = "conduit.host/await-trigger@1";
 pub const MAX_PRESENTATION_COMPLETION_BYTES: u32 = 256;
 pub const TIMER_RESOURCE_CLASS: &str = "conduit.resource/timer-slot@1";
 pub const RUNTIME_MEMORY_RESOURCE_CLASS: &str = "conduit.resource/runtime-memory@1";
@@ -104,8 +111,11 @@ pub const PRESENTATION_RESOURCE_CLASS: &str = "conduit.resource/presentation-slo
 pub const INPUT_RESOURCE_CLASS: &str = "conduit.resource/input-slot@1";
 pub const PRESENT_AUTHORITY_CONTRACT: &str = "conduit.authority/present@1";
 pub const SHARED_POOL_ADMIT_AUTHORITY_CONTRACT: &str = "conduit.authority/shared-pool-admit@1";
-pub const SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT: &str = "conduit.host/shared-pool-admit@1";
+pub const SHARED_POOL_ADMIT_HOST_CALL_CONTRACT: &str = "conduit.host/shared-pool-admit@1";
 pub const SHARED_POOL_AUTHORITY_SUBJECT_KIND: &str = "conduit/shared-pool";
+/// Explicit semantic contract used when the authored meaning is "any callable
+/// with this exact front" rather than one particular operation.
+pub const STRUCTURAL_POLYMORPHIC_CONTRACT: &str = "conduit.semantic/structural-polymorphic@1";
 
 macro_rules! identity_type {
     ($name:ident) => {
@@ -143,7 +153,7 @@ identity_type!(DeviceId);
 identity_type!(PlannerProfileId);
 identity_type!(KindId);
 // Immutable identity of one exact semantic-kind contract revision.
-identity_type!(KindContractRevision);
+identity_type!(KindIdentity);
 // Immutable identity of one exact implementation execution profile.
 identity_type!(ExecutionProfileId);
 identity_type!(ExecutionRegionId);
@@ -177,9 +187,9 @@ identity_type!(CredentialReferenceId);
 identity_type!(PortId);
 identity_type!(GearId);
 identity_type!(HostProfileId);
-// Immutable identity of one host-operation boundary contract.
-identity_type!(HostOperationContractId);
-identity_type!(HostOperationId);
+// Immutable identity of one Host Call boundary contract.
+identity_type!(HostCallContractId);
+identity_type!(HostCallId);
 // Semantic identity of a countable host resource contract.
 identity_type!(ResourceClassId);
 // Boot-scoped identity of one concrete host resource pool.
@@ -356,8 +366,8 @@ pub struct CapabilityLimits {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct HostOperationRequirement {
-    pub contract_id: HostOperationContractId,
+pub struct HostCallRequirement {
+    pub contract_id: HostCallContractId,
     pub target_kind: Option<KindId>,
     pub maximum_in_flight: u16,
     pub maximum_input_bytes: u32,
@@ -367,7 +377,7 @@ pub struct HostOperationRequirement {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct AuthorityRequirement {
     pub contract_id: AuthorityContractId,
-    pub host_operation_contract_id: HostOperationContractId,
+    pub host_call_contract_id: HostCallContractId,
     pub subject_kind: KindId,
 }
 
@@ -375,7 +385,7 @@ pub struct AuthorityRequirement {
 pub struct AuthorityGrant {
     pub grant_id: AuthorityGrantId,
     pub contract_id: AuthorityContractId,
-    pub host_operation_contract_id: HostOperationContractId,
+    pub host_call_contract_id: HostCallContractId,
     pub subject_kind: KindId,
     pub host_id: HostId,
     pub boot_id: BootId,
@@ -386,7 +396,7 @@ pub struct AuthorityGrant {
 pub struct AuthorityBinding {
     pub grant_id: AuthorityGrantId,
     pub contract_id: AuthorityContractId,
-    pub host_operation_contract_id: HostOperationContractId,
+    pub host_call_contract_id: HostCallContractId,
     pub subject_kind: KindId,
     pub host_id: HostId,
     pub boot_id: BootId,
@@ -396,17 +406,17 @@ pub struct AuthorityBinding {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CapabilityOffer {
     #[serde(default)]
-    pub startup_parameters: Vec<FaceStartupParameter>,
+    pub startup_parameters: Vec<FrontStartupParameter>,
     #[serde(default)]
     pub shorthand: Option<(PortId, PortId)>,
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     #[serde(flatten)]
     pub implementation: ImplementationOffer,
-    pub host_operations: Vec<HostOperationRequirement>,
+    pub host_calls: Vec<HostCallRequirement>,
     pub resource_requirements: Vec<ResourceRequirement>,
     pub authority_requirements: Vec<AuthorityRequirement>,
     pub limits: CapabilityLimits,
@@ -445,6 +455,10 @@ pub struct HostAdvertisement {
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
     pub profile: HostProfileId,
+    /// Current Base providers and their ownership of ordinary offers.
+    /// Empty means every advertised capability/resource is Base-free.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub bases: Vec<BaseProviderAdvertisement>,
     pub resources: Vec<ResourceOffer>,
     pub capabilities: Vec<CapabilityOffer>,
     #[serde(default)]
@@ -490,7 +504,7 @@ pub struct PlannedGear {
     pub placement_id: PlacementId,
     pub gear_id: GearId,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub execution_profile_id: ExecutionProfileId,
     pub configuration: Vec<ConfigurationEntry>,
     pub host_id: HostId,
@@ -499,12 +513,15 @@ pub struct PlannedGear {
     pub capability_id: CapabilityId,
     pub implementation_id: ImplementationId,
     pub artifact_id: ArtifactId,
+    /// Exact current provider for Base-backed work. Pure work remains `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base: Option<BaseProviderBinding>,
     #[serde(default)]
     pub realization_characteristics: Vec<RealizationCharacteristic>,
     pub limits: CapabilityLimits,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
-    pub host_operations: Vec<HostOperationRequirement>,
+    pub host_calls: Vec<HostCallRequirement>,
     pub resources: Vec<ResourceBinding>,
     pub authority: Vec<AuthorityBinding>,
     #[serde(default)]
@@ -606,7 +623,7 @@ pub struct PlannedConnection {
     #[serde(default)]
     pub selected_line: Option<AdmittedLine>,
     /// Exact ordered permissible Lines. Runtime may select only from this
-    /// immutable set; availability remains outside the Plan as Signs.
+    /// immutable set; availability remains outside the plan as Signs.
     #[serde(default)]
     pub admitted_lines: Vec<AdmittedLine>,
     pub item_capacity: u16,
@@ -630,7 +647,7 @@ pub struct PlanFragment {
     #[serde(default)]
     pub completion_policy: PlanCompletionPolicy,
     #[serde(default)]
-    pub realization_backs: Vec<RealizationBack>,
+    pub realization_backs: Vec<FormBack>,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
@@ -664,9 +681,9 @@ pub struct Plan {
     #[serde(default)]
     pub completion_policy: PlanCompletionPolicy,
     /// Exact reusable Forms selected while expanding high-level Kinds.
-    /// Empty means the checked Form reached primitive implementations directly.
+    /// Empty means the checked form reached primitive implementations directly.
     #[serde(default)]
-    pub realization_backs: Vec<RealizationBack>,
+    pub realization_backs: Vec<FormBack>,
     pub fragments: Vec<PlanFragment>,
 }
 
@@ -689,7 +706,7 @@ pub fn seal_plan_with_completion(
 
 pub fn seal_plan_with_realization_backs(
     form_identity: FormIdentity,
-    realization_backs: Vec<RealizationBack>,
+    realization_backs: Vec<FormBack>,
     fragments: Vec<PlanFragment>,
 ) -> Plan {
     seal_plan_with_realization_backs_and_completion(
@@ -703,7 +720,7 @@ pub fn seal_plan_with_realization_backs(
 pub fn seal_plan_with_realization_backs_and_completion(
     form_identity: FormIdentity,
     completion_policy: PlanCompletionPolicy,
-    mut realization_backs: Vec<RealizationBack>,
+    mut realization_backs: Vec<FormBack>,
     mut fragments: Vec<PlanFragment>,
 ) -> Plan {
     realization_backs.sort();
@@ -813,6 +830,63 @@ fn verify_plan_shared_pools(plan: &Plan) -> bool {
                 != 1
         }) {
             return false;
+        }
+        for realization in &pool.realization_envelope {
+            for line in &realization.admitted_lines {
+                let binding = &line.binding;
+                let peer = if binding.source.host_id == realization.host_id
+                    && binding.source.boot_id == realization.boot_id
+                {
+                    (&binding.sink.host_id, &binding.sink.boot_id)
+                } else if binding.sink.host_id == realization.host_id
+                    && binding.sink.boot_id == realization.boot_id
+                {
+                    (&binding.source.host_id, &binding.source.boot_id)
+                } else {
+                    return false;
+                };
+                if !pool.consumers.iter().any(|consumer| {
+                    placements.iter().any(|placement| {
+                        &placement.placement_id == consumer
+                            && &placement.host_id == peer.0
+                            && &placement.boot_id == peer.1
+                    })
+                }) {
+                    return false;
+                }
+            }
+            if pool.member_sessions_required {
+                for consumer in &pool.consumers {
+                    let Some(placement) = placements
+                        .iter()
+                        .find(|placement| &placement.placement_id == consumer)
+                    else {
+                        return false;
+                    };
+                    if placement.host_id == realization.host_id
+                        && placement.boot_id == realization.boot_id
+                    {
+                        continue;
+                    }
+                    let request = realization.admitted_lines.iter().any(|line| {
+                        line.binding.source.host_id == placement.host_id
+                            && line.binding.source.boot_id == placement.boot_id
+                            && line.binding.sink.host_id == realization.host_id
+                            && line.binding.sink.boot_id == realization.boot_id
+                    });
+                    let result = realization.admitted_lines.iter().any(|line| {
+                        line.binding.source.host_id == realization.host_id
+                            && line.binding.source.boot_id == realization.boot_id
+                            && line.binding.sink.host_id == placement.host_id
+                            && line.binding.sink.boot_id == placement.boot_id
+                    });
+                    if (!pool.member_front.inputs().is_empty() && !request)
+                        || (!pool.member_front.outputs().is_empty() && !result)
+                    {
+                        return false;
+                    }
+                }
+            }
         }
     }
     placements.iter().all(|placement| {
@@ -1033,10 +1107,10 @@ pub enum FailureReason {
     UnsupportedCancellationPolicy,
     UnsupportedTerminalPolicy,
     SignBudgetExceeded,
-    HostOperationContractMismatch,
-    HostOperationNotPlanned,
-    HostOperationInputExceeded,
-    HostOperationOutputExceeded,
+    HostCallContractMismatch,
+    HostCallNotPlanned,
+    HostCallInputExceeded,
+    HostCallOutputExceeded,
     ResourceContractMismatch,
     ResourceCapacityExceeded,
     SharedPoolContractMismatch,
@@ -1354,9 +1428,9 @@ pub fn port_id(value: &str) -> PortId {
     PortId::from(value)
 }
 
-pub fn wait_host_operation_requirement() -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(WAIT_HOST_OPERATION_CONTRACT),
+pub fn wait_host_call_requirement() -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(WAIT_HOST_CALL_CONTRACT),
         target_kind: None,
         maximum_in_flight: 1,
         maximum_input_bytes: core::mem::size_of::<u64>() as u32,
@@ -1364,12 +1438,12 @@ pub fn wait_host_operation_requirement() -> HostOperationRequirement {
     }
 }
 
-pub fn present_host_operation_requirement(
+pub fn present_host_call_requirement(
     target_kind: KindId,
     maximum_input_bytes: u32,
-) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(PRESENT_HOST_OPERATION_CONTRACT),
+) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(PRESENT_HOST_CALL_CONTRACT),
         target_kind: Some(target_kind),
         maximum_in_flight: 1,
         maximum_input_bytes,
@@ -1377,13 +1451,13 @@ pub fn present_host_operation_requirement(
     }
 }
 
-/// Host-operation requirement for exactly one human/physical trigger input.
+/// Host Call requirement for exactly one human/physical trigger input.
 /// The platform adapter must block on the admitted input resource (e.g. stdin)
 /// until the operator provides the trigger, then complete the request.
 /// A 1-byte sequence counter is admitted as a correlation token (no timer semantics).
-pub fn await_trigger_host_operation_requirement() -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(AWAIT_TRIGGER_HOST_OPERATION_CONTRACT),
+pub fn await_trigger_host_call_requirement() -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(AWAIT_TRIGGER_HOST_CALL_CONTRACT),
         target_kind: None,
         maximum_in_flight: 1,
         maximum_input_bytes: 1,
@@ -1394,7 +1468,7 @@ pub fn await_trigger_host_operation_requirement() -> HostOperationRequirement {
 pub fn present_authority_requirement(subject_kind: KindId) -> AuthorityRequirement {
     AuthorityRequirement {
         contract_id: AuthorityContractId::from(PRESENT_AUTHORITY_CONTRACT),
-        host_operation_contract_id: HostOperationContractId::from(PRESENT_HOST_OPERATION_CONTRACT),
+        host_call_contract_id: HostCallContractId::from(PRESENT_HOST_CALL_CONTRACT),
         subject_kind,
     }
 }
@@ -1409,7 +1483,7 @@ pub fn authority_grant(
     AuthorityGrant {
         grant_id: AuthorityGrantId::from(grant_id),
         contract_id: requirement.contract_id.clone(),
-        host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+        host_call_contract_id: requirement.host_call_contract_id.clone(),
         subject_kind: requirement.subject_kind.clone(),
         host_id,
         boot_id,

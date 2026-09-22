@@ -28,7 +28,7 @@ fn host(behavior: FakePlaybackBehavior) -> StdHost {
         behavior,
     );
     StdHost::new_with_playback(config, StdHostComposition::reference(), selection)
-        .expect("fixture selection matches exact Host identity")
+        .expect("fixture selection matches exact host identity")
 }
 
 fn form() -> conduit_form::CheckedForm {
@@ -225,31 +225,31 @@ fn busy_open_underrun_provider_loss_and_drain_remain_distinct() {
     for (behavior, expected) in [
         (
             FakePlaybackBehavior::DeviceBusy,
-            "OperationFailed(Failure { code: HostOperationDenied, detail: 71 })",
+            "BackFailed(Failure { code: HostCallDenied, detail: 71 })",
         ),
         (
             FakePlaybackBehavior::OpenFailure,
-            "OperationFailed(Failure { code: HostOperationFailed, detail: 72 })",
+            "BackFailed(Failure { code: HostCallFailed, detail: 72 })",
         ),
         (
             FakePlaybackBehavior::UnderrunOnFirstBlock,
-            "OperationFailed(Failure { code: HostOperationFailed, detail: 74 })",
+            "BackFailed(Failure { code: HostCallFailed, detail: 74 })",
         ),
         (
             FakePlaybackBehavior::ProviderLossOnFirstBlock,
-            "OperationFailed(Failure { code: HostOperationFailed, detail: 75 })",
+            "BackFailed(Failure { code: HostCallFailed, detail: 75 })",
         ),
         (
             FakePlaybackBehavior::ProviderLossAfterFirstBlock,
-            "OperationFailed(Failure { code: HostOperationFailed, detail: 75 })",
+            "BackFailed(Failure { code: HostCallFailed, detail: 75 })",
         ),
         (
             FakePlaybackBehavior::ProviderLossOnDrain,
-            "OperationFailed(Failure { code: HostOperationFailed, detail: 75 })",
+            "BackFailed(Failure { code: HostCallFailed, detail: 75 })",
         ),
         (
             FakePlaybackBehavior::DrainFailure,
-            "OperationFailed(Failure { code: HostOperationFailed, detail: 77 })",
+            "BackFailed(Failure { code: HostCallFailed, detail: 77 })",
         ),
     ] {
         let mut host = host(behavior);

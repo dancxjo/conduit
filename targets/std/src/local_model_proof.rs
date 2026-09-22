@@ -1,4 +1,4 @@
-//! Repository-only live local-model proof through ordinary Form, Plan, and Play.
+//! Repository-only live local-model proof through ordinary form, Plan, and Play.
 
 use crate::hosted_local_model::{
     HostedLocalModelAdapter, LocalModelAdapterTerminal, OllamaLocalModelAdapter,
@@ -7,6 +7,7 @@ use crate::{StdHost, StdHostComposition, StdHostConfig, TimerAdapter};
 use conduit_ai::LocalModelKindProfile;
 use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
 use conduit_form::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
+use conduit_presentation::{GeneratedManifestation, GenerativePresenterRequest};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
@@ -33,11 +34,24 @@ pub struct LocalModelLiveProofReceipt {
     pub house_response_bytes: u32,
     pub house_response_sha256: String,
     pub house_speech: conduit_tongues::SpeechRunReceipt,
+    pub presenter_requests: Vec<PresenterRequestProofReceipt>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct PresenterRequestProofReceipt {
+    pub plan_id: String,
+    pub play_completed: bool,
+    pub request_identity: String,
+    pub source_presentation_identity: String,
+    pub source_presentation_revision: u64,
+    pub policy_revision: String,
+    pub manifestation: GeneratedManifestation,
 }
 
 struct CapturingLocalModelAdapter {
     inner: Box<dyn HostedLocalModelAdapter>,
     generated_text: Arc<Mutex<Option<Vec<u8>>>>,
+    presenter_manifestations: Arc<Mutex<Vec<GeneratedManifestation>>>,
 }
 
 impl HostedLocalModelAdapter for CapturingLocalModelAdapter {
@@ -67,6 +81,20 @@ impl HostedLocalModelAdapter for CapturingLocalModelAdapter {
                 }
             }
         }
+        if placement.kind_id.as_str() == conduit_ai::LLM_PRESENT_KIND
+            && matches!(
+                terminal,
+                LocalModelAdapterTerminal::Produced | LocalModelAdapterTerminal::Truncated
+            )
+        {
+            let Ok(manifestation) = serde_json::from_slice::<GeneratedManifestation>(output) else {
+                return LocalModelAdapterTerminal::Failed;
+            };
+            let Ok(mut captured) = self.presenter_manifestations.lock() else {
+                return LocalModelAdapterTerminal::Failed;
+            };
+            captured.push(manifestation);
+        }
         terminal
     }
 }
@@ -77,18 +105,45 @@ impl TimerAdapter for NoopTimer {
     fn wait(&mut self, _duration: std::time::Duration) {}
 }
 
+pub fn presenter_policy_experiment(
+    intended: GenerativePresenterRequest,
+) -> Vec<GenerativePresenterRequest> {
+    use conduit_presentation::{GenerativeNarratorRole, GenerativePresenterPolicy};
+
+    let mut neutral = intended.clone();
+    neutral.request_identity = format!("{}/neutral", intended.request_identity);
+    neutral.policy = GenerativePresenterPolicy {
+        template_contract_revision:
+            crate::hosted_local_model::ollama_present::PROOF_NEUTRAL_POLICY_REVISION.into(),
+        narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
+        instructions: crate::hosted_local_model::ollama_present::PROOF_NEUTRAL_POLICY.into(),
+    };
+    let mut deliberately_bad = intended.clone();
+    deliberately_bad.request_identity =
+        format!("{}/bad-self-preservation", intended.request_identity);
+    deliberately_bad.policy = GenerativePresenterPolicy {
+        template_contract_revision:
+            crate::hosted_local_model::ollama_present::PROOF_BAD_POLICY_REVISION.into(),
+        narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
+        instructions: crate::hosted_local_model::ollama_present::PROOF_BAD_POLICY.into(),
+    };
+    vec![intended, neutral, deliberately_bad]
+}
+
 pub fn run(
     adapter: OllamaLocalModelAdapter,
+    presenter_requests: &[GenerativePresenterRequest],
 ) -> Result<LocalModelLiveProofReceipt, Box<dyn std::error::Error>> {
     let model_content_identity = adapter.offer().identity.model_content_identity.clone();
     let generated_text = Arc::new(Mutex::new(None));
+    let presenter_manifestations = Arc::new(Mutex::new(Vec::new()));
     let mut additional_capabilities = Vec::new();
     for profile in [
         LocalModelKindProfile::Generate,
         LocalModelKindProfile::ClassifyFiniteLabels,
         LocalModelKindProfile::ExtractValidatedInfo,
         LocalModelKindProfile::InterpretSignEvidence,
-        LocalModelKindProfile::PresentSemanticFace,
+        LocalModelKindProfile::PresentSemanticFront,
     ] {
         let contract = conduit_ai::llm_contract(profile.kind()).expect("proof profiles are L0");
         additional_capabilities.extend([
@@ -102,7 +157,7 @@ pub fn run(
     }
     additional_capabilities
         .extend(crate::installed_std::test_local_model_io::house_source_offers());
-    additional_capabilities.push(crate::installed_std::recorded_speech_operation::offer());
+    additional_capabilities.push(crate::installed_std::recorded_speech_back::offer());
     additional_capabilities
         .push(crate::installed_std::test_local_model_io::house_text_sink_offer());
     let mut host = StdHost::new_with_local_model_capabilities(
@@ -115,6 +170,7 @@ pub fn run(
         Box::new(CapturingLocalModelAdapter {
             inner: Box::new(adapter),
             generated_text: Arc::clone(&generated_text),
+            presenter_manifestations: Arc::clone(&presenter_manifestations),
         }),
         additional_capabilities,
     )?;
@@ -122,7 +178,51 @@ pub fn run(
     let classify = run_profile(&mut host, LocalModelKindProfile::ClassifyFiniteLabels)?;
     let extract = run_profile(&mut host, LocalModelKindProfile::ExtractValidatedInfo)?;
     let interpret = run_profile(&mut host, LocalModelKindProfile::InterpretSignEvidence)?;
-    let present = run_profile(&mut host, LocalModelKindProfile::PresentSemanticFace)?;
+    let mut present = None;
+    if presenter_requests.is_empty() {
+        present = Some(run_profile(
+            &mut host,
+            LocalModelKindProfile::PresentSemanticFront,
+        )?);
+        presenter_manifestations
+            .lock()
+            .map_err(|_| "presenter proof capture lock is poisoned")?
+            .clear();
+    }
+    let mut presenter_receipts = Vec::with_capacity(presenter_requests.len());
+    for request in presenter_requests {
+        request
+            .validate()
+            .map_err(|error| format!("invalid supplied Presenter request: {error:?}"))?;
+        let encoded = serde_json::to_vec(request)?;
+        let execution =
+            crate::installed_std::test_local_model_io::with_generative_presenter_request(
+                encoded,
+                || run_profile(&mut host, LocalModelKindProfile::PresentSemanticFront),
+            )?;
+        present.get_or_insert_with(|| execution.clone());
+        let manifestation = presenter_manifestations
+            .lock()
+            .map_err(|_| "presenter proof capture lock is poisoned")?
+            .pop()
+            .ok_or("Presenter proof produced no captured Manifestation")?;
+        request
+            .validate_manifestation(&manifestation)
+            .map_err(|error| format!("invalid provider Manifestation: {error:?}"))?;
+        presenter_receipts.push(PresenterRequestProofReceipt {
+            plan_id: execution.0,
+            play_completed: execution.1,
+            request_identity: request.request_identity.clone(),
+            source_presentation_identity: request
+                .semantic_data
+                .source_presentation_identity
+                .clone(),
+            source_presentation_revision: request.semantic_data.source_presentation_revision,
+            policy_revision: request.policy.template_contract_revision.clone(),
+            manifestation,
+        });
+    }
+    let present = present.ok_or("local-model proof did not execute a Presenter request")?;
     *generated_text
         .lock()
         .map_err(|_| "local proof response capture lock is poisoned")? = None;
@@ -161,6 +261,7 @@ pub fn run(
         house_response_bytes,
         house_response_sha256,
         house_speech,
+        presenter_requests: presenter_receipts,
     })
 }
 
@@ -209,7 +310,7 @@ pub(crate) fn run_house(host: &mut StdHost) -> Result<(String, bool), Box<dyn st
                 error.code, error.message
             )
         })?;
-    run_expanded(host, expanded, "House")
+    run_expanded(host, expanded, "House", 4_096)
 }
 
 fn run_profile(
@@ -226,9 +327,28 @@ fn run_profile(
         contract.inputs[0].value_kind.as_str(),
         contract.outputs[0].value_kind.as_str(),
     );
+    let (maximum_input_bytes, maximum_output_bytes, maximum_work_units) =
+        if profile == LocalModelKindProfile::PresentSemanticFront {
+            let provider_maximum_input_bytes = host
+                .advertisement()
+                .capabilities
+                .iter()
+                .find(|offer| offer.kind_id.as_str() == profile.kind())
+                .and_then(|offer| offer.host_calls.first())
+                .map(|call| u64::from(call.maximum_input_bytes))
+                .ok_or("local-model proof Presenter Back has no Host Call bound")?;
+            (
+                (conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u64)
+                    .min(provider_maximum_input_bytes),
+                conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u64,
+                contract.bounds.maximum_work_units,
+            )
+        } else {
+            (4_096, 4_096, 4_096)
+        };
     let source = format!(
-        "form run {{\n source: conduit-test/local-model-request\n model: {}(4096, 1, 4096, 4096, 0)\n sink: conduit-test/local-model-result\n source.value > model.request\n model.result > sink.value\n}}\n",
-        profile.kind()
+        "form run {{\n source: conduit-test/local-model-request\n model: {}({}, 1, {}, {}, 0)\n sink: conduit-test/local-model-result\n source.value > model.request\n model.result > sink.value\n}}\n",
+        profile.kind(), maximum_input_bytes, maximum_output_bytes, maximum_work_units,
     );
     let checked =
         check_syntax_document(&parse_syntax_document(&source), &startup).map_err(|error| {
@@ -244,13 +364,19 @@ fn run_profile(
                 error.code, error.message
             )
         })?;
-    run_expanded(host, expanded, profile.kind())
+    let connection_byte_capacity = if profile == LocalModelKindProfile::PresentSemanticFront {
+        conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32
+    } else {
+        4_096
+    };
+    run_expanded(host, expanded, profile.kind(), connection_byte_capacity)
 }
 
 fn run_expanded(
     host: &mut StdHost,
     expanded: conduit_form::ExpandedCanonicalForm,
     proof_name: &str,
+    connection_byte_capacity: u32,
 ) -> Result<(String, bool), Box<dyn std::error::Error>> {
     let hosts = vec![host.advertisement().clone()];
     let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)?;
@@ -265,7 +391,7 @@ fn run_expanded(
             connection_bases: &connection_bases,
             line_candidates: &line_candidates,
             connection_item_capacity: 1,
-            connection_byte_capacity: 4_096,
+            connection_byte_capacity,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -282,12 +408,26 @@ fn run_expanded(
         .iter()
         .map(|connection| (connection.item_capacity, connection.byte_capacity))
         .collect::<Vec<_>>();
+    let host_call_limits = fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            (
+                placement.kind_id.as_str().to_string(),
+                placement
+                    .host_calls
+                    .iter()
+                    .map(|call| (call.maximum_input_bytes, call.maximum_output_bytes))
+                    .collect::<Vec<_>>(),
+            )
+        })
+        .collect::<Vec<_>>();
     let mut output = Vec::new();
     let report = host
         .run_fragment_to(fragment, &mut output, &mut NoopTimer)
         .map_err(|error| {
             format!(
-                "{} live Plan/Play: {error}; connection limits {connection_limits:?}",
+                "{} live Plan/Play: {error}; connection limits {connection_limits:?}; host-call limits {host_call_limits:?}",
                 proof_name
             )
         })?;
@@ -297,4 +437,33 @@ fn run_expanded(
 fn sha256(bytes: &[u8]) -> String {
     use sha2::{Digest, Sha256};
     format!("{:x}", Sha256::digest(bytes))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn presenter_policy_experiment_changes_only_identity_and_policy() {
+        let intended = crate::hosted_local_model::ollama_present::proof_request().unwrap();
+        let requests = presenter_policy_experiment(intended.clone());
+
+        assert_eq!(requests.len(), 3);
+        assert_eq!(requests[0], intended);
+        for request in &requests {
+            request.validate().unwrap();
+            assert_eq!(request.semantic_data, intended.semantic_data);
+            assert_eq!(request.bounds, intended.bounds);
+        }
+        assert_ne!(requests[0].request_identity, requests[1].request_identity);
+        assert_ne!(requests[1].request_identity, requests[2].request_identity);
+        assert_ne!(
+            requests[0].policy.template_contract_revision,
+            requests[1].policy.template_contract_revision
+        );
+        assert_ne!(
+            requests[1].policy.template_contract_revision,
+            requests[2].policy.template_contract_revision
+        );
+    }
 }

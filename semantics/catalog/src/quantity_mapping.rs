@@ -2,13 +2,13 @@
 
 use alloc::{format, string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, KindIdentity, PortDescriptor,
     PortDirection, PortTemporal, Quantity, QuantityUnit, Scalar, QUANTITY_ENCODED_LEN,
     QUANTITY_INFO_ID, SCALAR_INFO_ID,
 };
 
 use crate::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 
 pub const QUANTITY_MAP_KIND: &str = "math/map-quantity";
@@ -124,11 +124,28 @@ pub fn quantity_map_contract() -> StandardKindContract {
             max_queue_items: 1,
             max_queue_bytes: QUANTITY_ENCODED_LEN as u32,
         },
-        terminal_behavior: TerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
+        terminal_behavior: KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "map: math/map-quantity(source-minimum = 0, source-maximum = 1000000, target-minimum = 20, target-maximum = 20000, target-granularity = 1, unit = \"Hz\", range-policy = \"clamp\", quantization = \"nearest\")".into(),
+    }
+}
+
+pub fn quantity_map_semantic_contract() -> Kind {
+    let contract = quantity_map_contract();
+    Kind {
+        startup_parameters: crate::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: QUANTITY_MAP_REVISION.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
+        limits: contract.limits,
     }
 }
 
@@ -138,7 +155,7 @@ pub fn install_quantity_mapping_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
     let contract = quantity_map_contract();
@@ -164,23 +181,23 @@ pub fn install_quantity_mapping_catalog(
             .collect(),
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
-            kind_contract_revision: KindContractRevision::from(QUANTITY_MAP_REVISION),
+            kind_contract_revision: KindIdentity::from(QUANTITY_MAP_REVISION),
             inputs: contract.inputs,
             outputs: contract.outputs,
             configuration: contract
                 .configuration
                 .into_iter()
-                .map(|field| ConfigurationField {
+                .map(|field| KindConfigurationField {
                     key: field.key,
                     default_value: field.default_value,
-                    validation: match field.rule {
-                        StandardConfigurationRule::I64Range { minimum, maximum } => {
-                            ConfigurationRule::I64Range { minimum, maximum }
+                    rule: match field.rule {
+                        KindConfigurationRule::I64Range { minimum, maximum } => {
+                            KindConfigurationRule::I64Range { minimum, maximum }
                         }
-                        StandardConfigurationRule::TextOneOf { values } => {
-                            ConfigurationRule::TextOneOf { values }
+                        KindConfigurationRule::TextOneOf { values } => {
+                            KindConfigurationRule::TextOneOf { values }
                         }
                         _ => unreachable!(),
                     },
@@ -190,19 +207,19 @@ pub fn install_quantity_mapping_catalog(
         .map_err(|error| error.to_string())
 }
 
-fn configuration_fields() -> Vec<StandardConfigurationField> {
-    let number = |key: &str, value: i64| StandardConfigurationField {
+fn configuration_fields() -> Vec<KindConfigurationField> {
+    let number = |key: &str, value: i64| KindConfigurationField {
         key: key.into(),
         default_value: ConfigurationValue::I64(value),
-        rule: StandardConfigurationRule::I64Range {
+        rule: KindConfigurationRule::I64Range {
             minimum: i64::MIN,
             maximum: i64::MAX,
         },
     };
-    let choice = |key: &str, value: &str, values: &[&str]| StandardConfigurationField {
+    let choice = |key: &str, value: &str, values: &[&str]| KindConfigurationField {
         key: key.into(),
         default_value: ConfigurationValue::Text(value.into()),
-        rule: StandardConfigurationRule::TextOneOf {
+        rule: KindConfigurationRule::TextOneOf {
             values: values.iter().map(|value| (*value).into()).collect(),
         },
     };
@@ -290,5 +307,23 @@ mod tests {
             invalid.validate(),
             Err(QuantityMappingRefusal::InvalidRange)
         );
+    }
+
+    #[test]
+    fn semantic_contract_owns_mapping_front_revision_and_capacity() {
+        let contract = quantity_map_semantic_contract();
+        assert_eq!(
+            contract.kind_contract_revision.as_str(),
+            QUANTITY_MAP_REVISION
+        );
+        assert_eq!(
+            contract.startup_parameters.len(),
+            configuration_fields().len()
+        );
+        assert!(contract
+            .startup_parameters
+            .iter()
+            .all(|parameter| parameter.has_default));
+        assert_eq!(contract.limits.max_queue_bytes, QUANTITY_ENCODED_LEN as u32);
     }
 }

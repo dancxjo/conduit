@@ -218,7 +218,7 @@ fn draw_palette_inspection<D: DrawTarget<Color = Rgb888>>(
     identity_value(
         target,
         Point::new(x, 184),
-        "exact Kind",
+        "exact kind",
         entry.kind_id.as_str(),
         theme,
     );

@@ -15,10 +15,10 @@ pub use x86_64::{
     HidPointerReady, HidPointerSession, HidProof, Idle, Interrupts, Opl2, PcSpeaker, Ps2Error,
     Ps2Input, Ps2Ready, RdrandEntropy, RebootBase, RebootError, Serial, Timer, UsbDevice,
     VirtioNetError, VirtioNetIdentity, VirtioNetReady, XhciReady, boot_entropy, deterministic_exit,
-    early_write, enumerate_attached_at_epochs, enumerate_one_at_epoch, enumerate_usb,
-    feature_basis, finish_boot_keyboard, initialize_machine, initialize_virtio_net,
-    initialize_xhci, local_reboot_base, pc_speaker_input_hz, prepare_boot_keyboard,
-    prepare_boot_pointer, prepare_ftdi_line, receive_boot_keyboard,
+    early_write, emergency_halt, emergency_machine_profile, enumerate_attached_at_epochs,
+    enumerate_one_at_epoch, enumerate_usb, feature_basis, finish_boot_keyboard, initialize_machine,
+    initialize_virtio_net, initialize_xhci, local_reboot_base, pc_speaker_input_hz,
+    prepare_boot_keyboard, prepare_boot_pointer, prepare_ftdi_line, receive_boot_keyboard,
     receive_first_boot_keyboard_report, retire_removed_device, run_boot_keyboard,
     start_boot_keyboard_session, start_ftdi_line_session, start_pointer_session,
     wait_for_attachment_state,
@@ -34,9 +34,9 @@ mod ia32;
 mod ia32_vga_text;
 #[cfg(target_arch = "x86")]
 pub use ia32::{
-    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, enable_interrupts,
-    initialize_machine, interruptible_idle, pop_interrupt, present, present_legacy_bios_receipt,
-    read_counter, timer_arm,
+    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, emergency_halt,
+    emergency_machine_profile, enable_interrupts, initialize_machine, interruptible_idle,
+    pop_interrupt, present, present_legacy_bios_receipt, read_counter, timer_arm,
 };
 #[cfg(target_arch = "x86")]
 pub const ARCHITECTURE: &str = "ia32";
@@ -45,9 +45,10 @@ mod aarch64;
 
 #[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
 pub use aarch64::{
-    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, enable_fp_simd,
-    enable_interrupts, initialize_machine, install_low_mmio_map, interruptible_idle,
-    mmio_table_addresses, pop_interrupt, present, read_counter, timer_arm,
+    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, emergency_halt,
+    emergency_machine_profile, enable_fp_simd, enable_interrupts, initialize_machine,
+    install_low_mmio_map, interruptible_idle, mmio_table_addresses, pop_interrupt, present,
+    read_counter, timer_arm,
 };
 
 #[cfg(all(target_arch = "aarch64", feature = "aarch64-orange-pi-5"))]
@@ -65,8 +66,9 @@ pub const ARCHITECTURE: &str = "aarch64";
 mod riscv64;
 #[cfg(target_arch = "riscv64")]
 pub use riscv64::{
-    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, enable_interrupts,
-    initialize_machine, interruptible_idle, pop_interrupt, present, read_counter, timer_arm,
+    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, emergency_halt,
+    emergency_machine_profile, enable_interrupts, initialize_machine, interruptible_idle,
+    pop_interrupt, present, read_counter, timer_arm,
 };
 #[cfg(target_arch = "riscv64")]
 pub const ARCHITECTURE: &str = "riscv64";
@@ -74,8 +76,9 @@ pub const ARCHITECTURE: &str = "riscv64";
 mod loongarch64;
 #[cfg(target_arch = "loongarch64")]
 pub use loongarch64::{
-    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, enable_interrupts,
-    initialize_machine, interruptible_idle, pop_interrupt, present, read_counter, timer_arm,
+    Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, emergency_halt,
+    emergency_machine_profile, enable_interrupts, initialize_machine, interruptible_idle,
+    pop_interrupt, present, read_counter, timer_arm,
 };
 #[cfg(target_arch = "loongarch64")]
 pub const ARCHITECTURE: &str = "loongarch64";

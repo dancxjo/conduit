@@ -1,10 +1,10 @@
 //! Browser installations for finite exact Boolean decisions.
 
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    kind_id, ConfigurationValue, HostOperationContractId, HostOperationRequirement, InfoBool,
-    PlannedGear, BOOL_ENCODED_LEN,
+    kind_id, ConfigurationValue, HostCallContractId, HostCallRequirement, InfoBool, PlannedGear,
+    BOOL_ENCODED_LEN,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
 
@@ -46,8 +46,8 @@ fn not_offer() -> conduit_core::CapabilityOffer {
         conduit_semantic_catalog::logic_not_contract(),
         conduit_semantic_catalog::LOGIC_NOT_CONTRACT_REVISION,
         NOT_IMPLEMENTATION,
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(NOT_IMPLEMENTATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(NOT_IMPLEMENTATION),
             target_kind: Some(kind_id(NOT_IMPLEMENTATION)),
             maximum_in_flight: 1,
             maximum_input_bytes: BOOL_ENCODED_LEN as u32,
@@ -69,7 +69,7 @@ fn offer(
     contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     implementation: &str,
-    operations: Vec<HostOperationRequirement>,
+    operations: Vec<HostCallRequirement>,
 ) -> conduit_core::CapabilityOffer {
     conduit_semantic_catalog::realization_offer(
         contract,
@@ -89,7 +89,7 @@ fn offer(
 fn prepare_compare(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &compare_offer())?;
     let operator = comparison_operator(placement)?;
     let false_value = values
@@ -98,7 +98,7 @@ fn prepare_compare(
     let true_value = values
         .store(&InfoBool::TRUE.encode())
         .map_err(debug_error)?;
-    Ok(BrowserOperation::compare_scalar(
+    Ok(BrowserBack::compare_scalar(
         operator,
         false_value,
         true_value,
@@ -108,17 +108,17 @@ fn prepare_compare(
 fn prepare_not(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &not_offer())?;
-    Ok(BrowserOperation::unary(BOOL_ENCODED_LEN as u32, 1))
+    Ok(BrowserBack::unary(BOOL_ENCODED_LEN as u32, 1))
 }
 
 fn prepare_select(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &select_offer())?;
-    Ok(BrowserOperation::select_scalar())
+    Ok(BrowserBack::select_scalar())
 }
 
 fn perform_not(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {

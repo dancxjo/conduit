@@ -1,4 +1,4 @@
-use conduit_core::{ArtifactId, CapabilityId, HostId, ImplementationId, KindContractRevision};
+use conduit_core::{ArtifactId, CapabilityId, HostId, ImplementationId};
 use conduit_form::parse_with_startup;
 use conduit_signal::{signal_profile_catalog, PULSE_KIND};
 use conduit_signal_conformance::pico_local_advertisement;
@@ -14,6 +14,7 @@ pub fn standard_planning_fixture(
         boot_id: boot_id.into(),
         offer_generation: conduit_core::OfferGeneration(1),
         profile: conduit_core::HostProfileId::from("planner-test/standard-fixture@1"),
+        bases: vec![],
         resources: vec![
             conduit_core::resource_offer(
                 "planner-test/presentation",
@@ -143,8 +144,6 @@ pub fn competing_hosts() -> [conduit_core::HostAdvertisement; 2] {
 
     let mut capable_offer = pulse.clone();
     capable_offer.capability_id = CapabilityId::from("capable/pulse");
-    capable_offer.kind_id = conduit_core::kind_id("alternate/nominal-pulse");
-    capable_offer.kind_contract_revision = KindContractRevision::from("alternate/nominal-pulse@9");
     capable_offer.implementation.implementation_id = ImplementationId::from("capable/pulse@1");
     capable_offer.implementation.artifact_id = ArtifactId::from("capable/pulse-artifact@1");
     capable_offer.limits.max_queue_items = 8;

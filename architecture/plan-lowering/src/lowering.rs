@@ -1,17 +1,17 @@
-//! Exact pre-Play-start lowering from string-identified plan facts into the
+//! Exact pre-play-start lowering from string-identified plan facts into the
 //! numeric tables consumed by `conduit-kernel`.
 
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::vec::Vec;
 use conduit_core::{
     ActivePlayId, ActivePlayIdentity, AdmittedLine, BootId, ConnectionId, ExpectedSign, FragmentId,
-    HostId, HostOperationContractId, KindId, LinkEndpoint, PlacementId, PlanFragment, PlanId,
+    HostCallContractId, HostId, KindId, LinkEndpoint, PlacementId, PlanFragment, PlanId,
     PortDirection, PortId as PlanPortId, PresentationId, PresentationIdentity,
     ResourceBinding as PlanResourceBinding, SharedPoolId, SignId, SignIdentity,
 };
 use conduit_kernel::{
     scheduler::{AssignedPressurePolicy, CordCapacity, CordSpec, NodeSpec},
-    CordId, HostOperationBinding, HostOperationId, NodeId, PortId, RemoteEndpointId,
+    CordId, HostCallBinding, HostCallId, NodeId, PortId, RemoteEndpointId,
     ResourceBinding as KernelResourceBinding, ResourceId, RouteRange, RouteTarget,
     SignExpectationId, SignExpectationTarget,
 };
@@ -33,7 +33,10 @@ pub use profile::{
 };
 use remote::lower_remote_endpoints;
 use shared_pool::lower_shared_pools;
-pub use shared_pool::{LoweredPoolRealization, LoweredSharedPool};
+pub use shared_pool::{
+    LoweredPoolRealization, LoweredPoolSelectionFacts, LoweredSharedPool,
+    PoolObservationLoweringError,
+};
 
 fn lower_pressure_policy(policy: conduit_core::DeliveryPressurePolicy) -> AssignedPressurePolicy {
     match policy {
@@ -78,7 +81,7 @@ pub enum LoweringError {
         placement_id: PlacementId,
         port_id: PlanPortId,
     },
-    UnsupportedHostOperationConcurrency(PlacementId),
+    UnsupportedHostCallConcurrency(PlacementId),
     ResourceBindingInvalid(PlacementId),
     SignBudgetInvalid,
     SignReferenceMissing,
@@ -100,7 +103,7 @@ pub struct LoweredPort {
 pub struct LoweredNode {
     pub node: NodeId,
     pub placement_id: PlacementId,
-    pub maximum_step_work: u16,
+    pub maximum_step_fuel: u16,
     pub inputs: Vec<LoweredPort>,
     pub outputs: Vec<LoweredPort>,
 }
@@ -144,13 +147,13 @@ pub struct LoweredRoute {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LoweredHostOperation {
+pub struct LoweredHostCall {
     pub node: NodeId,
-    pub operation: HostOperationId,
-    pub contract_id: HostOperationContractId,
+    pub call: HostCallId,
+    pub contract_id: HostCallContractId,
     pub target_kind: Option<KindId>,
     pub maximum_in_flight: u16,
-    pub binding: HostOperationBinding,
+    pub binding: HostCallBinding,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -182,7 +185,7 @@ pub struct KernelIdentityMap {
     pub ports: Vec<KernelPortIdentity>,
     pub connections: Vec<(CordId, ConnectionId)>,
     pub remote_endpoints: Vec<(RemoteEndpointId, ConnectionId)>,
-    pub host_operations: Vec<(NodeId, HostOperationId, HostOperationContractId)>,
+    pub host_calls: Vec<(NodeId, HostCallId, HostCallContractId)>,
     pub resources: Vec<(NodeId, ResourceId, PlanResourceBinding)>,
 }
 
@@ -262,30 +265,30 @@ impl KernelIdentityMap {
             .map(|identity| identity.port)
     }
 
-    pub fn host_operation_contract(
+    pub fn host_call_contract(
         &self,
         node: NodeId,
-        operation: HostOperationId,
-    ) -> Option<&HostOperationContractId> {
-        self.host_operations
+        call: HostCallId,
+    ) -> Option<&HostCallContractId> {
+        self.host_calls
             .iter()
-            .find(|(candidate_node, candidate_operation, _)| {
-                *candidate_node == node && *candidate_operation == operation
+            .find(|(candidate_node, candidate_call, _)| {
+                *candidate_node == node && *candidate_call == call
             })
             .map(|(_, _, contract)| contract)
     }
 
-    pub fn host_operation_for_contract(
+    pub fn host_call_for_contract(
         &self,
         node: NodeId,
-        contract: &HostOperationContractId,
-    ) -> Option<HostOperationId> {
-        self.host_operations
+        contract: &HostCallContractId,
+    ) -> Option<HostCallId> {
+        self.host_calls
             .iter()
             .find(|(candidate_node, _, candidate_contract)| {
                 *candidate_node == node && candidate_contract == contract
             })
-            .map(|(_, operation, _)| *operation)
+            .map(|(_, call, _)| *call)
     }
 }
 
@@ -295,7 +298,7 @@ pub enum ExecutionIdentityError {
     WrongActivePlay,
     WrongHost,
     UnknownNode,
-    UnknownHostOperation,
+    UnknownHostCall,
     UnknownRequest,
     UnknownPresentation,
     DuplicateIdentity,
@@ -306,8 +309,8 @@ pub enum ExecutionIdentityError {
 pub struct KernelHostRequestIdentity {
     pub node: NodeId,
     pub request: conduit_kernel::RequestId,
-    pub operation: HostOperationId,
-    pub contract_id: HostOperationContractId,
+    pub call: HostCallId,
+    pub contract_id: HostCallContractId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -364,11 +367,11 @@ impl KernelExecutionIdentityMap {
         lowered: &KernelIdentityMap,
         node: NodeId,
         request: conduit_kernel::RequestId,
-        operation: HostOperationId,
+        call: HostCallId,
     ) -> Result<(), ExecutionIdentityError> {
         let contract_id = lowered
-            .host_operation_contract(node, operation)
-            .ok_or(ExecutionIdentityError::UnknownHostOperation)?;
+            .host_call_contract(node, call)
+            .ok_or(ExecutionIdentityError::UnknownHostCall)?;
         if self.requests.len() >= self.requests.capacity() {
             return Err(ExecutionIdentityError::CapacityExceeded);
         }
@@ -382,7 +385,7 @@ impl KernelExecutionIdentityMap {
         self.requests.push(KernelHostRequestIdentity {
             node,
             request,
-            operation,
+            call,
             contract_id: contract_id.clone(),
         });
         Ok(())
@@ -483,7 +486,7 @@ impl KernelExecutionIdentityMap {
     pub fn request_for_contract<'a>(
         &'a self,
         node: NodeId,
-        contract: &'a HostOperationContractId,
+        contract: &'a HostCallContractId,
     ) -> impl Iterator<Item = &'a KernelHostRequestIdentity> + 'a {
         self.requests
             .iter()
@@ -550,7 +553,7 @@ pub struct LoweredPlanFragment {
     pub fusions: Vec<LoweredFusion>,
     pub remote_endpoints: Vec<LoweredRemoteEndpoint>,
     pub routes: Vec<LoweredRoute>,
-    pub host_operations: Vec<LoweredHostOperation>,
+    pub host_calls: Vec<LoweredHostCall>,
     pub resources: Vec<LoweredResource>,
     pub signs: Vec<LoweredSign>,
     pub shared_pools: Vec<LoweredSharedPool>,
@@ -612,10 +615,10 @@ pub fn lower_plan_fragment_for_profile(
             });
         }
         let input_cords = [None; FIXED_KERNEL_STORAGE_PORTS_PER_NODE];
-        let maximum_step_work = 1usize
+        let maximum_step_fuel = 1usize
             .checked_add(inputs.len())
             .and_then(|value| value.checked_add(outputs.len()))
-            .and_then(|value| value.checked_add(placement.host_operations.len()))
+            .and_then(|value| value.checked_add(placement.host_calls.len()))
             .ok_or(LoweringError::CapacityOverflow)
             .and_then(as_u16)?;
         identity_ports.extend(
@@ -632,13 +635,13 @@ pub fn lower_plan_fragment_for_profile(
         nodes.push(LoweredNode {
             node,
             placement_id: placement.placement_id.clone(),
-            maximum_step_work,
+            maximum_step_fuel,
             inputs,
             outputs,
         });
         node_specs.push(NodeSpec {
             input_cords,
-            maximum_step_work,
+            maximum_step_fuel,
         });
     }
 
@@ -798,24 +801,24 @@ pub fn lower_plan_fragment_for_profile(
     }
 
     let routes = lower_routes(&cords)?;
-    let mut host_operations = Vec::new();
+    let mut host_calls = Vec::new();
     let mut resources = Vec::new();
     for (placement, node) in fragment.placements.iter().zip(nodes.iter()) {
-        for (index, requirement) in placement.host_operations.iter().enumerate() {
+        for (index, requirement) in placement.host_calls.iter().enumerate() {
             if requirement.maximum_in_flight != 1 {
-                return Err(LoweringError::UnsupportedHostOperationConcurrency(
+                return Err(LoweringError::UnsupportedHostCallConcurrency(
                     placement.placement_id.clone(),
                 ));
             }
-            let operation = HostOperationId(as_u16(index)?);
-            host_operations.push(LoweredHostOperation {
+            let call = HostCallId(as_u16(index)?);
+            host_calls.push(LoweredHostCall {
                 node: node.node,
-                operation,
+                call,
                 contract_id: requirement.contract_id.clone(),
                 target_kind: requirement.target_kind.clone(),
                 maximum_in_flight: requirement.maximum_in_flight,
-                binding: HostOperationBinding {
-                    operation,
+                binding: HostCallBinding {
+                    call,
                     maximum_input_bytes: requirement.maximum_input_bytes,
                     maximum_output_bytes: requirement.maximum_output_bytes,
                 },
@@ -887,9 +890,9 @@ pub fn lower_plan_fragment_for_profile(
                 .iter()
                 .map(|item| (item.endpoint, item.connection_id.clone()))
                 .collect(),
-            host_operations: host_operations
+            host_calls: host_calls
                 .iter()
-                .map(|item| (item.node, item.operation, item.contract_id.clone()))
+                .map(|item| (item.node, item.call, item.contract_id.clone()))
                 .collect(),
             resources: resources
                 .iter()
@@ -909,7 +912,7 @@ pub fn lower_plan_fragment_for_profile(
         fusions,
         remote_endpoints,
         routes,
-        host_operations,
+        host_calls,
         resources,
         signs,
         shared_pools,

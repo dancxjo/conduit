@@ -1,4 +1,4 @@
-//! Consequential whole-device carrier for exact Body-bound boot media.
+//! Consequential whole-device carrier for exact body-bound boot media.
 
 use crate::{
     BodyBoundArtifactIdentity, CarrierTerminal, DeploymentCarrierDescriptor, DeploymentCarrierKind,
@@ -7,10 +7,13 @@ use crate::{
 };
 use sha2::{Digest, Sha256};
 use std::{
-    fs::{self, File, OpenOptions},
+    fs::{File, OpenOptions},
     io::{Read, Seek, Write},
     path::Path,
 };
+
+#[cfg(target_os = "linux")]
+use std::fs;
 
 const COPY_BUFFER_BYTES: usize = 64 * 1024;
 pub const LINUX_REMOVABLE_WRITER_IMPLEMENTATION: &str = "conduit-helper/linux-removable-writer@1";
@@ -300,7 +303,7 @@ mod tests {
 
     #[test]
     fn exact_confirmed_media_is_written_and_read_back_without_boot_claims() {
-        let bytes = b"exact Body-bound boot image";
+        let bytes = b"exact body-bound boot image";
         let (descriptor, artifact) = fixture(bytes);
         let root = std::env::temp_dir().join(format!("conduit-removable-{}", std::process::id()));
         let _ = fs::remove_dir_all(&root);

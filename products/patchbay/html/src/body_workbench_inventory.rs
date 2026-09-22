@@ -22,7 +22,7 @@ pub(crate) fn from_candidates(
     candidates: &[FormCandidate],
 ) -> Result<Vec<BrowserReviewedForm>, String> {
     if candidates.len() > MAX_FRONT_DOOR_FORMS {
-        return Err("reviewed Form inventory exceeds its finite bound".into());
+        return Err("reviewed form inventory exceeds its finite bound".into());
     }
     let reviewed = candidates
         .iter()
@@ -38,7 +38,7 @@ pub(crate) fn from_candidates(
 
 pub(crate) fn validate(reviewed: &[BrowserReviewedForm]) -> Result<(), String> {
     if reviewed.len() > MAX_FRONT_DOOR_FORMS {
-        return Err("reviewed Form inventory exceeds its finite bound".into());
+        return Err("reviewed form inventory exceeds its finite bound".into());
     }
     let mut identities = BTreeSet::new();
     for form in reviewed {
@@ -48,7 +48,7 @@ pub(crate) fn validate(reviewed: &[BrowserReviewedForm]) -> Result<(), String> {
             || form.checked_form_id.is_empty()
             || !identities.insert(form.checked_form_id.as_str())
         {
-            return Err("reviewed Form inventory identity is invalid or duplicated".into());
+            return Err("reviewed form inventory identity is invalid or duplicated".into());
         }
     }
     Ok(())
@@ -78,7 +78,7 @@ pub(crate) fn project(
             .find(|active| active.checked_form_id == resident.checked_form_id)
         {
             if active != &resident {
-                return Err("reviewed Form collides with an active checked identity".into());
+                return Err("reviewed form collides with an active checked identity".into());
             }
             continue;
         }
@@ -87,7 +87,7 @@ pub(crate) fn project(
             identity: identity.clone(),
             role: PresentationRole::Form,
             label: form.label.clone(),
-            accessibility_name: format!("Available Form {}", form.label),
+            accessibility_name: format!("Available form {}", form.label),
         });
         projection.properties.extend([
             identity_property(&identity, "source-document-id", &form.source_document_id),
@@ -110,19 +110,19 @@ pub(crate) fn project(
             availability: match state {
                 BodyState::Awake { .. } => PresentationActionAvailability::Unavailable {
                     reason_code: "body-awake".into(),
-                    explanation: "Lull the Body before changing its active Form workload.".into(),
+                    explanation: "Lull the body before changing its active form workload.".into(),
                 },
                 BodyState::Lulled if workset.len() >= MAX_BODY_FORMS => {
                     PresentationActionAvailability::Unavailable {
                         reason_code: "workload-capacity".into(),
-                        explanation: "The Body active Form workload is at capacity.".into(),
+                        explanation: "The body active form workload is at capacity.".into(),
                     }
                 }
                 BodyState::Lulled => PresentationActionAvailability::Available,
                 BodyState::Fulfilled { .. } => PresentationActionAvailability::Unavailable {
                     reason_code: "body-fulfilled".into(),
                     explanation:
-                        "A fulfilled Body cannot admit another Form; birth a new Body instead."
+                        "A fulfilled Body cannot admit another form; birth a new body instead."
                             .into(),
                 },
             },

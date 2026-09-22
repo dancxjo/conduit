@@ -7,7 +7,7 @@ import path from "node:path";
 const SCHEMA = "conduit.pages/carrier@1";
 const MAXIMUM_FILES = 4096;
 const MAXIMUM_FILE_BYTES = 256 * 1024 * 1024;
-const MAXIMUM_TOTAL_BYTES = 1024 * 1024 * 1024;
+const MAXIMUM_TOTAL_BYTES = 1280 * 1024 * 1024;
 
 const [siteSource, carrierRoot, sourceCommit, sourceTree] = process.argv.slice(2);
 if (!siteSource || !carrierRoot || !isIdentity(sourceCommit) || !isIdentity(sourceTree)) {

@@ -1,5 +1,5 @@
 # A bounded timing-pattern Form. Trigger, clock, storage, and presentation
-# realizations remain Host choices made by an exact Plan.
+# realizations remain Host choices made by an exact plan.
 form secret-knock (
     > transitions: InputButtonTransition...
     > template_commands: NamedPatternTemplateCommand...|
@@ -59,7 +59,7 @@ form compare-pattern (
     compare.comparison > comparison
 }
 
-# The Gallery entry is a living ordinary Form: pointer, device, or fixture
+# The Gallery entry is a living ordinary form: pointer, device, or fixture
 # button realizations can drive repeated bounded attempts. The initializer
 # emits one bounded Put/Get command pair; storage remains independently
 # selected and admitted truth rather than hidden UI state.

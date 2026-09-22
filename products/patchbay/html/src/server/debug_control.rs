@@ -6,8 +6,8 @@ use conduit_kernel::debug_observation::{
     ObservedSignSink, DEBUG_CONTROL_SCHEMA_VERSION,
 };
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, StepInputBytes, StepIo,
-    StepOperation, StepOutcome,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, StepBack, StepInputBytes,
+    StepIo, StepOutcome,
 };
 use conduit_kernel::{
     CordId, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent, NodeId, PortId, RouteRange,
@@ -20,7 +20,7 @@ const PORTS: usize = 1;
 #[derive(Clone, Copy)]
 struct DocumentaryDriver;
 
-impl StepOperation<PORTS> for DocumentaryDriver {
+impl StepBack<PORTS> for DocumentaryDriver {
     fn step(
         &mut self,
         _io: &mut StepIo<PORTS>,
@@ -94,7 +94,7 @@ impl DocumentaryDebuggerRuntime {
         let scheduler = FixedScheduler::new(
             [NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             }],
             [CordSpec::local(
                 CordId(0),

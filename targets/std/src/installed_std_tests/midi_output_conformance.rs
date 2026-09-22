@@ -37,7 +37,7 @@ fn host() -> StdHost {
     .unwrap()
     .with_fake_output(FakeMidiOutputBehavior::Healthy);
     StdHost::new_with_midi_output(config, StdHostComposition::minimal(), selection)
-        .expect("loopback selection matches exact Host identity")
+        .expect("loopback selection matches exact host identity")
 }
 
 fn form() -> conduit_form::CheckedForm {
@@ -95,7 +95,7 @@ fn planned_portable_performance_runs_through_the_production_kernel() {
         .unwrap();
     assert_eq!(output.resources.len(), 1);
     assert_eq!(output.authority.len(), 2);
-    assert_eq!(output.host_operations.len(), 2);
+    assert_eq!(output.host_calls.len(), 2);
     assert_eq!(fragment.connections.len(), 2);
     assert!(fragment
         .connections

@@ -194,7 +194,7 @@ impl HidKeyboardSession {
             return Err(HidError::ProofSequenceMismatch);
         }
         Ok(HidProof {
-            interfront_number: self.ready.interfront_number,
+            interface_number: self.ready.interface_number,
             endpoint_address: self.ready.endpoint_address,
             endpoint_dci: self.ready.endpoint_dci,
             endpoint_maximum_packet_size: self.ready.endpoint_maximum_packet_size,
@@ -231,7 +231,7 @@ mod tests {
 
     fn ready() -> HidKeyboardReady {
         HidKeyboardReady {
-            interfront_number: 0,
+            interface_number: 0,
             endpoint_address: 0x81,
             endpoint_dci: 3,
             endpoint_maximum_packet_size: 8,

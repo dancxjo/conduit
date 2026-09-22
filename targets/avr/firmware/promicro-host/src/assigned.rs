@@ -3,7 +3,7 @@ use conduit_assigned_plan::{
     AssignedPlanView,
 };
 
-/// Validate the ordinary compact projection selected for this exact Host.
+/// Validate the ordinary compact projection selected for this exact host.
 ///
 /// Transport and storage are board mechanisms; the schema, identities,
 /// inventory checks, bounds, and refusal meanings remain generic Conduit.

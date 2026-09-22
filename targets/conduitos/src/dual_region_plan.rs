@@ -1,4 +1,4 @@
-//! Ordinary planning of one portable Form with two independent branches.
+//! Ordinary planning of one portable form with two independent branches.
 
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
@@ -198,6 +198,7 @@ fn advertisement(
         boot_id: BootId::from(hex_identity(&identities.boot)),
         offer_generation: OfferGeneration(fixed.generation),
         profile: HostProfileId::from(fixed.profile),
+        bases: vec![],
         resources: fixed
             .resources
             .iter()

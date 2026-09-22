@@ -7,9 +7,9 @@ use conduit_core::{
     mandatory_sign_storage_requirement, seal_plan, ArtifactId, BootId, CancellationPolicy,
     CapabilityId, CapabilityLimits, CheckedFormId, ExecutionProfileId, ExpandedFormId,
     ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId, ImplementationId,
-    KindContractRevision, KindId, OfferGeneration, PlacementId, Plan, PlanFragment, PlanId,
-    PlannedGear, ResourceBinding, ResourceClassId, ResourcePoolId, SignId, SignStorageBudget,
-    SourceDocumentId, TerminalPolicy,
+    KindId, KindIdentity, OfferGeneration, PlacementId, Plan, PlanFragment, PlanId, PlannedGear,
+    ResourceBinding, ResourceClassId, ResourcePoolId, SignId, SignStorageBudget, SourceDocumentId,
+    TerminalPolicy,
 };
 
 fn body() -> Body {
@@ -42,7 +42,7 @@ fn exact_plan(label: &str, host: &str) -> Plan {
             placement_id: PlacementId::from(format!("{label}-placement")),
             gear_id: GearId::from("gear-a"),
             kind_id: KindId::from("test/kind"),
-            kind_contract_revision: KindContractRevision::from("test/kind@1"),
+            kind_contract_revision: KindIdentity::from("test/kind@1"),
             execution_profile_id: ExecutionProfileId::from("test/hosted@1"),
             configuration: vec![],
             host_id: HostId::from(host),
@@ -51,6 +51,7 @@ fn exact_plan(label: &str, host: &str) -> Plan {
             capability_id: CapabilityId::from(format!("{host}/capability")),
             implementation_id: ImplementationId::from(format!("{host}/implementation")),
             artifact_id: ArtifactId::from(format!("{host}/artifact")),
+            base: None,
             realization_characteristics: vec![],
             limits: CapabilityLimits {
                 max_active_instances: 1,
@@ -59,7 +60,7 @@ fn exact_plan(label: &str, host: &str) -> Plan {
             },
             inputs: vec![],
             outputs: vec![],
-            host_operations: vec![],
+            host_calls: vec![],
             resources: vec![ResourceBinding {
                 content: None,
                 pool_id: ResourcePoolId::from(format!("{host}/timer-pool")),
@@ -248,7 +249,7 @@ fn stale_release_requires_replan_and_persistent_policy_reholds_replacement() {
         )
         .unwrap()
     else {
-        panic!("changed Signs must not start a Play");
+        panic!("changed Signs must not start a play");
     };
     assert_eq!(stale.lifecycle, WakeLifecycle::AwaitingReplacement);
     assert_eq!(stale.plans[0].state, WakePlanState::Invalidated);

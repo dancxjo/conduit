@@ -4,7 +4,7 @@ use super::{HostedRawMidiSelection, MidiEndpointDirection, MidiOutputSelection};
 use crate::{StdHost, StdHostComposition, StdHostConfig};
 
 impl StdHost {
-    /// Constructs one Host advertisement for an independently selected raw
+    /// Constructs one host advertisement for an independently selected raw
     /// MIDI source and PCM playback sink. Selection still grants no authority;
     /// the caller must supply both typed grants when planning.
     pub fn new_with_raw_midi_input_and_playback(
@@ -46,6 +46,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: crate::empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -95,6 +96,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: crate::empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -147,6 +149,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: crate::empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -193,6 +196,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: crate::empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -221,7 +225,7 @@ impl StdHost {
         if selected.boot_id() != &self.advertisement.boot_id
             || selected.offer_generation() != self.advertisement.offer_generation
         {
-            return Err("selected MIDI input observation is stale for this Host".into());
+            return Err("selected MIDI input observation is stale for this host".into());
         }
         let capability = self
             .advertisement
@@ -242,7 +246,7 @@ impl StdHost {
         Ok(conduit_core::AuthorityGrant {
             grant_id: conduit_core::AuthorityGrantId::from(grant_id),
             contract_id: requirement.contract_id.clone(),
-            host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+            host_call_contract_id: requirement.host_call_contract_id.clone(),
             subject_kind: requirement.subject_kind.clone(),
             host_id: self.advertisement.host_id.clone(),
             boot_id: self.advertisement.boot_id.clone(),
@@ -287,6 +291,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: crate::empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,

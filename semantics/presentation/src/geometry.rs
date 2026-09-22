@@ -37,7 +37,7 @@ impl From<StructuredInfoRefusal> for GeometryRefusal {
 }
 
 fn text_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/text@1")).expect("text is finite")
+    StructuredInfoType::leaf(kind_id("value/text")).expect("text is finite")
 }
 
 fn quantity_type() -> StructuredInfoType {

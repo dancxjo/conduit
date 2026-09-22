@@ -30,7 +30,7 @@ impl PatchbayApplication {
             Key::Character(_)
             | Key::Named(NamedKey::Backspace | NamedKey::Delete | NamedKey::Enter) => {
                 self.publish_refusal(
-                    "Source is read-only; use semantic controls to author the Form",
+                    "Source is read-only; use semantic controls to author the form",
                 );
                 return true;
             }

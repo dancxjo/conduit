@@ -1,4 +1,4 @@
-//! Finite lifecycle for one Host-owned training realization.
+//! Finite lifecycle for one host-owned training realization.
 
 use super::TrainingRefusal;
 

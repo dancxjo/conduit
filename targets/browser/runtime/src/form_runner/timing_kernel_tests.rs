@@ -4,7 +4,7 @@ use conduit_core::{
     process_owned_line_offer_with_limits, BaseImplementationId, LinkLimits, PortDirection,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
     KindSignature,
 };
 use conduit_planner::{PlacementChoice, PlacementChoices, PlanningOptions};
@@ -22,12 +22,12 @@ fn fragment() -> PlanFragment {
         })
         .unwrap();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
     browser.capabilities.push(sink);
@@ -43,7 +43,7 @@ fn fragment() -> PlanFragment {
     source_offer.outputs = source_offer.inputs.clone();
     source_offer.outputs[0].direction = PortDirection::Output;
     source_offer.inputs.clear();
-    source_offer.host_operations.clear();
+    source_offer.host_calls.clear();
     source_offer.implementation.implementation_id = "fixture/timed-events@1".into();
     source_offer.implementation.artifact_id = "fixture/timed-events@1".into();
     startup
@@ -53,12 +53,12 @@ fn fragment() -> PlanFragment {
         })
         .unwrap();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: source_offer.kind_id.clone(),
             kind_contract_revision: source_offer.kind_contract_revision.clone(),
             inputs: Vec::new(),
             outputs: source_offer.outputs.clone(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
     let mut source_host = browser.clone();
@@ -148,7 +148,7 @@ fn fragment() -> PlanFragment {
 }
 
 #[test]
-fn planned_browser_timing_ingress_runs_both_host_operations_to_completion() {
+fn planned_browser_timing_ingress_runs_both_host_calls_to_completion() {
     let fragment = fragment();
     let (mut scheduler, lowered) = prepare_remote_fragment(&fragment).unwrap();
     let remote = &lowered.remote_endpoints[0];
@@ -187,7 +187,7 @@ fn planned_browser_timing_ingress_runs_both_host_operations_to_completion() {
         scheduler
             .signs()
             .events()
-            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted)
+            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostCallCompleted)
             .count(),
         3
     );
@@ -205,13 +205,13 @@ fn invalid_remote_timing_preserves_kernel_failure_and_does_not_run_normalization
         .close_remote_input(remote.endpoint, remote.cord)
         .unwrap();
     assert!(
-        matches!(drive(&mut scheduler, &fragment), Err(error) if error == "OperationFailed(Failure { code: InvalidInput, detail: 1 })")
+        matches!(drive(&mut scheduler, &fragment), Err(error) if error == "BackFailed(Failure { code: InvalidInput, detail: 1 })")
     );
     assert_eq!(
         scheduler
             .signs()
             .events()
-            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted)
+            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostCallCompleted)
             .count(),
         1
     );

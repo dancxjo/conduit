@@ -1,6 +1,6 @@
 use conduit_core::{
     assigned_plan_magic, assigned_plan_payload_digest, AssignedIdentity, AssignedPlanMaxima,
-    ASSIGNED_CONFIGURATION, ASSIGNED_CORD, ASSIGNED_HOST_OPERATION, ASSIGNED_NODE,
+    ASSIGNED_CONFIGURATION, ASSIGNED_CORD, ASSIGNED_HOST_CALL, ASSIGNED_NODE,
     ASSIGNED_PLAN_HEADER_BYTES, ASSIGNED_PLAN_SCHEMA, ASSIGNED_PORT, ASSIGNED_REMOTE_ENDPOINT,
     ASSIGNED_RESOURCE, ASSIGNED_ROUTE, ASSIGNED_ROUTE_TARGET, ASSIGNED_SIGN, ASSIGNED_STARTUP,
     ASSIGNED_TERMINAL,
@@ -34,7 +34,7 @@ pub fn encode_assigned_plan(
     for node in &plan.nodes {
         let mut value = Vec::new();
         u16_to(&mut value, node.node);
-        u16_to(&mut value, node.maximum_step_work);
+        u16_to(&mut value, node.maximum_step_fuel);
         identity_to(&mut value, &node.kind_id);
         identity_to(&mut value, &node.implementation_id);
         identity_to(&mut value, &node.artifact_id);
@@ -110,16 +110,16 @@ pub fn encode_assigned_plan(
         }
         record(ASSIGNED_ROUTE_TARGET, value)?;
     }
-    for operation in &plan.host_operations {
+    for operation in &plan.host_calls {
         let mut value = Vec::new();
         u16_to(&mut value, operation.node);
-        u16_to(&mut value, operation.operation);
+        u16_to(&mut value, operation.call);
         identity_to(&mut value, &operation.contract_id);
         optional_identity_to(&mut value, operation.target_kind.as_deref());
         u16_to(&mut value, operation.maximum_in_flight);
         u32_to(&mut value, operation.maximum_input_bytes);
         u32_to(&mut value, operation.maximum_output_bytes);
-        record(ASSIGNED_HOST_OPERATION, value)?;
+        record(ASSIGNED_HOST_CALL, value)?;
     }
     for resource in &plan.resources {
         let mut value = Vec::new();
@@ -261,7 +261,7 @@ fn runtime_state_bytes(plan: &GeneratedEmbeddedPlan) -> Result<u16, GenerationEr
     let table_state = plan.nodes.len() * 8
         + plan.cords.len() * 12
         + plan.route_targets.len() * 6
-        + plan.host_operations.len() * 12
+        + plan.host_calls.len() * 12
         + plan.resources.len() * 8
         + plan.remote_endpoints.len() * 16;
     let total = usize::try_from(plan.cord_value_bytes)

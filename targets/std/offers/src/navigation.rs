@@ -1,9 +1,9 @@
 //! Finite hosted std offers for the portable navigation waist.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision, KindId, PortDescriptor, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const NAVIGATION_STD_ARTIFACT: &str = "conduit-std-host/navigation@1";
@@ -42,7 +42,7 @@ pub const NAVIGATION_LOCAL_CONTROL_TIME_OPERATION: &str =
 pub fn navigation_std_offers() -> Vec<CapabilityOffer> {
     vec![
         navigation_offer(
-            conduit_semantic_catalog::NAVIGATION_ROUTE_GRID4_KIND,
+            navigation_contract(conduit_semantic_catalog::NAVIGATION_ROUTE_GRID4_KIND),
             "std-navigation-route-grid4-orthogonal",
             NAVIGATION_ROUTE_GRID4_PROFILE,
             NAVIGATION_ROUTE_GRID4_IMPLEMENTATION,
@@ -54,7 +54,7 @@ pub fn navigation_std_offers() -> Vec<CapabilityOffer> {
             ],
         ),
         navigation_offer(
-            conduit_semantic_catalog::NAVIGATION_TIME_PARAMETERIZE_KIND,
+            navigation_contract(conduit_semantic_catalog::NAVIGATION_TIME_PARAMETERIZE_KIND),
             "std-navigation-time-parameterize-fixed",
             NAVIGATION_TIME_PARAMETERIZE_PROFILE,
             NAVIGATION_TIME_PARAMETERIZE_IMPLEMENTATION,
@@ -64,7 +64,7 @@ pub fn navigation_std_offers() -> Vec<CapabilityOffer> {
             ],
         ),
         navigation_offer(
-            conduit_semantic_catalog::NAVIGATION_LOCAL_CONTROL_KIND,
+            navigation_contract(conduit_semantic_catalog::NAVIGATION_LOCAL_CONTROL_KIND),
             "std-navigation-local-control-bounded",
             NAVIGATION_LOCAL_CONTROL_PROFILE,
             NAVIGATION_LOCAL_CONTROL_IMPLEMENTATION,
@@ -78,61 +78,47 @@ pub fn navigation_std_offers() -> Vec<CapabilityOffer> {
 }
 
 fn navigation_offer(
-    expected_kind: &str,
+    contract: Kind,
     capability: &str,
     profile: &str,
     implementation: &str,
     operation_contracts: &[&str],
 ) -> CapabilityOffer {
-    let (kind, inputs, outputs) = navigation_contract(expected_kind);
     assert_eq!(
-        inputs.len(),
+        contract.inputs.len(),
         operation_contracts.len(),
-        "each navigation input requires one exact host operation"
+        "each navigation input requires one exact Host Call"
     );
-    let host_operations = operation_contracts
+    let target_kind = contract.kind_id.clone();
+    let host_calls = operation_contracts
         .iter()
-        .map(|contract| HostOperationRequirement {
-            contract_id: HostOperationContractId::from(*contract),
-            target_kind: Some(kind.clone()),
+        .map(|operation_contract| HostCallRequirement {
+            contract_id: HostCallContractId::from(*operation_contract),
+            target_kind: Some(target_kind.clone()),
             maximum_in_flight: 1,
             maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
             maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         })
         .collect();
-    let max_queue_items = inputs.len() as u16;
-
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id: CapabilityId::from(capability),
-        kind_id: kind,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::NAVIGATION_REVISION,
-        ),
-        implementation: ImplementationOffer {
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(NAVIGATION_STD_ARTIFACT),
+            host_calls,
+            resource_requirements: vec![],
+            authority_requirements: vec![],
         },
-        inputs,
-        outputs,
-        host_operations,
-        resource_requirements: vec![],
-        authority_requirements: vec![],
-        limits: CapabilityLimits {
-            max_active_instances: 4,
-            max_queue_items,
-            max_queue_bytes: u32::from(max_queue_items)
-                .saturating_mul(MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32),
-        },
-    }
+    )
+    .build()
 }
 
-fn navigation_contract(expected_kind: &str) -> (KindId, Vec<PortDescriptor>, Vec<PortDescriptor>) {
-    conduit_semantic_catalog::navigation_kind_contracts()
+fn navigation_contract(expected_kind: &str) -> Kind {
+    conduit_semantic_catalog::navigation_semantic_contracts()
         .into_iter()
-        .find(|(kind, _, _)| kind.as_str() == expected_kind)
+        .find(|contract| contract.kind_id.as_str() == expected_kind)
         .unwrap_or_else(|| panic!("missing portable navigation contract for {expected_kind}"))
 }
 
@@ -159,9 +145,9 @@ mod tests {
     }
 
     #[test]
-    fn every_input_has_one_finite_authority_free_host_operation() {
+    fn every_input_has_one_finite_authority_free_host_call() {
         for offer in navigation_std_offers() {
-            assert_eq!(offer.host_operations.len(), offer.inputs.len());
+            assert_eq!(offer.host_calls.len(), offer.inputs.len());
             assert!(offer.resource_requirements.is_empty());
             assert!(offer.authority_requirements.is_empty());
             assert_eq!(offer.limits.max_queue_items as usize, offer.inputs.len());
@@ -169,7 +155,7 @@ mod tests {
                 offer.limits.max_queue_bytes,
                 offer.inputs.len() as u32 * MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
             );
-            for operation in &offer.host_operations {
+            for operation in &offer.host_calls {
                 assert_eq!(operation.target_kind.as_ref(), Some(&offer.kind_id));
                 assert_eq!(operation.maximum_in_flight, 1);
                 assert_eq!(

@@ -3,8 +3,8 @@
 use alloc::{string::String, vec::Vec};
 
 use crate::{
-    RendezvousCandidate, RendezvousDescriptorRefusal, SpawnRendezvousDescriptor,
-    MAX_RENDEZVOUS_ATTEMPTS_PER_CANDIDATE, MAX_RENDEZVOUS_CANDIDATES,
+    validate_candidates, RendezvousCandidate, RendezvousDescriptorRefusal,
+    SpawnRendezvousDescriptor, MAX_RENDEZVOUS_ATTEMPTS_PER_CANDIDATE, MAX_RENDEZVOUS_CANDIDATES,
 };
 
 pub const MAX_RENDEZVOUS_ATTEMPT_RECORDS: usize =
@@ -28,7 +28,7 @@ pub enum RendezvousAttemptDecision<'a> {
 
 /// Deterministic finite candidate order for one self-joining start.
 pub struct RendezvousAttemptSchedule<'a> {
-    descriptor: &'a SpawnRendezvousDescriptor,
+    candidates: &'a [RendezvousCandidate],
     candidate_index: usize,
     attempts_on_candidate: u8,
 }
@@ -40,14 +40,28 @@ impl<'a> RendezvousAttemptSchedule<'a> {
     ) -> Result<Self, RendezvousDescriptorRefusal> {
         descriptor.validate(now_millis)?;
         Ok(Self {
-            descriptor,
+            candidates: &descriptor.candidates,
+            candidate_index: 0,
+            attempts_on_candidate: 0,
+        })
+    }
+
+    /// Schedule an already-scoped candidate set, such as an outbound running
+    /// Host relay descriptor, through the same finite ordering policy.
+    pub fn for_candidates(
+        candidates: &'a [RendezvousCandidate],
+        now_millis: u64,
+    ) -> Result<Self, RendezvousDescriptorRefusal> {
+        validate_candidates(candidates, now_millis)?;
+        Ok(Self {
+            candidates,
             candidate_index: 0,
             attempts_on_candidate: 0,
         })
     }
 
     pub fn next(&mut self, now_millis: u64) -> RendezvousAttemptDecision<'a> {
-        while let Some(candidate) = self.descriptor.candidates.get(self.candidate_index) {
+        while let Some(candidate) = self.candidates.get(self.candidate_index) {
             if candidate.expires_at_millis <= now_millis
                 || self.attempts_on_candidate >= candidate.maximum_attempts
             {
@@ -68,9 +82,14 @@ impl<'a> RendezvousAttemptSchedule<'a> {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RendezvousAttemptOutcome {
+    UnsupportedLineFamily,
     RouteUnavailable,
     TimedOut,
     AuthenticationRefused,
+    Expired,
+    PeerBindingRefused,
+    EndToEndAuthenticationRefused,
+    PressureRefused,
     Redirected,
     TransportLost,
     Connected,
@@ -245,5 +264,68 @@ mod tests {
         );
         assert!(!journal.connected());
         assert!(journal.records().is_empty());
+    }
+
+    #[test]
+    fn running_host_candidates_use_the_same_finite_scheduler() {
+        let candidates = vec![candidate("candidate/relay")];
+        let mut schedule = RendezvousAttemptSchedule::for_candidates(&candidates, 1_000).unwrap();
+        assert!(matches!(
+            schedule.next(1_000),
+            RendezvousAttemptDecision::Try(RendezvousAttempt {
+                candidate: RendezvousCandidate { candidate_id, .. },
+                attempt: 1,
+                ..
+            }) if candidate_id == "candidate/relay"
+        ));
+        assert_eq!(schedule.next(1_000), RendezvousAttemptDecision::Exhausted);
+    }
+
+    #[test]
+    fn unsupported_webrtc_is_recorded_before_supported_fallback() {
+        let direct = candidate("candidate/direct");
+        let mut webrtc = candidate("candidate/webrtc");
+        webrtc.line_family = RendezvousLineFamily::WebRtcDataChannel;
+        webrtc.reachability = "webrtc-bootstrap:operator/negotiation-7".into();
+        let candidates = vec![direct, webrtc, candidate("candidate/relay")];
+        let mut schedule = RendezvousAttemptSchedule::for_candidates(&candidates, 1_000).unwrap();
+        let mut journal = RendezvousAttemptJournal::default();
+
+        let RendezvousAttemptDecision::Try(direct) = schedule.next(1_000) else {
+            panic!("direct attempt missing");
+        };
+        journal.begin(direct).unwrap();
+        journal
+            .finish(
+                "candidate/direct",
+                1,
+                RendezvousAttemptOutcome::RouteUnavailable,
+            )
+            .unwrap();
+
+        let RendezvousAttemptDecision::Try(unsupported) = schedule.next(1_000) else {
+            panic!("WebRTC attempt missing");
+        };
+        journal.begin(unsupported).unwrap();
+        journal
+            .finish(
+                "candidate/webrtc",
+                1,
+                RendezvousAttemptOutcome::UnsupportedLineFamily,
+            )
+            .unwrap();
+
+        let RendezvousAttemptDecision::Try(fallback) = schedule.next(1_000) else {
+            panic!("supported fallback missing");
+        };
+        assert_eq!(fallback.candidate.candidate_id, "candidate/relay");
+        assert_eq!(
+            journal.records()[0].outcome,
+            RendezvousAttemptOutcome::RouteUnavailable
+        );
+        assert_eq!(
+            journal.records()[1].outcome,
+            RendezvousAttemptOutcome::UnsupportedLineFamily
+        );
     }
 }

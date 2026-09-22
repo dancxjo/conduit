@@ -6,23 +6,22 @@
 use super::TimerAdapter;
 use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, kind_id, port_id,
-    present_host_operation_requirement, resource_offer, resource_requirement,
-    wait_host_operation_requirement, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
+    present_host_call_requirement, resource_offer, resource_requirement,
+    wait_host_call_requirement, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostAdvertisement, HostId,
-    HostProfileId, KindContractRevision, Observation, ObservationKind, OfferGeneration,
-    PlacementId, PlanFragment, PortDescriptor, PortDirection, PresentationId, TerminalDisposition,
-    ValuePayload, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
+    HostProfileId, KindIdentity, Observation, ObservationKind, OfferGeneration, PlacementId,
+    PlanFragment, PortDescriptor, PortDirection, PresentationId, TerminalDisposition, ValuePayload,
+    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
 use conduit_form::{
-    CheckedForm, ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog,
+    CheckedForm, KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog,
 };
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    FixedScheduler, HostCallRequest, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput,
+    BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
+    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, KernelEventKind,
     PortId as KernelPortId, RequestId, SignSink, ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
@@ -55,7 +54,7 @@ const HOST_BINDING_SLOTS: usize = NODES;
 const PENDING_REQUESTS: usize = 3;
 
 type MultiValueScheduler = FixedScheduler<
-    OperationDriver<MultiValueOperation, PORTS>,
+    MultiValueBack,
     HostedValueStore,
     HostedSignLog,
     NODES,
@@ -125,7 +124,7 @@ enum ManifestationBranch {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct KernelManifestation {
-    request: HostOperationRequest,
+    request: HostCallRequest,
     branch: ManifestationBranch,
     ordinal: u64,
     tick: u64,
@@ -140,25 +139,19 @@ struct PreparedKernelProjection {
     payload: ValuePayload,
 }
 
-enum MultiValueOperation {
+enum MultiValueBack {
     Tick {
         values: Vec<ValueRef>,
         waits: Vec<ValueRef>,
         next: usize,
         pending: Option<RequestId>,
     },
-    Tee {
-        value: Option<ValueRef>,
-        phase: u8,
-    },
+    Tee,
     FilterEven {
         admitted: Vec<ValueRef>,
     },
     Latest {
         held: Option<ValueRef>,
-        released: Option<ValueRef>,
-        retain_resumed: bool,
-        closing: bool,
     },
     Show {
         expected: Vec<ValueRef>,
@@ -168,9 +161,9 @@ enum MultiValueOperation {
     },
 }
 
-impl MultiValueOperation {
-    fn fail(detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure {
+impl MultiValueBack {
+    fn fail(detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             detail,
         })
@@ -181,196 +174,17 @@ impl MultiValueOperation {
             Self::Tick { values, waits, .. } => values.capacity() + waits.capacity(),
             Self::FilterEven { admitted } => admitted.capacity(),
             Self::Show { expected, .. } => expected.capacity(),
-            Self::Tee { .. } | Self::Latest { .. } => 0,
+            Self::Tee | Self::Latest { .. } => 0,
         }
     }
 }
 
-impl Operation for MultiValueOperation {
-    fn start(&mut self) -> OperationAction {
-        match self {
-            Self::Tick { waits, pending, .. } => {
-                let Some(wait) = waits.first().copied() else {
-                    return Self::fail(1);
-                };
-                let request = RequestId(0);
-                *pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(0),
-                    input: BoundedValueRef::new(wait, 8).expect("sealed wait is eight bytes"),
-                }
-            }
-            _ => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Tick {
-                    values,
-                    next,
-                    pending,
-                    ..
-                },
-                OperationInput::HostOperationCompleted { request, outcome },
-            ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                *pending = None;
-                values.get(*next).copied().map_or_else(
-                    || Self::fail(2),
-                    |value| OperationAction::Emit {
-                        port: KernelPortId(0),
-                        value,
-                    },
-                )
-            }
-            (
-                Self::Tee { value, phase },
-                OperationInput::Value {
-                    port: KernelPortId(0),
-                    value: input,
-                },
-            ) => {
-                *value = Some(input);
-                *phase = 1;
-                OperationAction::Emit {
-                    port: KernelPortId(0),
-                    value: input,
-                }
-            }
-            (
-                Self::Tee { .. },
-                OperationInput::Closed {
-                    port: KernelPortId(0),
-                },
-            ) => OperationAction::Complete,
-            (
-                Self::FilterEven { admitted },
-                OperationInput::Value {
-                    port: KernelPortId(0),
-                    value,
-                },
-            ) => {
-                if admitted.contains(&value) {
-                    OperationAction::Emit {
-                        port: KernelPortId(0),
-                        value,
-                    }
-                } else {
-                    OperationAction::Await
-                }
-            }
-            (
-                Self::FilterEven { .. },
-                OperationInput::Closed {
-                    port: KernelPortId(0),
-                },
-            ) => OperationAction::Complete,
-            (
-                Self::Latest {
-                    held,
-                    released,
-                    retain_resumed,
-                    ..
-                },
-                OperationInput::Value {
-                    port: KernelPortId(0),
-                    value,
-                },
-            ) => {
-                *released = held.replace(value);
-                *retain_resumed = true;
-                OperationAction::Await
-            }
-            (
-                Self::Latest {
-                    held,
-                    retain_resumed,
-                    closing,
-                    ..
-                },
-                OperationInput::Closed {
-                    port: KernelPortId(0),
-                },
-            ) => {
-                *retain_resumed = false;
-                let Some(value) = held.take() else {
-                    return OperationAction::Complete;
-                };
-                *closing = true;
-                OperationAction::Emit {
-                    port: KernelPortId(0),
-                    value,
-                }
-            }
-            (
-                Self::Show {
-                    expected,
-                    next,
-                    pending,
-                    ..
-                },
-                OperationInput::Value {
-                    port: KernelPortId(0),
-                    value,
-                },
-            ) if pending.is_none() && expected.get(*next) == Some(&value) => {
-                let Ok(sequence) = u32::try_from(*next) else {
-                    return Self::fail(3);
-                };
-                let request = RequestId(0x8000_0000 | sequence);
-                *pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(0),
-                    input: BoundedValueRef::new(value, 8).expect("sealed tick is eight bytes"),
-                }
-            }
-            (
-                Self::Show { next, pending, .. },
-                OperationInput::HostOperationCompleted { request, outcome },
-            ) if *pending == Some(request)
-                && outcome.disposition == HostOperationDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                *pending = None;
-                *next += 1;
-                OperationAction::Await
-            }
-            (
-                Self::Show {
-                    expected,
-                    next,
-                    pending,
-                    ..
-                },
-                OperationInput::Closed {
-                    port: KernelPortId(0),
-                },
-            ) if pending.is_none() && *next == expected.len() => OperationAction::Complete,
-            (Self::Tick { .. }, _) => Self::fail(41),
-            (Self::Tee { .. }, _) => Self::fail(42),
-            (Self::FilterEven { .. }, _) => Self::fail(43),
-            (Self::Latest { .. }, _) => Self::fail(44),
-            (Self::Show { failure_detail, .. }, OperationInput::Value { .. }) => {
-                Self::fail(failure_detail.saturating_add(10))
-            }
-            (Self::Show { failure_detail, .. }, OperationInput::Closed { .. }) => {
-                Self::fail(failure_detail.saturating_add(20))
-            }
-            (Self::Show { failure_detail, .. }, OperationInput::HostOperationCompleted { .. }) => {
-                Self::fail(failure_detail.saturating_add(30))
-            }
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
+impl StepBack<PORTS> for MultiValueBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
             Self::Tick {
                 values,
@@ -378,79 +192,180 @@ impl Operation for MultiValueOperation {
                 next,
                 pending,
             } => {
-                *next += 1;
+                if let Some(expected) = *pending {
+                    let Some((request, outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    let Some(value) = values.get(*next).copied() else {
+                        return Self::fail(2);
+                    };
+                    if request != expected
+                        || outcome.disposition != HostCallDisposition::Completed
+                        || outcome.output.is_some()
+                        || outcome.failure.is_some()
+                        || !io.output_ready(KernelPortId(0))
+                        || io.consume_host_completion().is_err()
+                        || io.send(KernelPortId(0), value).is_err()
+                    {
+                        return Self::fail(41);
+                    }
+                    *pending = None;
+                    *next += 1;
+                    return StepOutcome::Progress;
+                }
                 if *next >= values.len() {
-                    return OperationAction::Complete;
+                    return StepOutcome::Complete;
                 }
                 let Some(wait) = waits.get(*next).copied() else {
-                    return Self::fail(5);
+                    return Self::fail(if *next == 0 { 1 } else { 5 });
                 };
                 let Ok(sequence) = u32::try_from(*next) else {
                     return Self::fail(6);
                 };
                 let request = RequestId(sequence);
+                let input = BoundedValueRef::new(wait, 8).expect("sealed wait is eight bytes");
+                if io.request_host_call(request, HostCallId(0), input).is_err() {
+                    return Self::fail(41);
+                }
                 *pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(0),
-                    input: BoundedValueRef::new(wait, 8).expect("sealed wait is eight bytes"),
+                StepOutcome::Progress
+            }
+            Self::Tee => {
+                if let Some(value) = io.input(KernelPortId(0)) {
+                    if !io.output_ready(KernelPortId(0)) || !io.output_ready(KernelPortId(1)) {
+                        return StepOutcome::Await;
+                    }
+                    if io.consume(KernelPortId(0)).is_err()
+                        || io.send(KernelPortId(0), value).is_err()
+                        || io.send(KernelPortId(1), value).is_err()
+                    {
+                        return Self::fail(42);
+                    }
+                    return StepOutcome::Progress;
                 }
-            }
-            Self::Tee {
-                value: Some(value),
-                phase,
-            } if *phase == 1 => {
-                *phase = 2;
-                OperationAction::Emit {
-                    port: KernelPortId(1),
-                    value: *value,
+                if io.input_closed(KernelPortId(0)) {
+                    if io.consume_closed(KernelPortId(0)).is_err() {
+                        return Self::fail(42);
+                    }
+                    return StepOutcome::Complete;
                 }
+                StepOutcome::Await
             }
-            Self::Tee { value, phase } if *phase == 2 => {
-                *value = None;
-                *phase = 0;
-                OperationAction::Await
+            Self::FilterEven { admitted } => {
+                if let Some(value) = io.input(KernelPortId(0)) {
+                    let passes = admitted.contains(&value);
+                    if passes && !io.output_ready(KernelPortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    if io.consume(KernelPortId(0)).is_err()
+                        || (passes && io.send(KernelPortId(0), value).is_err())
+                    {
+                        return Self::fail(43);
+                    }
+                    return StepOutcome::Progress;
+                }
+                if io.input_closed(KernelPortId(0)) {
+                    if io.consume_closed(KernelPortId(0)).is_err() {
+                        return Self::fail(43);
+                    }
+                    return StepOutcome::Complete;
+                }
+                StepOutcome::Await
             }
-            Self::Latest { closing, .. } if *closing => {
-                *closing = false;
-                OperationAction::Complete
+            Self::Latest { held } => {
+                if let Some(value) = io.input(KernelPortId(0)) {
+                    if let Some(previous) = held.take() {
+                        if io.discard(previous).is_err() {
+                            return Self::fail(44);
+                        }
+                    }
+                    if io.take_input(KernelPortId(0)).is_err() {
+                        return Self::fail(44);
+                    }
+                    *held = Some(value);
+                    return StepOutcome::Progress;
+                }
+                if io.input_closed(KernelPortId(0)) {
+                    let Some(value) = held.take() else {
+                        if io.consume_closed(KernelPortId(0)).is_err() {
+                            return Self::fail(44);
+                        }
+                        return StepOutcome::Complete;
+                    };
+                    if !io.output_ready(KernelPortId(0)) {
+                        *held = Some(value);
+                        return StepOutcome::Await;
+                    }
+                    if io.consume_closed(KernelPortId(0)).is_err()
+                        || io.send(KernelPortId(0), value).is_err()
+                    {
+                        return Self::fail(44);
+                    }
+                    return StepOutcome::Complete;
+                }
+                StepOutcome::Await
             }
-            _ => OperationAction::Await,
-        }
-    }
-
-    fn retains_resumed_value(&self) -> bool {
-        matches!(
-            self,
-            Self::Latest {
-                retain_resumed: true,
-                ..
+            Self::Show {
+                expected,
+                next,
+                pending,
+                failure_detail,
+            } => {
+                if let Some(expected_request) = *pending {
+                    let Some((request, outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    if request != expected_request
+                        || outcome.disposition != HostCallDisposition::Completed
+                        || outcome.output.is_some()
+                        || outcome.failure.is_some()
+                        || io.consume_host_completion().is_err()
+                    {
+                        return Self::fail(failure_detail.saturating_add(30));
+                    }
+                    *pending = None;
+                    *next += 1;
+                    return StepOutcome::Progress;
+                }
+                if let Some(value) = io.input(KernelPortId(0)) {
+                    if expected.get(*next) != Some(&value) {
+                        return Self::fail(failure_detail.saturating_add(10));
+                    }
+                    let Ok(sequence) = u32::try_from(*next) else {
+                        return Self::fail(3);
+                    };
+                    let request = RequestId(0x8000_0000 | sequence);
+                    let input = BoundedValueRef::new(value, 8).expect("sealed tick is eight bytes");
+                    if io.consume(KernelPortId(0)).is_err()
+                        || io.request_host_call(request, HostCallId(0), input).is_err()
+                    {
+                        return Self::fail(failure_detail.saturating_add(10));
+                    }
+                    *pending = Some(request);
+                    return StepOutcome::Progress;
+                }
+                if io.input_closed(KernelPortId(0)) {
+                    if *next != expected.len() {
+                        return Self::fail(failure_detail.saturating_add(20));
+                    }
+                    if io.consume_closed(KernelPortId(0)).is_err() {
+                        return Self::fail(failure_detail.saturating_add(20));
+                    }
+                    return StepOutcome::Complete;
+                }
+                StepOutcome::Await
             }
-        )
-    }
-
-    fn take_released_value(&mut self) -> Option<ValueRef> {
-        match self {
-            Self::Latest { released, .. } => released.take(),
-            _ => None,
         }
     }
 
     fn cancel(&mut self) {
-        if let Self::Latest {
-            held,
-            released,
-            retain_resumed,
-            ..
-        } = self
-        {
-            *held = None;
-            *released = None;
-            *retain_resumed = false;
+        match self {
+            Self::Tick { pending, .. } | Self::Show { pending, .. } => *pending = None,
+            Self::Latest { held } => *held = None,
+            Self::Tee | Self::FilterEven { .. } => {}
         }
     }
 }
-
 pub fn profile_catalog() -> ProfileCatalog {
     let mut catalog = ProfileCatalog::new();
     for definition in [
@@ -459,18 +374,18 @@ pub fn profile_catalog() -> ProfileCatalog {
             vec![],
             vec![port(TICK_PORT, PortDirection::Output)],
             vec![
-                ConfigurationField {
+                KindConfigurationField {
                     key: "count".to_string(),
                     default_value: ConfigurationValue::U64(4),
-                    validation: ConfigurationRule::U64Range {
+                    rule: KindConfigurationRule::U64Range {
                         minimum: 1,
                         maximum: 4,
                     },
                 },
-                ConfigurationField {
+                KindConfigurationField {
                     key: "period-ms".to_string(),
                     default_value: ConfigurationValue::U64(0),
-                    validation: ConfigurationRule::U64Range {
+                    rule: KindConfigurationRule::U64Range {
                         minimum: 0,
                         maximum: u64::MAX,
                     },
@@ -523,6 +438,7 @@ pub fn advertisement(
         boot_id,
         offer_generation,
         profile: HostProfileId::from("conduit.std/kernel-multivalue@1"),
+        bases: vec![],
         resources: vec![
             resource_offer("std/kernel-presentation", PRESENTATION_RESOURCE_CLASS, 2),
             resource_offer("std/kernel-timer", TIMER_RESOURCE_CLASS, 1),
@@ -568,9 +484,9 @@ fn definition(
     kind: &str,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
-    configuration: Vec<ConfigurationField>,
-) -> KindDefinition {
-    KindDefinition {
+    configuration: Vec<KindConfigurationField>,
+) -> KindProjection {
+    KindProjection {
         kind_id: kind_id(kind),
         kind_contract_revision: revision(kind),
         inputs,
@@ -584,9 +500,9 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
         .get(&kind_id(kind))
         .expect("offered multi-value kind exists")
         .clone();
-    let host_operations = match kind {
-        TICK_KIND => vec![wait_host_operation_requirement()],
-        SHOW_KIND => vec![present_host_operation_requirement(
+    let host_calls = match kind {
+        TICK_KIND => vec![wait_host_call_requirement()],
+        SHOW_KIND => vec![present_host_call_requirement(
             kind_id("presentation/stdout-tick@1"),
             8,
         )],
@@ -603,16 +519,16 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
     let startup_parameters = definition
         .configuration
         .iter()
-        .map(|field| conduit_core::FaceStartupParameter {
+        .map(|field| conduit_core::FrontStartupParameter {
             name: field.key.clone(),
-            value_type: match field.default_value {
-                ConfigurationValue::Bool(_) => "Boolean",
-                ConfigurationValue::I64(_) => "Scalar",
-                ConfigurationValue::U64(_) => "Count",
-                ConfigurationValue::Text(_) => "Text",
+            value_type: conduit_core::kind_id(match field.default_value {
+                ConfigurationValue::Bool(_) => "value/bool",
+                ConfigurationValue::I64(_) => "value/scalar",
+                ConfigurationValue::U64(_) => "value/count",
+                ConfigurationValue::Text(_) => "value/text",
                 ConfigurationValue::Structured(ref value) => value.profile().as_str(),
-            }
-            .to_string(),
+                ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
+            }),
             has_default: true,
         })
         .collect();
@@ -633,7 +549,7 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
         },
         inputs: definition.inputs,
         outputs: definition.outputs,
-        host_operations,
+        host_calls,
         resource_requirements,
         authority_requirements: vec![],
         limits: CapabilityLimits {
@@ -653,8 +569,8 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
     }
 }
 
-fn revision(kind: &str) -> KindContractRevision {
-    KindContractRevision::from(format!("conduit.std/{kind}-tick@1"))
+fn revision(kind: &str) -> KindIdentity {
+    KindIdentity::from(format!("conduit.std/{kind}-tick@1"))
 }
 
 pub fn execute_fragment<W: Write, T: TimerAdapter>(
@@ -696,7 +612,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             .map(|route| route.targets.len())
             .sum::<usize>()
             != ROUTE_TARGETS
-        || lowered.host_operations.len() != 3
+        || lowered.host_calls.len() != 3
     {
         return Err("fragment does not match the installed multi-value kernel profile".to_string());
     }
@@ -795,62 +711,49 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     routes
         .seal()
         .map_err(|error| format!("seal routes: {error:?}"))?;
-    let mut host_bindings = FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(1);
-    for operation in &lowered.host_operations {
+    let mut host_bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(1);
+    for operation in &lowered.host_calls {
         host_bindings
             .install(operation.node, operation.binding)
-            .map_err(|error| format!("install host operation: {error:?}"))?;
+            .map_err(|error| format!("install host-call: {error:?}"))?;
     }
     host_bindings
         .seal()
-        .map_err(|error| format!("seal host operations: {error:?}"))?;
+        .map_err(|error| format!("seal Host Calls: {error:?}"))?;
 
-    let mut operations: [Option<MultiValueOperation>; NODES] = [None, None, None, None, None, None];
-    operations[usize::from(tick_node.0)] = Some(MultiValueOperation::Tick {
+    let mut backs: [Option<MultiValueBack>; NODES] = [None, None, None, None, None, None];
+    backs[usize::from(tick_node.0)] = Some(MultiValueBack::Tick {
         values: tick_values.clone(),
         waits: wait_values,
         next: 0,
         pending: None,
     });
-    operations[usize::from(tee_node.0)] = Some(MultiValueOperation::Tee {
-        value: None,
-        phase: 0,
-    });
-    operations[usize::from(filter_node.0)] = Some(MultiValueOperation::FilterEven {
+    backs[usize::from(tee_node.0)] = Some(MultiValueBack::Tee);
+    backs[usize::from(filter_node.0)] = Some(MultiValueBack::FilterEven {
         admitted: vec![tick_values[0], tick_values[2]],
     });
-    operations[usize::from(latest_node.0)] = Some(MultiValueOperation::Latest {
-        held: None,
-        released: None,
-        retain_resumed: false,
-        closing: false,
-    });
-    operations[usize::from(show_even_node.0)] = Some(MultiValueOperation::Show {
+    backs[usize::from(latest_node.0)] = Some(MultiValueBack::Latest { held: None });
+    backs[usize::from(show_even_node.0)] = Some(MultiValueBack::Show {
         expected: vec![tick_values[0], tick_values[2]],
         next: 0,
         pending: None,
         failure_detail: 45,
     });
-    operations[usize::from(show_latest_node.0)] = Some(MultiValueOperation::Show {
+    backs[usize::from(show_latest_node.0)] = Some(MultiValueBack::Show {
         expected: vec![tick_values[3]],
         next: 0,
         pending: None,
         failure_detail: 46,
     });
-    let drivers: [OperationDriver<MultiValueOperation, PORTS>; NODES] = operations
-        .map(|operation| {
-            OperationDriver::new(
-                operation.ok_or_else(|| "missing installed multi-value operation".to_string())?,
-            )
-            .map_err(|error| format!("prepare operation driver: {error:?}"))
-        })
+    let backs: [MultiValueBack; NODES] = backs
+        .map(|back| back.ok_or_else(|| "missing installed multi-value Back".to_string()))
         .into_iter()
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
-        .map_err(|_| "multi-value driver table width changed".to_string())?;
-    let driver_capacity_before = drivers
+        .map_err(|_| "multi-value Back table width changed".to_string())?;
+    let back_capacity_before = backs
         .iter()
-        .map(|driver| driver.operation().allocation_capacity())
+        .map(MultiValueBack::allocation_capacity)
         .sum::<usize>();
 
     let event_charge = u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>())
@@ -871,12 +774,12 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         .collect::<Vec<_>>()
         .try_into()
         .map_err(|_| "multi-value cord table width changed".to_string())?;
-    let mut scheduler = MultiValueScheduler::new_with_host_operations(
+    let mut scheduler = MultiValueScheduler::new_with_host_calls(
         node_specs,
         cord_specs,
         routes,
         host_bindings,
-        drivers,
+        backs,
         values,
         sign,
     )
@@ -912,7 +815,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
     let mut receipts = Vec::with_capacity(3);
     let mut observations = Vec::with_capacity(4);
     let mut presentation_ids = Vec::with_capacity(3);
-    let mut dispatched_requests = Vec::<HostOperationRequest>::with_capacity(7);
+    let mut dispatched_requests = Vec::<HostCallRequest>::with_capacity(7);
     let mut manifestations = Vec::<KernelManifestation>::with_capacity(3);
     let sign_sequence_start = *next_sign_sequence;
     let sign_sequence_end = sign_sequence_start
@@ -964,7 +867,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
         Some(&active_play.active_play_id),
         sign_sequence_end - 1,
     );
-    let mut deferred_even_completion: Option<HostOperationRequest> = None;
+    let mut deferred_even_completion: Option<HostCallRequest> = None;
     let mut pressure_items = 0_u16;
     let mut pressure_bytes = 0_u32;
     // SEALED PROFILE PLAY START BEGIN: numeric tables and preallocated capture only.
@@ -975,11 +878,11 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             dispatched_requests.push(request);
             if options.fault == InjectedBoundaryFault::StaleCompletion {
                 let stale = RequestId(request.request.0.wrapping_add(1));
-                return match scheduler.complete_host_operation(
+                return match scheduler.complete_host_call(
                     request.node,
                     stale,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: None,
                         failure: None,
                     },
@@ -990,7 +893,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             }
             let encoded = scheduler
                 .host_value(request.input.value)
-                .map_err(|error| format!("read host-operation input: {error:?}"))?;
+                .map_err(|error| format!("read Host Call input: {error:?}"))?;
             if request.node == tick_node {
                 let duration = encoded
                     .try_into()
@@ -1061,16 +964,16 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                 ));
             }
             scheduler
-                .complete_host_operation(
+                .complete_host_call(
                     request.node,
                     request.request,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: None,
                         failure: None,
                     },
                 )
-                .map_err(|error| format!("complete host operation: {error:?}"))?;
+                .map_err(|error| format!("complete host-call: {error:?}"))?;
         }
         match scheduler
             .step()
@@ -1093,11 +996,11 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                     ));
                 }
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: None,
                             failure: None,
                         },
@@ -1132,13 +1035,13 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
             "multi-value kernel completed with incorrect receipts or retained values".to_string(),
         );
     }
-    let driver_capacity_after = scheduler
+    let back_capacity_after = scheduler
         .drivers()
         .iter()
-        .map(|driver| driver.operation().allocation_capacity())
+        .map(MultiValueBack::allocation_capacity)
         .sum::<usize>();
-    if driver_capacity_after != driver_capacity_before {
-        return Err("multi-value operation storage grew after Play start".to_string());
+    if back_capacity_after != back_capacity_before {
+        return Err("multi-value Back storage grew after Play start".to_string());
     }
     let value_allocation_after = scheduler.values().allocation_capacities();
     if value_allocation_after != value_allocation_before {
@@ -1167,7 +1070,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                 && event.kind == KernelEventKind::InputClosed
         });
         let completed = scheduler.signs().events().find(|event| {
-            event.node == *node && event.kind == KernelEventKind::OperationCompleted
+            event.node == *node && event.kind == KernelEventKind::BackCompleted
         });
         matches!((closed, completed), (Some(closed), Some(completed)) if closed.sequence < completed.sequence)
     });
@@ -1180,7 +1083,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                 &lowered.identity,
                 request.node,
                 request.request,
-                request.operation,
+                request.call,
             )
             .map_err(|error| format!("bind host request identity: {error:?}"))?;
     }
@@ -1279,6 +1182,7 @@ fn configuration_u64(configuration: &[ConfigurationEntry], key: &str) -> Result<
             ConfigurationValue::I64(_) => None,
             ConfigurationValue::Text(_) => None,
             ConfigurationValue::Structured(_) => None,
+            ConfigurationValue::Quantity(_) => None,
         })
         .ok_or_else(|| format!("missing u64 configuration '{key}'"))
 }
@@ -1340,14 +1244,14 @@ mod tests {
         assert_eq!(lowered.nodes.len(), 6);
         assert_eq!(lowered.cords.len(), 5);
         assert_eq!(lowered.routes.len(), 5);
-        assert_eq!(lowered.host_operations.len(), 3);
+        assert_eq!(lowered.host_calls.len(), 3);
         assert_eq!(lowered.resources.len(), 3);
         assert_eq!(lowered.cord_value_slots, 5);
         assert_eq!(lowered.cord_value_bytes, 40);
     }
 
     #[test]
-    fn exact_multi_value_form_executes_real_host_operations_through_kernel() {
+    fn exact_multi_value_form_executes_real_host_calls_through_kernel() {
         let (host, fragment) = planned_fixture();
         let mut output = Vec::with_capacity(65_536);
         let mut timer = VirtualTimer {
@@ -1411,7 +1315,7 @@ mod tests {
             let request = report
                 .identity
                 .request(dynamic.node, dynamic.request)
-                .expect("presentation request reverses to its host-operation contract");
+                .expect("presentation request reverses to its Host Call contract");
             assert!(report
                 .identity
                 .request_for_contract(dynamic.node, &request.contract_id)
@@ -1464,7 +1368,7 @@ mod tests {
             },
         )
         .expect_err("stale request identity must fail closed");
-        assert!(error.contains("HostOperationCompletionRejected"), "{error}");
+        assert!(error.contains("HostCallCompletionRejected"), "{error}");
         assert!(timer.waits.is_empty());
     }
 

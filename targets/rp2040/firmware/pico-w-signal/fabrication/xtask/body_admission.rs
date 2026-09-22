@@ -192,7 +192,7 @@ fn plan_from_advertisement(advertisement: &HostAdvertisement) -> PicoResult<Plan
     let hosts = [advertisement.clone()];
     let placements = conduit_planner::default_placements(&checked, &hosts)?;
     // The provisioned Pico advertises the exact capacity-one kernel image. Seal
-    // that reviewed finite budget into the ordinary Plan instead of asking the
+    // that reviewed finite budget into the ordinary plan instead of asking the
     // planner's hosted convenience default for four queue items.
     Ok(conduit_planner::plan_with_connection_limits(
         &checked,

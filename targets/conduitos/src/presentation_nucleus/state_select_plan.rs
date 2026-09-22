@@ -1,4 +1,4 @@
-//! Ordinary Form and immutable Plan preparation for portable `state/select`.
+//! Ordinary form and immutable Plan preparation for portable `state/select`.
 
 use alloc::{
     collections::BTreeMap,
@@ -10,7 +10,7 @@ use alloc::{
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, InfoBool,
-    KindContractRevision, OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection,
+    KindIdentity, OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection,
     PortTemporal, Scalar, kind_id, port_id,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog, parse};
@@ -22,8 +22,8 @@ pub(super) const SELECTOR_SOURCE_KIND: &str = "conduitos/fixture-select-bool-sou
 pub(super) const FALSE_SOURCE_KIND: &str = "conduitos/fixture-select-false-source";
 pub(super) const TRUE_SOURCE_KIND: &str = "conduitos/fixture-select-true-source";
 pub(super) const SINK_KIND: &str = "conduitos/fixture-select-sink";
-pub(super) const SINK_HOST_OPERATION: &str = "conduitos.fixture/capture-selected-scalar@1";
-const SOURCE_ADVANCE_HOST_OPERATION: &str = "conduitos.fixture/advance-select-source@1";
+pub(super) const SINK_HOST_CALL: &str = "conduitos.fixture/capture-selected-scalar@1";
+const SOURCE_ADVANCE_HOST_CALL: &str = "conduitos.fixture/advance-select-source@1";
 const SOURCE_REVISION: &str = "conduitos/fixture-select-source@1";
 const SINK_REVISION: &str = "conduitos/fixture-select-sink@1";
 const FIXTURE_ARTIFACT: &str = "conduitos/state-select-fixture@1";
@@ -63,12 +63,12 @@ pub fn prepare_state_select(
         .map_err(|_| StateSelectError::Catalog)?;
     for offer in source_and_sink_offers(sequence) {
         catalog
-            .insert(conduit_form::KindDefinition {
+            .insert(conduit_form::KindProjection {
                 kind_id: offer.kind_id,
                 kind_contract_revision: offer.kind_contract_revision,
                 inputs: offer.inputs,
                 outputs: offer.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|_| StateSelectError::Catalog)?;
     }
@@ -125,6 +125,7 @@ fn advertisement(host: &str, boot: &str, sequence: StateSelectSequence) -> HostA
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("conduitos/two-lane-cooperative@1"),
+        bases: vec![],
         resources: Vec::new(),
         planner_capabilities: Vec::new(),
         capabilities: vec![
@@ -175,7 +176,7 @@ fn source_offer(kind: &str, value_kind: &str, identity: String) -> CapabilityOff
         shorthand: None,
         capability_id: CapabilityId::from(format!("{}-{identity}@1", kind.replace('/', "-"))),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
         implementation: fixture_implementation("conduitos.fixture/state-select-source@1"),
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
@@ -184,8 +185,8 @@ fn source_offer(kind: &str, value_kind: &str, identity: String) -> CapabilityOff
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
         }],
-        host_operations: vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(SOURCE_ADVANCE_HOST_OPERATION),
+        host_calls: vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(SOURCE_ADVANCE_HOST_CALL),
             target_kind: Some(kind_id(kind)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
@@ -203,7 +204,7 @@ fn sink_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-state-select-sink@1"),
         kind_id: kind_id(SINK_KIND),
-        kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+        kind_contract_revision: KindIdentity::from(SINK_REVISION),
         implementation: fixture_implementation("conduitos.fixture/state-select-sink@1"),
         inputs: vec![PortDescriptor {
             port_id: port_id("value"),
@@ -212,8 +213,8 @@ fn sink_offer() -> CapabilityOffer {
             temporal: PortTemporal::Current,
         }],
         outputs: Vec::new(),
-        host_operations: vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(SINK_HOST_OPERATION),
+        host_calls: vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(SINK_HOST_CALL),
             target_kind: Some(kind_id(SINK_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,

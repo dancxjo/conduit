@@ -5,12 +5,14 @@ use alloc::{
     vec,
 };
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
-    StructuredInfoValue, StructuredVariantCase,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredFieldType,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredVariantCase,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 pub const TEMPLATE_STORAGE_KIND: &str = "storage/named-pattern-templates";
@@ -66,10 +68,10 @@ pub fn template_storage_result_type() -> StructuredInfoType {
     .unwrap()
 }
 
-pub fn named_pattern_template_storage_definition() -> KindDefinition {
-    KindDefinition {
+pub fn named_pattern_template_storage_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(TEMPLATE_STORAGE_KIND),
-        kind_contract_revision: KindContractRevision::from(TEMPLATE_STORAGE_REVISION),
+        kind_contract_revision: KindIdentity::from(TEMPLATE_STORAGE_REVISION),
         inputs: vec![port(
             "command",
             &template_storage_command_type(),
@@ -80,10 +82,10 @@ pub fn named_pattern_template_storage_definition() -> KindDefinition {
             &template_storage_result_type(),
             PortDirection::Output,
         )],
-        configuration: vec![ConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "maximum-commands".into(),
             default_value: ConfigurationValue::U64(MAXIMUM_TEMPLATE_STORAGE_COMMANDS),
-            validation: ConfigurationRule::U64Range {
+            rule: KindConfigurationRule::U64Range {
                 minimum: 1,
                 maximum: MAXIMUM_TEMPLATE_STORAGE_COMMANDS,
             },
@@ -91,10 +93,10 @@ pub fn named_pattern_template_storage_definition() -> KindDefinition {
     }
 }
 
-pub fn named_pattern_template_initializer_definition() -> KindDefinition {
-    KindDefinition {
+pub fn named_pattern_template_initializer_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(TEMPLATE_INITIALIZER_KIND),
-        kind_contract_revision: KindContractRevision::from(TEMPLATE_INITIALIZER_REVISION),
+        kind_contract_revision: KindIdentity::from(TEMPLATE_INITIALIZER_REVISION),
         inputs: vec![],
         outputs: vec![port(
             "commands",
@@ -102,19 +104,73 @@ pub fn named_pattern_template_initializer_definition() -> KindDefinition {
             PortDirection::Output,
         )],
         configuration: vec![
-            ConfigurationField {
+            KindConfigurationField {
                 key: "name".into(),
                 default_value: ConfigurationValue::Text("knock".into()),
-                validation: ConfigurationRule::TextBytes {
+                rule: KindConfigurationRule::TextBytes {
                     maximum: crate::MAXIMUM_TEMPLATE_NAME_BYTES as u32,
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "normalized-values".into(),
                 default_value: ConfigurationValue::Text("500000,1000000".into()),
-                validation: ConfigurationRule::TextBytes { maximum: 128 },
+                rule: KindConfigurationRule::TextBytes { maximum: 128 },
             },
         ],
+    }
+}
+
+pub fn named_pattern_template_storage_semantic_contract() -> Kind {
+    let definition = named_pattern_template_storage_definition();
+    Kind {
+        startup_parameters: vec![FrontStartupParameter {
+            name: "maximum-commands".into(),
+            value_type: kind_id("value/count"),
+            has_default: true,
+        }],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: MAXIMUM_TEMPLATE_STORAGE_COMMANDS as u16,
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
+                * (MAXIMUM_TEMPLATE_STORAGE_COMMANDS as u32 + 1),
+        },
+    }
+}
+
+pub fn named_pattern_template_initializer_semantic_contract() -> Kind {
+    let definition = named_pattern_template_initializer_definition();
+    Kind {
+        startup_parameters: vec![
+            FrontStartupParameter {
+                name: "name".into(),
+                value_type: kind_id("value/text"),
+                has_default: true,
+            },
+            FrontStartupParameter {
+                name: "normalized-values".into(),
+                value_type: kind_id("value/text"),
+                has_default: true,
+            },
+        ],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 2,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
+        },
     }
 }
 
@@ -314,7 +370,7 @@ mod tests {
     #[test]
     fn malformed_template_is_distinct_from_collection_capacity_or_name_refusal() {
         let wrong_type = StructuredInfoValue::leaf(
-            StructuredInfoType::leaf(kind_id("value/text@1")).unwrap(),
+            StructuredInfoType::leaf(kind_id("value/text")).unwrap(),
             b"not a normalized pattern".to_vec(),
         )
         .unwrap();
@@ -329,6 +385,23 @@ mod tests {
         assert_ne!(
             crate::TemplateCollectionRefusal::CorruptTemplate,
             crate::TemplateCollectionRefusal::NameEmpty
+        );
+    }
+
+    #[test]
+    fn semantic_contracts_own_template_startup_and_capacity() {
+        let storage = named_pattern_template_storage_semantic_contract();
+        assert_eq!(storage.startup_parameters.len(), 1);
+        assert_eq!(
+            storage.limits.max_queue_items,
+            MAXIMUM_TEMPLATE_STORAGE_COMMANDS as u16
+        );
+        let initializer = named_pattern_template_initializer_semantic_contract();
+        assert_eq!(initializer.startup_parameters.len(), 2);
+        assert_eq!(initializer.limits.max_queue_items, 2);
+        assert_eq!(
+            initializer.outputs,
+            named_pattern_template_initializer_definition().outputs
         );
     }
 }

@@ -28,7 +28,7 @@ pub(super) fn validate_envelope(
         } else {
             !lowered.remote_endpoints.is_empty()
         }
-        || lowered.host_operations.len() > BROWSER_HOST_OPERATION_BINDINGS
+        || lowered.host_calls.len() > BROWSER_HOST_CALL_BINDINGS
         || fragment
             .placements
             .iter()
@@ -49,11 +49,12 @@ pub(super) fn prepare_scheduler(
 pub(in crate::form_runner) struct ApplicationPreparation<'a> {
     pub plan: &'a conduit_body::BodyPlan,
     pub active_play_id: &'a conduit_core::ActivePlayId,
+    pub body_evidence: Option<&'a conduit_body::BodyBiographyEvidence>,
     pub source: &'a str,
     pub foreground_checked_form_id: &'a str,
 }
 
-/// Compose already-lowered exact partitions without synthesizing a Plan.
+/// Compose already-lowered exact partitions without synthesizing a plan.
 pub(in crate::form_runner) fn prepare_partition_scheduler(
     partitions: &[(&PlanFragment, &LoweredPlanFragment)],
 ) -> Result<TourScheduler, String> {
@@ -132,7 +133,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
             );
         }
         if placement
-            .host_operations
+            .host_calls
             .iter()
             .any(|operation| resource_effect::matches(operation.contract_id.as_str()))
         {
@@ -206,32 +207,29 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
                     placement,
                     context.plan,
                     context.active_play_id,
+                    context.body_evidence,
                     context.source,
                     context.foreground_checked_form_id,
                 )?
                 .map(Box::new);
         }
-        if placement.host_operations.iter().any(|operation| {
-            operation.contract_id.as_str()
-                == crate::installed_browser::pointer_selector::HOST_OPERATION
+        if placement.host_calls.iter().any(|operation| {
+            operation.contract_id.as_str() == crate::installed_browser::pointer_selector::HOST_CALL
         }) {
             selectors[usize::from(node.node.0)] =
                 Some(crate::installed_browser::pointer_selector::PreparedSelector::new(placement)?);
         }
     }
     while operations.len() < MAXIMUM_BROWSER_GEARS {
-        operations.push(BrowserOperation::inactive());
+        operations.push(BrowserBack::inactive());
     }
-    let drivers = operations
-        .into_iter()
-        .map(|operation| OperationDriver::new(operation).map_err(debug_error))
-        .collect::<Result<Vec<_>, _>>()?
+    let backs = operations
         .try_into()
-        .map_err(|_| "browser operation table exceeded its admitted bound")?;
+        .map_err(|_| "browser Back table exceeded its admitted bound")?;
 
     let inactive_node = NodeSpec {
         input_cords: [None; BROWSER_PORTS_PER_GEAR],
-        maximum_step_work: 1,
+        maximum_step_fuel: 1,
     };
     let mut nodes = [inactive_node; MAXIMUM_BROWSER_GEARS];
     for (destination, spec) in nodes
@@ -270,13 +268,9 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
             .map_err(debug_error)?;
     }
     routes.seal().map_err(debug_error)?;
-    let mut bindings = FixedHostOperationBindings::<BROWSER_HOST_OPERATION_BINDINGS>::new(
-        BROWSER_HOST_OPERATIONS_PER_GEAR,
-    );
-    for operation in partitions
-        .iter()
-        .flat_map(|(_, part)| &part.host_operations)
-    {
+    let mut bindings =
+        FixedHostCallBindings::<BROWSER_HOST_CALL_BINDINGS>::new(BROWSER_HOST_CALLS_PER_GEAR);
+    for operation in partitions.iter().flat_map(|(_, part)| &part.host_calls) {
         bindings
             .install(operation.node, operation.binding)
             .map_err(debug_error)?;
@@ -297,14 +291,14 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
         remote_sign_bytes,
     )
     .map_err(debug_error)?;
-    let kernel = BrowserKernel::new_with_active_counts_and_host_operations(
+    let kernel = BrowserKernel::new_with_active_counts_and_host_calls(
         active_nodes,
         active_cords,
         nodes,
         cords,
         routes,
         bindings,
-        drivers,
+        backs,
         values,
         signs,
     )

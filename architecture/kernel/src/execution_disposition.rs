@@ -83,8 +83,8 @@ impl ExecutionDisposition {
             FailureCode::Cancelled => Self::Cancelled,
             FailureCode::InvalidPort
             | FailureCode::InvalidLifecycle
-            | FailureCode::HostOperationDenied
-            | FailureCode::HostOperationFailed => Self::Failed,
+            | FailureCode::HostCallDenied
+            | FailureCode::HostCallFailed => Self::Failed,
         }
     }
 

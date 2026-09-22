@@ -11,6 +11,9 @@ fn candidate(id: &str, family: RendezvousLineFamily) -> RendezvousCandidate {
             RendezvousLineFamily::LocalLoopbackWebSocket => {
                 "ws://127.0.0.1:4173/conduit".to_string()
             }
+            RendezvousLineFamily::WebRtcDataChannel => {
+                "webrtc-bootstrap:operator/negotiation-7".to_string()
+            }
             _ => "relay://operator.example/route/7".to_string(),
         },
         authentication: RendezvousAuthentication {
@@ -104,6 +107,27 @@ fn owned_and_borrowed_profiles_round_trip_without_semantic_loss_or_text_copies()
     let mut second = [0; MAX_RENDEZVOUS_CBOR_BYTES];
     let second_len = encode_running_host_rendezvous_cbor(&source, &mut second).unwrap();
     assert_eq!(&second[..second_len], encoded);
+}
+
+#[test]
+fn webrtc_family_round_trips_through_the_shared_wire_profile() {
+    let source = RunningHostRendezvousDescriptor::new(
+        vec![candidate(
+            "candidate/webrtc",
+            RendezvousLineFamily::WebRtcDataChannel,
+        )],
+        [0x66; 32],
+        1_700_000_000_000,
+    )
+    .unwrap();
+    let mut encoded = [0; MAX_RENDEZVOUS_CBOR_BYTES];
+    let length = encode_running_host_rendezvous_cbor(&source, &mut encoded).unwrap();
+    let decoded =
+        decode_running_host_rendezvous_cbor(&encoded[..length], 1_700_000_000_000).unwrap();
+    assert_eq!(
+        decoded.candidates().next().unwrap().line_family,
+        RendezvousLineFamily::WebRtcDataChannel
+    );
 }
 
 #[test]

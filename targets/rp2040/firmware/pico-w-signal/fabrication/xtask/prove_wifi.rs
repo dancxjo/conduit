@@ -78,11 +78,11 @@ pub fn run_prove_pico_wifi_bootstrap(
             "  credential source: {}",
             credential_env.unwrap_or("<required --credential-env variable name>")
         );
-        println!("  secret values are never printed or serialized into the Plan");
+        println!("  secret values are never printed or serialized into the plan");
         if matches!(mode, WifiProofMode::R1Full { .. }) {
             println!("  stage 1: live three-peer Plan A to automatic USB Plan B recovery and Lull");
             println!("  operator action: restore real Wi-Fi/network availability");
-            println!("  stage 2: same Body later Wake runs Plan C continuation and Lull");
+            println!("  stage 2: same body later Wake runs Plan C continuation and Lull");
         }
         return Ok(());
     }
@@ -134,7 +134,7 @@ pub fn run_prove_pico_wifi_bootstrap(
         || generated.firmware_build_id != identity.firmware_build_id
         || generated.nodes != 2
         || generated.cords != 2
-        || generated.host_operations != 2
+        || generated.host_calls != 2
         || generated.cord_value_slots != 2
         || generated.cord_value_bytes
             != conduit_net::MAXIMUM_JOIN_INPUT_BYTES + conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES
@@ -531,7 +531,7 @@ fn verify_attachment_sign(
         ("boot_id", runtime.boot_id.as_str()),
         ("active_play_id", runtime.active_play_id.as_str()),
         (
-            "interfront_pool_id",
+            "resource_pool_id",
             conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
         ),
         ("sign_id", generated.terminal_sign_id.as_str()),

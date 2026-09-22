@@ -9,10 +9,10 @@ use crate::external_websocket::{
 };
 use conduit_core::{
     kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId, BootId,
-    CapabilityId, HostAdvertisement, HostId, HostOperationContractId, HostProfileId,
-    OfferGeneration, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PoolMemberLimits,
-    SharedPoolId, PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT,
-    SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT, SHARED_POOL_AUTHORITY_SUBJECT_KIND,
+    CapabilityId, HostAdvertisement, HostCallContractId, HostId, HostProfileId, OfferGeneration,
+    PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PoolMemberLimits, SharedPoolId,
+    PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_CALL_CONTRACT,
+    SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
@@ -99,6 +99,7 @@ fn planned_pool() -> Result<(String, conduit_plan_lowering::lowering::LoweredSha
                 sign_byte_capacity: 1_024,
             },
             admission_authority: authority.clone(),
+            member_sessions_required: false,
         },
     )]);
     let empty_bases = BTreeMap::new();
@@ -153,6 +154,7 @@ fn advertisement() -> HostAdvertisement {
         boot_id: BootId::from("std-pool-webchat-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std-pool-webchat-profile"),
+        bases: vec![],
         resources: Vec::new(),
         capabilities: conduit_chat::pool_chat_capabilities().into(),
         planner_capabilities: vec![PlannerCapabilityOffer {
@@ -173,9 +175,7 @@ fn admission_authority() -> AuthorityGrant {
     AuthorityGrant {
         grant_id: AuthorityGrantId::from("grant/pool-webchat-admit"),
         contract_id: AuthorityContractId::from(SHARED_POOL_ADMIT_AUTHORITY_CONTRACT),
-        host_operation_contract_id: HostOperationContractId::from(
-            SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
-        ),
+        host_call_contract_id: HostCallContractId::from(SHARED_POOL_ADMIT_HOST_CALL_CONTRACT),
         subject_kind: kind_id(SHARED_POOL_AUTHORITY_SUBJECT_KIND),
         host_id: HostId::from("std-pool-webchat"),
         boot_id: BootId::from("std-pool-webchat-boot"),

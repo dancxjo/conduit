@@ -72,7 +72,7 @@ impl std::fmt::Display for RendererProjectionError {
                 formatter.write_str("renderer attempted edit is stale, empty, or unbounded")
             }
             Self::GraphBasisMismatch => {
-                formatter.write_str("renderer graph does not describe the open checked Form")
+                formatter.write_str("renderer graph does not describe the open checked form")
             }
             Self::InvalidSoundInspection => {
                 formatter.write_str("renderer sound inspection is invalid or identity-stale")
@@ -409,13 +409,13 @@ fn topology_item_count(report: &ObservatoryReport) -> usize {
             count
                 .saturating_add(capability.inputs.len())
                 .saturating_add(capability.outputs.len())
-                .saturating_add(capability.host_operations.len())
+                .saturating_add(capability.host_calls.len())
                 .saturating_add(capability.resource_requirements.len())
                 .saturating_add(capability.authority_requirements.len())
         });
     let placement_details = report.placements.iter().fold(0usize, |count, placement| {
         count
-            .saturating_add(placement.host_operations.len())
+            .saturating_add(placement.host_calls.len())
             .saturating_add(placement.resources.len())
             .saturating_add(placement.authority.len())
     });
@@ -442,7 +442,7 @@ fn plan_item_count(plan: &conduit_core::Plan) -> usize {
                     .saturating_add(placement.realization_characteristics.len())
                     .saturating_add(placement.inputs.len())
                     .saturating_add(placement.outputs.len())
-                    .saturating_add(placement.host_operations.len())
+                    .saturating_add(placement.host_calls.len())
                     .saturating_add(placement.resources.len())
                     .saturating_add(placement.authority.len())
                     .saturating_add(placement.pool_references.len())

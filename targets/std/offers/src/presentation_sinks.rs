@@ -2,7 +2,7 @@
 pub mod indicator_resource;
 
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_requirement, CapabilityOffer,
+    kind_id, present_host_call_requirement, resource_requirement, CapabilityOffer,
     PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity, StandardKindContract};
@@ -157,7 +157,7 @@ fn presentation_offer(
             implementation,
             artifact,
         },
-        vec![present_host_operation_requirement(
+        vec![present_host_call_requirement(
             kind_id(target),
             maximum_input_bytes,
         )],
@@ -206,7 +206,7 @@ mod tests {
             assert_eq!(offer.inputs, contract.inputs);
             assert_eq!(offer.outputs, contract.outputs);
             assert_eq!(offer.limits, contract.limits);
-            assert_eq!(offer.host_operations.len(), 1);
+            assert_eq!(offer.host_calls.len(), 1);
             assert_eq!(offer.resource_requirements.len(), 1);
         }
     }

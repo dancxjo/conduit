@@ -19,7 +19,7 @@ const candidate = Object.freeze({
   }),
 });
 
-test("Body-bound native package carries finite authenticated rendezvous candidates", async () => {
+test("body-bound native package carries finite authenticated rendezvous candidates", async () => {
   const prepared = {
     spore_id: "spore/one",
     image_id: "image/one",

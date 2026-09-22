@@ -136,7 +136,7 @@ fn abi_view_is_the_encoded_shared_presentation_and_rejects_stale_mounts() {
         .nodes
         .iter()
         .any(|node| node.component == ApplicationComponent::Heading
-            && node.text == "A Body of your own"));
+            && node.text == "A body of your own"));
     assert!(view
         .nodes
         .iter()

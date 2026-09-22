@@ -180,6 +180,7 @@ fn snapshot(hosts: &[(&str, &str, &str)]) -> ObservatorySnapshot {
                     offer_generation: OfferGeneration(1),
                     capabilities: Vec::new(),
                     planner_capabilities: Vec::new(),
+                    bases: vec![],
                     resources: Vec::new(),
                 },
                 state: OperationalState::Available,

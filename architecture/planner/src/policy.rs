@@ -6,7 +6,7 @@ use crate::requirements::{
 use crate::{PlacementChoice, PlannerError, PlannerPreference};
 use conduit_core::{
     AuthorityContractId, CapabilityOffer, CharacteristicId, ComputePerformanceClassId,
-    HostAdvertisement, HostOperationContractId, ResourceClassId,
+    HostAdvertisement, HostCallContractId, ResourceClassId,
 };
 use conduit_form::CheckedGear;
 use core::cmp::Ordering;
@@ -26,7 +26,7 @@ pub enum RealizationPreference {
     },
     MaximizeQueueItems,
     MaximizeQueueBytes,
-    PreferWithoutHostOperation(HostOperationContractId),
+    PreferWithoutHostCall(HostCallContractId),
     PreferWithoutAuthority(AuthorityContractId),
     MinimizeCharacteristicCount(CharacteristicId),
     MaximizeCharacteristicCount(CharacteristicId),
@@ -70,8 +70,8 @@ impl RealizationPreference {
             Self::MaximizeQueueBytes => PlannerPreference::Maximize {
                 fact: crate::PlannerFactRef::OfferQueueBytes,
             },
-            Self::PreferWithoutHostOperation(contract) => PlannerPreference::PreferEqual {
-                fact: crate::PlannerFactRef::RequiresHostOperation(contract.clone()),
+            Self::PreferWithoutHostCall(contract) => PlannerPreference::PreferEqual {
+                fact: crate::PlannerFactRef::RequiresHostCall(contract.clone()),
                 value: crate::PlannerFactValue::Boolean(false),
             },
             Self::PreferWithoutAuthority(contract) => PlannerPreference::PreferEqual {
@@ -136,7 +136,7 @@ pub(crate) fn select_realization_matching(
     let mut front_candidates = Vec::new();
     for host in hosts {
         for offer in &host.capabilities {
-            if offer.checked_front() == gear.checked_front() {
+            if gear.accepts_realization(offer) {
                 front_candidates.push(Candidate { host, offer });
             }
         }
@@ -214,9 +214,8 @@ fn compare_candidates(
                 .limits
                 .max_queue_bytes
                 .cmp(&left.offer.limits.max_queue_bytes),
-            RealizationPreference::PreferWithoutHostOperation(contract_id) => {
-                has_host_operation(left.offer, contract_id)
-                    .cmp(&has_host_operation(right.offer, contract_id))
+            RealizationPreference::PreferWithoutHostCall(contract_id) => {
+                has_host_call(left.offer, contract_id).cmp(&has_host_call(right.offer, contract_id))
             }
             RealizationPreference::PreferWithoutAuthority(contract_id) => {
                 has_authority(left.offer, contract_id).cmp(&has_authority(right.offer, contract_id))
@@ -245,9 +244,9 @@ fn resource_units(offer: &CapabilityOffer, class_id: &ResourceClassId) -> u64 {
         .sum()
 }
 
-fn has_host_operation(offer: &CapabilityOffer, contract_id: &HostOperationContractId) -> bool {
+fn has_host_call(offer: &CapabilityOffer, contract_id: &HostCallContractId) -> bool {
     offer
-        .host_operations
+        .host_calls
         .iter()
         .any(|requirement| &requirement.contract_id == contract_id)
 }
@@ -308,9 +307,7 @@ pub(crate) fn validate_policy(policy: &RealizationPolicy) -> Result<(), PlannerE
                 resource_class_id,
                 performance_class_id,
             } => resource_class_id.as_str().is_empty() || performance_class_id.as_str().is_empty(),
-            RealizationPreference::PreferWithoutHostOperation(identity) => {
-                identity.as_str().is_empty()
-            }
+            RealizationPreference::PreferWithoutHostCall(identity) => identity.as_str().is_empty(),
             RealizationPreference::PreferWithoutAuthority(identity) => identity.as_str().is_empty(),
             RealizationPreference::MinimizeCharacteristicCount(identity)
             | RealizationPreference::MaximizeCharacteristicCount(identity) => {

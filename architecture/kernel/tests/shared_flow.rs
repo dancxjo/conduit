@@ -45,7 +45,7 @@ fn fan_retains_one_snapshot_and_value_until_every_addressed_branch_terminates() 
     fan.fail(
         b,
         Failure {
-            code: FailureCode::HostOperationFailed,
+            code: FailureCode::HostCallFailed,
             detail: 7,
         },
     )

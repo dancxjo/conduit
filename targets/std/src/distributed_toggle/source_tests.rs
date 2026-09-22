@@ -155,3 +155,23 @@ fn complete_trigger_wait_rejects_read_error() {
         "read error must be a structured error, not a successful trigger"
     );
 }
+
+#[test]
+fn full_admitted_trigger_sequence_flips_then_closes_exactly() {
+    let mut source = DistributedToggleSource::prepare().expect("prepare");
+    let Some((0, initial)) = source.next_manifestation(false).expect("initial") else {
+        panic!("toggle Back must emit its configured initial value")
+    };
+    for sequence in 1..=MAXIMUM_WAITS as u64 {
+        assert_eq!(
+            source.next_manifestation(true).expect("admitted press"),
+            Some((sequence, if sequence % 2 == 0 { initial } else { !initial })),
+            "press {sequence} must preserve order and exact Boolean state"
+        );
+    }
+    assert_eq!(
+        source.next_manifestation(false).expect("terminal closure"),
+        None,
+        "the finite trigger Back must close after its admitted count"
+    );
+}

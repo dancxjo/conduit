@@ -1,15 +1,15 @@
 //! Browser production realization of explicitly initialized measurement hysteresis.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
-    PlannedGear,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
+    PortId, RequestId,
 };
 
 pub(crate) const OPERATIONS: [&str; 2] = [
@@ -95,154 +95,150 @@ impl PreparedHysteresis {
 }
 
 fn offer() -> CapabilityOffer {
-    let contract = conduit_data::measurement_hysteresis_kind_definition();
+    let contract = conduit_data::measurement_hysteresis_semantic_contract();
     let kind = contract.kind_id.clone();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(IMPLEMENTATION),
-        kind_id: kind.clone(),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_data::MEASUREMENT_HYSTERESIS_CONTRACT_REVISION,
-        ),
-        implementation: ImplementationOffer {
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-hysteresis@2"),
+            host_calls: OPERATIONS
+                .iter()
+                .enumerate()
+                .map(|(index, contract_id)| HostCallRequirement {
+                    contract_id: (*contract_id).into(),
+                    target_kind: Some(kind.clone()),
+                    maximum_in_flight: 1,
+                    maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                    maximum_output_bytes: if index == 0 {
+                        0
+                    } else {
+                        MAXIMUM_BROWSER_VALUE_BYTES as u32
+                    },
+                })
+                .collect(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: OPERATIONS
-            .iter()
-            .enumerate()
-            .map(|(index, contract_id)| HostOperationRequirement {
-                contract_id: (*contract_id).into(),
-                target_kind: Some(kind.clone()),
-                maximum_in_flight: 1,
-                maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-                maximum_output_bytes: if index == 0 {
-                    0
-                } else {
-                    MAXIMUM_BROWSER_VALUE_BYTES as u32
-                },
-            })
-            .collect(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 2,
-            max_queue_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        },
-    }
+    )
+    .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     PreparedHysteresis::for_placement(placement)?
         .ok_or_else(|| "measurement hysteresis selected another implementation".to_string())?;
-    Ok(BrowserOperation::installed(HysteresisOperation::new()))
+    Ok(BrowserBack::installed_step(HysteresisBack::new()))
 }
 
-struct HysteresisOperation {
+struct HysteresisBack {
     profile_ready: bool,
-    pending: Option<(RequestId, HostOperationId)>,
+    profile_closed: bool,
+    pending: Option<(RequestId, HostCallId)>,
     emitted: bool,
 }
 
-impl HysteresisOperation {
+impl HysteresisBack {
     const fn new() -> Self {
         Self {
             profile_ready: false,
+            profile_closed: false,
             pending: None,
             emitted: false,
         }
     }
 }
 
-impl Operation for HysteresisOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.profile_ready && self.pending.is_none() => {
-                let Ok(input) = BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32)
-                else {
-                    return OperationAction::Fail(failure(20));
-                };
-                self.pending = Some((RequestId(0), HostOperationId(0)));
-                OperationAction::RequestHostOperation {
-                    request: RequestId(0),
-                    operation: HostOperationId(0),
-                    input,
+impl<const PORTS: usize> StepBack<PORTS> for HysteresisBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            let Some((pending_request, operation)) = self.pending else {
+                return StepOutcome::Fail(failure(22));
+            };
+            if request != pending_request {
+                return StepOutcome::Fail(failure(22));
+            }
+            match (
+                operation,
+                outcome.disposition,
+                outcome.output,
+                outcome.failure,
+            ) {
+                (HostCallId(0), HostCallDisposition::Completed, None, None) => {
+                    io.consume_host_completion()
+                        .expect("observed hysteresis profile completion");
+                    self.pending = None;
+                    self.profile_ready = true;
+                    return StepOutcome::Progress;
                 }
-            }
-            OperationInput::Value {
-                port: PortId(1),
-                value,
-            } if self.profile_ready && self.pending.is_none() && !self.emitted => {
-                let Ok(input) = BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32)
-                else {
-                    return OperationAction::Fail(failure(21));
-                };
-                self.pending = Some((RequestId(1), HostOperationId(1)));
-                OperationAction::RequestHostOperation {
-                    request: RequestId(1),
-                    operation: HostOperationId(1),
-                    input,
+                (HostCallId(1), HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed hysteresis evaluation completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready hysteresis decision output");
+                    self.pending = None;
+                    self.emitted = true;
+                    return StepOutcome::Complete;
                 }
-            }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending.map(|pending| pending.0) == Some(request) =>
-            {
-                let Some((_, operation)) = self.pending.take() else {
-                    return OperationAction::Fail(failure(22));
-                };
-                match (
-                    operation,
-                    outcome.disposition,
-                    outcome.output,
-                    outcome.failure,
-                ) {
-                    (HostOperationId(0), HostOperationDisposition::Completed, None, None) => {
-                        self.profile_ready = true;
-                        OperationAction::Await
-                    }
-                    (
-                        HostOperationId(1),
-                        HostOperationDisposition::Completed,
-                        Some(output),
-                        None,
-                    ) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (_, HostOperationDisposition::Failed, None, Some(reason)) => {
-                        OperationAction::Fail(reason)
-                    }
-                    _ => OperationAction::Fail(failure(22)),
+                (_, HostCallDisposition::Failed, None, Some(reason)) => {
+                    return StepOutcome::Fail(reason)
                 }
+                _ => return StepOutcome::Fail(failure(22)),
             }
-            OperationInput::Closed { port: PortId(0) } if self.profile_ready => {
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(1) } if self.emitted => OperationAction::Complete,
-            _ => OperationAction::Fail(failure(23)),
         }
-    }
-    fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
+
+        if let Some(value) = io.input(PortId(0)) {
+            if self.profile_ready || self.pending.is_some() {
+                return StepOutcome::Fail(failure(23));
+            }
+            let input = match BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32) {
+                Ok(input) => input,
+                Err(_) => return StepOutcome::Fail(failure(20)),
+            };
+            io.consume(PortId(0)).expect("present hysteresis profile");
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("hysteresis profile Host Call");
+            self.pending = Some((RequestId(0), HostCallId(0)));
+            return StepOutcome::Progress;
         }
+        if let Some(value) = io.input(PortId(1)) {
+            if !self.profile_ready || self.pending.is_some() || self.emitted {
+                return StepOutcome::Fail(failure(23));
+            }
+            let input = match BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32) {
+                Ok(input) => input,
+                Err(_) => return StepOutcome::Fail(failure(21)),
+            };
+            io.consume(PortId(1)).expect("present measurement summary");
+            io.request_host_call(RequestId(1), HostCallId(1), input)
+                .expect("hysteresis evaluation Host Call");
+            self.pending = Some((RequestId(1), HostCallId(1)));
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && !self.profile_closed {
+            if !self.profile_ready {
+                return StepOutcome::Fail(failure(23));
+            }
+            io.consume_closed(PortId(0))
+                .expect("observed hysteresis profile closure");
+            self.profile_closed = true;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(1)) {
+            if !self.emitted {
+                return StepOutcome::Fail(failure(23));
+            }
+            io.consume_closed(PortId(1))
+                .expect("observed measurement summary closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
+
     fn cancel(&mut self) {
         self.pending = None;
     }
@@ -275,6 +271,15 @@ mod tests {
         ConfigurationEntry, OfferGeneration, Quantity, QuantityUnit, StructuredInfoValue,
         TemporalInstant, TemporalScale,
     };
+    use conduit_kernel::{HostCallOutcome, ValueRef};
+
+    fn value(slot: u16, byte_len: u32) -> ValueRef {
+        ValueRef {
+            slot,
+            generation: 1,
+            byte_len,
+        }
+    }
 
     fn placement() -> PlannedGear {
         let offered = offer();
@@ -291,11 +296,12 @@ mod tests {
             capability_id: offered.capability_id,
             implementation_id: offered.implementation.implementation_id,
             artifact_id: offered.implementation.artifact_id,
+            base: None,
             realization_characteristics: Vec::new(),
             limits: offered.limits,
             inputs: offered.inputs,
             outputs: offered.outputs,
-            host_operations: offered.host_operations,
+            host_calls: offered.host_calls,
             resources: Vec::new(),
             authority: Vec::new(),
             pool_references: Vec::new(),
@@ -351,6 +357,17 @@ mod tests {
 
     #[test]
     fn browser_hysteresis_uses_the_explicit_initial_state_and_thresholds() {
+        let offer = offer();
+        let semantic = conduit_data::measurement_hysteresis_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert_eq!(offer.limits, semantic.limits);
         let mut prepared = PreparedHysteresis::for_placement(&placement())
             .unwrap()
             .unwrap();
@@ -394,5 +411,105 @@ mod tests {
             prepared.execute(OPERATIONS[1], &summary(50, QuantityUnit::Millimeter)),
             Err(failure(10))
         );
+    }
+
+    #[test]
+    fn browser_hysteresis_step_preserves_pending_evaluation_under_output_pressure() {
+        let mut operation = HysteresisBack::new();
+        let profile = value(1, 40);
+        let mut profile_io = StepIo::test_frame(
+            [Some(profile), None],
+            [false; 2],
+            [Some(MAXIMUM_BROWSER_VALUE_BYTES as u32), None],
+            None,
+            4,
+        );
+        assert_eq!(
+            operation.step(
+                &mut profile_io,
+                &StepInputBytes::test_frame([None, None], None),
+            ),
+            StepOutcome::Progress
+        );
+        assert_eq!(
+            profile_io.test_host_request().map(|request| request.0),
+            Some(RequestId(0))
+        );
+
+        let profile_completion = HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
+            output: None,
+            failure: None,
+        };
+        let mut completion_io = StepIo::test_frame(
+            [None; 2],
+            [false; 2],
+            [Some(MAXIMUM_BROWSER_VALUE_BYTES as u32), None],
+            Some((RequestId(0), profile_completion)),
+            4,
+        );
+        assert_eq!(
+            operation.step(
+                &mut completion_io,
+                &StepInputBytes::test_frame([None, None], None),
+            ),
+            StepOutcome::Progress
+        );
+
+        let summary = value(2, 80);
+        let mut summary_io = StepIo::test_frame(
+            [None, Some(summary)],
+            [false; 2],
+            [Some(MAXIMUM_BROWSER_VALUE_BYTES as u32), None],
+            None,
+            4,
+        );
+        assert_eq!(
+            operation.step(
+                &mut summary_io,
+                &StepInputBytes::test_frame([None, None], None),
+            ),
+            StepOutcome::Progress
+        );
+        assert_eq!(
+            summary_io.test_host_request().map(|request| request.0),
+            Some(RequestId(1))
+        );
+
+        let output = value(3, 16);
+        let evaluation = HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
+            output: Some(BoundedValueRef::new(output, 16).unwrap()),
+            failure: None,
+        };
+        let mut blocked = StepIo::test_frame(
+            [None; 2],
+            [false; 2],
+            [None; 2],
+            Some((RequestId(1), evaluation)),
+            4,
+        );
+        assert_eq!(
+            operation.step(
+                &mut blocked,
+                &StepInputBytes::test_frame([None, None], None),
+            ),
+            StepOutcome::Await
+        );
+        assert_eq!(operation.pending, Some((RequestId(1), HostCallId(1))));
+        assert!(!operation.emitted);
+
+        let mut ready = StepIo::test_frame(
+            [None; 2],
+            [false; 2],
+            [Some(16), None],
+            Some((RequestId(1), evaluation)),
+            4,
+        );
+        assert_eq!(
+            operation.step(&mut ready, &StepInputBytes::test_frame([None, None], None),),
+            StepOutcome::Complete
+        );
+        assert_eq!(ready.test_output(PortId(0)), Some(output));
     }
 }

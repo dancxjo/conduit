@@ -3,9 +3,9 @@
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection,
-    PortTemporal, kind_id, port_id,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindIdentity,
+    OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection, PortTemporal, kind_id,
+    port_id,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
@@ -37,18 +37,18 @@ pub fn prepare_robotics(
         .map_err(|_| RoboticsError::Catalog)?;
     for (kind, value_kind) in discard_kinds() {
         catalog
-            .insert(conduit_form::KindDefinition {
+            .insert(conduit_form::KindProjection {
                 kind_id: kind_id(kind),
-                kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+                kind_contract_revision: KindIdentity::from(SINK_REVISION),
                 inputs: discard_offer(kind, value_kind).inputs,
                 outputs: Vec::new(),
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|_| RoboticsError::Catalog)?;
     }
     let state = if bumper_pressed { "pressed" } else { "clear" };
     let source = format!(
-        "form prewake {{\n bump: robotics/observe-bump(state = \"{state}\")\n imu: robotics/observe-imu(roll-microradians = 10, pitch-microradians = -20, yaw-microradians = 30)\n range: robotics/observe-range(distance-mm = {distance_mm}, age-ms = {age_ms})\n odometry: robotics/observe-odometry(forward-mm = 40, lateral-mm = -50, yaw-microradians = 60)\n battery: robotics/observe-battery(charge-permille = 750, millivolts = 12000)\n intent: robotics/velocity-intent(linear-microunits = 750000, angular-microunits = -250000)\n drive: robotics/drive-differential(ttl-ms = 1000)\n bump_sink: {BUMP_SINK_KIND}\n range_sink: {RANGE_SINK_KIND}\n imu_sink: {IMU_SINK_KIND}\n odometry_sink: {ODOMETRY_SINK_KIND}\n battery_sink: {BATTERY_SINK_KIND}\n bump.observation > bump_sink.value\n range.range > range_sink.value\n imu.orientation > imu_sink.value\n odometry.odometry > odometry_sink.value\n battery.battery > battery_sink.value\n intent.linear > drive.linear\n intent.angular > drive.angular\n}}\n"
+        "form prewake {{\n bump: robotics/observe-bump(state = \"{state}\")\n imu: robotics/observe-imu(roll-microradians = 10, pitch-microradians = -20, yaw-microradians = 30)\n range: robotics/observe-range(distance = {distance_mm}mm, age-ms = {age_ms})\n odometry: robotics/observe-odometry(forward-mm = 40, lateral-mm = -50, yaw-microradians = 60)\n battery: robotics/observe-battery(charge-permille = 750, millivolts = 12000)\n intent: robotics/velocity-intent(linear-microunits = 750000, angular-microunits = -250000)\n drive: robotics/drive-differential(ttl-ms = 1000)\n bump_sink: {BUMP_SINK_KIND}\n range_sink: {RANGE_SINK_KIND}\n imu_sink: {IMU_SINK_KIND}\n odometry_sink: {ODOMETRY_SINK_KIND}\n battery_sink: {BATTERY_SINK_KIND}\n bump.observation > bump_sink.value\n range.range > range_sink.value\n imu.orientation > imu_sink.value\n odometry.odometry > odometry_sink.value\n battery.battery > battery_sink.value\n intent.linear > drive.linear\n intent.angular > drive.angular\n}}\n"
     );
     let form = parse(&source, &catalog).map_err(|_| RoboticsError::Form)?;
     let advertisement = advertisement(host, boot);
@@ -92,6 +92,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("conduitos/two-lane-cooperative@1"),
+        bases: vec![],
         resources: Vec::new(),
         planner_capabilities: Vec::new(),
         capabilities,
@@ -126,7 +127,7 @@ fn discard_offer(kind: &str, value_kind: &str) -> CapabilityOffer {
             kind.rsplit('/').next().unwrap_or("robotics-sink")
         )),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+        kind_contract_revision: KindIdentity::from(SINK_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
                 crate::functional_offers::ROBOTICS_PROFILE,
@@ -141,7 +142,7 @@ fn discard_offer(kind: &str, value_kind: &str) -> CapabilityOffer {
             temporal: PortTemporal::Current,
         }],
         outputs: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {

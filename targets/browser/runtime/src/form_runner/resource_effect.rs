@@ -31,9 +31,9 @@ pub(super) fn matches(contract: &str) -> bool {
 pub(super) fn begin(
     scheduler: &mut TourScheduler,
     placement: &PlannedGear,
-    request: HostOperationRequest,
+    request: HostCallRequest,
 ) -> Result<Option<PendingHostEffect>, String> {
-    let publish = placement.host_operations[0].contract_id.as_str() == PUBLISH_OPERATION;
+    let publish = placement.host_calls[0].contract_id.as_str() == PUBLISH_OPERATION;
     let input = scheduler
         .kernel
         .host_value(request.input.value)
@@ -63,11 +63,11 @@ pub(super) fn begin(
     };
     if let Some(failure) = failure {
         scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Failed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Failed,
                     output: None,
                     failure: Some(failure),
                 },
@@ -137,13 +137,13 @@ pub(super) fn complete(
             .restore(&state.authority, record)
             .map_err(snapshot_failure),
         _ => Err(Failure {
-            code: FailureCode::HostOperationFailed,
+            code: FailureCode::HostCallFailed,
             detail: 209,
         }),
     });
     let outcome = match result {
-        Ok(bytes) => HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        Ok(bytes) => HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output: Some(
                 BoundedValueRef::new(
                     scheduler
@@ -156,15 +156,15 @@ pub(super) fn complete(
             ),
             failure: None,
         },
-        Err(failure) => HostOperationOutcome {
-            disposition: HostOperationDisposition::Failed,
+        Err(failure) => HostCallOutcome {
+            disposition: HostCallDisposition::Failed,
             output: None,
             failure: Some(failure),
         },
     };
     let output = outcome.output.map(|value| value.value);
     let completion =
-        scheduler.complete_host_operation(pending.request.node, pending.request.request, outcome);
+        scheduler.complete_host_call(pending.request.node, pending.request.request, outcome);
     scheduler.snapshots[usize::from(pending.request.node.0)]
         .as_mut()
         .expect("prepared snapshot")
@@ -191,7 +191,7 @@ fn snapshot_failure(error: SnapshotRefusal) -> Failure {
         SnapshotRefusal::UnsupportedExpiry => 210,
     };
     Failure {
-        code: FailureCode::HostOperationFailed,
+        code: FailureCode::HostCallFailed,
         detail,
     }
 }

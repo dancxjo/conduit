@@ -77,7 +77,7 @@ pub(super) fn portable_navigation_lines(
     .map_err(|error| error.to_string())
 }
 
-/// Ordinary zero-Body view. Exact identities remain in the deliberate details
+/// Ordinary zero-body view. Exact identities remain in the deliberate details
 /// view backed by `portable_presentation_lines`.
 pub(super) fn ordinary_front_door_lines(
     presentation: &Presentation,
@@ -203,7 +203,7 @@ fn renderer_self_inspection_lines(
             resource.units
         )
     }));
-    lines.extend(placement.host_operations.iter().map(|operation| {
+    lines.extend(placement.host_calls.iter().map(|operation| {
         format!(
             "RENDERER BASE contract={} target={} in-flight={} input-bytes={} output-bytes={}",
             operation.contract_id.as_str(),

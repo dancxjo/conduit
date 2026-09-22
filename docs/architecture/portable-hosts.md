@@ -571,7 +571,7 @@ pub struct HostAdvertisement {
 pub struct CapabilityAdvertisement {
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub execution_profile_id: ExecutionProfileId,
     pub implementation_id: ImplementationId,
     pub inputs: BoundedPorts,

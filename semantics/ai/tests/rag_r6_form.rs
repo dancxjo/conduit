@@ -56,6 +56,7 @@ fn plan(
         boot_id: BootId::from(format!("boot/r6/{process}/1")),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("host/r6@1"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![
             deterministic_hybrid_retrieval_offer(process).unwrap(),

@@ -1,7 +1,7 @@
 use conduit_human::{KeyEvent, KEY_EVENT_CONFORMANCE_VECTORS};
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, StepInputBytes, StepIo,
-    StepOperation, StepOutcome,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, StepBack, StepInputBytes,
+    StepIo, StepOutcome,
 };
 use conduit_kernel::{
     CordId, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent, NodeId, PortId, RouteRange,
@@ -35,7 +35,7 @@ struct Driver {
     cancelled: bool,
 }
 
-impl StepOperation<PORTS> for Driver {
+impl StepBack<PORTS> for Driver {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -50,7 +50,7 @@ impl StepOperation<PORTS> for Driver {
             } => {
                 if *fail {
                     return StepOutcome::Fail(conduit_kernel::Failure {
-                        code: conduit_kernel::FailureCode::HostOperationFailed,
+                        code: conduit_kernel::FailureCode::HostCallFailed,
                         detail: 0x4b44,
                     });
                 }
@@ -125,11 +125,11 @@ fn scheduler(fail: bool, sink_consumes: bool) -> KeyboardScheduler {
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             },
         ],
         [CordSpec::local(
@@ -216,8 +216,8 @@ fn cancellation_and_host_input_failure_remain_distinct() {
     let mut failed = scheduler(true, true);
     assert_eq!(
         failed.step(),
-        Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
-            code: conduit_kernel::FailureCode::HostOperationFailed,
+        Err(SchedulerError::BackFailed(conduit_kernel::Failure {
+            code: conduit_kernel::FailureCode::HostCallFailed,
             detail: 0x4b44
         }))
     );

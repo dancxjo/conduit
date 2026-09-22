@@ -1,6 +1,6 @@
 //! Conservative composition of finite work facts and deadline/WCET facts.
 //!
-//! Finite capacity is useful for ordinary Forms, but it is not a timing proof.
+//! Finite capacity is useful for ordinary forms, but it is not a timing proof.
 //! This module keeps the two analyses separate: a deadline region accepts only
 //! selected realizations with an explicit worst-case basis for every dependency.
 //! It does not introduce a semantic-unboundedness category.

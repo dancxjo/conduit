@@ -3,13 +3,13 @@ use std::collections::BTreeMap;
 use conduit_core::{
     authority_grant, kind_id, port_id, ArtifactId, AuthorityContractId, AuthorityGrant,
     AuthorityRequirement, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement,
-    HostProfileId, ImplementationId, KindContractRevision, LineId, LinkBindingId, LinkEndpointId,
+    CapabilityOffer, HostAdvertisement, HostCallContractId, HostCallRequirement, HostId,
+    HostProfileId, ImplementationId, KindIdentity, LineId, LinkBindingId, LinkEndpointId,
     OfferGeneration, PortDescriptor, PortDirection, PortTemporal, ResourceClassId, ResourceHealth,
     ResourceObservation, ResourceOffer, ResourcePoolId, ResourceRequirement, SignId,
     PROTOCOL_VERSION,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_planner::{
     observe_dormant_candidate, plan_with_options, prove_dormant_readmission,
     DormantEquipmentHistory, DormantReadmissionRefusal, PlacementChoice, PlacementChoices,
@@ -35,10 +35,10 @@ fn port(direction: PortDirection) -> PortDescriptor {
     }
 }
 
-fn definition(kind: &str) -> KindDefinition {
-    KindDefinition {
+fn definition(kind: &str) -> KindProjection {
+    KindProjection {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: (kind == SINK)
             .then(|| port(PortDirection::Input))
             .into_iter()
@@ -87,9 +87,9 @@ fn offer(kind: &str, host: &str) -> CapabilityOffer {
             implementation_id: ImplementationId::from(format!("test/{host}/{kind}@1")),
             artifact_id: ArtifactId::from(format!("test/{host}-image@1")),
         },
-        host_operations: sink
-            .then(|| HostOperationRequirement {
-                contract_id: HostOperationContractId::from(OPERATION),
+        host_calls: sink
+            .then(|| HostCallRequirement {
+                contract_id: HostCallContractId::from(OPERATION),
                 target_kind: Some(kind_id(SINK)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: 64,
@@ -110,7 +110,7 @@ fn offer(kind: &str, host: &str) -> CapabilityOffer {
         authority_requirements: sink
             .then(|| AuthorityRequirement {
                 contract_id: AuthorityContractId::from(AUTHORITY),
-                host_operation_contract_id: HostOperationContractId::from(OPERATION),
+                host_call_contract_id: HostCallContractId::from(OPERATION),
                 subject_kind: kind_id(SINK),
             })
             .into_iter()
@@ -130,6 +130,7 @@ fn host(name: &str, boot: &str, generation: u64, kinds: &[&str]) -> HostAdvertis
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(generation),
         profile: HostProfileId::from(format!("test/{name}")),
+        bases: vec![],
         resources: kinds
             .contains(&SINK)
             .then(|| ResourceOffer {
@@ -508,7 +509,7 @@ fn stale_history_resource_line_authority_and_revisions_refuse_specifically() {
 
     let mut incompatible = current.clone();
     incompatible.capabilities[0].kind_contract_revision =
-        KindContractRevision::from("test/dormant-sink@obsolete");
+        KindIdentity::from("test/dormant-sink@obsolete");
     assert_eq!(
         observe(
             &incompatible,

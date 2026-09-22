@@ -1,4 +1,4 @@
-//! Exact pending platform effect descriptions from the active Plan.
+//! Exact pending platform effect descriptions from the active plan.
 use super::*;
 
 impl TourSession {
@@ -202,6 +202,24 @@ impl TourSession {
                     source_interaction: self.source_interaction.clone(),
                 }),
             )),
+            engine::BrowserHostEffect::TutorialPresenterRequest => Ok(
+                TourHostEffect::TutorialPresenterRequest(Box::new(TourKeyEventEffect {
+                    schema: "conduit.workspace/tutorial-presenter-request-effect@1",
+                    effect_kind: "tutorial-presenter-request",
+                    source_document_id: fragment.source_document_id.as_str().into(),
+                    checked_form_id: fragment.checked_form_id.as_str().into(),
+                    expanded_form_id: fragment.expanded_form_id.as_str().into(),
+                    plan_id: fragment.plan_id.as_str().into(),
+                    fragment_id: fragment.fragment_id.as_str().into(),
+                    active_play_id: self.active_play_id.as_str().into(),
+                    placement_id: placement.placement_id.as_str().into(),
+                    host_id: self.host_id.as_str().into(),
+                    boot_id: self.boot_id.as_str().into(),
+                    request_sequence: pending.request.request.0,
+                    maximum_output_bytes: conduit_ai::MAXIMUM_LLM_INPUT_BYTES as u32,
+                    source_interaction: self.source_interaction.clone(),
+                })),
+            ),
             engine::BrowserHostEffect::Manifestation(manifestation) => {
                 let partition = self
                     .fragments

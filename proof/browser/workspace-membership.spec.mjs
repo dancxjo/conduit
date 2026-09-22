@@ -9,7 +9,7 @@ let entrance;
 test.beforeEach(async () => { entrance = await startStaticProduct("target/workspace-product", "/conduit/workspace/"); });
 test.afterEach(() => entrance?.child.kill());
 
-test("the ordinary Face binds and admits one compiler-free reviewed browser Host", async ({ page }) => {
+test("the ordinary face binds and admits one compiler-free reviewed browser Host", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
@@ -19,14 +19,14 @@ test("the ordinary Face binds and admits one compiler-free reviewed browser Host
   await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
   await expect(page.getByLabel("parts and hosts").getByRole("button", { name: "Invite another phone", exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Add a Host", exact: true }).click();
+  await page.getByRole("button", { name: "Add a host", exact: true }).click();
   await expect(page.getByRole("heading", { name: "What should this browser contribute?", exact: true })).toBeVisible();
   await expect(page.getByText("it creates no Host, membership, readiness, offer, Plan, or Play", { exact: false })).toBeVisible();
   await expect(page.getByText("Target: Browser page (browser/wasm32/page) · bind reviewed superset", { exact: true })).toBeVisible();
-  await expect(page.getByRole("checkbox", { name: "Display this Body", exact: true })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Display this body", exact: true })).toBeChecked();
   await expect(page.getByRole("checkbox", { name: "Keyboard and pointer input", exact: true })).toBeChecked();
   await page.getByRole("checkbox", { name: "Microphone input", exact: true }).check();
-  await expect(page.getByRole("button", { name: "Continue with reviewed Host", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Continue with reviewed host", exact: true })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Resolve reviewed Bases", exact: true }).click();
   await expect(page.locator('[data-application-key="configuration-review-values"]')).toContainText("PROFILE");
@@ -34,11 +34,14 @@ test("the ordinary Face binds and admits one compiler-free reviewed browser Host
   await page.getByRole("button", { name: "Back / Edit", exact: true }).click();
   await expect(page.getByRole("checkbox", { name: /browser\/dom@1/ })).toBeChecked();
   await expect(page.getByRole("checkbox", { name: /browser\/media-devices-microphone@1/ })).toBeChecked();
-  await page.getByRole("button", { name: "Review Host", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Continue with reviewed Host", exact: true })).toBeVisible();
+  const reviewHost = page.getByRole("button", { name: "Review Host", exact: true });
+  await expect(reviewHost).toBeVisible();
+  await expect(reviewHost).toBeEnabled();
+  await reviewHost.click();
+  await expect(page.getByRole("button", { name: "Continue with reviewed host", exact: true })).toBeVisible();
   const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
   const beforeRealization = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().realization);
-  await page.getByRole("button", { name: "Continue with reviewed Host", exact: true }).click();
+  await page.getByRole("button", { name: "Continue with reviewed host", exact: true }).click();
   const runner = page.locator(".physical-host-runner");
   await expect(page.getByRole("heading", { name: "Bind and admit this reviewed browser Host", exact: true })).toBeVisible();
   await expect(runner.locator('[data-application-key="physical-target"]')).toHaveValue("browser/wasm32/page");
@@ -76,7 +79,7 @@ test("the ordinary Face binds and admits one compiler-free reviewed browser Host
       value: () => `00000000-0000-4000-8000-${(next++).toString(16).padStart(12, "0")}`,
     });
   });
-  await runner.getByRole("button", { name: "Realize selected Host", exact: true }).click();
+  await runner.getByRole("button", { name: "Realize selected host", exact: true }).click();
   await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("BrowserBundleLoaded");
   evidence = JSON.parse((await runner.locator(".physical-evidence details code").allTextContents()).join(""));
   const admittedImplementationIds = evidence.realization.implementation_registry?.map(({ id }) => id)
@@ -124,13 +127,14 @@ test("the ordinary Face binds and admits one compiler-free reviewed browser Host
   }));
   expect(replan.playback.refusal).toMatchObject({
     code: "ExecutionLineUnavailable",
-    message: "Body proposal selected an admitted Host without a current execution Line",
+    message: "Body proposal selected an admitted host without a current execution Line",
   });
   expect(replan.playback.proposal.plan.workset.forms).toEqual(
     authoredForms.map(({ source_document_id, checked_form_id }) => ({ source_document_id, checked_form_id })),
   );
   const plannedFragments = replan.playback.proposal.plan.forms.flatMap(({ plan }) => plan.fragments);
-  expect(plannedFragments.map(({ host_id }) => host_id)).toEqual([added.current.host_id]);
+  expect(plannedFragments).toHaveLength(authoredForms.length);
+  expect(new Set(plannedFragments.map(({ host_id }) => host_id))).toEqual(new Set([added.current.host_id]));
   expect(plannedFragments.flatMap(({ placements }) => placements.map(({ implementation_id }) => implementation_id)))
     .toContain("browser/presentation-rhythm@1");
   const failedWake = replan.evidence.evidence.wakes.at(-1);
@@ -153,7 +157,7 @@ test("the ordinary Face binds and admits one compiler-free reviewed browser Host
   const inspected = JSON.parse(await page.locator("[data-inspection-content] pre").textContent());
   expect(inspected.refusal).toMatchObject({
     code: "ExecutionLineUnavailable",
-    message: "Body proposal selected an admitted Host without a current execution Line",
+    message: "Body proposal selected an admitted host without a current execution Line",
   });
   expect(inspected.body.wakes.at(-1).rejections).toEqual(failedWake.rejections);
   await page.locator("[data-close-inspection]").click();
@@ -178,8 +182,8 @@ test("the ordinary Face binds and admits one compiler-free reviewed browser Host
   expect(repaired.current.body_id).toBe(restored.current.body_id);
   expect(repaired.evidence.realization.plan.plan_id).not.toBe(replan.playback.proposal.plan.plan_id);
   expect(repaired.evidence.evidence.wakes.at(-1).lifecycle).toBe("Playing");
-  await expect(page.locator('[data-application-key="tutorial-guidance"]')).toContainText("Tutorial · continuity");
-  await expect(page.locator('[data-application-key="tutorial-guidance"]')).not.toContainText("Tutorial · repair");
+  await expect(page.locator('[data-application-key="tutorial-guidance"]:visible')).toContainText("Tutorial · continuity");
+  await expect(page.locator('[data-application-key="tutorial-guidance"]:visible')).not.toContainText("Tutorial · repair");
 });
 
 test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context, browser }) => {
@@ -197,7 +201,7 @@ test("a second distinct browser Host explicitly joins through one canonical Body
   await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
   await expect(page.getByRole("heading", { name: "parts and hosts", exact: true })).toBeVisible();
   await expect(page.locator(".member-card")).toHaveCount(1);
-  await expect(page.locator(".member-card")).toContainText("admitted · present · local Host");
+  await expect(page.locator(".member-card")).toContainText("admitted · present · local host");
   const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
 
   await page.getByLabel("parts and hosts").getByRole("button", { name: "Invite another phone", exact: true }).click();
@@ -210,7 +214,7 @@ test("a second distinct browser Host explicitly joins through one canonical Body
   expect(afterOffer).toEqual(before);
   expect(new URL(link).hash).toContain("body-invitation=");
   await page.getByRole("button", { name: "Show QR", exact: true }).click();
-  await expect(page.getByRole("img", { name: "QR representation of this exact Body invitation" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "QR representation of this exact body invitation" })).toBeVisible();
   await page.getByRole("button", { name: "Share…", exact: true }).click();
   expect(await page.evaluate(() => globalThis.__sharedInvitation.url)).toBe(link);
 
@@ -257,7 +261,7 @@ test("a second distinct browser Host explicitly joins through one canonical Body
 
   const joining = await context.newPage();
   await joining.goto(link);
-  await joining.getByRole("button", { name: "Join this Body", exact: true }).click();
+  await joining.getByRole("button", { name: "Join this body", exact: true }).click();
 
   await expect(joining.locator(".member-card")).toHaveCount(2);
   await expect(page.locator(".member-card")).toHaveCount(2);
@@ -367,13 +371,13 @@ test("pending share delivery survives worker replacement and expired delivery re
   await expect(restarted.locator("[data-workspace-notice]")).toContainText("Body invitation share expired");
 });
 
-test("malformed invitation framing is refused without creating a Body", async ({ page }) => {
+test("malformed invitation framing is refused without creating a body", async ({ page }) => {
   await page.goto(`${entrance.url}#body-invitation=not-json`);
   await expect(page.locator("[data-workspace-notice]")).toContainText("Body invitation is malformed");
   expect(await page.evaluate(() => globalThis.__conduitWorkspace)).toBeUndefined();
 });
 
-test("an unavailable running Host leaves the current Body and browser Host intact", async ({ page }) => {
+test("an unavailable running host leaves the current body and browser Host intact", async ({ page }) => {
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
@@ -381,18 +385,18 @@ test("an unavailable running Host leaves the current Body and browser Host intac
   const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
 
   await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
-  await page.getByRole("button", { name: "Connect a running Host", exact: true }).click();
-  await page.getByLabel("Running Host rendezvous code", { exact: true }).fill("not-a-rendezvous-code");
+  await page.getByRole("button", { name: "Connect a running host", exact: true }).click();
+  await page.getByLabel("Running host rendezvous code", { exact: true }).fill("not-a-rendezvous-code");
   await page.getByRole("button", { name: "Connect Host", exact: true }).click();
 
   await expect(page.locator("[data-workspace-notice]")).toContainText("not a supported finite Line code");
   expect(await page.evaluate(() => globalThis.__conduitWorkspace.evidence())).toEqual(before);
   await page.getByRole("button", { name: "Back to members", exact: true }).click();
   await expect(page.locator(".member-card")).toHaveCount(1);
-  await expect(page.locator(".member-card")).toContainText("admitted · present · local Host");
+  await expect(page.locator(".member-card")).toContainText("admitted · present · local host");
 });
 
-test("an already-running Host joins without displacing the browser Host or its Body", async ({ page }) => {
+test("an already-running host joins without displacing the browser Host or its body", async ({ page }) => {
   const installed = await startInstalledHost();
   const running = spawn("target/debug/conduit", ["host", "rendezvous", "--state-dir", installed.stateDir, "--timeout-seconds", "30"], {
     cwd: installed.root,
@@ -407,12 +411,12 @@ test("an already-running Host joins without displacing the browser Host or its B
     const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
 
     await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
-    await page.getByRole("button", { name: "Connect a running Host", exact: true }).click();
-    await page.getByLabel("Running Host rendezvous code", { exact: true }).fill(code);
+    await page.getByRole("button", { name: "Connect a running host", exact: true }).click();
+    await page.getByLabel("Running host rendezvous code", { exact: true }).fill(code);
     await page.getByRole("button", { name: "Connect Host", exact: true }).click();
 
     await expect(page.locator(".member-card")).toHaveCount(2);
-    await expect(page.locator(".member-card")).toContainText(["admitted · present · local Host", "admitted · present"]);
+    await expect(page.locator(".member-card")).toContainText(["admitted · present · local host", "admitted · present"]);
     const after = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
     expect(after.evidence.membership.revision).toBe(before.revision + 2);
     expect(after.evidence.membership.parts.every(part => part.state === "Admitted" && part.current)).toBe(true);
@@ -434,7 +438,7 @@ test("an already-running Host joins without displacing the browser Host or its B
   }
 });
 
-test("loss of a joined Host Line removes only its current offers and keeps the Body", async ({ page }) => {
+test("loss of a joined Host Line removes only its current offers and keeps the body", async ({ page }) => {
   const installed = await startInstalledHost();
   const running = spawn("target/debug/conduit", ["host", "rendezvous", "--state-dir", installed.stateDir, "--timeout-seconds", "30"], {
     cwd: installed.root,
@@ -449,8 +453,8 @@ test("loss of a joined Host Line removes only its current offers and keeps the B
     const bodyId = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.body_id);
 
     await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
-    await page.getByRole("button", { name: "Connect a running Host", exact: true }).click();
-    await page.getByLabel("Running Host rendezvous code", { exact: true }).fill(code);
+    await page.getByRole("button", { name: "Connect a running host", exact: true }).click();
+    await page.getByLabel("Running host rendezvous code", { exact: true }).fill(code);
     await page.getByRole("button", { name: "Connect Host", exact: true }).click();
     await expect(page.locator(".member-card")).toHaveCount(2);
     expect(await page.evaluate(() => globalThis.__conduitWorkspace.evidence().current_host_offers.length)).toBe(2);
@@ -487,7 +491,7 @@ async function startInstalledHost() {
     cwd: root,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  await processOutput(service, / is running/, "durable Host service");
+  await processOutput(service, / is running/, "durable host service");
   return { root, stateDir, close: async () => {
     if (service.exitCode === null) service.kill();
     await new Promise(resolveClose => service.exitCode === null ? service.once("exit", resolveClose) : resolveClose());

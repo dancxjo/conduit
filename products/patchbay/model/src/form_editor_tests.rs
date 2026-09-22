@@ -32,11 +32,9 @@ fn catalog_aware_editor_retains_exact_catalogs_for_recheck_and_expansion() {
         })
         .unwrap();
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: conduit_core::KindId::from("test/catalog-aware"),
-            kind_contract_revision: conduit_core::KindContractRevision::from(
-                "test/catalog-aware@1",
-            ),
+            kind_contract_revision: conduit_core::KindIdentity::from("test/catalog-aware@1"),
             inputs: vec![],
             outputs: vec![],
             configuration: vec![],
@@ -121,7 +119,7 @@ fn open_back_authoring_preserves_exact_front_ports_without_claiming_a_runnable_r
     assert_eq!(graph.front_inputs[0].identity, "front/input/name");
     assert_eq!(
         graph.front_inputs[0].descriptor.value_kind.as_str(),
-        "value/text@1"
+        "value/text"
     );
     assert_eq!(graph.front_outputs.len(), 1);
     assert_eq!(graph.front_outputs[0].identity, "front/output/text");

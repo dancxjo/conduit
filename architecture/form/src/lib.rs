@@ -15,7 +15,7 @@ use crate::prelude::*;
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     CapabilityId, CheckedFormId, ConfigurationEntry, ConfigurationValue, ExpandedFormId,
-    FormIdentity, GearId, KindContractRevision, KindId, PortDescriptor, PortDirection, PortId,
+    FormIdentity, GearId, KindId, KindIdentity, PortDescriptor, PortDirection, PortId,
     SourceDocumentId,
 };
 use sha2::{Digest, Sha256};
@@ -40,6 +40,7 @@ mod value_type;
 pub use back_catalog::*;
 pub use canonical_expansion::*;
 pub use checked_syntax::*;
+pub use conduit_core::{KindConfigurationField, KindConfigurationRule};
 pub use diagnostic::*;
 pub use structured_startup::*;
 pub use syntax::*;
@@ -85,8 +86,8 @@ pub struct FormDiagnostic {
 pub struct CheckedGear {
     pub gear_id: GearId,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
-    pub startup_parameters: Vec<conduit_core::FaceStartupParameter>,
+    pub kind_contract_revision: KindIdentity,
+    pub startup_parameters: Vec<conduit_core::FrontStartupParameter>,
     pub shorthand: Option<(PortId, PortId)>,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
@@ -153,7 +154,7 @@ impl CheckedForm {
             let boundary = nested
                 .form
                 .export_boundary_unvalidated(&nested.export_capability_id)?;
-            let definition = boundary.kind_definition();
+            let definition = boundary.kind_projection();
             if gear.kind_id != definition.kind_id
                 || gear.kind_contract_revision != definition.kind_contract_revision
                 || gear.inputs != definition.inputs
@@ -254,15 +255,15 @@ pub struct CheckedNestedForm {
 pub struct CheckedExport {
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
-    pub input_fronts: Vec<CheckedCompositeFace>,
-    pub output_fronts: Vec<CheckedCompositeFace>,
+    pub input_fronts: Vec<CheckedCompositeFront>,
+    pub output_fronts: Vec<CheckedCompositeFront>,
 }
 
 /// Terminal behavior is part of the exported front contract, independently for
 /// every front. More policies can be added without weakening the current exact
 /// `independent` contract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CompositeFaceTerminal {
+pub enum CompositeFrontTerminal {
     Independent,
     /// Reserved invalid value used to prove hosted mutation rejection. The
     /// authored grammar intentionally accepts only `independent` today.
@@ -270,66 +271,65 @@ pub enum CompositeFaceTerminal {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CheckedCompositeFace {
+pub struct CheckedCompositeFront {
     pub external_port: PortDescriptor,
     pub internal_gear_id: GearId,
     pub internal_port_id: PortId,
-    pub terminal: CompositeFaceTerminal,
+    pub terminal: CompositeFrontTerminal,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedCompositeBoundary {
     pub capability_id: CapabilityId,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
-    pub input_fronts: Vec<CheckedCompositeFace>,
-    pub output_fronts: Vec<CheckedCompositeFace>,
+    pub input_fronts: Vec<CheckedCompositeFront>,
+    pub output_fronts: Vec<CheckedCompositeFront>,
 }
 
 impl CheckedCompositeBoundary {
-    pub fn kind_definition(&self) -> KindDefinition {
-        KindDefinition {
+    pub fn kind_projection(&self) -> KindProjection {
+        KindProjection {
             kind_id: self.kind_id.clone(),
             kind_contract_revision: self.kind_contract_revision.clone(),
             inputs: self.inputs.clone(),
             outputs: self.outputs.clone(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         }
     }
 }
 
+/// Checker projection of a canonical [`conduit_core::Kind`].
+///
+/// This contains only the semantic fields needed while checking authored Form
+/// source. It is not a second Kind identity and cannot be offered by a Host.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ConfigurationField {
-    pub key: String,
-    pub default_value: ConfigurationValue,
-    pub validation: ConfigurationRule,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ConfigurationRule {
-    Any,
-    U64Range { minimum: u64, maximum: u64 },
-    I64Range { minimum: i64, maximum: i64 },
-    DurationMillis { minimum: u64, maximum: u64 },
-    TextBytes { maximum: u32 },
-    TextOneOf { values: Vec<String> },
-    Structured { profile: KindId },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KindDefinition {
+pub struct KindProjection {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
-    pub configuration: Vec<ConfigurationField>,
+    pub configuration: Vec<KindConfigurationField>,
+}
+
+impl From<&conduit_core::Kind> for KindProjection {
+    fn from(kind: &conduit_core::Kind) -> Self {
+        Self {
+            kind_id: kind.kind_id.clone(),
+            kind_contract_revision: kind.kind_contract_revision.clone(),
+            inputs: kind.inputs.clone(),
+            outputs: kind.outputs.clone(),
+            configuration: kind.configuration.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ProfileCatalog {
-    kinds: BTreeMap<KindId, KindDefinition>,
+    kinds: BTreeMap<KindId, KindProjection>,
+    canonical_kinds: BTreeMap<KindId, conduit_core::Kind>,
 }
 
 impl ProfileCatalog {
@@ -337,7 +337,7 @@ impl ProfileCatalog {
         Self::default()
     }
 
-    pub fn insert(&mut self, definition: KindDefinition) -> Result<(), FormError> {
+    pub fn insert(&mut self, definition: KindProjection) -> Result<(), FormError> {
         if self.kinds.contains_key(&definition.kind_id) {
             return Err(FormError::DuplicateKind(
                 definition.kind_id.as_str().to_string(),
@@ -347,8 +347,22 @@ impl ProfileCatalog {
         Ok(())
     }
 
-    pub fn get(&self, kind_id: &KindId) -> Option<&KindDefinition> {
+    /// Installs canonical Kind truth while retaining the smaller checker view.
+    pub fn insert_kind(&mut self, kind: conduit_core::Kind) -> Result<(), FormError> {
+        kind.validate()
+            .map_err(|error| FormError::InvalidKind(format!("{error:?}")))?;
+        let projection = KindProjection::from(&kind);
+        self.insert(projection)?;
+        self.canonical_kinds.insert(kind.kind_id.clone(), kind);
+        Ok(())
+    }
+
+    pub fn get(&self, kind_id: &KindId) -> Option<&KindProjection> {
         self.kinds.get(kind_id)
+    }
+
+    pub fn canonical_kind(&self, kind_id: &KindId) -> Option<&conduit_core::Kind> {
+        self.canonical_kinds.get(kind_id)
     }
 
     /// Derives the startup names and defaults needed to check canonical source.
@@ -370,6 +384,7 @@ impl ProfileCatalog {
                             ConfigurationValue::I64(_) => "Scalar",
                             ConfigurationValue::Text(_) => "Text",
                             ConfigurationValue::Structured(_) => "Structured",
+                            ConfigurationValue::Quantity(_) => "Quantity",
                         }
                         .into(),
                         default: Some(render_value(&field.default_value)),
@@ -386,7 +401,7 @@ impl ProfileCatalog {
         capability_id: &CapabilityId,
     ) -> Result<CheckedCompositeBoundary, FormError> {
         let boundary = form.export_boundary(capability_id)?;
-        self.insert(boundary.kind_definition())?;
+        self.insert(boundary.kind_projection())?;
         Ok(boundary)
     }
 }
@@ -399,6 +414,7 @@ pub enum FormError {
     MissingBlockEnd,
     DuplicateKind(String),
     InvalidExport(String),
+    InvalidKind(String),
     InvalidIdentity(String),
     InvalidSyntax(String),
 }
@@ -418,6 +434,7 @@ impl core::fmt::Display for FormError {
             Self::MissingBlockEnd => write!(f, "expected closing '}}' at end of form"),
             Self::DuplicateKind(kind) => write!(f, "duplicate profile kind '{kind}'"),
             Self::InvalidExport(message) => write!(f, "invalid export: {message}"),
+            Self::InvalidKind(message) => write!(f, "invalid Kind: {message}"),
             Self::InvalidIdentity(message) => write!(f, "invalid form identity: {message}"),
             Self::InvalidSyntax(message) => write!(f, "invalid canonical form syntax: {message}"),
         }
@@ -471,7 +488,7 @@ pub fn parse_with_startup(
     let input_fronts = authoring
         .input_bindings
         .iter()
-        .map(|binding| CheckedCompositeFace {
+        .map(|binding| CheckedCompositeFront {
             external_port: authoring
                 .front
                 .inputs()
@@ -481,13 +498,13 @@ pub fn parse_with_startup(
                 .clone(),
             internal_gear_id: binding.gear_id.clone(),
             internal_port_id: binding.gear_port_id.clone(),
-            terminal: CompositeFaceTerminal::Independent,
+            terminal: CompositeFrontTerminal::Independent,
         })
         .collect::<Vec<_>>();
     let output_fronts = authoring
         .output_bindings
         .iter()
-        .map(|binding| CheckedCompositeFace {
+        .map(|binding| CheckedCompositeFront {
             external_port: authoring
                 .front
                 .outputs()
@@ -497,7 +514,7 @@ pub fn parse_with_startup(
                 .clone(),
             internal_gear_id: binding.gear_id.clone(),
             internal_port_id: binding.gear_port_id.clone(),
-            terminal: CompositeFaceTerminal::Independent,
+            terminal: CompositeFrontTerminal::Independent,
         })
         .collect::<Vec<_>>();
     let exports = if input_fronts.is_empty() && output_fronts.is_empty() {
@@ -671,6 +688,7 @@ fn diagnostic(error: FormError, span: Span) -> FormDiagnostic {
         FormError::TokenLimitExceeded => "CND-FRM-015",
         FormError::InvalidIdentity(_) => "CND-FRM-018",
         FormError::InvalidSyntax(_) => "CND-FRM-019",
+        FormError::InvalidKind(_) => "CND-FRM-020",
     };
     FormDiagnostic {
         code,
@@ -713,7 +731,7 @@ fn validate_export_fronts(export: &CheckedExport, gears: &[CheckedGear]) -> Resu
                 FormError::InvalidExport("front names a missing or wrongly directed Port".into())
             })?;
             if endpoint.value_kind != front.external_port.value_kind
-                || front.terminal != CompositeFaceTerminal::Independent
+                || front.terminal != CompositeFrontTerminal::Independent
             {
                 return Err(FormError::InvalidExport(
                     "front contract differs from its internal endpoint".into(),
@@ -830,9 +848,9 @@ fn expanded_form_id(
 
 fn exported_contract_revision(
     kind_id: &KindId,
-    inputs: &[CheckedCompositeFace],
-    outputs: &[CheckedCompositeFace],
-) -> KindContractRevision {
+    inputs: &[CheckedCompositeFront],
+    outputs: &[CheckedCompositeFront],
+) -> KindIdentity {
     let mut canonical = String::from("checked-export-contract:");
     push_identity_field(&mut canonical, kind_id.as_str());
     for (direction, fronts) in [("input", inputs), ("output", outputs)] {
@@ -844,13 +862,13 @@ fn exported_contract_revision(
             push_identity_field(
                 &mut canonical,
                 match front.terminal {
-                    CompositeFaceTerminal::Independent => "independent",
-                    CompositeFaceTerminal::Coupled => "coupled",
+                    CompositeFrontTerminal::Independent => "independent",
+                    CompositeFrontTerminal::Coupled => "coupled",
                 },
             );
         }
     }
-    KindContractRevision::from(format!("checked-export:{}", hash_string(&canonical)))
+    KindIdentity::from(format!("checked-export:{}", hash_string(&canonical)))
 }
 
 fn push_identity_field(canonical: &mut String, value: &str) {
@@ -871,6 +889,9 @@ fn render_value(value: &ConfigurationValue) -> String {
             value.profile().as_str(),
             value.canonical_value().len()
         ),
+        ConfigurationValue::Quantity(value) => {
+            alloc::format!("{}{}", value.value(), value.unit().form_suffix())
+        }
     }
 }
 

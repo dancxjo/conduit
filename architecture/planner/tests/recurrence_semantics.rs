@@ -1,12 +1,12 @@
 use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, KindId, OfferGeneration, StructuredConfigurationValue,
-    StructuredFieldType, StructuredInfoType, StructuredInfoValue, PROTOCOL_VERSION,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindId,
+    KindIdentity, OfferGeneration, StructuredConfigurationValue, StructuredFieldType,
+    StructuredInfoType, StructuredInfoValue, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, CanonicalStartupValue,
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
@@ -14,8 +14,8 @@ use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 const KIND: &str = "time/expand-recurrence";
 
 fn civil_recurrence_type() -> StructuredInfoType {
-    let text = StructuredInfoType::leaf(KindId::from("value/text@1")).unwrap();
-    let count = StructuredInfoType::leaf(KindId::from("value/count@1")).unwrap();
+    let text = StructuredInfoType::leaf(KindId::from("value/text")).unwrap();
+    let count = StructuredInfoType::leaf(KindId::from("value/count")).unwrap();
     let local_date = StructuredInfoType::leaf(KindId::from("time/local-date@1")).unwrap();
     StructuredInfoType::record(
         KindId::from("time/civil-recurrence@1"),
@@ -71,27 +71,27 @@ fn checked_document() -> (conduit_form::CheckedSyntaxDocument, StructuredInfoVal
     (checked, value)
 }
 
-fn definition(value: &StructuredInfoValue) -> KindDefinition {
+fn definition(value: &StructuredInfoValue) -> KindProjection {
     let profile = value.value_type().profile().unwrap().value_kind().clone();
     let default_value =
         StructuredConfigurationValue::new(profile.clone(), value.canonical_bytes().unwrap())
             .unwrap();
-    KindDefinition {
+    KindProjection {
         kind_id: KindId::from(KIND),
-        kind_contract_revision: KindContractRevision::from("time/expand-recurrence@1"),
+        kind_contract_revision: KindIdentity::from("time/expand-recurrence@1"),
         inputs: vec![],
         outputs: vec![],
-        configuration: vec![ConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "schedule".into(),
             default_value: ConfigurationValue::Structured(default_value),
-            validation: ConfigurationRule::Structured { profile },
+            rule: KindConfigurationRule::Structured { profile },
         }],
     }
 }
 
 fn advertisement(
-    definition: &KindDefinition,
-    startup_parameters: Vec<conduit_core::FaceStartupParameter>,
+    definition: &KindProjection,
+    startup_parameters: Vec<conduit_core::FrontStartupParameter>,
 ) -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
@@ -99,6 +99,7 @@ fn advertisement(
         boot_id: BootId::from("boot/time-test"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test/time-host"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![CapabilityOffer {
             startup_parameters,
@@ -113,7 +114,7 @@ fn advertisement(
             },
             inputs: vec![],
             outputs: vec![],
-            host_operations: vec![],
+            host_calls: vec![],
             resource_requirements: vec![],
             authority_requirements: vec![],
             limits: CapabilityLimits {

@@ -5,7 +5,7 @@ use crate::surface_lex::{
 };
 use crate::syntax::{
     Argument, BackStatement, ConstructionRole, ConstructionSyntax, Cord, CordStage, Expression,
-    FormCompletionPolicy, FormFace, FormSyntax, Invocation, LocalValue, NamedGear, RuntimePort,
+    FormCompletionPolicy, FormFront, FormSyntax, Invocation, LocalValue, NamedGear, RuntimePort,
     RuntimePortDirection, RuntimePortTemporal, ShorthandPair, SpannedText, StartupParameter,
     SyntaxDocument,
 };
@@ -164,7 +164,7 @@ impl<'a> Parser<'a> {
         let name = self.spanned(name_text, name_offset);
         let form_start = header_start;
         let marker = rest.as_bytes()[boundary] as char;
-        let mut front = FormFace::default();
+        let mut front = FormFront::default();
         if marker == '(' {
             if !rest[boundary + 1..].trim().is_empty() {
                 return Err((
@@ -197,8 +197,8 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_front(&mut self, open: usize) -> Result<FormFace, (FormError, Span)> {
-        let mut front = FormFace::default();
+    fn parse_front(&mut self, open: usize) -> Result<FormFront, (FormError, Span)> {
+        let mut front = FormFront::default();
         while self.index < self.lines.len() {
             let line = self.lines[self.index];
             let (text, start) = line.statement();
@@ -246,7 +246,7 @@ impl<'a> Parser<'a> {
         &self,
         text: &str,
         start: usize,
-        front: &mut FormFace,
+        front: &mut FormFront,
     ) -> Result<(), (FormError, Span)> {
         let arrows = top_level_positions(text, '>');
         if arrows.len() != 1 {
@@ -339,7 +339,7 @@ impl<'a> Parser<'a> {
                 if completion == FormCompletionPolicy::SemanticCompletion {
                     return Err((
                         FormError::InvalidSyntax(
-                            "a Form may declare semantic completion only once".into(),
+                            "a form may declare semantic completion only once".into(),
                         ),
                         self.span(start, start + text.len()),
                     ));

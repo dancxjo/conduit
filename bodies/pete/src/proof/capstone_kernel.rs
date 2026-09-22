@@ -2,11 +2,13 @@
 
 use super::capstone_operations::{CurrentSelector, DriveSink};
 use conduit_kernel::{
-    scheduler::{CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver},
-    BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId, KernelEvent,
-    NodeId, Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
-    ValueRef, ValueStorage,
+    scheduler::{
+        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo,
+        StepOutcome,
+    },
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallBinding, HostCallDisposition, HostCallId, KernelEvent, NodeId, PortId, RequestId,
+    RouteRange, RouteTarget, ValueRef, ValueStorage,
 };
 
 pub(super) const OBSERVATION_NODE: NodeId = NodeId(0);
@@ -15,7 +17,7 @@ const STOPPED_NODE: NodeId = NodeId(2);
 const SELECT_NODE: NodeId = NodeId(3);
 pub(super) const DRIVE_NODE: NodeId = NodeId(4);
 pub(super) const OBSERVATION_REQUEST: RequestId = RequestId(1);
-const OPERATION: HostOperationId = HostOperationId(0);
+const OPERATION: HostCallId = HostCallId(0);
 const PORTS: usize = 3;
 const SIGNS: usize = 256;
 const SCALAR_BYTES: u32 = conduit_core::SCALAR_ENCODED_LEN as u32;
@@ -28,104 +30,11 @@ pub(super) struct ObservationSource {
     emitted: bool,
 }
 
-impl Operation for ObservationSource {
-    fn start(&mut self) -> OperationAction {
-        self.pending = true;
-        OperationAction::RequestHostOperation {
-            request: OBSERVATION_REQUEST,
-            operation: OPERATION,
-            input: BoundedValueRef::new(self.empty, 0).expect("empty request is exact"),
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostOperationCompleted {
-                request: OBSERVATION_REQUEST,
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
-                && outcome.failure.is_none() =>
-            {
-                self.pending = false;
-                match outcome.output {
-                    Some(output) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    None => OperationAction::Complete,
-                }
-            }
-            OperationInput::HostOperationCompleted { outcome, .. }
-                if self.pending
-                    && outcome.disposition == HostOperationDisposition::Failed
-                    && outcome.failure.is_some() =>
-            {
-                self.pending = false;
-                OperationAction::Fail(outcome.failure.expect("guarded failure"))
-            }
-            _ => invalid(1),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            self.emitted = false;
-            OperationAction::Complete
-        } else {
-            invalid(2)
-        }
-    }
-
-    fn cancel(&mut self) {
-        self.pending = false;
-        self.emitted = false;
-    }
-}
-
 #[derive(Clone, Copy)]
 pub(super) struct VelocitySource {
     linear: ValueRef,
     angular: Option<ValueRef>,
     phase: u8,
-}
-
-impl Operation for VelocitySource {
-    fn start(&mut self) -> OperationAction {
-        self.phase = 1;
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.linear,
-        }
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        invalid(3)
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match (self.phase, self.angular) {
-            (1, Some(value)) => {
-                self.phase = 2;
-                OperationAction::Emit {
-                    port: PortId(1),
-                    value,
-                }
-            }
-            (1 | 2, _) => {
-                self.phase = 0;
-                OperationAction::Complete
-            }
-            _ => invalid(4),
-        }
-    }
-
-    fn cancel(&mut self) {
-        self.phase = 0;
-    }
 }
 
 #[derive(Clone, Copy)]
@@ -136,47 +45,89 @@ pub(super) enum CapstoneOperation {
     Drive(DriveSink),
 }
 
-impl Operation for CapstoneOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepBack<PORTS> for CapstoneOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, bytes: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
-            Self::Observation(value) => value.start(),
-            Self::Velocity(value) => value.start(),
-            Self::Select(value) => value.start(),
-            Self::Drive(value) => value.start(),
-        }
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Observation(value) => value.resume(input),
-            Self::Velocity(value) => value.resume(input),
-            Self::Select(value) => value.resume(input),
-            Self::Drive(value) => value.resume(input),
-        }
-    }
-    fn resume_value(&mut self, port: PortId, value: ValueRef, bytes: &[u8]) -> OperationAction {
-        match self {
-            Self::Select(operation) => operation.resume_value(port, value, bytes),
-            Self::Drive(operation) => operation.resume_value(port, value, bytes),
-            _ => self.resume(OperationInput::Value { port, value }),
-        }
-    }
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Observation(value) => value.advance(),
-            Self::Velocity(value) => value.advance(),
-            Self::Select(_) | Self::Drive(_) => OperationAction::Await,
-        }
-    }
-    fn retains_resumed_value(&self) -> bool {
-        match self {
-            Self::Drive(value) => value.retains_resumed_value(),
-            _ => false,
+            Self::Observation(source) => {
+                if let Some((request, outcome)) = io.host_completion() {
+                    if request != OBSERVATION_REQUEST || !source.pending {
+                        return invalid(1);
+                    }
+                    match (outcome.disposition, outcome.output, outcome.failure) {
+                        (HostCallDisposition::Completed, output, None) => {
+                            if output.is_some() && !io.output_ready(PortId(0)) {
+                                return StepOutcome::Await;
+                            }
+                            io.consume_host_completion()
+                                .expect("observed capstone observation completion");
+                            source.pending = false;
+                            if let Some(output) = output {
+                                io.send(PortId(0), output.value)
+                                    .expect("ready capstone observation Cord");
+                                source.emitted = true;
+                            }
+                            return StepOutcome::Complete;
+                        }
+                        (HostCallDisposition::Failed, _, Some(failure)) => {
+                            io.consume_host_completion()
+                                .expect("observed failed capstone observation");
+                            source.pending = false;
+                            return StepOutcome::Fail(failure);
+                        }
+                        _ => return invalid(1),
+                    }
+                }
+                if source.emitted {
+                    return StepOutcome::Complete;
+                }
+                if source.pending {
+                    return StepOutcome::Await;
+                }
+                io.request_host_call(
+                    OBSERVATION_REQUEST,
+                    OPERATION,
+                    BoundedValueRef::new(source.empty, 0).expect("empty request is exact"),
+                )
+                .expect("planned capstone observation Host Call");
+                source.pending = true;
+                StepOutcome::Progress
+            }
+            Self::Velocity(source) => match source.phase {
+                0 => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.send(PortId(0), source.linear)
+                        .expect("ready capstone linear Cord");
+                    source.phase = 1;
+                    StepOutcome::Progress
+                }
+                1 => {
+                    let Some(value) = source.angular else {
+                        return StepOutcome::Complete;
+                    };
+                    if !io.output_ready(PortId(1)) {
+                        return StepOutcome::Await;
+                    }
+                    io.send(PortId(1), value)
+                        .expect("ready capstone angular Cord");
+                    source.phase = 2;
+                    StepOutcome::Complete
+                }
+                2 => StepOutcome::Complete,
+                _ => invalid(4),
+            },
+            Self::Select(value) => value.step(io, bytes),
+            Self::Drive(value) => value.step(io, bytes),
         }
     }
     fn cancel(&mut self) {
         match self {
-            Self::Observation(value) => value.cancel(),
-            Self::Velocity(value) => value.cancel(),
+            Self::Observation(value) => {
+                value.pending = false;
+                value.emitted = false;
+            }
+            Self::Velocity(value) => value.phase = 0,
             Self::Select(value) => value.cancel(),
             Self::Drive(value) => value.cancel(),
         }
@@ -184,7 +135,7 @@ impl Operation for CapstoneOperation {
 }
 
 pub(super) type CapstoneScheduler = FixedScheduler<
-    OperationDriver<CapstoneOperation, PORTS>,
+    CapstoneOperation,
     FixedValueStore<8, { SCALAR_BYTES as usize }>,
     FixedSignLog<SIGNS>,
     5,
@@ -241,51 +192,51 @@ pub(super) fn prepare_scheduler(
     }
     routes.seal().map_err(|_| "capstone route seal failed")?;
 
-    let mut bindings = FixedHostOperationBindings::<5>::new(1);
+    let mut bindings = FixedHostCallBindings::<5>::new(1);
     bindings
         .install(
             OBSERVATION_NODE,
-            HostOperationBinding {
-                operation: OPERATION,
+            HostCallBinding {
+                call: OPERATION,
                 maximum_input_bytes: 0,
                 maximum_output_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
             },
         )
-        .map_err(|_| "observation Host operation admission failed")?;
+        .map_err(|_| "observation Host Call admission failed")?;
     bindings
         .install(
             DRIVE_NODE,
-            HostOperationBinding {
-                operation: OPERATION,
+            HostCallBinding {
+                call: OPERATION,
                 maximum_input_bytes: 2 * SCALAR_BYTES,
                 maximum_output_bytes: 0,
             },
         )
-        .map_err(|_| "drive Host operation admission failed")?;
-    bindings.seal().map_err(|_| "Host operation seal failed")?;
+        .map_err(|_| "drive Host Call admission failed")?;
+    bindings.seal().map_err(|_| "Host Call seal failed")?;
 
     let signs = FixedSignLog::new((SIGNS * core::mem::size_of::<KernelEvent>()) as u32)
         .map_err(|_| "capstone Sign admission failed")?;
     let node_specs = [
         NodeSpec {
             input_cords: [None; PORTS],
-            maximum_step_work: 2,
+            maximum_step_fuel: 2,
         },
         NodeSpec {
             input_cords: [None; PORTS],
-            maximum_step_work: 2,
+            maximum_step_fuel: 2,
         },
         NodeSpec {
             input_cords: [None; PORTS],
-            maximum_step_work: 2,
+            maximum_step_fuel: 2,
         },
         NodeSpec {
             input_cords: [Some(CordId(0)), Some(CordId(1)), Some(CordId(2))],
-            maximum_step_work: 3,
+            maximum_step_fuel: 3,
         },
         NodeSpec {
             input_cords: [Some(CordId(3)), Some(CordId(4)), None],
-            maximum_step_work: 2,
+            maximum_step_fuel: 3,
         },
     ];
     let cords = route_specs.map(|(source, source_port, sink, sink_port)| {
@@ -310,45 +261,38 @@ pub(super) fn prepare_scheduler(
             },
         )
     });
-    FixedScheduler::new_with_host_operations(
+    FixedScheduler::new_with_host_calls(
         node_specs,
         cords,
         routes,
         bindings,
         [
-            OperationDriver::new(CapstoneOperation::Observation(ObservationSource {
+            CapstoneOperation::Observation(ObservationSource {
                 empty,
                 pending: false,
                 emitted: false,
-            }))
-            .map_err(|_| "observation operation preparation failed")?,
-            OperationDriver::new(CapstoneOperation::Velocity(VelocitySource {
+            }),
+            CapstoneOperation::Velocity(VelocitySource {
                 linear: requested_linear,
                 angular: Some(requested_angular),
                 phase: 0,
-            }))
-            .map_err(|_| "requested operation preparation failed")?,
-            OperationDriver::new(CapstoneOperation::Velocity(VelocitySource {
+            }),
+            CapstoneOperation::Velocity(VelocitySource {
                 linear: stopped_linear,
                 angular: None,
                 phase: 0,
-            }))
-            .map_err(|_| "stopped operation preparation failed")?,
-            OperationDriver::new(CapstoneOperation::Select(CurrentSelector {
+            }),
+            CapstoneOperation::Select(CurrentSelector {
                 selector: None,
                 candidates: [None; 2],
                 closed: [false; 3],
-            }))
-            .map_err(|_| "selector operation preparation failed")?,
-            OperationDriver::new(CapstoneOperation::Drive(DriveSink {
-                linear: None,
+            }),
+            CapstoneOperation::Drive(DriveSink {
                 angular_is_zero: false,
                 closed: [false; 2],
                 pending: false,
                 completed: false,
-                retain_resumed: false,
-            }))
-            .map_err(|_| "drive operation preparation failed")?,
+            }),
         ],
         values,
         signs,
@@ -356,8 +300,8 @@ pub(super) fn prepare_scheduler(
     .map_err(|_| "capstone kernel preparation failed")
 }
 
-const fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+const fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
         detail,
     })

@@ -163,7 +163,7 @@ fn one_house_keeps_unrelated_form_running_after_another_host_is_lost() {
             &mut output,
             &mut ThreadTimer,
         )
-        .expect("unrelated status Form remains executable on its available Host");
+        .expect("unrelated status Form remains executable on its available host");
     assert!(String::from_utf8(output).unwrap().contains("HelloTravis"));
     assert!(matches!(
         report.observations.last().map(|item| &item.kind),

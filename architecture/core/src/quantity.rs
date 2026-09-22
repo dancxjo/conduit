@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::semantic_digest;
 
-pub const QUANTITY_INFO_ID: &str = "value/quantity@1";
+pub const QUANTITY_INFO_ID: &str = "value/quantity";
 pub const QUANTITY_ENCODED_LEN: usize = 9;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -12,6 +12,9 @@ pub enum QuantityDimension {
     Time,
     Frequency,
     Voltage,
+    Current,
+    Temperature,
+    Charge,
     Length,
     Angle,
     Ratio,
@@ -29,6 +32,16 @@ pub enum QuantityUnit {
     Microvolt,
     Millivolt,
     Volt,
+    Microampere,
+    Milliampere,
+    Ampere,
+    Millikelvin,
+    Kelvin,
+    MilliCelsius,
+    Celsius,
+    MicroampereHour,
+    MilliampereHour,
+    AmpereHour,
     Micrometer,
     Millimeter,
     Centimeter,
@@ -36,6 +49,9 @@ pub enum QuantityUnit {
     Microdegree,
     Millidegree,
     Degree,
+    Microradian,
+    Milliradian,
+    Radian,
     Millionth,
     Permille,
     Percent,
@@ -85,6 +101,16 @@ impl QuantityUnit {
             Self::Microvolt => "voltage/microvolt",
             Self::Millivolt => "voltage/millivolt",
             Self::Volt => "voltage/volt",
+            Self::Microampere => "current/microampere",
+            Self::Milliampere => "current/milliampere",
+            Self::Ampere => "current/ampere",
+            Self::Millikelvin => "temperature/millikelvin",
+            Self::Kelvin => "temperature/kelvin",
+            Self::MilliCelsius => "temperature/millicelsius",
+            Self::Celsius => "temperature/celsius",
+            Self::MicroampereHour => "charge/microampere-hour",
+            Self::MilliampereHour => "charge/milliampere-hour",
+            Self::AmpereHour => "charge/ampere-hour",
             Self::Micrometer => "length/micrometer",
             Self::Millimeter => "length/millimeter",
             Self::Centimeter => "length/centimeter",
@@ -92,6 +118,9 @@ impl QuantityUnit {
             Self::Microdegree => "angle/microdegree",
             Self::Millidegree => "angle/millidegree",
             Self::Degree => "angle/degree",
+            Self::Microradian => "angle/microradian",
+            Self::Milliradian => "angle/milliradian",
+            Self::Radian => "angle/radian",
             Self::Millionth => "ratio/millionth",
             Self::Permille => "ratio/permille",
             Self::Percent => "ratio/percent",
@@ -113,6 +142,16 @@ impl QuantityUnit {
             Self::Microvolt => "uV",
             Self::Millivolt => "mV",
             Self::Volt => "V",
+            Self::Microampere => "uA",
+            Self::Milliampere => "mA",
+            Self::Ampere => "A",
+            Self::Millikelvin => "mK",
+            Self::Kelvin => "K",
+            Self::MilliCelsius => "mC",
+            Self::Celsius => "C",
+            Self::MicroampereHour => "uAh",
+            Self::MilliampereHour => "mAh",
+            Self::AmpereHour => "Ah",
             Self::Micrometer => "um",
             Self::Millimeter => "mm",
             Self::Centimeter => "cm",
@@ -120,6 +159,9 @@ impl QuantityUnit {
             Self::Microdegree => "udeg",
             Self::Millidegree => "mdeg",
             Self::Degree => "deg",
+            Self::Microradian => "urad",
+            Self::Milliradian => "mrad",
+            Self::Radian => "rad",
             Self::Millionth => "ppm",
             Self::Permille => "permille",
             Self::Percent => "%",
@@ -141,6 +183,16 @@ impl QuantityUnit {
             "uV" => Ok(Self::Microvolt),
             "mV" => Ok(Self::Millivolt),
             "V" => Ok(Self::Volt),
+            "uA" => Ok(Self::Microampere),
+            "mA" => Ok(Self::Milliampere),
+            "A" => Ok(Self::Ampere),
+            "mK" => Ok(Self::Millikelvin),
+            "K" => Ok(Self::Kelvin),
+            "mC" => Ok(Self::MilliCelsius),
+            "C" => Ok(Self::Celsius),
+            "uAh" => Ok(Self::MicroampereHour),
+            "mAh" => Ok(Self::MilliampereHour),
+            "Ah" => Ok(Self::AmpereHour),
             "um" => Ok(Self::Micrometer),
             "mm" => Ok(Self::Millimeter),
             "cm" => Ok(Self::Centimeter),
@@ -148,6 +200,9 @@ impl QuantityUnit {
             "udeg" => Ok(Self::Microdegree),
             "mdeg" => Ok(Self::Millidegree),
             "deg" => Ok(Self::Degree),
+            "urad" => Ok(Self::Microradian),
+            "mrad" => Ok(Self::Milliradian),
+            "rad" => Ok(Self::Radian),
             "ppm" => Ok(Self::Millionth),
             "permille" => Ok(Self::Permille),
             "%" => Ok(Self::Percent),
@@ -167,10 +222,22 @@ impl QuantityUnit {
             }
             Self::Millihertz | Self::Hertz => QuantityDimension::Frequency,
             Self::Microvolt | Self::Millivolt | Self::Volt => QuantityDimension::Voltage,
+            Self::Microampere | Self::Milliampere | Self::Ampere => QuantityDimension::Current,
+            Self::Millikelvin | Self::Kelvin | Self::MilliCelsius | Self::Celsius => {
+                QuantityDimension::Temperature
+            }
+            Self::MicroampereHour | Self::MilliampereHour | Self::AmpereHour => {
+                QuantityDimension::Charge
+            }
             Self::Micrometer | Self::Millimeter | Self::Centimeter | Self::Meter => {
                 QuantityDimension::Length
             }
-            Self::Microdegree | Self::Millidegree | Self::Degree => QuantityDimension::Angle,
+            Self::Microdegree
+            | Self::Millidegree
+            | Self::Degree
+            | Self::Microradian
+            | Self::Milliradian
+            | Self::Radian => QuantityDimension::Angle,
             Self::Millionth | Self::Permille | Self::Percent | Self::One => {
                 QuantityDimension::Ratio
             }
@@ -189,6 +256,14 @@ impl QuantityUnit {
             Self::Microvolt => 1,
             Self::Millivolt => 1_000,
             Self::Volt => 1_000_000,
+            Self::Microampere => 1,
+            Self::Milliampere => 1_000,
+            Self::Ampere => 1_000_000,
+            Self::Millikelvin | Self::MilliCelsius => 1,
+            Self::Kelvin | Self::Celsius => 1_000,
+            Self::MicroampereHour => 1,
+            Self::MilliampereHour => 1_000,
+            Self::AmpereHour => 1_000_000,
             Self::Micrometer => 1,
             Self::Millimeter => 1_000,
             Self::Centimeter => 10_000,
@@ -196,6 +271,9 @@ impl QuantityUnit {
             Self::Microdegree => 1,
             Self::Millidegree => 1_000,
             Self::Degree => 1_000_000,
+            Self::Microradian => 1,
+            Self::Milliradian => 1_000,
+            Self::Radian => 1_000_000,
             Self::Millionth => 1,
             Self::Permille => 1_000,
             Self::Percent => 10_000,
@@ -231,6 +309,19 @@ impl QuantityUnit {
             Self::Byte => 20,
             Self::Kibibyte => 21,
             Self::Mebibyte => 22,
+            Self::Microampere => 23,
+            Self::Milliampere => 24,
+            Self::Ampere => 25,
+            Self::Millikelvin => 26,
+            Self::Kelvin => 27,
+            Self::MilliCelsius => 28,
+            Self::Celsius => 29,
+            Self::MicroampereHour => 30,
+            Self::MilliampereHour => 31,
+            Self::AmpereHour => 32,
+            Self::Microradian => 33,
+            Self::Milliradian => 34,
+            Self::Radian => 35,
         }
     }
 
@@ -259,6 +350,19 @@ impl QuantityUnit {
             20 => Ok(Self::Byte),
             21 => Ok(Self::Kibibyte),
             22 => Ok(Self::Mebibyte),
+            23 => Ok(Self::Microampere),
+            24 => Ok(Self::Milliampere),
+            25 => Ok(Self::Ampere),
+            26 => Ok(Self::Millikelvin),
+            27 => Ok(Self::Kelvin),
+            28 => Ok(Self::MilliCelsius),
+            29 => Ok(Self::Celsius),
+            30 => Ok(Self::MicroampereHour),
+            31 => Ok(Self::MilliampereHour),
+            32 => Ok(Self::AmpereHour),
+            33 => Ok(Self::Microradian),
+            34 => Ok(Self::Milliradian),
+            35 => Ok(Self::Radian),
             other => Err(QuantityDecodeRefusal::UnknownUnitTag(other)),
         }
     }
@@ -281,7 +385,7 @@ impl Quantity {
         self.unit.dimension()
     }
 
-    /// Parses the closed authored Form spelling `<signed-integer><unit>`.
+    /// Parses the closed authored form spelling `<signed-integer><unit>`.
     /// Fractions are deliberately absent: authors choose an exact smaller
     /// reviewed unit instead of relying on hidden rounding.
     pub fn parse_form_literal(literal: &str) -> Result<Self, QuantityLiteralRefusal> {
@@ -307,6 +411,13 @@ impl Quantity {
         }
         if self.unit == target {
             return Ok(self);
+        }
+        if self.dimension() == QuantityDimension::Temperature {
+            return convert_temperature(self, target);
+        }
+        if self.dimension() == QuantityDimension::Angle && is_radian(self.unit) != is_radian(target)
+        {
+            return Err(QuantityConversionRefusal::Inexact);
         }
         let canonical = self
             .value
@@ -353,4 +464,37 @@ impl Quantity {
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(QUANTITY_INFO_ID, &self.encode())
     }
+}
+
+const fn is_radian(unit: QuantityUnit) -> bool {
+    matches!(
+        unit,
+        QuantityUnit::Microradian | QuantityUnit::Milliradian | QuantityUnit::Radian
+    )
+}
+
+fn convert_temperature(
+    value: Quantity,
+    target: QuantityUnit,
+) -> Result<Quantity, QuantityConversionRefusal> {
+    let source_millikelvin = value
+        .value
+        .checked_mul(value.unit.canonical_factor())
+        .and_then(|scaled| match value.unit {
+            QuantityUnit::MilliCelsius | QuantityUnit::Celsius => scaled.checked_add(273_150),
+            _ => Some(scaled),
+        })
+        .ok_or(QuantityConversionRefusal::Overflow)?;
+    let target_offset = match target {
+        QuantityUnit::MilliCelsius | QuantityUnit::Celsius => 273_150,
+        _ => 0,
+    };
+    let shifted = source_millikelvin
+        .checked_sub(target_offset)
+        .ok_or(QuantityConversionRefusal::Overflow)?;
+    let factor = target.canonical_factor();
+    if shifted % factor != 0 {
+        return Err(QuantityConversionRefusal::Inexact);
+    }
+    Ok(Quantity::new(shifted / factor, target))
 }

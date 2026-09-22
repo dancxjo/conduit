@@ -1,4 +1,4 @@
-//! Body-directed browser spawn and single-use replay conformance server.
+//! body-directed browser spawn and single-use replay conformance server.
 
 use conduit_body::{
     AdmissionManager, AdmissionRefusal, AdmissionSigns, Body, BodyMembership, SpawnAdmissionProof,

@@ -1,5 +1,5 @@
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
     ENABLE_PORT, GATE_KIND, IN_PORT, LATEST_KIND, LEFT_PORT, OUT_PORT, RIGHT_PORT,
     STATE_SELECT_KIND, TEE_KIND,
 };
@@ -7,9 +7,8 @@ use super::{
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
-use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, KindIdentity, PortDescriptor,
     PortDirection, PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
 };
 
@@ -35,9 +34,9 @@ pub fn state_latest_scalar_contract() -> StandardKindContract {
             PortTemporal::Flow { closes: true },
         )],
         outputs: vec![port(OUT_PORT, PortDirection::Output, PortTemporal::Current)],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: limits(),
-        terminal_behavior: TerminalBehavior::EmitsCurrentAndCompletesWhenInputCloses,
+        terminal_behavior: KindTerminalBehavior::EmitsCurrentAndCompletesWhenInputCloses,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -56,9 +55,9 @@ pub fn flow_tee_scalar_contract() -> StandardKindContract {
             port(LEFT_PORT, PortDirection::Output, PortTemporal::Current),
             port(RIGHT_PORT, PortDirection::Output, PortTemporal::Current),
         ],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: limits(),
-        terminal_behavior: TerminalBehavior::CoupledAtomicFanoutAndMirrorsInputTerminal,
+        terminal_behavior: KindTerminalBehavior::CoupledAtomicFanoutAndMirrorsInputTerminal,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -92,17 +91,17 @@ pub fn flow_gate_scalar_contract() -> StandardKindContract {
             PortDirection::Output,
             PortTemporal::Current,
         )],
-        configuration: vec![StandardConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "maximum-enable-updates".to_string(),
             default_value: ConfigurationValue::U64(FLOW_STATE_MAXIMUM_VALUES.into()),
-            rule: StandardConfigurationRule::U64Range {
+            rule: KindConfigurationRule::U64Range {
                 minimum: 1,
                 maximum: FLOW_STATE_MAXIMUM_VALUES.into(),
             },
         }],
         limits: limits(),
         terminal_behavior:
-            TerminalBehavior::CurrentBooleanGateDefaultsClosedAndCompletesWhenInputsClose,
+            KindTerminalBehavior::CurrentBooleanGateDefaultsClosedAndCompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -142,13 +141,57 @@ pub fn state_select_scalar_contract() -> StandardKindContract {
             PortDirection::Output,
             PortTemporal::Current,
         )],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: limits(),
-        terminal_behavior: TerminalBehavior::CurrentScalarSelectorCompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CurrentScalarSelectorCompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "choice: state/select".to_string(),
+    }
+}
+
+pub fn state_latest_scalar_semantic_contract() -> Kind {
+    semantic_contract(
+        state_latest_scalar_contract(),
+        STATE_LATEST_SCALAR_CONTRACT_REVISION,
+    )
+}
+
+pub fn flow_tee_scalar_semantic_contract() -> Kind {
+    semantic_contract(
+        flow_tee_scalar_contract(),
+        FLOW_TEE_SCALAR_CONTRACT_REVISION,
+    )
+}
+
+pub fn flow_gate_scalar_semantic_contract() -> Kind {
+    semantic_contract(
+        flow_gate_scalar_contract(),
+        FLOW_GATE_SCALAR_CONTRACT_REVISION,
+    )
+}
+
+pub fn state_select_scalar_semantic_contract() -> Kind {
+    semantic_contract(
+        state_select_scalar_contract(),
+        STATE_SELECT_SCALAR_CONTRACT_REVISION,
+    )
+}
+
+fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
+    Kind {
+        startup_parameters: super::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: KindIdentity::from(revision),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
+        limits: contract.limits,
     }
 }
 
@@ -183,7 +226,10 @@ pub fn install_flow_state_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, KindSignature};
+    use conduit_form::{
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+        StartupParameterSignature,
+    };
     for (contract, revision) in [
         (
             state_latest_scalar_contract(),
@@ -204,26 +250,37 @@ pub fn install_flow_state_catalogs(
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
-            startup_parameters: Vec::new(),
+            startup_parameters: contract
+                .configuration
+                .iter()
+                .map(|field| StartupParameterSignature {
+                    name: field.key.clone(),
+                    value_type: "Count".to_string(),
+                    default: match field.default_value {
+                        ConfigurationValue::U64(value) => Some(value.to_string()),
+                        _ => None,
+                    },
+                })
+                .collect(),
         })?;
         let configuration = contract
             .configuration
             .iter()
-            .map(|field| ConfigurationField {
+            .map(|field| KindConfigurationField {
                 key: field.key.clone(),
                 default_value: field.default_value.clone(),
-                validation: match field.rule {
-                    StandardConfigurationRule::U64Range { minimum, maximum } => {
-                        ConfigurationRule::U64Range { minimum, maximum }
+                rule: match field.rule {
+                    KindConfigurationRule::U64Range { minimum, maximum } => {
+                        KindConfigurationRule::U64Range { minimum, maximum }
                     }
                     _ => unreachable!("flow/state configuration uses only exact integer ranges"),
                 },
             })
             .collect();
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration,
@@ -266,6 +323,14 @@ mod tests {
             .iter()
             .chain(select.outputs.iter())
             .all(|port| port.value_kind.as_str() == SCALAR_INFO_ID));
+
+        let gate_semantics = flow_gate_scalar_semantic_contract();
+        assert_eq!(gate_semantics.startup_parameters.len(), 1);
+        assert_eq!(
+            gate_semantics.startup_parameters[0].name,
+            "maximum-enable-updates"
+        );
+        assert!(gate_semantics.startup_parameters[0].has_default);
 
         for port in latest
             .inputs

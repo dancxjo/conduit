@@ -1,5 +1,5 @@
 use super::{gui::GuiAction, Arguments, PatchbayApplication};
-use conduit_core::ConfigurationValue;
+use conduit_core::{ConfigurationValue, Quantity, QuantityUnit};
 
 #[test]
 fn native_front_control_uses_interaction_execution_and_persists_canonical_source() {
@@ -34,7 +34,7 @@ fn native_front_control_uses_interaction_execution_and_persists_canonical_source
         .handle_gui_action(GuiAction::ConfigureGear {
             subject,
             key: "freq".into(),
-            value: ConfigurationValue::U64(26),
+            value: ConfigurationValue::Quantity(Quantity::new(26, QuantityUnit::Millisecond)),
         })
         .unwrap();
     let graph = application.graphical_form.as_ref().unwrap();
@@ -49,7 +49,7 @@ fn native_front_control_uses_interaction_execution_and_persists_canonical_source
     );
     assert_eq!(
         graph.gears[0].controls[0].value,
-        ConfigurationValue::U64(26)
+        ConfigurationValue::Quantity(Quantity::new(26, QuantityUnit::Millisecond))
     );
     assert!(application
         .form_editor
@@ -110,7 +110,7 @@ fn native_front_control_uses_interaction_execution_and_persists_canonical_source
     .unwrap();
     assert_eq!(
         reopened.graphical_form.as_ref().unwrap().gears[0].controls[0].value,
-        ConfigurationValue::U64(26)
+        ConfigurationValue::Quantity(Quantity::new(26, QuantityUnit::Millisecond))
     );
     std::fs::remove_file(path).unwrap();
     std::fs::remove_file(directory.join("controls.conduit.patchbay.json")).unwrap();
@@ -236,13 +236,13 @@ fn pointer_hit_prefers_front_control_over_containing_gear_rectangle() {
             viewport: &application.canvas_viewport,
         },
     );
-    // The first control is inside the first Gear rectangle. Later control hit
+    // The first control is inside the first gear rectangle. Later control hit
     // geometry must win over that containing selection target.
     application.cursor_position = (220.0, 170.0);
     application.handle_canvas_press().unwrap();
     assert_eq!(
         application.graphical_form.as_ref().unwrap().gears[0].controls[0].value,
-        ConfigurationValue::U64(24)
+        ConfigurationValue::Quantity(Quantity::new(24, QuantityUnit::Millisecond))
     );
     assert!(application
         .interaction
@@ -278,7 +278,7 @@ fn pointer_hit_prefers_front_control_over_containing_gear_rectangle() {
         .unwrap();
     assert_eq!(
         application.graphical_form.as_ref().unwrap().gears[0].controls[0].value,
-        ConfigurationValue::U64(25)
+        ConfigurationValue::Quantity(Quantity::new(25, QuantityUnit::Millisecond))
     );
     std::fs::remove_file(path).unwrap();
     std::fs::remove_dir(directory).unwrap();

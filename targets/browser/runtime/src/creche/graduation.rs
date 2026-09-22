@@ -44,17 +44,17 @@ pub(super) fn graduate(
     }
     let ready = readiness()?;
     if !ready.ready {
-        return Err("the Body is not ready to graduate from the Crèche".into());
+        return Err("the body is not ready to graduate from the Crèche".into());
     }
     session::with_session(|body| {
         if body.receipt.graduation.is_some() {
-            return Err("this Body has already graduated from the Crèche".into());
+            return Err("this body has already graduated from the Crèche".into());
         }
         let host = body
             .receipt
             .host_id
             .clone()
-            .ok_or_else(|| "graduation has no current Host".to_string())?;
+            .ok_or_else(|| "graduation has no current host".to_string())?;
         let boot = body
             .receipt
             .boot_id

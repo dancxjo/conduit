@@ -28,7 +28,7 @@ function fixture(polls, completions, capacity = 2) {
   return { api, received, readOutput: () => output };
 }
 
-test("one Host dispatcher preserves cross-Form completion correlation", async () => {
+test("one host dispatcher preserves cross-form completion correlation", async () => {
   const host = fixture([effect("second"), waiting], [waiting, { disposition: "completed" }]);
   let releaseFirst;
   const result = await drainBrowserEffects({

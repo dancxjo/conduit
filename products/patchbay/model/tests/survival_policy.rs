@@ -35,7 +35,7 @@ fn patchbay_names_policy_tradeoffs_and_fresh_plan_without_a_fallback_flag() {
     assert_eq!(explanation.profile_disposition, "full-profile");
     assert!(explanation.fresh_plan);
     assert_eq!(explanation.principal_tradeoffs.len(), 3);
-    assert!(explanation.summary.contains("ordinary Plan"));
+    assert!(explanation.summary.contains("ordinary plan"));
     assert!(explanation.summary.contains("Hard semantics"));
     assert!(!explanation.summary.contains("fallback=true"));
 }

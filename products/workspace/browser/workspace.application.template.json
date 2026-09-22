@@ -9,11 +9,12 @@
     "browser/indexeddb@1"
   ],
   "resources": [
+    {"role":"creche-installed-targets","kind":"module","path":"creche-installed-targets.mjs","maximum_bytes":4096,"dependencies":[{"role":"creche-target-catalog","specifier":"./creche-target-catalog.mjs"},{"role":"avr-adapter","specifier":"../../../targets/avr/deployment/browser/creche-adapter.mjs"},{"role":"rp2040-adapter","specifier":"../../../targets/rp2040/deployment/browser/creche-adapter.mjs"},{"role":"esp32-adapter","specifier":"../../../targets/esp32/deployment/browser/creche-adapter.mjs"},{"role":"std-adapter","specifier":"../../../targets/std/deployment/browser/creche-adapter.mjs"},{"role":"browser-adapter","specifier":"../../../targets/browser/deployment/browser/creche-adapter.mjs"},{"role":"orange-pi-adapter","specifier":"../../../targets/orange-pi/deployment/browser/creche-adapter.mjs"},{"role":"raspberry-pi-adapter","specifier":"../../../targets/raspberry-pi/deployment/browser/creche-adapter.mjs"},{"role":"conduitos-adapter","specifier":"../../../targets/conduitos/deployment/browser/creche-adapter.mjs"}]},
     {
       "role": "application-module",
       "kind": "module",
       "path": "workspace.mjs",
-      "maximum_bytes": 24576,
+      "maximum_bytes": 28672,
       "dependencies": [
         {
           "role": "browser-host-bootstrap",
@@ -44,6 +45,10 @@
           "specifier": "./workspace-voice-play.mjs"
         },
         {
+          "role": "workspace-tutorial-presenter-play",
+          "specifier": "./workspace-tutorial-presenter-play.mjs"
+        },
+        {
           "role": "browser-body-continuity",
           "specifier": "../../../targets/browser/host/assets/browser-body-continuity.mjs"
         },
@@ -64,8 +69,8 @@
           "specifier": "../../creche/browser/creche-release-catalog.mjs"
         },
         {
-          "role": "browser-host-operations",
-          "specifier": "../../../targets/browser/host/assets/browser-host-operations.mjs"
+          "role": "browser-host-calls",
+          "specifier": "../../../targets/browser/host/assets/browser-host-calls.mjs"
         }
       ]
     },
@@ -193,6 +198,10 @@
           "specifier": "../../creche/browser/creche-target-catalog.mjs"
         },
         {
+          "role": "creche-installed-targets",
+          "specifier": "../../creche/browser/creche-installed-targets.mjs"
+        },
+        {
           "role": "browser-adapter",
           "specifier": "../../../targets/browser/deployment/browser/creche-adapter.mjs"
         }
@@ -222,8 +231,13 @@
       "kind": "module",
       "path": "creche-rendezvous.mjs",
       "maximum_bytes": 32768,
-      "dependencies": []
+      "dependencies": [
+        { "role": "rendezvous-cbor", "specifier": "./rendezvous-cbor.mjs" },
+        { "role": "rendezvous-candidate-schedule", "specifier": "./rendezvous-candidate-schedule.mjs" }
+      ]
     },
+    { "role": "rendezvous-candidate-schedule", "kind": "module", "path": "rendezvous-candidate-schedule.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "rendezvous-cbor", "kind": "module", "path": "rendezvous-cbor.mjs", "maximum_bytes": 12288, "dependencies": [] },
     {
       "role": "creche-physical",
       "kind": "module",
@@ -285,6 +299,32 @@
       ]
     },
     { "role": "browser-bundle-builder", "kind": "module", "path": "targets/browser/browser-deployment/browser-bundle.mjs", "maximum_bytes": 24576, "dependencies": [] },
+    { "role": "creche-native-disk", "kind": "module", "path": "creche-native-disk.mjs", "maximum_bytes": 12288, "dependencies": [{"role":"creche-rendezvous-candidates","specifier":"./creche-rendezvous-candidates.mjs"}] },
+    { "role": "avr-adapter", "kind": "module", "path": "targets/avr/browser-deployment/creche-adapter.mjs", "maximum_bytes": 16384, "dependencies": [{"role":"creche-spore-bundle","specifier":"../../../creche-spore-bundle.mjs"},{"role":"avr-image","specifier":"./image.mjs"}] },
+    { "role": "avr-image", "kind": "module", "path": "targets/avr/browser-deployment/image.mjs", "maximum_bytes": 32768, "dependencies": [] },
+    { "role": "conduitos-adapter", "kind": "module", "path": "targets/conduitos/browser-deployment/creche-adapter.mjs", "maximum_bytes": 16384, "dependencies": [{"role":"creche-spore-bundle","specifier":"../../../creche-spore-bundle.mjs"},{"role":"creche-native-disk","specifier":"../../../creche-native-disk.mjs"},{"role":"conduitos-image","specifier":"./image.mjs"}] },
+    { "role": "conduitos-image", "kind": "module", "path": "targets/conduitos/browser-deployment/image.mjs", "maximum_bytes": 12288, "dependencies": [] },
+    { "role": "esp32-adapter", "kind": "module", "path": "targets/esp32/browser-deployment/creche-adapter.mjs", "maximum_bytes": 32768, "dependencies": [{"role":"device-base","specifier":"../../../device-base.mjs"},{"role":"rp2040-spawn","specifier":"../../rp2040/browser-deployment/spawn.mjs"},{"role":"esp32-deployment","specifier":"./deployment.mjs"},{"role":"esp32-image","specifier":"./image.mjs"},{"role":"esp32-release","specifier":"./release.mjs"},{"role":"creche-spore-bundle","specifier":"../../../creche-spore-bundle.mjs"}] },
+    { "role": "esp32-release", "kind": "module", "path": "targets/esp32/browser-deployment/release.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "esp32-deployment", "kind": "module", "path": "targets/esp32/browser-deployment/deployment.mjs", "maximum_bytes": 16384, "dependencies": [{"role":"esp32-image","specifier":"./image.mjs"},{"role":"esp32-rom-loader","specifier":"./rom-loader.mjs"},{"role":"esp32-reset","specifier":"./reset.mjs"}] },
+    { "role": "esp32-image", "kind": "module", "path": "targets/esp32/browser-deployment/image.mjs", "maximum_bytes": 16384, "dependencies": [{"role":"esp32-md5","specifier":"./md5.mjs"}] },
+    { "role": "esp32-md5", "kind": "module", "path": "targets/esp32/browser-deployment/md5.mjs", "maximum_bytes": 4096, "dependencies": [] },
+    { "role": "esp32-reset", "kind": "module", "path": "targets/esp32/browser-deployment/reset.mjs", "maximum_bytes": 4096, "dependencies": [] },
+    { "role": "esp32-rom-loader", "kind": "module", "path": "targets/esp32/browser-deployment/rom-loader.mjs", "maximum_bytes": 8192, "dependencies": [{"role":"esp32-slip","specifier":"./slip.mjs"}] },
+    { "role": "esp32-slip", "kind": "module", "path": "targets/esp32/browser-deployment/slip.mjs", "maximum_bytes": 4096, "dependencies": [] },
+    { "role": "orange-pi-adapter", "kind": "module", "path": "targets/orange-pi/browser-deployment/creche-adapter.mjs", "maximum_bytes": 16384, "dependencies": [{"role":"creche-spore-bundle","specifier":"../../../creche-spore-bundle.mjs"},{"role":"creche-native-disk","specifier":"../../../creche-native-disk.mjs"},{"role":"orange-pi-image","specifier":"./image.mjs"}] },
+    { "role": "orange-pi-image", "kind": "module", "path": "targets/orange-pi/browser-deployment/image.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "raspberry-pi-adapter", "kind": "module", "path": "targets/raspberry-pi/browser-deployment/creche-adapter.mjs", "maximum_bytes": 24576, "dependencies": [{"role":"creche-existing-computer","specifier":"../../../creche-existing-computer.mjs"},{"role":"creche-spore-bundle","specifier":"../../../creche-spore-bundle.mjs"},{"role":"creche-native-disk","specifier":"../../../creche-native-disk.mjs"},{"role":"raspberry-pi-image","specifier":"./image.mjs"}] },
+    { "role": "raspberry-pi-image", "kind": "module", "path": "targets/raspberry-pi/browser-deployment/image.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "rp2040-adapter", "kind": "module", "path": "targets/rp2040/browser-deployment/creche-adapter.mjs", "maximum_bytes": 24576, "dependencies": [{"role":"device-base","specifier":"../../../device-base.mjs"},{"role":"usb-device-base","specifier":"../../../usb-device-base.mjs"},{"role":"rp2040-deployment","specifier":"./deployment.mjs"},{"role":"rp2040-fabrication","specifier":"./fabrication.mjs"},{"role":"rp2040-spawn","specifier":"./spawn.mjs"},{"role":"creche-spore-bundle","specifier":"../../../creche-spore-bundle.mjs"}] },
+    { "role": "rp2040-deployment", "kind": "module", "path": "targets/rp2040/browser-deployment/deployment.mjs", "maximum_bytes": 16384, "dependencies": [{"role":"rp2040-picoboot","specifier":"./picoboot.mjs"},{"role":"rp2040-uf2","specifier":"./uf2.mjs"}] },
+    { "role": "rp2040-fabrication", "kind": "module", "path": "targets/rp2040/browser-deployment/fabrication.mjs", "maximum_bytes": 16384, "dependencies": [{"role":"rp2040-uf2","specifier":"./uf2.mjs"}] },
+    { "role": "rp2040-picoboot", "kind": "module", "path": "targets/rp2040/browser-deployment/picoboot.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "rp2040-spawn", "kind": "module", "path": "targets/rp2040/browser-deployment/spawn.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "rp2040-uf2", "kind": "module", "path": "targets/rp2040/browser-deployment/uf2.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "std-adapter", "kind": "module", "path": "targets/std/browser-deployment/creche-adapter.mjs", "maximum_bytes": 8192, "dependencies": [{"role":"creche-existing-computer","specifier":"../../../creche-existing-computer.mjs"}] },
+    { "role": "device-base", "kind": "module", "path": "device-base.mjs", "maximum_bytes": 16384, "dependencies": [] },
+    { "role": "usb-device-base", "kind": "module", "path": "usb-device-base.mjs", "maximum_bytes": 16384, "dependencies": [] },
     {
       "role": "shared-presentation-style",
       "kind": "style",
@@ -352,6 +392,18 @@
         {
           "role": "browser-remote-voice",
           "specifier": "../../../targets/browser/host/assets/browser-remote-voice.mjs"
+        }
+      ]
+    },
+    {
+      "role": "workspace-tutorial-presenter-play",
+      "kind": "module",
+      "path": "workspace-tutorial-presenter-play.mjs",
+      "maximum_bytes": 12288,
+      "dependencies": [
+        {
+          "role": "browser-remote-fragment",
+          "specifier": "../../../targets/browser/host/assets/browser-remote-fragment.mjs"
         }
       ]
     },
@@ -496,15 +548,15 @@
       "maximum_bytes": 4096,
       "dependencies": [
         {
-          "role": "browser-host-operations",
-          "specifier": "../../../targets/browser/host/assets/browser-host-operations.mjs"
+          "role": "browser-host-calls",
+          "specifier": "../../../targets/browser/host/assets/browser-host-calls.mjs"
         }
       ]
     },
     {
-      "role": "browser-host-operations",
+      "role": "browser-host-calls",
       "kind": "module",
-      "path": "browser-host-operations.mjs",
+      "path": "browser-host-calls.mjs",
       "maximum_bytes": 24576,
       "dependencies": []
     },

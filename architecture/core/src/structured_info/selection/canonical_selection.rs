@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use super::{
     StructuredCanonicalSelection, StructuredInfoRefusal, StructuredInfoType, StructuredSelector,
-    StructuredSelectorOperation, StructuredSelectorRefusal,
+    StructuredSelectorBack, StructuredSelectorRefusal,
 };
 use crate::structured_info::canonical::Cursor;
 
@@ -20,15 +20,15 @@ impl StructuredSelector {
         let mut cursor = Cursor::new(node);
         let selected = match (&self.operation, self.input_type.shape()) {
             (
-                StructuredSelectorOperation::Field(wanted),
+                StructuredSelectorBack::Field(wanted),
                 crate::StructuredInfoTypeShape::Record { fields, .. },
             ) => select_field(wanted, fields, &mut cursor)?,
             (
-                StructuredSelectorOperation::Index(wanted),
+                StructuredSelectorBack::Index(wanted),
                 crate::StructuredInfoTypeShape::Collection { element, length },
             ) => select_index(*wanted, element, length, &mut cursor)?,
             (
-                StructuredSelectorOperation::Variant {
+                StructuredSelectorBack::Variant {
                     tag: wanted,
                     unmatched,
                 },
@@ -150,6 +150,16 @@ fn skip_value_node(
         crate::StructuredInfoTypeShape::Collection { element, length } => {
             expect_byte(cursor, 1)?;
             expect_length(cursor, usize::from(length))?;
+            for _ in 0..length {
+                skip_value_node(element, cursor)?;
+            }
+        }
+        crate::StructuredInfoTypeShape::Sequence { element, capacity } => {
+            expect_byte(cursor, 1)?;
+            let length = cursor.length().map_err(malformed)?;
+            if length > usize::from(capacity) {
+                return Err(StructuredSelectorRefusal::MalformedCheckedValue);
+            }
             for _ in 0..length {
                 skip_value_node(element, cursor)?;
             }

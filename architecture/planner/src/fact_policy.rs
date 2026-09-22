@@ -2,7 +2,7 @@ use crate::prelude::*;
 use conduit_core::{
     AuthorityContractId, CapabilityOffer, CharacteristicId, CharacteristicUnit,
     CharacteristicValue, ComputeServiceGuarantee, ComputeTopologyGroupId, HostAdvertisement,
-    HostOperationContractId, RealizationAdvertisement, ResourceClassId, ResourceObservation,
+    HostCallContractId, RealizationAdvertisement, ResourceClassId, ResourceObservation,
 };
 use core::cmp::Ordering;
 
@@ -11,8 +11,8 @@ pub(crate) use validation::{validate_predicates, validate_preference};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PlannerFactRef {
-    /// Exact current Host identity. This is realization truth supplied to the
-    /// planner, never authored Form meaning or an aggregate Host score.
+    /// Exact current host identity. This is realization truth supplied to the
+    /// planner, never authored form meaning or an aggregate Host score.
     HostIdentity,
     RealizationCharacteristic(CharacteristicId),
     ResourceUnits(ResourceClassId),
@@ -32,7 +32,7 @@ pub enum PlannerFactRef {
     OfferQueueItems,
     OfferQueueBytes,
     RequiresAuthority(AuthorityContractId),
-    RequiresHostOperation(HostOperationContractId),
+    RequiresHostCall(HostCallContractId),
     ObservationUnreservedUnits(ResourceClassId),
     ObservationUtilizedUnits(ResourceClassId),
 }
@@ -341,10 +341,10 @@ fn fact_value(
                 .iter()
                 .any(|item| &item.contract_id == contract),
         )),
-        PlannerFactRef::RequiresHostOperation(contract) => Some(PlannerFactValue::Boolean(
+        PlannerFactRef::RequiresHostCall(contract) => Some(PlannerFactValue::Boolean(
             candidate
                 .offer
-                .host_operations
+                .host_calls
                 .iter()
                 .any(|item| &item.contract_id == contract),
         )),

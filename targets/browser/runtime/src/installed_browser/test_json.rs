@@ -1,6 +1,6 @@
-//! Explicit pre-Play input and output fixtures, absent from production builds.
+//! Explicit pre-play input and output fixtures, absent from production builds.
 use super::factory::{BrowserHostResult, BrowserInstallation, BrowserManifestation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::*;
 use conduit_kernel::{HostedValueStore, ValueStorage};
 use std::cell::RefCell;
@@ -72,7 +72,7 @@ fn offer(sink: bool) -> CapabilityOffer {
             artifact: "conduit-test/json@1",
         },
         if sink {
-            vec![HostOperationRequirement {
+            vec![HostCallRequirement {
                 contract_id: "conduit-test/json-present".into(),
                 target_kind: Some(kind_id(id)),
                 maximum_in_flight: 1,
@@ -86,14 +86,14 @@ fn offer(sink: bool) -> CapabilityOffer {
         Vec::new(),
     )
 }
-fn source(_: &PlannedGear, values: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn source(_: &PlannedGear, values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     INPUT
         .with(|bytes| values.store(&bytes.borrow()))
-        .map(BrowserOperation::source)
+        .map(BrowserBack::source)
         .map_err(|e| format!("{e:?}"))
 }
-fn sink(_: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
-    Ok(BrowserOperation::presentation(4096, 1))
+fn sink(_: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
+    Ok(BrowserBack::presentation(4096, 1))
 }
 fn present(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
     Ok(BrowserHostResult {
@@ -120,6 +120,6 @@ pub(crate) fn reference_sink_offer() -> CapabilityOffer {
     offer.capability_id = "conduit-test/resource-sink".into();
     offer.implementation.implementation_id = "conduit-test/resource-sink".into();
     offer.inputs[0].value_kind = kind_id(RESOURCE_REFERENCE_INFO_ID);
-    offer.host_operations[0].target_kind = Some(offer.kind_id.clone());
+    offer.host_calls[0].target_kind = Some(offer.kind_id.clone());
     offer
 }

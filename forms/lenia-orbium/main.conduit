@@ -1,4 +1,4 @@
-# Lenia as portable meaning with realization facts absent from the Form.
+# Lenia as portable meaning with realization facts absent from the form.
 form lenia (
     > initial: ScalarField2
     > tick: Tick...|

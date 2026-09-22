@@ -5,13 +5,11 @@ use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, BaseImplementationId, BootId, PlacementId,
     PlanFragment, PresentationId, SignId,
 };
-use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
-    CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition,
-    HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEventKind, NodeId,
-    RemoteEndpointId, SignQuery, ValueStorage,
+    CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition, HostCallOutcome,
+    HostedSignLog, HostedValueStore, KernelEventKind, NodeId, RemoteEndpointId, SignQuery,
+    ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -24,7 +22,7 @@ use conduit_signal::{
 use conduit_signal_conformance::triple;
 use conduit_wire::{SessionBinding, SessionFrame, SessionMachine, SessionRole};
 
-use super::operation::TripleOperation;
+use super::operation::TripleBack;
 
 #[path = "prepare.rs"]
 mod prepare;
@@ -37,7 +35,7 @@ const STORED_BYTES: u32 = VALUES as u32 * SIGNAL_ENCODED_LEN + WAITS as u32 * 8;
 const SIGN_ITEMS: u16 = 512;
 
 type TripleScheduler = FixedScheduler<
-    OperationDriver<TripleOperation, PORTS>,
+    TripleBack,
     HostedValueStore,
     HostedSignLog,
     2,
@@ -86,7 +84,7 @@ struct RemoteBranch {
 struct CapacitySeal {
     values: (usize, usize),
     sign: usize,
-    drivers: usize,
+    backs: usize,
     identity: (usize, usize, usize),
     receipts: usize,
 }
@@ -185,7 +183,7 @@ impl TripleSource {
                 (None, None) => {}
             }
             if let Some(request) = self.scheduler.next_host_request() {
-                self.complete_host_operation(request)?;
+                self.complete_host_call(request)?;
                 continue;
             }
             match self
@@ -235,7 +233,7 @@ impl TripleSource {
                 return Ok(receipt.clone());
             }
             if let Some(request) = self.scheduler.next_host_request() {
-                self.complete_host_operation(request)?;
+                self.complete_host_call(request)?;
                 continue;
             }
             match self
@@ -261,7 +259,7 @@ impl TripleSource {
 
     pub fn finish_kernel(&mut self) -> Result<u64, String> {
         while let Some(request) = self.scheduler.next_host_request() {
-            self.complete_host_operation(request)?;
+            self.complete_host_call(request)?;
         }
         loop {
             match self
@@ -271,7 +269,7 @@ impl TripleSource {
             {
                 SchedulerStatus::Progress { .. } => {
                     while let Some(request) = self.scheduler.next_host_request() {
-                        self.complete_host_operation(request)?;
+                        self.complete_host_call(request)?;
                     }
                 }
                 SchedulerStatus::Drained => break,
@@ -305,7 +303,7 @@ impl TripleSource {
             || !self
                 .scheduler
                 .signs()
-                .contains_kind(KernelEventKind::OperationCompleted)
+                .contains_kind(KernelEventKind::BackCompleted)
             || self.capacity_seal() != self.seal
         {
             return Err("triple terminal/capacity invariants failed".to_owned());
@@ -337,7 +335,7 @@ impl TripleSource {
         Ok(Some((offer.sequence, payload)))
     }
 
-    fn complete_host_operation(&mut self, request: HostOperationRequest) -> Result<(), String> {
+    fn complete_host_call(&mut self, request: HostCallRequest) -> Result<(), String> {
         let input = self
             .scheduler
             .host_value(request.input.value)
@@ -347,7 +345,7 @@ impl TripleSource {
                 &self.lowered.identity,
                 request.node,
                 request.request,
-                request.operation,
+                request.call,
             )
             .map_err(|error| format!("{error:?}"))?;
         if request.node == self.pulse_node {
@@ -397,11 +395,11 @@ impl TripleSource {
             return Err("host request came from an uninstalled triple node".to_owned());
         }
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },
@@ -427,11 +425,11 @@ impl TripleSource {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
             sign: self.scheduler.signs().allocation_capacity(),
-            drivers: self
+            backs: self
                 .scheduler
                 .drivers()
                 .iter()
-                .map(|driver| driver.operation().allocation_capacity())
+                .map(TripleBack::allocation_capacity)
                 .sum(),
             identity: self.identity.allocation_capacities(),
             receipts: self.receipts.capacity(),

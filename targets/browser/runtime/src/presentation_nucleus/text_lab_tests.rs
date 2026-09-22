@@ -32,6 +32,7 @@ fn hosts() -> (
         boot_id: BootId::from("text-lab/native/boot-1"),
         offer_generation: OfferGeneration(1),
         profile: conduit_core::HostProfileId::from("browser-test/native-text-lab@1"),
+        bases: vec![],
         resources: vec![
             conduit_core::resource_offer(
                 "text-lab/native-input",
@@ -76,7 +77,7 @@ fn keyboard_fixture_offer() -> conduit_core::CapabilityOffer {
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
-        host_operations: vec![conduit_core::HostOperationRequirement {
+        host_calls: vec![conduit_core::HostCallRequirement {
             contract_id: "proof/input-next-key-event@1".into(),
             target_kind: Some(conduit_core::kind_id(conduit_human::KEY_EVENT_INFO_ID)),
             maximum_in_flight: 1,
@@ -102,8 +103,8 @@ fn native_keymap_fixture_offer() -> conduit_core::CapabilityOffer {
             implementation: "text-lab/native-keymap@1",
             artifact: "text-lab/native-fixture@1",
         },
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from("conduit.host/input-keymap@1"),
+        vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from("conduit.host/input-keymap@1"),
             target_kind: Some(conduit_core::kind_id("input/keymap-text-fragment")),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,

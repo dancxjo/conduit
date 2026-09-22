@@ -1,9 +1,71 @@
 use crate::{process::Step, proof::ProofClass};
 
+pub const PROVE_EMERGENCY_CONTROL_STEPS: &[Step] = &[
+    Step::typed(
+        "prove.emergency-control.authority-and-sequence",
+        "Prove exact trigger authority, durable phrase identity, wrong-order and timeout behavior below ordinary execution",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-body",
+            "--test",
+            "emergency_control",
+            "--locked",
+        ],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+    Step::typed(
+        "prove.emergency-control.independent",
+        "Prove bounded acoustic corpus, independent local reduction, one-shot behavior, partial reachability truth and separate recovery admission",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--lib",
+            "acoustic_emergency::tests::",
+            "--locked",
+        ],
+        None,
+        None,
+        Some(ProofClass::HostedIntegration),
+        &[],
+    ),
+    Step::typed(
+        "prove.emergency-control.machine-effect.halt",
+        "Prove the selected ConduitOS profile reaches its exact low-level emergency halt disposition",
+        "cargo",
+        &[
+            "xtask",
+            "conduitos",
+            "emergency-halt-proof",
+            "--locked",
+        ],
+        None,
+        None,
+        Some(ProofClass::FreestandingEmulator),
+        &[],
+    ),
+    Step::typed(
+        "prove.emergency-control.machine-effect.rescue",
+        "Prove recovery remains separate authority and creates an exact fresh Boot",
+        "cargo",
+        &["xtask", "conduitos", "rescue-proof", "--locked"],
+        None,
+        None,
+        Some(ProofClass::FreestandingEmulator),
+        &[],
+    ),
+];
+
 pub const PROVE_RECURSIVE_RECOVERY_STEPS: &[Step] = &[
     Step::typed(
         "prove.recursive-recovery.vertical",
-        "Prove bounded full-profile recovery from a lost direct implementation through an exact cross-Host Back",
+        "Prove bounded full-profile recovery from a lost direct implementation through an exact cross-host Back",
         "cargo",
         &["test", "-p", "conduit-planner", "--test", "distributed_back"],
         None,
@@ -57,7 +119,7 @@ pub const PROVE_RECURSIVE_RECOVERY_STEPS: &[Step] = &[
 
 pub const PROVE_DIVERSITY_STEPS: &[Step] = &[Step::typed(
     "prove.diversity.mechanism-and-line-path",
-    "Prove exact mechanism and Line-path diversity through immutable ordinary Plans",
+    "Prove exact mechanism and Line-path diversity through immutable ordinary plans",
     "cargo",
     &["test", "-p", "conduit-planner", "--test", "diversity"],
     None,
@@ -150,6 +212,29 @@ pub const PROVE_LLM_CROSS_HOST_STEPS: &[Step] = &[
         "Prove Patchbay explains unchanged Form identity, distinct realization truth, no automatic migration, and stale completion refusal",
         "cargo",
         &["test", "-p", "patchbay-model", "llm_replan_explanation"],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+];
+
+pub const PROVE_LOCAL_MODEL_POOL_STEPS: &[Step] = &[
+    Step::typed(
+        "prove.local-model-pool.plan-play",
+        "Prove two exact ai/generate-text Hosts use bounded in-Plan selection, refusal, and fresh replanning truth",
+        "cargo",
+        &["test", "-p", "conduit-planner", "--test", "local_model_pool"],
+        None,
+        None,
+        Some(ProofClass::HostedIntegration),
+        &[],
+    ),
+    Step::typed(
+        "prove.local-model-pool.selection",
+        "Prove finite capacity, current multi-resource observations, provider loss, stale truth, and sealed-envelope refusal",
+        "cargo",
+        &["test", "-p", "conduit-kernel", "--test", "shared_pool_selection"],
         None,
         None,
         Some(ProofClass::DeterministicUnit),
@@ -296,7 +381,7 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.body-membership.native-spawn-return",
-        "Prove a Body-spawned browser returns once through its original finite rendezvous",
+        "Prove a body-spawned browser returns once through its original finite rendezvous",
         "cargo",
         &[
             "test",
@@ -731,7 +816,7 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
 pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     Step::typed(
         "prove.patchbay-front-door.semantic",
-        "Prove zero-Body entry, inert OPEN, explicit JOIN/BIRTH, refusal Signs, and post-transition Plan/Play truth",
+        "Prove zero-body entry, inert OPEN, explicit JOIN/BIRTH, refusal Signs, and post-transition Plan/Play truth",
         "cargo",
         &["test", "-p", "patchbay-model", "front_door"],
         None,
@@ -741,7 +826,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.patchbay-front-door.equivalence",
-        "Prove native and browser zero-Body semantic equivalence with deliberate drift refusal",
+        "Prove native and browser zero-body semantic equivalence with deliberate drift refusal",
         "cargo",
         &["test", "-p", "patchbay-model", "renderer_execution_tests"],
         None,
@@ -813,7 +898,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.patchbay-front-door.browser",
-        "Run zero-Body OPEN, explicit lifecycle, exact Program-to-Body FOLLOW, recursive Form Back inspection, disclosure, and finite refusals through one pinned Chromium manifestation",
+        "Run zero-body OPEN, explicit lifecycle, exact Program-to-Body FOLLOW, recursive Form Back inspection, disclosure, and finite refusals through one pinned Chromium manifestation",
         "node",
         &[
             "proof/browser/node_modules/@playwright/test/cli.js",
@@ -830,7 +915,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.patchbay-front-door.live-membership",
-        "Admit a real Chromium Part into the presented Body, observe it offline, preserve the Plan, and replan",
+        "Admit a real Chromium Part into the presented Body, observe it offline, preserve the plan, and replan",
         "node",
         &[
             "proof/browser/node_modules/@playwright/test/cli.js",

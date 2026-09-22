@@ -52,10 +52,10 @@ pub fn prepare_timing(
     let advertisement = advertisement(identities, fixed_offer, build_id)?;
     let mut catalog = conduit_form::ProfileCatalog::new();
     catalog
-        .insert(conduit_time::tick_kind_definition())
+        .insert(conduit_time::tick_kind_projection())
         .map_err(|_| PreparationError::FormRejected)?;
     catalog
-        .insert(conduit_semantic_catalog::tick_presentation_kind_definition())
+        .insert(conduit_semantic_catalog::tick_presentation_kind_projection())
         .map_err(|_| PreparationError::FormRejected)?;
     let form = conduit_form::parse(TIMING_FORM_SOURCE, &catalog)
         .map_err(|_| PreparationError::FormRejected)?;
@@ -162,6 +162,7 @@ fn advertisement(
         boot_id: BootId::from(hex_identity(&identities.boot)),
         offer_generation: OfferGeneration(fixed.generation),
         profile: HostProfileId::from(fixed.profile),
+        bases: vec![],
         resources: fixed
             .resources
             .iter()

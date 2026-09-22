@@ -14,7 +14,7 @@ impl Arrival {
             identity: host.clone(),
             role: PresentationRole::Host,
             label: "Crèche".into(),
-            accessibility_name: "A Body of your own".into(),
+            accessibility_name: "A body of your own".into(),
         }];
         let mut properties = vec![
             property(
@@ -97,7 +97,7 @@ impl Arrival {
                 text: self
                     .refusal
                     .clone()
-                    .unwrap_or_else(|| "Name your Body and choose its installed Forms.".into()),
+                    .unwrap_or_else(|| "Name your body and choose its installed forms.".into()),
             }],
             actions,
             vec![PresentationDisclosure {

@@ -148,7 +148,7 @@ impl BrowserPresenceCoordinator {
             .send(WorkerResponse::Relayed)
             .map_err(|_| "browser WebRTC response worker disconnected".to_string())?;
         Ok(Some(
-            "Browser WebRTC signaling relayed through current Body".into(),
+            "Browser WebRTC signaling relayed through current body".into(),
         ))
     }
 }

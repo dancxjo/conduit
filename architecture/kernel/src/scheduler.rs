@@ -7,29 +7,33 @@ use crate::{
         DebugBreakpoint, DebugControlRefusal, DebugEventKind, DebugObservationRefusal,
         DebugObserverControl, DebugRuntimeControl, DebugRuntimeEvent, DebugSuspension,
     },
-    BoundedValueRef, CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes,
-    HostOperationBinding, HostOperationId, HostOperationOutcome, KernelEventKind, NodeId,
-    OperationAction, PortId, ProtocolError, RemoteEndpointId, RequestId, RouteTarget, SignError,
-    SignSink, StorageError, ValueRef, ValueStorage,
+    BoundedValueRef, CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostCallBinding,
+    HostCallId, HostCallOutcome, KernelEventKind, NodeId, PortId, ProtocolError, RemoteEndpointId,
+    RequestId, RouteTarget, SignError, SignSink, StorageError, ValueRef, ValueStorage,
 };
 pub use conduit_assigned_plan::AssignedPressurePolicy;
 
 mod active_capacity;
 mod debug_control;
 mod derived_value;
-mod operation_driver;
 mod retirement;
 use active_capacity::validate_active_capacity;
 use debug_control::DebugControlState;
 pub use derived_value::CanonicalValue;
-pub use operation_driver::OperationDriver;
 pub use retirement::RetiredExecution;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NodeSpec<const PORTS: usize> {
     /// Exact inbound cord for each input-port ordinal.
     pub input_cords: [Option<CordId>; PORTS],
-    pub maximum_step_work: u16,
+    /// Plan-owned fuel granted to each invocation of this Back.
+    ///
+    /// The cooperative kernel charges every kernel-visible action against this
+    /// grant. A Back must also charge private computation explicitly. Code
+    /// which cannot be trusted to do that requires a Host confinement boundary
+    /// (for example Wasm instruction fuel); this field does not claim native
+    /// in-process preemption.
+    pub maximum_step_fuel: u16,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -150,32 +154,32 @@ pub enum StepOutcome {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct HostOperationRequest {
+pub struct HostCallRequest {
     pub node: NodeId,
     pub request: RequestId,
-    pub operation: HostOperationId,
+    pub call: HostCallId,
     pub input: BoundedValueRef,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct HostOperationCancellation {
+pub struct HostCallCancellation {
     pub node: NodeId,
     pub request: RequestId,
-    pub operation: HostOperationId,
+    pub call: HostCallId,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct PendingHostOperation {
-    request: HostOperationRequest,
+struct PendingHostCall {
+    request: HostCallRequest,
     maximum_input_bytes: u32,
     maximum_output_bytes: u32,
     dispatched: bool,
     cancellation_requested: bool,
     cancellation_dispatched: bool,
-    completion: Option<HostOperationOutcome>,
+    completion: Option<HostCallOutcome>,
 }
 
-pub trait StepOperation<const PORTS: usize> {
+pub trait StepBack<const PORTS: usize> {
     /// Finalize private state only after successful transactional I/O commit.
     fn step_committed(&mut self) {}
     fn step(
@@ -183,10 +187,10 @@ pub trait StepOperation<const PORTS: usize> {
         io: &mut StepIo<PORTS>,
         input_bytes: &StepInputBytes<'_, PORTS>,
     ) -> StepOutcome;
-    fn accepts_input_while_host_operation_pending(&self) -> bool {
+    fn accepts_input_while_host_call_pending(&self) -> bool {
         false
     }
-    fn retains_host_operation_input(&self, _request: RequestId, _value: ValueRef) -> bool {
+    fn retains_host_call_input(&self, _request: RequestId, _value: ValueRef) -> bool {
         false
     }
     fn cancel(&mut self) {}
@@ -211,6 +215,29 @@ impl<const PORTS: usize> StepInputBytes<'_, PORTS> {
     }
 }
 
+#[cfg(feature = "step-test-support")]
+impl<'a, const PORTS: usize> StepInputBytes<'a, PORTS> {
+    /// Construct the exact byte view presented to one Step in conformance tests.
+    pub const fn test_frame(
+        inputs: [Option<&'a [u8]>; PORTS],
+        host_output: Option<&'a [u8]>,
+    ) -> Self {
+        Self {
+            inputs,
+            host_output,
+        }
+    }
+}
+
+impl StepInputBytes<'static, 1> {
+    pub(crate) const fn single_source() -> Self {
+        Self {
+            inputs: [None],
+            host_output: None,
+        }
+    }
+}
+
 pub struct StepIo<const PORTS: usize> {
     inputs: [Option<ValueRef>; PORTS],
     input_closed: [bool; PORTS],
@@ -221,12 +248,12 @@ pub struct StepIo<const PORTS: usize> {
     outputs: [Option<ValueRef>; PORTS],
     canonical_output: Option<(PortId, CanonicalValue)>,
     discards: [Option<ValueRef>; PORTS],
-    host_completion: Option<(RequestId, HostOperationOutcome)>,
+    host_completion: Option<(RequestId, HostCallOutcome)>,
     consumed_host_completion: bool,
-    host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
+    host_request: Option<(RequestId, HostCallId, BoundedValueRef)>,
     host_cancellation: Option<RequestId>,
-    maximum_work: u16,
-    work: u16,
+    maximum_fuel: u16,
+    fuel_consumed: u16,
     fault: Option<SchedulerError>,
 }
 
@@ -238,7 +265,7 @@ struct StagedStep<const PORTS: usize> {
     outputs: [Option<ValueRef>; PORTS],
     discards: [Option<ValueRef>; PORTS],
     consumed_host_completion: bool,
-    host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
+    host_request: Option<(RequestId, HostCallId, BoundedValueRef)>,
     host_cancellation: Option<RequestId>,
 }
 
@@ -263,7 +290,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
     }
 
     pub fn consume_closed(&mut self, port: PortId) -> Result<(), SchedulerError> {
-        self.charge_work(1)?;
+        self.consume_fuel(1)?;
         let index = usize::from(port.0);
         if !self.input_closed.get(index).copied().unwrap_or(false)
             || self.inputs.get(index).copied().flatten().is_some()
@@ -278,9 +305,9 @@ impl<const PORTS: usize> StepIo<PORTS> {
     fn consume_input(
         &mut self,
         port: PortId,
-        retain_for_operation: bool,
+        retain_for_call: bool,
     ) -> Result<ValueRef, SchedulerError> {
-        self.charge_work(1)?;
+        self.consume_fuel(1)?;
         let index = usize::from(port.0);
         let value = self
             .inputs
@@ -292,7 +319,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
             return self.fail(SchedulerError::InvalidPortAccess);
         }
         self.consumed[index] = true;
-        self.retained_inputs[index] = retain_for_operation;
+        self.retained_inputs[index] = retain_for_call;
         Ok(value)
     }
 
@@ -305,7 +332,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
     }
 
     pub fn send(&mut self, port: PortId, value: ValueRef) -> Result<(), SchedulerError> {
-        self.charge_work(1)?;
+        self.consume_fuel(1)?;
         let index = usize::from(port.0);
         let maximum = self
             .output_maximum_bytes
@@ -328,7 +355,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
         port: PortId,
         value: CanonicalValue,
     ) -> Result<(), SchedulerError> {
-        self.charge_work(1)?;
+        self.consume_fuel(1)?;
         let index = usize::from(port.0);
         let maximum = self
             .output_maximum_bytes
@@ -347,49 +374,49 @@ impl<const PORTS: usize> StepIo<PORTS> {
         Ok(())
     }
 
-    pub fn host_completion(&self) -> Option<(RequestId, HostOperationOutcome)> {
+    pub fn host_completion(&self) -> Option<(RequestId, HostCallOutcome)> {
         self.host_completion
     }
 
     pub fn consume_host_completion(
         &mut self,
-    ) -> Result<(RequestId, HostOperationOutcome), SchedulerError> {
-        self.charge_work(1)?;
+    ) -> Result<(RequestId, HostCallOutcome), SchedulerError> {
+        self.consume_fuel(1)?;
         if self.consumed_host_completion {
-            return self.fail(SchedulerError::InvalidHostOperationAccess);
+            return self.fail(SchedulerError::InvalidHostCallAccess);
         }
         let completion = self
             .host_completion
-            .ok_or(SchedulerError::InvalidHostOperationAccess)?;
+            .ok_or(SchedulerError::InvalidHostCallAccess)?;
         self.consumed_host_completion = true;
         Ok(completion)
     }
 
-    pub fn request_host_operation(
+    pub fn request_host_call(
         &mut self,
         request: RequestId,
-        operation: HostOperationId,
+        call: HostCallId,
         input: BoundedValueRef,
     ) -> Result<(), SchedulerError> {
-        self.charge_work(1)?;
+        self.consume_fuel(1)?;
         if self.host_request.is_some() {
-            return self.fail(SchedulerError::InvalidHostOperationAccess);
+            return self.fail(SchedulerError::InvalidHostCallAccess);
         }
-        self.host_request = Some((request, operation, input));
+        self.host_request = Some((request, call, input));
         Ok(())
     }
 
-    pub fn cancel_host_operation(&mut self, request: RequestId) -> Result<(), SchedulerError> {
-        self.charge_work(1)?;
+    pub fn cancel_host_call(&mut self, request: RequestId) -> Result<(), SchedulerError> {
+        self.consume_fuel(1)?;
         if self.host_cancellation.is_some() {
-            return self.fail(SchedulerError::InvalidHostOperationAccess);
+            return self.fail(SchedulerError::InvalidHostCallAccess);
         }
         self.host_cancellation = Some(request);
         Ok(())
     }
 
     pub fn discard(&mut self, value: ValueRef) -> Result<(), SchedulerError> {
-        self.charge_work(1)?;
+        self.consume_fuel(1)?;
         if self
             .discards
             .iter()
@@ -398,29 +425,38 @@ impl<const PORTS: usize> StepIo<PORTS> {
         {
             return self.fail(SchedulerError::InvalidPortAccess);
         }
-        let slot = self
-            .discards
-            .iter_mut()
-            .find(|discard| discard.is_none())
-            .ok_or(SchedulerError::InvalidPortAccess)?;
+        let Some(slot) = self.discards.iter_mut().find(|discard| discard.is_none()) else {
+            return self.fail(SchedulerError::InvalidPortAccess);
+        };
         *slot = Some(value);
         Ok(())
     }
 
-    pub fn charge_work(&mut self, units: u16) -> Result<(), SchedulerError> {
-        let work = self
-            .work
+    /// Consume cooperative computation fuel owned by this Step.
+    ///
+    /// Kernel-visible actions call this automatically. A Back performing
+    /// private iteration must call it at bounded intervals. Failure is sticky:
+    /// once the grant is exceeded, the whole Step is rejected atomically.
+    pub fn consume_fuel(&mut self, units: u16) -> Result<(), SchedulerError> {
+        let consumed = self
+            .fuel_consumed
             .checked_add(units)
-            .ok_or(SchedulerError::StepWorkExceeded)?;
-        if work > self.maximum_work {
-            return self.fail(SchedulerError::StepWorkExceeded);
+            .ok_or(SchedulerError::StepFuelExceeded)?;
+        if consumed > self.maximum_fuel {
+            return self.fail(SchedulerError::StepFuelExceeded);
         }
-        self.work = work;
+        self.fuel_consumed = consumed;
         Ok(())
     }
 
-    pub fn exhaust_work_budget(&mut self) {
-        self.work = self.maximum_work;
+    /// Fuel still available to cooperative private computation in this Step.
+    pub const fn remaining_fuel(&self) -> u16 {
+        self.maximum_fuel - self.fuel_consumed
+    }
+
+    /// Consume the remainder of the grant before returning [`StepOutcome::Yield`].
+    pub fn exhaust_fuel(&mut self) {
+        self.fuel_consumed = self.maximum_fuel;
     }
 
     fn fail<T>(&mut self, error: SchedulerError) -> Result<T, SchedulerError> {
@@ -455,16 +491,158 @@ impl<const PORTS: usize> StepIo<PORTS> {
     }
 }
 
+#[cfg(feature = "step-test-support")]
+impl<const PORTS: usize> StepIo<PORTS> {
+    /// Construct one isolated transactional Step frame for conformance tests.
+    pub const fn test_frame(
+        inputs: [Option<ValueRef>; PORTS],
+        input_closed: [bool; PORTS],
+        output_maximum_bytes: [Option<u32>; PORTS],
+        host_completion: Option<(RequestId, HostCallOutcome)>,
+        maximum_fuel: u16,
+    ) -> Self {
+        Self {
+            inputs,
+            input_closed,
+            output_maximum_bytes,
+            consumed: [false; PORTS],
+            retained_inputs: [false; PORTS],
+            consumed_closed: [false; PORTS],
+            outputs: [None; PORTS],
+            canonical_output: None,
+            discards: [None; PORTS],
+            host_completion,
+            consumed_host_completion: false,
+            host_request: None,
+            host_cancellation: None,
+            maximum_fuel,
+            fuel_consumed: 0,
+            fault: None,
+        }
+    }
+
+    pub fn test_consumed(&self, port: PortId) -> bool {
+        self.consumed
+            .get(usize::from(port.0))
+            .copied()
+            .unwrap_or(false)
+    }
+
+    pub fn test_retained(&self, port: PortId) -> bool {
+        self.retained_inputs
+            .get(usize::from(port.0))
+            .copied()
+            .unwrap_or(false)
+    }
+
+    pub fn test_consumed_closed(&self, port: PortId) -> bool {
+        self.consumed_closed
+            .get(usize::from(port.0))
+            .copied()
+            .unwrap_or(false)
+    }
+
+    pub fn test_output(&self, port: PortId) -> Option<ValueRef> {
+        self.outputs.get(usize::from(port.0)).copied().flatten()
+    }
+
+    pub fn test_canonical_output(&self) -> Option<&(PortId, CanonicalValue)> {
+        self.canonical_output.as_ref()
+    }
+
+    pub fn test_discards(&self) -> &[Option<ValueRef>; PORTS] {
+        &self.discards
+    }
+
+    pub const fn test_host_completion_consumed(&self) -> bool {
+        self.consumed_host_completion
+    }
+
+    pub const fn test_host_request(&self) -> Option<(RequestId, HostCallId, BoundedValueRef)> {
+        self.host_request
+    }
+
+    pub const fn test_host_cancellation(&self) -> Option<RequestId> {
+        self.host_cancellation
+    }
+
+    pub const fn test_fuel_consumed(&self) -> u16 {
+        self.fuel_consumed
+    }
+
+    pub const fn test_fault(&self) -> Option<SchedulerError> {
+        self.fault
+    }
+}
+
+impl StepIo<1> {
+    pub(crate) fn single_source(
+        maximum_output_bytes: u32,
+        maximum_fuel: u16,
+        host_completion: Option<(RequestId, HostCallOutcome)>,
+    ) -> Self {
+        Self {
+            inputs: [None],
+            input_closed: [false],
+            output_maximum_bytes: [Some(maximum_output_bytes)],
+            consumed: [false],
+            retained_inputs: [false],
+            consumed_closed: [false],
+            outputs: [None],
+            canonical_output: None,
+            discards: [None],
+            host_completion,
+            consumed_host_completion: false,
+            host_request: None,
+            host_cancellation: None,
+            maximum_fuel,
+            fuel_consumed: 0,
+            fault: None,
+        }
+    }
+
+    pub(crate) fn single_source_start_request(
+        &self,
+    ) -> Option<(RequestId, HostCallId, BoundedValueRef)> {
+        if self.fault.is_none()
+            && self.host_request.is_some()
+            && !self.consumed_host_completion
+            && self.outputs[0].is_none()
+            && self.canonical_output.is_none()
+            && self.discards[0].is_none()
+            && self.host_cancellation.is_none()
+        {
+            self.host_request
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn single_source_completion_output(&self) -> Option<ValueRef> {
+        if self.fault.is_none()
+            && self.consumed_host_completion
+            && self.host_request.is_none()
+            && self.canonical_output.is_none()
+            && self.discards[0].is_none()
+            && self.host_cancellation.is_none()
+        {
+            self.outputs[0]
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SchedulerStatus {
     Progress {
         node: NodeId,
     },
     Idle,
-    /// Every Gear has settled and every Cord has drained.
+    /// Every gear has settled and every Cord has drained.
     ///
-    /// This is structural scheduler truth, not a claim that the Form's
-    /// meaning is complete. The Play lifecycle must separately classify a
+    /// This is structural scheduler truth, not a claim that the form's
+    /// meaning is complete. The play lifecycle must separately classify a
     /// drained scheduler as quiescent or semantically completed.
     Drained,
     Cancelled,
@@ -475,22 +653,21 @@ pub enum SchedulerError {
     InvalidPlan,
     InvalidActiveCapacity,
     InvalidPortAccess,
-    InvalidHostOperationAccess,
-    HostOperationCancellationRejected,
-    HostOperationCancellationDuplicate,
-    HostOperationCancellationUndispatched,
+    InvalidHostCallAccess,
+    HostCallCancellationRejected,
+    HostCallCancellationDuplicate,
+    HostCallCancellationUndispatched,
     OutputBlocked,
     QueueCapacityExceeded,
     QueueByteCapacityExceeded,
-    StepWorkExceeded,
+    StepFuelExceeded,
     FalseProgress,
     DecisionLimitExceeded,
-    OperationFailed(crate::Failure),
-    OperationProtocolViolation,
-    HostOperationCapacityExceeded,
-    HostOperationRequestDuplicate,
-    HostOperationCompletionRejected,
-    HostOperationOutputExceeded,
+    BackFailed(crate::Failure),
+    HostCallCapacityExceeded,
+    HostCallRequestDuplicate,
+    HostCallCompletionRejected,
+    HostCallOutputExceeded,
     InvalidRemoteCordAccess,
     RemoteSequenceRejected,
     RemoteDeliveryRejected,
@@ -556,7 +733,7 @@ pub struct FixedScheduler<
     const HOST_BINDING_SLOTS: usize = 0,
     const PENDING_REQUESTS: usize = 0,
 > where
-    D: StepOperation<PORTS>,
+    D: StepBack<PORTS>,
     S: ValueStorage,
     E: SignSink,
 {
@@ -565,8 +742,8 @@ pub struct FixedScheduler<
     active_nodes: usize,
     active_cords: usize,
     routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
-    host_bindings: Option<FixedHostOperationBindings<HOST_BINDING_SLOTS>>,
-    pending_host_operations: [Option<PendingHostOperation>; PENDING_REQUESTS],
+    host_bindings: Option<FixedHostCallBindings<HOST_BINDING_SLOTS>>,
+    pending_host_calls: [Option<PendingHostCall>; PENDING_REQUESTS],
     drivers: [D; NODES],
     values: S,
     signs: E,
@@ -609,7 +786,7 @@ impl<
         PENDING_REQUESTS,
     >
 where
-    D: StepOperation<PORTS>,
+    D: StepBack<PORTS>,
     S: ValueStorage,
     E: SignSink,
 {
@@ -661,7 +838,7 @@ where
             active_cords,
             routes,
             host_bindings: None,
-            pending_host_operations: [None; PENDING_REQUESTS],
+            pending_host_calls: [None; PENDING_REQUESTS],
             drivers,
             values,
             signs,
@@ -678,11 +855,11 @@ where
         })
     }
 
-    pub fn new_with_host_operations(
+    pub fn new_with_host_calls(
         node_specs: [NodeSpec<PORTS>; NODES],
         cord_specs: [CordSpec; CORDS],
         routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
-        host_bindings: FixedHostOperationBindings<HOST_BINDING_SLOTS>,
+        host_bindings: FixedHostCallBindings<HOST_BINDING_SLOTS>,
         drivers: [D; NODES],
         values: S,
         signs: E,
@@ -690,7 +867,7 @@ where
         if NODES == 0 || CORDS == 0 {
             return Err(SchedulerError::InvalidPlan);
         }
-        Self::new_with_active_counts_and_host_operations(
+        Self::new_with_active_counts_and_host_calls(
             NODES,
             CORDS,
             node_specs,
@@ -703,16 +880,16 @@ where
         )
     }
 
-    /// Installs an admitted topology prefix and its sealed host-operation table
+    /// Installs an admitted topology prefix and its sealed Host Call table
     /// inside the compile-time capacities.
     #[allow(clippy::too_many_arguments)]
-    pub fn new_with_active_counts_and_host_operations(
+    pub fn new_with_active_counts_and_host_calls(
         active_nodes: usize,
         active_cords: usize,
         node_specs: [NodeSpec<PORTS>; NODES],
         cord_specs: [CordSpec; CORDS],
         routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
-        host_bindings: FixedHostOperationBindings<HOST_BINDING_SLOTS>,
+        host_bindings: FixedHostCallBindings<HOST_BINDING_SLOTS>,
         drivers: [D; NODES],
         values: S,
         signs: E,
@@ -763,8 +940,12 @@ where
             .decisions
             .checked_add(1)
             .ok_or(SchedulerError::DecisionLimitExceeded)?;
-        self.signs
-            .record(NodeId(as_u16(node)?), None, None, KernelEventKind::Decision)?;
+        self.signs.record(
+            NodeId(as_u16(node)?),
+            None,
+            None,
+            KernelEventKind::StepFuelGranted,
+        )?;
         self.signs.observe_debug(DebugRuntimeEvent {
             node: NodeId(as_u16(node)?),
             port: None,
@@ -792,6 +973,14 @@ where
         };
         let outcome = self.drivers[node].step(&mut io, &input_bytes);
         if let Some(fault) = io.fault {
+            if fault == SchedulerError::StepFuelExceeded {
+                self.signs.record(
+                    NodeId(as_u16(node)?),
+                    None,
+                    None,
+                    KernelEventKind::StepFuelExceeded,
+                )?;
+            }
             return Err(fault);
         }
         self.apply_step(node, outcome, io)?;
@@ -1212,20 +1401,20 @@ where
         Ok(state.producer_closed && state.len == 0)
     }
 
-    pub fn next_host_request(&mut self) -> Option<HostOperationRequest> {
+    pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
         self.next_host_request_matching(|_| true)
     }
 
-    /// Selects the next undispatched request accepted by the Host adapter.
+    /// Selects the next undispatched request accepted by the host adapter.
     /// Non-matching requests remain undispatched and retain their exact order
     /// for a later call.
     pub fn next_host_request_matching(
         &mut self,
-        mut accepts: impl FnMut(&HostOperationRequest) -> bool,
-    ) -> Option<HostOperationRequest> {
+        mut accepts: impl FnMut(&HostCallRequest) -> bool,
+    ) -> Option<HostCallRequest> {
         for offset in 0..PENDING_REQUESTS {
             let slot = (self.host_request_cursor + offset) % PENDING_REQUESTS;
-            let Some(pending) = self.pending_host_operations[slot].as_mut() else {
+            let Some(pending) = self.pending_host_calls[slot].as_mut() else {
                 continue;
             };
             if pending.dispatched || !accepts(&pending.request) {
@@ -1241,22 +1430,19 @@ where
     pub fn has_ready_work(&self) -> bool {
         (0..self.active_nodes).any(|node| {
             let waiting_for_host_completion =
-                self.pending_host_operations
-                    .iter()
-                    .flatten()
-                    .any(|pending| {
-                        usize::from(pending.request.node.0) == node && pending.completion.is_none()
-                    });
+                self.pending_host_calls.iter().flatten().any(|pending| {
+                    usize::from(pending.request.node.0) == node && pending.completion.is_none()
+                });
             self.ready[node]
                 && !self.completed[node]
                 && (!waiting_for_host_completion
-                    || self.drivers[node].accepts_input_while_host_operation_pending())
+                    || self.drivers[node].accepts_input_while_host_call_pending())
         })
     }
 
-    pub fn next_host_cancellation(&mut self) -> Option<HostOperationCancellation> {
+    pub fn next_host_cancellation(&mut self) -> Option<HostCallCancellation> {
         let pending = self
-            .pending_host_operations
+            .pending_host_calls
             .iter_mut()
             .flatten()
             .find(|pending| {
@@ -1265,27 +1451,27 @@ where
                     && pending.completion.is_none()
             })?;
         pending.cancellation_dispatched = true;
-        Some(HostOperationCancellation {
+        Some(HostCallCancellation {
             node: pending.request.node,
             request: pending.request.request,
-            operation: pending.request.operation,
+            call: pending.request.call,
         })
     }
 
-    pub fn complete_host_operation(
+    pub fn complete_host_call(
         &mut self,
         node: NodeId,
         request: RequestId,
-        outcome: HostOperationOutcome,
+        outcome: HostCallOutcome,
     ) -> Result<(), SchedulerError> {
         if self.cancelled {
-            return Err(SchedulerError::HostOperationCompletionRejected);
+            return Err(SchedulerError::HostCallCompletionRejected);
         }
         if usize::from(node.0) >= self.active_nodes {
-            return Err(SchedulerError::HostOperationCompletionRejected);
+            return Err(SchedulerError::HostCallCompletionRejected);
         }
         let slot = self
-            .pending_host_operations
+            .pending_host_calls
             .iter()
             .position(|pending| {
                 pending
@@ -1294,11 +1480,11 @@ where
                     })
                     .unwrap_or(false)
             })
-            .ok_or(SchedulerError::HostOperationCompletionRejected)?;
-        let pending = self.pending_host_operations[slot]
-            .ok_or(SchedulerError::HostOperationCompletionRejected)?;
+            .ok_or(SchedulerError::HostCallCompletionRejected)?;
+        let pending =
+            self.pending_host_calls[slot].ok_or(SchedulerError::HostCallCompletionRejected)?;
         if !pending.dispatched || pending.completion.is_some() {
-            return Err(SchedulerError::HostOperationCompletionRejected);
+            return Err(SchedulerError::HostCallCompletionRejected);
         }
         if let Some(output) = outcome.output {
             if output.admitted_bytes == 0
@@ -1306,7 +1492,7 @@ where
                 || output.admitted_bytes > pending.maximum_output_bytes
                 || output.value.byte_len > pending.maximum_output_bytes
             {
-                return Err(SchedulerError::HostOperationOutputExceeded);
+                return Err(SchedulerError::HostCallOutputExceeded);
             }
             self.values.get(output.value)?;
         }
@@ -1314,16 +1500,16 @@ where
         // Input ownership remains with the pending completion until its node
         // commits the resume step. That transaction may reuse the same exact
         // value for a re-armed bounded Host request.
-        self.pending_host_operations[slot]
+        self.pending_host_calls[slot]
             .as_mut()
-            .ok_or(SchedulerError::HostOperationCompletionRejected)?
+            .ok_or(SchedulerError::HostCallCompletionRejected)?
             .completion = Some(outcome);
         self.ready[usize::from(pending.request.node.0)] = true;
         self.signs.record(
             pending.request.node,
             None,
             Some(request),
-            KernelEventKind::HostOperationCompleted,
+            KernelEventKind::HostCallCompleted,
         )?;
         Ok(())
     }
@@ -1340,31 +1526,26 @@ where
     }
 
     pub fn discard_host_value(&mut self, value: ValueRef) -> Result<(), SchedulerError> {
-        if self
-            .pending_host_operations
+        if self.pending_host_calls.iter().flatten().any(|pending| {
+            pending.request.input.value == value
+                || pending
+                    .completion
+                    .and_then(|outcome| outcome.output)
+                    .map(|output| output.value)
+                    == Some(value)
+        }) || self
+            .queue_slots
             .iter()
             .flatten()
-            .any(|pending| {
-                pending.request.input.value == value
-                    || pending
-                        .completion
-                        .and_then(|outcome| outcome.output)
-                        .map(|output| output.value)
-                        == Some(value)
-            })
-            || self
-                .queue_slots
-                .iter()
-                .flatten()
-                .any(|queued| *queued == value)
+            .any(|queued| *queued == value)
         {
             return Err(SchedulerError::ValueOwnershipViolation);
         }
         Ok(self.values.release(value)?)
     }
 
-    pub fn pending_host_operation_count(&self) -> usize {
-        self.pending_host_operations
+    pub fn pending_host_call_count(&self) -> usize {
+        self.pending_host_calls
             .iter()
             .filter(|pending| pending.is_some())
             .count()
@@ -1374,16 +1555,13 @@ where
         for offset in 0..self.active_nodes {
             let node = (self.cursor + offset) % self.active_nodes;
             let waiting_for_host_completion =
-                self.pending_host_operations
-                    .iter()
-                    .flatten()
-                    .any(|pending| {
-                        usize::from(pending.request.node.0) == node && pending.completion.is_none()
-                    });
+                self.pending_host_calls.iter().flatten().any(|pending| {
+                    usize::from(pending.request.node.0) == node && pending.completion.is_none()
+                });
             if self.ready[node]
                 && !self.completed[node]
                 && (!waiting_for_host_completion
-                    || self.drivers[node].accepts_input_while_host_operation_pending())
+                    || self.drivers[node].accepts_input_while_host_call_pending())
             {
                 self.cursor = (node + 1) % self.active_nodes;
                 return Some(node);
@@ -1397,7 +1575,7 @@ where
         let mut input_closed = [false; PORTS];
         let mut output_maximum_bytes = [None; PORTS];
         let host_completion = self
-            .pending_host_operations
+            .pending_host_calls
             .iter()
             .flatten()
             .find(|pending| usize::from(pending.request.node.0) == node)
@@ -1462,8 +1640,8 @@ where
             consumed_host_completion: false,
             host_request: None,
             host_cancellation: None,
-            maximum_work: self.node_specs[node].maximum_step_work,
-            work: 0,
+            maximum_fuel: self.node_specs[node].maximum_step_fuel,
+            fuel_consumed: 0,
             fault: None,
         })
     }
@@ -1478,10 +1656,16 @@ where
         match outcome {
             StepOutcome::Progress if !staged => return Err(SchedulerError::FalseProgress),
             StepOutcome::Await if staged => return Err(SchedulerError::FalseProgress),
-            StepOutcome::Yield if staged || io.work != io.maximum_work => {
+            StepOutcome::Yield if staged || io.fuel_consumed != io.maximum_fuel => {
                 return Err(SchedulerError::FalseProgress);
             }
             StepOutcome::Fail(code) => {
+                self.signs.record(
+                    NodeId(as_u16(node)?),
+                    None,
+                    None,
+                    KernelEventKind::BackFailed,
+                )?;
                 self.signs.observe_debug(DebugRuntimeEvent {
                     node: NodeId(as_u16(node)?),
                     port: None,
@@ -1491,7 +1675,7 @@ where
                     value: None,
                     fault_code: Some(code.detail),
                 });
-                return Err(SchedulerError::OperationFailed(code));
+                return Err(SchedulerError::BackFailed(code));
             }
             _ => {}
         }
@@ -1499,7 +1683,7 @@ where
         if matches!(outcome, StepOutcome::Progress | StepOutcome::Complete) {
             let complete_sign_records = if matches!(outcome, StepOutcome::Complete) {
                 if io.host_request.is_some() || io.host_cancellation.is_some() {
-                    return Err(SchedulerError::InvalidHostOperationAccess);
+                    return Err(SchedulerError::InvalidHostCallAccess);
                 }
                 self.output_route_count(node)?
                     .checked_add(1)
@@ -1551,7 +1735,15 @@ where
             StepOutcome::Progress => {
                 self.ready[node] = io.host_request.is_none() && io.host_cancellation.is_none()
             }
-            StepOutcome::Yield => self.ready[node] = true,
+            StepOutcome::Yield => {
+                self.signs.record(
+                    NodeId(as_u16(node)?),
+                    None,
+                    None,
+                    KernelEventKind::StepYielded,
+                )?;
+                self.ready[node] = true;
+            }
             StepOutcome::Await => self.ready[node] = false,
             StepOutcome::Complete => {
                 self.completed[node] = true;
@@ -1561,7 +1753,7 @@ where
                     NodeId(as_u16(node)?),
                     None,
                     None,
-                    KernelEventKind::OperationCompleted,
+                    KernelEventKind::BackCompleted,
                 )?;
                 self.signs.observe_debug(DebugRuntimeEvent {
                     node: NodeId(as_u16(node)?),
@@ -1601,20 +1793,20 @@ where
 
         if let Some(request) = host_cancellation {
             let pending = self
-                .pending_host_operations
+                .pending_host_calls
                 .iter_mut()
                 .flatten()
                 .find(|pending| {
                     usize::from(pending.request.node.0) == node
                         && pending.request.request == request
                 })
-                .ok_or(SchedulerError::HostOperationCancellationRejected)?;
+                .ok_or(SchedulerError::HostCallCancellationRejected)?;
             pending.cancellation_requested = true;
             self.signs.record(
                 NodeId(as_u16(node)?),
                 None,
                 Some(request),
-                KernelEventKind::HostOperationCancellationRequested,
+                KernelEventKind::HostCallCancellationRequested,
             )?;
         }
 
@@ -1661,7 +1853,7 @@ where
 
         let (consumed_host_input, consumed_host_value) = if consumed_host_completion {
             let slot = self
-                .pending_host_operations
+                .pending_host_calls
                 .iter()
                 .position(|pending| {
                     pending
@@ -1672,15 +1864,15 @@ where
                                 .unwrap_or(false)
                         })
                 })
-                .ok_or(SchedulerError::InvalidHostOperationAccess)?;
-            let pending = self.pending_host_operations[slot]
+                .ok_or(SchedulerError::InvalidHostCallAccess)?;
+            let pending = self.pending_host_calls[slot]
                 .take()
-                .ok_or(SchedulerError::InvalidHostOperationAccess)?;
+                .ok_or(SchedulerError::InvalidHostCallAccess)?;
             let retains_input = self.drivers[node]
-                .retains_host_operation_input(pending.request.request, pending.request.input.value);
+                .retains_host_call_input(pending.request.request, pending.request.input.value);
             let completion = pending
                 .completion
-                .ok_or(SchedulerError::InvalidHostOperationAccess)?;
+                .ok_or(SchedulerError::InvalidHostCallAccess)?;
             (
                 (pending.maximum_input_bytes > 0
                     && !retains_input
@@ -1765,19 +1957,18 @@ where
             }
         }
 
-        if let (Some((request, operation, input)), Some(binding)) =
-            (host_request, admitted_host_request)
+        if let (Some((request, call, input)), Some(binding)) = (host_request, admitted_host_request)
         {
             let slot = self
-                .pending_host_operations
+                .pending_host_calls
                 .iter_mut()
                 .find(|pending| pending.is_none())
-                .ok_or(SchedulerError::HostOperationCapacityExceeded)?;
-            *slot = Some(PendingHostOperation {
-                request: HostOperationRequest {
+                .ok_or(SchedulerError::HostCallCapacityExceeded)?;
+            *slot = Some(PendingHostCall {
+                request: HostCallRequest {
                     node: NodeId(as_u16(node)?),
                     request,
-                    operation,
+                    call,
                     input,
                 },
                 maximum_input_bytes: binding.maximum_input_bytes,
@@ -1792,7 +1983,7 @@ where
                 NodeId(as_u16(node)?),
                 None,
                 Some(request),
-                KernelEventKind::HostOperationRequested,
+                KernelEventKind::HostCallRequested,
             )?;
         }
 
@@ -1840,7 +2031,7 @@ where
         node: usize,
         staged: &StagedStep<PORTS>,
         retained_values: &[Option<ValueRef>; PORTS],
-    ) -> Result<Option<HostOperationBinding>, SchedulerError> {
+    ) -> Result<Option<HostCallBinding>, SchedulerError> {
         let consumed = &staged.consumed;
         let retained_inputs = &staged.retained_inputs;
         let outputs = &staged.outputs;
@@ -1849,10 +2040,10 @@ where
         let host_request = staged.host_request;
         let host_cancellation = staged.host_cancellation;
         if host_request.is_some() && host_cancellation.is_some() {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
         if consumed_host_completion && host_cancellation.is_some() {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
         if retained_inputs
             .iter()
@@ -1861,20 +2052,16 @@ where
         {
             return Err(SchedulerError::InvalidPortAccess);
         }
-        let completed_pending = self
-            .pending_host_operations
-            .iter()
-            .flatten()
-            .find(|pending| {
-                usize::from(pending.request.node.0) == node && pending.completion.is_some()
-            });
+        let completed_pending = self.pending_host_calls.iter().flatten().find(|pending| {
+            usize::from(pending.request.node.0) == node && pending.completion.is_some()
+        });
         let available_host_value = completed_pending
             .and_then(|pending| pending.completion)
             .and_then(|outcome| outcome.output)
             .map(|output| output.value);
         let consumed_host_value = if consumed_host_completion {
             completed_pending
-                .ok_or(SchedulerError::InvalidHostOperationAccess)?
+                .ok_or(SchedulerError::InvalidHostCallAccess)?
                 .completion
                 .and_then(|outcome| outcome.output)
                 .map(|output| output.value)
@@ -1884,60 +2071,48 @@ where
         let node_id = NodeId(as_u16(node)?);
         if let Some(request) = host_cancellation {
             let pending = self
-                .pending_host_operations
+                .pending_host_calls
                 .iter()
                 .flatten()
                 .find(|pending| {
                     pending.request.node == node_id && pending.request.request == request
                 })
-                .ok_or(SchedulerError::HostOperationCancellationRejected)?;
+                .ok_or(SchedulerError::HostCallCancellationRejected)?;
             if !pending.dispatched {
-                return Err(SchedulerError::HostOperationCancellationUndispatched);
+                return Err(SchedulerError::HostCallCancellationUndispatched);
             }
             if pending.completion.is_some() {
-                return Err(SchedulerError::HostOperationCancellationRejected);
+                return Err(SchedulerError::HostCallCancellationRejected);
             }
             if pending.cancellation_requested {
-                return Err(SchedulerError::HostOperationCancellationDuplicate);
+                return Err(SchedulerError::HostCallCancellationDuplicate);
             }
         }
-        let admitted_host_request = if let Some((request, operation, input)) = host_request {
+        let admitted_host_request = if let Some((request, call, input)) = host_request {
             if self.last_host_request[node].is_some_and(|last| request <= last)
-                || self
-                    .pending_host_operations
-                    .iter()
-                    .flatten()
-                    .any(|pending| {
-                        pending.request.node == node_id && pending.request.request == request
-                    })
+                || self.pending_host_calls.iter().flatten().any(|pending| {
+                    pending.request.node == node_id && pending.request.request == request
+                })
             {
-                return Err(SchedulerError::HostOperationRequestDuplicate);
+                return Err(SchedulerError::HostCallRequestDuplicate);
             }
             let pending_for_node = self
-                .pending_host_operations
+                .pending_host_calls
                 .iter()
                 .flatten()
                 .any(|pending| usize::from(pending.request.node.0) == node);
             if pending_for_node && !consumed_host_completion {
-                return Err(SchedulerError::InvalidHostOperationAccess);
+                return Err(SchedulerError::InvalidHostCallAccess);
             }
-            if !consumed_host_completion && self.pending_host_operations.iter().all(Option::is_some)
-            {
-                return Err(SchedulerError::HostOperationCapacityExceeded);
+            if !consumed_host_completion && self.pending_host_calls.iter().all(Option::is_some) {
+                return Err(SchedulerError::HostCallCapacityExceeded);
             }
             self.values.get(input.value)?;
             let bindings = self
                 .host_bindings
                 .as_ref()
-                .ok_or(SchedulerError::InvalidHostOperationAccess)?;
-            Some(bindings.admit(
-                NodeId(as_u16(node)?),
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation,
-                    input,
-                },
-            )?)
+                .ok_or(SchedulerError::InvalidHostCallAccess)?;
+            Some(bindings.admit_request(NodeId(as_u16(node)?), call, input)?)
         } else {
             None
         };
@@ -1946,7 +2121,7 @@ where
                 continue;
             };
             if available_host_value == Some(value) && !consumed_host_completion {
-                return Err(SchedulerError::InvalidHostOperationAccess);
+                return Err(SchedulerError::InvalidHostCallAccess);
             }
             if discards.iter().flatten().any(|discard| *discard == value) {
                 return Err(SchedulerError::InvalidPortAccess);
@@ -2102,7 +2277,7 @@ where
         &self,
         node: usize,
         outputs: &[Option<ValueRef>; PORTS],
-        host_request: Option<(RequestId, HostOperationId, BoundedValueRef)>,
+        host_request: Option<(RequestId, HostCallId, BoundedValueRef)>,
         retained_values: &[Option<ValueRef>; PORTS],
         value: ValueRef,
     ) -> Result<usize, SchedulerError> {
@@ -2287,7 +2462,7 @@ fn validate_plan<
     routes: &FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
 ) -> Result<(), SchedulerError> {
     for (node_index, node) in nodes[..active_nodes].iter().enumerate() {
-        if node.maximum_step_work == 0 {
+        if node.maximum_step_fuel == 0 {
             return Err(SchedulerError::InvalidPlan);
         }
         for (port, cord) in node.input_cords.iter().copied().enumerate() {

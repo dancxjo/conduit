@@ -175,7 +175,8 @@ scripted-keyboard-proof = []
 native-compositor = ["dep:fontdue"]
 native-http-client = []
 conduitos-isolation-proof = []
-virtio-net-proof = ["dep:embedded-io", "dep:embedded-tls", "dep:embedded-websocket", "dep:rand_chacha", "dep:rand_core", "dep:smoltcp"]
+emergency-halt-proof = []
+virtio-net-proof = ["dep:embedded-io", "dep:embedded-tls", "dep:embedded-websocket", "dep:rand_chacha", "dep:rand_core", "dep:serde-json-core", "dep:smoltcp"]
 ps2-input = []
 # Proof-appliance selectors. Every selected entrypoint lives under the explicit
 # proof/appliances tree and remains absent from an ordinary product build.
@@ -216,7 +217,7 @@ conduit-form = { path = "../../architecture/form" }
 conduit-kernel = { path = "../../architecture/kernel" }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
-conduit-protected-line = { path = "../../architecture/protected-line", default-features = false }
+conduit-protected-line = { path = "../../architecture/protected-line", default-features = false, features = ["noise-session"] }
 conduit-presentation = { path = "../../semantics/presentation" }
 conduit-tour-model = { path = "../../products/tour/model" }
 embedded-io = { version = "0.7.1", optional = true, default-features = false }
@@ -228,6 +229,7 @@ smoltcp = { version = "0.13.1", optional = true, default-features = false, featu
 patchbay-graph = { path = "../../products/patchbay/graph" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
 conduit-wire = { path = "../../architecture/wire" }
+ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }
 conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["form-catalog"] }
 conduit-time = { path = "../../semantics/time" }
 conduit-text = { path = "../../semantics/text", default-features = false }
@@ -235,6 +237,7 @@ conduit-web = { path = "../../semantics/web", default-features = false }
 conduit-synth = { path = "../../mechanisms/implementations/synth" }
 sha2 = { version = "=0.10.9", default-features = false }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+serde-json-core = { version = "0.6", optional = true }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 
 [target.'cfg(any(target_arch = "x86_64", target_arch = "aarch64", target_arch = "riscv64", target_arch = "loongarch64"))'.dependencies]

@@ -8,6 +8,7 @@ use rand_core::RngCore;
 
 const HANDSHAKE_BYTES: usize = 1024;
 const FRAME_BYTES: usize = 4096;
+pub(crate) const MAXIMUM_BINARY_MESSAGE_BYTES: usize = FRAME_BYTES;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WebSocketError {
@@ -35,6 +36,14 @@ where
     transmit: [u8; FRAME_BYTES],
 }
 
+/// Type-erased long-lived binary frame boundary for target protocol adapters.
+/// Connection, TLS identity, close, and reconnect authority stay with the
+/// enclosing ConduitOS network realization.
+pub(crate) trait BinaryWebSocketIo {
+    fn send_binary(&mut self, payload: &[u8]) -> Result<(), WebSocketError>;
+    fn receive_binary(&mut self, output: &mut [u8]) -> Result<usize, WebSocketError>;
+}
+
 impl WebSocketError {
     pub(crate) const fn as_str(self) -> &'static str {
         match self {
@@ -49,6 +58,20 @@ impl WebSocketError {
             Self::UnexpectedFrame => "websocket-frame-unexpected",
             Self::Close => "websocket-close-failed",
         }
+    }
+}
+
+impl<S, R> BinaryWebSocketIo for BoundedWebSocket<'_, S, R>
+where
+    S: Read + Write,
+    R: RngCore,
+{
+    fn send_binary(&mut self, payload: &[u8]) -> Result<(), WebSocketError> {
+        BoundedWebSocket::send_binary(self, payload)
+    }
+
+    fn receive_binary(&mut self, output: &mut [u8]) -> Result<usize, WebSocketError> {
+        BoundedWebSocket::receive_binary(self, output)
     }
 }
 
@@ -203,7 +226,8 @@ where
     }
 }
 
-pub(crate) fn exchange<S, R>(
+#[cfg(test)]
+fn exchange<S, R>(
     stream: &mut S,
     rng: R,
     host: &str,

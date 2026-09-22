@@ -12,11 +12,10 @@ use conduit_core::{
 };
 use conduit_form::parse_with_startup;
 use conduit_signal::{
-    pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
-    pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
-    show_host_operation_requirements, show_inputs, show_resource_requirements,
-    signal_profile_catalog, signal_resource_offers, PULSE_KIND, SHOW_KIND, SIGNAL_ENCODED_LEN,
-    SIGNAL_PRESENTATION_KIND,
+    pulse_contract_revision, pulse_execution_profile, pulse_host_call_requirements, pulse_outputs,
+    pulse_resource_requirements, show_contract_revision, show_execution_profile,
+    show_host_call_requirements, show_inputs, show_resource_requirements, signal_profile_catalog,
+    signal_resource_offers, PULSE_KIND, SHOW_KIND, SIGNAL_ENCODED_LEN, SIGNAL_PRESENTATION_KIND,
 };
 use conduit_signal_conformance::{
     pico_local_advertisement, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, PICO_LOCAL_HOST_ID,
@@ -41,6 +40,7 @@ fn host() -> HostAdvertisement {
         boot_id: conduit_core::BootId::from("boot-1"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std"),
+        bases: vec![],
         resources: signal_resource_offers("test/timer", "test/presentation", 4),
         planner_capabilities: vec![],
         capabilities: vec![
@@ -57,7 +57,7 @@ fn host() -> HostAdvertisement {
                 },
                 inputs: vec![],
                 outputs: pulse_outputs(),
-                host_operations: pulse_host_operation_requirements(),
+                host_calls: pulse_host_call_requirements(),
                 resource_requirements: pulse_resource_requirements(),
                 authority_requirements: vec![],
                 limits: CapabilityLimits {
@@ -79,7 +79,7 @@ fn host() -> HostAdvertisement {
                 },
                 inputs: show_inputs(),
                 outputs: vec![],
-                host_operations: show_host_operation_requirements(),
+                host_calls: show_host_call_requirements(),
                 resource_requirements: show_resource_requirements(),
                 authority_requirements: vec![],
                 limits: CapabilityLimits {
@@ -176,7 +176,7 @@ fn planning_binds_exact_contract_profile_and_every_port() {
         );
         assert_eq!(placement.inputs, gear.inputs);
         assert_eq!(placement.outputs, gear.outputs);
-        assert_eq!(placement.host_operations, capability.host_operations);
+        assert_eq!(placement.host_calls, capability.host_calls);
         assert_eq!(
             placement.resources.len(),
             capability.resource_requirements.len()
@@ -193,7 +193,7 @@ fn planning_binds_exact_contract_profile_and_every_port() {
     assert!(plan.fragments[0]
         .placements
         .iter()
-        .all(|placement| !placement.host_operations.is_empty()));
+        .all(|placement| !placement.host_calls.is_empty()));
     let fragment = &plan.fragments[0];
     assert_eq!(
         fragment.startup_dependencies,
@@ -222,6 +222,50 @@ fn planning_binds_exact_contract_profile_and_every_port() {
         mandatory_sign_storage_requirement(&fragment.expected_sign)
             .expect("focused sign fits public budget types")
     );
+}
+
+#[test]
+fn line_mechanism_policy_neither_selects_nor_authorizes_capability_base_providers() {
+    let form = form();
+    let mut host = host();
+    host.bases.push(conduit_core::BaseProviderAdvertisement {
+        base_id: conduit_core::HostBaseId::from("base/pulse-clock"),
+        provider_instance_id: conduit_core::BaseInstanceId::from("provider/pulse-clock/7"),
+        provider_generation: 7,
+        implementation_id: BaseImplementationId::from("std/base/pulse-clock@1"),
+        mechanism_family: conduit_core::HostBaseKindId::from("std.base/clock@1"),
+        enforcement_class: conduit_core::BaseEnforcementClass::Cooperative,
+        lifecycle: conduit_core::BaseLifecycle::Ready,
+        capability_ids: vec![conduit_core::CapabilityId::from("pulse-1")],
+        resource_pool_ids: vec![],
+    });
+    let placements = default_placements(&form, std::slice::from_ref(&host)).unwrap();
+    let plan = plan(
+        &form,
+        std::slice::from_ref(&host),
+        &placements,
+        &[BaseImplementationId::from(
+            conduit_core::LOCAL_BASE_IMPLEMENTATION_ID,
+        )],
+    )
+    .unwrap();
+    let fragment = &plan.fragments[0];
+    let pulse = fragment
+        .placements
+        .iter()
+        .find(|placement| placement.capability_id.as_str() == "pulse-1")
+        .unwrap();
+    assert_eq!(
+        pulse.base.as_ref().unwrap().implementation_id.as_str(),
+        "std/base/pulse-clock@1"
+    );
+    assert!(fragment.connections[0].selected_line.is_none());
+    let show = fragment
+        .placements
+        .iter()
+        .find(|placement| placement.capability_id.as_str() == "stdout-show-1")
+        .unwrap();
+    assert!(show.base.is_none());
 }
 
 #[test]
@@ -292,7 +336,7 @@ fn unchanged_signal_form_plans_entirely_onto_pico_local_advertisement() {
     assert_eq!(lowered.nodes.len(), 2);
     assert_eq!(lowered.cords.len(), 1);
     assert!(lowered.remote_endpoints.is_empty());
-    assert_eq!(lowered.host_operations.len(), 2);
+    assert_eq!(lowered.host_calls.len(), 2);
     assert_eq!(
         lowered.cord_value_slots,
         DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS
@@ -342,9 +386,9 @@ fn admitted_host_input_source_breaks_only_its_runtime_response_cycle() {
         .iter_mut()
         .find(|placement| placement.gear_id.as_str() == "signal-demo/pulse")
         .unwrap();
-    source.host_operations[0].maximum_input_bytes = 0;
-    source.host_operations[0].maximum_output_bytes = SIGNAL_ENCODED_LEN;
-    source.host_operations[0].target_kind = Some(source.outputs[0].value_kind.clone());
+    source.host_calls[0].maximum_input_bytes = 0;
+    source.host_calls[0].maximum_output_bytes = SIGNAL_ENCODED_LEN;
+    source.host_calls[0].target_kind = Some(source.outputs[0].value_kind.clone());
     let source_placement_id = source.placement_id.clone();
     let mut connections = fragment.connections.clone();
     let mut reverse = connections[0].clone();
@@ -378,10 +422,10 @@ fn a_self_cord_is_runtime_routing_not_a_startup_cycle() {
 }
 
 #[test]
-fn planning_rejects_invalid_host_operation_requirements() {
+fn planning_rejects_invalid_host_call_requirements() {
     let form = form();
     let mut host = host();
-    host.capabilities[0].host_operations[0].maximum_in_flight = 0;
+    host.capabilities[0].host_calls[0].maximum_in_flight = 0;
     let placements =
         default_placements(&form, std::slice::from_ref(&host)).expect("placements still resolve");
     assert!(matches!(
@@ -391,7 +435,7 @@ fn planning_rejects_invalid_host_operation_requirements() {
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")],
         ),
-        Err(PlannerError::InvalidHostOperationRequirement(_))
+        Err(PlannerError::InvalidHostCallRequirement(_))
     ));
 }
 
@@ -487,8 +531,8 @@ fn planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants(
         contract_id: conduit_core::AuthorityContractId::from(
             conduit_core::PRESENT_AUTHORITY_CONTRACT,
         ),
-        host_operation_contract_id: conduit_core::HostOperationContractId::from(
-            conduit_core::WAIT_HOST_OPERATION_CONTRACT,
+        host_call_contract_id: conduit_core::HostCallContractId::from(
+            conduit_core::WAIT_HOST_CALL_CONTRACT,
         ),
         subject_kind: kind_id(SIGNAL_PRESENTATION_KIND),
     }];
@@ -877,28 +921,42 @@ fn planning_verification_rejects_each_top_level_form_identity_mutation() {
 }
 
 #[test]
-fn planning_accepts_front_preserving_revision_and_rejects_front_change() {
+fn planning_rejects_same_front_with_different_semantics_and_front_changes() {
     let form = form();
     let original_host = host();
     let placements = default_placements(&form, std::slice::from_ref(&original_host))
         .expect("placements must resolve");
 
+    let mut mismatched_kind = original_host.clone();
+    mismatched_kind.capabilities[0].kind_id = kind_id("mutated/flow-pulse");
+    assert!(!form.gears[0].accepts_realization(&mismatched_kind.capabilities[0]));
+    assert!(matches!(
+        plan(
+            &form,
+            std::slice::from_ref(&mismatched_kind),
+            &placements,
+            &[BaseImplementationId::from("conduit.base/local@1")],
+        ),
+        Err(PlannerError::WrongSemanticKind(_))
+    ));
+
     let mut mismatched_revision = original_host.clone();
     mismatched_revision.capabilities[0].kind_contract_revision =
-        conduit_core::KindContractRevision::from("mutated/flow-pulse@1");
-    let revised = plan(
-        &form,
-        std::slice::from_ref(&mismatched_revision),
-        &placements,
-        &[BaseImplementationId::from("conduit.base/local@1")],
-    )
-    .expect("front-preserving revision is compatible");
-    assert_eq!(
-        revised.fragments[0].placements[0]
-            .kind_contract_revision
-            .as_str(),
-        "mutated/flow-pulse@1"
-    );
+        conduit_core::KindIdentity::from("mutated/flow-pulse@1");
+    assert!(matches!(
+        plan(
+            &form,
+            std::slice::from_ref(&mismatched_revision),
+            &placements,
+            &[BaseImplementationId::from("conduit.base/local@1")],
+        ),
+        Err(PlannerError::WrongKindContractRevision(_))
+    ));
+
+    let mut structural_form = form.clone();
+    structural_form.gears[0].kind_contract_revision =
+        conduit_core::KindIdentity::from(conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT);
+    assert!(structural_form.gears[0].accepts_realization(&mismatched_revision.capabilities[0]));
 
     let mut mismatched_temporal = original_host.clone();
     mismatched_temporal.capabilities[0].outputs[0].temporal = conduit_core::PortTemporal::Current;
@@ -909,7 +967,7 @@ fn planning_accepts_front_preserving_revision_and_rejects_front_change() {
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")]
         ),
-        Err(PlannerError::IncompatibleCheckedFace(_))
+        Err(PlannerError::IncompatibleCheckedFront(_))
     ));
 
     let mut mismatched_ports = original_host;
@@ -928,7 +986,7 @@ fn planning_accepts_front_preserving_revision_and_rejects_front_change() {
             &placements,
             &[BaseImplementationId::from("conduit.base/local@1")]
         ),
-        Err(PlannerError::IncompatibleCheckedFace(_))
+        Err(PlannerError::IncompatibleCheckedFront(_))
     ));
 }
 

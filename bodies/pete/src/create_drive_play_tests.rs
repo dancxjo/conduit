@@ -6,7 +6,7 @@ use crate::{
 };
 use conduit_core::{
     kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId,
-    CapabilityId, ConfigurationValue, HostOperationContractId, ResourceHealth, ResourceObservation,
+    CapabilityId, ConfigurationValue, HostCallContractId, ResourceHealth, ResourceObservation,
     ResourcePoolId, SignId, SCALAR_INFO_ID,
 };
 use conduit_planner::{
@@ -116,7 +116,7 @@ fn planned() -> conduit_core::Plan {
     let grants = [AuthorityGrant {
         grant_id: AuthorityGrantId::from("grant/create-motion"),
         contract_id: AuthorityContractId::from(CREATE_DRIVE_AUTHORITY),
-        host_operation_contract_id: HostOperationContractId::from(CREATE_DRIVE_OPERATION),
+        host_call_contract_id: HostCallContractId::from(CREATE_DRIVE_OPERATION),
         subject_kind: kind_id(SCALAR_INFO_ID),
         host_id: host.host_id.clone(),
         boot_id: host.boot_id.clone(),
@@ -398,8 +398,8 @@ fn preparation_rejects_mutated_plan_identity_and_resources() {
     plan.fragments[0].placements[0].offer_generation = OfferGeneration(13);
     rejects(&plan);
     let mut plan = exact.clone();
-    plan.fragments[0].placements[0].host_operations[0].contract_id =
-        HostOperationContractId::from("operation/wrong");
+    plan.fragments[0].placements[0].host_calls[0].contract_id =
+        HostCallContractId::from("operation/wrong");
     rejects(&plan);
     let mut plan = exact.clone();
     plan.fragments[0].placements[0].authority[0].contract_id =

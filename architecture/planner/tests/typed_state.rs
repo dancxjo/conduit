@@ -5,7 +5,7 @@ mod common;
 #[test]
 fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_capacity_changes() {
     let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
-    let seed = StructuredInfoValue::leaf(ty.clone(), b"false".to_vec()).unwrap();
+    let seed = StructuredInfoValue::leaf(ty.clone(), InfoBool::FALSE.encode().to_vec()).unwrap();
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     startup.insert_structured_type("Cell", ty.clone()).unwrap();
@@ -13,7 +13,7 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
     // Planning-only external Flow; runtime production is outside this proof.
     let mut source = conduit_std_offers::state_value_std_offer("Cell", &ty).unwrap();
     source.kind_id = kind_id("fixture/typed-flow");
-    source.kind_contract_revision = KindContractRevision::from("fixture/typed-flow@1");
+    source.kind_contract_revision = KindIdentity::from("fixture/typed-flow@1");
     source.capability_id = CapabilityId::from("fixture/typed-flow");
     source.implementation.execution_profile_id = ExecutionProfileId::from("fixture/typed-flow@1");
     source.implementation.implementation_id = ImplementationId::from("fixture/typed-flow@1");
@@ -29,7 +29,7 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
         })
         .unwrap();
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: source.kind_id.clone(),
             kind_contract_revision: source.kind_contract_revision.clone(),
             inputs: vec![],

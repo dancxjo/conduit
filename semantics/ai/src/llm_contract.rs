@@ -1,7 +1,7 @@
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use serde::{Deserialize, Serialize};
 
@@ -118,7 +118,7 @@ impl LlmWorkBounds {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LlmSemanticContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub result_payload_kind: KindId,
@@ -136,6 +136,33 @@ impl LlmSemanticContract {
             && self.outputs == offered.outputs
             && self.result_payload_kind == offered.result_payload_kind
             && self.bounds == offered.bounds
+    }
+
+    pub fn into_capability_contract(self) -> conduit_core::Kind {
+        conduit_core::Kind {
+            startup_parameters: [
+                "maximum-input-bytes",
+                "maximum-context-items",
+                "maximum-output-bytes",
+                "maximum-work-units",
+                "maximum-history-items",
+            ]
+            .into_iter()
+            .map(|name| conduit_core::FrontStartupParameter {
+                name: name.into(),
+                value_type: conduit_core::kind_id("value/count"),
+                has_default: true,
+            })
+            .collect(),
+            shorthand: None,
+            kind_id: self.kind_id,
+            kind_contract_revision: self.kind_contract_revision,
+            inputs: self.inputs,
+            outputs: self.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
+            limits: self.limits,
+        }
     }
 }
 
@@ -177,7 +204,7 @@ fn stream_contract() -> LlmSemanticContract {
         GENERATION_REQUEST_VALUE_KIND,
         GENERATED_TEXT_CHUNK_VALUE_KIND,
     );
-    contract.kind_contract_revision = KindContractRevision::from("conduit.llm/generate-stream@1");
+    contract.kind_contract_revision = KindIdentity::from("conduit.llm/generate-stream@1");
     contract.outputs[0].temporal = PortTemporal::Flow { closes: true };
     contract.limits.max_queue_items = 8;
     contract
@@ -189,7 +216,7 @@ fn present_contract() -> LlmSemanticContract {
         GENERATIVE_PRESENTER_INPUT_VALUE_KIND,
         GENERATED_MANIFESTATION_VALUE_KIND,
     );
-    contract.kind_contract_revision = KindContractRevision::from("conduit.llm/present@2");
+    contract.kind_contract_revision = KindIdentity::from("conduit.llm/present@2");
     contract
 }
 
@@ -221,7 +248,7 @@ fn contract_with_temporal(
     let bounds = LlmWorkBounds::reviewed_default();
     LlmSemanticContract {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("conduit.{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("conduit.{kind}@1")),
         inputs: vec![port_with_temporal(
             "request",
             request_kind,
@@ -282,7 +309,7 @@ pub fn install_llm_semantic_catalog(
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
 
@@ -300,7 +327,7 @@ pub fn install_llm_semantic_catalog(
             ],
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,
@@ -316,11 +343,11 @@ pub fn install_llm_semantic_catalog(
             .map_err(|error| error.to_string())?;
     }
 
-    fn bound(key: &str, maximum: u64) -> ConfigurationField {
-        ConfigurationField {
+    fn bound(key: &str, maximum: u64) -> KindConfigurationField {
+        KindConfigurationField {
             key: key.into(),
             default_value: conduit_core::ConfigurationValue::U64(maximum),
-            validation: ConfigurationRule::U64Range {
+            rule: KindConfigurationRule::U64Range {
                 minimum: 0,
                 maximum,
             },

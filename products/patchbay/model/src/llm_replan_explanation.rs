@@ -57,7 +57,7 @@ pub fn explain_cross_host_llm_replan(
 pub fn explain_missing_llm_realization(refusal: LlmPlanningRefusal) -> &'static str {
     match refusal {
         LlmPlanningRefusal::MissingLlmRealization => {
-            "No current Host offers a compatible LLM realization; the unchanged Form remains unsatisfied."
+            "No current host offers a compatible LLM realization; the unchanged Form remains unsatisfied."
         }
     }
 }

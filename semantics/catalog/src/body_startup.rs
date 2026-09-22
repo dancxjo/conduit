@@ -1,5 +1,5 @@
 //! Startup events are Body semantics. They contain no Host or playback policy.
-use crate::{StandardKindContract, TerminalBehavior};
+use crate::{KindTerminalBehavior, StandardKindContract};
 #[cfg(feature = "form-catalog")]
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
@@ -24,22 +24,22 @@ pub fn body_wake_contract(first_only: bool) -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(kind),
         plain_name: if first_only {
-            "First Body wake"
+            "First body wake"
         } else {
             "Body wake"
         }
         .into(),
         summary: if first_only {
-            "Emit true once in the first admitted Play of this Body's first Wake."
+            "Emit true once in the first admitted play of this body's first wake."
         } else {
-            "Emit true once in the first admitted Play of each Body Wake."
+            "Emit true once in the first admitted play of each body Wake."
         }
         .into(),
         inputs: Vec::new(),
         outputs: vec![pulse_port(PortDirection::Output)],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: limits(),
-        terminal_behavior: TerminalBehavior::EmitsOnceWhenScopeIsEligible,
+        terminal_behavior: KindTerminalBehavior::EmitsOnceWhenScopeIsEligible,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
@@ -55,8 +55,8 @@ pub fn startup_chime_contract() -> StandardKindContract {
         kind_id: kind_id(STARTUP_CHIME_KIND), plain_name: "Conduit startup chime".into(),
         summary: "Announce a true event with the original short Conduit cue; retain inaudible outcomes without failing unrelated work.".into(),
         inputs: vec![pulse_port(PortDirection::Input)], outputs: Vec::new(),
-        configuration: Vec::new(), limits: limits(),
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        configuration: Default::default(), limits: limits(),
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: true, pico_manifestation_honest: false,
         example: "chime: sound/startup-chime".into(),
@@ -94,7 +94,7 @@ pub fn install_body_startup_catalogs(
             startup_parameters: vec![],
         })?;
         profile
-            .insert(conduit_form::KindDefinition {
+            .insert(conduit_form::KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: revision.into(),
                 inputs: contract.inputs,

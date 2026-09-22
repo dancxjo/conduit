@@ -1,4 +1,4 @@
-//! Separate exact Form partitions, one Body Plan, and combined resource bounds.
+//! Separate exact form partitions, one body Plan, and combined resource bounds.
 use alloc::{collections::BTreeMap, vec::Vec};
 use conduit_body::{BodyFormPlan, BodyPlan, BodyPresenterTopology, Wake};
 use conduit_core::{
@@ -133,7 +133,7 @@ fn admitted_form_input(form: &BodyFormPlan) -> Result<AdmittedFormInput, Workset
     })
 }
 
-/// Review exact Form planning and bounds without creating a Body or a Play.
+/// Review exact form planning and bounds without creating a body or a play.
 pub fn review(
     form: super::NativeForm,
     identities: &BootIdentities,

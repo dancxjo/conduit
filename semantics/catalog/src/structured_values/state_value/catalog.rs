@@ -6,11 +6,11 @@ use conduit_core::{
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    CheckedForm, ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+    CheckedForm, KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
     ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
 
-/// Install the Kind for a structured type already registered by the caller.
+/// Install the kind for a structured type already registered by the caller.
 /// A catalogue assembles one exact specialization, as with structured literals.
 /// `initial` remains mandatory in authored source; the default initializes only
 /// the configuration-field representation required by ProfileCatalog.
@@ -46,14 +46,14 @@ pub fn install_state_value_kind(
         }],
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "initial".into(),
-                validation: ConfigurationRule::Structured {
+                rule: KindConfigurationRule::Structured {
                     profile: initial.profile().clone(),
                 },
                 default_value: ConfigurationValue::Structured(initial),
@@ -72,8 +72,8 @@ pub enum StateValueAdmissionError {
     InitialValueExceedsCapacity,
 }
 
-/// Derive State only from the exact authored Kind, Front and typed initializer.
-/// This is not a migration permission or an effect-authority grant. A Host must
+/// Derive State only from the exact authored kind, Front and typed initializer.
+/// This is not a migration permission or an effect-authority grant. A host must
 /// separately admit its storage, lifetime/evidence resources and implementation.
 pub fn derive_state_boundary(
     form: &CheckedForm,
@@ -100,8 +100,11 @@ pub fn derive_state_boundary(
     };
     let value = StructuredInfoValue::from_canonical_bytes(initial.canonical_value())
         .map_err(|_| StateValueAdmissionError::InvalidInitialization)?;
-    let contract = state_value_contract(&gear.startup_parameters[0].value_type, value.value_type())
-        .map_err(|_| StateValueAdmissionError::InvalidInitialization)?;
+    let contract = state_value_contract(
+        gear.startup_parameters[0].value_type.as_str(),
+        value.value_type(),
+    )
+    .map_err(|_| StateValueAdmissionError::InvalidInitialization)?;
     if contract.inputs != gear.inputs
         || contract.outputs != gear.outputs
         || contract.startup_parameters != gear.startup_parameters

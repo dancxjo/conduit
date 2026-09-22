@@ -1,4 +1,4 @@
-//! Plan-specific identity carried through the shared Signal kernel shape.
+//! plan-specific identity carried through the shared Signal kernel shape.
 
 use crate::receipts::{BootIdentity, PresentationReceiptIdentity, TerminalIdentity};
 

@@ -1,4 +1,4 @@
-//! Bounded, allocation-free validation for one Host-assigned Plan projection.
+//! Bounded, allocation-free validation for one host-assigned Plan projection.
 
 #![no_std]
 
@@ -21,7 +21,7 @@ pub const ASSIGNED_CONFIGURATION: u8 = 3;
 pub const ASSIGNED_CORD: u8 = 4;
 pub const ASSIGNED_ROUTE: u8 = 5;
 pub const ASSIGNED_ROUTE_TARGET: u8 = 6;
-pub const ASSIGNED_HOST_OPERATION: u8 = 7;
+pub const ASSIGNED_HOST_CALL: u8 = 7;
 pub const ASSIGNED_RESOURCE: u8 = 8;
 pub const ASSIGNED_SIGN: u8 = 9;
 pub const ASSIGNED_REMOTE_ENDPOINT: u8 = 10;
@@ -100,7 +100,7 @@ impl AssignedPlanMaxima {
 pub struct AssignedPlanRequirements<'a> {
     pub host: AssignedIdentity,
     pub boot: AssignedIdentity,
-    pub operations: &'a [AssignedIdentity],
+    pub host_calls: &'a [AssignedIdentity],
     pub resources: &'a [u16],
     pub remote_bindings: &'a [AssignedRemoteBinding],
 }
@@ -129,8 +129,9 @@ pub enum AssignedPlanRefusal {
     DigestMismatch,
     MalformedRecord,
     UnknownRecord(u8),
-    UnknownOperation,
-    MissingOperation,
+    UnknownHostCall,
+    MissingHostCall,
+    MissingBack,
     UnknownResource,
     MissingResource,
     StaleRemoteEndpoint,
@@ -187,10 +188,10 @@ pub fn decode_assigned_plan(
     }
 
     let mut seen = [0_u8; ASSIGNED_PLAN_COUNT_KINDS];
-    let mut operations = [false; 32];
+    let mut host_calls = [false; 32];
     let mut resources = [false; 32];
     let mut remotes = [false; 16];
-    if requirements.operations.len() > operations.len()
+    if requirements.host_calls.len() > host_calls.len()
         || requirements.resources.len() > resources.len()
         || requirements.remote_bindings.len() > remotes.len()
     {
@@ -221,7 +222,7 @@ pub fn decode_assigned_plan(
             ASSIGNED_CORD => length == 36,
             ASSIGNED_ROUTE => length == 8,
             ASSIGNED_ROUTE_TARGET => length == 6 || length == 7,
-            ASSIGNED_HOST_OPERATION => length == 46,
+            ASSIGNED_HOST_CALL => length == 46,
             ASSIGNED_RESOURCE => length == 8,
             ASSIGNED_SIGN => length == 37,
             ASSIGNED_REMOTE_ENDPOINT => length == 250,
@@ -261,16 +262,16 @@ pub fn decode_assigned_plan(
             .checked_add(1)
             .ok_or(AssignedPlanRefusal::ExtraRecords)?;
         match tag {
-            ASSIGNED_HOST_OPERATION => {
+            ASSIGNED_HOST_CALL => {
                 let identity = read_identity(payload, 4)?;
                 let index = requirements
-                    .operations
+                    .host_calls
                     .iter()
                     .enumerate()
-                    .find(|(index, required)| !operations[*index] && **required == identity)
+                    .find(|(index, required)| !host_calls[*index] && **required == identity)
                     .map(|(index, _)| index)
-                    .ok_or(AssignedPlanRefusal::UnknownOperation)?;
-                operations[index] = true;
+                    .ok_or(AssignedPlanRefusal::UnknownHostCall)?;
+                host_calls[index] = true;
             }
             ASSIGNED_RESOURCE => {
                 let resource = read_u16(payload, 2)?;
@@ -307,11 +308,11 @@ pub fn decode_assigned_plan(
     if seen != counts {
         return Err(AssignedPlanRefusal::ExtraRecords);
     }
-    if operations[..requirements.operations.len()]
+    if host_calls[..requirements.host_calls.len()]
         .iter()
         .any(|seen| !seen)
     {
-        return Err(AssignedPlanRefusal::MissingOperation);
+        return Err(AssignedPlanRefusal::MissingHostCall);
     }
     if resources[..requirements.resources.len()]
         .iter()

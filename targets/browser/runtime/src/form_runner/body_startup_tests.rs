@@ -1,4 +1,4 @@
-//! Exact lifecycle startup through checked Forms and the ordinary browser kernel.
+//! Exact lifecycle startup through checked forms and the ordinary browser kernel.
 use super::{tests::request_from_sources, *};
 use conduit_body::BodyBiographyEvidence;
 

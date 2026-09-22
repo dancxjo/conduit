@@ -8,7 +8,7 @@ use alloc::{vec, vec::Vec};
 use conduit_core::{kind_id, StructuredFieldType, StructuredInfoType, StructuredVariantCase};
 use conduit_presentation::{extent2_type, path2_type, point2_type, robotics_pose2_type};
 
-use crate::{
+use conduit_robotics::{
     robotics_motion_request_type, robotics_pose_sample_type, robotics_sample_context_type,
 };
 
@@ -30,7 +30,7 @@ fn leaf(kind: &str) -> StructuredInfoType {
 }
 
 fn text_type() -> StructuredInfoType {
-    leaf("value/text@1")
+    leaf("value/text")
 }
 
 fn quantity_type() -> StructuredInfoType {
@@ -38,7 +38,7 @@ fn quantity_type() -> StructuredInfoType {
 }
 
 fn unit_type() -> StructuredInfoType {
-    leaf("value/unit@1")
+    leaf("value/unit")
 }
 
 fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {

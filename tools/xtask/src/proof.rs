@@ -186,7 +186,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
             "target/conduitos/x86_64/observatory-snapshot.json",
         ],
         allowed_claims: &[
-            "a reproducible pinned-Limine image boots in QEMU, one ordinary Form executes through the production conduit-kernel, and the Host exports bounded ordinary Observatory truth consumed by native Patchbay with sealed boot provenance",
+            "a reproducible pinned-Limine image boots in QEMU, one ordinary form executes through the production conduit-kernel, and the host exports bounded ordinary Observatory truth consumed by native Patchbay with sealed boot provenance",
         ],
     },
     ProofCommandContract {
@@ -272,7 +272,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         required_tools_or_targets: &["provisioned Pico W", "USB CDC link port", "udevadm"],
         named_artifacts: &[],
         allowed_claims: &[
-            "one physically identified provisioned Pico publishes an exact bounded advertisement, remains inert until explicit authenticated admission, becomes one Body Part, and is eligible for ordinary planning",
+            "one physically identified provisioned Pico publishes an exact bounded advertisement, remains inert until explicit authenticated admission, becomes one body Part, and is eligible for ordinary planning",
         ],
     },
     ProofCommandContract {
@@ -392,7 +392,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         ],
         named_artifacts: &["proof/browser/conduit_browser_runtime.wasm"],
         allowed_claims: &[
-            "one exact Body links local std, at least two browser Parts, and one explicitly admitted physical Pico to the same immutable R1 Plan and production Play evidence",
+            "one exact body links local std, at least two browser Parts, and one explicitly admitted physical Pico to the same immutable R1 Plan and production Play evidence",
         ],
     },
     ProofCommandContract {
@@ -401,7 +401,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         proof_class: ProofClass::LiveTransport,
         required_tools_or_targets: &["cargo", "Google Calendar API", "OAuth bearer credential"],
         named_artifacts: &["target/calendar-google-live.json"],
-        allowed_claims: &["one explicitly selected Google Calendar resource performs read, free-busy, create, update, and cancel through ordinary Plan/Play with separately granted authority and exact hashed receipts"],
+        allowed_claims: &["one explicitly selected Google Calendar resource performs read, free-busy, create, update, and cancel through ordinary plan/Play with separately granted authority and exact hashed receipts"],
     },
     ProofCommandContract {
         id: "llm.embodiment-live",
@@ -419,7 +419,7 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
             "target/ollama-planning-advice-live.json",
             "target/ollama-embodiment-live.json",
         ],
-        allowed_claims: &["three exact Forms give the same local model distinct graph-defined perception, expression, and narrowly authorized effect power; ordinary proposal admission and runtime Signs remain separate from model output"],
+        allowed_claims: &["three exact forms give the same local model distinct graph-defined perception, expression, and narrowly authorized effect power; ordinary proposal admission and runtime Signs remain separate from model output"],
     },
     ProofCommandContract {
         id: "llm.planning-advice-live",

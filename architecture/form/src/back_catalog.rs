@@ -1,15 +1,13 @@
 use crate::prelude::*;
-use crate::{
-    CheckedCanonicalForm, CheckedSyntaxDocument, KindDefinition, StartupParameterSignature,
-};
+use crate::{CheckedCanonicalForm, CheckedSyntaxDocument};
 use alloc::collections::BTreeMap;
-use conduit_core::{CheckedFace, CheckedFormId, KindId, RealizationBack, SourceDocumentId};
+use conduit_core::{CheckedFormId, FormBack, Kind, KindId, SourceDocumentId};
 
 pub const MAXIMUM_CANONICAL_BACKS: usize = 64;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CanonicalBackDefinition {
-    pub realization: RealizationBack,
+    pub realization: FormBack,
     pub form: CheckedCanonicalForm,
 }
 
@@ -41,23 +39,28 @@ impl CanonicalBackCatalog {
 
     pub fn insert(
         &mut self,
-        kind: &KindDefinition,
+        kind: &Kind,
         document: &CheckedSyntaxDocument,
         form_name: &str,
     ) -> Result<(), CanonicalBackError> {
-        self.insert_checked(kind, &[], document, form_name)
+        self.insert_checked(kind, document, form_name)
     }
 
-    /// Installs a Back only when the whole checked Front is equal, including
+    /// Installs a Back only when the whole checked front is equal, including
     /// exact startup parameter names, types, and default presence.
     pub fn insert_with_startup(
         &mut self,
-        kind: &KindDefinition,
-        startup: &[StartupParameterSignature],
+        kind: &Kind,
+        startup: &[conduit_core::FrontStartupParameter],
         document: &CheckedSyntaxDocument,
         form_name: &str,
     ) -> Result<(), CanonicalBackError> {
-        self.insert_checked(kind, startup, document, form_name)
+        if startup != kind.startup_parameters {
+            return Err(CanonicalBackError::FaceMismatch(
+                kind.kind_id.as_str().into(),
+            ));
+        }
+        self.insert_checked(kind, document, form_name)
     }
 
     /// Installs a reviewed Back only when the caller's admitted content
@@ -65,8 +68,8 @@ impl CanonicalBackCatalog {
     /// not silently retarget an existing realization choice to a newer Form.
     pub fn insert_exact(
         &mut self,
-        kind: &KindDefinition,
-        startup: &[StartupParameterSignature],
+        kind: &Kind,
+        startup: &[conduit_core::FrontStartupParameter],
         document: &CheckedSyntaxDocument,
         form_name: &str,
         expected_source_document_id: &SourceDocumentId,
@@ -89,13 +92,17 @@ impl CanonicalBackCatalog {
                 actual: form.checked_form_id.clone(),
             });
         }
-        self.insert_checked(kind, startup, document, form_name)
+        if startup != kind.startup_parameters {
+            return Err(CanonicalBackError::FaceMismatch(
+                kind.kind_id.as_str().into(),
+            ));
+        }
+        self.insert_checked(kind, document, form_name)
     }
 
     fn insert_checked(
         &mut self,
-        kind: &KindDefinition,
-        startup: &[StartupParameterSignature],
+        kind: &Kind,
         document: &CheckedSyntaxDocument,
         form_name: &str,
     ) -> Result<(), CanonicalBackError> {
@@ -108,12 +115,12 @@ impl CanonicalBackCatalog {
             .find(|form| form.name == form_name)
             .cloned()
             .ok_or_else(|| CanonicalBackError::MissingForm(form_name.into()))?;
-        if form.checked_front() != definition_front(kind, startup) {
+        if kind.validate().is_err() || form.checked_front() != kind.checked_front() {
             return Err(CanonicalBackError::FaceMismatch(
                 kind.kind_id.as_str().into(),
             ));
         }
-        let realization = RealizationBack {
+        let realization = FormBack {
             invocation_path: String::new(),
             kind_id: kind.kind_id.clone(),
             kind_contract_revision: kind.kind_contract_revision.clone(),
@@ -138,23 +145,4 @@ impl CanonicalBackCatalog {
     pub(crate) fn get(&self, kind: &KindId) -> Option<&CanonicalBackDefinition> {
         self.backs.get(kind)
     }
-}
-
-fn definition_front(kind: &KindDefinition, startup: &[StartupParameterSignature]) -> CheckedFace {
-    CheckedFace::new(
-        startup
-            .iter()
-            .map(|parameter| conduit_core::FaceStartupParameter {
-                name: parameter.name.clone(),
-                value_type: parameter.value_type.clone(),
-                has_default: parameter.default.is_some(),
-            })
-            .collect(),
-        kind.inputs.clone(),
-        kind.outputs.clone(),
-        match (kind.inputs.as_slice(), kind.outputs.as_slice()) {
-            ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
-            _ => None,
-        },
-    )
 }

@@ -19,7 +19,7 @@ fn canonical_little_seismograph_and_unrelated_text_complete_in_one_body_play() {
         match progress {
             TourProgress::Effect(effect) => {
                 let TourHostEffect::Manifestation(value) = *effect else {
-                    panic!("deterministic Seismograph source must not request a Host effect")
+                    panic!("deterministic Seismograph source must not request a host effect")
                 };
                 assert_eq!(value.active_play_id, started.play.active_play_id.as_str());
                 match value.presentation_kind.as_str() {

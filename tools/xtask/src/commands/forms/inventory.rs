@@ -1,4 +1,4 @@
-//! Finite reviewed Form inventory loading and structural validation.
+//! Finite reviewed form inventory loading and structural validation.
 
 use super::{CombinedWorkload, Inventory, InventoryForm, INVENTORY_PATH, INVENTORY_SCHEMA};
 use std::collections::BTreeSet;
@@ -20,7 +20,7 @@ pub(super) fn load_inventory(root: &Path) -> Result<Inventory, String> {
         || inventory.maximum_combined_workloads == 0
         || inventory.combined_workloads.len() > inventory.maximum_combined_workloads
     {
-        return Err("reviewed Form inventory violates its schema or finite bound".into());
+        return Err("reviewed form inventory violates its schema or finite bound".into());
     }
     let mut workload_slugs = BTreeSet::new();
     for workload in &inventory.combined_workloads {
@@ -41,11 +41,11 @@ pub(super) fn load_inventory(root: &Path) -> Result<Inventory, String> {
             || form.entry.is_empty()
             || !slugs.insert(&form.slug)
         {
-            return Err("reviewed Form inventory contains an empty or duplicate identity".into());
+            return Err("reviewed form inventory contains an empty or duplicate identity".into());
         }
         if !reusable_entries_are_valid(form) {
             return Err(format!(
-                "reviewed Form '{}' contains an invalid or duplicate reusable identity",
+                "reviewed form '{}' contains an invalid or duplicate reusable identity",
                 form.slug
             ));
         }
@@ -59,7 +59,7 @@ pub(super) fn load_inventory(root: &Path) -> Result<Inventory, String> {
                 || !browser_oracles.insert((&oracle.spec, &oracle.case))
             {
                 return Err(format!(
-                    "reviewed Form '{}' has an invalid or duplicate browser-safe oracle",
+                    "reviewed form '{}' has an invalid or duplicate browser-safe oracle",
                     form.slug
                 ));
             }
@@ -85,7 +85,7 @@ pub(super) fn load_inventory(root: &Path) -> Result<Inventory, String> {
     }
     if declared != present {
         return Err(format!(
-            "reviewed Form inventory mismatch: declared {declared:?}, canonical sources {present:?}"
+            "reviewed form inventory mismatch: declared {declared:?}, canonical sources {present:?}"
         ));
     }
     Ok(inventory)

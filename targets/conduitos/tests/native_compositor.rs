@@ -1,9 +1,9 @@
 use conduit_body::Body;
 use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
-    HostBaseId, HostId, HostOperationContractId, HostOperationRequirement, HostProfileId,
-    ImplementationId, OfferGeneration, PROTOCOL_VERSION, SignId, bind_active_play, kind_id,
-    resource_offer, resource_requirement,
+    HostBaseId, HostCallContractId, HostCallRequirement, HostId, HostProfileId, ImplementationId,
+    OfferGeneration, PROTOCOL_VERSION, SignId, bind_active_play, kind_id, resource_offer,
+    resource_requirement,
 };
 use conduit_form::{ProfileCatalog, parse};
 use conduit_planner::{default_placements, plan};
@@ -11,7 +11,7 @@ use conduit_presentation::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
     MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationLifecycle, Presentation,
     PresentationBasis, PresentationRole, PresentationSubject, PresentationText,
-    RendererRealizationOffer, renderer_kind_definition, renderer_offer,
+    RendererRealizationOffer, renderer_kind_projection, renderer_offer,
 };
 use conduitos::{
     display::DisplayError,
@@ -392,7 +392,7 @@ fn colored_scene(paint: GraphicsPaintRole) -> GraphicsScene {
 
 fn specimen() -> (Presentation, conduit_core::Plan, Manifestation) {
     let mut catalog = ProfileCatalog::new();
-    catalog.insert(renderer_kind_definition()).unwrap();
+    catalog.insert(renderer_kind_projection()).unwrap();
     let form = parse(
         "form front {\n    renderer: presentation/renderer\n}\n",
         &catalog,
@@ -457,14 +457,15 @@ fn native_host() -> HostAdvertisement {
         boot_id: BootId::from("conduitos/boot/1"),
         offer_generation: OfferGeneration(3),
         profile: HostProfileId::from("conduitos/native@1"),
+        bases: vec![],
         resources: vec![resource_offer("surface/main", SURFACE_CLASS, 1)],
         capabilities: vec![renderer_offer(RendererRealizationOffer {
             capability_id: CapabilityId::from("presenter/native"),
             execution_profile_id: ExecutionProfileId::from("conduitos/native@1"),
             implementation_id: ImplementationId::from(NATIVE_PRESENTER_IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduitos/native-image@1"),
-            host_operation: HostOperationRequirement {
-                contract_id: HostOperationContractId::from("conduit.host/present@1"),
+            host_call: HostCallRequirement {
+                contract_id: HostCallContractId::from("conduit.host/present@1"),
                 target_kind: Some(kind_id("presentation/base/native-compositor@1")),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,

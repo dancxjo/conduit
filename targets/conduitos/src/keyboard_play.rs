@@ -2,8 +2,7 @@
 
 use conduit_human::KeyEvent;
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepInputBytes, StepIo, StepOperation,
-    StepOutcome,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
     CordId, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent, NodeId, PortId, RouteRange,
@@ -36,7 +35,7 @@ struct Driver {
     cancelled: bool,
 }
 
-impl StepOperation<PORTS> for Driver {
+impl StepBack<PORTS> for Driver {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -154,11 +153,11 @@ pub fn run(
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             },
         ],
         [CordSpec::local(
@@ -257,7 +256,7 @@ mod tests {
                 mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
                 controller_id: [3; 32],
                 device_id: [4; 32],
-                interfront_id: [5; 32],
+                interface_id: [5; 32],
                 endpoint_id: [6; 32],
                 report_buffers: 2,
                 transition_slots: 8,

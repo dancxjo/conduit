@@ -8,7 +8,7 @@ use alloc::format;
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, FaceStartupParameter, KindContractRevision, KindId,
+    kind_id, port_id, CapabilityLimits, FrontStartupParameter, Kind, KindId, KindIdentity,
     PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
@@ -23,12 +23,28 @@ pub const STRUCTURED_PRESENTATION_TARGET: &str = "presentation/structured-info";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StructuredValueContract {
-    pub startup_parameters: Vec<FaceStartupParameter>,
+    pub startup_parameters: Vec<FrontStartupParameter>,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
+}
+
+impl From<StructuredValueContract> for Kind {
+    fn from(contract: StructuredValueContract) -> Self {
+        Self {
+            startup_parameters: contract.startup_parameters,
+            shorthand: None,
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
+            limits: contract.limits,
+        }
+    }
 }
 
 pub fn structured_literal_contract(
@@ -46,7 +62,7 @@ pub fn structured_presentation_contract(
 }
 
 fn contract(
-    type_name: &str,
+    _type_name: &str,
     value_type: &StructuredInfoType,
     source: bool,
 ) -> StructuredValueContract {
@@ -66,9 +82,9 @@ fn contract(
     };
     StructuredValueContract {
         startup_parameters: if source {
-            vec![FaceStartupParameter {
+            vec![FrontStartupParameter {
                 name: "value".into(),
-                value_type: type_name.into(),
+                value_type: value_kind,
                 has_default: false,
             }]
         } else {
@@ -79,7 +95,7 @@ fn contract(
         } else {
             STRUCTURED_PRESENTATION_KIND
         }),
-        kind_contract_revision: KindContractRevision::from(if source {
+        kind_contract_revision: KindIdentity::from(if source {
             STRUCTURED_LITERAL_REVISION
         } else {
             STRUCTURED_PRESENTATION_REVISION
@@ -107,7 +123,7 @@ pub fn install_structured_value_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
 
@@ -140,12 +156,12 @@ pub fn install_structured_value_catalogs(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: literal.kind_id,
             kind_contract_revision: literal.kind_contract_revision,
             inputs: literal.inputs,
             outputs: literal.outputs,
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "value".into(),
                 default_value: ConfigurationValue::Structured(
                     conduit_core::StructuredConfigurationValue::new(
@@ -154,19 +170,19 @@ pub fn install_structured_value_catalogs(
                     )
                     .ok_or_else(|| "structured literal default exceeds its bound".to_string())?,
                 ),
-                validation: ConfigurationRule::Structured {
+                rule: KindConfigurationRule::Structured {
                     profile: type_profile.value_kind().clone(),
                 },
             }],
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: presenter.kind_id,
             kind_contract_revision: presenter.kind_contract_revision,
             inputs: presenter.inputs,
             outputs: presenter.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| error.to_string())
 }

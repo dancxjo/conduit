@@ -1,11 +1,11 @@
-//! Ordinary Form-facing contract for a finite measurement window.
+//! Ordinary form-facing contract for a finite measurement window.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::{
     MEASUREMENT_SAMPLE_INFO_ID, MEASUREMENT_WINDOW_INFO_ID, MEASUREMENT_WINDOW_PROFILE_INFO_ID,
@@ -35,16 +35,16 @@ pub fn install_measurement_window_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(measurement_window_kind_definition())
+        .insert(measurement_window_kind_projection())
         .map_err(|error| error.to_string())
 }
 
-pub fn measurement_window_kind_definition() -> KindDefinition {
+pub fn measurement_window_kind_projection() -> KindProjection {
     let sample = measurement_sample_type();
     let window = measurement_window_type();
-    KindDefinition {
+    KindProjection {
         kind_id: kind_id(MEASUREMENT_COUNT_WINDOW_KIND),
-        kind_contract_revision: KindContractRevision::from(MEASUREMENT_WINDOW_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(MEASUREMENT_WINDOW_CONTRACT_REVISION),
         inputs: vec![
             port(
                 "profile",
@@ -66,6 +66,25 @@ pub fn measurement_window_kind_definition() -> KindDefinition {
             PortTemporal::Value,
         )],
         configuration: vec![],
+    }
+}
+
+pub fn measurement_window_semantic_contract() -> Kind {
+    let definition = measurement_window_kind_projection();
+    Kind {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: crate::MAXIMUM_MEASUREMENT_WINDOW_SAMPLES as u16 + 1,
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
     }
 }
 

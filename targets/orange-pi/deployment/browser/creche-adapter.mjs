@@ -45,7 +45,7 @@ const declaration = Object.freeze({
   boot_mechanism: ORANGE_PI_5_PROFILE.bootMechanism,
   image_format: "mbr-rk3588-fat32-sd-image",
   carrier: "removable-microsd-card",
-  browser_role: "download Body-bound ConduitOS SD image spore only",
+  browser_role: "download body-bound ConduitOS SD image spore only",
   local_helper: "explicit removable-media writer with raw block authority",
   browser_raw_block_authority: false,
   physical_flash_boot_uart_human_gated: true,
@@ -61,23 +61,23 @@ export const ORANGE_PI_CRECHE_TARGET_CONTRIBUTION = Object.freeze({
   ]),
   carriers: Object.freeze({
     deployment: Object.freeze([
-      Object.freeze({ id: "conduit-carrier/removable-sd-download@1", label: "Download Body-bound IMG for explicit local SD writer" }),
+      Object.freeze({ id: "conduit-carrier/removable-sd-download@1", label: "Download body-bound IMG for explicit local SD writer" }),
     ]),
     installation: Object.freeze([]), attachment: Object.freeze([]), observation: Object.freeze([]),
   }),
   bounds: BOUNDS,
   expected_join_contract: "conduit.conduitos/physical-uart-attestation-before-join@1",
   target_profile: declaration,
-  createAdapter: ({ host }) => createOrangePiAdapter({ host }),
+  createAdapter: ({ host, prepareSpore = null }) => createOrangePiAdapter({ host, prepareSpore }),
 });
 
-export function createOrangePiAdapter({ host, imageWriter } = {}) {
+export function createOrangePiAdapter({ host, imageWriter, prepareSpore = null } = {}) {
   function createOptions({ mode }) {
     const note = document.createElement("p");
     note.className = "target-option-note";
     note.textContent = mode === "fabricate-new"
       ? "Conduit downloads the exact reviewed Orange Pi 5 ConduitOS image and binds it into a spore. A separate local writer must hold explicit raw block-device authority; this browser does not."
-      : "This exact bare-metal substrate is fabricated as a new Host; no existing operating-system installation is used.";
+      : "This exact bare-metal substrate is fabricated as a new host; no existing operating-system installation is used.";
     return note;
   }
 
@@ -111,11 +111,15 @@ export function createOrangePiAdapter({ host, imageWriter } = {}) {
     const targetBytes = encoder.encode(ORANGE_PI_5_PROFILE.target.id);
     const digestBytes = encoder.encode(release.digest);
     try {
-      const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
-      input.set(entropy); input.set(targetBytes, entropy.length); input.set(digestBytes, entropy.length + targetBytes.length);
-      const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(targetBytes.length, digestBytes.length, BigInt(nowMillis));
-      if (code < 0) throw outputError(host.runtime, "Orange Pi spore preparation", code);
-      const prepared = readOutput(host.runtime);
+      const prepared = prepareSpore
+        ? await prepareSpore({ targetId: ORANGE_PI_5_PROFILE.target.id, imageDigest: release.digest, nowMillis, entropy })
+        : (() => {
+          const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
+          input.set(entropy); input.set(targetBytes, entropy.length); input.set(digestBytes, entropy.length + targetBytes.length);
+          const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(targetBytes.length, digestBytes.length, BigInt(nowMillis));
+          if (code < 0) throw outputError(host.runtime, "Orange Pi spore preparation", code);
+          return readOutput(host.runtime);
+        })();
       if (prepared.target_id !== ORANGE_PI_5_PROFILE.target.id || prepared.image_content_digest !== release.digest
         || prepared.output !== "sd-image" || prepared.fabrication_package_id !== ORANGE_PI_5_PROFILE.packageId
         || prepared.deployment_adapter !== ORANGE_PI_5_PROFILE.deploymentAdapter) {

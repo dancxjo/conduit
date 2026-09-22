@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub const PRESENTATION_INTERACTION_VALUE_KIND: &str = "presentation/interaction@1";
-pub const UTF8_TEXT_VALUE_KIND: &str = "value/text@1";
+pub const UTF8_TEXT_VALUE_KIND: &str = "value/text";
 pub const MAX_PRESENTATION_INPUTS: usize = 64;
 pub const MAX_PRESENTATION_INPUT_VALUE_BYTES: u32 = 4_096;
 pub const MAX_PRESENTATION_INTERACTION_BYTES: usize = 8_192;

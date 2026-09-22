@@ -11,17 +11,17 @@ pub const fn explain_execution_disposition(
     disposition: ExecutionDisposition,
 ) -> ExecutionDispositionExplanation {
     let summary = match disposition {
-        ExecutionDisposition::Continued => "The Play continues within its admitted realization.",
+        ExecutionDisposition::Continued => "The play continues within its admitted realization.",
         ExecutionDisposition::QuiescentAwaitingInput => {
-            "The Play is awaiting input; it has not completed."
+            "The play is awaiting input; it has not completed."
         }
         ExecutionDisposition::SemanticCompleted => {
-            "The Form reached its defined semantic completion."
+            "The form reached its defined semantic completion."
         }
         ExecutionDisposition::BodyLulled => {
-            "The Body suspended the Play lifecycle; the Form did not complete."
+            "The body suspended the play lifecycle; the form did not complete."
         }
-        ExecutionDisposition::Cancelled => "The Play was explicitly cancelled before completion.",
+        ExecutionDisposition::Cancelled => "The play was explicitly cancelled before completion.",
         ExecutionDisposition::SemanticRefused => {
             "The requested value or transition was outside the semantic contract."
         }
@@ -38,15 +38,15 @@ pub const fn explain_execution_disposition(
             "The realization exhausted its admitted work allowance before semantic completion."
         }
         ExecutionDisposition::Failed => "Execution failed for a retained machine-readable cause.",
-        ExecutionDisposition::HostLost => "The exact Host needed by the Play was lost.",
-        ExecutionDisposition::BootLost => "The exact Boot needed by the Play was lost.",
-        ExecutionDisposition::ResourceLost => "An admitted Resource needed by the Play was lost.",
-        ExecutionDisposition::LineLost => "An exact Line needed by the Play was lost.",
+        ExecutionDisposition::HostLost => "The exact host needed by the play was lost.",
+        ExecutionDisposition::BootLost => "The exact Boot needed by the play was lost.",
+        ExecutionDisposition::ResourceLost => "An admitted Resource needed by the play was lost.",
+        ExecutionDisposition::LineLost => "An exact Line needed by the play was lost.",
         ExecutionDisposition::PlanRetired => {
-            "The Plan was retired; this does not assert semantic completion."
+            "The plan was retired; this does not assert semantic completion."
         }
         ExecutionDisposition::PlanReplaced => {
-            "A replacement Plan was selected; this does not restart or complete the Form."
+            "A replacement Plan was selected; this does not restart or complete the form."
         }
     };
     ExecutionDispositionExplanation {

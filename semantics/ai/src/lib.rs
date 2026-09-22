@@ -47,6 +47,8 @@ mod model_signature;
 pub use model_signature::*;
 mod model_artifact;
 pub use model_artifact::*;
+mod learned_lifecycle;
+pub use learned_lifecycle::*;
 mod model_compute;
 pub use model_compute::*;
 mod probability;
@@ -98,14 +100,14 @@ pub use provider::*;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, FrontStartupParameter, Kind, KindId, KindIdentity,
+    PortDescriptor, PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
 
 pub const GENERATE_TEXT_KIND: &str = "ai/generate-text";
 pub const GENERATE_TEXT_REVISION: &str = "conduit.ai/generate-text@1";
-pub const TEXT_VALUE_KIND: &str = "value/text@1";
+pub const TEXT_VALUE_KIND: &str = "value/text";
 pub const MAXIMUM_INPUT_BYTES: u64 = 262_144;
 pub const MAXIMUM_CONTEXT_TOKENS: u64 = 262_144;
 pub const MAXIMUM_OUTPUT_TOKENS: u64 = 16_384;
@@ -132,7 +134,7 @@ pub enum GenerateTextFailure {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GenerateTextContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub maximum_input_bytes: u64,
@@ -146,7 +148,7 @@ pub struct GenerateTextContract {
 pub fn generate_text_contract() -> GenerateTextContract {
     GenerateTextContract {
         kind_id: kind_id(GENERATE_TEXT_KIND),
-        kind_contract_revision: KindContractRevision::from(GENERATE_TEXT_REVISION),
+        kind_contract_revision: KindIdentity::from(GENERATE_TEXT_REVISION),
         inputs: vec![text_port("prompt", PortDirection::Input)],
         outputs: vec![text_port("text", PortDirection::Output)],
         maximum_input_bytes: MAXIMUM_INPUT_BYTES,
@@ -189,7 +191,7 @@ pub fn install_generate_text_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::KindSignature;
 
     startup.insert(KindSignature {
         kind: GENERATE_TEXT_KIND.to_string(),
@@ -201,20 +203,34 @@ pub fn install_generate_text_catalog(
         ],
     })?;
     let contract = generate_text_contract();
-    profile
-        .insert(KindDefinition {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: vec![
-                count_field("maximum-input-bytes", 4096, 1, MAXIMUM_INPUT_BYTES),
-                count_field("maximum-context-tokens", 4096, 1, MAXIMUM_CONTEXT_TOKENS),
-                count_field("maximum-output-tokens", 512, 1, MAXIMUM_OUTPUT_TOKENS),
-                count_field("temperature-milli", 0, 0, MAXIMUM_TEMPERATURE_MILLI),
-            ],
-        })
-        .map_err(|error| error.to_string())
+    let configuration = vec![
+        count_field("maximum-input-bytes", 4096, 1, MAXIMUM_INPUT_BYTES),
+        count_field("maximum-context-tokens", 4096, 1, MAXIMUM_CONTEXT_TOKENS),
+        count_field("maximum-output-tokens", 512, 1, MAXIMUM_OUTPUT_TOKENS),
+        count_field("temperature-milli", 0, 0, MAXIMUM_TEMPERATURE_MILLI),
+    ];
+    let kind = Kind {
+        startup_parameters: configuration
+            .iter()
+            .map(|field| FrontStartupParameter {
+                name: field.key.clone(),
+                value_type: field.default_value.semantic_kind(),
+                has_default: true,
+            })
+            .collect(),
+        shorthand: Some((
+            contract.inputs[0].port_id.clone(),
+            contract.outputs[0].port_id.clone(),
+        )),
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration,
+        semantic_laws: Vec::new(),
+        limits: contract.limits,
+    };
+    profile.insert_kind(kind).map_err(|error| error.to_string())
 }
 
 #[cfg(feature = "form-catalog")]
@@ -237,12 +253,12 @@ fn count_field(
     default: u64,
     minimum: u64,
     maximum: u64,
-) -> conduit_form::ConfigurationField {
+) -> conduit_form::KindConfigurationField {
     use alloc::string::ToString;
-    conduit_form::ConfigurationField {
+    conduit_form::KindConfigurationField {
         key: key.to_string(),
         default_value: conduit_core::ConfigurationValue::U64(default),
-        validation: conduit_form::ConfigurationRule::U64Range { minimum, maximum },
+        rule: conduit_form::KindConfigurationRule::U64Range { minimum, maximum },
     }
 }
 

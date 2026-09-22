@@ -5,7 +5,7 @@ const MAXIMUM_SEARCH_BYTES = 128;
 export function readReviewedFormInventory(runtime, source) {
   const bytes = encoder.encode(source);
   if (bytes.length === 0 || bytes.length > runtime.conduit_creche_input_capacity()) {
-    throw new Error("reviewed Form inventory is outside the admitted runtime bound");
+    throw new Error("reviewed form inventory is outside the admitted runtime bound");
   }
   new Uint8Array(runtime.memory.buffer, runtime.conduit_creche_input_ptr(), bytes.length).set(bytes);
   const code = runtime.conduit_creche_reviewed_inventory(bytes.length);
@@ -14,7 +14,7 @@ export function readReviewedFormInventory(runtime, source) {
     runtime.conduit_creche_output_ptr(),
     runtime.conduit_creche_output_len(),
   )));
-  if (code < 0) throw new Error(output.message ?? `reviewed Form inventory refused (${code})`);
+  if (code < 0) throw new Error(output.message ?? `reviewed form inventory refused (${code})`);
   return validateInventory(output);
 }
 
@@ -75,7 +75,7 @@ export function toggleForm(inventory, selected, name) {
 }
 
 export function setFormSelected(inventory, selected, name, desired) {
-  if (typeof desired !== "boolean") throw new Error("reviewed Form selection must be boolean");
+  if (typeof desired !== "boolean") throw new Error("reviewed form selection must be boolean");
   const form = reviewedForm(inventory, name);
   const present = selected.some((candidate) => candidate.checked_form_id === form.checked_form_id);
   if (present === desired) return selected;
@@ -88,7 +88,7 @@ export function setFormSelected(inventory, selected, name, desired) {
 
 function reviewedForm(inventory, name) {
   const form = inventory.forms.find((candidate) => candidate.name === name);
-  if (!form) throw new Error(`reviewed Form ${JSON.stringify(name)} is absent`);
+  if (!form) throw new Error(`reviewed form ${JSON.stringify(name)} is absent`);
   return form;
 }
 
@@ -151,7 +151,7 @@ function validateInventory(inventory) {
     || inventory.maximum_selection < 0
     || !Array.isArray(inventory.forms)
     || inventory.forms.length > inventory.maximum_selection) {
-    throw new Error("reviewed Form inventory is malformed or over capacity");
+    throw new Error("reviewed form inventory is malformed or over capacity");
   }
   const names = new Set();
   const identities = new Set();
@@ -161,7 +161,7 @@ function validateInventory(inventory) {
       || typeof form.source_document_id !== "string"
       || typeof form.checked_form_id !== "string" || !Array.isArray(form.required_kinds)
       || names.has(form.name) || identities.has(form.checked_form_id)) {
-      throw new Error("reviewed Form inventory contains an invalid or duplicate entry");
+      throw new Error("reviewed form inventory contains an invalid or duplicate entry");
     }
     names.add(form.name);
     identities.add(form.checked_form_id);

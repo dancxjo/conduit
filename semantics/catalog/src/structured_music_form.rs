@@ -7,12 +7,14 @@ use alloc::{
 };
 use conduit_audio::{MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID};
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, StructuredConfigurationValue, StructuredFieldType, StructuredFieldValue,
-    StructuredInfoType, StructuredInfoValue, StructuredVariantCase,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, KindId,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredConfigurationValue,
+    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 pub const INSTRUMENT_CONTROL_TYPE: &str = "InstrumentControl";
@@ -25,8 +27,64 @@ pub const RHYTHM_COMPARE_KIND: &str = "music/rhythm-compare";
 pub const RHYTHM_COMPARE_REVISION: &str = "conduit.std/music-rhythm-compare@1";
 pub const RHYTHM_MAXIMUM_PENDING_BEATS: u16 = 16;
 
+pub fn rhythm_compare_semantic_contract() -> Kind {
+    let definition = rhythm_compare_definition();
+    Kind {
+        startup_parameters: vec![
+            startup("target-offset-micros", kind_id("value/scalar"), true),
+            startup("tolerance-micros", kind_id("value/count"), true),
+        ],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: RHYTHM_MAXIMUM_PENDING_BEATS,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES
+                * usize::from(RHYTHM_MAXIMUM_PENDING_BEATS)
+                * 3) as u32,
+        },
+    }
+}
+
+pub fn instrument_map_semantic_contract() -> Result<Kind, String> {
+    let definition = instrument_map_definition()?;
+    let mapping_kind = instrument_mapping_type()
+        .profile()
+        .map_err(|error| alloc::format!("{error:?}"))?
+        .value_kind()
+        .clone();
+    Ok(Kind {
+        startup_parameters: vec![startup("mapping", mapping_kind, false)],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 16,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
+        },
+    })
+}
+
+fn startup(name: &str, value_type: KindId, has_default: bool) -> FrontStartupParameter {
+    FrontStartupParameter {
+        name: name.into(),
+        value_type,
+        has_default,
+    }
+}
+
 pub fn beat_reference_type() -> StructuredInfoType {
-    let count = leaf("value/count@1");
+    let count = leaf("value/count");
     StructuredInfoType::record(
         kind_id("music/beat-reference@1"),
         vec![
@@ -38,7 +96,7 @@ pub fn beat_reference_type() -> StructuredInfoType {
 }
 
 pub fn timing_feedback_type() -> StructuredInfoType {
-    let count = leaf("value/count@1");
+    let count = leaf("value/count");
     StructuredInfoType::record(
         kind_id("music/timing-feedback@1"),
         vec![
@@ -46,7 +104,7 @@ pub fn timing_feedback_type() -> StructuredInfoType {
             field("classification", leaf("music/timing-classification@1")),
             field("delta_micros", leaf("time/signed-microseconds@1")),
             field("expected_time_micros", count.clone()),
-            field("observed", leaf("value/boolean@1")),
+            field("observed", leaf("value/bool")),
             field("observed_time_micros", count),
             field("recovery_state", leaf("music/recovery-state@1")),
         ],
@@ -55,7 +113,7 @@ pub fn timing_feedback_type() -> StructuredInfoType {
 }
 
 pub fn instrument_mapping_type() -> StructuredInfoType {
-    let count = leaf("value/count@1");
+    let count = leaf("value/count");
     StructuredInfoType::record(
         kind_id("music/instrument-mapping@1"),
         vec![
@@ -72,8 +130,8 @@ pub fn instrument_mapping_type() -> StructuredInfoType {
 }
 
 pub fn instrument_control_type() -> StructuredInfoType {
-    let count = leaf("value/count@1");
-    let boolean = leaf("value/boolean@1");
+    let count = leaf("value/count");
+    let boolean = leaf("value/bool");
     let button = StructuredInfoType::record(
         kind_id("input/button-event@1"),
         vec![
@@ -158,10 +216,10 @@ pub fn install_structured_music_form_catalogs(
     Ok(())
 }
 
-pub fn rhythm_compare_definition() -> KindDefinition {
-    KindDefinition {
+pub fn rhythm_compare_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(RHYTHM_COMPARE_KIND),
-        kind_contract_revision: KindContractRevision::from(RHYTHM_COMPARE_REVISION),
+        kind_contract_revision: KindIdentity::from(RHYTHM_COMPARE_REVISION),
         inputs: vec![
             flow_port("performance", MUSIC_NOTE_INFO_ID, PortDirection::Input),
             structured_flow_port("reference", &beat_reference_type(), PortDirection::Input),
@@ -172,18 +230,18 @@ pub fn rhythm_compare_definition() -> KindDefinition {
             PortDirection::Output,
         )],
         configuration: vec![
-            ConfigurationField {
+            KindConfigurationField {
                 key: "target-offset-micros".into(),
                 default_value: ConfigurationValue::I64(0),
-                validation: ConfigurationRule::I64Range {
+                rule: KindConfigurationRule::I64Range {
                     minimum: -60_000_000,
                     maximum: 60_000_000,
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "tolerance-micros".into(),
                 default_value: ConfigurationValue::U64(30_000),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 0,
                     maximum: 1_000_000,
                 },
@@ -192,7 +250,7 @@ pub fn rhythm_compare_definition() -> KindDefinition {
     }
 }
 
-pub fn instrument_map_definition() -> Result<KindDefinition, String> {
+pub fn instrument_map_definition() -> Result<KindProjection, String> {
     let control_kind = instrument_control_type()
         .profile()
         .map_err(|error| alloc::format!("{error:?}"))?
@@ -203,9 +261,9 @@ pub fn instrument_map_definition() -> Result<KindDefinition, String> {
         .map_err(|error| alloc::format!("{error:?}"))?
         .value_kind()
         .clone();
-    Ok(KindDefinition {
+    Ok(KindProjection {
         kind_id: kind_id(INSTRUMENT_MAP_KIND),
-        kind_contract_revision: KindContractRevision::from(INSTRUMENT_MAP_REVISION),
+        kind_contract_revision: KindIdentity::from(INSTRUMENT_MAP_REVISION),
         inputs: vec![PortDescriptor {
             port_id: port_id("input"),
             value_kind: control_kind,
@@ -216,12 +274,12 @@ pub fn instrument_map_definition() -> Result<KindDefinition, String> {
             flow_port("notes", MUSIC_NOTE_INFO_ID, PortDirection::Output),
             flow_port("controls", MUSIC_CONTROL_INFO_ID, PortDirection::Output),
         ],
-        configuration: vec![ConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "mapping".into(),
             default_value: ConfigurationValue::Structured(
                 default_instrument_mapping_configuration()?,
             ),
-            validation: ConfigurationRule::Structured {
+            rule: KindConfigurationRule::Structured {
                 profile: mapping_kind,
             },
         }],
@@ -235,7 +293,7 @@ pub fn default_instrument_mapping_configuration() -> Result<StructuredConfigurat
         .map_err(|error| alloc::format!("{error:?}"))?
         .value_kind()
         .clone();
-    let count = leaf("value/count@1");
+    let count = leaf("value/count");
     let pitches_type = StructuredInfoType::collection(count.clone(), Some(8)).unwrap();
     let pitches = StructuredInfoValue::collection(
         pitches_type,
@@ -274,8 +332,11 @@ pub fn default_instrument_mapping_configuration() -> Result<StructuredConfigurat
 }
 
 fn count_value(value_type: &StructuredInfoType, value: u64) -> Result<StructuredInfoValue, String> {
-    StructuredInfoValue::leaf(value_type.clone(), value.to_string().into_bytes())
-        .map_err(|error| alloc::format!("{error:?}"))
+    StructuredInfoValue::leaf(
+        value_type.clone(),
+        conduit_core::encode_count(value).to_vec(),
+    )
+    .map_err(|error| alloc::format!("{error:?}"))
 }
 
 fn leaf(kind: &str) -> StructuredInfoType {

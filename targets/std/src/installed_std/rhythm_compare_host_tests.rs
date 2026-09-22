@@ -60,12 +60,32 @@ fn property(value: &StructuredInfoValue, name: &str) -> String {
     core::str::from_utf8(bytes).unwrap().to_string()
 }
 
+fn property_count(value: &StructuredInfoValue, name: &str) -> u64 {
+    let StructuredInfoValueShape::Record(fields) = value.shape() else {
+        panic!("feedback must be a record")
+    };
+    let StructuredInfoValueShape::Leaf(bytes) = field(fields, name).unwrap().shape() else {
+        panic!("feedback field must be a leaf")
+    };
+    conduit_core::decode_count(bytes).unwrap()
+}
+
+fn property_bool(value: &StructuredInfoValue, name: &str) -> bool {
+    let StructuredInfoValueShape::Record(fields) = value.shape() else {
+        panic!("feedback must be a record")
+    };
+    let StructuredInfoValueShape::Leaf(bytes) = field(fields, name).unwrap().shape() else {
+        panic!("feedback field must be a leaf")
+    };
+    conduit_core::InfoBool::decode(bytes).unwrap().get()
+}
+
 #[test]
 fn exact_vectors_report_early_late_recovery_and_deliberate_displacement() {
     let mut comparison = host(0, 25);
     assert!(comparison
         .execute(
-            conduit_std_offers::RHYTHM_REFERENCE_HOST_OPERATION,
+            conduit_std_offers::RHYTHM_REFERENCE_HOST_CALL,
             &beat(1, 1_000),
         )
         .unwrap()
@@ -73,7 +93,7 @@ fn exact_vectors_report_early_late_recovery_and_deliberate_displacement() {
     let early = decode(
         comparison
             .execute(
-                conduit_std_offers::RHYTHM_PERFORMANCE_HOST_OPERATION,
+                conduit_std_offers::RHYTHM_PERFORMANCE_HOST_CALL,
                 &note(800, Gate::On),
             )
             .unwrap(),
@@ -84,14 +104,14 @@ fn exact_vectors_report_early_late_recovery_and_deliberate_displacement() {
 
     comparison
         .execute(
-            conduit_std_offers::RHYTHM_REFERENCE_HOST_OPERATION,
+            conduit_std_offers::RHYTHM_REFERENCE_HOST_CALL,
             &beat(2, 2_000),
         )
         .unwrap();
     let recovering = decode(
         comparison
             .execute(
-                conduit_std_offers::RHYTHM_PERFORMANCE_HOST_OPERATION,
+                conduit_std_offers::RHYTHM_PERFORMANCE_HOST_CALL,
                 &note(2_100, Gate::On),
             )
             .unwrap(),
@@ -101,14 +121,14 @@ fn exact_vectors_report_early_late_recovery_and_deliberate_displacement() {
 
     comparison
         .execute(
-            conduit_std_offers::RHYTHM_REFERENCE_HOST_OPERATION,
+            conduit_std_offers::RHYTHM_REFERENCE_HOST_CALL,
             &beat(3, 3_000),
         )
         .unwrap();
     let recovered = decode(
         comparison
             .execute(
-                conduit_std_offers::RHYTHM_PERFORMANCE_HOST_OPERATION,
+                conduit_std_offers::RHYTHM_PERFORMANCE_HOST_CALL,
                 &note(3_020, Gate::On),
             )
             .unwrap(),
@@ -119,14 +139,14 @@ fn exact_vectors_report_early_late_recovery_and_deliberate_displacement() {
     let mut displaced = host(100, 25);
     displaced
         .execute(
-            conduit_std_offers::RHYTHM_REFERENCE_HOST_OPERATION,
+            conduit_std_offers::RHYTHM_REFERENCE_HOST_CALL,
             &beat(1, 4_000),
         )
         .unwrap();
     let feedback = decode(
         displaced
             .execute(
-                conduit_std_offers::RHYTHM_PERFORMANCE_HOST_OPERATION,
+                conduit_std_offers::RHYTHM_PERFORMANCE_HOST_CALL,
                 &note(4_120, Gate::On),
             )
             .unwrap(),
@@ -140,39 +160,39 @@ fn note_off_is_ignored_and_drain_emits_each_missed_beat() {
     let mut comparison = host(0, 25);
     assert!(comparison
         .execute(
-            conduit_std_offers::RHYTHM_PERFORMANCE_HOST_OPERATION,
+            conduit_std_offers::RHYTHM_PERFORMANCE_HOST_CALL,
             &note(900, Gate::Off),
         )
         .unwrap()
         .is_none());
     comparison
         .execute(
-            conduit_std_offers::RHYTHM_REFERENCE_HOST_OPERATION,
+            conduit_std_offers::RHYTHM_REFERENCE_HOST_CALL,
             &beat(1, 1_000),
         )
         .unwrap();
     comparison
         .execute(
-            conduit_std_offers::RHYTHM_REFERENCE_HOST_OPERATION,
+            conduit_std_offers::RHYTHM_REFERENCE_HOST_CALL,
             &beat(2, 2_000),
         )
         .unwrap();
     let first = decode(
         comparison
-            .execute(conduit_std_offers::RHYTHM_DRAIN_HOST_OPERATION, b"ignored")
+            .execute(conduit_std_offers::RHYTHM_DRAIN_HOST_CALL, b"ignored")
             .unwrap(),
     );
-    assert_eq!(property(&first, "beat"), "1");
+    assert_eq!(property_count(&first, "beat"), 1);
     assert_eq!(property(&first, "classification"), "missed");
-    assert_eq!(property(&first, "observed"), "false");
+    assert!(!property_bool(&first, "observed"));
     let second = decode(
         comparison
-            .execute(conduit_std_offers::RHYTHM_DRAIN_HOST_OPERATION, b"ignored")
+            .execute(conduit_std_offers::RHYTHM_DRAIN_HOST_CALL, b"ignored")
             .unwrap(),
     );
-    assert_eq!(property(&second, "beat"), "2");
+    assert_eq!(property_count(&second, "beat"), 2);
     assert!(comparison
-        .execute(conduit_std_offers::RHYTHM_DRAIN_HOST_OPERATION, b"ignored")
+        .execute(conduit_std_offers::RHYTHM_DRAIN_HOST_CALL, b"ignored")
         .unwrap()
         .is_none());
 }
@@ -182,19 +202,19 @@ fn malformed_identity_and_finite_capacity_refuse_without_output() {
     let mut comparison = host(0, 25);
     assert_eq!(
         comparison.execute(
-            conduit_std_offers::RHYTHM_REFERENCE_HOST_OPERATION,
+            conduit_std_offers::RHYTHM_REFERENCE_HOST_CALL,
             b"not structured",
         ),
         Err(RhythmCompareRefusal::MalformedReference)
     );
     assert_eq!(
         comparison.execute("conduit.host/wrong@1", &beat(1, 1)),
-        Err(RhythmCompareRefusal::WrongOperation)
+        Err(RhythmCompareRefusal::WrongBack)
     );
     for index in 0..conduit_semantic_catalog::RHYTHM_MAXIMUM_PENDING_BEATS {
         assert!(comparison
             .execute(
-                conduit_std_offers::RHYTHM_REFERENCE_HOST_OPERATION,
+                conduit_std_offers::RHYTHM_REFERENCE_HOST_CALL,
                 &beat(u64::from(index) + 1, u64::from(index)),
             )
             .unwrap()
@@ -202,7 +222,7 @@ fn malformed_identity_and_finite_capacity_refuse_without_output() {
     }
     assert_eq!(
         comparison.execute(
-            conduit_std_offers::RHYTHM_REFERENCE_HOST_OPERATION,
+            conduit_std_offers::RHYTHM_REFERENCE_HOST_CALL,
             &beat(99, 99),
         ),
         Err(RhythmCompareRefusal::CapacityExhausted)

@@ -1,4 +1,4 @@
-//! Exact Form switching inside one ordinary native Body Play.
+//! Exact form switching inside one ordinary native Body Play.
 mod causality;
 mod input;
 pub(super) use causality::validate as validate_causality;
@@ -49,7 +49,7 @@ fn expected() -> Vec<Expected> {
             result: (count != 0).then(|| &"HELLO"[..count.div_ceil(2) as usize]),
         })
         .collect::<Vec<_>>();
-    // Tab changes the foreground without consuming a Form input. Each ordinary
+    // Tab changes the foreground without consuming a form input. Each ordinary
     // press/release is accepted exactly once; the held X release belongs to
     // Canvas even though Memory is foreground by then.
     records.extend([
@@ -155,7 +155,7 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
     let refusal = || {
         ConduitosError::refusal(
             "product-journey-workset-invalid",
-            "four exact resident Forms must retain independent state and one Body through Presenter replanning, switching, inspection, held release, empty editing, and Lull",
+            "four exact resident Forms must retain independent state and one body through Presenter replanning, switching, inspection, held release, empty editing, and Lull",
         )
     };
     let mut canvas = identity(NativeForm::KeyboardCanvas)?;
@@ -170,7 +170,7 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
             if record["input_count"].as_u64() != Some(0) {
                 return true;
             }
-            // Home may switch among installed Forms before the first Form input.
+            // Home may switch among installed forms before the first form input.
             // Keep one lifecycle baseline; those launcher-only projections do
             // not become additional workset execution checkpoints.
             let keep = !saw_pre_input_baseline;
@@ -255,7 +255,7 @@ pub(super) fn validate(records: &[Value]) -> Result<(&Value, WorksetProof), Cond
         }
     }
     // Zero-Body arrival has no lifecycle Form. Once explicit selection births
-    // the Body, every projection must name an exact reviewed identity tuple.
+    // the body, every projection must name an exact reviewed identity tuple.
     for record in records {
         if record["status"] == "world" {
             if ["source_document_id", "checked_form_id", "expanded_form_id"]

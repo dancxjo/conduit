@@ -3,11 +3,11 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, FaceStartupParameter, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, PlannedGear, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, Kind,
+    PlannedGear, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
     PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
@@ -16,7 +16,7 @@ const ARTIFACT: &str = "conduit-browser-runtime/installed-linguistics@1";
 const TOKENIZE_IMPLEMENTATION: &str = "browser/kernel-language-tokenize-four@1";
 const ANNOTATE_IMPLEMENTATION: &str = "browser/kernel-language-annotate-four@1";
 const PRESENTATION_IMPLEMENTATION: &str = "browser/presentation-structured-info@1";
-const HOST_OPERATION: &str = "conduit.host/browser-linguistics@1";
+const HOST_CALL: &str = "conduit.host/browser-linguistics@1";
 
 pub(super) static TOKENIZE: BrowserInstallation = BrowserInstallation {
     implementation_id: TOKENIZE_IMPLEMENTATION,
@@ -41,7 +41,7 @@ pub(super) fn install_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
     conduit_language::install_linguistics_catalogs(startup, profile)?;
     let contract = presentation_contract();
     startup.insert(KindSignature {
@@ -49,24 +49,19 @@ pub(super) fn install_catalogs(
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| error.to_string())
 }
 
 fn tokenize_offer() -> CapabilityOffer {
     offer(
-        conduit_language::tokenize_four_definition(),
-        vec![FaceStartupParameter {
-            name: "text".into(),
-            value_type: "Text".into(),
-            has_default: false,
-        }],
+        conduit_language::tokenize_four_semantic_contract(),
         TOKENIZE_IMPLEMENTATION,
         Vec::new(),
     )
@@ -74,8 +69,7 @@ fn tokenize_offer() -> CapabilityOffer {
 
 fn annotate_offer() -> CapabilityOffer {
     offer(
-        conduit_language::annotate_four_definition(),
-        Vec::new(),
+        conduit_language::annotate_four_semantic_contract(),
         ANNOTATE_IMPLEMENTATION,
         vec![operation(
             ANNOTATE_IMPLEMENTATION,
@@ -85,63 +79,47 @@ fn annotate_offer() -> CapabilityOffer {
 }
 
 fn presentation_offer() -> CapabilityOffer {
-    let contract = presentation_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(PRESENTATION_IMPLEMENTATION),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: conduit_core::ImplementationOffer {
+    BackOfferBuilder::new(
+        presentation_contract().into(),
+        Back {
+            capability_id: CapabilityId::from(PRESENTATION_IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(PRESENTATION_IMPLEMENTATION),
             implementation_id: ImplementationId::from(PRESENTATION_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_calls: vec![operation(PRESENTATION_IMPLEMENTATION, 0)],
+            resource_requirements: vec![conduit_core::resource_requirement(
+                PRESENTATION_RESOURCE_CLASS,
+                1,
+            )],
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![operation(PRESENTATION_IMPLEMENTATION, 0)],
-        resource_requirements: vec![conduit_core::resource_requirement(
-            PRESENTATION_RESOURCE_CLASS,
-            1,
-        )],
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 fn offer(
-    definition: conduit_form::KindDefinition,
-    startup_parameters: Vec<FaceStartupParameter>,
+    contract: Kind,
     implementation: &str,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters,
-        shorthand: None,
-        capability_id: CapabilityId::from(implementation),
-        kind_id: definition.kind_id,
-        kind_contract_revision: definition.kind_contract_revision,
-        implementation: conduit_core::ImplementationOffer {
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_calls,
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations,
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 4,
-            max_queue_items: 1,
-            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        },
-    }
+    )
+    .build()
 }
 
-fn operation(target: &str, output: u32) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(HOST_OPERATION),
+fn operation(target: &str, output: u32) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(HOST_CALL),
         target_kind: Some(kind_id(target)),
         maximum_in_flight: 1,
         maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
@@ -159,7 +137,7 @@ fn presentation_contract() -> conduit_semantic_catalog::StructuredValueContract 
 fn prepare_tokenize(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &tokenize_offer())?;
     let value = conduit_language::tokenize_four("tour/gear-lab", configuration_text(placement)?)
         .map_err(|error| format!("tokenize four: {error:?}"))?;
@@ -167,15 +145,15 @@ fn prepare_tokenize(
         .canonical_bytes()
         .map_err(|error| format!("encode linguistic tokens: {error:?}"))?;
     let stored = values.store(&canonical).map_err(debug_error)?;
-    Ok(BrowserOperation::source(stored))
+    Ok(BrowserBack::source(stored))
 }
 
 fn prepare_annotate(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &annotate_offer())?;
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         1,
     ))
@@ -184,9 +162,9 @@ fn prepare_annotate(
 fn prepare_presentation(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &presentation_offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         1,
     ))
@@ -235,4 +213,35 @@ fn configuration_text(placement: &PlannedGear) -> Result<&str, String> {
 
 fn debug_error(error: impl core::fmt::Debug) -> String {
     format!("{error:?}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn browser_linguistics_preserves_each_exact_semantic_contract() {
+        for (offer, semantic) in [
+            (
+                tokenize_offer(),
+                conduit_language::tokenize_four_semantic_contract(),
+            ),
+            (
+                annotate_offer(),
+                conduit_language::annotate_four_semantic_contract(),
+            ),
+            (presentation_offer(), presentation_contract().into()),
+        ] {
+            assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+            assert_eq!(offer.shorthand, semantic.shorthand);
+            assert_eq!(offer.kind_id, semantic.kind_id);
+            assert_eq!(
+                offer.kind_contract_revision,
+                semantic.kind_contract_revision
+            );
+            assert_eq!(offer.inputs, semantic.inputs);
+            assert_eq!(offer.outputs, semantic.outputs);
+            assert_eq!(offer.limits, semantic.limits);
+        }
+    }
 }

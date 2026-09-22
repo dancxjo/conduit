@@ -65,7 +65,7 @@ fn selected_plan(
     let placements = PlacementChoices {
         by_gear: BTreeMap::from([(form.gears[0].gear_id.clone(), choice.clone())]),
     };
-    plan(form, hosts, &placements, &[]).expect("the exact selected realization seals into a Plan")
+    plan(form, hosts, &placements, &[]).expect("the exact selected realization seals into a plan")
 }
 
 #[test]

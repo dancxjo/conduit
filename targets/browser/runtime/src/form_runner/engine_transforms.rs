@@ -1,9 +1,9 @@
 //! Synchronous value transformations for admitted browser Host requests.
 //! This dispatcher never advances the scheduler or owns pending platform effects.
 use super::{debug_error, TourScheduler};
-use conduit_core::{HostOperationRequirement, PlannedGear};
-use conduit_kernel::scheduler::HostOperationRequest;
-use conduit_kernel::{BoundedValueRef, HostOperationDisposition, HostOperationOutcome};
+use conduit_core::{HostCallRequirement, PlannedGear};
+use conduit_kernel::scheduler::HostCallRequest;
+use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
 
 #[path = "engine_transforms/measurement_window.rs"]
 mod measurement_window;
@@ -13,8 +13,8 @@ mod stroke_capture;
 pub(in crate::form_runner) fn complete_transform(
     scheduler: &mut TourScheduler,
     placement: &PlannedGear,
-    operation: &HostOperationRequirement,
-    request: HostOperationRequest,
+    operation: &HostCallRequirement,
+    request: HostCallRequest,
 ) -> Result<bool, String> {
     if operation.contract_id.as_str() == crate::installed_browser::application::STATE_OPERATION {
         let input = scheduler
@@ -28,8 +28,8 @@ pub(in crate::form_runner) fn complete_transform(
             .ok_or("browser application state was not prepared before Play")?
             .execute(&input);
         let outcome = match result {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(
                         scheduler
@@ -42,8 +42,8 @@ pub(in crate::form_runner) fn complete_transform(
                 ),
                 failure: None,
             },
-            Err(_) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(_) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(conduit_kernel::Failure {
                     code: conduit_kernel::FailureCode::InvalidInput,
@@ -53,11 +53,11 @@ pub(in crate::form_runner) fn complete_transform(
         };
         scheduler
             .kernel
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
-    if operation.contract_id.as_str() == crate::installed_browser::text_state::HOST_OPERATION {
+    if operation.contract_id.as_str() == crate::installed_browser::text_state::HOST_CALL {
         let input = scheduler
             .kernel
             .host_value(request.input.value)
@@ -67,8 +67,8 @@ pub(in crate::form_runner) fn complete_transform(
             .ok_or("browser text state was not prepared before Play")?
             .execute(input);
         let outcome = match result {
-            Ok(output) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(output) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: output
                     .map(|bytes| {
                         let value = scheduler
@@ -81,19 +81,19 @@ pub(in crate::form_runner) fn complete_transform(
                     .transpose()?,
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
             .kernel
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
-    if operation.contract_id.as_str() == crate::installed_browser::keymap::HOST_OPERATION {
+    if operation.contract_id.as_str() == crate::installed_browser::keymap::HOST_CALL {
         let input = scheduler
             .kernel
             .host_value(request.input.value)
@@ -103,8 +103,8 @@ pub(in crate::form_runner) fn complete_transform(
             .ok_or("browser keymap was not prepared before Play")?
             .execute(input);
         let outcome = match result {
-            Ok(output) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(output) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: output
                     .map(|bytes| {
                         let value = scheduler
@@ -117,21 +117,19 @@ pub(in crate::form_runner) fn complete_transform(
                     .transpose()?,
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
             .kernel
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
-    if operation.contract_id.as_str()
-        == crate::installed_browser::structured_selector::HOST_OPERATION
-    {
+    if operation.contract_id.as_str() == crate::installed_browser::structured_selector::HOST_CALL {
         let input = scheduler
             .kernel
             .host_value(request.input.value)
@@ -141,8 +139,8 @@ pub(in crate::form_runner) fn complete_transform(
             .ok_or("structured selector was not prepared before Play")?
             .execute(input);
         let outcome = match result {
-            Ok(output) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(output) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: output
                     .map(|bytes| {
                         let value = scheduler
@@ -155,20 +153,19 @@ pub(in crate::form_runner) fn complete_transform(
                     .transpose()?,
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
             .kernel
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
-    if operation.contract_id.as_str() == crate::installed_browser::template_storage::HOST_OPERATION
-    {
+    if operation.contract_id.as_str() == crate::installed_browser::template_storage::HOST_CALL {
         let input = scheduler
             .kernel
             .host_value(request.input.value)
@@ -178,8 +175,8 @@ pub(in crate::form_runner) fn complete_transform(
             .ok_or("template store was not prepared before Play")?
             .execute(input);
         let outcome = match result {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(
                         scheduler
@@ -192,19 +189,19 @@ pub(in crate::form_runner) fn complete_transform(
                 ),
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
             .kernel
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
-    if operation.contract_id.as_str() == crate::installed_browser::replay_control::HOST_OPERATION {
+    if operation.contract_id.as_str() == crate::installed_browser::replay_control::HOST_CALL {
         let input = scheduler
             .kernel
             .host_value(request.input.value)
@@ -214,8 +211,8 @@ pub(in crate::form_runner) fn complete_transform(
             .ok_or("replay control was not prepared before Play")?
             .execute(operation.contract_id.as_str(), input);
         let outcome = match result {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: bytes
                     .map(|bytes| {
                         let value = scheduler
@@ -228,19 +225,19 @@ pub(in crate::form_runner) fn complete_transform(
                     .transpose()?,
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
             .kernel
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
-    if operation.contract_id.as_str() == crate::installed_browser::replay_source::HOST_OPERATION {
+    if operation.contract_id.as_str() == crate::installed_browser::replay_source::HOST_CALL {
         let input = scheduler
             .kernel
             .host_value(request.input.value)
@@ -250,8 +247,8 @@ pub(in crate::form_runner) fn complete_transform(
             .ok_or("replay source was not prepared before Play")?
             .execute(input);
         let outcome = match result {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(
                         scheduler
@@ -264,19 +261,19 @@ pub(in crate::form_runner) fn complete_transform(
                 ),
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
             .kernel
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
-    if operation.contract_id.as_str() == crate::installed_browser::historical::HOST_OPERATION {
+    if operation.contract_id.as_str() == crate::installed_browser::historical::HOST_CALL {
         let input = scheduler
             .kernel
             .host_value(request.input.value)
@@ -286,8 +283,8 @@ pub(in crate::form_runner) fn complete_transform(
             .ok_or("bounded history was not prepared before Play")?
             .execute(input);
         let outcome = match result {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(
                         scheduler
@@ -300,19 +297,19 @@ pub(in crate::form_runner) fn complete_transform(
                 ),
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
             .kernel
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
-    if operation.contract_id.as_str() == crate::installed_browser::record_delivery::HOST_OPERATION {
+    if operation.contract_id.as_str() == crate::installed_browser::record_delivery::HOST_CALL {
         let input = scheduler
             .kernel
             .host_value(request.input.value)
@@ -322,8 +319,8 @@ pub(in crate::form_runner) fn complete_transform(
             .ok_or("delivery codec was not prepared before Play")?
             .execute(input);
         let outcome = match result {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(
                         scheduler
@@ -336,15 +333,15 @@ pub(in crate::form_runner) fn complete_transform(
                 ),
                 failure: None,
             },
-            Err(refusal) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(refusal) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(crate::installed_browser::record_delivery::failure(refusal)),
             },
         };
         scheduler
             .kernel
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
@@ -360,8 +357,8 @@ pub(in crate::form_runner) fn complete_transform(
             .ok_or("comparison codec was not prepared before Play")?
             .execute(port, input);
         let outcome = match result {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: bytes
                     .map(|bytes| {
                         let value = scheduler
@@ -374,8 +371,8 @@ pub(in crate::form_runner) fn complete_transform(
                     .transpose()?,
                 failure: None,
             },
-            Err(refusal) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(refusal) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(crate::installed_browser::pattern_comparison::failure(
                     refusal,
@@ -384,7 +381,7 @@ pub(in crate::form_runner) fn complete_transform(
         };
         scheduler
             .kernel
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
@@ -398,8 +395,8 @@ pub(in crate::form_runner) fn complete_transform(
             .ok_or("timing codec was not prepared before Play")?
             .execute(operation.contract_id.as_str(), input);
         let outcome = match result {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(
                         scheduler
@@ -412,15 +409,15 @@ pub(in crate::form_runner) fn complete_transform(
                 ),
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
             .kernel
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
@@ -433,8 +430,8 @@ pub(in crate::form_runner) fn complete_transform(
                 .map_err(debug_error)?,
         );
         let outcome = match result {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(
                         scheduler.store_host_value(&bytes).map_err(debug_error)?,
@@ -444,19 +441,18 @@ pub(in crate::form_runner) fn complete_transform(
                 ),
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
-    if operation.contract_id.as_str() == crate::installed_browser::measurement_plot::HOST_OPERATION
-    {
+    if operation.contract_id.as_str() == crate::installed_browser::measurement_plot::HOST_CALL {
         let result = crate::installed_browser::measurement_plot::execute(
             placement,
             scheduler
@@ -464,8 +460,8 @@ pub(in crate::form_runner) fn complete_transform(
                 .map_err(debug_error)?,
         );
         let outcome = match result {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(
                         scheduler.store_host_value(&bytes).map_err(debug_error)?,
@@ -475,28 +471,26 @@ pub(in crate::form_runner) fn complete_transform(
                 ),
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
-    if operation.contract_id.as_str()
-        == crate::installed_browser::measurement_summary::HOST_OPERATION
-    {
+    if operation.contract_id.as_str() == crate::installed_browser::measurement_summary::HOST_CALL {
         let result = crate::installed_browser::measurement_summary::execute(
             scheduler
                 .host_value(request.input.value)
                 .map_err(debug_error)?,
         );
         let outcome = match result {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(
                         scheduler.store_host_value(&bytes).map_err(debug_error)?,
@@ -506,14 +500,14 @@ pub(in crate::form_runner) fn complete_transform(
                 ),
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
@@ -533,8 +527,8 @@ pub(in crate::form_runner) fn complete_transform(
             .ok_or("Garden step was not prepared before Play")?
             .execute(operation.contract_id.as_str(), input);
         let outcome = match result {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: bytes
                     .map(|bytes| {
                         let value = scheduler
@@ -547,14 +541,14 @@ pub(in crate::form_runner) fn complete_transform(
                     .transpose()?,
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
@@ -576,8 +570,8 @@ pub(in crate::form_runner) fn complete_transform(
             .ok_or("measurement hysteresis was not prepared before Play")?
             .execute(operation.contract_id.as_str(), input);
         let outcome = match result {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: bytes
                     .map(|bytes| {
                         let value = scheduler
@@ -590,15 +584,15 @@ pub(in crate::form_runner) fn complete_transform(
                     .transpose()?,
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
             .kernel
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
@@ -611,8 +605,8 @@ pub(in crate::form_runner) fn complete_transform(
                 .map_err(debug_error)?,
         );
         let outcome = match result {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(
                         scheduler.store_host_value(&bytes).map_err(debug_error)?,
@@ -622,18 +616,18 @@ pub(in crate::form_runner) fn complete_transform(
                 ),
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
-    if operation.contract_id.as_str() == crate::installed_browser::record_queue::HOST_OPERATION {
+    if operation.contract_id.as_str() == crate::installed_browser::record_queue::HOST_CALL {
         let result = crate::installed_browser::record_queue::execute(
             placement,
             scheduler
@@ -641,8 +635,8 @@ pub(in crate::form_runner) fn complete_transform(
                 .map_err(debug_error)?,
         );
         let outcome = match result {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(
                         scheduler.store_host_value(&bytes).map_err(debug_error)?,
@@ -652,19 +646,18 @@ pub(in crate::form_runner) fn complete_transform(
                 ),
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
-    if operation.contract_id.as_str() == crate::installed_browser::pointer_selector::HOST_OPERATION
-    {
+    if operation.contract_id.as_str() == crate::installed_browser::pointer_selector::HOST_CALL {
         let input = scheduler
             .kernel
             .host_value(request.input.value)
@@ -679,11 +672,11 @@ pub(in crate::form_runner) fn complete_transform(
             .map_err(debug_error)?;
         scheduler
             .kernel
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(
                         BoundedValueRef::new(value, operation.maximum_output_bytes)
                             .map_err(debug_error)?,
@@ -694,7 +687,7 @@ pub(in crate::form_runner) fn complete_transform(
             .map_err(debug_error)?;
         return Ok(true);
     }
-    if operation.contract_id.as_str() == crate::installed_browser::QUANTITY_HOST_OPERATION {
+    if operation.contract_id.as_str() == crate::installed_browser::QUANTITY_HOST_CALL {
         let encoded = crate::installed_browser::transform_quantity(
             scheduler.mappings[usize::from(request.node.0)]
                 .ok_or("quantity mapping was not prepared before Play")?,
@@ -705,8 +698,8 @@ pub(in crate::form_runner) fn complete_transform(
         let outcome = match encoded {
             Ok(bytes) => {
                 let value = scheduler.store_host_value(&bytes).map_err(debug_error)?;
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(
                         BoundedValueRef::new(value, conduit_core::QUANTITY_ENCODED_LEN as u32)
                             .map_err(debug_error)?,
@@ -714,14 +707,14 @@ pub(in crate::form_runner) fn complete_transform(
                     failure: None,
                 }
             }
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
@@ -732,8 +725,8 @@ pub(in crate::form_runner) fn complete_transform(
                 .map_err(debug_error)?,
         );
         let outcome = match converted {
-            Ok(bytes) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(bytes) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(
                         scheduler.store_host_value(&bytes).map_err(debug_error)?,
@@ -743,14 +736,14 @@ pub(in crate::form_runner) fn complete_transform(
                 ),
                 failure: None,
             },
-            Err(failure) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(failure),
             },
         };
         scheduler
-            .complete_host_operation(request.node, request.request, outcome)
+            .complete_host_call(request.node, request.request, outcome)
             .map_err(debug_error)?;
         return Ok(true);
     }
@@ -764,11 +757,11 @@ pub(in crate::form_runner) fn complete_transform(
             .store_host_value(&encoded[..length])
             .map_err(debug_error)?;
         scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(
                         BoundedValueRef::new(value, operation.maximum_output_bytes)
                             .map_err(debug_error)?,

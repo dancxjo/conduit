@@ -3,7 +3,7 @@
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_offer, resource_requirement, ArtifactId,
+    kind_id, present_host_call_requirement, resource_offer, resource_requirement, ArtifactId,
     BaseImplementationId, BaseInstanceId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     HostAdvertisement, HostId, HostProfileId, ImplementationId, LineAvailability,
     LineAvailabilitySign, LineContinuation, LineContract, LineDuplex, LineId, LineOffer,
@@ -30,6 +30,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
         boot_id: BootId::from(DISTRIBUTED_TOGGLE_STD_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-kernel"),
+        bases: vec![],
         resources: vec![resource_offer(
             "s4/toggle-std-input",
             INPUT_RESOURCE_CLASS,
@@ -50,7 +51,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
                 },
                 inputs: Vec::new(),
                 outputs: trigger_outputs(),
-                host_operations: trigger_host_operation_requirements(),
+                host_calls: trigger_host_call_requirements(),
                 resource_requirements: trigger_resource_requirements(),
                 authority_requirements: Vec::new(),
                 limits: CapabilityLimits {
@@ -68,7 +69,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
                 implementation: conduit_std_offers::state_toggle_offer().implementation,
                 inputs: toggle_inputs(),
                 outputs: toggle_outputs(),
-                host_operations: toggle_host_operation_requirements(),
+                host_calls: toggle_host_call_requirements(),
                 resource_requirements: toggle_resource_requirements(),
                 authority_requirements: Vec::new(),
                 limits: conduit_std_offers::state_toggle_offer().limits,
@@ -84,6 +85,7 @@ pub fn distributed_toggle_browser_sink_advertisement() -> HostAdvertisement {
         boot_id: BootId::from(DISTRIBUTED_TOGGLE_BROWSER_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser-wasm-kernel"),
+        bases: vec![],
         resources: vec![resource_offer(
             "s4/toggle-browser-dom",
             PRESENTATION_RESOURCE_CLASS,
@@ -104,7 +106,7 @@ pub fn toggle_browser_presentation_offer(capability_id: &str) -> CapabilityOffer
             implementation: "browser/kernel-dom-show-bool@1",
             artifact: "conduit-browser-runtime/show-bool@1",
         },
-        vec![present_host_operation_requirement(
+        vec![present_host_call_requirement(
             kind_id("presentation/browser-bool"),
             conduit_core::BOOL_ENCODED_LEN as u32,
         )],

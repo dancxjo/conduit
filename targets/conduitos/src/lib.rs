@@ -6,7 +6,7 @@ pub mod allocation;
 pub mod arch;
 pub mod boot;
 #[cfg(any(test, target_arch = "x86_64"))]
-pub mod bounded_host_operations;
+pub mod bounded_host_calls;
 #[cfg(feature = "virtio-net-proof")]
 pub(crate) mod bounded_websocket;
 pub mod composition;
@@ -52,10 +52,10 @@ pub mod keyboard_input;
 pub mod keyboard_offer;
 pub mod keyboard_plan;
 pub mod keyboard_play;
+mod keyboard_text_backs;
 #[cfg(target_arch = "x86_64")]
 pub mod keyboard_text_guest;
 pub mod keyboard_text_observatory;
-mod keyboard_text_operations;
 pub mod keyboard_text_plan;
 pub mod keyboard_text_play;
 #[cfg(test)]
@@ -103,8 +103,13 @@ pub mod pointer_offer;
 #[path = "presentation_nucleus/offers.rs"]
 mod presentation_offers;
 pub mod protected_line_support;
+#[cfg(feature = "virtio-net-proof")]
+pub mod protected_relay_support;
+pub mod protected_wire_session;
 pub mod protection_domain;
 pub mod rendezvous_descriptor;
+#[cfg(feature = "virtio-net-proof")]
+pub mod secure_rendezvous_support;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod usb_line_offer;
 #[cfg(any(test, target_arch = "x86_64"))]
@@ -122,6 +127,8 @@ pub mod virtio_tls;
     any(feature = "virtio-net-proof", feature = "hosted-tools")
 ))]
 pub mod virtio_tls_fixture;
+#[cfg(feature = "virtio-net-proof")]
+mod wss_candidate_support;
 // Product entrances remain out of A0-A4 proof appliances. Non-x86_64 targets
 // admit these modules only through distinct PROFILE-selected product features.
 #[cfg(any(
@@ -190,7 +197,7 @@ pub mod spore_provision;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod synth_nucleus;
 pub mod text_composition;
-mod text_kernel_operations;
+mod text_kernel_backs;
 mod text_offer;
 pub mod text_planned_kernel;
 pub mod text_upper;
@@ -201,8 +208,8 @@ pub mod timing_profile;
 mod tour_comparison_kernel;
 pub mod tour_comparison_plan;
 mod tour_comparison_play;
+mod tour_morse_backs;
 mod tour_morse_kernel;
-mod tour_morse_operations;
 mod tour_morse_plan;
 mod tour_morse_play;
 pub mod tour_play;

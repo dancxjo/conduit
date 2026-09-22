@@ -263,8 +263,8 @@ pub(super) fn occurrence_instant(value: &OccurrenceInstant) -> Result<Structured
                             resolution_name(*resolution),
                         )?,
                     ),
-                    value_field("rule_set", leaf("value/text@1", zone.rule_set())?),
-                    value_field("zone", leaf("value/text@1", zone.identity())?),
+                    value_field("rule_set", leaf("value/text", zone.rule_set())?),
+                    value_field("zone", leaf("value/text", zone.identity())?),
                 ],
             )
             .map_err(structured)?;
@@ -278,7 +278,7 @@ fn instant_value(value: &TemporalInstant) -> Result<StructuredInfoValue, String>
     StructuredInfoValue::record(
         conduit_semantic_catalog::recurrence_instant_type(),
         vec![
-            value_field("basis", leaf("value/text@1", &value.clock_basis)?),
+            value_field("basis", leaf("value/text", &value.clock_basis)?),
             value_field("resolution_ticks", count(value.resolution_ticks)?),
             value_field("scale", leaf("time/scale@1", scale_name(value.scale))?),
             value_field("ticks", count(value.ticks)?),
@@ -292,9 +292,9 @@ fn monotonic_value(value: &MonotonicInstant) -> Result<StructuredInfoValue, Stri
     StructuredInfoValue::record(
         conduit_semantic_catalog::recurrence_monotonic_type(),
         vec![
-            value_field("basis", leaf("value/text@1", clock.basis_id())?),
-            value_field("boot", leaf("value/text@1", clock.boot_id().as_str())?),
-            value_field("host", leaf("value/text@1", clock.host_id().as_str())?),
+            value_field("basis", leaf("value/text", clock.basis_id())?),
+            value_field("boot", leaf("value/text", clock.boot_id().as_str())?),
+            value_field("host", leaf("value/text", clock.host_id().as_str())?),
             value_field("resolution_ticks", count(clock.resolution_ticks())?),
             value_field("scale", leaf("time/scale@1", scale_name(clock.scale()))?),
             value_field("ticks", count(value.ticks())?),
@@ -353,13 +353,10 @@ fn text(value: &StructuredInfoValue) -> Result<String, String> {
 }
 
 fn count_value(value: &StructuredInfoValue) -> Result<u64, String> {
-    let text = text(value)?;
-    let value = text
-        .parse::<u64>()
-        .map_err(|_| "recurrence count is not canonical".to_string())?;
-    (value.to_string() == text)
-        .then_some(value)
-        .ok_or_else(|| "recurrence count is not canonical".to_string())
+    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+        return Err("recurrence count is not canonical".into());
+    };
+    conduit_core::decode_count(bytes).map_err(|_| "recurrence count is not canonical".to_string())
 }
 
 fn u32_value(value: &StructuredInfoValue) -> Result<u32, String> {
@@ -450,7 +447,12 @@ pub(super) fn leaf(kind: &str, text: &str) -> Result<StructuredInfoValue, String
 }
 
 pub(super) fn count(value: u64) -> Result<StructuredInfoValue, String> {
-    leaf("value/count@1", &value.to_string())
+    StructuredInfoValue::leaf(
+        StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::COUNT_INFO_ID))
+            .map_err(structured)?,
+        conduit_core::encode_count(value).to_vec(),
+    )
+    .map_err(structured)
 }
 
 pub(super) fn value_field(name: &str, value: StructuredInfoValue) -> StructuredFieldValue {

@@ -1,6 +1,7 @@
 import { connectRendezvousHost } from "../../creche/browser/creche-rendezvous.mjs";
 import { createPhysicalHostRunner } from "../../creche/browser/creche-physical.mjs";
 import { createPhysicalHostTargetCatalog } from "../../creche/browser/creche-target-catalog.mjs";
+import { createInstalledCrecheTargetCatalog } from "../../creche/browser/creche-installed-targets.mjs";
 import { BROWSER_EXISTING_COMPUTER_CONTRIBUTION } from "../../../targets/browser/deployment/browser/creche-adapter.mjs";
 import { createBrowserConfigurationOutfitter } from "./workspace-host-configuration.mjs";
 
@@ -32,7 +33,7 @@ function decodeBodyInvitation(value) {
 
 export function readPastedBodyInvitation(input, location) {
   const pasted = input.trim();
-  if (!pasted) throw new Error("Paste a Body invitation link or portable code");
+  if (!pasted) throw new Error("Paste a body invitation link or portable code");
   if (pasted.length > 8192) throw new Error("Body invitation exceeds its portable bound");
   let value;
   try {
@@ -117,7 +118,7 @@ function renderInvitationQr(root, projection) {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
   svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", "QR representation of this exact Body invitation");
+  svg.setAttribute("aria-label", "QR representation of this exact body invitation");
   svg.style.imageRendering = "pixelated";
   const background = document.createElementNS(svg.namespaceURI, "rect");
   background.setAttribute("width", String(size)); background.setAttribute("height", String(size)); background.setAttribute("fill", "white");
@@ -127,7 +128,7 @@ function renderInvitationQr(root, projection) {
   svg.append(background, path); root.replaceChildren(svg); root.hidden = false;
 }
 
-export function openWorkspaceMembership({ root, session, host, hostOperations, invitation, invitationLabel, presentationFor, beforeAdmission, onChanged, onFailure }) {
+export function openWorkspaceMembership({ root, session, host, hostCalls, invitation, invitationLabel, presentationFor, beforeAdmission, onChanged, onFailure }) {
   const panel = root.querySelector("#workspace-membership");
   const content = panel.querySelector("[data-membership-content]");
   const openButton = root.querySelector("[data-open-membership]");
@@ -163,7 +164,7 @@ export function openWorkspaceMembership({ root, session, host, hostOperations, i
     openButton.hidden = !session.current();
     const fulfilled = session.current()?.state === "FULFILLED";
     inviteButton.hidden = !session.current() || fulfilled;
-    inviteButton.textContent = invitationLabel?.() ?? "Invite another Host";
+    inviteButton.textContent = invitationLabel?.() ?? "Invite another host";
     openButton.setAttribute("aria-expanded", String(open));
     if (!open) return;
     if (invitation && !session.current()) { renderJoin(invitation); return; }
@@ -179,16 +180,16 @@ export function openWorkspaceMembership({ root, session, host, hostOperations, i
       const local = part.current?.host_id === host.hostId && part.current?.boot_id === host.bootId;
       const title = document.createElement("h3"); title.textContent = local ? "This browser" : "Body Part";
       const state = document.createElement("p");
-      state.textContent = `${part.state.toLowerCase()} · ${part.current ? "present" : "offline"}${local ? " · local Host" : ""}`;
+      state.textContent = `${part.state.toLowerCase()} · ${part.current ? "present" : "offline"}${local ? " · local host" : ""}`;
       const exact = document.createElement("details"), summary = document.createElement("summary"), pre = document.createElement("pre");
       summary.textContent = "Exact membership evidence"; pre.textContent = JSON.stringify(part, null, 2); exact.append(summary, pre);
       item.append(title, state, exact); list.append(item);
     }
-    const action = document.createElement("button"); action.type = "button"; action.textContent = invitationLabel?.() ?? "Invite another Host";
+    const action = document.createElement("button"); action.type = "button"; action.textContent = invitationLabel?.() ?? "Invite another host";
     action.addEventListener("click", () => renderInvite().catch(onFailure));
-    const add = document.createElement("button"); add.type = "button"; add.textContent = "Add a Host";
+    const add = document.createElement("button"); add.type = "button"; add.textContent = "Add a host";
     add.addEventListener("click", renderAddHost);
-    const running = document.createElement("button"); running.type = "button"; running.textContent = "Connect a running Host";
+    const running = document.createElement("button"); running.type = "button"; running.textContent = "Connect a running host";
     running.addEventListener("click", renderRunningHost);
     content.append(intro, list);
     if (!fulfilled) {
@@ -198,21 +199,36 @@ export function openWorkspaceMembership({ root, session, host, hostOperations, i
   }
 
   function renderAddHost() {
-    if (!session.current()) throw new Error("A Body must exist before configuring another Host");
+    if (!session.current()) throw new Error("A body must exist before configuring another host");
     let outfitter;
+    let targetKind = "browser";
     const redraw = () => {
       content.replaceChildren();
-      const kicker = document.createElement("p"); kicker.className = "membership-kicker"; kicker.textContent = "Add a Host";
-      const heading = document.createElement("h3"); heading.textContent = "What should this browser contribute?";
+      const kicker = document.createElement("p"); kicker.className = "membership-kicker"; kicker.textContent = "Add a host";
+      const heading = document.createElement("h3"); heading.textContent = targetKind === "browser" ? "What should this browser contribute?" : "Which physical Host should this Body prepare?";
       const explanation = document.createElement("p");
-      explanation.textContent = "Choose a reviewed purpose preset or inspect and pin the exact Base implementations. Review creates only a checked configuration and PROFILE; it creates no Host, membership, readiness, offer, Plan, or Play.";
-      content.append(kicker, heading, explanation, outfitter.render());
+      explanation.textContent = targetKind === "browser"
+        ? "Choose a reviewed purpose preset or inspect and pin the exact Base implementations. Review creates only a checked configuration and PROFILE; it creates no Host, membership, readiness, offer, Plan, or Play."
+        : "Select exact target machinery from the shared standard catalog. Preparation and Body binding create no running Host, membership, readiness, offer, Plan, or Play.";
+      const kind = document.createElement("div"); kind.className = "membership-actions";
+      for (const [value, label] of [["browser", "This browser"], ["machine", "Another machine"]]) {
+        const button = document.createElement("button"); button.type = "button"; button.textContent = label;
+        button.disabled = targetKind === value;
+        button.addEventListener("click", () => { targetKind = value; redraw(); });
+        kind.append(button);
+      }
+      content.append(kicker, heading, explanation, kind);
+      if (targetKind === "browser") content.append(outfitter.render());
       const actions = document.createElement("div"); actions.className = "membership-actions";
       const back = document.createElement("button"); back.type = "button"; back.textContent = "Back to members";
       back.addEventListener("click", render);
       actions.append(back);
-      if (outfitter.checked()) {
-        const proceed = document.createElement("button"); proceed.type = "button"; proceed.textContent = "Continue with reviewed Host";
+      if (targetKind === "machine") {
+        const proceed = document.createElement("button"); proceed.type = "button"; proceed.textContent = "Continue with machine catalog";
+        proceed.addEventListener("click", renderMachineFabrication);
+        actions.prepend(proceed);
+      } else if (outfitter.checked()) {
+        const proceed = document.createElement("button"); proceed.type = "button"; proceed.textContent = "Continue with reviewed host";
         proceed.addEventListener("click", () => renderBrowserFabrication(outfitter.selection()));
         actions.prepend(proceed);
       }
@@ -222,10 +238,45 @@ export function openWorkspaceMembership({ root, session, host, hostOperations, i
     redraw();
   }
 
+  function renderMachineFabrication() {
+    content.replaceChildren();
+    const kicker = document.createElement("p"); kicker.className = "membership-kicker"; kicker.textContent = "Add a host";
+    const heading = document.createElement("h3"); heading.textContent = "Prepare and bind an exact physical Host";
+    const explanation = document.createElement("p");
+    explanation.textContent = "The shared target catalog prepares exact machinery and binds a finite Body invitation. Admission remains a separate observed-Boot step.";
+    const runner = createPhysicalHostRunner({
+      host,
+      hostCalls,
+      presentationFor,
+      targetCatalog: createInstalledCrecheTargetCatalog(),
+      adapterContext: {
+        async prepareSpore({ targetId, imageDigest = null, reviewedImage = null, nowMillis, entropy }) {
+          const nonce = crypto.getRandomValues(new Uint8Array(32));
+          try {
+            return await session.preparePhysicalSpore(targetId, imageDigest, reviewedImage, entropy, nonce, nowMillis);
+          } finally {
+            nonce.fill(0);
+          }
+        },
+      },
+      async admitJoin(join) {
+        await beforeAdmission();
+        const proof = { invitation_id: join.invitation_id, body_id: join.body_id, host_id: join.host_id, boot_id: join.boot_id, nonce: join.nonce, signature: join.signature };
+        const receipt = await session.admitInvitation(join.advertisement, proof, join.observed_at_millis);
+        return Object.freeze({ schema: "conduit.workspace/physical-host-admission@1", membership_revision: receipt.body.evidence.membership.revision, offer_count: receipt.body.current_host_offers.length });
+      },
+      onBodyChanged() { onChanged(); render(); },
+    });
+    const actions = document.createElement("div"); actions.className = "membership-actions";
+    const back = document.createElement("button"); back.type = "button"; back.textContent = "Back to Host selection";
+    back.addEventListener("click", renderAddHost); actions.append(back);
+    content.append(kicker, heading, explanation, runner, actions);
+  }
+
   function renderBrowserFabrication(configurationSelection) {
     if (!configurationSelection) throw new Error("Review the exact browser Host PROFILE before fabrication");
     content.replaceChildren();
-    const kicker = document.createElement("p"); kicker.className = "membership-kicker"; kicker.textContent = "Add a Host";
+    const kicker = document.createElement("p"); kicker.className = "membership-kicker"; kicker.textContent = "Add a host";
     const heading = document.createElement("h3"); heading.textContent = "Bind and admit this reviewed browser Host";
     const explanation = document.createElement("p");
     explanation.textContent = "Acquire the reviewed distribution, bind this exact PROFILE and a separate finite Body invitation, then realize and explicitly admit the fresh browser Host.";
@@ -235,7 +286,7 @@ export function openWorkspaceMembership({ root, session, host, hostOperations, i
     });
     const runner = createPhysicalHostRunner({
       host,
-      hostOperations,
+      hostCalls,
       presentationFor,
       targetCatalog: catalog,
       adapterContext: {
@@ -276,12 +327,12 @@ export function openWorkspaceMembership({ root, session, host, hostOperations, i
   }
 
   function renderRunningHost() {
-    if (!session.current()) throw new Error("A Body must exist before connecting a running Host");
-    content.innerHTML = `<p class="membership-kicker">Already running</p><h3>Connect this Body to a Host</h3>
-      <p>On the computer that should help this Body, open Conduit’s Host rendezvous and enter its one-use code here. The Host’s exact identity and current offers are admitted only after its signed invitation proof returns.</p>
-      <label>Running Host rendezvous code<input type="text" autocomplete="off" spellcheck="false" data-running-host-code></label>
+    if (!session.current()) throw new Error("A body must exist before connecting a running host");
+    content.innerHTML = `<p class="membership-kicker">Already running</p><h3>Connect this body to a host</h3>
+      <p>On the computer that should help this body, open Conduit’s Host rendezvous and enter its one-use code here. The host’s exact identity and current offers are admitted only after its signed invitation proof returns.</p>
+      <label>Running host rendezvous code<input type="text" autocomplete="off" spellcheck="false" data-running-host-code></label>
       <div class="membership-actions"><button type="button" data-connect-running-host>Connect Host</button><button type="button" data-cancel-running-host>Back to members</button></div>
-      <p class="transport-note">Available now: a loopback WebSocket Host on this computer, or an explicitly selected serial Host. A failed connection leaves this Body and its current Forms unchanged.</p>`;
+      <p class="transport-note">Available now: a loopback WebSocket Host on this computer, or an explicitly selected serial Host. A failed connection leaves this body and its current forms unchanged.</p>`;
     const input = content.querySelector("[data-running-host-code]");
     const connect = content.querySelector("[data-connect-running-host]");
     content.querySelector("[data-cancel-running-host]").addEventListener("click", () => { runningHost?.cancel(); runningHost = null; render(); });
@@ -345,7 +396,7 @@ export function openWorkspaceMembership({ root, session, host, hostOperations, i
 
   async function renderInvite() {
     const body = session.current();
-    if (!body) throw new Error("A Body must exist before creating an invitation");
+    if (!body) throw new Error("A body must exist before creating an invitation");
     const secret = crypto.getRandomValues(new Uint8Array(32));
     const nonce = crypto.getRandomValues(new Uint8Array(32));
     const claim = await session.createInvitation(secret, nonce);
@@ -357,7 +408,7 @@ export function openWorkspaceMembership({ root, session, host, hostOperations, i
     channels.add(channel);
     content.innerHTML = `<div data-application-slot="workspace-invitation"></div><div data-invitation-qr hidden></div>
       <details><summary>Invitation details</summary><pre>${escapeText(JSON.stringify({ ...artifact, secret: "redacted bounded invitation capability" }, null, 2))}</pre></details>
-      <p class="transport-note">Available now: another Host in this browser’s same-origin rendezvous. Remote internet rendezvous is not yet supported.</p>`;
+      <p class="transport-note">Available now: another host in this browser’s same-origin rendezvous. Remote internet rendezvous is not yet supported.</p>`;
     const revision = ++invitationRevision;
     const view = session.invitationView({ invitation_id: claim.invitation_id, body_id: claim.body_id,
       body_name: body.friendly_name, expires_at_millis: claim.expires_at_millis, transfer_uri: url, revision,
@@ -397,10 +448,10 @@ export function openWorkspaceMembership({ root, session, host, hostOperations, i
   function renderJoin(artifact) {
     try { session.inspectInvitation(artifact.claim); }
     catch (error) { onFailure(error); content.textContent = error.message; return; }
-    content.innerHTML = `<p class="membership-kicker">Body invitation</p><h3>${escapeText(artifact.body_name ?? "Another Body")}</h3>
+    content.innerHTML = `<p class="membership-kicker">Body invitation</p><h3>${escapeText(artifact.body_name ?? "Another body")}</h3>
       <p>This invitation proposes a new Part for this exact browser Host. Joining records membership and authenticated presence separately. It grants no Form or effect authority.</p>
       <dl><dt>Body</dt><dd>${escapeText(artifact.claim.body_id)}</dd><dt>Offered by</dt><dd>${escapeText(artifact.offered_by?.host_id ?? "not disclosed")}</dd><dt>Expires</dt><dd>${new Date(artifact.claim.expires_at_millis).toLocaleString()}</dd></dl>
-      <button type="button" data-join-body>Join this Body</button><p class="transport-note">The inviting Workspace must remain open in this browser’s same-origin rendezvous.</p>`;
+      <button type="button" data-join-body>Join this body</button><p class="transport-note">The inviting Workspace must remain open in this browser’s same-origin rendezvous.</p>`;
     content.querySelector("[data-join-body]").addEventListener("click", async event => {
       event.currentTarget.disabled = true;
       try {

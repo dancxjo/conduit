@@ -1,4 +1,4 @@
-//! One exact, deterministic deadline-bounded local Plan profile.
+//! One exact, deterministic deadline-bounded local plan profile.
 //!
 //! The authored requirement contains only semantic timing. Machine and Base
 //! facts enter through [`TimingOffer`], are sealed into [`TimingBasis`] before
@@ -325,7 +325,7 @@ fn run_kernel(
             }
             Ok(SchedulerStatus::Progress { .. }) | Ok(SchedulerStatus::Idle) => {}
             Ok(SchedulerStatus::Cancelled) => return TimingOutcome::Cancelled,
-            Err(SchedulerError::OperationFailed(_)) | Err(_) => {
+            Err(SchedulerError::BackFailed(_)) | Err(_) => {
                 return TimingOutcome::KernelFailure;
             }
         }

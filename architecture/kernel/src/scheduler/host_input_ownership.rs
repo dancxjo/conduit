@@ -1,4 +1,4 @@
-//! Exact ownership transfer from consumed references to admitted Host input.
+//! Exact ownership transfer from consumed references to admitted host input.
 use super::*;
 
 impl<
@@ -28,7 +28,7 @@ impl<
         PENDING_REQUESTS,
     >
 where
-    D: StepOperation<PORTS>,
+    D: StepBack<PORTS>,
     S: ValueStorage,
     E: SignSink,
 {
@@ -48,7 +48,7 @@ where
         if let Some((_, _, input)) = host_request {
             let value = input.value;
             if available_host_value == Some(value) && !consumed_host_completion {
-                return Err(SchedulerError::InvalidHostOperationAccess);
+                return Err(SchedulerError::InvalidHostCallAccess);
             }
             if discards.iter().flatten().any(|discard| *discard == value)
                 || retained_values
@@ -56,7 +56,7 @@ where
                     .flatten()
                     .any(|retained| *retained == value)
             {
-                return Err(SchedulerError::InvalidHostOperationAccess);
+                return Err(SchedulerError::InvalidHostCallAccess);
             }
             if !outputs.iter().flatten().any(|output| *output == value) {
                 let consumed_references = consumed
@@ -80,7 +80,7 @@ where
                 // A consumed reference transfers to the pending request. Other
                 // aliases stay owned by their queues; they need not be consumed.
                 if input_matches > 0 && consumed_references == 0 {
-                    return Err(SchedulerError::InvalidHostOperationAccess);
+                    return Err(SchedulerError::InvalidHostCallAccess);
                 }
                 let current = usize::from(self.values.reference_count(value)?);
                 if current < consumed_references {

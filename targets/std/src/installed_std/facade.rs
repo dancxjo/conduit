@@ -1,11 +1,13 @@
 //! Narrow installed-std offer and proof-catalog facade.
 
 pub(crate) use super::contract::text_offer;
+#[cfg(feature = "isolated-http-base")]
+pub(crate) use super::http::client_offer_for as http_client_offer_for;
 pub(crate) use super::http::{
     client_offer as http_client_offer, server_offer as http_server_offer,
 };
-pub(crate) use super::render_demand_operation::offer as render_demand_offer;
-pub(crate) use super::synth_operation::offer as synth_offer;
+pub(crate) use super::render_demand_back::offer as render_demand_offer;
+pub(crate) use super::synth_back::offer as synth_offer;
 #[cfg(test)]
 pub(crate) use super::test_json_codec::{
     sink_offer as test_json_sink_offer, source_offer as test_json_source_offer,

@@ -3,7 +3,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 export function readReviewedGallery(api) {
-  if (api.conduit_browser_form_reviewed_gallery() < 0) throw new Error("reviewed Form Gallery is unavailable");
+  if (api.conduit_browser_form_reviewed_gallery() < 0) throw new Error("reviewed form Gallery is unavailable");
   const bytes = new Uint8Array(
     api.memory.buffer,
     api.conduit_browser_form_output_ptr(),
@@ -13,7 +13,7 @@ export function readReviewedGallery(api) {
   if (projected?.schema !== "conduit.tour/reviewed-form-gallery@1"
     || !Number.isInteger(projected.maximum_forms) || projected.maximum_forms < 1
     || !Array.isArray(projected.forms) || projected.forms.length > projected.maximum_forms) {
-    throw new Error("reviewed Form Gallery is malformed or over capacity");
+    throw new Error("reviewed form Gallery is malformed or over capacity");
   }
   for (const form of projected.forms) {
     if (typeof form?.name !== "string" || typeof form.title !== "string" || typeof form.source !== "string"
@@ -25,7 +25,7 @@ export function readReviewedGallery(api) {
       || form.realizability?.required_kind_count !== form.required_kinds.length
       || !Array.isArray(form.realizability?.requirements)
       || form.realizability.requirements.length !== form.required_kinds.length) {
-      throw new Error("reviewed Form Gallery entry is malformed");
+      throw new Error("reviewed form Gallery entry is malformed");
     }
   }
   return Object.freeze(projected);
@@ -64,11 +64,11 @@ export function createReviewedFormGallery(api, presentation, surface, gallery, c
       creche_url: admittedCrechePath,
     }));
     if (request.length > api.conduit_browser_form_input_capacity()) {
-      throw new Error("reviewed Form Gallery presentation request is over capacity");
+      throw new Error("reviewed form Gallery presentation request is over capacity");
     }
     new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), request.length).set(request);
     if (api.conduit_browser_form_reviewed_gallery_view(request.length) < 0) {
-      throw new Error("reviewed Form Gallery presentation was refused");
+      throw new Error("reviewed form Gallery presentation was refused");
     }
     const encodedView = new Uint8Array(
       api.memory.buffer,
@@ -213,9 +213,9 @@ function presentGalleryKeyboardControl(runner, form, result, controls) {
   surface.setAttribute("role", "group");
   surface.setAttribute("aria-label", "Form keyboard input");
   surface.textContent = form.name === "memory_lantern"
-    ? "Keyboard input · type to edit the living text. Backspace edits; Stop ends the Play."
+    ? "Keyboard input · type to edit the living text. Backspace edits; Stop ends the play."
     : form.name === "morse_network"
-      ? "Keyboard input · type characters while this Play is running."
+      ? "Keyboard input · type characters while this play is running."
       : "Keyboard input · type a message and press Enter to submit it. Send another before Stop.";
   result.insertBefore(surface, controls);
   return surface;

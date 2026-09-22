@@ -89,6 +89,9 @@ export function openWorkspaceSession({ host, storage }) {
     selectForm(form) { request('SelectForm', { form }); return save(); },
     libraryView(source, query, revision, joinedLines = []) { return request('LibraryView', { ...here, source, query, revision, joined_lines: joinedLines }, true); },
     tutorialView(revision, playback) { return request('TutorialView', { revision, playback }, true); },
+    tutorialPresenterRequest(request_identity, presentation_revision, playback) {
+      return request('TutorialPresenterInput', { request_identity, presentation_revision, playback }, true);
+    },
     invitationView(fields) { return request('InvitationView', fields, true); },
     invitationQr(transfer_uri) { return request('InvitationQr', { transfer_uri }); },
     async changeWorkset(edit, form, source, expected_revision) {
@@ -138,6 +141,21 @@ export function openWorkspaceSession({ host, storage }) {
       await save();
       return prepared;
     },
+    async preparePhysicalSpore(targetId, imageContentDigest, reviewedImage, secret, nonce, now = Date.now(), expires = now + 10 * 60_000) {
+      if (persistenceFailure) throw persistenceFailure;
+      const prepared = request('PreparePhysicalSpore', {
+        ...here,
+        secret: Array.from(secret),
+        nonce: Array.from(nonce),
+        now_millis: now,
+        expires_at_millis: expires,
+        target_id: targetId,
+        image_content_digest: imageContentDigest ?? null,
+        reviewed_image: reviewedImage ? Array.from(reviewedImage) : null,
+      });
+      await save();
+      return prepared;
+    },
     async admitInvitation(advertisement, proof, now = Date.now()) {
       if (persistenceFailure) throw persistenceFailure;
       const receipt = request('AdmitInvitation', { ...here, advertisement, proof, now_millis: now });
@@ -157,7 +175,7 @@ export function openWorkspaceSession({ host, storage }) {
       return workspace;
     },
     async openAdmitted(durable) {
-      if (workspace) throw new Error('Close the current Body before joining another Body');
+      if (workspace) throw new Error('Close the current body before joining another body');
       request('OpenAdmitted', { evidence: durable.evidence, admission: durable.admission, advertisement: localAdvertisement, ...here });
       if (durable.foreground) request('SelectForm', { form: durable.foreground });
       await save();
@@ -178,7 +196,7 @@ export function openWorkspaceSession({ host, storage }) {
       put(bytes);
       const receipt = call('conduit_creche_restore_durable', bytes.length);
       const sequences = [receipt.birth_sequence, ...(snapshot.biography?.records ?? []).map(record => record.sequence)];
-      if (sequences.some(value => !Number.isSafeInteger(value) || value < 0)) throw new Error('Retained Body sequence is invalid');
+      if (sequences.some(value => !Number.isSafeInteger(value) || value < 0)) throw new Error('Retained body sequence is invalid');
       sequence = Math.max(...sequences);
       if (receipt.here_part_id) {
         const parts = [host.hostId, host.bootId].map(value => encoder.encode(value));
@@ -186,7 +204,7 @@ export function openWorkspaceSession({ host, storage }) {
         input.set(parts[0]); input.set(parts[1], parts[0].length); put(input);
         const restored = call('conduit_creche_attach_here', parts[0].length, parts[1].length, BigInt(nextSequence()));
         nextSequence();
-        if (restored.host_id !== host.hostId || restored.boot_id !== host.bootId) throw new Error('Body membership did not reconcile to this Host and Boot');
+        if (restored.host_id !== host.hostId || restored.boot_id !== host.bootId) throw new Error('Body membership did not reconcile to this host and Boot');
         await save();
         return { body: restored, resume_wake: false };
       }

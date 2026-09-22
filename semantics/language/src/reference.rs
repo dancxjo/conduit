@@ -192,7 +192,7 @@ fn annotation_bundle(
             record_value(
                 linguistic_annotation_type(),
                 vec![
-                    ("label", leaf_value("value/text@1", label.as_bytes())),
+                    ("label", leaf_value("value/text", label.as_bytes())),
                     ("span", record_field(token, "span")?.clone()),
                 ],
             )
@@ -294,7 +294,7 @@ fn unit_variant(
     Ok(StructuredInfoValue::variant(
         value_type,
         tag,
-        leaf_value("value/unit@1", &[]),
+        leaf_value("value/unit", &[]),
     )?)
 }
 
@@ -337,11 +337,14 @@ fn collection_value(
 }
 
 fn text_value(value: &str) -> StructuredInfoValue {
-    leaf_value("value/text@1", value.as_bytes())
+    leaf_value("value/text", value.as_bytes())
 }
 
 fn count_value(value: u64) -> StructuredInfoValue {
-    leaf_value("value/count@1", value.to_string().as_bytes())
+    leaf_value(
+        conduit_core::COUNT_INFO_ID,
+        &conduit_core::encode_count(value),
+    )
 }
 
 fn leaf_value(kind: &str, value: &[u8]) -> StructuredInfoValue {

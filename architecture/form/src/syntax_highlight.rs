@@ -37,7 +37,7 @@ pub enum SyntaxHighlightRefusal {
 
 /// Classifies exact UTF-8 byte spans without requiring the source to parse.
 ///
-/// This deliberately starts from the Form surface's lossless tokenizer. An
+/// This deliberately starts from the form surface's lossless tokenizer. An
 /// incomplete quote, missing delimiter, or otherwise temporarily invalid edit
 /// can therefore still be highlighted while syntax diagnostics remain a
 /// separate concern.
@@ -206,7 +206,7 @@ mod tests {
 
     #[test]
     fn canonical_source_is_lossless_and_grammar_aware() {
-        let source = "form hello (\n  name: value/text@1 = \"reader\"\n  tick: value/u64@1... >\n) {\n  complete\n  count = 42\n  source: text/constant(value=\"hi\")\n  source.output > sink.input\n}\n";
+        let source = "form hello (\n  name: value/text = \"reader\"\n  tick: value/u64@1... >\n) {\n  complete\n  count = 42\n  source: text/constant(value=\"hi\")\n  source.output > sink.input\n}\n";
         let spans = highlight_syntax(source).unwrap();
         let reconstructed: String = spans
             .iter()
@@ -217,7 +217,7 @@ mod tests {
         for expected in [
             (SyntaxHighlightKind::Keyword, "form"),
             (SyntaxHighlightKind::Keyword, "complete"),
-            (SyntaxHighlightKind::Identity, "value/text@1"),
+            (SyntaxHighlightKind::Identity, "value/text"),
             (SyntaxHighlightKind::String, "\"reader\""),
             (SyntaxHighlightKind::Operator, "..."),
             (SyntaxHighlightKind::Number, "42"),
@@ -277,7 +277,7 @@ mod tests {
 
     #[test]
     fn punctuation_and_literals_remain_finite_without_regex_rewriting() {
-        let source = "body demo { enabled=true list=[1,2] current=$value stream=value/text@1...| }";
+        let source = "body demo { enabled=true list=[1,2] current=$value stream=value/text...| }";
         let spans = highlight_syntax(source).unwrap();
         let pieces = pieces(source, &spans);
         assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, "body")));

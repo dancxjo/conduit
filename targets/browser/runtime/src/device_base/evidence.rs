@@ -1,9 +1,11 @@
 use super::abi::AbiState;
 use super::{
-    BrowserSerialPhase, SERIAL_ACQUIRE_OPERATION, SERIAL_ACQUISITION_CAPABILITY,
+    current_resource, BrowserSerialPhase, SERIAL_ACQUIRE_OPERATION, SERIAL_ACQUISITION_CAPABILITY,
     SERIAL_REQUEST_AUTHORITY,
 };
-use conduit_core::{CapabilityId, PlanId};
+use conduit_core::{
+    CapabilityId, HostAdvertisement, HostProfileId, OfferGeneration, PlanId, PROTOCOL_VERSION,
+};
 
 pub(super) fn refresh_evidence(state: &mut AbiState) {
     let (phase, terminal) = match state.session.phase() {
@@ -29,10 +31,24 @@ pub(super) fn refresh_evidence(state: &mut AbiState) {
         .into_iter()
         .filter_map(|(bit, name)| (state.stages & bit != 0).then_some(name))
         .collect::<Vec<_>>();
-    let resource = state.resource.as_ref();
+    let resource = current_resource(state.session.phase());
     let current_device = state
         .session
         .current_device_association(vec![CapabilityId::from(SERIAL_ACQUISITION_CAPABILITY)]);
+    let mut current_advertisement = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: state.host_id.clone(),
+        boot_id: state.boot_id.clone(),
+        offer_generation: resource.map_or(OfferGeneration(1), |value| value.offer_generation),
+        profile: HostProfileId::from("browser/acquired-web-serial@1"),
+        bases: Vec::new(),
+        resources: Vec::new(),
+        capabilities: Vec::new(),
+        planner_capabilities: Vec::new(),
+    };
+    let _ = state
+        .session
+        .project_current_base(&mut current_advertisement);
     let value = serde_json::json!({
         "schema": "conduit.browser/web-serial-base-evidence@1",
         "host_id": state.host_id.as_str(), "boot_id": state.boot_id.as_str(),
@@ -47,11 +63,13 @@ pub(super) fn refresh_evidence(state: &mut AbiState) {
         "resource_class": resource.map(|value| value.class_id.as_str()),
         "base_implementation_id": resource.map(|value| value.base_implementation_id.as_str()),
         "base_instance_id": resource.map(|value| value.base_instance_id.as_str()),
+        "provider_generation": resource.map(|value| value.provider_generation),
         "use_authority_contract": resource.map(|value| value.use_authority_contract.as_str()),
         "use_authority_grant": resource.map(|value| value.use_authority_grant.as_str()),
         "usb_vendor_id": resource.and_then(|value| value.usb_vendor_id),
         "usb_product_id": resource.and_then(|value| value.usb_product_id),
         "current_device": current_device,
+        "current_bases": current_advertisement.bases,
         "configuration": {
             "baud_rate": state.configuration.baud_rate,
             "data_bits": state.configuration.data_bits,

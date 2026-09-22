@@ -2,7 +2,7 @@ use conduit_core::{
     BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
     PortTemporal, StructuredInfoValue, StructuredInfoValueShape, PROTOCOL_VERSION,
 };
-use conduit_data::{
+use conduit_finance::{
     add_money, add_money_values, compare_money, compare_money_values, convert_money,
     convert_money_values, decode_money_value, deterministic_finance_fixture,
     deterministic_rate_observation, install_finance_catalogs, Currency, FinanceRefusal,
@@ -13,7 +13,7 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     structured_selector_definition, CheckedCordStage, ProfileCatalog, StartupCatalog,
 };
-use conduit_std_host::hosted_data::{finance_std_offers, FINANCE_HOST_OPERATION};
+use conduit_std_host::hosted_data::{finance_std_offers, FINANCE_HOST_CALL};
 use core::cmp::Ordering;
 
 const SOURCE: &str = include_str!("../../../forms/money-quote/main.conduit");
@@ -74,8 +74,8 @@ fn canonical_form_flows_money_quotes_events_and_exact_comparison() {
             .find(|placement| placement.kind_id.as_str() == kind)
             .unwrap();
         assert_eq!(
-            placement.host_operations[0].contract_id.as_str(),
-            FINANCE_HOST_OPERATION
+            placement.host_calls[0].contract_id.as_str(),
+            FINANCE_HOST_CALL
         );
     }
 }
@@ -195,6 +195,7 @@ fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
         boot_id: BootId::from("boot/finance-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/finance-proof@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities,

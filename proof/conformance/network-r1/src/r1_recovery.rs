@@ -1,4 +1,4 @@
-//! Typed new-Plan recovery inside one Body Wake.
+//! Typed new-Plan recovery inside one body Wake.
 
 use alloc::vec::Vec;
 

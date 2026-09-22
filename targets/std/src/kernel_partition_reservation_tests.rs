@@ -1,4 +1,4 @@
-//! Atomic combined pool admission for exact local Form partitions.
+//! Atomic combined pool admission for exact local form partitions.
 use super::*;
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,

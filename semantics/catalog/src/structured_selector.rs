@@ -1,29 +1,14 @@
 //! Portable typed contract for one exact checked structured selector.
 
 use alloc::vec;
-use alloc::vec::Vec;
 use conduit_core::{
-    port_id, CapabilityLimits, FaceStartupParameter, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortId, PortTemporal, StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    port_id, CapabilityLimits, FrontStartupParameter, Kind, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal, StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const STRUCTURED_SELECTOR_REVISION: &str = "structured-info/selector-operation@1";
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StructuredSelectorContract {
-    pub startup_parameters: Vec<FaceStartupParameter>,
-    pub shorthand: Option<(PortId, PortId)>,
-    pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
-    pub inputs: Vec<PortDescriptor>,
-    pub outputs: Vec<PortDescriptor>,
-    pub limits: CapabilityLimits,
-}
-
-pub fn structured_selector_contract(
-    selector: &StructuredSelector,
-    temporal: PortTemporal,
-) -> StructuredSelectorContract {
+pub fn structured_selector_contract(selector: &StructuredSelector, temporal: PortTemporal) -> Kind {
     let kind_id = selector
         .kind_id(temporal)
         .expect("checked selector has finite semantic identity");
@@ -39,15 +24,15 @@ pub fn structured_selector_contract(
         .expect("checked selector output has finite profile")
         .value_kind()
         .clone();
-    StructuredSelectorContract {
-        startup_parameters: vec![FaceStartupParameter {
+    Kind {
+        startup_parameters: vec![FrontStartupParameter {
             name: "selector".into(),
-            value_type: "Text".into(),
+            value_type: conduit_core::kind_id("value/text"),
             has_default: false,
         }],
         shorthand: Some((port_id("input"), port_id("output"))),
         kind_id,
-        kind_contract_revision: KindContractRevision::from(STRUCTURED_SELECTOR_REVISION),
+        kind_contract_revision: KindIdentity::from(STRUCTURED_SELECTOR_REVISION),
         inputs: vec![PortDescriptor {
             port_id: port_id("input"),
             value_kind: input_kind,
@@ -60,6 +45,8 @@ pub fn structured_selector_contract(
             direction: PortDirection::Output,
             temporal,
         }],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 4,

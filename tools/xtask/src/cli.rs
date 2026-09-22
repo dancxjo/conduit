@@ -55,7 +55,7 @@ pub enum Command {
     Body(BodyArgs),
     /// Prove bounded Pete forebrain-motherbrain coordination.
     BodyCoordination(BodyCoordinationArgs),
-    /// Inspect mechanically derived portable Kind coverage by Host profile.
+    /// Inspect mechanically derived portable kind coverage by Host profile.
     Catalog(CatalogArgs),
     /// Execute repository validation check suites.
     Check(CheckArgs),
@@ -67,7 +67,7 @@ pub enum Command {
     Proofs(ProofsArgs),
     /// Verify bounded proof evidence before transport or review.
     Evidence(EvidenceArgs),
-    /// Check and report the explicit reviewed Form inventory.
+    /// Check and report the explicit reviewed form inventory.
     Forms(FormsArgs),
     /// Inspect repository and platform prerequisites.
     Doctor(DoctorArgs),
@@ -77,7 +77,7 @@ pub enum Command {
     Esp32Firmware(Esp32FirmwareArgs),
     /// Build, flash, or verify the Pico W local Signal proof.
     Pico(PicoArgs),
-    /// Target one Host lifecycle or manage exact Host configuration and fabrication.
+    /// Target one host lifecycle or manage exact host configuration and fabrication.
     Host(HostArgs),
     /// Run the complete Pico W local workflow.
     PicoLocal(PicoArgs),
@@ -123,6 +123,11 @@ pub struct ProveArgs {
     /// Override the bounded evidence root for proofs that declare evidence outputs.
     #[arg(long)]
     pub evidence_root: Option<std::path::PathBuf>,
+
+    /// Import one bounded live Workspace worker-pool receipt. Valid only for
+    /// `prove local-model-pool`; deterministic proof still runs separately.
+    #[arg(long)]
+    pub live_receipt: Option<std::path::PathBuf>,
 
     /// Explicit USB CDC link port (CDC 0).
     #[arg(long)]
@@ -282,8 +287,10 @@ pub enum ProveTarget {
     DistributedLenia,
     DormantReadmission,
     RecursiveRecovery,
+    EmergencyControl,
     LlmEmbodiment,
     LlmCrossHost,
+    LocalModelPool,
     LlmPlanningAdvice,
     MessagingGithub,
     PatchbayBodyWorkbench,
@@ -612,10 +619,24 @@ mod tests {
         ));
 
         let cross_host = Cli::try_parse_from(["xtask", "prove", "llm-cross-host"])
-            .expect("cross-Host LLM proof command parses");
+            .expect("cross-host LLM proof command parses");
         assert!(matches!(
             cross_host.command,
             Command::Prove(args) if args.proof == ProveTarget::LlmCrossHost
+        ));
+
+        let local_model_pool = Cli::try_parse_from([
+            "xtask",
+            "prove",
+            "local-model-pool",
+            "--live-receipt",
+            "live.json",
+        ])
+        .expect("local-model pool proof command parses");
+        assert!(matches!(
+            local_model_pool.command,
+            Command::Prove(args) if args.proof == ProveTarget::LocalModelPool
+                && args.live_receipt.as_deref() == Some(std::path::Path::new("live.json"))
         ));
 
         let degraded = Cli::try_parse_from(["xtask", "prove", "degraded-profiles"])

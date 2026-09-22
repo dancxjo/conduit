@@ -19,15 +19,14 @@ use alloc::{string::String, vec, vec::Vec};
 
 use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
-    HostBaseId, HostId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    OfferGeneration, PROTOCOL_VERSION, PlacementId, Plan, kind_id, resource_offer,
-    resource_requirement,
+    HostBaseId, HostCallContractId, HostCallRequirement, HostId, ImplementationId, OfferGeneration,
+    PROTOCOL_VERSION, PlacementId, Plan, kind_id, resource_offer, resource_requirement,
 };
 use conduit_form::{ProfileCatalog, parse};
 use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
     LayoutRect, MAX_RENDERER_VALUE_BYTES, ManifestationId, Presentation, PresentationBasis,
-    RendererRealizationOffer, renderer_kind_definition, renderer_offer,
+    RendererRealizationOffer, renderer_kind_projection, renderer_offer,
 };
 use conduit_tour_model::{TOUR_WORKSPACE_SUBJECT, TourTransientKind};
 
@@ -191,7 +190,7 @@ impl TourShellPresenter {
         }
         let mut catalog = ProfileCatalog::new();
         catalog
-            .insert(renderer_kind_definition())
+            .insert(renderer_kind_projection())
             .map_err(|_| TourShellError::Catalog)?;
         let form = parse(RENDERER_FORM, &catalog).map_err(|_| TourShellError::Catalog)?;
         let implementation = ImplementationId::from(NATIVE_PRESENTER_IMPLEMENTATION);
@@ -201,6 +200,7 @@ impl TourShellPresenter {
             boot_id: boot_id.clone(),
             offer_generation,
             profile: profile_id.into(),
+            bases: vec![],
             resources: vec![resource_offer(
                 "conduitos/shell/surfaces",
                 SURFACE_CLASS,
@@ -211,8 +211,8 @@ impl TourShellPresenter {
                 execution_profile_id: ExecutionProfileId::from("conduitos/native-product@1"),
                 implementation_id: implementation.clone(),
                 artifact_id: ArtifactId::from(image_id),
-                host_operation: HostOperationRequirement {
-                    contract_id: HostOperationContractId::from("conduit.host/present@1"),
+                host_call: HostCallRequirement {
+                    contract_id: HostCallContractId::from("conduit.host/present@1"),
                     target_kind: Some(kind_id("presentation/base/native-compositor@1")),
                     maximum_in_flight: 4,
                     maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,

@@ -127,7 +127,6 @@ fn realization_preserves_portable_contract_and_bounds() {
             portable_monotonic_offer(
                 conduit_semantic_catalog::audio_render_demand_contract(),
                 conduit_semantic_catalog::AUDIO_RENDER_DEMAND_REVISION,
-                false,
             ),
         ),
         (
@@ -135,7 +134,6 @@ fn realization_preserves_portable_contract_and_bounds() {
             portable_monotonic_offer(
                 conduit_semantic_catalog::time_debounce_contract(),
                 conduit_semantic_catalog::TIME_DEBOUNCE_CONTRACT_REVISION,
-                true,
             ),
         ),
         (
@@ -143,7 +141,6 @@ fn realization_preserves_portable_contract_and_bounds() {
             portable_monotonic_offer(
                 conduit_semantic_catalog::time_timeout_contract(),
                 conduit_semantic_catalog::TIME_TIMEOUT_CONTRACT_REVISION,
-                true,
             ),
         ),
         (
@@ -151,7 +148,6 @@ fn realization_preserves_portable_contract_and_bounds() {
             portable_monotonic_offer(
                 conduit_semantic_catalog::time_delay_contract(),
                 conduit_semantic_catalog::TIME_DELAY_CONTRACT_REVISION,
-                true,
             ),
         ),
         (
@@ -159,7 +155,6 @@ fn realization_preserves_portable_contract_and_bounds() {
             portable_monotonic_offer(
                 conduit_semantic_catalog::time_throttle_contract(),
                 conduit_semantic_catalog::TIME_THROTTLE_CONTRACT_REVISION,
-                true,
             ),
         ),
         (music_synth_offer(), portable_music_synth_offer()),
@@ -187,7 +182,7 @@ fn realization_preserves_portable_contract_and_bounds() {
         assert_eq!(realized.outputs, portable.outputs);
         assert_eq!(realized.limits, portable.limits);
         assert_eq!(realized.startup_parameters, portable.startup_parameters);
-        // Host-operation requirements are realization facts and may be added by
+        // Host Call requirements are realization facts and may be added by
         // ConduitOS; portable semantic and authority facts may not.
         assert_eq!(
             realized.resource_requirements,
@@ -222,10 +217,8 @@ fn portable_music_synth_offer() -> conduit_core::CapabilityOffer {
             implementation: "proof/music-synth@1",
             artifact: "proof/music-synth@1",
         },
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(
-                "proof/music-synth-operation@1",
-            ),
+        vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from("proof/music-synth-operation@1"),
             target_kind: Some(conduit_core::kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN
@@ -295,7 +288,7 @@ fn portable_every_offer(
     revision: &str,
 ) -> conduit_core::CapabilityOffer {
     let mut offer = portable_offer(contract, revision);
-    offer.startup_parameters[0].value_type = "Duration".into();
+    offer.startup_parameters[0].value_type = conduit_core::kind_id(conduit_core::QUANTITY_INFO_ID);
     offer.startup_parameters[0].has_default = false;
     offer.resource_requirements = vec![conduit_core::resource_requirement(
         conduit_core::TIMER_RESOURCE_CLASS,
@@ -307,12 +300,8 @@ fn portable_every_offer(
 fn portable_monotonic_offer(
     contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
-    duration_startup: bool,
 ) -> conduit_core::CapabilityOffer {
     let mut offer = portable_offer(contract, revision);
-    if duration_startup {
-        offer.startup_parameters[0].value_type = "Duration".into();
-    }
     offer.resource_requirements = vec![conduit_core::monotonic_timer_resource_requirement()];
     offer
 }
@@ -356,7 +345,7 @@ fn robotics_realizations_preserve_every_portable_contract_and_bound() {
         assert_eq!(realized.inputs, portable.inputs);
         assert_eq!(realized.outputs, portable.outputs);
         assert_eq!(realized.limits, portable.limits);
-        assert!(realized.host_operations.is_empty());
+        assert!(realized.host_calls.is_empty());
         assert!(realized.resource_requirements.is_empty());
         assert!(realized.authority_requirements.is_empty());
         assert!(

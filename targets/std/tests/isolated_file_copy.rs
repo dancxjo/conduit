@@ -3,7 +3,7 @@
 use conduit_core::{
     ActivePlayIdentity, AuthorityContractId, AuthorityGrant, AuthorityGrantId,
     BaseCapabilityAuthority, BaseCapabilityScope, BaseOperationClaim, BootId, CapabilityEnvelopeId,
-    CapabilityId, CapabilityIssueRequest, GearId, HostId, HostOperationContractId, KindId,
+    CapabilityId, CapabilityIssueRequest, GearId, HostCallContractId, HostId, KindId,
     OfferGeneration, PlanFragment, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
     ProtectedResourceGrant, ResourceBindingRoleId, ResourceGenerationId, ResourceHandleId,
     ResourcePoolId,
@@ -144,8 +144,8 @@ fn authority() -> AuthorityGrant {
         contract_id: AuthorityContractId::from(
             conduit_std_offers::ISOLATED_COPY_FILE_AUTHORITY_CONTRACT,
         ),
-        host_operation_contract_id: HostOperationContractId::from(
-            conduit_std_offers::COPY_FILE_HOST_OPERATION_CONTRACT,
+        host_call_contract_id: HostCallContractId::from(
+            conduit_std_offers::COPY_FILE_HOST_CALL_CONTRACT,
         ),
         subject_kind: KindId::from(conduit_semantic_catalog::COPY_FILE_KIND),
         host_id: HostId::from("isolated-copy-host"),
@@ -185,8 +185,7 @@ fn proof_material(
         destination_grant.handle_id.as_str(),
         maximum_bytes
     ));
-    let operation =
-        HostOperationContractId::from(conduit_std_offers::COPY_FILE_HOST_OPERATION_CONTRACT);
+    let operation = HostCallContractId::from(conduit_std_offers::COPY_FILE_HOST_CALL_CONTRACT);
     let resource_pool = ResourcePoolId::from(resource.clone());
     let resource_generation = ResourceGenerationId(resource);
     let operations = maximum_bytes
@@ -217,7 +216,7 @@ fn proof_material(
     let grant = AuthorityGrant {
         grant_id: binding.grant_id.clone(),
         contract_id: binding.contract_id.clone(),
-        host_operation_contract_id: binding.host_operation_contract_id.clone(),
+        host_call_contract_id: binding.host_call_contract_id.clone(),
         subject_kind: binding.subject_kind.clone(),
         host_id: binding.host_id.clone(),
         boot_id: binding.boot_id.clone(),
@@ -331,6 +330,22 @@ fn unchanged_copy_form_executes_through_isolated_provider_and_kernel() {
         &authority(),
     )
     .unwrap();
+    let planned_copy = prepared
+        .fragment
+        .placements
+        .iter()
+        .find(|placement| {
+            placement.implementation_id.as_str()
+                == conduit_std_offers::ISOLATED_COPY_FILE_IMPLEMENTATION
+        })
+        .unwrap();
+    let planned_base = planned_copy.base.as_ref().unwrap();
+    assert_eq!(planned_base.provider_instance_id, provider.base_instance_id);
+    assert_eq!(
+        planned_base.provider_generation,
+        provider.provider_generation
+    );
+    assert_eq!(host.registry().entries().len(), 1);
     assert!(!format!("{:?}", prepared.form).contains(source.to_string_lossy().as_ref()));
     assert!(!format!("{:?}", prepared.plan).contains(source.to_string_lossy().as_ref()));
     let proof_play = host

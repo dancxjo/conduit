@@ -9,7 +9,7 @@ use crate::{
 };
 use conduit_core::{
     kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId,
-    CapabilityId, HostOperationContractId, ResourceHealth, ResourceObservation, SignId,
+    CapabilityId, HostCallContractId, ResourceHealth, ResourceObservation, SignId,
     SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
 use conduit_planner::{
@@ -18,7 +18,7 @@ use conduit_planner::{
 };
 
 /// Portable canonical Form. It names musical meaning only; Create, OI,
-/// serial, song slots, and speaker resources enter solely through the Plan.
+/// serial, song slots, and speaker resources enter solely through the plan.
 pub const SIMPLE_MELODY_FORM: &str = r#"form simple_melody {
     performance: music/play
 }
@@ -62,7 +62,7 @@ pub fn simple_melody_plan(
     let grants = authority_granted.then(|| AuthorityGrant {
         grant_id: AuthorityGrantId::from("grant/pete-create1-speaker-only"),
         contract_id: AuthorityContractId::from(SPEAKER_AUTHORITY),
-        host_operation_contract_id: HostOperationContractId::from(SPEAKER_OPERATION),
+        host_call_contract_id: HostCallContractId::from(SPEAKER_OPERATION),
         subject_kind: kind_id(conduit_audio::MUSIC_NOTE_INFO_ID),
         host_id: host.host_id.clone(),
         boot_id: host.boot_id.clone(),
@@ -118,7 +118,7 @@ pub fn bounded_drive_plan(
     let grants = authority_granted.then(|| AuthorityGrant {
         grant_id: AuthorityGrantId::from(BOUNDED_DRIVE_GRANT),
         contract_id: AuthorityContractId::from(authority_contract),
-        host_operation_contract_id: HostOperationContractId::from(CREATE_DRIVE_OPERATION),
+        host_call_contract_id: HostCallContractId::from(CREATE_DRIVE_OPERATION),
         subject_kind: kind_id(SCALAR_INFO_ID),
         host_id: host.host_id.clone(),
         boot_id: host.boot_id.clone(),
@@ -231,7 +231,7 @@ mod tests {
             conduit_semantic_catalog::MUSIC_PLAY_KIND
         );
         assert_eq!(placement.authority.len(), 1);
-        assert_eq!(placement.host_operations.len(), 1);
+        assert_eq!(placement.host_calls.len(), 1);
         assert!(serde_json::to_string(&plan)
             .unwrap()
             .contains(SPEAKER_CAPABILITY));

@@ -311,7 +311,7 @@ fn x86_proofs_keep_distinct_keys_in_one_batch_environment() {
         .iter()
         .filter(|proof| proof.id.starts_with("conduitos.x86."))
         .collect();
-    assert_eq!(x86.len(), 8);
+    assert_eq!(x86.len(), 9);
     assert!(x86
         .iter()
         .all(|proof| proof.environment == "ubuntu-qemu-x86_64-batch-v1"));

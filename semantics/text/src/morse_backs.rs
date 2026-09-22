@@ -7,7 +7,7 @@ use conduit_form::{
 
 const TEXT_MORSE_BACK: &str = r#"form text/morse (
     unit-ms: Count = 120
-    text: value/text@1 > pattern: value/morse-pattern@1
+    text: value/text > pattern: value/morse-pattern@1
 ) {
     symbols: text/morse-symbols
     timing: morse/symbols-to-pattern(unit-ms)
@@ -16,7 +16,7 @@ const TEXT_MORSE_BACK: &str = r#"form text/morse (
 "#;
 
 const TEXT_MORSE_SYMBOLS_BACK: &str = r#"form text/morse-symbols (
-    text: value/text@1 > symbols: value/morse-symbols@1
+    text: value/text > symbols: value/morse-symbols@1
 ) {
     characters: text/characters
     lookup: morse/lookup
@@ -27,7 +27,7 @@ const TEXT_MORSE_SYMBOLS_BACK: &str = r#"form text/morse-symbols (
 "#;
 
 const MORSE_TEXT_BACK: &str = r#"form morse/text (
-    pattern: value/morse-pattern@1 > text: value/text@1
+    pattern: value/morse-pattern@1 > text: value/text
 ) {
     symbols: morse/pattern-to-symbols
     decode: morse/symbols-to-text
@@ -52,18 +52,16 @@ pub fn install_morse_backs(
         let checked = check_syntax_document(&parse_syntax_document(source), startup)
             .map_err(|error| alloc::format!("check {form_name} Back: {error:?}"))?;
         let definition = profile
-            .get(&conduit_core::kind_id(kind))
+            .canonical_kind(&conduit_core::kind_id(kind))
             .ok_or_else(|| alloc::format!("missing {kind} definition"))?;
         let signature = startup
             .signature(kind)
             .ok_or_else(|| alloc::format!("missing {kind} startup Front"))?;
+        let canonical_startup = startup
+            .canonical_startup_parameters(signature)
+            .map_err(|error| alloc::format!("canonicalize {kind} startup Front: {error:?}"))?;
         backs
-            .insert_with_startup(
-                definition,
-                &signature.startup_parameters,
-                &checked,
-                form_name,
-            )
+            .insert_with_startup(definition, &canonical_startup, &checked, form_name)
             .map_err(|error| alloc::format!("install {form_name} Back: {error:?}"))?;
     }
     Ok(())
@@ -72,7 +70,7 @@ pub fn install_morse_backs(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_form::{CanonicalBackError, StartupParameterSignature};
+    use conduit_form::CanonicalBackError;
 
     #[test]
     fn text_morse_expands_through_a_nested_back_to_five_typed_leaves() {
@@ -128,12 +126,12 @@ mod tests {
         let checked = check_syntax_document(&parse_syntax_document(TEXT_MORSE_BACK), &startup)
             .expect("reviewed Back checks");
         let definition = profile
-            .get(&conduit_core::kind_id(crate::TEXT_MORSE_KIND))
+            .canonical_kind(&conduit_core::kind_id(crate::TEXT_MORSE_KIND))
             .unwrap();
-        let mismatched_startup = [StartupParameterSignature {
+        let mismatched_startup = [conduit_core::FrontStartupParameter {
             name: "tempo".into(),
-            value_type: "Count".into(),
-            default: Some("120".into()),
+            value_type: conduit_core::kind_id("value/count"),
+            has_default: true,
         }];
         let error = CanonicalBackCatalog::new()
             .insert_with_startup(
@@ -156,7 +154,7 @@ mod tests {
         crate::install_text_catalogs(&mut startup, &mut profile).unwrap();
         crate::install_morse_catalogs(&mut startup, &mut profile).unwrap();
         let cyclic_source = r#"form text/morse-symbols (
-    text: value/text@1 > symbols: value/morse-symbols@1
+    text: value/text > symbols: value/morse-symbols@1
 ) {
     again: text/morse-symbols
     text > again > symbols
@@ -165,14 +163,15 @@ mod tests {
         let cyclic = check_syntax_document(&parse_syntax_document(cyclic_source), &startup)
             .expect("cyclic Back checks before expansion");
         let definition = profile
-            .get(&conduit_core::kind_id(crate::TEXT_MORSE_SYMBOLS_KIND))
+            .canonical_kind(&conduit_core::kind_id(crate::TEXT_MORSE_SYMBOLS_KIND))
             .unwrap();
         let signature = startup.signature(crate::TEXT_MORSE_SYMBOLS_KIND).unwrap();
+        let canonical_startup = startup.canonical_startup_parameters(signature).unwrap();
         let mut backs = CanonicalBackCatalog::new();
         backs
             .insert_with_startup(
                 definition,
-                &signature.startup_parameters,
+                &canonical_startup,
                 &cyclic,
                 crate::TEXT_MORSE_SYMBOLS_KIND,
             )

@@ -36,6 +36,7 @@ pub fn pico_local_advertisement() -> HostAdvertisement {
         boot_id: BootId::from(PICO_LOCAL_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("pico-w-signal-kernel"),
+        bases: vec![],
         resources: signal_resource_offers(PICO_TIMER_POOL_ID, PICO_PRESENTATION_POOL_ID, 1),
         planner_capabilities: vec![],
         capabilities: vec![
@@ -52,7 +53,7 @@ pub fn pico_local_advertisement() -> HostAdvertisement {
                 },
                 inputs: Vec::new(),
                 outputs: pulse_outputs(),
-                host_operations: pulse_host_operation_requirements(),
+                host_calls: pulse_host_call_requirements(),
                 resource_requirements: pulse_resource_requirements(),
                 authority_requirements: Vec::new(),
                 limits: CapabilityLimits {
@@ -74,7 +75,7 @@ pub fn pico_local_advertisement() -> HostAdvertisement {
                 },
                 inputs: show_inputs(),
                 outputs: Vec::new(),
-                host_operations: show_host_operation_requirements(),
+                host_calls: show_host_call_requirements(),
                 resource_requirements: show_resource_requirements(),
                 authority_requirements: Vec::new(),
                 limits: CapabilityLimits {
@@ -94,6 +95,7 @@ pub fn distributed_std_source_advertisement() -> HostAdvertisement {
         boot_id: BootId::from(DISTRIBUTED_STD_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-kernel"),
+        bases: vec![],
         resources: vec![resource_offer("s4/std-timer", TIMER_RESOURCE_CLASS, 1)],
         planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
@@ -109,7 +111,7 @@ pub fn distributed_std_source_advertisement() -> HostAdvertisement {
             },
             inputs: Vec::new(),
             outputs: pulse_outputs(),
-            host_operations: pulse_host_operation_requirements(),
+            host_calls: pulse_host_call_requirements(),
             resource_requirements: pulse_resource_requirements(),
             authority_requirements: Vec::new(),
             limits: CapabilityLimits {
@@ -128,6 +130,7 @@ pub fn distributed_browser_sink_advertisement() -> HostAdvertisement {
         boot_id: BootId::from(DISTRIBUTED_BROWSER_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser-wasm-kernel"),
+        bases: vec![],
         resources: vec![resource_offer(
             "s4/browser-dom",
             PRESENTATION_RESOURCE_CLASS,
@@ -148,7 +151,7 @@ pub fn distributed_browser_sink_advertisement() -> HostAdvertisement {
                 },
                 inputs: show_inputs(),
                 outputs: Vec::new(),
-                host_operations: show_host_operation_requirements(),
+                host_calls: show_host_call_requirements(),
                 resource_requirements: show_resource_requirements(),
                 authority_requirements: Vec::new(),
                 limits: CapabilityLimits {

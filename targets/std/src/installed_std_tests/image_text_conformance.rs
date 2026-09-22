@@ -6,8 +6,8 @@ use conduit_core::{
     ResourceVersionIdentity,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
 use std::collections::BTreeMap;
@@ -65,7 +65,7 @@ fn authored_image_text_runs_through_planner_and_production_kernel() {
     install_fixture(&mut startup, &mut profile, &source_offer);
     let mut caption_offer = installed_std::test_structured_selector::raw_source_offer(
         "conduit-test/image-caption-source",
-        "value/text@1",
+        "value/text",
     );
     caption_offer.outputs[0].temporal = PortTemporal::Value;
     install_fixture(&mut startup, &mut profile, &caption_offer);
@@ -189,7 +189,7 @@ fn authored_image_text_plans_an_exact_remote_framed_record_session() {
     record_sink.inputs[0].temporal = PortTemporal::Value;
     let mut caption_source = installed_std::test_structured_selector::raw_source_offer(
         "conduit-test/image-caption-source",
-        "value/text@1",
+        "value/text",
     );
     caption_source.outputs[0].temporal = PortTemporal::Value;
 
@@ -464,15 +464,15 @@ fn install_fixture(
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: offer.kind_id.clone(),
             kind_contract_revision: offer.kind_contract_revision.clone(),
             inputs: offer.inputs.clone(),
             outputs: offer.outputs.clone(),
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "value".into(),
                 default_value: ConfigurationValue::Text(String::new()),
-                validation: ConfigurationRule::TextBytes {
+                rule: KindConfigurationRule::TextBytes {
                     maximum: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 * 2,
                 },
             }],

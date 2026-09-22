@@ -4,15 +4,15 @@
 //! button transitions map to a current desired indicator state: pressed is on,
 //! released is off.
 
-use super::{input_button_transition_type, StandardKindContract, TerminalBehavior};
+use super::{input_button_transition_type, KindTerminalBehavior, StandardKindContract};
 mod prepared;
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, InfoBool, PortDescriptor, PortDirection, PortTemporal,
-    StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType, StructuredInfoValue,
-    StructuredInfoValueShape, BOOL_INFO_ID,
+    kind_id, port_id, CapabilityLimits, InfoBool, Kind, PortDescriptor, PortDirection,
+    PortTemporal, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
+    StructuredInfoValue, StructuredInfoValueShape, BOOL_INFO_ID,
 };
 pub use prepared::PreparedButtonIndicatorMapper;
 
@@ -62,9 +62,7 @@ impl PreparedButtonTransitionEncoder {
         self.output.extend_from_slice(&0_u32.to_le_bytes());
         encode_text_into(b"sequence", &mut self.output);
         self.output.push(0);
-        let mut digits = [0_u8; 20];
-        let sequence = decimal_bytes(sequence, &mut digits);
-        encode_text_into(sequence, &mut self.output);
+        encode_text_into(&conduit_core::encode_count(sequence), &mut self.output);
         if self.output.len() > BUTTON_TRANSITION_MAXIMUM_BYTES as usize {
             return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
         }
@@ -75,18 +73,6 @@ impl PreparedButtonTransitionEncoder {
 fn encode_text_into(value: &[u8], output: &mut Vec<u8>) {
     output.extend_from_slice(&(value.len() as u32).to_le_bytes());
     output.extend_from_slice(value);
-}
-
-fn decimal_bytes(mut value: u64, buffer: &mut [u8; 20]) -> &[u8] {
-    let mut start = buffer.len();
-    loop {
-        start -= 1;
-        buffer[start] = b'0' + (value % 10) as u8;
-        value /= 10;
-        if value == 0 {
-            return &buffer[start..];
-        }
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -106,9 +92,9 @@ pub fn button_source_contract() -> StandardKindContract {
             .to_string(),
         inputs: Vec::new(),
         outputs: vec![button_port("transition", PortDirection::Output)],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: button_limits(),
-        terminal_behavior: TerminalBehavior::HostInputEndsOrFailsSource,
+        terminal_behavior: KindTerminalBehavior::HostInputEndsOrFailsSource,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -129,9 +115,9 @@ pub fn button_indicator_state_contract() -> StandardKindContract {
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
         }],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: button_limits(),
-        terminal_behavior: TerminalBehavior::MirrorsInputTerminal,
+        terminal_behavior: KindTerminalBehavior::MirrorsInputTerminal,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -143,7 +129,7 @@ pub fn indicator_state_presentation_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(INDICATOR_STATE_PRESENTATION_KIND),
         plain_name: "Indicator state".to_string(),
-        summary: "Manifest one current semantic indicator state through admitted Host machinery."
+        summary: "Manifest one current semantic indicator state through admitted host machinery."
             .to_string(),
         inputs: vec![PortDescriptor {
             port_id: port_id("state"),
@@ -152,17 +138,51 @@ pub fn indicator_state_presentation_contract() -> StandardKindContract {
             temporal: PortTemporal::Current,
         }],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 1,
             max_queue_bytes: 1,
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
         example: "indicator: presentation/indicator-state".to_string(),
+    }
+}
+
+pub fn button_source_semantic_contract() -> Kind {
+    semantic_contract(button_source_contract(), BUTTON_SOURCE_REVISION)
+}
+
+pub fn button_indicator_state_semantic_contract() -> Kind {
+    semantic_contract(
+        button_indicator_state_contract(),
+        BUTTON_INDICATOR_STATE_REVISION,
+    )
+}
+
+pub fn indicator_state_presentation_semantic_contract() -> Kind {
+    semantic_contract(
+        indicator_state_presentation_contract(),
+        INDICATOR_STATE_PRESENTATION_REVISION,
+    )
+}
+
+fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
+    Kind {
+        startup_parameters: super::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: revision.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
+        limits: contract.limits,
     }
 }
 
@@ -202,19 +222,22 @@ pub fn button_transition_value(
     let phase = StructuredInfoValue::variant(
         super::input_button_phase_type(),
         if pressed { "pressed" } else { "released" },
-        leaf("value/unit@1", Vec::new())?,
+        leaf("value/unit", Vec::new())?,
     )?;
     StructuredInfoValue::record(
         input_button_transition_type(),
         vec![
             StructuredFieldValue::new(
                 "button_identity",
-                leaf("value/text@1", button_identity.as_bytes().to_vec())?,
+                leaf("value/text", button_identity.as_bytes().to_vec())?,
             )?,
             StructuredFieldValue::new("phase", phase)?,
             StructuredFieldValue::new(
                 "sequence",
-                leaf("value/count@1", sequence.to_string().into_bytes())?,
+                leaf(
+                    conduit_core::COUNT_INFO_ID,
+                    conduit_core::encode_count(sequence).to_vec(),
+                )?,
             )?,
         ],
     )
@@ -247,8 +270,8 @@ pub fn install_button_indicator_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_core::KindContractRevision;
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_core::KindIdentity;
+    use conduit_form::{KindProjection, KindSignature};
     for (contract, revision) in [
         (button_source_contract(), BUTTON_SOURCE_REVISION),
         (
@@ -273,18 +296,18 @@ pub fn install_button_indicator_catalogs(
                 .collect(),
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration: contract
                     .configuration
                     .into_iter()
-                    .map(|field| conduit_form::ConfigurationField {
+                    .map(|field| conduit_form::KindConfigurationField {
                         key: field.key,
                         default_value: field.default_value,
-                        validation: conduit_form::ConfigurationRule::U64Range {
+                        rule: conduit_form::KindConfigurationRule::U64Range {
                             minimum: 1,
                             maximum: u64::from(BUTTON_TRANSITION_MAXIMUM_VALUES),
                         },
@@ -354,11 +377,25 @@ mod tests {
                 .max_queue_items,
             1
         );
+        for (contract, revision) in [
+            (button_source_semantic_contract(), BUTTON_SOURCE_REVISION),
+            (
+                button_indicator_state_semantic_contract(),
+                BUTTON_INDICATOR_STATE_REVISION,
+            ),
+            (
+                indicator_state_presentation_semantic_contract(),
+                INDICATOR_STATE_PRESENTATION_REVISION,
+            ),
+        ] {
+            assert_eq!(contract.kind_contract_revision.as_str(), revision);
+            assert!(contract.startup_parameters.is_empty());
+        }
     }
 
     #[test]
     fn unrelated_structured_values_refuse_instead_of_becoming_indicator_state() {
-        let unrelated = leaf("value/text@1", b"pressed").canonical_bytes().unwrap();
+        let unrelated = leaf("value/text", b"pressed").canonical_bytes().unwrap();
         assert_eq!(
             map_button_transition_to_indicator(&unrelated),
             Err(ButtonIndicatorRefusal::WrongType)

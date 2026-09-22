@@ -200,12 +200,11 @@ fn evaluate(
             return evidence;
         };
         let Some(offer) = host.capabilities.iter().find(|offer| {
-            offer.capability_id == choice.capability_id
-                && offer.checked_front() == gear.checked_front()
+            offer.capability_id == choice.capability_id && gear.accepts_realization(offer)
         }) else {
             reject(
                 &mut evidence,
-                "placement capability does not offer the checked Front",
+                "placement capability does not offer the checked front",
             );
             return evidence;
         };
@@ -294,7 +293,7 @@ fn evaluate(
                     connection.source_gear_id.clone(),
                     connection.sink_gear_id.clone(),
                 )) else {
-                    reject(&mut evidence, "cross-Host Cord has no exact Line");
+                    reject(&mut evidence, "cross-host Cord has no exact Line");
                     return evidence;
                 };
                 let Some(line) = basis.transports.iter().find(|line| {

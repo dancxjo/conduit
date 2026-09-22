@@ -18,7 +18,7 @@ use validation::{
     validate_family, validate_identity, validate_outcome, validate_proposal, validate_state,
 };
 
-pub const TEXT_INFO_ID: &str = "value/text@1";
+pub const TEXT_INFO_ID: &str = "value/text";
 pub const MAXIMUM_INTERACTION_ID_BYTES: usize = 128;
 pub const MAXIMUM_INTERACTION_VALUE_BYTES: usize = 65_536;
 pub const MAXIMUM_INTERACTION_OPTIONS: usize = 256;
