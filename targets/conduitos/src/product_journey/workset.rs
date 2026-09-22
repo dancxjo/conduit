@@ -69,6 +69,58 @@ impl FormResult {
 }
 
 impl ProductJourney {
+    pub(super) fn admit_next_form(&mut self) -> Result<(), JourneyError> {
+        if self.status != JourneyStatus::QuiescentAwaitingInput {
+            return Err(JourneyError::InvalidTransition);
+        }
+        let body = self.body.as_ref().ok_or(JourneyError::BodyAbsent)?;
+        let form = native_workset::profile()
+            .installed()
+            .iter()
+            .copied()
+            .find(|candidate| {
+                native_workset::resident(*candidate)
+                    .is_ok_and(|resident| !body.workset.contains(&resident))
+            })
+            .ok_or(JourneyError::InvalidTransition)?;
+        let resident = native_workset::resident(form).map_err(JourneyError::Workset)?;
+        let next_body = body
+            .admit_form(
+                resident,
+                SignId::from(format!("conduitos/product/form-admitted/{}", self.revision)),
+            )
+            .map_err(|_| JourneyError::InvalidTransition)?;
+        let next_wake = self
+            .wake
+            .as_ref()
+            .ok_or(JourneyError::BodyAbsent)?
+            .workload_changed(
+                &next_body,
+                SignId::from(format!(
+                    "conduitos/product/workload-changed/{}",
+                    self.revision
+                )),
+            )
+            .map_err(|_| JourneyError::InvalidTransition)?;
+        if let Some(kernel) = self.kernel.as_mut() {
+            kernel.cancel().map_err(JourneyError::Play)?;
+            self.retained_kernel_sign_gap = kernel.sign_retention_gap();
+        }
+        let slot = body.workset.len();
+        self.forms[slot] = Some(form);
+        self.body = Some(next_body);
+        self.wake = Some(next_wake);
+        self.plan = None;
+        self.planned_play = None;
+        self.play = None;
+        self.kernel = None;
+        self.input_owners = core::array::from_fn(|_| None);
+        self.application_request = None;
+        self.presenter_control = None;
+        self.status = JourneyStatus::Awake;
+        Ok(())
+    }
+
     /// The accepted input sequence that last produced foreground Presentation.
     /// Releases consumed without output leave this value unchanged.
     pub fn foreground_presentation_sequence(&self) -> Option<u32> {

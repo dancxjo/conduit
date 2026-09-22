@@ -93,6 +93,13 @@ impl FrontDoor {
                         identity(born_sign_id.as_str()),
                     ));
                 }
+                if let Some(fulfilled_sign_id) = &journey.fulfilled_sign_id {
+                    properties.push(property(
+                        &body,
+                        "fulfilled-sign-id",
+                        identity(fulfilled_sign_id.as_str()),
+                    ));
+                }
                 if let Some(part_id) = &journey.part_id {
                     properties.push(property(&body, "part-id", identity(part_id.as_str())));
                 }
