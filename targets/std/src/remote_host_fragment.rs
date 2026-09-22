@@ -72,6 +72,19 @@ impl StdHost {
         )
     }
 
+    pub fn complete_remote_vision_host_call(
+        &mut self,
+        fragment: &mut AdmittedRemoteFragment,
+        request: HostCallRequest,
+        observed_at_micros: u64,
+    ) -> Result<bool, String> {
+        fragment.runtime.complete_vision_host_call(
+            request,
+            self.vision.as_mut(),
+            observed_at_micros,
+        )
+    }
+
     pub fn prepare_remote_fragment(
         &mut self,
         fragment: &PlanFragment,

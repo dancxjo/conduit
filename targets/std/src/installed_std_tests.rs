@@ -30,6 +30,7 @@ mod pattern_comparison_conformance;
 mod presentation_composition;
 mod recurrence_conformance;
 mod remote_fragment_conformance;
+mod remote_vision_conformance;
 mod rhythm_compare_conformance;
 mod robotics_conformance;
 mod secret_knock_body_admission;
