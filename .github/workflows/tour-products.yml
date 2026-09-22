@@ -913,6 +913,11 @@ jobs:
           ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@1.98.1
+      - name: Build the reviewed Form bundles before release payload assembly
+        run: |
+          mkdir -p target/reviewed-form-bundles
+          cargo +1.98.1 xtask forms bundle-initial-body --output target/reviewed-form-bundles/initial-body.conduit
+          cargo +1.98.1 xtask forms bundle-workspace-catalog --output target/reviewed-form-bundles/workspace-catalog.json
       - name: Download the reviewed browser product runtimes
         uses: ./.github/actions/download-artifact-retry
         with:
@@ -980,8 +985,8 @@ jobs:
           mkdir -p target/pages-root/supply-chain/conduitos-x86_64-pc
           cp -a target/conduitos-x86_64-oci/. target/pages-root/supply-chain/conduitos-x86_64-pc/
           products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
-          products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts
-          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product target/creche-release-artifacts
+          products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product target/creche-release-artifacts release target/reviewed-form-bundles/initial-body.conduit
+          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product target/creche-release-artifacts target/reviewed-form-bundles/initial-body.conduit target/reviewed-form-bundles/workspace-catalog.json
           products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
           products/home/tools/stage-home-product.sh target/browser-product-runtimes/home-runtime.wasm target/home-product
       - name: Retain the exact staged products once for parallel consumers

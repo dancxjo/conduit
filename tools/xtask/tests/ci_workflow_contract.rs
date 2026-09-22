@@ -378,6 +378,11 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
         assert!(stage.contains(&format!("needs.{prerequisite}.result == 'success'")));
     }
     assert!(stage.contains("cargo +1.98.1 xtask host release-catalog"));
+    assert!(stage.contains("Build the reviewed Form bundles before release payload assembly"));
+    assert!(stage.contains("cargo +1.98.1 xtask forms bundle-initial-body"));
+    assert!(stage.contains("cargo +1.98.1 xtask forms bundle-workspace-catalog"));
+    assert!(stage.contains("target/reviewed-form-bundles/initial-body.conduit"));
+    assert!(stage.contains("target/reviewed-form-bundles/workspace-catalog.json"));
     assert!(stage.contains("--root target/creche-release-artifacts"));
     assert!(stage.contains("--generation \"${{ github.run_number }}\""));
 }

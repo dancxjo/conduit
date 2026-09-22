@@ -1,8 +1,10 @@
 #!/bin/sh
 set -eu
-runtime=${1:?usage: stage-workspace-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS}
-destination=${2:?usage: stage-workspace-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS}
-release_artifacts=${3:?usage: stage-workspace-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS}
+runtime=${1:?usage: stage-workspace-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [INITIAL_BODY_BUNDLE WORKSPACE_CATALOG]}
+destination=${2:?usage: stage-workspace-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [INITIAL_BODY_BUNDLE WORKSPACE_CATALOG]}
+release_artifacts=${3:?usage: stage-workspace-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [INITIAL_BODY_BUNDLE WORKSPACE_CATALOG]}
+initial_body_bundle=${4:-}
+workspace_catalog=${5:-}
 test -f "$runtime"
 test ! -e "$destination"
 test -f "$release_artifacts/release-catalog.json"
@@ -27,6 +29,15 @@ done
 cp products/creche/names/catalog.mjs "$destination/creche-name-catalog.mjs"
 cp products/shared/browser/conduit.css "$destination/conduit.css"
 cp "$runtime" "$destination/runtime.wasm"
-cargo xtask forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
-cargo xtask forms bundle-workspace-catalog --output "$destination/forms/workspace-catalog.json"
+if test -n "$initial_body_bundle" || test -n "$workspace_catalog"; then
+  test -n "$initial_body_bundle"
+  test -n "$workspace_catalog"
+  test -f "$initial_body_bundle"
+  test -f "$workspace_catalog"
+  cp "$initial_body_bundle" "$destination/forms/initial-body.conduit"
+  cp "$workspace_catalog" "$destination/forms/workspace-catalog.json"
+else
+  cargo xtask forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
+  cargo xtask forms bundle-workspace-catalog --output "$destination/forms/workspace-catalog.json"
+fi
 node targets/browser/tools/build-browser-application-package.mjs products/workspace/browser/workspace.application.template.json "$destination" workspace.application.json

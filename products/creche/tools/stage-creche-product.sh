@@ -1,10 +1,11 @@
 #!/bin/sh
 set -eu
 
-runtime=${1:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [release|browser-proof]}
-destination=${2:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [release|browser-proof]}
-release_artifacts=${3:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [release|browser-proof]}
+runtime=${1:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [release|browser-proof] [INITIAL_BODY_BUNDLE]}
+destination=${2:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [release|browser-proof] [INITIAL_BODY_BUNDLE]}
+release_artifacts=${3:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [release|browser-proof] [INITIAL_BODY_BUNDLE]}
 mode=${4:-release}
+initial_body_bundle=${5:-}
 
 case "$mode" in
   release|browser-proof) ;;
@@ -18,7 +19,12 @@ mkdir -p "$destination/artifacts" "$destination/forms" "$destination/targets/avr
 cp products/creche/browser/creche.html "$destination/index.html"
 cp products/creche/browser/creche.css "$destination/creche.css"
 cp products/creche/browser/creche.mjs "$destination/creche.mjs"
-cargo xtask forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
+if test -n "$initial_body_bundle"; then
+  test -f "$initial_body_bundle"
+  cp "$initial_body_bundle" "$destination/forms/initial-body.conduit"
+else
+  cargo xtask forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
+fi
 cp products/workspace/browser/body-bootstrap.mjs "$destination/creche-lifecycle.mjs"
 cp products/workspace/browser/reviewed-form-selection.mjs "$destination/creche-form-selection.mjs"
 cp products/workspace/browser/reviewed-form-selection.mjs "$destination/reviewed-form-selection.mjs"
