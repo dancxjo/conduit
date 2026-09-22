@@ -50,6 +50,8 @@ pub struct ModelRuntimeRealization {
     pub supported_formats: Vec<String>,
     pub supported_precisions: Vec<String>,
     pub loaded_artifact_identity: [u8; 32],
+    /// Exact immutable learned state selected with the artifact, when any.
+    pub loaded_checkpoint_identity: Option<[u8; 32]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -103,6 +105,7 @@ pub enum ModelCompatibilityRefusal {
     UnsupportedFormat,
     UnsupportedPrecision,
     RuntimeLoadedDifferentArtifact,
+    RuntimeLoadedDifferentCheckpoint,
 }
 
 impl ModelArtifact {
@@ -155,6 +158,10 @@ pub fn model_content_digest(bytes: &[u8]) -> [u8; 32] {
     semantic_digest(MODEL_CONTENT_INFO_ID, bytes)
 }
 
+pub fn model_checkpoint_content_digest(bytes: &[u8]) -> [u8; 32] {
+    semantic_digest(MODEL_CHECKPOINT_INFO_ID, bytes)
+}
+
 impl MutableModelState {
     pub fn validate(&self, artifact: &ModelArtifact) -> Result<(), ModelCompatibilityRefusal> {
         validate_nonzero(self.base_artifact_identity)
@@ -201,6 +208,14 @@ impl ModelCheckpoint {
 
 impl ModelRuntimeRealization {
     pub fn admit(&self, artifact: &ModelArtifact) -> Result<(), ModelCompatibilityRefusal> {
+        self.admit_checkpoint(artifact, None)
+    }
+
+    pub fn admit_checkpoint(
+        &self,
+        artifact: &ModelArtifact,
+        checkpoint: Option<&ModelCheckpoint>,
+    ) -> Result<(), ModelCompatibilityRefusal> {
         for identity in [
             &self.implementation_identity,
             &self.runtime_name,
@@ -228,6 +243,13 @@ impl ModelRuntimeRealization {
         }
         if self.loaded_artifact_identity != artifact.content_identity() {
             return Err(ModelCompatibilityRefusal::RuntimeLoadedDifferentArtifact);
+        }
+        if let Some(checkpoint) = checkpoint {
+            checkpoint.validate(artifact)?;
+        }
+        let selected_checkpoint = checkpoint.map(|value| value.content.identity.digest());
+        if self.loaded_checkpoint_identity != selected_checkpoint {
+            return Err(ModelCompatibilityRefusal::RuntimeLoadedDifferentCheckpoint);
         }
         Ok(())
     }
