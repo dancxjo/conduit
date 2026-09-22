@@ -189,6 +189,7 @@ const fn workload_role(role: conduit_pete::PeteWorkloadRole) -> &'static str {
         conduit_pete::PeteWorkloadRole::HistoricalIndex => "historical-index",
         conduit_pete::PeteWorkloadRole::Conversation => "conversation",
         conduit_pete::PeteWorkloadRole::Navigation => "navigation",
+        conduit_pete::PeteWorkloadRole::Homeostasis => "homeostasis",
     }
 }
 

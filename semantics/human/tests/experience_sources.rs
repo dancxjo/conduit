@@ -107,6 +107,7 @@ fn one_experience_consumes_visual_utterance_and_body_self_sources() {
         observation_sign_id: SignId::from("sign/body-state/3"),
         observed_at: instant(),
         certainty: ExperienceCertainty::Certain,
+        source_refs: vec![],
     };
     let mut experience = experience();
     experience

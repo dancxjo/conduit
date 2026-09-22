@@ -11,9 +11,9 @@ fn resident(workload: &ReviewedPeteWorkload, role: PeteWorkloadRole) -> &PeteRes
 }
 
 #[test]
-fn pete_birth_uses_four_ordinary_non_actuating_forms_without_seed_privilege() {
+fn pete_birth_uses_five_ordinary_non_actuating_forms_without_seed_privilege() {
     let workload = reviewed_pete_workload().unwrap();
-    assert_eq!(workload.initial.len(), 4);
+    assert_eq!(workload.initial.len(), 5);
     assert!(!workload.initial.contains(&workload.navigation));
     assert!(workload
         .resident_forms
@@ -27,7 +27,7 @@ fn pete_birth_uses_four_ordinary_non_actuating_forms_without_seed_privilege() {
     assert_eq!(body.workset, workload.initial);
 
     let with_navigation = workload.with_navigation().unwrap();
-    assert_eq!(with_navigation.len(), 5);
+    assert_eq!(with_navigation.len(), 6);
     assert!(with_navigation.contains(&workload.navigation));
     let body_identity = body.body_id.clone();
     let embodied = body
@@ -68,6 +68,10 @@ fn exact_form_requirements_and_reused_non_pete_forms_are_inspectable() {
     ));
     assert!(requires(PeteWorkloadRole::Conversation, "llm/generate"));
     assert!(requires(
+        PeteWorkloadRole::Homeostasis,
+        "experience/reduce-homeostasis"
+    ));
+    assert!(requires(
         PeteWorkloadRole::Navigation,
         "navigation/route-grid4"
     ));
@@ -87,6 +91,7 @@ fn authored_meaning_has_no_deployment_role_or_mechanism_facts() {
         BOUNDED_TYPED_HISTORY_FORM_SOURCE,
         HOUSE_CONVERSATION_FORM_SOURCE,
         BOUNDED_NAVIGATION_FORM_SOURCE,
+        HOMEOSTASIS_FORM_SOURCE,
     ] {
         for forbidden in [
             "forebrain",
@@ -112,7 +117,7 @@ fn no_motion_profiles_remain_useful_and_attended_motion_fails_closed() {
     let observation = workload
         .for_profile(PeteWorkloadProfile::ObservationOnly, false, false)
         .unwrap();
-    assert_eq!(observation.len(), 3);
+    assert_eq!(observation.len(), 4);
     assert!(!observation.contains(&workload.navigation));
 
     let conversational = workload
@@ -134,6 +139,6 @@ fn no_motion_profiles_remain_useful_and_attended_motion_fails_closed() {
             .for_profile(PeteWorkloadProfile::EmbodiedAttended, true, true)
             .unwrap()
             .len(),
-        5
+        6
     );
 }
