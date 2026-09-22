@@ -192,7 +192,17 @@ impl AlsaMicrophoneAdapter {
         let diagnostics = diagnostics
             .join()
             .map_err(|_| MicrophoneFailure::ReadFailed)??;
-        if !status.success() {
+        self.finish_capture(status.success(), audio, diagnostics, maximum_audio_bytes)
+    }
+
+    fn finish_capture(
+        &mut self,
+        provider_succeeded: bool,
+        audio: BoundedRead,
+        diagnostics: BoundedRead,
+        maximum_audio_bytes: usize,
+    ) -> Result<Vec<u8>, MicrophoneFailure> {
+        if !provider_succeeded {
             return Err(MicrophoneFailure::ProviderLost);
         }
         if audio.overflowed {
