@@ -184,7 +184,7 @@ fn exercise_ordinary_session(
         advertisement,
     };
     let server_thread = std::thread::spawn(move || {
-        run_session_with_join(
+        let result = run_session_with_join(
             &mut server,
             Path::new("unused-after-close"),
             &session_secret,
@@ -200,7 +200,9 @@ fn exercise_ordinary_session(
                     observed_at_millis: 1_000,
                 })
             },
-        )
+        );
+        let _close = server.close();
+        result
     });
 
     client

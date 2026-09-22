@@ -70,6 +70,17 @@ enum Request {
         image_content_digest: String,
         selection: crate::creche::BrowserConfigurationSelection,
     },
+    PreparePhysicalSpore {
+        host_id: HostId,
+        boot_id: BootId,
+        secret: Vec<u8>,
+        nonce: [u8; 32],
+        now_millis: u64,
+        expires_at_millis: u64,
+        target_id: String,
+        image_content_digest: Option<String>,
+        reviewed_image: Option<Vec<u8>>,
+    },
     AdmitInvitation {
         host_id: HostId,
         boot_id: BootId,
@@ -402,6 +413,46 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     selection,
                 )
                 .map_err(|message| Refusal::new("Fabrication.Prepare", &message))?;
+                let response = encode(&prepared)?;
+                ADMISSIONS.with(|admissions| *admissions.borrow_mut() = Some(next_admissions));
+                return Ok(response);
+            }
+            Request::PreparePhysicalSpore {
+                host_id,
+                boot_id,
+                secret,
+                nonce,
+                now_millis,
+                expires_at_millis,
+                target_id,
+                image_content_digest,
+                reviewed_image,
+            } => {
+                let secret_bytes = <[u8; 32]>::try_from(secret.as_slice()).map_err(|_| {
+                    Refusal::new("Admission.WeakSecret", "Invitation secret must have exactly 32 bytes")
+                })?;
+                let invitation_secret = SpawnInvitationSecret::from_csprng_bytes(secret_bytes)
+                    .map_err(|error| Refusal::new(&format!("Admission.{error:?}"), "Invitation entropy was refused"))?;
+                let mut next_admissions = ADMISSIONS.with(|admissions| {
+                    admissions.borrow().clone().ok_or("Workspace admission state is missing")
+                })?;
+                let claim = candidate.issue_invitation(
+                    &mut next_admissions,
+                    invitation_secret,
+                    nonce,
+                    now_millis,
+                    expires_at_millis,
+                    &host_id,
+                    &boot_id,
+                ).map_err(debug)?;
+                let prepared = crate::creche::prepare_workspace_physical(
+                    candidate.evidence(),
+                    &claim,
+                    &secret_bytes,
+                    &target_id,
+                    image_content_digest.as_deref(),
+                    reviewed_image.as_deref(),
+                ).map_err(|message| Refusal::new("Fabrication.Prepare", &message))?;
                 let response = encode(&prepared)?;
                 ADMISSIONS.with(|admissions| *admissions.borrow_mut() = Some(next_admissions));
                 return Ok(response);

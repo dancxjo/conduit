@@ -21,7 +21,7 @@ const BOUNDS = Object.freeze({
   ...PHYSICAL_HOST_EVIDENCE_MAXIMA,
 });
 
-export function createExistingComputerAdapter({ host, profile }) {
+export function createExistingComputerAdapter({ host, profile, prepareSpore: preparedByOwner = null }) {
   requireProfile(profile);
   let loadedHost = null;
   let rendezvousCode = "";
@@ -125,7 +125,7 @@ export function createExistingComputerAdapter({ host, profile }) {
     }
   }
 
-  async function bind({ mode, body, obtainment, nowMillis, signal, prepareSpore = null }) {
+  async function bind({ mode, body, obtainment, nowMillis, signal, prepareSpore = preparedByOwner }) {
     requireMode(mode, "bind", profile);
     requireCurrent(signal, mode, "bind", profile);
     if (mode === "attach-running") {
@@ -140,7 +140,7 @@ export function createExistingComputerAdapter({ host, profile }) {
     try {
       let prepared;
       if (prepareSpore) {
-        prepared = await prepareSpore({ imageDigest: release.manifest.bundle_sha256, nowMillis, entropy });
+        prepared = await prepareSpore({ targetId: profile.target_id, imageDigest: release.manifest.bundle_sha256, nowMillis, entropy });
       } else {
         const targetBytes = encoder.encode(profile.target_id);
         const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
@@ -209,7 +209,7 @@ export function createExistingComputerAdapter({ host, profile }) {
     try {
       let prepared;
       if (prepareSpore) {
-        prepared = await prepareSpore({ imageDigest: digest, nowMillis, entropy });
+        prepared = await prepareSpore({ targetId: profile.target_id, imageDigest: digest, nowMillis, entropy });
       } else {
         const targetBytes = encoder.encode(profile.target_id);
         const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);

@@ -76,7 +76,7 @@ export const RP2040_CRECHE_TARGET_CONTRIBUTION = Object.freeze({
   createAdapter: createRp2040CrecheTargetAdapter,
 });
 
-export function createRp2040CrecheTargetAdapter({ host }) {
+export function createRp2040CrecheTargetAdapter({ host, prepareSpore = null }) {
   let strategy = "packaged-exact";
   let activeDeployment = null;
   let activeBase = null;
@@ -174,19 +174,15 @@ export function createRp2040CrecheTargetAdapter({ host }) {
     const entropy = crypto.getRandomValues(new Uint8Array(32));
     const digestBytes = encoder.encode(digest);
     try {
-      const input = new Uint8Array(
-        host.runtime.memory.buffer,
-        host.runtime.conduit_creche_input_ptr(),
-        entropy.length + digestBytes.length,
-      );
-      input.set(entropy);
-      input.set(digestBytes, entropy.length);
-      const code = host.runtime.conduit_creche_prepare_selected_physical_spore(
-        digestBytes.length,
-        BigInt(nowMillis),
-      );
-      if (code < 0) throw outputError(host.runtime, "spore preparation", code);
-      const prepared = readOutput(host.runtime);
+      const prepared = prepareSpore
+        ? await prepareSpore({ targetId: TARGET_ID, imageDigest: digest, nowMillis, entropy })
+        : (() => {
+          const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + digestBytes.length);
+          input.set(entropy); input.set(digestBytes, entropy.length);
+          const code = host.runtime.conduit_creche_prepare_selected_physical_spore(digestBytes.length, BigInt(nowMillis));
+          if (code < 0) throw outputError(host.runtime, "spore preparation", code);
+          return readOutput(host.runtime);
+        })();
       if (prepared.image_content_digest !== digest || prepared.target_id !== TARGET_ID) {
         refuse(mode, "bind", "BindingIdentity", "prepared invitation lost the selected RP2040 target or artifact identity");
       }

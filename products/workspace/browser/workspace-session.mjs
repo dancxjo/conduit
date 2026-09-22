@@ -141,6 +141,21 @@ export function openWorkspaceSession({ host, storage }) {
       await save();
       return prepared;
     },
+    async preparePhysicalSpore(targetId, imageContentDigest, reviewedImage, secret, nonce, now = Date.now(), expires = now + 10 * 60_000) {
+      if (persistenceFailure) throw persistenceFailure;
+      const prepared = request('PreparePhysicalSpore', {
+        ...here,
+        secret: Array.from(secret),
+        nonce: Array.from(nonce),
+        now_millis: now,
+        expires_at_millis: expires,
+        target_id: targetId,
+        image_content_digest: imageContentDigest ?? null,
+        reviewed_image: reviewedImage ? Array.from(reviewedImage) : null,
+      });
+      await save();
+      return prepared;
+    },
     async admitInvitation(advertisement, proof, now = Date.now()) {
       if (persistenceFailure) throw persistenceFailure;
       const receipt = request('AdmitInvitation', { ...here, advertisement, proof, now_millis: now });

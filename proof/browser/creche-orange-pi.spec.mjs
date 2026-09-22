@@ -1,36 +1,14 @@
-import { openCrecheStep } from "./creche-test-actions.mjs";
-import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { reviewAndBirth } from "./creche-test-actions.mjs";
 import { downloadArtifact } from "./download-artifact.mjs";
+import { openWorkspaceMachineRunner, startWorkspaceMachineProduct } from "./workspace-machine-test-actions.mjs";
 
 const TARGET = "conduitos/aarch64/orange-pi-5-rk3588s";
 const MANIFEST = "orange-pi-5-image.json";
 let entrance;
 
-async function startCreche() {
-  const child = spawn("target/debug/conduit-browser-host", ["--application", "target/creche-product", "--mount", "/creche/", "--no-open"], {
-    cwd: new URL("../..", import.meta.url).pathname,
-    env: process.env,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let output = "";
-  const url = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Crèche was not ready\n${output}`)), 10_000);
-    const inspect = (chunk) => {
-      output += chunk.toString();
-      const match = output.match(/CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/creche\/)/);
-      if (match) { clearTimeout(timeout); resolve(match[1]); }
-    };
-    child.stdout.on("data", inspect); child.stderr.on("data", inspect);
-    child.once("exit", (code) => { clearTimeout(timeout); reject(new Error(`Crèche exited (${code})\n${output}`)); });
-  });
-  return { child, url };
-}
-
 async function installRelease(page) {
-  const root = new URL("../../target/creche-product/artifacts/", import.meta.url);
+  const root = new URL("../../target/workspace-product/artifacts/", import.meta.url);
   const manifest = JSON.parse(await readFile(new URL(MANIFEST, root), "utf8"));
   const bytes = await readFile(new URL(manifest.artifact.path, root));
   await page.route(`**/artifacts/${manifest.artifact.path}`, (route) => route.fulfill({ status: 200, body: bytes }));
@@ -39,14 +17,10 @@ async function installRelease(page) {
 }
 
 async function birthBody(page) {
-  await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  await reviewAndBirth(page);
-  await openCrecheStep(page, "3. Physical Host");
-  return page.locator(".physical-host-runner");
+  return openWorkspaceMachineRunner(page, entrance);
 }
 
-test.beforeEach(async () => { entrance = await startCreche(); });
+test.beforeEach(async () => { entrance = await startWorkspaceMachineProduct(); });
 test.afterEach(() => entrance?.child.kill());
 
 test("Orange Pi 5 becomes an exact bare-metal ConduitOS SD spore", async ({ page }) => {

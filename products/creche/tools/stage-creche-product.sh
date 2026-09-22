@@ -1,10 +1,11 @@
 #!/bin/sh
 set -eu
 
-runtime=${1:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [release|browser-proof]}
-destination=${2:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [release|browser-proof]}
-release_artifacts=${3:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [release|browser-proof]}
+runtime=${1:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [release|browser-proof] [INITIAL_BODY_BUNDLE]}
+destination=${2:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [release|browser-proof] [INITIAL_BODY_BUNDLE]}
+release_artifacts=${3:?usage: stage-creche-product.sh RUNTIME DESTINATION RELEASE_ARTIFACTS [release|browser-proof] [INITIAL_BODY_BUNDLE]}
 mode=${4:-release}
+initial_body_bundle=${5:-}
 
 case "$mode" in
   release|browser-proof) ;;
@@ -18,7 +19,12 @@ mkdir -p "$destination/artifacts" "$destination/forms" "$destination/targets/avr
 cp products/creche/browser/creche.html "$destination/index.html"
 cp products/creche/browser/creche.css "$destination/creche.css"
 cp products/creche/browser/creche.mjs "$destination/creche.mjs"
-cargo xtask forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
+if test -n "$initial_body_bundle"; then
+  test -f "$initial_body_bundle"
+  cp "$initial_body_bundle" "$destination/forms/initial-body.conduit"
+else
+  cargo xtask forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
+fi
 cp products/workspace/browser/body-bootstrap.mjs "$destination/creche-lifecycle.mjs"
 cp products/workspace/browser/reviewed-form-selection.mjs "$destination/creche-form-selection.mjs"
 cp products/workspace/browser/reviewed-form-selection.mjs "$destination/reviewed-form-selection.mjs"
@@ -65,7 +71,7 @@ if test "$mode" = release; then
     cp "$release_artifacts/esp32-$target-generic-release.bin" "$destination/artifacts/"
     cp "$release_artifacts/esp32-$target-generic-release.json" "$destination/artifacts/"
   done
-  for artifact in hosted-linux-x86_64.json conduit-linux-x86_64 conduit-tour-linux-x86_64 conduit-home-linux-x86_64 install-linux-x86_64.sh hosted-windows-x86_64.json conduit-windows-x86_64.exe conduit-tour-windows-x86_64.exe conduit-home-windows-x86_64.exe hosted-macos-aarch64.json conduit-macos-aarch64 install-macos-aarch64.sh browser-page.json runtime.wasm index.html host.mjs browser-host-bootstrap.mjs browser-host-membership.mjs browser-host-identity.mjs browser-boot-profile.mjs media-host.mjs device-base.mjs usb-device-base.mjs; do
+  for artifact in hosted-linux-x86_64.json conduit-linux-x86_64 conduit-tour-linux-x86_64 conduit-home-linux-x86_64 install-linux-x86_64.sh hosted-windows-x86_64.json conduit-windows-x86_64.exe conduit-tour-windows-x86_64.exe conduit-home-windows-x86_64.exe hosted-macos-aarch64.json conduit-macos-aarch64 install-macos-aarch64.sh browser-page.json runtime.wasm index.html host.mjs browser-host-bootstrap.mjs browser-host-membership.mjs browser-host-identity.mjs browser-boot-profile.mjs browser-relay-line.mjs media-host.mjs device-base.mjs usb-device-base.mjs; do
     test -f "$release_artifacts/$artifact"
     cp "$release_artifacts/$artifact" "$destination/artifacts/"
   done
@@ -100,7 +106,12 @@ node targets/browser/tools/build-browser-application-package.mjs \
   products/creche/browser/creche.application.template.json "$destination" creche.application.json
 
 file_count=$(find "$destination" -type f | wc -l)
-test "$file_count" -le 128
+# The release carrier includes the complete bounded multi-target catalog. The
+# browser-proof carrier deliberately omits those native artifacts.
+case "$mode" in
+  release) test "$file_count" -le 131 ;;
+  browser-proof) test "$file_count" -le 128 ;;
+esac
 test -f "$destination/creche.application.json"
 test -f "$destination/creche-browser-configuration.mjs"
 test -z "$(find "$destination" -type f \( -name 'book*.mjs' -o -name 'book*.css' -o -name 'chapter-*.md' \) -print -quit)"

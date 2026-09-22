@@ -141,7 +141,7 @@ function piOsContribution(profile) { return Object.freeze({
   bounds: EXISTING_COMPUTER_BOUNDS,
   expected_join_contract: "conduit.host/native-spawn-observation@1",
   target_profile: profile.declaration,
-  createAdapter: ({ host }) => createExistingComputerAdapter({ host, profile }),
+  createAdapter: ({ host, prepareSpore = null }) => createExistingComputerAdapter({ host, profile, prepareSpore }),
 }); }
 
 function bareMetalDeclaration(profile) { return Object.freeze({
@@ -179,7 +179,7 @@ function bareMetalContribution(profile) { return Object.freeze({
   bounds: BARE_METAL_BOUNDS,
   expected_join_contract: "conduit.conduitos/physical-uart-attestation-before-join@1",
   target_profile: bareMetalDeclaration(profile),
-  createAdapter: ({ host }) => createBareMetalAdapter({ host, profile }),
+  createAdapter: ({ host, prepareSpore = null }) => createBareMetalAdapter({ host, profile, prepareSpore }),
 }); }
 
 export const RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS = Object.freeze([
@@ -187,7 +187,7 @@ export const RASPBERRY_PI_CRECHE_TARGET_CONTRIBUTIONS = Object.freeze([
   ...[RASPBERRY_PI_B_PLUS_PROFILE, RASPBERRY_PI_ZERO_PROFILE, RASPBERRY_PI_ZERO_W_PROFILE, RASPBERRY_PI_ZERO_WH_PROFILE].map(bareMetalContribution),
 ]);
 
-export function createBareMetalAdapter({ host, imageWriter, profile = RASPBERRY_PI_B_PLUS_PROFILE } = {}) {
+export function createBareMetalAdapter({ host, imageWriter, profile = RASPBERRY_PI_B_PLUS_PROFILE, prepareSpore = null } = {}) {
   function createOptions({ mode }) {
     const note = document.createElement("p");
     note.className = "target-option-note";
@@ -231,11 +231,15 @@ export function createBareMetalAdapter({ host, imageWriter, profile = RASPBERRY_
     const targetBytes = encoder.encode(profile.target.id);
     const digestBytes = encoder.encode(release.digest);
     try {
-      const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
-      input.set(entropy); input.set(targetBytes, entropy.length); input.set(digestBytes, entropy.length + targetBytes.length);
-      const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(targetBytes.length, digestBytes.length, BigInt(nowMillis));
-      if (code < 0) throw outputError(host.runtime, "Raspberry Pi spore preparation", code);
-      const prepared = readOutput(host.runtime);
+      const prepared = prepareSpore
+        ? await prepareSpore({ targetId: profile.target.id, imageDigest: release.digest, nowMillis, entropy })
+        : (() => {
+          const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
+          input.set(entropy); input.set(targetBytes, entropy.length); input.set(digestBytes, entropy.length + targetBytes.length);
+          const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(targetBytes.length, digestBytes.length, BigInt(nowMillis));
+          if (code < 0) throw outputError(host.runtime, "Raspberry Pi spore preparation", code);
+          return readOutput(host.runtime);
+        })();
       if (prepared.target_id !== profile.target.id || prepared.image_content_digest !== release.digest
         || prepared.output !== "sd-image" || prepared.fabrication_package_id !== profile.packageId
         || prepared.deployment_adapter !== profile.deploymentAdapter) {

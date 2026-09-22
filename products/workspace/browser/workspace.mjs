@@ -47,8 +47,14 @@ export async function startApplication(application) {
       releaseCatalogSource,
       releaseArtifactCache,
       async resolveReviewedRelease(profile, signal) {
+        if (profile?.target_id !== 'browser/wasm32/page') return null;
         const catalog = await openReleaseCatalog({ source: releaseCatalogSource, signal, cache: releaseArtifactCache });
-        return catalog.resolve(profile, signal);
+        try {
+          return await catalog.resolve(profile, signal);
+        } catch (error) {
+          if (error?.code === 'UnknownTarget') return null;
+          throw error;
+        }
       },
     });
     const calls = createBrowserHostCalls({ hostId: host.hostId, bootId: host.bootId,
@@ -361,7 +367,7 @@ export async function startApplication(application) {
       presentationFor: application.presentationFor, onUse: useForm, onRemove: removeForm, onFailure: fail,
       onClose() { library.hide(); render(); root.querySelector('[data-open-library]')?.focus(); },
     });
-    globalThis.__conduitWorkspace = Object.freeze({ host, current: session.current, evidence: session.evidence, state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
+    globalThis.__conduitWorkspace = Object.freeze({ host, presentationFor: application.presentationFor, current: session.current, evidence: session.evidence, state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
     membership = openWorkspaceMembership({ root, session, host, hostCalls, invitation, presentationFor: application.presentationFor,
       invitationLabel: () => catalog.forms.find(form => form.checked_form_id === selected)?.name === 'firefly-choir'
         ? 'Invite another phone' : 'Invite another host',
