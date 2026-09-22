@@ -8,7 +8,7 @@ mod ollama_stream;
 mod ollama_vision;
 pub use conduit_ai::{LocalModelKindProfile, MAXIMUM_LOCAL_MODEL_IDENTITY_BYTES};
 pub use ollama::{OllamaDiscovery, OllamaLocalModelAdapter};
-pub use ollama_vision::{OllamaVisualModelAdapter, VisualModelOutput};
+pub use ollama_vision::{HostedVisualModelAdapter, OllamaVisualModelAdapter, VisualModelOutput};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocalModelAdapterTerminal {

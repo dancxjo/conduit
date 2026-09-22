@@ -27,6 +27,14 @@ pub struct VisualModelOutput {
     pub work_units: u64,
 }
 
+pub trait HostedVisualModelAdapter: Send {
+    fn describe(
+        &mut self,
+        image: &[u8],
+        selected_context: &str,
+    ) -> Result<VisualModelOutput, String>;
+}
+
 #[derive(Deserialize)]
 struct GenerateResponse {
     response: String,
@@ -68,8 +76,8 @@ impl OllamaDiscovery {
     }
 }
 
-impl OllamaVisualModelAdapter {
-    pub fn describe(
+impl HostedVisualModelAdapter for OllamaVisualModelAdapter {
+    fn describe(
         &mut self,
         image: &[u8],
         selected_context: &str,
@@ -93,7 +101,9 @@ impl OllamaVisualModelAdapter {
                 .saturating_add(generated.eval_count),
         })
     }
+}
 
+impl OllamaVisualModelAdapter {
     fn request_body(&mut self, image: &[u8], selected_context: &str) -> Result<Vec<u8>, String> {
         if image.is_empty() || image.len() > self.maximum_image_bytes {
             return Err("visual model image exceeds its admitted bound".into());

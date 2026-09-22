@@ -627,6 +627,9 @@ impl StdHost {
         if let Some(ocr_offer) = vision.ocr_offer() {
             vision_capabilities.push(ocr_offer);
         }
+        if let Some(describe_offer) = vision.describe_offer() {
+            vision_capabilities.push(describe_offer);
+        }
         base_registry
             .register(conduit_core::BaseProviderEntry {
                 base_id: conduit_core::HostBaseId::from("std/base/finite-vision"),
