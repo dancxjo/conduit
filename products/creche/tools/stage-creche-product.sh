@@ -18,7 +18,7 @@ mkdir -p "$destination/artifacts" "$destination/forms" "$destination/targets/avr
 cp products/creche/browser/creche.html "$destination/index.html"
 cp products/creche/browser/creche.css "$destination/creche.css"
 cp products/creche/browser/creche.mjs "$destination/creche.mjs"
-cargo xtask forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
+cargo run --locked --package xtask -- forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
 cp products/workspace/browser/body-bootstrap.mjs "$destination/creche-lifecycle.mjs"
 cp products/workspace/browser/reviewed-form-selection.mjs "$destination/creche-form-selection.mjs"
 cp products/workspace/browser/reviewed-form-selection.mjs "$destination/reviewed-form-selection.mjs"
