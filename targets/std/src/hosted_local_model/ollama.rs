@@ -33,6 +33,7 @@ pub struct OllamaDiscovery {
     pub context_length: u64,
     pub completion_supported: bool,
     pub embedding_supported: bool,
+    pub vision_supported: bool,
 }
 
 pub struct OllamaLocalModelAdapter {
@@ -166,6 +167,7 @@ impl OllamaDiscovery {
             context_length,
             completion_supported: show.capabilities.iter().any(|value| value == "completion"),
             embedding_supported: show.capabilities.iter().any(|value| value == "embedding"),
+            vision_supported: show.capabilities.iter().any(|value| value == "vision"),
         })
     }
 
@@ -744,7 +746,7 @@ fn model_names_match(candidate: &str, requested: &str) -> bool {
     candidate == requested || candidate.strip_suffix(":latest") == Some(requested)
 }
 
-fn curl_json(path: &str, body: Option<&[u8]>) -> Result<Vec<u8>, String> {
+pub(super) fn curl_json(path: &str, body: Option<&[u8]>) -> Result<Vec<u8>, String> {
     let url = format!("{OLLAMA_ENDPOINT}{path}");
     let mut command = Command::new("curl");
     command.args([

@@ -76,6 +76,7 @@ use super::timing_backs::{DebounceBack, TimeoutBack};
 use super::toggle_back::StateToggleBack;
 use super::typed_record_back::TypedRecordBack;
 use super::vector_search_back::VectorSearchBack;
+use super::vision_describe_back::VisionDescribeBack;
 use super::wav_artifact_back::WavArtifactBack;
 
 pub(super) enum InstalledBack {
@@ -161,6 +162,7 @@ pub(super) enum InstalledBack {
     BodyConversationContext(BodyConversationContextBack),
     LocalModel(LocalModelBack),
     LocalVision(LocalVisionBack),
+    VisionDescribe(VisionDescribeBack),
     ModelText(ModelTextBack),
     GeneratedSpeechCommit(GeneratedSpeechCommitBack),
     Navigation(NavigationBack),

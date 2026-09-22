@@ -20,6 +20,7 @@ mod instrument_conformance;
 mod json_conformance;
 mod layout_conformance;
 mod local_vision_conformance;
+mod local_vision_description_conformance;
 mod logic_conformance;
 mod math_conformance;
 mod midi_input_conformance;

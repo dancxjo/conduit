@@ -13,6 +13,7 @@ use conduit_semantic_catalog::{
     ContinuousLocalVisionRefusal, MAXIMUM_LOCAL_CV_PIXELS,
 };
 
+mod describe;
 mod ocr;
 
 pub const MAXIMUM_HOSTED_VISION_RESOURCES: usize = 8;
@@ -28,6 +29,7 @@ pub struct FiniteHostedVisionBase {
     object_encoder: conduit_semantic_catalog::PreparedLocalVisionObjectEncoder,
     ocr_provider: Option<crate::TesseractOcrProvider>,
     ocr_output: Vec<u8>,
+    describe: Option<describe::VisualDescriptionState>,
     minimum_motion_delta: u8,
     component_threshold: u8,
     minimum_component_area: u32,
@@ -48,6 +50,7 @@ impl FiniteHostedVisionBase {
             maximum_components,
             provider_instance_id.into(),
             None,
+            None,
         )
     }
 
@@ -66,7 +69,18 @@ impl FiniteHostedVisionBase {
             maximum_components,
             provider_instance_id.into(),
             Some(ocr_provider),
+            None,
         )
+    }
+
+    pub fn with_visual_model(
+        mut self,
+        visual_model: impl crate::hosted_local_model::HostedVisualModelAdapter + 'static,
+    ) -> Self {
+        self.describe = Some(describe::VisualDescriptionState::new(Box::new(
+            visual_model,
+        )));
+        self
     }
 
     fn prepare(
@@ -76,6 +90,7 @@ impl FiniteHostedVisionBase {
         maximum_components: usize,
         provider_instance_id: String,
         ocr_provider: Option<crate::TesseractOcrProvider>,
+        visual_model: Option<Box<dyn crate::hosted_local_model::HostedVisualModelAdapter>>,
     ) -> Result<Self, HostedVisionRefusal> {
         if provider_instance_id.is_empty()
             || provider_instance_id.len()
@@ -129,6 +144,7 @@ impl FiniteHostedVisionBase {
             object_encoder,
             ocr_provider,
             ocr_output: Vec::with_capacity(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES),
+            describe: visual_model.map(describe::VisualDescriptionState::new),
             minimum_motion_delta: 32,
             component_threshold: 128,
             minimum_component_area: 2,
@@ -167,6 +183,17 @@ impl FiniteHostedVisionBase {
                 .into_iter()
                 .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::VISION_OCR_KIND)
                 .expect("reviewed local OCR offer")
+        })
+    }
+
+    pub fn describe_offer(&self) -> Option<conduit_core::CapabilityOffer> {
+        self.describe.as_ref().map(|_| {
+            conduit_std_offers::local_vision_offers()
+                .into_iter()
+                .find(|offer| {
+                    offer.kind_id.as_str() == conduit_semantic_catalog::VISION_DESCRIBE_KIND
+                })
+                .expect("reviewed visual description offer")
         })
     }
 
@@ -255,6 +282,7 @@ pub enum HostedVisionRefusal {
     InvalidOutput,
     LocalCv(ContinuousLocalVisionRefusal),
     Ocr(crate::OcrProviderRefusal),
+    VisualModel,
 }
 
 pub trait HostedVisionProvider: Send {
