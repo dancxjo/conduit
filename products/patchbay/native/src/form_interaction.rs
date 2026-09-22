@@ -362,7 +362,9 @@ impl PatchbayApplication {
                 }
             }
             PatchbayAction::Hold => self.mark_unsatisfied(),
-            PatchbayAction::PlaceGear
+            PatchbayAction::Fulfill
+            | PatchbayAction::AdmitForm
+            | PatchbayAction::PlaceGear
             | PatchbayAction::DuplicateGear
             | PatchbayAction::RemoveGear
             | PatchbayAction::RemoveCord

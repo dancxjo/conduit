@@ -452,7 +452,7 @@ fn tutorial_request(
 ) -> Result<conduit_presentation::GenerativePresenterRequest, Box<dyn std::error::Error>> {
     conduit_workspace_model::tutorial::generative_request(
         body,
-        format!("request/workspace/orifina/journey/{stage}").into(),
+        format!("request/workspace/orifina/journey/{stage}"),
         revision,
         playback,
     )
