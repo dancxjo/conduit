@@ -17,6 +17,11 @@ pub(super) static TRACK_FACTORY: BackFactory = BackFactory {
     budget,
     prepare,
 };
+pub(super) static OCR_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::LOCAL_VISION_OCR_IMPLEMENTATION,
+    budget,
+    prepare,
+};
 
 pub(super) struct LocalVisionBack {
     pending: bool,

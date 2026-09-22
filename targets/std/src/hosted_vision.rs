@@ -13,6 +13,8 @@ use conduit_semantic_catalog::{
     ContinuousLocalVisionRefusal, MAXIMUM_LOCAL_CV_PIXELS,
 };
 
+mod ocr;
+
 pub const MAXIMUM_HOSTED_VISION_RESOURCES: usize = 8;
 
 pub struct FiniteHostedVisionBase {
@@ -24,6 +26,8 @@ pub struct FiniteHostedVisionBase {
     last_observation: Option<ContinuousLocalVisionObservation>,
     motion_encoder: conduit_semantic_catalog::PreparedLocalVisionMotionEncoder,
     object_encoder: conduit_semantic_catalog::PreparedLocalVisionObjectEncoder,
+    ocr_provider: Option<crate::TesseractOcrProvider>,
+    ocr_output: Vec<u8>,
     minimum_motion_delta: u8,
     component_threshold: u8,
     minimum_component_area: u32,
@@ -37,7 +41,42 @@ impl FiniteHostedVisionBase {
         maximum_components: usize,
         provider_instance_id: impl Into<String>,
     ) -> Result<Self, HostedVisionRefusal> {
-        let provider_instance_id = provider_instance_id.into();
+        Self::prepare(
+            frames,
+            width,
+            height,
+            maximum_components,
+            provider_instance_id.into(),
+            None,
+        )
+    }
+
+    pub fn new_with_ocr(
+        frames: Vec<HostedVisionFrame>,
+        width: u16,
+        height: u16,
+        maximum_components: usize,
+        provider_instance_id: impl Into<String>,
+        ocr_provider: crate::TesseractOcrProvider,
+    ) -> Result<Self, HostedVisionRefusal> {
+        Self::prepare(
+            frames,
+            width,
+            height,
+            maximum_components,
+            provider_instance_id.into(),
+            Some(ocr_provider),
+        )
+    }
+
+    fn prepare(
+        frames: Vec<HostedVisionFrame>,
+        width: u16,
+        height: u16,
+        maximum_components: usize,
+        provider_instance_id: String,
+        ocr_provider: Option<crate::TesseractOcrProvider>,
+    ) -> Result<Self, HostedVisionRefusal> {
         if provider_instance_id.is_empty()
             || provider_instance_id.len()
                 > conduit_semantic_catalog::MAXIMUM_LOCAL_VISION_IDENTITY_BYTES
@@ -88,6 +127,8 @@ impl FiniteHostedVisionBase {
             last_observation: None,
             motion_encoder,
             object_encoder,
+            ocr_provider,
+            ocr_output: Vec::with_capacity(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES),
             minimum_motion_delta: 32,
             component_threshold: 128,
             minimum_component_area: 2,
@@ -118,6 +159,15 @@ impl FiniteHostedVisionBase {
             .into_iter()
             .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::VISION_OBJECTS_KIND)
             .expect("reviewed local objects offer")
+    }
+
+    pub fn ocr_offer(&self) -> Option<conduit_core::CapabilityOffer> {
+        self.ocr_provider.as_ref().map(|_| {
+            conduit_std_offers::local_vision_offers()
+                .into_iter()
+                .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::VISION_OCR_KIND)
+                .expect("reviewed local OCR offer")
+        })
     }
 
     pub(crate) fn execute_motion(
@@ -204,6 +254,7 @@ pub enum HostedVisionRefusal {
     ResourceCapacity,
     InvalidOutput,
     LocalCv(ContinuousLocalVisionRefusal),
+    Ocr(crate::OcrProviderRefusal),
 }
 
 pub trait HostedVisionProvider: Send {
