@@ -171,6 +171,7 @@ installed_step_dispatch!(
     LocalModel,
     LocalVision,
     VisionDescribe,
+    VisionExperience,
     ModelText,
     GeneratedSpeechCommit,
     Navigation,

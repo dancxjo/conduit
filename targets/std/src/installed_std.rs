@@ -147,6 +147,7 @@ mod typed_record_back;
 mod vector_search_back;
 mod vector_search_host;
 mod vision_describe_back;
+mod vision_experience_back;
 mod wav_artifact_back;
 mod whisper_speech_back;
 
@@ -926,6 +927,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     | conduit_std_offers::LOCAL_VISION_OBJECTS_OPERATION
                     | conduit_std_offers::LOCAL_VISION_OCR_OPERATION
                     | conduit_std_offers::LOCAL_VISION_DESCRIBE_OPERATION
+                    | conduit_std_offers::LOCAL_VISION_EXPERIENCE_OPERATION
                     | conduit_std_offers::LOCAL_VISION_TRACK_OPERATION
             ) {
                 vision_request_sequence = vision_request_sequence
@@ -963,7 +965,14 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         .as_deref_mut()
                         .ok_or_else(|| "local Vision request has no admitted Base".to_string())?;
                     if contract.as_str() == conduit_std_offers::LOCAL_VISION_MOTION_OPERATION {
-                        vision.execute_motion(input, &vision_run_id).map(Some)
+                        vision
+                            .execute_motion(
+                                input,
+                                &vision_run_id,
+                                observed_at_micros,
+                                &vision_clock_basis,
+                            )
+                            .map(Some)
                     } else if contract.as_str() == conduit_std_offers::LOCAL_VISION_OCR_OPERATION {
                         vision
                             .execute_ocr(
@@ -982,6 +991,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             observed_at_micros,
                             &vision_clock_basis,
                         )
+                    } else if contract.as_str()
+                        == conduit_std_offers::LOCAL_VISION_EXPERIENCE_OPERATION
+                    {
+                        vision.execute_experience(input)
                     } else {
                         vision
                             .execute_objects(

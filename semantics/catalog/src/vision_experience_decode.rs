@@ -34,6 +34,23 @@ pub fn visible_text_observations_from_value(
         .collect()
 }
 
+pub fn motion_observations_from_value(
+    value: &StructuredInfoValue,
+    image_profile: &KindId,
+) -> Result<Vec<MotionObservation>, VisualValueRefusal> {
+    require_type(value, &crate::vision_motions_type())?;
+    collection(value)?
+        .iter()
+        .map(|value| {
+            let observation = motion_from_value(value)?;
+            observation
+                .validate(image_profile)
+                .map_err(|_| VisualValueRefusal::InvalidObservation)?;
+            Ok(observation)
+        })
+        .collect()
+}
+
 pub fn track_observations_from_value(
     value: &StructuredInfoValue,
     image_profile: &KindId,
@@ -76,6 +93,18 @@ pub fn visual_impression_from_value(
     let impression = visual_impression_from_value_unchecked(value)?;
     impression
         .validate(image_profile)
+        .map_err(|_| VisualValueRefusal::InvalidImpression)?;
+    Ok(impression)
+}
+
+pub fn visual_impression_from_value_with_embedded_profile(
+    value: &StructuredInfoValue,
+) -> Result<VisualImpression, VisualValueRefusal> {
+    require_type(value, &visual_impression_type())?;
+    let impression = visual_impression_from_value_unchecked(value)?;
+    let profile = impression.source_image.content.content_profile.clone();
+    impression
+        .validate(&profile)
         .map_err(|_| VisualValueRefusal::InvalidImpression)?;
     Ok(impression)
 }
