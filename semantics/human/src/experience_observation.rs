@@ -18,6 +18,8 @@ pub enum SourceAvailability {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceObservation<T> {
     pub source_identity: String,
+    /// Semantic subject being observed, distinct from the observing source.
+    pub subject_identity: String,
     pub availability: SourceAvailability,
     pub value: Option<T>,
     pub observation_sign_id: Option<SignId>,

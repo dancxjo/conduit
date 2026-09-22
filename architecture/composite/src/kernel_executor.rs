@@ -318,6 +318,46 @@ impl KernelCompositeHost {
             .map_err(|reason| execution(&request.child, reason))
     }
 
+    /// Resolve the exact admitted input for a surfaced Host Call.
+    pub fn host_request_input(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<&[u8], KernelCompositeError> {
+        self.children
+            .get(&request.child)
+            .ok_or_else(|| KernelCompositeError::StaleChild(request.child.clone()))?
+            .host_value(request.request.input.value)
+            .map_err(|reason| execution(&request.child, reason))
+    }
+
+    /// Store a bounded adapter result in the owning child and complete its call.
+    pub fn complete_host_call_bytes(
+        &mut self,
+        request: &KernelCompositeHostRequest,
+        bytes: &[u8],
+    ) -> Result<(), KernelCompositeError> {
+        let child = self
+            .children
+            .get_mut(&request.child)
+            .ok_or_else(|| KernelCompositeError::StaleChild(request.child.clone()))?;
+        let value = child
+            .store_host_value(bytes)
+            .map_err(|reason| execution(&request.child, reason))?;
+        let output = conduit_kernel::BoundedValueRef::new(value, bytes.len() as u32)
+            .map_err(|error| execution(&request.child, format!("{error:?}")))?;
+        child
+            .complete_host_call(
+                request.request.node,
+                request.request.request,
+                conduit_kernel::HostCallOutcome {
+                    disposition: conduit_kernel::HostCallDisposition::Completed,
+                    output: Some(output),
+                    failure: None,
+                },
+            )
+            .map_err(|reason| execution(&request.child, reason))
+    }
+
     pub fn step(&mut self) -> Result<KernelCompositeStatus, KernelCompositeError> {
         if self.cancelled {
             return Ok(KernelCompositeStatus::Cancelled);

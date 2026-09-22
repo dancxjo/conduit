@@ -14,7 +14,8 @@ form pete-homeostasis (
     > storage-pressure: PeteStoragePressureObservation...|
     > motion-safety: PeteMotionSafetyObservation...|
     > important-capability: PeteImportantCapabilityObservation...|
-    state: $ExperienceBodyInput >
+    > reduction-at: PeteReductionInstant...|
+    state: PeteHomeostaticState >
 ) {
     reduce: pete/reduce-homeostasis(policy-revision = policy-revision, energy-low-permille = energy-low-permille, energy-critical-permille = energy-critical-permille, thermal-constrained-milli-celsius = thermal-constrained-milli-celsius, thermal-critical-milli-celsius = thermal-critical-milli-celsius, pressure-high-permille = pressure-high-permille, pressure-critical-permille = pressure-critical-permille)
     power > reduce.power
@@ -23,5 +24,6 @@ form pete-homeostasis (
     storage-pressure > reduce.storage_pressure
     motion-safety > reduce.motion_safety
     important-capability > reduce.important_capability
+    reduction-at > reduce.reduction_at
     reduce.state > state
 }
