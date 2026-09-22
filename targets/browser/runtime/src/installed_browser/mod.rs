@@ -58,6 +58,7 @@ mod text;
 pub(crate) mod text_state;
 mod tick;
 pub(crate) mod timing;
+pub(crate) mod tutorial_presenter;
 pub(crate) mod typed_record;
 mod values;
 
