@@ -7,12 +7,15 @@ use conduit_data::{TensorAxisRole, TensorElement};
 use conduit_std_host::hosted_model::*;
 
 const MODEL_BYTES: &[u8] = b"scale one f32 feature by two";
+const CHECKPOINT_BYTES: &[u8] = b"scale-factor:3";
 
 struct ExactStore;
 impl ModelArtifactStore for ExactStore {
     fn load(&self, reference: &BoundedResourceRef) -> Result<Vec<u8>, HostedModelRefusal> {
         if reference.identity.digest() == model_content_digest(MODEL_BYTES) {
             Ok(MODEL_BYTES.to_vec())
+        } else if reference.identity.digest() == model_checkpoint_content_digest(CHECKPOINT_BYTES) {
+            Ok(CHECKPOINT_BYTES.to_vec())
         } else {
             Err(HostedModelRefusal::ResourceUnavailable)
         }
@@ -39,6 +42,7 @@ impl HostedModelAdapter for ReferenceAdapter {
     fn invoke(
         &mut self,
         artifact_bytes: &[u8],
+        checkpoint_bytes: Option<&[u8]>,
         operation: ModelOperation,
         input: &[u8],
         maximum_output_bytes: usize,
@@ -46,7 +50,11 @@ impl HostedModelAdapter for ReferenceAdapter {
         if artifact_bytes != MODEL_BYTES || operation != ModelOperation::Infer || input.len() != 4 {
             return Err(HostedModelRefusal::AdapterRefused);
         }
-        let output = (f32::from_le_bytes(input.try_into().unwrap()) * 2.0)
+        if checkpoint_bytes.is_some_and(|bytes| bytes != CHECKPOINT_BYTES) {
+            return Err(HostedModelRefusal::AdapterRefused);
+        }
+        let scale = if checkpoint_bytes.is_some() { 3.0 } else { 2.0 };
+        let output = (f32::from_le_bytes(input.try_into().unwrap()) * scale)
             .to_le_bytes()
             .to_vec();
         if output.len() > maximum_output_bytes {
@@ -54,6 +62,51 @@ impl HostedModelAdapter for ReferenceAdapter {
         }
         Ok(output)
     }
+}
+
+#[test]
+fn std_host_runs_an_exact_selected_checkpoint_and_records_it() {
+    let (signature, artifact, mut adapter) = fixture();
+    let checkpoint = ModelCheckpoint {
+        base_artifact_identity: artifact.content_identity(),
+        architecture_profile: artifact.architecture_profile.clone(),
+        state_schema_version: artifact.state_schema_version,
+        generation: 7,
+        content: BoundedResourceRef {
+            identity: ResourceSemanticIdentity::from_digest(model_checkpoint_content_digest(
+                CHECKPOINT_BYTES,
+            )),
+            content_profile: KindId::from(MODEL_CHECKPOINT_INFO_ID),
+            access_class: ResourceClassId::from("model-store/read@1"),
+            extent: ResourceExtent {
+                bytes: CHECKPOINT_BYTES.len() as u64,
+                items: None,
+            },
+            lifetime: ResourceLifetime {
+                version: ResourceVersionIdentity::from_digest([8; 32]),
+                expires_at: None,
+            },
+        },
+    };
+    adapter.realization.loaded_checkpoint_identity = Some(checkpoint.content.identity.digest());
+    let result = invoke_hosted_model(
+        &ExactStore,
+        &mut adapter,
+        &artifact,
+        Some(&checkpoint),
+        &signature,
+        ModelOperation::Infer,
+        [4; 32],
+        &1_f32.to_le_bytes(),
+        1,
+        4,
+    )
+    .unwrap();
+    assert_eq!(
+        result.evidence.checkpoint_identity,
+        Some(checkpoint.content.identity.digest())
+    );
+    assert_eq!(f32::from_le_bytes(result.output.try_into().unwrap()), 3.0);
 }
 
 fn signature() -> ModelSignature {
@@ -122,6 +175,7 @@ fn fixture() -> (ModelSignature, ModelArtifact, ReferenceAdapter) {
             supported_formats: vec![artifact.format_profile.clone()],
             supported_precisions: vec![artifact.precision_profile.clone()],
             loaded_artifact_identity: artifact.content_identity(),
+            loaded_checkpoint_identity: None,
         },
     };
     (signature, artifact, adapter)
@@ -136,6 +190,7 @@ fn std_host_loads_and_invokes_one_non_llm_artifact_with_separate_evidence() {
         &ExactStore,
         &mut adapter,
         &artifact,
+        None,
         &signature,
         ModelOperation::Infer,
         input_identity,
@@ -170,6 +225,7 @@ fn changed_artifact_bytes_and_runtime_identity_refuse_before_invocation() {
             &ExactStore,
             &mut adapter,
             &artifact,
+            None,
             &signature,
             ModelOperation::Infer,
             [4; 32],
@@ -189,6 +245,7 @@ fn corrupt_bytes_refuse_even_when_extent_and_reference_are_well_formed() {
             &CorruptStore,
             &mut adapter,
             &artifact,
+            None,
             &signature,
             ModelOperation::Infer,
             [4; 32],

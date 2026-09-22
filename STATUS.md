@@ -78,6 +78,14 @@ Their presence is not an additional physical or release acceptance claim:
   adapter rather than chat semantics. This source-level slice does not yet
   establish the five-host, voice, or ConduitOS experiences described in the
   [body Chat guide](forms/body-chat/README.md).
+- **Learned realization lifecycle (#3709):** checkpoint-bearing hosted model
+  execution, bounded effect-free shadow comparison, explicit evaluation and
+  operator promotion/rollback authority, ordinary replacement-Plan selection,
+  and Patchbay lifecycle projection exist as shared contracts. A Pete-scoped
+  deterministic conformance fixture exercises a harmless interpretation
+  candidate and return to its retained baseline without granting wheel effects.
+  This is deterministic source-level proof; it does not claim autonomous model
+  improvement, physical shadow evidence, or an attended operator decision.
 - **Reusable applications:** forms-as-gears is implemented, while several
   complete reusable application compositions still have open acceptance work.
   [The roadmap](docs/roadmap.md#reusable-forms) names those remaining slices.
