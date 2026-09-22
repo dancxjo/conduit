@@ -221,6 +221,7 @@ fn learned_promotion_and_rollback_authority_feed_the_ordinary_planner() {
     let candidate = learned_identity(Some(43), 44);
     let evaluation = CandidateEvaluation {
         identity: [45; 32],
+        subject_identity: [51; 32],
         suite_identity: [46; 32],
         baseline,
         candidate,

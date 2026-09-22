@@ -64,6 +64,7 @@ fn run(contract: &ShadowContract) -> ShadowRun {
 fn evaluation_fixture(contract: &ShadowContract) -> CandidateEvaluation {
     CandidateEvaluation {
         identity: [17; 32],
+        subject_identity: contract.subject_identity,
         suite_identity: [18; 32],
         baseline: contract.baseline,
         candidate: contract.candidate,

@@ -96,6 +96,7 @@ pub enum EvaluationDisposition {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CandidateEvaluation {
     pub identity: [u8; 32],
+    pub subject_identity: [u8; 32],
     pub suite_identity: [u8; 32],
     pub baseline: LearnedRealizationIdentity,
     pub candidate: LearnedRealizationIdentity,
@@ -225,6 +226,7 @@ impl ShadowContract {
     pub fn validate(&self) -> Result<(), LearnedLifecycleRefusal> {
         nonzero(self.identity)?;
         nonzero(self.subject_identity)?;
+        nonzero(self.subject_identity)?;
         nonzero(self.shared_input_set_identity)?;
         self.baseline.validate()?;
         self.candidate.validate()?;
@@ -301,7 +303,8 @@ impl CandidateEvaluation {
     pub fn validate(&self, contract: &ShadowContract) -> Result<(), LearnedLifecycleRefusal> {
         nonzero(self.identity)?;
         nonzero(self.suite_identity)?;
-        if self.baseline != contract.baseline
+        if self.subject_identity != contract.subject_identity
+            || self.baseline != contract.baseline
             || self.candidate != contract.candidate
             || self.shared_input_set_identity != contract.shared_input_set_identity
             || self.shadow_run_identities.is_empty()
@@ -333,13 +336,16 @@ impl PromotionGrant {
         nonzero(self.identity)?;
         nonzero(self.authority_identity)?;
         nonzero(self.subject_identity)?;
+        self.candidate.validate()?;
+        self.rollback_target.validate()?;
         if self.decision != PromotionDecision::Approved {
             return Err(LearnedLifecycleRefusal::ApprovalDenied);
         }
         if evaluation.disposition != EvaluationDisposition::Sufficient {
             return Err(LearnedLifecycleRefusal::EvidenceInsufficient);
         }
-        if self.evaluation_identity != evaluation.identity
+        if self.subject_identity != evaluation.subject_identity
+            || self.evaluation_identity != evaluation.identity
             || self.candidate != evaluation.candidate
             || self.rollback_target != evaluation.baseline
         {
@@ -358,6 +364,9 @@ impl PromotionGrant {
 impl PromotionReceipt {
     pub fn validate(&self, grant: &PromotionGrant) -> Result<(), LearnedLifecycleRefusal> {
         nonzero(self.identity)?;
+        if grant.decision != PromotionDecision::Approved {
+            return Err(LearnedLifecycleRefusal::ApprovalDenied);
+        }
         if self.grant_identity != grant.identity
             || self.subject_identity != grant.subject_identity
             || self.selected != grant.candidate
@@ -392,6 +401,9 @@ impl RollbackGrant {
             || self.target != promotion.rollback_target
         {
             return Err(LearnedLifecycleRefusal::RollbackTargetMismatch);
+        }
+        if promotion.terminal != PromotionTerminal::Promoted {
+            return Err(LearnedLifecycleRefusal::InvalidPlanTransition);
         }
         if self.current.signature != self.target.signature {
             return Err(LearnedLifecycleRefusal::IncompatibleSignature);

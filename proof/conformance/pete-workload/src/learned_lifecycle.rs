@@ -70,6 +70,7 @@ fn pete_interpretation_candidate_is_body_scoped_non_actuating_and_rollback_capab
 
     let evaluation = CandidateEvaluation {
         identity: [73; 32],
+        subject_identity: contract.subject_identity,
         suite_identity: [74; 32],
         baseline,
         candidate,
