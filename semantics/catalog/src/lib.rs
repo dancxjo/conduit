@@ -52,10 +52,6 @@ mod experience_catalog;
 #[cfg(feature = "form-catalog")]
 pub use experience_catalog::*;
 #[cfg(feature = "form-catalog")]
-mod homeostasis_catalog;
-#[cfg(feature = "form-catalog")]
-pub use homeostasis_catalog::*;
-#[cfg(feature = "form-catalog")]
 mod purpose_catalog;
 #[cfg(feature = "form-catalog")]
 pub use purpose_catalog::*;

@@ -1,5 +1,6 @@
 use conduit_core::{SignId, TemporalInstant, TemporalScale};
 use conduit_human::*;
+use conduit_pete::*;
 
 fn at(ticks: u64) -> TemporalInstant {
     TemporalInstant {
@@ -94,6 +95,10 @@ fn self_observation_feeds_experience_and_retains_every_exact_source_sign() {
     let self_observation = state
         .as_body_self_observation(SignId::from("sign/homeostasis/1"), at(100))
         .unwrap();
+    let decoded =
+        conduit_core::StructuredInfoValue::from_canonical_bytes(&self_observation.canonical_state)
+            .unwrap();
+    assert_eq!(decoded.value_type(), &homeostatic_state_type());
     let item = body_self_experience(
         "self/homeostasis",
         &self_observation,

@@ -1,5 +1,6 @@
 use conduit_core::{SignId, TemporalInstant, TemporalScale};
 use conduit_human::*;
+use conduit_pete::*;
 use patchbay_model::inspect_current_experience_item;
 
 fn at(ticks: u64) -> TemporalInstant {

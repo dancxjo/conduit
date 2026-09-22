@@ -69,7 +69,7 @@ fn exact_form_requirements_and_reused_non_pete_forms_are_inspectable() {
     assert!(requires(PeteWorkloadRole::Conversation, "llm/generate"));
     assert!(requires(
         PeteWorkloadRole::Homeostasis,
-        "experience/reduce-homeostasis"
+        "pete/reduce-homeostasis"
     ));
     assert!(requires(
         PeteWorkloadRole::Navigation,
