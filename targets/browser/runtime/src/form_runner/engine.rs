@@ -111,6 +111,7 @@ pub(super) enum BrowserHostEffect {
     PointerEvent,
     ButtonTransition,
     ApplicationEvent,
+    TutorialPresenterRequest,
     Manifestation(BrowserManifestation),
 }
 
@@ -334,6 +335,14 @@ fn drive_with_boundary<'a>(
                 return Ok(DriveStatus::Effect(PendingHostEffect {
                     request,
                     effect: BrowserHostEffect::ApplicationEvent,
+                }));
+            }
+            if operation.contract_id.as_str()
+                == crate::installed_browser::tutorial_presenter::REQUEST_OPERATION
+            {
+                return Ok(DriveStatus::Effect(PendingHostEffect {
+                    request,
+                    effect: BrowserHostEffect::TutorialPresenterRequest,
                 }));
             }
             let installation = factory(&placement.implementation_id)

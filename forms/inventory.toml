@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 112
+maximum_forms = 113
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -55,6 +55,12 @@ entry = "house-spoken-response"
 deterministic = { package = "conduit-tongues", test = "house_conversation", case = "canonical_house_spoken_response_composes_text_fallback_and_speech_output" }
 browser_safe_not_applicable = "portable speech output requires an admitted synthesis and audio-output realization"
 graceful_fallback = "house-conversation"
+[[forms]]
+slug = "orifina-tutorial-presenter"
+title = "Orifina Tutorial Presenter"
+entry = "orifina-tutorial-presenter"
+deterministic = { package = "conduit-browser-runtime", test = "lib", case = "tutorial_presenter_form_uses_the_planned_llm_present_front" }
+browser_safe_not_applicable = "requires a joined Host offering llm/present; the resident deterministic tutorial remains the semantic fallback"
 [[forms]]
 slug = "bench-telemetry"
 title = "Bench Telemetry"

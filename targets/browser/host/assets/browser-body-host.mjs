@@ -56,7 +56,7 @@ function refuseUnavailableExecutionLine(proposal, fragment) {
  */
 const owners = new WeakSet();
 export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot, foregroundForm,
-  presentationRootFor, onApplicationEvent, externallyManagedPlanIds = [] }) {
+  presentationRootFor, onApplicationEvent, onTutorialPresenterRequest, externallyManagedPlanIds = [] }) {
   const proposal = structuredClone(suppliedProposal);
   const external = new Set(externallyManagedPlanIds);
   if (owners.has(api)) throw new Error("browser Body resources already acquired");
@@ -306,6 +306,10 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     }
     if (effect.effect_kind === "application-event") {
       return nextApplicationEvent(effect.checked_form_id, signal);
+    }
+    if (effect.effect_kind === "tutorial-presenter-request") {
+      if (typeof onTutorialPresenterRequest !== "function") throw new Error("tutorial Presenter request owner is unavailable");
+      return onTutorialPresenterRequest(effect);
     }
     if (effect.effect_kind === "manifestation") {
       const output = slots.get(effect.placement_id);
