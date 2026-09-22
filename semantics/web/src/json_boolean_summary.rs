@@ -2,7 +2,7 @@
 
 use crate::{JsonRefusal, JsonValue, PortableKindContract};
 use alloc::{string::ToString, vec};
-use conduit_core::{kind_id, KindContractRevision, Scalar};
+use conduit_core::{kind_id, KindIdentity, Scalar};
 
 pub const JSON_BOOLEAN_SUMMARY_KIND: &str = "json/boolean-summary";
 pub const JSON_BOOLEAN_SUMMARY_REVISION: &str = "conduit.json/boolean-summary@1";
@@ -71,7 +71,7 @@ pub fn json_boolean_summary(
 pub fn json_boolean_summary_semantics() -> PortableKindContract {
     let mut contract = crate::json_collection_step_semantics();
     contract.kind_id = kind_id(JSON_BOOLEAN_SUMMARY_KIND);
-    contract.kind_contract_revision = KindContractRevision::from(JSON_BOOLEAN_SUMMARY_REVISION);
+    contract.kind_contract_revision = KindIdentity::from(JSON_BOOLEAN_SUMMARY_REVISION);
     contract
 }
 
@@ -82,7 +82,7 @@ pub fn install_json_boolean_summary_catalog(
 ) -> Result<(), alloc::string::String> {
     use conduit_core::ConfigurationValue;
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
     let contract = json_boolean_summary_semantics();
@@ -95,15 +95,15 @@ pub fn install_json_boolean_summary_catalog(
         }],
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "field".into(),
                 default_value: ConfigurationValue::Text("enabled".into()),
-                validation: ConfigurationRule::TextBytes {
+                rule: KindConfigurationRule::TextBytes {
                     maximum: crate::JSON_MAXIMUM_KEY_BYTES as u32,
                 },
             }],

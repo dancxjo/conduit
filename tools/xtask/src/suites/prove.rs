@@ -1,5 +1,67 @@
 use crate::{process::Step, proof::ProofClass};
 
+pub const PROVE_EMERGENCY_CONTROL_STEPS: &[Step] = &[
+    Step::typed(
+        "prove.emergency-control.authority-and-sequence",
+        "Prove exact trigger authority, durable phrase identity, wrong-order and timeout behavior below ordinary execution",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-body",
+            "--test",
+            "emergency_control",
+            "--locked",
+        ],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+    Step::typed(
+        "prove.emergency-control.independent",
+        "Prove bounded acoustic corpus, independent local reduction, one-shot behavior, partial reachability truth and separate recovery admission",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-std-host",
+            "--lib",
+            "acoustic_emergency::tests::",
+            "--locked",
+        ],
+        None,
+        None,
+        Some(ProofClass::HostedIntegration),
+        &[],
+    ),
+    Step::typed(
+        "prove.emergency-control.machine-effect.halt",
+        "Prove the selected ConduitOS profile reaches its exact low-level emergency halt disposition",
+        "cargo",
+        &[
+            "xtask",
+            "conduitos",
+            "emergency-halt-proof",
+            "--locked",
+        ],
+        None,
+        None,
+        Some(ProofClass::FreestandingEmulator),
+        &[],
+    ),
+    Step::typed(
+        "prove.emergency-control.machine-effect.rescue",
+        "Prove recovery remains separate authority and creates an exact fresh Boot",
+        "cargo",
+        &["xtask", "conduitos", "rescue-proof", "--locked"],
+        None,
+        None,
+        Some(ProofClass::FreestandingEmulator),
+        &[],
+    ),
+];
+
 pub const PROVE_RECURSIVE_RECOVERY_STEPS: &[Step] = &[
     Step::typed(
         "prove.recursive-recovery.vertical",

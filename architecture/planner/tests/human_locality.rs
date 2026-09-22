@@ -438,12 +438,12 @@ fn remote_capacity_cannot_override_authority_or_data_locality_requirements() {
         .iter_mut()
         .find(|offer| offer.kind_id.as_str() == "text/upper")
         .unwrap();
-    let operation = remote_upper.host_operations[0].contract_id.clone();
+    let operation = remote_upper.host_calls[0].contract_id.clone();
     remote_upper
         .authority_requirements
         .push(conduit_core::AuthorityRequirement {
             contract_id: authority.clone(),
-            host_operation_contract_id: operation,
+            host_call_contract_id: operation,
             subject_kind: conduit_core::kind_id("value/text"),
         });
     let observations = observations(&hosts);

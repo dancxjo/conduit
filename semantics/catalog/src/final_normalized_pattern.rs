@@ -2,11 +2,12 @@
 
 use alloc::{string::String, string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 pub const FINAL_NORMALIZED_PATTERN_KIND: &str = "sequence/final-normalized-pattern";
@@ -14,15 +15,15 @@ pub const FINAL_NORMALIZED_PATTERN_REVISION: &str = "conduit.sequence/final-norm
 pub const DEFAULT_FINAL_PATTERN_VALUES: u64 = 4;
 pub const MAXIMUM_FINAL_PATTERN_VALUES: u64 = 16;
 
-pub fn final_normalized_pattern_definition() -> KindDefinition {
+pub fn final_normalized_pattern_definition() -> KindProjection {
     let value_kind = crate::normalized_duration_sequence_type()
         .profile()
         .expect("reviewed normalized pattern type")
         .value_kind()
         .clone();
-    KindDefinition {
+    KindProjection {
         kind_id: kind_id(FINAL_NORMALIZED_PATTERN_KIND),
-        kind_contract_revision: KindContractRevision::from(FINAL_NORMALIZED_PATTERN_REVISION),
+        kind_contract_revision: KindIdentity::from(FINAL_NORMALIZED_PATTERN_REVISION),
         inputs: vec![PortDescriptor {
             port_id: port_id("patterns"),
             value_kind: value_kind.clone(),
@@ -35,10 +36,10 @@ pub fn final_normalized_pattern_definition() -> KindDefinition {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
-        configuration: vec![ConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "maximum-values".into(),
             default_value: ConfigurationValue::U64(DEFAULT_FINAL_PATTERN_VALUES),
-            validation: ConfigurationRule::U64Range {
+            rule: KindConfigurationRule::U64Range {
                 minimum: 1,
                 maximum: MAXIMUM_FINAL_PATTERN_VALUES,
             },
@@ -55,9 +56,9 @@ pub fn final_normalized_pattern_limits() -> CapabilityLimits {
     }
 }
 
-pub fn final_normalized_pattern_semantic_contract() -> SemanticCapabilityContract {
+pub fn final_normalized_pattern_semantic_contract() -> Kind {
     let definition = final_normalized_pattern_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "maximum-values".into(),
             value_type: kind_id("value/count"),
@@ -68,6 +69,8 @@ pub fn final_normalized_pattern_semantic_contract() -> SemanticCapabilityContrac
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: final_normalized_pattern_limits(),
     }
 }

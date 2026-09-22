@@ -74,6 +74,7 @@ pub enum CurrentBodyPatchbayReader {
         hosted_implementation_id: ImplementationId,
     },
     ExternalReadingUnhostedBody,
+    ExternalReadingWorkspaceBody,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -139,6 +140,9 @@ impl CurrentBodyFrame {
             CurrentBodyPatchbayReader::ExternalReadingUnhostedBody => {
                 "This external Patchbay is reading a body that graduated without a hosted Patchbay."
             }
+            CurrentBodyPatchbayReader::ExternalReadingWorkspaceBody => {
+                "This external Patchbay is reading a body born through Workspace; no Crèche graduation is required."
+            }
         };
         let lifecycle_label = match lifecycle {
             CurrentBodyLifecycle::Lulled => "Lulled",
@@ -201,11 +205,9 @@ fn reader(attachment: &PatchbayBodyAttachment) -> CurrentBodyPatchbayReader {
             implementation_id: implementation_id.clone(),
         },
         PatchbayBodyApplicationEntrance::ExternalReader => {
-            let graduation = attachment
-                .evidence()
-                .graduation
-                .as_ref()
-                .expect("ordinary Patchbay attachment requires graduation");
+            let Some(graduation) = attachment.evidence().graduation.as_ref() else {
+                return CurrentBodyPatchbayReader::ExternalReadingWorkspaceBody;
+            };
             match graduation.choice {
                 BodyGraduationChoice::HostedPatchbay => {
                     CurrentBodyPatchbayReader::ExternalReadingHostedBody {

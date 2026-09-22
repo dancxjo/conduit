@@ -1,66 +1,8 @@
 use super::{
-    BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, KernelEvent, KernelEventKind, NodeId, Operation, OperationAction,
-    OperationInput, PortId, RequestId, RouteRange, RouteTarget, SignError, SignQuery, SignSink,
-    StorageError, ValueStorage,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallBinding, HostCallId, KernelEvent, KernelEventKind, NodeId, PortId, RequestId,
+    RouteRange, RouteTarget, SignError, SignQuery, SignSink, StorageError, ValueStorage,
 };
-
-#[test]
-fn port_aware_actions_and_inputs_preserve_exact_identity() {
-    struct Echo {
-        input: PortId,
-        output: PortId,
-    }
-
-    impl Operation for Echo {
-        fn start(&mut self) -> OperationAction {
-            OperationAction::Await
-        }
-
-        fn resume(&mut self, input: OperationInput) -> OperationAction {
-            match input {
-                OperationInput::Value { port, value } if port == self.input => {
-                    OperationAction::Emit {
-                        port: self.output,
-                        value,
-                    }
-                }
-                OperationInput::Closed { port } if port == self.input => OperationAction::Complete,
-                _ => OperationAction::Fail(super::Failure {
-                    code: super::FailureCode::InvalidPort,
-                    detail: 0,
-                }),
-            }
-        }
-    }
-
-    let mut operation = Echo {
-        input: PortId(3),
-        output: PortId(7),
-    };
-    let value = super::ValueRef {
-        slot: 1,
-        generation: 2,
-        byte_len: 4,
-    };
-    assert_eq!(operation.start(), OperationAction::Await);
-    assert_eq!(
-        operation.resume(OperationInput::Value {
-            port: PortId(3),
-            value
-        }),
-        OperationAction::Emit {
-            port: PortId(7),
-            value
-        }
-    );
-    assert_eq!(
-        operation.resume(OperationInput::Closed { port: PortId(3) }),
-        OperationAction::Complete
-    );
-}
-
 #[test]
 fn prebound_routes_never_broadcast_between_output_ports() {
     let mut routes = FixedRoutes::<4, 3>::new(2);
@@ -129,86 +71,45 @@ fn fixed_value_store_enforces_items_bytes_generation_and_fanout_references() {
 }
 
 #[test]
-fn host_operation_completion_is_correlated_and_byte_admitted() {
+fn only_plan_admitted_host_calls_cross_the_boundary() {
     let value = super::ValueRef {
         slot: 0,
         generation: 1,
         byte_len: 4,
     };
-    let bounded = BoundedValueRef::new(value, 4).unwrap();
-    let action = OperationAction::RequestHostOperation {
-        request: RequestId(9),
-        operation: HostOperationId(2),
-        input: bounded,
-    };
-    assert!(matches!(
-        action,
-        OperationAction::RequestHostOperation {
-            request: RequestId(9),
-            operation: HostOperationId(2),
-            ..
-        }
-    ));
-    let input = OperationInput::HostOperationCompleted {
-        request: RequestId(9),
-        outcome: HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
-            output: Some(bounded),
-            failure: None,
-        },
-    };
-    assert!(matches!(
-        input,
-        OperationInput::HostOperationCompleted {
-            request: RequestId(9),
-            ..
-        }
-    ));
-    assert!(BoundedValueRef::new(value, 3).is_err());
-}
-
-#[test]
-fn only_plan_admitted_host_operations_cross_the_boundary() {
-    let value = super::ValueRef {
-        slot: 0,
-        generation: 1,
-        byte_len: 4,
-    };
-    let mut bindings = FixedHostOperationBindings::<4>::new(2);
+    let mut bindings = FixedHostCallBindings::<4>::new(2);
     bindings
         .install(
             NodeId(1),
-            HostOperationBinding {
-                operation: HostOperationId(0),
+            HostCallBinding {
+                call: HostCallId(0),
                 maximum_input_bytes: 4,
                 maximum_output_bytes: 8,
             },
         )
         .unwrap();
     bindings.seal().unwrap();
-    let action = OperationAction::RequestHostOperation {
-        request: RequestId(7),
-        operation: HostOperationId(0),
-        input: BoundedValueRef::new(value, 4).unwrap(),
-    };
+    let input = BoundedValueRef::new(value, 4).unwrap();
     assert_eq!(
         bindings
-            .admit(NodeId(1), action)
+            .admit_request(NodeId(1), HostCallId(0), input)
             .unwrap()
             .maximum_output_bytes,
         8
     );
-    assert!(bindings.admit(NodeId(0), action).is_err());
+    assert!(bindings
+        .admit_request(NodeId(0), HostCallId(0), input)
+        .is_err());
 }
 
 #[test]
-fn admitted_sink_host_operation_may_have_no_output_payload() {
-    let mut bindings = FixedHostOperationBindings::<1>::new(1);
+fn admitted_sink_host_call_may_have_no_output_payload() {
+    let mut bindings = FixedHostCallBindings::<1>::new(1);
     bindings
         .install(
             NodeId(0),
-            HostOperationBinding {
-                operation: HostOperationId(0),
+            HostCallBinding {
+                call: HostCallId(0),
                 maximum_input_bytes: 8,
                 maximum_output_bytes: 0,
             },
@@ -216,22 +117,18 @@ fn admitted_sink_host_operation_may_have_no_output_payload() {
         .unwrap();
     bindings.seal().unwrap();
 
-    let action = OperationAction::RequestHostOperation {
-        request: RequestId(1),
-        operation: HostOperationId(0),
-        input: BoundedValueRef::new(
-            super::ValueRef {
-                slot: 0,
-                generation: 1,
-                byte_len: 4,
-            },
-            4,
-        )
-        .unwrap(),
-    };
+    let input = BoundedValueRef::new(
+        super::ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: 4,
+        },
+        4,
+    )
+    .unwrap();
     assert_eq!(
         bindings
-            .admit(NodeId(0), action)
+            .admit_request(NodeId(0), HostCallId(0), input)
             .unwrap()
             .maximum_output_bytes,
         0
@@ -239,35 +136,31 @@ fn admitted_sink_host_operation_may_have_no_output_payload() {
 }
 
 #[test]
-fn admitted_source_host_operation_may_have_no_input_payload() {
-    let mut bindings = FixedHostOperationBindings::<1>::new(1);
+fn admitted_source_host_call_may_have_no_input_payload() {
+    let mut bindings = FixedHostCallBindings::<1>::new(1);
     bindings
         .install(
             NodeId(0),
-            HostOperationBinding {
-                operation: HostOperationId(0),
+            HostCallBinding {
+                call: HostCallId(0),
                 maximum_input_bytes: 0,
                 maximum_output_bytes: 3,
             },
         )
         .unwrap();
     bindings.seal().unwrap();
-    let action = OperationAction::RequestHostOperation {
-        request: RequestId(1),
-        operation: HostOperationId(0),
-        input: BoundedValueRef::new(
-            super::ValueRef {
-                slot: 0,
-                generation: 1,
-                byte_len: 0,
-            },
-            0,
-        )
-        .unwrap(),
-    };
+    let input = BoundedValueRef::new(
+        super::ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: 0,
+        },
+        0,
+    )
+    .unwrap();
     assert_eq!(
         bindings
-            .admit(NodeId(0), action)
+            .admit_request(NodeId(0), HostCallId(0), input)
             .unwrap()
             .maximum_output_bytes,
         3
@@ -289,11 +182,11 @@ fn fixed_sign_has_independent_item_and_byte_budgets() {
         NodeId(1),
         None,
         Some(RequestId(2)),
-        KernelEventKind::HostOperationCompleted,
+        KernelEventKind::HostCallCompleted,
     )
     .unwrap();
     assert_eq!(
-        log.record(NodeId(2), None, None, KernelEventKind::OperationCompleted),
+        log.record(NodeId(2), None, None, KernelEventKind::BackCompleted),
         Err(SignError::ByteCapacityExceeded)
     );
     let mut events = log.events();
@@ -306,22 +199,17 @@ fn fixed_sign_has_independent_item_and_byte_budgets() {
 fn fixed_sign_evicts_transient_history_with_an_exact_gap_but_keeps_terminal_truth() {
     let charge = u32::try_from(core::mem::size_of::<KernelEvent>()).unwrap();
     let mut log = FixedSignLog::<3>::new(charge * 3).unwrap();
-    log.record(NodeId(0), None, None, KernelEventKind::OperationCompleted)
+    log.record(NodeId(0), None, None, KernelEventKind::BackCompleted)
         .unwrap();
     log.record(NodeId(1), None, None, KernelEventKind::ValueRouted)
         .unwrap();
     log.record(NodeId(2), None, None, KernelEventKind::ValueConsumed)
         .unwrap();
     let newest = log
-        .record(
-            NodeId(3),
-            None,
-            None,
-            KernelEventKind::HostOperationRequested,
-        )
+        .record(NodeId(3), None, None, KernelEventKind::HostCallRequested)
         .unwrap();
     assert_eq!(newest.sequence, 3);
-    assert!(log.contains_kind(KernelEventKind::OperationCompleted));
+    assert!(log.contains_kind(KernelEventKind::BackCompleted));
     assert_eq!(
         log.retention_gap(),
         Some(super::SignRetentionGap {
@@ -430,7 +318,7 @@ fn remote_sign_evicts_transient_history_but_preserves_remote_lifecycle_identity(
         })
     );
     assert_eq!(
-        log.record(NodeId(2), None, None, KernelEventKind::OperationCompleted),
+        log.record(NodeId(2), None, None, KernelEventKind::BackCompleted),
         Err(SignError::ItemCapacityExceeded)
     );
 }
@@ -459,7 +347,7 @@ fn hosted_and_fixed_value_profiles_produce_the_same_storage_vector() {
                 NodeId(1),
                 Some(PortId(2)),
                 Some(RequestId(3)),
-                KernelEventKind::HostOperationCompleted,
+                KernelEventKind::HostCallCompleted,
             )
             .unwrap();
         (sink.len(), sink.used_bytes(), event)

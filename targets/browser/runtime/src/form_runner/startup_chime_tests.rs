@@ -141,9 +141,9 @@ fn denied_and_unavailable_audio_remain_visible_while_keyboard_forms_continue() {
             == if denied { "denied" } else { "failed" }
             && record["failure_code"]
                 == if denied {
-                    "host_operation_denied"
+                    "host_call_denied"
                 } else {
-                    "host_operation_failed"
+                    "host_call_failed"
                 }
             && record["failure_detail"] == 1));
     }

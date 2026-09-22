@@ -5,8 +5,7 @@
 //! where one immutable Tongues recognition commit becomes a body user message.
 
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal,
+    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
 use std::{string::String, vec, vec::Vec};
@@ -51,7 +50,7 @@ pub enum StreamingRecognitionRefusal {
 pub fn streaming_speech_recognition_contract() -> SpeechRecognitionContract {
     SpeechRecognitionContract {
         kind_id: kind_id(STREAMING_SPEECH_RECOGNIZE_KIND),
-        kind_contract_revision: KindContractRevision::from(STREAMING_SPEECH_RECOGNIZE_REVISION),
+        kind_contract_revision: KindIdentity::from(STREAMING_SPEECH_RECOGNIZE_REVISION),
         inputs: vec![flow_port(
             "audio",
             conduit_audio::AUDIO_PCM_INFO_ID,
@@ -73,7 +72,7 @@ pub fn streaming_speech_recognition_contract() -> SpeechRecognitionContract {
 pub fn committed_recognition_turn_contract() -> SpeechRecognitionContract {
     SpeechRecognitionContract {
         kind_id: kind_id(COMMIT_RECOGNIZED_TURN_KIND),
-        kind_contract_revision: KindContractRevision::from(COMMIT_RECOGNIZED_TURN_REVISION),
+        kind_contract_revision: KindIdentity::from(COMMIT_RECOGNIZED_TURN_REVISION),
         inputs: vec![flow_port(
             "events",
             RECOGNITION_EVENT_VALUE_KIND,
@@ -96,7 +95,7 @@ pub fn committed_recognition_turn_contract() -> SpeechRecognitionContract {
 pub fn committed_turn_to_text_contract() -> SpeechRecognitionContract {
     SpeechRecognitionContract {
         kind_id: kind_id(COMMITTED_TURN_TO_TEXT_KIND),
-        kind_contract_revision: KindContractRevision::from(COMMITTED_TURN_TO_TEXT_REVISION),
+        kind_contract_revision: KindIdentity::from(COMMITTED_TURN_TO_TEXT_REVISION),
         inputs: vec![flow_port(
             "message",
             CHAT_MESSAGE_VALUE_KIND,

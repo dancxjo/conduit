@@ -219,9 +219,9 @@ mod tests {
         ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
         OfferGeneration, PROTOCOL_VERSION,
     };
-    use conduit_form::KindDefinition;
+    use conduit_form::KindProjection;
 
-    fn remote_offer(definition: &KindDefinition) -> CapabilityOffer {
+    fn remote_offer(definition: &KindProjection) -> CapabilityOffer {
         let slug = definition.kind_id.as_str().replace('/', "-");
         CapabilityOffer {
             startup_parameters: definition
@@ -235,6 +235,7 @@ mod tests {
                         ConfigurationValue::U64(_) => "value/count",
                         ConfigurationValue::Text(_) => "value/text",
                         ConfigurationValue::Structured(ref value) => value.profile().as_str(),
+                        ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
                     }),
                     has_default: true,
                 })
@@ -250,7 +251,7 @@ mod tests {
             },
             inputs: definition.inputs.clone(),
             outputs: definition.outputs.clone(),
-            host_operations: vec![],
+            host_calls: vec![],
             resource_requirements: vec![],
             authority_requirements: vec![],
             limits: CapabilityLimits {

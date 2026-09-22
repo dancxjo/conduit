@@ -74,7 +74,7 @@ fn portable_offer_is_finite_and_contains_no_source_or_provider_identity() {
         offer.outputs[0].value_kind.as_str(),
         "retrieval/source-chunks@1"
     );
-    assert_eq!(offer.host_operations.len(), 1);
+    assert_eq!(offer.host_calls.len(), 1);
     assert_eq!(offer.resource_requirements.len(), 1);
     assert_eq!(offer.authority_requirements.len(), 1);
     assert_eq!(

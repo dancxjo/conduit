@@ -2,13 +2,11 @@ use conduit_core::{ArtifactId, BaseImplementationId, CapabilityId, Implementatio
 use conduit_net::{
     browser_external_websocket_family, external_websocket_client_offer,
     external_websocket_listener_offer, std_external_websocket_family,
-    EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_OPERATION, EXTERNAL_WEBSOCKET_CLIENT_KIND,
-    EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_OPERATION,
-    EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_OPERATION,
-    EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_OPERATION,
-    EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_OPERATION, EXTERNAL_WEBSOCKET_LISTENER_KIND,
-    EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_OPERATION,
-    EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_OPERATION, MAXIMUM_EXTERNAL_WEBSOCKET_PEERS,
+    EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_CALL, EXTERNAL_WEBSOCKET_CLIENT_KIND,
+    EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_CALL, EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_CALL,
+    EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_CALL, EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_CALL,
+    EXTERNAL_WEBSOCKET_LISTENER_KIND, EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_CALL,
+    EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_CALL, MAXIMUM_EXTERNAL_WEBSOCKET_PEERS,
     MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_BYTES, MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_ITEMS,
 };
 
@@ -53,37 +51,37 @@ fn external_websocket_fronts_are_exact_finite_and_host_specific() {
             MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_BYTES
         );
         assert!(offer
-            .host_operations
+            .host_calls
             .iter()
             .all(|operation| operation.maximum_in_flight == 1));
     }
     assert_eq!(
-        client.host_operations[0].contract_id.as_str(),
-        EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_OPERATION
+        client.host_calls[0].contract_id.as_str(),
+        EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_CALL
     );
     assert_eq!(
-        client.host_operations[1].contract_id.as_str(),
-        EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_OPERATION
+        client.host_calls[1].contract_id.as_str(),
+        EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_CALL
     );
     assert_eq!(
-        client.host_operations[2].contract_id.as_str(),
-        EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_OPERATION
+        client.host_calls[2].contract_id.as_str(),
+        EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_CALL
     );
     assert_eq!(
-        client.host_operations[3].contract_id.as_str(),
-        EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_OPERATION
+        client.host_calls[3].contract_id.as_str(),
+        EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_CALL
     );
     assert_eq!(
-        listener.host_operations[0].contract_id.as_str(),
-        EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_OPERATION
+        listener.host_calls[0].contract_id.as_str(),
+        EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_CALL
     );
     assert_eq!(
-        listener.host_operations[1].contract_id.as_str(),
-        EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_OPERATION
+        listener.host_calls[1].contract_id.as_str(),
+        EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_CALL
     );
     assert_eq!(
-        listener.host_operations[2].contract_id.as_str(),
-        EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_OPERATION
+        listener.host_calls[2].contract_id.as_str(),
+        EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_CALL
     );
 
     let browser = browser_external_websocket_family();
@@ -108,7 +106,7 @@ fn external_websocket_compatibility_is_the_checked_front_not_the_nominal_kind() 
     let mut renamed = client.clone();
     renamed.kind_id = conduit_core::kind_id("example/renamed-websocket-client");
     renamed.kind_contract_revision =
-        conduit_core::KindContractRevision::from("example/renamed-websocket-client@9");
+        conduit_core::KindIdentity::from("example/renamed-websocket-client@9");
     assert_eq!(renamed.checked_front(), client.checked_front());
 
     let mut generic_duplex_bytes = client.clone();

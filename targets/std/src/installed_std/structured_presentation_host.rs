@@ -5,7 +5,7 @@ use conduit_core::{
     Observation, ObservationKind, PlacementId, PlanFragment, PresentationId, ValuePayload,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_kernel::{scheduler::HostOperationRequest, NodeId};
+use conduit_kernel::{scheduler::HostCallRequest, NodeId};
 use conduit_plan_lowering::lowering::{KernelExecutionIdentityMap, KernelIdentityMap};
 
 struct CaptureSlot {
@@ -13,12 +13,12 @@ struct CaptureSlot {
     placement_id: PlacementId,
     connection_id: ConnectionId,
     value_kind: KindId,
-    request: Option<HostOperationRequest>,
+    request: Option<HostCallRequest>,
     encoded: Vec<u8>,
 }
 
 pub(super) struct CapturedStructuredPresentation {
-    pub(super) request: HostOperationRequest,
+    pub(super) request: HostCallRequest,
     pub(super) placement_id: PlacementId,
     pub(super) connection_id: ConnectionId,
     pub(super) value_kind: KindId,
@@ -77,11 +77,7 @@ impl StructuredPresentationHost {
         Ok(Self { slots })
     }
 
-    pub(super) fn capture(
-        &mut self,
-        request: HostOperationRequest,
-        input: &[u8],
-    ) -> Result<(), String> {
+    pub(super) fn capture(&mut self, request: HostCallRequest, input: &[u8]) -> Result<(), String> {
         let slot = self
             .slots
             .iter_mut()

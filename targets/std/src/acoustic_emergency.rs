@@ -1,6 +1,6 @@
 //! Out-of-band acoustic emergency admission for the std Host.
 //!
-//! The ordinary keyword gear remains inert. This Host-owned adapter is the
+//! The ordinary keyword gear remains inert. This host-owned adapter is the
 //! narrow composition point that can turn exact validated microphone frames
 //! into a one-shot authority-reduction request.
 
@@ -86,7 +86,7 @@ pub enum AcousticEmergencyDecision {
 ///
 /// This type has no Form, Plan, Play, transcript, model, Wake, grant, or resume
 /// input. Replacing the microphone provider requires constructing a fresh
-/// adapter against current Host truth.
+/// adapter against current host truth.
 pub struct AcousticEmergencyAdapter {
     body_id: BodyId,
     host_id: HostId,
@@ -167,7 +167,7 @@ impl AcousticEmergencyAdapter {
         self.generation
     }
 
-    /// Consumes one frame only after the Host has validated its exact provider.
+    /// Consumes one frame only after the host has validated its exact provider.
     pub fn observe_validated_frame(
         &mut self,
         provider_id: &str,

@@ -63,7 +63,7 @@ canonical form/back expansion
 -> exact planning
 -> lowering and preparation
 -> production conduit-kernel execution
--> admitted host operations and resources
+-> admitted Host Calls and resources
 -> bounded signs
 ```
 

@@ -3,19 +3,15 @@
 use alloc::{boxed::Box, vec::Vec};
 use conduit_core::{ConfigurationValue, PlanFragment};
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, KernelEvent, SignSink, ValueRef, ValueStorage,
-    scheduler::{
-        FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
-    },
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallOutcome, KernelEvent, SignSink, ValueRef, ValueStorage,
+    scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
 use crate::{
-    text_kernel_operations::{LiteralOperation, LiteralState},
-    tour_morse_operations::{
-        IndicatorOperation, LeafOperation, MorseOperation, TourMorseOperation,
-    },
+    text_kernel_backs::{LiteralBack, LiteralState},
+    tour_morse_backs::{IndicatorBack, LeafBack, MorseBack, TourMorseBack},
 };
 
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -29,7 +25,7 @@ const MAX_VALUE_BYTES: usize = conduit_text::MAXIMUM_MORSE_PATTERN_BYTES;
 const VALUE_BUDGET: usize = MAX_VALUE_BYTES * 8;
 const SIGN_CAPACITY: usize = 80;
 
-type Driver = OperationDriver<TourMorseOperation, PORTS>;
+type Driver = TourMorseBack;
 type Scheduler<const N: usize, const C: usize> = FixedScheduler<
     Driver,
     FixedValueStore<VALUE_SLOTS, MAX_VALUE_BYTES>,
@@ -85,7 +81,7 @@ impl ComparisonKernel {
         delegate!(self, kernel => kernel.scheduler.step())
     }
 
-    pub fn next_host_request(&mut self) -> Option<HostOperationRequest> {
+    pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
         delegate!(self, kernel => kernel.scheduler.next_host_request())
     }
 
@@ -93,25 +89,25 @@ impl ComparisonKernel {
         delegate!(self, kernel => kernel.scheduler.host_value(value))
     }
 
-    pub fn request_kind(&self, request: &HostOperationRequest) -> ComparisonNodeKind {
+    pub fn request_kind(&self, request: &HostCallRequest) -> ComparisonNodeKind {
         delegate!(self, kernel => kernel.kinds[usize::from(request.node.0)])
     }
 
     pub fn complete_value(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         output: &[u8],
         maximum: u32,
     ) -> Result<(), SchedulerError> {
         delegate!(self, kernel => {
             let value = kernel.scheduler.store_host_value(output)?;
             let output = BoundedValueRef::new(value, maximum)
-                .map_err(|_| SchedulerError::InvalidHostOperationAccess)?;
-            kernel.scheduler.complete_host_operation(
+                .map_err(|_| SchedulerError::InvalidHostCallAccess)?;
+            kernel.scheduler.complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(output),
                     failure: None,
                 },
@@ -121,13 +117,13 @@ impl ComparisonKernel {
 
     pub fn complete_presentation(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
     ) -> Result<(), SchedulerError> {
-        delegate!(self, kernel => kernel.scheduler.complete_host_operation(
+        delegate!(self, kernel => kernel.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -142,8 +138,8 @@ impl ComparisonKernel {
         delegate!(self, kernel => kernel.scheduler.signs().len())
     }
 
-    pub fn pending_host_operations(&self) -> usize {
-        delegate!(self, kernel => kernel.scheduler.pending_host_operation_count())
+    pub fn pending_host_calls(&self) -> usize {
+        delegate!(self, kernel => kernel.scheduler.pending_host_call_count())
     }
 }
 
@@ -174,9 +170,9 @@ impl<const N: usize, const C: usize> BoxedKernel<N, C> {
         let mut drivers = Vec::with_capacity(N);
         let mut kinds = Vec::with_capacity(N);
         for placement in &fragment.placements {
-            let (kind, operation) = operation(placement, &mut values)?;
+            let (kind, back) = back(placement, &mut values)?;
             kinds.push(kind);
-            drivers.push(OperationDriver::new(operation)?);
+            drivers.push(back);
         }
         let drivers: [Driver; N] = drivers
             .try_into()
@@ -205,15 +201,15 @@ impl<const N: usize, const C: usize> BoxedKernel<N, C> {
             )?;
         }
         routes.seal()?;
-        let mut bindings = FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(N as u16);
-        for host_operation in &lowered.host_operations {
-            bindings.install(host_operation.node, host_operation.binding)?;
+        let mut bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(N as u16);
+        for host_call in &lowered.host_calls {
+            bindings.install(host_call.node, host_call.binding)?;
         }
         bindings.seal()?;
         let minimum_sign_bytes = (SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32;
         let signs = FixedSignLog::<SIGN_CAPACITY>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;
         Ok(Self {
-            scheduler: FixedScheduler::new_with_host_operations(
+            scheduler: FixedScheduler::new_with_host_calls(
                 nodes, cords, routes, bindings, drivers, values, signs,
             )?,
             kinds,
@@ -221,18 +217,18 @@ impl<const N: usize, const C: usize> BoxedKernel<N, C> {
     }
 }
 
-fn operation(
+fn back(
     placement: &conduit_core::PlannedGear,
     values: &mut FixedValueStore<VALUE_SLOTS, MAX_VALUE_BYTES>,
-) -> Result<(ComparisonNodeKind, TourMorseOperation), SchedulerError> {
-    let (kind, expected_implementation, operation) = match placement.kind_id.as_str() {
+) -> Result<(ComparisonNodeKind, TourMorseBack), SchedulerError> {
+    let (kind, expected_implementation, back) = match placement.kind_id.as_str() {
         conduit_text::TEXT_LITERAL_KIND => {
             let literal = configured_text(&placement.configuration, "value")?;
             let text = values.store(literal.as_bytes())?;
             (
                 ComparisonNodeKind::Literal,
                 crate::offer::TEXT_LITERAL_IMPLEMENTATION,
-                TourMorseOperation::Literal(LiteralOperation {
+                TourMorseBack::Literal(LiteralBack {
                     text,
                     state: LiteralState::Emitting,
                 }),
@@ -277,7 +273,7 @@ fn operation(
         conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND => (
             ComparisonNodeKind::Indicator,
             crate::offer::INDICATOR_PRESENTATION_IMPLEMENTATION,
-            TourMorseOperation::Indicator(IndicatorOperation {
+            TourMorseBack::Indicator(IndicatorBack {
                 pending: false,
                 complete: false,
             }),
@@ -287,7 +283,7 @@ fn operation(
     if placement.implementation_id.as_str() != expected_implementation {
         return Err(SchedulerError::InvalidPlan);
     }
-    Ok((kind, operation))
+    Ok((kind, back))
 }
 
 fn leaf(
@@ -295,20 +291,20 @@ fn leaf(
     implementation: &'static str,
     maximum_input_bytes: u32,
     direct: bool,
-) -> (ComparisonNodeKind, &'static str, TourMorseOperation) {
-    let operation = if direct {
-        TourMorseOperation::Morse(MorseOperation {
+) -> (ComparisonNodeKind, &'static str, TourMorseBack) {
+    let back = if direct {
+        TourMorseBack::Morse(MorseBack {
             pending: false,
             emitted: false,
         })
     } else {
-        TourMorseOperation::Leaf(LeafOperation {
+        TourMorseBack::Leaf(LeafBack {
             maximum_input_bytes,
             pending: false,
             emitted: false,
         })
     };
-    (kind, implementation, operation)
+    (kind, implementation, back)
 }
 
 fn configured_text<'a>(

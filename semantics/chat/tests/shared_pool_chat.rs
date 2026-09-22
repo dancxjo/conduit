@@ -19,7 +19,7 @@ fn shared_pool_offers_keep_exact_bounded_semantics() {
         assert_eq!(offer.limits.max_queue_bytes, 8_192);
     }
     assert!(offers.iter().all(|offer| {
-        offer.host_operations.is_empty()
+        offer.host_calls.is_empty()
             && offer.resource_requirements.is_empty()
             && offer.authority_requirements.is_empty()
     }));

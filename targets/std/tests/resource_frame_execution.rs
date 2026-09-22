@@ -1,17 +1,17 @@
 #[path = "resource_common/execution.rs"]
 mod execution;
 use conduit_core::*;
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
+use conduit_kernel::scheduler::{FixedScheduler, SchedulerStatus};
 use conduit_kernel::{
-    FixedHostOperationBindings, FixedRoutes, HostOperationDisposition, HostOperationOutcome,
-    HostedSignLog, HostedValueStore, KernelEvent, ValueStorage,
+    FixedHostCallBindings, FixedRoutes, HostCallDisposition, HostCallOutcome, HostedSignLog,
+    HostedValueStore, KernelEvent, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::proof::resource_frame::*;
 use conduit_std_host::hosted_resource::HostedResourceGeneration;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 type Scheduler = FixedScheduler<
-    OperationDriver<execution::FrameOperation, PORTS>,
+    execution::FrameBack,
     HostedValueStore,
     HostedSignLog,
     4,
@@ -159,40 +159,37 @@ fn execute(copy: bool) -> (Vec<u64>, u16) {
             .unwrap();
     }
     routes.seal().unwrap();
-    let mut host = FixedHostOperationBindings::<4>::new(1);
-    for operation in &lowered.host_operations {
+    let mut host = FixedHostCallBindings::<4>::new(1);
+    for operation in &lowered.host_calls {
         host.install(operation.node, operation.binding).unwrap();
     }
     host.seal().unwrap();
     let drivers = lowered
         .nodes
         .iter()
-        .map(|node| {
-            OperationDriver::new(execution::FrameOperation {
-                input: node.inputs.first().map(|p| p.port),
-                output: node.outputs.first().map(|p| {
-                    (
-                        p.port,
-                        if p.value_kind == kind_id(RESOURCE_REFERENCE_INFO_ID)
-                            && node.inputs.is_empty()
-                        {
-                            input_value
-                        } else {
-                            output_value
-                        },
-                    )
-                }),
-                operation: lowered
-                    .host_operations
-                    .iter()
-                    .find(|o| o.node == node.node)
-                    .map(|o| o.binding.operation),
-            })
-            .unwrap()
+        .map(|node| execution::FrameBack {
+            input: node.inputs.first().map(|p| p.port),
+            output: node.outputs.first().map(|p| {
+                (
+                    p.port,
+                    if p.value_kind == kind_id(RESOURCE_REFERENCE_INFO_ID) && node.inputs.is_empty()
+                    {
+                        input_value
+                    } else {
+                        output_value
+                    },
+                )
+            }),
+            host_call: lowered
+                .host_calls
+                .iter()
+                .find(|o| o.node == node.node)
+                .map(|o| o.binding.call),
+            pending: false,
         })
         .collect::<Vec<_>>();
     let signs = HostedSignLog::new(256, 256 * std::mem::size_of::<KernelEvent>() as u32).unwrap();
-    let mut scheduler = Scheduler::new_with_host_operations(
+    let mut scheduler = Scheduler::new_with_host_calls(
         lowered.node_specs.clone().try_into().ok().unwrap(),
         lowered
             .cords
@@ -224,10 +221,7 @@ fn execute(copy: bool) -> (Vec<u64>, u16) {
                 .unwrap();
             let received = scheduler.host_value(request.input.value).unwrap();
             let authority = &placement.authority[0];
-            assert_eq!(
-                authority.host_operation_contract_id.as_str(),
-                FRAME_OPERATION
-            );
+            assert_eq!(authority.host_call_contract_id.as_str(), FRAME_OPERATION);
             if placement.kind_id.as_str() == "frame/compose" {
                 assert_eq!(received, input_encoding);
                 let lease = input.acquire(&authority.grant_id).unwrap();
@@ -254,11 +248,11 @@ fn execute(copy: bool) -> (Vec<u64>, u16) {
                 output.release(lease).unwrap();
             }
             scheduler
-                .complete_host_operation(
+                .complete_host_call(
                     request.node,
                     request.request,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: None,
                         failure: None,
                     },
@@ -268,7 +262,7 @@ fn execute(copy: bool) -> (Vec<u64>, u16) {
     }
     assert!(complete);
     assert_eq!(checksums.len(), 2);
-    assert_eq!(scheduler.pending_host_operation_count(), 0);
+    assert_eq!(scheduler.pending_host_call_count(), 0);
     let residencies = output.payload_residencies() + copies.len() as u16;
     output.retire(&writer).unwrap();
     for placement in &fragment.placements {

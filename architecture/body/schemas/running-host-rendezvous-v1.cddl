@@ -33,6 +33,7 @@ line-family =
   / 1                           ; end-to-end authenticated Conduit Line
   / 2                           ; local loopback WebSocket only
   / 3                           ; attended serial
+  / 4                           ; WebRTC DataChannel with bounded ICE bootstrap
 
 bounded-text = text .size (1..256)
 extension = bytes .size (0..64)

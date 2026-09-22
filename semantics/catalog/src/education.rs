@@ -60,7 +60,7 @@ pub fn education_hint_type() -> StructuredInfoType {
 }
 
 pub fn education_hints_type() -> StructuredInfoType {
-    StructuredInfoType::collection(education_hint_type(), Some(MAXIMUM_EDUCATION_HINTS))
+    StructuredInfoType::sequence(education_hint_type(), MAXIMUM_EDUCATION_HINTS)
         .expect("bounded education hints")
 }
 

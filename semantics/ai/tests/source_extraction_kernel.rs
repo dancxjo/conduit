@@ -10,19 +10,19 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver, SchedulerStatus,
+        CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerStatus, StepBack,
+        StepInputBytes, StepIo, StepOutcome,
     },
-    BoundedValueRef, CordEndpoint, CordId, Failure, FailureCode, FixedHostOperationBindings,
-    FixedRoutes, HostOperationBinding, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEvent, NodeId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget, SignSink,
+    BoundedValueRef, CordEndpoint, CordId, Failure, FailureCode, FixedHostCallBindings,
+    FixedRoutes, HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog,
+    HostedValueStore, KernelEvent, NodeId, PortId, RequestId, RouteRange, RouteTarget, SignSink,
     ValueRef, ValueStorage,
 };
 
 const SOURCE_NODE: NodeId = NodeId(0);
 const EXTRACTION_NODE: NodeId = NodeId(1);
 const SINK_NODE: NodeId = NodeId(2);
-const OPERATION: HostOperationId = HostOperationId(0);
+const OPERATION: HostCallId = HostCallId(0);
 const REQUEST: RequestId = RequestId(1);
 const MAX_VALUE_BYTES: u32 = 4096;
 
@@ -32,125 +32,14 @@ struct SourceOperation {
     emitted: bool,
 }
 
-impl Operation for SourceOperation {
-    fn start(&mut self) -> OperationAction {
-        self.emitted = true;
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.value,
-        }
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        invalid(1)
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            self.emitted = false;
-            OperationAction::Complete
-        } else {
-            invalid(2)
-        }
-    }
-}
-
 #[derive(Clone, Copy)]
 struct ExtractionOperation {
     pending: bool,
     emitted: bool,
 }
 
-impl Operation for ExtractionOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostOperationCompleted { outcome, .. }
-                if outcome.disposition == HostOperationDisposition::Failed
-                    && outcome.failure.is_some() =>
-            {
-                self.pending = false;
-                OperationAction::Fail(outcome.failure.expect("guarded failure"))
-            }
-            _ => invalid(3),
-        }
-    }
-
-    fn resume_value(&mut self, port: PortId, value: ValueRef, bytes: &[u8]) -> OperationAction {
-        if port != PortId(0) || self.pending || BoundedResourceRef::decode(bytes).is_err() {
-            return invalid(4);
-        }
-        self.pending = true;
-        OperationAction::RequestHostOperation {
-            request: REQUEST,
-            operation: OPERATION,
-            input: BoundedValueRef::new(
-                value,
-                conduit_core::MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES as u32,
-            )
-            .expect("resource reference fits its portable bound"),
-        }
-    }
-
-    fn resume_host_operation(
-        &mut self,
-        request: RequestId,
-        outcome: HostOperationOutcome,
-        canonical: Option<&[u8]>,
-    ) -> OperationAction {
-        if request != REQUEST || !self.pending {
-            return invalid(5);
-        }
-        if outcome.disposition != HostOperationDisposition::Completed || outcome.failure.is_some() {
-            return self.resume(OperationInput::HostOperationCompleted { request, outcome });
-        }
-        let (Some(output), Some(bytes)) = (outcome.output, canonical) else {
-            return invalid(6);
-        };
-        if SourceExtractionReceipt::decode(bytes).is_err() {
-            return invalid(7);
-        }
-        self.pending = false;
-        self.emitted = true;
-        OperationAction::Emit {
-            port: PortId(0),
-            value: output.value,
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            self.emitted = false;
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
-        }
-    }
-}
-
 #[derive(Clone, Copy)]
 struct SinkOperation;
-
-impl Operation for SinkOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        invalid(8)
-    }
-
-    fn resume_value(&mut self, port: PortId, _value: ValueRef, bytes: &[u8]) -> OperationAction {
-        if port == PortId(0) && SourceExtractionReceipt::decode(bytes).is_ok() {
-            OperationAction::Complete
-        } else {
-            invalid(9)
-        }
-    }
-}
 
 #[derive(Clone, Copy)]
 enum TestOperation {
@@ -159,63 +48,101 @@ enum TestOperation {
     Sink(SinkOperation),
 }
 
-impl Operation for TestOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepBack<1> for TestOperation {
+    fn step(&mut self, io: &mut StepIo<1>, bytes: &StepInputBytes<'_, 1>) -> StepOutcome {
         match self {
-            Self::Source(value) => value.start(),
-            Self::Extract(value) => value.start(),
-            Self::Sink(value) => value.start(),
-        }
-    }
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Source(value) => value.resume(input),
-            Self::Extract(value) => value.resume(input),
-            Self::Sink(value) => value.resume(input),
-        }
-    }
-    fn resume_value(&mut self, port: PortId, value: ValueRef, bytes: &[u8]) -> OperationAction {
-        match self {
-            Self::Source(operation) => operation.resume_value(port, value, bytes),
-            Self::Extract(operation) => operation.resume_value(port, value, bytes),
-            Self::Sink(operation) => operation.resume_value(port, value, bytes),
-        }
-    }
-    fn resume_host_operation(
-        &mut self,
-        request: RequestId,
-        outcome: HostOperationOutcome,
-        canonical: Option<&[u8]>,
-    ) -> OperationAction {
-        match self {
-            Self::Extract(operation) => {
-                operation.resume_host_operation(request, outcome, canonical)
+            Self::Source(operation) => {
+                if operation.emitted {
+                    return StepOutcome::Complete;
+                }
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                io.send(PortId(0), operation.value).unwrap();
+                operation.emitted = true;
+                StepOutcome::Complete
             }
-            _ => invalid(10),
-        }
-    }
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source(value) => value.advance(),
-            Self::Extract(value) => value.advance(),
-            Self::Sink(value) => value.advance(),
+            Self::Extract(operation) => {
+                if let Some((request, outcome)) = io.host_completion() {
+                    if request != REQUEST || !operation.pending {
+                        return invalid(5);
+                    }
+                    if outcome.disposition == HostCallDisposition::Failed {
+                        let Some(failure) = outcome.failure else {
+                            return invalid(3);
+                        };
+                        if outcome.output.is_some() || io.consume_host_completion().is_err() {
+                            return invalid(3);
+                        }
+                        operation.pending = false;
+                        return StepOutcome::Fail(failure);
+                    }
+                    if outcome.disposition != HostCallDisposition::Completed
+                        || outcome.failure.is_some()
+                    {
+                        return invalid(3);
+                    }
+                    let (Some(output), Some(canonical)) = (outcome.output, bytes.host_output())
+                    else {
+                        return invalid(6);
+                    };
+                    if SourceExtractionReceipt::decode(canonical).is_err() {
+                        return invalid(7);
+                    }
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion().unwrap();
+                    io.send(PortId(0), output.value).unwrap();
+                    operation.pending = false;
+                    operation.emitted = true;
+                    return StepOutcome::Complete;
+                }
+                if operation.emitted {
+                    return StepOutcome::Complete;
+                }
+                if operation.pending {
+                    return StepOutcome::Await;
+                }
+                let Some(value) = io.input(PortId(0)) else {
+                    return StepOutcome::Await;
+                };
+                let Some(canonical) = bytes.input(PortId(0)) else {
+                    return invalid(4);
+                };
+                if BoundedResourceRef::decode(canonical).is_err() {
+                    return invalid(4);
+                }
+                io.consume(PortId(0)).unwrap();
+                io.request_host_call(
+                    REQUEST,
+                    OPERATION,
+                    BoundedValueRef::new(
+                        value,
+                        conduit_core::MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES as u32,
+                    )
+                    .expect("resource reference fits its portable bound"),
+                )
+                .unwrap();
+                operation.pending = true;
+                StepOutcome::Progress
+            }
+            Self::Sink(_) => {
+                let Some(canonical) = bytes.input(PortId(0)) else {
+                    return StepOutcome::Await;
+                };
+                if SourceExtractionReceipt::decode(canonical).is_err() {
+                    return invalid(9);
+                }
+                io.consume(PortId(0)).unwrap();
+                StepOutcome::Complete
+            }
         }
     }
 }
 
-type Scheduler = FixedScheduler<
-    OperationDriver<TestOperation, 1>,
-    HostedValueStore,
-    HostedSignLog,
-    3,
-    2,
-    1,
-    2,
-    2,
-    2,
-    3,
-    1,
->;
+type Scheduler =
+    FixedScheduler<TestOperation, HostedValueStore, HostedSignLog, 3, 2, 1, 2, 2, 2, 3, 1>;
 
 fn source() -> SourceRef {
     SourceRef {
@@ -280,12 +207,12 @@ fn scheduler(source: &SourceRef) -> Scheduler {
         )
         .unwrap();
     routes.seal().unwrap();
-    let mut operations = FixedHostOperationBindings::<3>::new(1);
+    let mut operations = FixedHostCallBindings::<3>::new(1);
     operations
         .install(
             EXTRACTION_NODE,
-            HostOperationBinding {
-                operation: OPERATION,
+            HostCallBinding {
+                call: OPERATION,
                 maximum_input_bytes: conduit_core::MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES as u32,
                 maximum_output_bytes: MAX_VALUE_BYTES,
             },
@@ -293,19 +220,19 @@ fn scheduler(source: &SourceRef) -> Scheduler {
         .unwrap();
     operations.seal().unwrap();
     let signs = HostedSignLog::new(64, (64 * core::mem::size_of::<KernelEvent>()) as u32).unwrap();
-    FixedScheduler::new_with_host_operations(
+    FixedScheduler::new_with_host_calls(
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [Some(CordId(1))],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
         ],
         [
@@ -335,17 +262,15 @@ fn scheduler(source: &SourceRef) -> Scheduler {
         routes,
         operations,
         [
-            OperationDriver::new(TestOperation::Source(SourceOperation {
+            TestOperation::Source(SourceOperation {
                 value: source_value,
                 emitted: false,
-            }))
-            .unwrap(),
-            OperationDriver::new(TestOperation::Extract(ExtractionOperation {
+            }),
+            TestOperation::Extract(ExtractionOperation {
                 pending: false,
                 emitted: false,
-            }))
-            .unwrap(),
-            OperationDriver::new(TestOperation::Sink(SinkOperation)).unwrap(),
+            }),
+            TestOperation::Sink(SinkOperation),
         ],
         values,
         signs,
@@ -353,7 +278,7 @@ fn scheduler(source: &SourceRef) -> Scheduler {
     .unwrap()
 }
 
-fn next_request(scheduler: &mut Scheduler) -> conduit_kernel::scheduler::HostOperationRequest {
+fn next_request(scheduler: &mut Scheduler) -> conduit_kernel::scheduler::HostCallRequest {
     for _ in 0..32 {
         if let Some(request) = scheduler.next_host_request() {
             return request;
@@ -402,11 +327,11 @@ fn admitted_source_executes_through_the_production_kernel() {
     let encoded = receipt.encode().unwrap();
     let output = scheduler.store_host_value(&encoded).unwrap();
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(BoundedValueRef::new(output, MAX_VALUE_BYTES).unwrap()),
                 failure: None,
             },
@@ -421,14 +346,14 @@ fn provider_loss_cancellation_and_pressure_remain_distinct_kernel_terminals() {
     let source = source();
     let mut lost = scheduler(&source);
     let request = next_request(&mut lost);
-    lost.complete_host_operation(
+    lost.complete_host_call(
         request.node,
         request.request,
-        HostOperationOutcome {
-            disposition: HostOperationDisposition::Failed,
+        HostCallOutcome {
+            disposition: HostCallDisposition::Failed,
             output: None,
             failure: Some(Failure {
-                code: FailureCode::HostOperationFailed,
+                code: FailureCode::HostCallFailed,
                 detail: 1,
             }),
         },
@@ -436,9 +361,9 @@ fn provider_loss_cancellation_and_pressure_remain_distinct_kernel_terminals() {
     .unwrap();
     assert_eq!(
         lost.run(32),
-        Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(
+        Err(conduit_kernel::scheduler::SchedulerError::BackFailed(
             conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::HostOperationFailed,
+                code: conduit_kernel::FailureCode::HostCallFailed,
                 detail: 1
             }
         ))
@@ -457,11 +382,11 @@ fn provider_loss_cancellation_and_pressure_remain_distinct_kernel_terminals() {
     let oversized = vec![0_u8; MAX_VALUE_BYTES as usize + 1];
     assert!(pressured.store_host_value(&oversized).is_err());
     pressured
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(Failure {
                     code: FailureCode::StorageExhausted,
@@ -472,7 +397,7 @@ fn provider_loss_cancellation_and_pressure_remain_distinct_kernel_terminals() {
         .unwrap();
     assert_eq!(
         pressured.run(32),
-        Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(
+        Err(conduit_kernel::scheduler::SchedulerError::BackFailed(
             conduit_kernel::Failure {
                 code: conduit_kernel::FailureCode::StorageExhausted,
                 detail: 2
@@ -481,8 +406,8 @@ fn provider_loss_cancellation_and_pressure_remain_distinct_kernel_terminals() {
     );
 }
 
-const fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
+const fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::InvalidLifecycle,
         detail,
     })

@@ -17,11 +17,11 @@ async function stageRedirects(root, entrance) {
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Redirecting to your Body</title>
+  <title>Redirecting to your body</title>
   <script>location.replace(${JSON.stringify(target)} + location.search + location.hash);</script>
   <meta http-equiv="refresh" content="0; url=${target}">
 </head>
-<body><p>Redirecting to <a href="${target}">your Body</a>.</p></body>
+<body><p>Redirecting to <a href="${target}">your body</a>.</p></body>
 </html>
 `);
   }

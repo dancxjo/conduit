@@ -1,28 +1,27 @@
 //! Exact finite timed-pattern realization offers owned by the hosted std Host.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostCallContractId, HostCallRequirement, ImplementationId, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const ORDERED_EVENT_INTERVALS_STD_PROFILE: &str = "std/ordered-event-intervals-kernel-hosted@1";
 pub const ORDERED_EVENT_INTERVALS_STD_IMPLEMENTATION: &str = "std/kernel-ordered-event-intervals@1";
 pub const ORDERED_EVENT_INTERVALS_STD_ARTIFACT: &str = "conduit-std-host/ordered-event-intervals@1";
-pub const ORDERED_EVENT_INTERVALS_HOST_OPERATION: &str = "conduit.host/ordered-event-intervals@1";
+pub const ORDERED_EVENT_INTERVALS_HOST_CALL: &str = "conduit.host/ordered-event-intervals@1";
 
 pub fn ordered_event_intervals_std_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::ordered_event_intervals_semantic_contract();
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("ordered-event-intervals"),
             execution_profile_id: ExecutionProfileId::from(ORDERED_EVENT_INTERVALS_STD_PROFILE),
             implementation_id: ImplementationId::from(ORDERED_EVENT_INTERVALS_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ORDERED_EVENT_INTERVALS_STD_ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(ORDERED_EVENT_INTERVALS_HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(ORDERED_EVENT_INTERVALS_HOST_CALL),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,

@@ -32,7 +32,7 @@ impl ProposalGate {
             return Err(ProposalGateError::InvalidEffectReceipt);
         };
         if plan_id != &request.plan_id
-            || presentation_kind != &request.operation_kind
+            || presentation_kind != &request.back_kind
             || observation.plan_id.as_ref() != Some(plan_id)
             || observation.placement_id.as_ref() != Some(placement_id)
             || observation.presentation_id.as_ref() != Some(presentation_id)

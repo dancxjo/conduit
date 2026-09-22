@@ -15,8 +15,7 @@ use crate::PortableKindContract;
 use alloc::string::ToString;
 use alloc::vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal,
+    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const HTTP_CLIENT_KIND: &str = "http/client";
@@ -33,7 +32,7 @@ pub fn http_client_semantics() -> PortableKindContract {
         .expect("finite HTTP response profile");
     PortableKindContract {
         kind_id: kind_id(HTTP_CLIENT_KIND),
-        kind_contract_revision: KindContractRevision::from(HTTP_CLIENT_REVISION),
+        kind_contract_revision: KindIdentity::from(HTTP_CLIENT_REVISION),
         inputs: vec![port(
             "request",
             request.value_kind().as_str(),
@@ -59,7 +58,7 @@ pub fn http_server_semantics() -> PortableKindContract {
     let client = http_client_semantics();
     PortableKindContract {
         kind_id: kind_id(HTTP_SERVER_KIND),
-        kind_contract_revision: KindContractRevision::from(HTTP_SERVER_REVISION),
+        kind_contract_revision: KindIdentity::from(HTTP_SERVER_REVISION),
         inputs: vec![port(
             "response",
             client.outputs[0].value_kind.as_str(),
@@ -112,19 +111,19 @@ fn install<const N: usize>(
     contracts: [PortableKindContract; N],
 ) -> Result<(), alloc::string::String> {
     use alloc::vec::Vec;
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
     for contract in contracts {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
             startup_parameters: Vec::new(),
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,
                 outputs: contract.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|error| error.to_string())?;
     }

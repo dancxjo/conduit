@@ -21,9 +21,9 @@ fn ordinary_form_runs_shared_bounded_json_through_the_production_kernel() {
             .expect("JSON operation is placed");
         assert!(placement.authority.is_empty());
         assert!(placement.resources.is_empty());
-        assert_eq!(placement.host_operations.len(), 1);
+        assert_eq!(placement.host_calls.len(), 1);
         assert_eq!(
-            placement.host_operations[0].maximum_input_bytes,
+            placement.host_calls[0].maximum_input_bytes,
             conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32
         );
     }

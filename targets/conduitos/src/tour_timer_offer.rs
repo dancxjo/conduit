@@ -14,7 +14,7 @@ pub(super) fn every(build_id: &str) -> CapabilityOffer<'_> {
         contract_revision: conduit_time::TIME_EVERY_CONTRACT_REVISION,
         implementation: TIME_EVERY_IMPLEMENTATION,
         artifact_build: build_id,
-        host_operation: Some("conduit.host/wait@1"),
+        host_call: Some("conduit.host/wait@1"),
         required_base: BaseKind::Timer,
         secondary_base: Some(BaseKind::Clock),
         input: None,
@@ -36,7 +36,7 @@ pub(super) fn count(build_id: &str) -> CapabilityOffer<'_> {
         contract_revision: conduit_semantic_catalog::STATE_COUNT_CONTRACT_REVISION,
         implementation: STATE_COUNT_IMPLEMENTATION,
         artifact_build: build_id,
-        host_operation: None,
+        host_call: None,
         required_base: BaseKind::Memory,
         secondary_base: None,
         input: Some(PortOffer {
@@ -63,7 +63,7 @@ pub(super) fn presentation(build_id: &str) -> CapabilityOffer<'_> {
         contract_revision: conduit_semantic_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
         implementation: COUNT_PRESENTATION_IMPLEMENTATION,
         artifact_build: build_id,
-        host_operation: Some("conduit.host/present-count@1"),
+        host_call: Some("conduit.host/present-count@1"),
         required_base: BaseKind::Serial,
         secondary_base: None,
         input: Some(PortOffer {

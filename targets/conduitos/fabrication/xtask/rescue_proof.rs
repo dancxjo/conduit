@@ -2,7 +2,9 @@
 
 use std::{
     fs,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use serde::{Deserialize, Serialize};
@@ -68,6 +70,50 @@ const DETERMINISTIC_NEGATIVE_CASES: &[&str] = &[
     "stale-old-boot-identity-is-not-completion",
 ];
 
+struct RescueQmpRoot {
+    path: PathBuf,
+}
+
+impl RescueQmpRoot {
+    fn new() -> Result<Self, ConduitosError> {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|error| {
+                ConduitosError::refusal("rescue-qmp-clock-invalid", error.to_string())
+            })?
+            .as_nanos();
+        let path =
+            std::env::temp_dir().join(format!("conduit-rescue-{}-{nonce}", std::process::id()));
+        let longest = path.join("control-alt-backspace.sock");
+        if longest.as_os_str().len() >= 108 {
+            return Err(ConduitosError::refusal(
+                "rescue-qmp-path-too-long",
+                format!(
+                    "QMP socket path exceeds the UNIX bound: {}",
+                    longest.display()
+                ),
+            ));
+        }
+        fs::create_dir(&path).map_err(|error| {
+            ConduitosError::refusal(
+                "rescue-qmp-root-unavailable",
+                format!("{}: {error}", path.display()),
+            )
+        })?;
+        Ok(Self { path })
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl Drop for RescueQmpRoot {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.path);
+    }
+}
+
 pub fn execute(prepared_image: bool, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(ConduitosError::refusal(
@@ -76,9 +122,10 @@ pub fn execute(prepared_image: bool, opts: &GlobalOpts) -> Result<(), ConduitosE
         ));
     }
     let paths = Paths::new(ConduitosArch::X86_64)?;
+    let qmp_root = RescueQmpRoot::new()?;
     prepared_proof_image::ensure(prepared_image, opts)?;
     run_deterministic_negatives(&paths)?;
-    let monitor_socket = paths.target.join("rescue-monitor.sock");
+    let monitor_socket = qmp_root.path().join("rescue-monitor.sock");
     let serial_path = paths.target.join("rescue-serial.log");
     let _ = fs::remove_file(&monitor_socket);
     let _ = fs::remove_file(&serial_path);
@@ -163,7 +210,7 @@ pub fn execute(prepared_image: bool, opts: &GlobalOpts) -> Result<(), ConduitosE
         ),
     ]
     .into_iter()
-    .map(|(case, name)| prove_near_miss(&paths, case, name))
+    .map(|(case, name)| prove_near_miss(&paths, qmp_root.path(), case, name))
     .collect::<Result<_, _>>()?;
     fs::write(
         &paths.rescue_proof,
@@ -293,10 +340,11 @@ fn run_deterministic_negatives(paths: &Paths) -> Result<(), ConduitosError> {
 
 fn prove_near_miss(
     paths: &Paths,
+    qmp_root: &Path,
     case: hid_qmp::RescueNearMiss,
     name: &str,
 ) -> Result<String, ConduitosError> {
-    let monitor_socket = paths.target.join(format!("rescue-negative-{name}.sock"));
+    let monitor_socket = qmp_root.join(format!("{name}.sock"));
     let serial_path = paths.target.join(format!("rescue-negative-{name}.log"));
     let _ = fs::remove_file(&monitor_socket);
     let _ = fs::remove_file(&serial_path);

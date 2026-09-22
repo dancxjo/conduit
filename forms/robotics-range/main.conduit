@@ -1,0 +1,5 @@
+# Portable simulated physical range source. The authored value carries its
+# length unit; the compact observation retains sensor-forward frame and age.
+form robotics-range {
+    range: robotics/observe-range(distance = 500mm)
+}

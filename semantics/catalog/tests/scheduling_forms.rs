@@ -69,7 +69,7 @@ fn canonical_forms_reuse_bounded_recurrence_and_consume_workflow_info() {
             .iter()
             .find(|placement| placement.kind_id.as_str() == kind)
             .unwrap();
-        assert!(placement.host_operations.is_empty());
+        assert!(placement.host_calls.is_empty());
         assert!(placement.resources.is_empty());
         assert!(placement.authority.is_empty());
     }
@@ -236,7 +236,7 @@ fn schedule_conformance_offers(profile: &ProfileCatalog) -> Vec<CapabilityOffer>
                 },
                 inputs: definition.inputs.clone(),
                 outputs: definition.outputs.clone(),
-                host_operations: vec![],
+                host_calls: vec![],
                 resource_requirements: vec![],
                 authority_requirements: vec![],
                 limits: CapabilityLimits {

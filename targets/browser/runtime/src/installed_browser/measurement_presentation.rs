@@ -3,12 +3,11 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PlannedGear, SemanticCapabilityContract, StructuredInfoValue, StructuredInfoValueShape,
-    PRESENTATION_RESOURCE_CLASS,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
+    StructuredInfoValue, StructuredInfoValueShape, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -46,21 +45,17 @@ fn threshold_offer() -> CapabilityOffer {
     )
 }
 
-fn offer(
-    contract: SemanticCapabilityContract,
-    implementation: &str,
-    operation: &str,
-) -> CapabilityOffer {
+fn offer(contract: Kind, implementation: &str, operation: &str) -> CapabilityOffer {
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(operation),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(operation),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
@@ -79,19 +74,19 @@ fn offer(
 fn prepare_plot(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     prepare(placement, plot_offer())
 }
 fn prepare_threshold(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     prepare(placement, threshold_offer())
 }
 
-fn prepare(placement: &PlannedGear, offered: CapabilityOffer) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, offered: CapabilityOffer) -> Result<BrowserBack, String> {
     validate_placement(placement, &offered)?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         MAXIMUM_BROWSER_VALUE_BYTES as u32,
         1,
     ))
@@ -165,7 +160,7 @@ mod tests {
             assert_eq!(offer.inputs, semantic.inputs);
             assert_eq!(offer.outputs, semantic.outputs);
             assert_eq!(offer.limits, semantic.limits);
-            assert_eq!(offer.host_operations[0].target_kind, Some(offer.kind_id));
+            assert_eq!(offer.host_calls[0].target_kind, Some(offer.kind_id));
         }
         let wrong = StructuredInfoValue::leaf(conduit_data::measurement_summary_type(), vec![])
             .unwrap()

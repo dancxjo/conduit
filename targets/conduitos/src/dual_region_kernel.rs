@@ -2,19 +2,16 @@
 
 use crate::{
     machine::KernelInterest,
-    text_kernel_operations::{
-        LiteralOperation, LiteralState, PlannedOperation, PresentationOperation,
-        TickPresentationOperation, TimerOperation, TimerState, UpperOperation,
+    text_kernel_backs::{
+        LiteralBack, LiteralState, PlannedBack, PresentationBack, TickPresentationBack, TimerBack,
+        TimerState, UpperBack,
     },
 };
 use conduit_core::{ConfigurationValue, PlanFragment};
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, KernelEvent, NodeId, SignSink, ValueRef,
-    ValueStorage,
-    scheduler::{
-        FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
-    },
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+    scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
@@ -31,7 +28,7 @@ const VALUE_SLOT_BYTES: usize = conduit_text::MAX_TEXT_BYTES as usize;
 const VALUE_BUDGET_BYTES: u32 = conduit_text::MAX_TEXT_BYTES * 4;
 const SIGN_CAPACITY: usize = 64;
 
-type Driver = OperationDriver<PlannedOperation, PORTS>;
+type Driver = PlannedBack;
 type Scheduler = FixedScheduler<
     Driver,
     FixedValueStore<VALUE_SLOTS, VALUE_SLOT_BYTES>,
@@ -98,44 +95,35 @@ impl DualRegionKernel {
             )?;
         }
         routes.seal()?;
-        let mut bindings = FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(MAX_NODES as u16);
-        for operation in &lowered.host_operations {
+        let mut bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(MAX_NODES as u16);
+        for operation in &lowered.host_calls {
             bindings.install(operation.node, operation.binding)?;
         }
         bindings.seal()?;
 
         let mut drivers = [const { None }; MAX_NODES];
-        drivers[literal_index] = Some(OperationDriver::new(PlannedOperation::Literal(
-            LiteralOperation {
-                text: literal_value,
-                state: LiteralState::Emitting,
-            },
-        ))?);
-        drivers[upper_index] = Some(OperationDriver::new(PlannedOperation::Upper(
-            UpperOperation {
-                pending: false,
-                emitted: false,
-            },
-        ))?);
-        drivers[text_presentation_index] = Some(OperationDriver::new(
-            PlannedOperation::Presentation(PresentationOperation {
-                pending: false,
-                complete: false,
-            }),
-        )?);
-        drivers[timer_index] = Some(OperationDriver::new(PlannedOperation::Timer(
-            TimerOperation {
-                wait: BoundedValueRef::new(wait, 8)?,
-                tick,
-                state: TimerState::Waiting,
-            },
-        ))?);
-        drivers[tick_presentation_index] = Some(OperationDriver::new(
-            PlannedOperation::TickPresentation(TickPresentationOperation {
+        drivers[literal_index] = Some(PlannedBack::Literal(LiteralBack {
+            text: literal_value,
+            state: LiteralState::Emitting,
+        }));
+        drivers[upper_index] = Some(PlannedBack::Upper(UpperBack {
+            pending: false,
+            emitted: false,
+        }));
+        drivers[text_presentation_index] = Some(PlannedBack::Presentation(PresentationBack {
+            pending: false,
+            complete: false,
+        }));
+        drivers[timer_index] = Some(PlannedBack::Timer(TimerBack {
+            wait: BoundedValueRef::new(wait, 8)?,
+            tick,
+            state: TimerState::Waiting,
+        }));
+        drivers[tick_presentation_index] =
+            Some(PlannedBack::TickPresentation(TickPresentationBack {
                 pending: false,
                 complete: false,
-            }),
-        )?);
+            }));
         let drivers = drivers
             .into_iter()
             .collect::<Option<alloc::vec::Vec<_>>>()
@@ -145,7 +133,7 @@ impl DualRegionKernel {
         let minimum_sign_bytes = (SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32;
         let signs = FixedSignLog::<SIGN_CAPACITY>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;
         Ok(Self {
-            scheduler: FixedScheduler::new_with_host_operations(
+            scheduler: FixedScheduler::new_with_host_calls(
                 nodes, cords, routes, bindings, drivers, values, signs,
             )?,
             timer_node: NodeId(timer_index as u16),
@@ -159,7 +147,7 @@ impl DualRegionKernel {
         self.scheduler.step()
     }
 
-    pub fn next_host_request(&mut self) -> Option<HostOperationRequest> {
+    pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
         self.scheduler.next_host_request()
     }
 
@@ -167,16 +155,16 @@ impl DualRegionKernel {
         self.scheduler.host_value(value)
     }
 
-    pub fn is_timer_request(&self, request: &HostOperationRequest) -> bool {
-        request.node == self.timer_node && request.operation == conduit_kernel::HostOperationId(0)
+    pub fn is_timer_request(&self, request: &HostCallRequest) -> bool {
+        request.node == self.timer_node && request.call == conduit_kernel::HostCallId(0)
     }
 
     pub fn timer_interest(
         &self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
     ) -> Result<KernelInterest, SchedulerError> {
         if !self.is_timer_request(&request) {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
         Ok(KernelInterest {
             node: request.node,
@@ -186,67 +174,65 @@ impl DualRegionKernel {
     }
 
     pub fn complete_timer(&mut self, interest: KernelInterest) -> Result<(), SchedulerError> {
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             interest.node,
             interest.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
         )
     }
 
-    pub fn is_upper_request(&self, request: &HostOperationRequest) -> bool {
-        request.node == self.upper_node && request.operation == conduit_kernel::HostOperationId(0)
+    pub fn is_upper_request(&self, request: &HostCallRequest) -> bool {
+        request.node == self.upper_node && request.call == conduit_kernel::HostCallId(0)
     }
 
     pub fn complete_upper(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         output: &[u8],
     ) -> Result<(), SchedulerError> {
         if !self.is_upper_request(&request) {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
         let value = self.scheduler.store_host_value(output)?;
         let output = BoundedValueRef::new(value, conduit_text::MAX_TEXT_BYTES)
-            .map_err(|_| SchedulerError::InvalidHostOperationAccess)?;
-        self.scheduler.complete_host_operation(
+            .map_err(|_| SchedulerError::InvalidHostCallAccess)?;
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(output),
                 failure: None,
             },
         )
     }
 
-    pub fn is_text_presentation_request(&self, request: &HostOperationRequest) -> bool {
-        request.node == self.text_presentation_node
-            && request.operation == conduit_kernel::HostOperationId(0)
+    pub fn is_text_presentation_request(&self, request: &HostCallRequest) -> bool {
+        request.node == self.text_presentation_node && request.call == conduit_kernel::HostCallId(0)
     }
 
-    pub fn is_tick_presentation_request(&self, request: &HostOperationRequest) -> bool {
-        request.node == self.tick_presentation_node
-            && request.operation == conduit_kernel::HostOperationId(0)
+    pub fn is_tick_presentation_request(&self, request: &HostCallRequest) -> bool {
+        request.node == self.tick_presentation_node && request.call == conduit_kernel::HostCallId(0)
     }
 
     pub fn complete_presentation(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
     ) -> Result<(), SchedulerError> {
         if !self.is_text_presentation_request(&request)
             && !self.is_tick_presentation_request(&request)
         {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -265,8 +251,8 @@ impl DualRegionKernel {
         self.scheduler.signs().len()
     }
 
-    pub fn pending_host_operations(&self) -> usize {
-        self.scheduler.pending_host_operation_count()
+    pub fn pending_host_calls(&self) -> usize {
+        self.scheduler.pending_host_call_count()
     }
 }
 
@@ -317,7 +303,7 @@ fn validate_shape(
         || lowered.nodes.len() != MAX_NODES
         || lowered.cords.len() != MAX_CORDS
         || lowered.routes.len() != MAX_CORDS
-        || lowered.host_operations.len() != 4
+        || lowered.host_calls.len() != 4
         || lowered.cord_value_slots != MAX_CORDS as u16
         || lowered.cord_value_bytes != 64 * MAX_CORDS as u32
         || !lowered.remote_endpoints.is_empty()

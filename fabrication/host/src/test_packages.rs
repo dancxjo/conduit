@@ -81,7 +81,7 @@ fn target(
             implementation_id: "presenter/linear-serial@1".into(),
             interactive: false,
         }),
-        host_operations: (family == "conduitos" && architecture == "aarch64")
+        host_calls: (family == "conduitos" && architecture == "aarch64")
             .then(|| "conduit.host/present@1".into())
             .into_iter()
             .collect(),
@@ -303,10 +303,10 @@ fn test_catalog_metadata() -> PackageCatalogContribution {
         .map(|offer| {
             let implementation = offer.implementation.implementation_id.as_str().to_owned();
             let mut prerequisites = offer
-                .host_operations
+                .host_calls
                 .iter()
                 .map(|requirement| {
-                    PrerequisiteNode::HostOperation(requirement.contract_id.as_str().to_owned())
+                    PrerequisiteNode::HostCall(requirement.contract_id.as_str().to_owned())
                 })
                 .chain(offer.resource_requirements.iter().map(|requirement| {
                     PrerequisiteNode::Resource(requirement.class_id.as_str().to_owned())
@@ -332,7 +332,7 @@ fn test_catalog_metadata() -> PackageCatalogContribution {
             contract_revision: "conduit.http/client@1".into(),
             targets: vec!["conduitos/x86_64/pc".into()],
             prerequisites: vec![
-                PrerequisiteNode::HostOperation("conduit.host/http-client-exchange".into()),
+                PrerequisiteNode::HostCall("conduit.host/http-client-exchange".into()),
                 PrerequisiteNode::Resource("conduit.resource/network/http-client".into()),
                 PrerequisiteNode::Facility("network/http1-literal-client".into()),
             ],
@@ -346,7 +346,7 @@ fn test_catalog_metadata() -> PackageCatalogContribution {
                 PresenterMetadata {
                     targets: vec!["std/x86_64/computer".into(), "conduitos/x86_64/pc".into()],
                     prerequisites: vec![
-                        PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                        PrerequisiteNode::HostCall("conduit.host/present@1".into()),
                         PrerequisiteNode::Facility("compositor/native@1".into()),
                         PrerequisiteNode::Resource("presentation/surface".into()),
                         PrerequisiteNode::Base("display/scanout".into()),
@@ -358,7 +358,7 @@ fn test_catalog_metadata() -> PackageCatalogContribution {
                 PresenterMetadata {
                     targets: vec!["browser/wasm32/page".into()],
                     prerequisites: vec![
-                        PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                        PrerequisiteNode::HostCall("conduit.host/present@1".into()),
                         PrerequisiteNode::Resource("presentation/surface".into()),
                         PrerequisiteNode::Base("browser/dom".into()),
                     ],
@@ -369,7 +369,7 @@ fn test_catalog_metadata() -> PackageCatalogContribution {
                 PresenterMetadata {
                     targets: vec!["conduitos/aarch64/virt".into()],
                     prerequisites: vec![
-                        PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                        PrerequisiteNode::HostCall("conduit.host/present@1".into()),
                         PrerequisiteNode::Base("serial/text".into()),
                     ],
                 },

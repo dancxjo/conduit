@@ -1,6 +1,6 @@
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, ImplementationId, SemanticCapabilityContract,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    ImplementationId, Kind,
 };
 
 pub const RECURRENCE_STD_PROFILE: &str = "std/recurrence-kernel@1";
@@ -31,20 +31,20 @@ pub fn calendar_proposal_std_offer() -> CapabilityOffer {
 }
 
 fn offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     capability: &str,
     execution_profile: &str,
     implementation: &str,
     artifact: &str,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(execution_profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -62,7 +62,7 @@ mod tests {
             assert_eq!(offer.startup_parameters.len(), 1);
             assert!(offer.inputs.is_empty());
             assert_eq!(offer.outputs.len(), 1);
-            assert!(offer.host_operations.is_empty());
+            assert!(offer.host_calls.is_empty());
             assert!(offer.resource_requirements.is_empty());
             assert!(offer.authority_requirements.is_empty());
             assert!(offer.limits.max_queue_items > 0);

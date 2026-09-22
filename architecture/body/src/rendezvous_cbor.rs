@@ -466,6 +466,7 @@ fn decode_line_family(value: u8) -> Result<RendezvousLineFamily, RendezvousCborR
         1 => Ok(RendezvousLineFamily::AuthenticatedConduitLine),
         2 => Ok(RendezvousLineFamily::LocalLoopbackWebSocket),
         3 => Ok(RendezvousLineFamily::AttendedSerial),
+        4 => Ok(RendezvousLineFamily::WebRtcDataChannel),
         _ => Err(RendezvousCborRefusal::UnsupportedLineFamily),
     }
 }
@@ -476,6 +477,7 @@ const fn line_family_code(value: RendezvousLineFamily) -> u8 {
         RendezvousLineFamily::AuthenticatedConduitLine => 1,
         RendezvousLineFamily::LocalLoopbackWebSocket => 2,
         RendezvousLineFamily::AttendedSerial => 3,
+        RendezvousLineFamily::WebRtcDataChannel => 4,
     }
 }
 

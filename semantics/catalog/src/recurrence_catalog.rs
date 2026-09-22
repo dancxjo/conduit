@@ -6,13 +6,14 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
-    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
-    StructuredInfoValue, StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredFieldType,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
+    StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 pub const RECURRENCE_REQUEST_TYPE: &str = "RecurrenceExpansion";
@@ -24,8 +25,8 @@ pub const RECURRENCE_MAXIMUM_RESULTS: u16 = 8;
 pub const RECURRENCE_MAXIMUM_EXCEPTIONS: u16 = 4;
 pub const RECURRENCE_MAXIMUM_RESOLUTIONS: u16 = 8;
 
-pub fn recurrence_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn recurrence_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "request".into(),
             value_type: recurrence_request_type()
@@ -37,7 +38,7 @@ pub fn recurrence_semantic_contract() -> SemanticCapabilityContract {
         }],
         shorthand: None,
         kind_id: kind_id(RECURRENCE_KIND),
-        kind_contract_revision: KindContractRevision::from(RECURRENCE_REVISION),
+        kind_contract_revision: KindIdentity::from(RECURRENCE_REVISION),
         inputs: vec![],
         outputs: vec![PortDescriptor {
             port_id: port_id("occurrences"),
@@ -49,6 +50,8 @@ pub fn recurrence_semantic_contract() -> SemanticCapabilityContract {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: RECURRENCE_MAXIMUM_RESULTS,
@@ -338,9 +341,9 @@ pub fn install_recurrence_catalogs(
         .profile()
         .map_err(|error| alloc::format!("{error:?}"))?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(RECURRENCE_KIND),
-            kind_contract_revision: KindContractRevision::from(RECURRENCE_REVISION),
+            kind_contract_revision: KindIdentity::from(RECURRENCE_REVISION),
             inputs: vec![],
             outputs: vec![PortDescriptor {
                 port_id: port_id("occurrences"),
@@ -352,7 +355,7 @@ pub fn install_recurrence_catalogs(
                 direction: PortDirection::Output,
                 temporal: PortTemporal::Value,
             }],
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "request".into(),
                 default_value: ConfigurationValue::Structured(
                     conduit_core::StructuredConfigurationValue::new(
@@ -365,7 +368,7 @@ pub fn install_recurrence_catalogs(
                     )
                     .ok_or_else(|| "default recurrence configuration is invalid".to_string())?,
                 ),
-                validation: ConfigurationRule::Structured {
+                rule: KindConfigurationRule::Structured {
                     profile: request_profile.value_kind().clone(),
                 },
             }],

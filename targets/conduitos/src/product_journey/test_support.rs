@@ -73,7 +73,9 @@ fn target(journey: &ProductJourney, action: JourneyAction) -> String {
         | JourneyAction::Plan
         | JourneyAction::Play
         | JourneyAction::Stop
-        | JourneyAction::Lull => format!("body/{}", projection.body_id.unwrap().as_str()),
+        | JourneyAction::Lull
+        | JourneyAction::Fulfill
+        | JourneyAction::AdmitForm => format!("body/{}", projection.body_id.unwrap().as_str()),
         _ => panic!("unsupported journey test action"),
     }
 }

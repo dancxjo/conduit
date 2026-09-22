@@ -1,29 +1,29 @@
 //! Exact finite named-pattern storage offer.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ResourceRequirement, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostCallContractId, HostCallRequirement, ImplementationId, ResourceRequirement,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const TEMPLATE_STORAGE_STD_PROFILE: &str = "std/named-pattern-storage-kernel-hosted@1";
 pub const TEMPLATE_STORAGE_STD_IMPLEMENTATION: &str = "std/kernel-named-pattern-storage@1";
 pub const TEMPLATE_STORAGE_STD_ARTIFACT: &str = "conduit-std-host/named-pattern-storage@1";
-pub const TEMPLATE_STORAGE_HOST_OPERATION: &str = "conduit.host/named-pattern-storage@1";
+pub const TEMPLATE_STORAGE_HOST_CALL: &str = "conduit.host/named-pattern-storage@1";
 pub const TEMPLATE_STORAGE_RESOURCE_CLASS: &str = "conduit.resource/named-pattern-storage-slot@1";
 
 pub fn template_storage_std_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::named_pattern_template_storage_semantic_contract();
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("named-pattern-storage"),
             execution_profile_id: ExecutionProfileId::from(TEMPLATE_STORAGE_STD_PROFILE),
             implementation_id: ImplementationId::from(TEMPLATE_STORAGE_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(TEMPLATE_STORAGE_STD_ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(TEMPLATE_STORAGE_HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(TEMPLATE_STORAGE_HOST_CALL),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,

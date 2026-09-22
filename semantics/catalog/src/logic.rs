@@ -1,11 +1,11 @@
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
     PortDirection, PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
 };
 
@@ -88,16 +88,16 @@ pub fn logic_compare_scalar_contract() -> StandardKindContract {
             BOOL_INFO_ID,
             PortDirection::Output,
         )],
-        configuration: vec![StandardConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: COMPARE_OPERATOR_KEY.to_string(),
             default_value: ConfigurationValue::Text("eq".to_string()),
-            rule: StandardConfigurationRule::TextOneOf {
+            rule: KindConfigurationRule::TextOneOf {
                 values: comparison_operator_values(),
             },
         }],
         limits: limits(),
         terminal_behavior:
-            TerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
+            KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -120,10 +120,10 @@ pub fn logic_not_contract() -> StandardKindContract {
             BOOL_INFO_ID,
             PortDirection::Output,
         )],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: limits(),
         terminal_behavior:
-            TerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
+            KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -146,10 +146,10 @@ pub fn logic_select_scalar_contract() -> StandardKindContract {
             SCALAR_INFO_ID,
             PortDirection::Output,
         )],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: limits(),
         terminal_behavior:
-            TerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
+            KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -186,7 +186,9 @@ pub fn install_logic_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, KindSignature};
+    use conduit_form::{
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    };
     for (contract, revision) in [
         (
             logic_compare_scalar_contract(),
@@ -216,21 +218,21 @@ pub fn install_logic_catalogs(
         let configuration = contract
             .configuration
             .into_iter()
-            .map(|field| ConfigurationField {
+            .map(|field| KindConfigurationField {
                 key: field.key,
                 default_value: field.default_value,
-                validation: match field.rule {
-                    StandardConfigurationRule::TextOneOf { values } => {
-                        ConfigurationRule::TextOneOf { values }
+                rule: match field.rule {
+                    KindConfigurationRule::TextOneOf { values } => {
+                        KindConfigurationRule::TextOneOf { values }
                     }
                     _ => unreachable!("logic configuration is one finite text choice"),
                 },
             })
             .collect();
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration,
@@ -256,7 +258,7 @@ mod tests {
             .all(|port| port.temporal == PortTemporal::Value));
         assert!(matches!(
             &compare.configuration[0].rule,
-            StandardConfigurationRule::TextOneOf { values }
+            KindConfigurationRule::TextOneOf { values }
                 if values == &comparison_operator_values()
         ));
 

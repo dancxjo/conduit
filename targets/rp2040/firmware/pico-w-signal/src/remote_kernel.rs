@@ -1,12 +1,13 @@
 //! Generated remote-ingress execution through the one Conduit kernel.
 
 use conduit_kernel::scheduler::{
-    FixedScheduler, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
+    FixedScheduler, RemoteIngressOutcome, SchedulerStatus, StepInputBytes, StepIo, StepBack,
+    StepOutcome,
 };
 use conduit_kernel::{
     remote_sign_storage_bytes, BoundedValueRef, Failure, FailureCode, FixedSignLog,
-    FixedValueStore, HostOperationDisposition, HostOperationOutcome, Operation, OperationAction,
-    OperationInput, PortId, RequestId, SignQuery, ValueStorage,
+    FixedValueStore, HostCallDisposition, HostCallOutcome, PortId, RequestId, SignQuery,
+    ValueStorage,
 };
 use conduit_signal::{decode_signal_bytes, Signal, SIGNAL_ENCODED_LEN, SIGNAL_ENCODED_LEN_USIZE};
 use cyw43::Control;
@@ -24,7 +25,7 @@ use crate::signal_image::{
 };
 
 type SinkScheduler = FixedScheduler<
-    OperationDriver<ShowOperation, PORTS>,
+    ShowBack,
     FixedValueStore<QUEUE_SLOTS, SIGNAL_ENCODED_LEN_USIZE>,
     FixedSignLog<RUNTIME_SIGN_EVENTS>,
     NODES,
@@ -37,58 +38,68 @@ type SinkScheduler = FixedScheduler<
     PENDING_REQUESTS,
 >;
 
-struct ShowOperation {
+struct ShowBack {
     input_port: PortId,
-    present_operation: conduit_kernel::HostOperationId,
+    present_host_call: conduit_kernel::HostCallId,
     pending: Option<RequestId>,
     presented: usize,
 }
 
-impl ShowOperation {
-    fn fail(detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure {
+impl ShowBack {
+    fn fail(detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             detail,
         })
     }
 }
 
-impl Operation for ShowOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value { port, value }
-                if port == self.input_port && self.pending.is_none() =>
-            {
+impl StepBack<PORTS> for ShowBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if self.pending.is_none() {
+            if let Some(value) = io.input(self.input_port) {
                 let request = RequestId(self.presented as u32);
-                self.pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: self.present_operation,
-                    input: BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
-                        .expect("generated remote Signal is exactly bounded"),
+                if io.consume(self.input_port).is_err()
+                    || io
+                        .request_host_call(
+                            request,
+                            self.present_host_call,
+                            BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
+                                .expect("generated remote Signal is exactly bounded"),
+                        )
+                        .is_err()
+                {
+                    return Self::fail(1);
                 }
+                self.pending = Some(request);
+                return StepOutcome::Progress;
             }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+            if io.input_closed(self.input_port) {
+                if io.consume_closed(self.input_port).is_err() {
+                    return Self::fail(2);
+                }
+                return StepOutcome::Complete;
+            }
+            return StepOutcome::Await;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending == Some(request)
+                && outcome.disposition == HostCallDisposition::Completed
+                && outcome.output.is_none()
+                && outcome.failure.is_none()
+                && io.consume_host_completion().is_ok()
             {
                 self.pending = None;
                 self.presented += 1;
-                OperationAction::Await
+                return StepOutcome::Progress;
             }
-            OperationInput::Closed { port }
-                if port == self.input_port && self.pending.is_none() =>
-            {
-                OperationAction::Complete
-            }
-            _ => Self::fail(1),
+            return Self::fail(3);
         }
+        StepOutcome::Await
     }
 }
 
@@ -97,7 +108,7 @@ pub struct RemoteSignalKernel {
     endpoint: conduit_kernel::RemoteEndpointId,
     cord: conduit_kernel::CordId,
     show_node: conduit_kernel::NodeId,
-    present_operation: conduit_kernel::HostOperationId,
+    present_host_call: conduit_kernel::HostCallId,
     presented: usize,
     closed: bool,
     identity: SignalExecutionIdentity,
@@ -133,14 +144,13 @@ impl RemoteSignalKernel {
             remote_sign_bytes,
         )
         .map_err(UsbLinkError::SignStorage)?;
-        let driver = OperationDriver::new(ShowOperation {
+        let driver = ShowBack {
             input_port: layout.show_input_port,
-            present_operation: layout.present_operation,
+            present_host_call: layout.present_host_call,
             pending: None,
             presented: 0,
-        })
-        .map_err(UsbLinkError::Kernel)?;
-        let scheduler = SinkScheduler::new_with_host_operations(
+        };
+        let scheduler = SinkScheduler::new_with_host_calls(
             generated_nodes(),
             generated_cords(),
             generated_routes(),
@@ -155,7 +165,7 @@ impl RemoteSignalKernel {
             endpoint,
             cord,
             show_node: layout.show_node,
-            present_operation: layout.present_operation,
+            present_host_call: layout.present_host_call,
             presented: 0,
             closed: false,
             identity,
@@ -177,7 +187,7 @@ impl RemoteSignalKernel {
     ) -> UsbLinkResult<Signal> {
         loop {
             if let Some(request) = self.scheduler.next_host_request() {
-                if request.node != self.show_node || request.operation != self.present_operation {
+                if request.node != self.show_node || request.call != self.present_host_call {
                     return Err(UsbLinkError::InvalidGeneratedEndpoint);
                 }
                 let signal = decode_signal_bytes(
@@ -199,11 +209,11 @@ impl RemoteSignalKernel {
                 sign.write_receipt(signal.sequence, signal.level, identity, runtime)
                     .await?;
                 self.scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: None,
                             failure: None,
                         },
@@ -251,7 +261,7 @@ impl RemoteSignalKernel {
             || !self
                 .scheduler
                 .signs()
-                .contains_kind(conduit_kernel::KernelEventKind::OperationCompleted)
+                .contains_kind(conduit_kernel::KernelEventKind::BackCompleted)
         {
             return Err(UsbLinkError::KernelTerminalInvariant);
         }

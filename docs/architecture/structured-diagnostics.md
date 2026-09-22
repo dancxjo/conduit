@@ -12,4 +12,4 @@ The planner adapter deliberately recognizes only a reviewed subset of failures. 
 
 All collections have fixed item limits and every text field has a fixed byte limit. Oversized form messages are truncated on a UTF-8 boundary with an explicit note. Other invalid records fail validation.
 
-Later work may add adapters for lowering, kernel preparation, host operations, wire sessions, or physical tooling. Those adapters must preserve their own identities and proof classes; this schema does not authorize conflating their failures or exposing private platform facts.
+Later work may add adapters for lowering, kernel preparation, Host Calls, wire sessions, or physical tooling. Those adapters must preserve their own identities and proof classes; this schema does not authorize conflating their failures or exposing private platform facts.

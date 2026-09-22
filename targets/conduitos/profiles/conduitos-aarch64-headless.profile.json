@@ -5,7 +5,7 @@
   "host_core": "host-core/conduitos@1",
   "fragments": [],
   "capabilities": [],
-  "host_operations": ["conduit.host/present@1"],
+  "host_calls": ["conduit.host/present@1"],
   "resources": [],
   "bases": [{ "id": "serial/main", "kind": "serial/text", "driver": "conduitos/pl011@1" }],
   "drivers": [{ "id": "driver/serial", "kind": "conduitos/pl011@1" }],

@@ -17,7 +17,7 @@ fn offer() -> CapabilityOffer {
             implementation: IMPLEMENTATION,
             artifact: "conduit-browser-runtime/presentation-rhythm@1",
         },
-        vec![conduit_core::HostOperationRequirement {
+        vec![conduit_core::HostCallRequirement {
             contract_id: "conduit.host/browser-present-rhythm@1".into(),
             target_kind: Some("presentation/browser-rhythm".into()),
             maximum_in_flight: 1,
@@ -35,9 +35,9 @@ fn offer() -> CapabilityOffer {
 fn prepare(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<super::BrowserOperation, String> {
+) -> Result<super::BrowserBack, String> {
     validate_placement(placement, &offer())?;
-    Ok(super::BrowserOperation::presentation(
+    Ok(super::BrowserBack::presentation(
         conduit_time::RHYTHM_STATE_ENCODED_LEN as u32,
         1,
     ))

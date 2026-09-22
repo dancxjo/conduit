@@ -7,7 +7,7 @@
 
 use crate::{kernel_preparation::KernelResourceReservation, InstalledRemoteFragment, StdHost};
 use conduit_core::{ActivePlayIdentity, PlanFragment};
-use conduit_kernel::scheduler::HostOperationRequest;
+use conduit_kernel::scheduler::HostCallRequest;
 use core::ops::{Deref, DerefMut};
 
 pub struct AdmittedRemoteFragment {
@@ -54,21 +54,34 @@ impl StdHost {
             .poll_body_conversation_context(self.body_conversation_context.as_ref())
     }
 
-    pub fn complete_remote_voice_host_operation<F>(
+    pub fn complete_remote_voice_host_call<F>(
         &mut self,
         fragment: &mut AdmittedRemoteFragment,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         cancelled: F,
     ) -> Result<bool, String>
     where
         F: Fn() -> bool + Copy,
     {
-        fragment.runtime.complete_voice_provider_host_operation(
+        fragment.runtime.complete_voice_provider_host_call(
             request,
             self.speech_recognition.as_mut(),
             self.local_model.as_deref_mut(),
             self.speech_synthesis.as_mut(),
             cancelled,
+        )
+    }
+
+    pub fn complete_remote_vision_host_call(
+        &mut self,
+        fragment: &mut AdmittedRemoteFragment,
+        request: HostCallRequest,
+        observed_at_micros: u64,
+    ) -> Result<bool, String> {
+        fragment.runtime.complete_vision_host_call(
+            request,
+            self.vision.as_mut(),
+            observed_at_micros,
         )
     }
 

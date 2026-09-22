@@ -1,7 +1,7 @@
 //! Typed Garden-state observation fixture, excluded from production installations.
 
 use super::factory::{BrowserHostResult, BrowserInstallation, BrowserManifestation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::*;
 use conduit_kernel::HostedValueStore;
 
@@ -37,7 +37,7 @@ pub(crate) fn offer() -> CapabilityOffer {
             implementation_id: KIND.into(),
             artifact_id: KIND.into(),
         },
-        host_operations: vec![HostOperationRequirement {
+        host_calls: vec![HostCallRequirement {
             contract_id: "conduit-test/garden-state-output".into(),
             target_kind: Some(KIND.into()),
             maximum_in_flight: 1,
@@ -54,9 +54,9 @@ pub(crate) fn offer() -> CapabilityOffer {
     }
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     super::factory::validate_placement(placement, &offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
         1,
     ))

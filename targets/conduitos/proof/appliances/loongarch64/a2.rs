@@ -87,7 +87,7 @@ fn machine_sign(nonce: u64, lane: &AdmittedLane, idle_entries: u32) {
     output.decimal(lane.decisions());
     output.push(b",\"kernel_signs\":");
     output.decimal(u32::from(lane.signs()));
-    output.push(b",\"pending_host_operations\":0,\"sequence\":[\"machine-init\",\"lane-handoff\",\"idle\",\"timer-wake\",\"terminal\"],\"a3_ordinary_form_claimed\":false}\n");
+    output.push(b",\"pending_host_calls\":0,\"sequence\":[\"machine-init\",\"lane-handoff\",\"idle\",\"timer-wake\",\"terminal\"],\"a3_ordinary_form_claimed\":false}\n");
     arch::present(output.bytes());
 }
 

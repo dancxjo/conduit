@@ -4,11 +4,10 @@
 use crate::human_media_catalog::install_camera_catalogs;
 use alloc::{string::String, string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, BoundedResourceRef, CapabilityLimits, KindContractRevision, KindId,
-    PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract, StructuredFieldType,
-    StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
-    StructuredInfoValueShape, StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
-    RESOURCE_REFERENCE_INFO_ID,
+    kind_id, port_id, BoundedResourceRef, CapabilityLimits, Kind, KindId, KindIdentity,
+    PortDescriptor, PortDirection, PortTemporal, StructuredFieldType, StructuredFieldValue,
+    StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape,
+    StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES, RESOURCE_REFERENCE_INFO_ID,
 };
 
 pub const IMAGE_TEXT_COMPOSE_KIND: &str = "media/compose-image-text";
@@ -18,12 +17,12 @@ pub const IMAGE_TEXT_TYPED_RECORD_REVISION: &str = "conduit.human/image-text-typ
 pub const IMAGE_REFERENCE_TYPE: &str = "ImageObservationReference";
 pub const IMAGE_TEXT_RECORD_TYPE: &str = "ImageTextRecord";
 
-pub fn image_text_compose_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn image_text_compose_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(IMAGE_TEXT_COMPOSE_KIND),
-        kind_contract_revision: KindContractRevision::from(IMAGE_TEXT_COMPOSE_REVISION),
+        kind_contract_revision: KindIdentity::from(IMAGE_TEXT_COMPOSE_REVISION),
         inputs: vec![
             structured_port(
                 "image",
@@ -42,6 +41,8 @@ pub fn image_text_compose_semantic_contract() -> SemanticCapabilityContract {
             &image_text_record_type(),
             PortDirection::Output,
         )],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 2,
@@ -52,12 +53,12 @@ pub fn image_text_compose_semantic_contract() -> SemanticCapabilityContract {
     }
 }
 
-pub fn image_text_typed_record_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn image_text_typed_record_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(IMAGE_TEXT_TYPED_RECORD_KIND),
-        kind_contract_revision: KindContractRevision::from(IMAGE_TEXT_TYPED_RECORD_REVISION),
+        kind_contract_revision: KindIdentity::from(IMAGE_TEXT_TYPED_RECORD_REVISION),
         inputs: vec![structured_port(
             "record",
             &image_text_record_type(),
@@ -68,6 +69,8 @@ pub fn image_text_typed_record_semantic_contract() -> SemanticCapabilityContract
             &conduit_net::typed_record_type(),
             PortDirection::Output,
         )],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
@@ -81,7 +84,7 @@ pub fn install_image_text_inspection_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
 
     let contract =
         crate::structured_presentation_contract(IMAGE_TEXT_RECORD_TYPE, &image_text_record_type());
@@ -90,7 +93,7 @@ pub fn install_image_text_inspection_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
@@ -360,7 +363,7 @@ pub fn install_human_media_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
 
     install_camera_catalogs(startup, profile)?;
 
@@ -380,7 +383,7 @@ pub fn install_human_media_catalogs(
             startup_parameters: vec![],
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,

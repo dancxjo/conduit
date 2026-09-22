@@ -6,11 +6,12 @@ use conduit_kernel::CordId;
 
 use crate::{
     ClockAlignment, DebuggerWatchBinding, DebuggerWatchError, DebuggerWatchSet,
-    DebuggerWatchSubjectRole, DynamicsWatch, LearnedWatchProjection, LearnedWatchProjectionKind,
-    ObjectiveComponent, ProbabilisticAlternative, ProbabilisticDisposition, ProbabilisticWatch,
-    SignalContinuity, SignalPoint, SignalStreamRole, SignalWatch, StateTransition, StateWatch,
-    TensorAxis, TensorWatch, TrainingPhase, TrainingWatch, MAX_LEARNED_WATCH_PROJECTIONS,
-    MAX_SIGNAL_POINTS, MAX_TENSOR_SLICE_VALUES,
+    DebuggerWatchSubjectRole, DynamicsWatch, LearnedLifecyclePhase, LearnedLifecycleWatch,
+    LearnedWatchProjection, LearnedWatchProjectionKind, ObjectiveComponent,
+    ProbabilisticAlternative, ProbabilisticDisposition, ProbabilisticWatch, SignalContinuity,
+    SignalPoint, SignalStreamRole, SignalWatch, StateTransition, StateWatch, TensorAxis,
+    TensorWatch, TrainingPhase, TrainingWatch, MAX_LEARNED_WATCH_PROJECTIONS, MAX_SIGNAL_POINTS,
+    MAX_TENSOR_SLICE_VALUES,
 };
 
 fn setup() -> DebuggerWatchSet {
@@ -185,6 +186,22 @@ fn one_authoritative_watch_accepts_all_finite_learned_projection_kinds() {
             truncated: false,
             refusal: None,
         }),
+        LearnedWatchProjectionKind::Lifecycle(LearnedLifecycleWatch {
+            phase: LearnedLifecyclePhase::Promoted,
+            subject_identity: "body/example/interpretation".into(),
+            active_artifact_identity: "artifact/deterministic".into(),
+            active_checkpoint_identity: None,
+            candidate_artifact_identity: "artifact/learned".into(),
+            candidate_checkpoint_identity: Some("checkpoint/17".into()),
+            shadow_run_identity: Some("shadow/8".into()),
+            shared_input_set_identity: "inputs/interpretation-fixture-4".into(),
+            evaluation_identity: Some("evaluation/12".into()),
+            approval_grant_identity: Some("grant/operator-5".into()),
+            before_plan_identity: "plan/baseline".into(),
+            after_plan_identity: Some("plan/candidate".into()),
+            rollback_target_identity: "artifact/deterministic".into(),
+            rollback_receipt_identity: None,
+        }),
     ];
     for projection in projections {
         watches
@@ -192,7 +209,7 @@ fn one_authoritative_watch_accepts_all_finite_learned_projection_kinds() {
             .unwrap();
     }
     let watch = &watches.watches[0];
-    assert_eq!(watch.learned_projections.len(), 6);
+    assert_eq!(watch.learned_projections.len(), 7);
     assert!(watch.learned_projections.iter().all(|projection| {
         projection.observation_sequence == watch.latest.as_ref().unwrap().sequence
             && projection.dropped_updates == 3
@@ -210,7 +227,7 @@ fn one_authoritative_watch_accepts_all_finite_learned_projection_kinds() {
             envelope(LearnedWatchProjectionKind::Signal(replacement)),
         )
         .unwrap();
-    assert_eq!(watches.watches[0].learned_projections.len(), 6);
+    assert_eq!(watches.watches[0].learned_projections.len(), 7);
     assert!(watches.watches[0]
         .learned_projections
         .iter()

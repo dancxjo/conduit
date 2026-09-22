@@ -12,7 +12,7 @@ commitments into the S1 fixed stores remains separate integration work.
 
 A `CapabilityOffer` now advertises:
 
-- one immutable `KindContractRevision`;
+- one immutable `KindIdentity`;
 - one immutable `ExecutionProfileId` implemented by the installed operation;
 - the complete ordered input and output `PortDescriptor` contracts; and
 - independent active-instance, queue-item, and queue-byte limits.
@@ -95,10 +95,10 @@ terminal sign remains complete even when that ring reports an
 `SignGap`. Lowering the same commitments into the S1 kernel's
 `SignSink` remains open integration work.
 
-## Exact host-operation requirements
+## Exact Host Call requirements
 
 Each capability and planned gear now carries an ordered set of exact
-`HostOperationRequirement` values. A requirement binds the immutable operation
+`HostCallRequirement` values. A requirement binds the immutable operation
 contract, an optional target kind, the maximum concurrent requests, and
 independent input/output byte bounds. The first executable profile uses
 `conduit.host/wait@1` with no target and `conduit.host/present@1` with the exact
@@ -117,7 +117,7 @@ request or oversized input terminates the placement without crossing the host
 boundary. presentation completion messages are independently bounded; an
 oversized completion is rejected without consuming the pending request, so a
 subsequent conforming completion can settle it. The semantic requirement IDs
-are not yet lowered into the S1 kernel's numeric `FixedHostOperationBindings`;
+are not yet lowered into the S1 kernel's numeric `FixedHostCallBindings`;
 that remains explicit integration work.
 
 ## Exact resource requirements and reservations
@@ -158,8 +158,8 @@ fixed-storage resource table.
 Authority is supplied to planning independently of `HostAdvertisement`.
 Capabilities and installed implementations may declare ordered
 `AuthorityRequirement` values that name an authority contract, the admitted
-host-operation contract, and the exact subject kind. Each requirement must
-refer to a targeted host operation already declared by that execution profile;
+Host Call contract, and the exact subject kind. Each requirement must
+refer to a targeted Host Call already declared by that execution profile;
 an advertisement cannot manufacture or imply a grant.
 
 An immutable `AuthorityGrant` additionally scopes the requirement to one exact
@@ -171,7 +171,7 @@ grant. It seals the selected grant identity and complete scope as an
 Preparation reconstructs the requirements from those bindings, compares them
 with both capability and installed implementation truth, checks placement
 scope, and requires exactly one current grant with the same immutable facts.
-Effect admission then checks the requested host-operation subject against the
+Effect admission then checks the requested Host Call subject against the
 bound authority before emitting a platform effect. A deterministic adversarial
 vector advertises two presentation subjects while granting only one; an
 implementation request for the other subject terminates with
@@ -239,7 +239,7 @@ The focused vectors prove:
   completion and remains complete while the general observation ring
   overflows; and
 - planning, fragment identity, preparation, action admission, and completion
-  admission all preserve exact host-operation contracts, targets, concurrency,
+  admission all preserve exact Host Call contracts, targets, concurrency,
   and byte bounds; and
 - planning rejects malformed, unavailable, ambiguous, overflowing, and
   exhausted resource contracts; resource binding mutations fail identity or
@@ -263,7 +263,7 @@ changes identity or fails verification, preparation recomputes the executable
 commitments, and deterministic negatives cover every field group. The
 `ConnectionBase` enum remains only a runtime dispatch class derived from a
 `LinkBinding`; it is no longer sign of remote availability. Planned
-sign, host-operation, resource, authority, and link commitments are not yet
+sign, Host Call, resource, authority, and link commitments are not yet
 lowered into the S1 kernel stores, which remains explicit integration work
 rather than an unproven S2 plan claim.
 

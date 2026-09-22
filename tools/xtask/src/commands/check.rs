@@ -639,7 +639,17 @@ mod tests {
         )
         .unwrap()
         .unwrap();
-        assert_eq!(arguments, ["test", "-p", "conduit-pete", "-p", "xtask"]);
+        assert_eq!(
+            arguments,
+            [
+                "test",
+                "--no-fail-fast",
+                "-p",
+                "conduit-pete",
+                "-p",
+                "xtask"
+            ]
+        );
 
         let tongues =
             selective_package_test_arguments(step, &BTreeSet::from(["conduit-tongues".to_owned()]))
@@ -649,6 +659,7 @@ mod tests {
             tongues,
             [
                 "test",
+                "--no-fail-fast",
                 "-p",
                 "conduit-tongues",
                 "--features",

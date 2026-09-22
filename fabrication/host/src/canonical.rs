@@ -21,7 +21,7 @@ pub fn canonical_profile_json(profile: &HostProfile) -> Result<Vec<u8>, ProfileD
             &right.implementation,
         ))
     });
-    canonical.host_operations.sort();
+    canonical.host_calls.sort();
     canonical
         .resources
         .sort_by(|left, right| left.id.cmp(&right.id));

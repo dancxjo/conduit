@@ -1,6 +1,6 @@
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, ImplementationId, SemanticCapabilityContract,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    ImplementationId, Kind,
 };
 
 pub const ROBOTICS_EXECUTION_PROFILE: &str = "conduit.std/robotics-prewake-sim-kernel@1";
@@ -74,20 +74,16 @@ pub fn robotics_drive_differential_offer() -> CapabilityOffer {
     )
 }
 
-fn offer(
-    contract: SemanticCapabilityContract,
-    slug: &str,
-    implementation: &str,
-) -> CapabilityOffer {
+fn offer(contract: Kind, slug: &str, implementation: &str) -> CapabilityOffer {
     let identity = format!("robotics-prewake-sim-{slug}");
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(identity),
             execution_profile_id: ExecutionProfileId::from(ROBOTICS_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(ROBOTICS_ARTIFACT),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -95,7 +91,7 @@ fn offer(
     .build()
 }
 
-fn contract(kind: &str) -> SemanticCapabilityContract {
+fn contract(kind: &str) -> Kind {
     conduit_semantic_catalog::robotics_semantic_contract(kind)
         .expect("std robotics Kind is registered")
 }
@@ -116,7 +112,7 @@ mod tests {
             robotics_drive_differential_offer(),
         ] {
             assert_eq!(offer.limits.max_queue_items, 1);
-            assert!(offer.host_operations.is_empty());
+            assert!(offer.host_calls.is_empty());
             assert!(offer.resource_requirements.is_empty());
             assert!(offer.authority_requirements.is_empty());
             assert!(offer

@@ -5,8 +5,7 @@ use crate::PortableKindContract;
 use alloc::string::ToString;
 use alloc::vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal,
+    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const JSON_ENCODE_KIND: &str = "json/encode";
@@ -49,7 +48,7 @@ pub fn install_json_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::vec::Vec;
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
     for contract in [
         json_encode_semantics(),
         json_decode_semantics(),
@@ -60,12 +59,12 @@ pub fn install_json_catalogs(
             startup_parameters: Vec::new(),
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,
                 outputs: contract.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|error| error.to_string())?;
     }
@@ -75,7 +74,7 @@ pub fn install_json_catalogs(
 fn contract(kind: &str, revision: &str, input: &str, output: &str) -> PortableKindContract {
     PortableKindContract {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         inputs: vec![port(input, PortDirection::Input)],
         outputs: vec![port(output, PortDirection::Output)],
         limits: CapabilityLimits {

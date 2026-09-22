@@ -94,6 +94,7 @@ pub(crate) fn catalogs_for_presentation(
     conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)?;
+    super::tutorial_presenter::install_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_presentation_composition_catalogs(
         &mut startup,
         &mut profile,

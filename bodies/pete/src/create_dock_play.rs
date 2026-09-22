@@ -8,9 +8,7 @@ use crate::{
     CreateUartProvider, LocalHazard, MotionAuthority, MotionSafetyAuthority, SafetyObservation,
 };
 use conduit_core::{BootId, HostId, InfoBool, OfferGeneration, Plan};
-use conduit_kernel::{
-    scheduler::HostOperationRequest, HostOperationDisposition, HostOperationOutcome, SignSink,
-};
+use conduit_kernel::{scheduler::HostCallRequest, HostCallDisposition, HostCallOutcome, SignSink};
 
 pub struct PreparedCreateDockExecution {
     scheduler: DockScheduler,
@@ -185,11 +183,11 @@ pub fn dispatch_create_dock_execution<'a, P: CreateUartProvider>(
     }
     if execution
         .scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -346,7 +344,7 @@ fn admit_authority<'a>(
 
 fn next_request(
     execution: &mut PreparedCreateDockExecution,
-) -> Result<HostOperationRequest, CreateDockExecutionRefusal> {
+) -> Result<HostCallRequest, CreateDockExecutionRefusal> {
     for _ in 0..24 {
         execution
             .scheduler
@@ -361,7 +359,7 @@ fn next_request(
 
 fn decode_request(
     execution: &PreparedCreateDockExecution,
-    request: HostOperationRequest,
+    request: HostCallRequest,
 ) -> Result<InfoBool, CreateDockExecutionRefusal> {
     if request.node != DOCK_NODE
         || request.request != DOCK_REQUEST
@@ -390,7 +388,7 @@ fn settle_admission(execution: &mut PreparedCreateDockExecution) -> bool {
 
 fn fail_request(
     execution: &mut PreparedCreateDockExecution,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     refusal: CreateDockExecutionRefusal,
 ) {
     let detail = match refusal {
@@ -407,14 +405,14 @@ fn fail_request(
         CreateDockExecutionRefusal::KernelRefused
         | CreateDockExecutionRefusal::InvalidLifecycle => 11,
     };
-    let _ = execution.scheduler.complete_host_operation(
+    let _ = execution.scheduler.complete_host_call(
         request.node,
         request.request,
-        HostOperationOutcome {
-            disposition: HostOperationDisposition::Failed,
+        HostCallOutcome {
+            disposition: HostCallDisposition::Failed,
             output: None,
             failure: Some(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::HostOperationFailed,
+                code: conduit_kernel::FailureCode::HostCallFailed,
                 detail,
             }),
         },

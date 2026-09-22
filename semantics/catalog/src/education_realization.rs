@@ -74,7 +74,7 @@ pub fn deterministic_arithmetic_fixture() -> Result<EducationFixture, EducationI
             ),
             (
                 "hints",
-                StructuredInfoValue::collection(education_hints_type(), hints)?,
+                StructuredInfoValue::sequence(education_hints_type(), hints)?,
             ),
             ("prompt", text_value("What is 7 + 5?")),
             ("question_identity", text_value(question_identity)),

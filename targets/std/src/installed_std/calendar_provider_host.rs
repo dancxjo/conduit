@@ -5,7 +5,7 @@ use conduit_core::{
     StructuredInfoValueShape,
 };
 
-use super::calendar_provider_operation;
+use super::calendar_provider_back;
 use crate::hosted_calendar::{
     CalendarHostedOperation, GoogleCalendarRefusal, HostedCalendarAdapter,
 };
@@ -26,10 +26,10 @@ impl CalendarProviderHost {
             .placements
             .iter()
             .map(|placement| {
-                let Some(operation) = calendar_provider_operation::operation(placement) else {
+                let Some(operation) = calendar_provider_back::operation(placement) else {
                     return Ok(None);
                 };
-                let request = calendar_provider_operation::request_value(placement)?;
+                let request = calendar_provider_back::request_value(placement)?;
                 let request_canonical = request
                     .canonical_bytes()
                     .map_err(|error| format!("encode prepared calendar request: {error:?}"))?;

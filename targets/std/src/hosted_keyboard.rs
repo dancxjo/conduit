@@ -1,4 +1,4 @@
-//! Generic admitted host-operation boundary for installed keyboard sources.
+//! Generic admitted Host Call boundary for installed keyboard sources.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HostedKeyboardPoll {

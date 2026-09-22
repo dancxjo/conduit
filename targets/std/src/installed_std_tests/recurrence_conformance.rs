@@ -1,8 +1,8 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{BaseImplementationId, ConfigurationValue};
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
 use std::collections::BTreeMap;
@@ -103,15 +103,15 @@ fn install_sink(
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: offer.kind_id.clone(),
             kind_contract_revision: offer.kind_contract_revision.clone(),
             inputs: offer.inputs.clone(),
             outputs: offer.outputs.clone(),
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "expected".into(),
                 default_value: ConfigurationValue::U64(1),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 0,
                     maximum: u64::from(conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS),
                 },

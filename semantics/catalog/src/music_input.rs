@@ -1,8 +1,8 @@
 //! Portable musical-input source contract.
 
 use crate::{
-    sound::event_limits, sound::music_ports, StandardConfigurationField, StandardConfigurationRule,
-    StandardKindContract, TerminalBehavior,
+    sound::event_limits, sound::music_ports, KindConfigurationField, KindConfigurationRule,
+    KindTerminalBehavior, StandardKindContract,
 };
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{kind_id, ConfigurationValue, PortDirection};
@@ -21,7 +21,7 @@ pub fn music_input_contract() -> StandardKindContract {
         outputs: music_ports(PortDirection::Output),
         configuration: music_input_configuration(),
         limits: event_limits(),
-        terminal_behavior: TerminalBehavior::HostInputEndsOrFailsSource,
+        terminal_behavior: KindTerminalBehavior::HostInputEndsOrFailsSource,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -29,20 +29,20 @@ pub fn music_input_contract() -> StandardKindContract {
     }
 }
 
-pub fn music_input_configuration() -> Vec<StandardConfigurationField> {
+pub fn music_input_configuration() -> Vec<KindConfigurationField> {
     vec![
-        StandardConfigurationField {
+        KindConfigurationField {
             key: MUSIC_INPUT_A4_REFERENCE_KEY.to_string(),
             default_value: ConfigurationValue::U64(440_000),
-            rule: StandardConfigurationRule::U64Range {
+            rule: KindConfigurationRule::U64Range {
                 minimum: conduit_audio::MINIMUM_A4_MILLIHERTZ,
                 maximum: conduit_audio::MAXIMUM_A4_MILLIHERTZ,
             },
         },
-        StandardConfigurationField {
+        KindConfigurationField {
             key: MUSIC_INPUT_TRANSPOSE_KEY.to_string(),
             default_value: ConfigurationValue::I64(0),
-            rule: StandardConfigurationRule::I64Range {
+            rule: KindConfigurationRule::I64Range {
                 minimum: -48,
                 maximum: 48,
             },
@@ -62,7 +62,7 @@ mod tests {
         assert_eq!(contract.outputs, music_ports(PortDirection::Output));
         assert_eq!(
             contract.terminal_behavior,
-            TerminalBehavior::HostInputEndsOrFailsSource
+            KindTerminalBehavior::HostInputEndsOrFailsSource
         );
         assert_eq!(contract.configuration, music_input_configuration());
         assert_eq!(

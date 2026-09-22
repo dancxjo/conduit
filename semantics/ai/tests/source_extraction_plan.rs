@@ -111,7 +111,7 @@ fn ordinary_form_seals_exact_operation_authority_resource_and_bounds() {
     let gear = &planned.fragments[0].placements[0];
     assert_eq!(gear.gear_id, expanded.gears[0].gear_id);
     assert_eq!(
-        gear.host_operations[0].contract_id.as_str(),
+        gear.host_calls[0].contract_id.as_str(),
         SOURCE_EXTRACTION_OPERATION
     );
     assert_eq!(

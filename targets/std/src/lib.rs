@@ -95,7 +95,14 @@ pub mod hosted_wav_artifact;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
+mod vision_ocr;
+mod vision_tracker;
+
 pub use installed_std::{InstalledRemoteFragment, RemoteHostWork, RemoteValueTransfer};
+pub use vision_ocr::{
+    encode_graymap, visit_tesseract_tsv, OcrCandidate, OcrProviderRefusal, TesseractOcrProvider,
+    MAXIMUM_OCR_ITEMS,
+};
 mod remote_host_fragment;
 pub use remote_host_fragment::AdmittedRemoteFragment;
 #[cfg(test)]
@@ -613,6 +620,17 @@ impl StdHost {
         let mut advertisement =
             composition::build_advertisement(config, composition, None, None, None, false);
         let mut base_registry = empty_base_registry();
+        let mut vision_capabilities = vec![
+            hosted_vision::FiniteHostedVisionBase::motion_offer(),
+            hosted_vision::FiniteHostedVisionBase::objects_offer(),
+            hosted_vision::FiniteHostedVisionBase::experience_offer(),
+        ];
+        if let Some(ocr_offer) = vision.ocr_offer() {
+            vision_capabilities.push(ocr_offer);
+        }
+        if let Some(describe_offer) = vision.describe_offer() {
+            vision_capabilities.push(describe_offer);
+        }
         base_registry
             .register(conduit_core::BaseProviderEntry {
                 base_id: conduit_core::HostBaseId::from("std/base/finite-vision"),
@@ -626,16 +644,16 @@ impl StdHost {
                 mechanism_family: conduit_core::HostBaseKindId::from("std.base/finite-vision@1"),
                 enforcement_class: conduit_core::BaseEnforcementClass::Cooperative,
                 lifecycle: conduit_core::BaseLifecycle::Ready,
-                capabilities: vec![
-                    hosted_vision::FiniteHostedVisionBase::motion_offer(),
-                    hosted_vision::FiniteHostedVisionBase::objects_offer(),
-                ],
+                capabilities: vision_capabilities,
                 resources: vec![hosted_vision::FiniteHostedVisionBase::resource_offer()],
             })
             .map_err(|error| format!("finite vision Base registration: {error:?}"))?;
         base_registry
             .project_ready_into(&mut advertisement)
             .map_err(|error| format!("finite vision Base advertisement: {error:?}"))?;
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::local_vision_offers()[4].clone());
         advertisement.resources.sort();
         normalize_capability_offers(&mut advertisement.capabilities)?;
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
@@ -1459,7 +1477,7 @@ impl StdHost {
         Ok(conduit_core::AuthorityGrant {
             grant_id: conduit_core::AuthorityGrantId::from(grant_id),
             contract_id: requirement.contract_id.clone(),
-            host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+            host_call_contract_id: requirement.host_call_contract_id.clone(),
             subject_kind: requirement.subject_kind.clone(),
             host_id: self.advertisement.host_id.clone(),
             boot_id: self.advertisement.boot_id.clone(),
@@ -1496,7 +1514,7 @@ impl StdHost {
         Ok(conduit_core::AuthorityGrant {
             grant_id: conduit_core::AuthorityGrantId::from(grant_id),
             contract_id: requirement.contract_id.clone(),
-            host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+            host_call_contract_id: requirement.host_call_contract_id.clone(),
             subject_kind: requirement.subject_kind.clone(),
             host_id: self.advertisement.host_id.clone(),
             boot_id: self.advertisement.boot_id.clone(),
@@ -1538,7 +1556,7 @@ impl StdHost {
             .map(|(index, requirement)| conduit_core::AuthorityGrant {
                 grant_id: conduit_core::AuthorityGrantId::from(format!("{grant_prefix}-{index}")),
                 contract_id: requirement.contract_id.clone(),
-                host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+                host_call_contract_id: requirement.host_call_contract_id.clone(),
                 subject_kind: requirement.subject_kind.clone(),
                 host_id: self.advertisement.host_id.clone(),
                 boot_id: self.advertisement.boot_id.clone(),
@@ -1766,7 +1784,7 @@ mod tests {
         assert_eq!(lowered.nodes.len(), 2);
         assert_eq!(lowered.cords.len(), 1);
         assert_eq!(lowered.routes.len(), 1);
-        assert_eq!(lowered.host_operations.len(), 2);
+        assert_eq!(lowered.host_calls.len(), 2);
         assert_eq!(lowered.resources.len(), 2);
         assert_eq!(lowered.cord_value_slots, 4);
         assert_eq!(lowered.cord_value_bytes, 64);
@@ -1802,15 +1820,13 @@ mod tests {
                 Some(port.port)
             );
         }
-        for (node, operation, contract) in &lowered.identity.host_operations {
+        for (node, operation, contract) in &lowered.identity.host_calls {
             assert_eq!(
-                lowered.identity.host_operation_contract(*node, *operation),
+                lowered.identity.host_call_contract(*node, *operation),
                 Some(contract)
             );
             assert_eq!(
-                lowered
-                    .identity
-                    .host_operation_for_contract(*node, contract),
+                lowered.identity.host_call_for_contract(*node, contract),
                 Some(*operation)
             );
         }
@@ -1826,7 +1842,7 @@ mod tests {
             .any(|port| port.direction == PortDirection::Output));
         assert_eq!(lowered.signs.len(), fragment.expected_sign.len());
         assert!(lowered
-            .host_operations
+            .host_calls
             .iter()
             .any(|operation| operation.binding.maximum_output_bytes == 0));
         assert_eq!(
@@ -1847,15 +1863,11 @@ mod tests {
             expanded_form_id: fragment.expanded_form_id.clone(),
         };
         let mut concurrent = fragment.clone();
-        concurrent.placements[0].host_operations[0].maximum_in_flight = 2;
+        concurrent.placements[0].host_calls[0].maximum_in_flight = 2;
         let concurrent = seal_plan(form_identity.clone(), vec![concurrent]);
         assert!(matches!(
             conduit_plan_lowering::lowering::lower_plan_fragment(&concurrent.fragments[0]),
-            Err(
-                conduit_plan_lowering::lowering::LoweringError::UnsupportedHostOperationConcurrency(
-                    _
-                )
-            )
+            Err(conduit_plan_lowering::lowering::LoweringError::UnsupportedHostCallConcurrency(_))
         ));
 
         let mut fan_in = fragment.clone();
@@ -2050,7 +2062,7 @@ mod tests {
                 let request = kernel
                     .identity
                     .request(presentation.node, presentation.request)
-                    .expect("presentation request reverses to its host-operation contract");
+                    .expect("presentation request reverses to its Host Call contract");
                 assert!(kernel
                     .identity
                     .request_for_contract(presentation.node, &request.contract_id)

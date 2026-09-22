@@ -4,8 +4,7 @@ use conduit_body::MembershipCredential;
 use conduit_browser_runtime::human_media::acquired_camera_source_offer;
 use conduit_core::{
     process_owned_line_offer_with_limits, resource_offer, AuthorityContractId, AuthorityGrant,
-    BaseImplementationId, HostAdvertisement, HostOperationContractId, KindId, LinkLimits, Plan,
-    PortId,
+    BaseImplementationId, HostAdvertisement, HostCallContractId, KindId, LinkLimits, Plan, PortId,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ExpandedCanonicalForm,
@@ -92,7 +91,7 @@ pub(super) fn realize(
     let authority = AuthorityGrant {
         grant_id: resource.use_authority_grant.clone(),
         contract_id: AuthorityContractId::from(resource.use_authority_contract.as_str()),
-        host_operation_contract_id: HostOperationContractId::from(MEDIA_USE_OPERATION),
+        host_call_contract_id: HostCallContractId::from(MEDIA_USE_OPERATION),
         subject_kind: KindId::from(CAMERA_FRAME_KIND),
         host_id: source.host_id.clone(),
         boot_id: source.boot_id.clone(),

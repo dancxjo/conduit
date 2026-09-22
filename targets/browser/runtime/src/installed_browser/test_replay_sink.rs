@@ -1,6 +1,6 @@
 //! Typed replay observation fixture, excluded from production installations.
 use super::factory::{BrowserHostResult, BrowserInstallation, BrowserManifestation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::*;
 use conduit_kernel::HostedValueStore;
 
@@ -14,7 +14,7 @@ pub(super) static SINK: BrowserInstallation = BrowserInstallation {
 };
 
 pub(crate) fn offer() -> CapabilityOffer {
-    let mut contract = conduit_time::replay_source_kind_definition();
+    let mut contract = conduit_time::replay_source_kind_projection();
     contract.inputs = vec![contract.outputs.remove(0)];
     contract.inputs[0].direction = PortDirection::Input;
     CapabilityOffer {
@@ -30,7 +30,7 @@ pub(crate) fn offer() -> CapabilityOffer {
             implementation_id: KIND.into(),
             artifact_id: "conduit-test/replay-sink@1".into(),
         },
-        host_operations: vec![HostOperationRequirement {
+        host_calls: vec![HostCallRequirement {
             contract_id: "conduit-test/replay-output".into(),
             target_kind: Some(KIND.into()),
             maximum_in_flight: 1,
@@ -47,9 +47,9 @@ pub(crate) fn offer() -> CapabilityOffer {
     }
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     super::factory::validate_placement(placement, &offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
         1,
     ))

@@ -18,7 +18,7 @@ pub struct HostProfile {
     #[serde(default)]
     pub capabilities: Vec<CapabilitySelection>,
     #[serde(default)]
-    pub host_operations: Vec<String>,
+    pub host_calls: Vec<String>,
     #[serde(default)]
     pub resources: Vec<ResourceBudget>,
     #[serde(default)]

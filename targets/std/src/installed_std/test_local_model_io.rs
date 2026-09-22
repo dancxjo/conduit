@@ -1,11 +1,18 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, ImplementationId, KindContractRevision, PlannedGear, PortDescriptor,
-    PortDirection, PortTemporal,
+    ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
+    PortTemporal,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
-use conduit_kernel::{OperationAction, OperationInput, PortId, ValueRef, ValueStorage};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_kernel::{PortId, ValueRef, ValueStorage};
+#[cfg(feature = "local-model-proof")]
+use std::cell::RefCell;
+
+#[cfg(feature = "local-model-proof")]
+thread_local! {
+    static GENERATIVE_PRESENTER_REQUEST: RefCell<Option<Vec<u8>>> = const { RefCell::new(None) };
+}
 
 const SOURCE_KIND: &str = "conduit-test/local-model-request";
 const SOURCE_REVISION: &str = "conduit-test/local-model-request@1";
@@ -48,92 +55,109 @@ const NAV_TIME_SOURCE: &str = "conduit-test/navigation-time-source";
 #[cfg(test)]
 const NAV_TIME_SOURCE_REVISION: &str = "conduit-test/navigation-time-source@1";
 
-pub(super) static TEST_LOCAL_MODEL_SOURCE_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_LOCAL_MODEL_SOURCE_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget: source_budget,
     prepare: prepare_source,
 };
-pub(super) static TEST_LOCAL_MODEL_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_LOCAL_MODEL_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: SINK_IMPLEMENTATION,
     budget: sink_budget,
     prepare: prepare_sink,
 };
 
-pub(super) struct TestLocalModelSourceOperation {
+pub(super) struct TestLocalModelSourceBack {
     value: ValueRef,
     emitted: bool,
     hosted: bool,
 }
 
-pub(super) struct TestLocalModelSinkOperation {
+pub(super) struct TestLocalModelSinkBack {
     complete: bool,
 }
 
-impl TestLocalModelSourceOperation {
-    pub(super) fn emit_or_complete(&self) -> OperationAction {
+impl<const PORTS: usize> conduit_kernel::scheduler::StepBack<PORTS> for TestLocalModelSourceBack {
+    fn step(
+        &mut self,
+        io: &mut conduit_kernel::scheduler::StepIo<PORTS>,
+        _: &conduit_kernel::scheduler::StepInputBytes<'_, PORTS>,
+    ) -> conduit_kernel::scheduler::StepOutcome {
+        use conduit_kernel::scheduler::StepOutcome;
         if self.emitted {
-            OperationAction::Complete
-        } else if self.hosted {
-            OperationAction::RequestHostOperation {
-                request: conduit_kernel::RequestId(0),
-                operation: conduit_kernel::HostOperationId(0),
-                input: conduit_kernel::BoundedValueRef::new(self.value, 1)
-                    .expect("proof clip source marker is one admitted byte"),
-            }
-        } else {
-            OperationAction::Emit {
-                port: PortId(0),
-                value: self.value,
-            }
+            return StepOutcome::Complete;
         }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.emitted = true;
-        OperationAction::Complete
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.hosted && !self.emitted && request == conduit_kernel::RequestId(0) =>
-            {
+        if self.hosted {
+            if let Some((request, outcome)) = io.host_completion() {
+                if request != conduit_kernel::RequestId(0) {
+                    return local_model_fixture_fail(145);
+                }
                 match (outcome.disposition, outcome.output, outcome.failure) {
-                    (conduit_kernel::HostOperationDisposition::Completed, Some(output), None) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
+                    (conduit_kernel::HostCallDisposition::Completed, Some(output), None) => {
+                        if !io.output_ready(PortId(0)) {
+                            return StepOutcome::Await;
                         }
+                        io.consume_host_completion()
+                            .expect("observed local-model fixture source");
+                        io.send(PortId(0), output.value)
+                            .expect("ready local-model fixture output");
+                        self.emitted = true;
+                        return StepOutcome::Complete;
                     }
-                    (conduit_kernel::HostOperationDisposition::Denied, _, _) => {
-                        InstalledOperation::fail(143)
+                    (conduit_kernel::HostCallDisposition::Denied, _, _) => {
+                        return local_model_fixture_fail(143)
                     }
-                    _ => InstalledOperation::fail(144),
+                    _ => return local_model_fixture_fail(144),
                 }
             }
-            _ => InstalledOperation::fail(145),
+            io.request_host_call(
+                conduit_kernel::RequestId(0),
+                conduit_kernel::HostCallId(0),
+                conduit_kernel::BoundedValueRef::new(self.value, 1)
+                    .expect("proof clip source marker is one admitted byte"),
+            )
+            .expect("local-model fixture Host Call");
+            return StepOutcome::Progress;
         }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), self.value)
+            .expect("ready local-model fixture output");
+        self.emitted = true;
+        StepOutcome::Complete
     }
 }
 
-impl TestLocalModelSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0), ..
-            } if !self.complete => {
-                self.complete = true;
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(142),
+impl<const PORTS: usize> conduit_kernel::scheduler::StepBack<PORTS> for TestLocalModelSinkBack {
+    fn step(
+        &mut self,
+        io: &mut conduit_kernel::scheduler::StepIo<PORTS>,
+        _: &conduit_kernel::scheduler::StepInputBytes<'_, PORTS>,
+    ) -> conduit_kernel::scheduler::StepOutcome {
+        use conduit_kernel::scheduler::StepOutcome;
+        if self.complete {
+            return StepOutcome::Complete;
         }
+        if io.input(PortId(0)).is_some() {
+            io.consume(PortId(0))
+                .expect("present local-model fixture input");
+            self.complete = true;
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 }
+
+const fn local_model_fixture_fail(detail: u16) -> conduit_kernel::scheduler::StepOutcome {
+    conduit_kernel::scheduler::StepOutcome::Fail(conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    })
+}
+
+impl TestLocalModelSourceBack {}
+
+impl TestLocalModelSinkBack {}
 
 pub(crate) fn source_offer(value_kind: &str) -> CapabilityOffer {
     offer(
@@ -189,17 +213,13 @@ fn clip_source_offer() -> CapabilityOffer {
         conduit_audio::AUDIO_PCM_CLIP_INFO_ID,
         PortDirection::Output,
     );
-    offer
-        .host_operations
-        .push(conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(
-                HOUSE_AUDIO_CLIP_SOURCE_OPERATION,
-            ),
-            target_kind: None,
-            maximum_in_flight: 1,
-            maximum_input_bytes: 1,
-            maximum_output_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
-        });
+    offer.host_calls.push(conduit_core::HostCallRequirement {
+        contract_id: conduit_core::HostCallContractId::from(HOUSE_AUDIO_CLIP_SOURCE_OPERATION),
+        target_kind: None,
+        maximum_in_flight: 1,
+        maximum_input_bytes: 1,
+        maximum_output_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
+    });
     offer.limits.max_queue_bytes = conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32;
     offer
 }
@@ -245,6 +265,15 @@ fn offer(
     value_kind: &str,
     direction: PortDirection,
 ) -> CapabilityOffer {
+    let maximum_bytes = match value_kind {
+        conduit_presentation::GENERATIVE_PRESENTER_INPUT_KIND => {
+            conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
+        }
+        conduit_presentation::GENERATED_MANIFESTATION_KIND => {
+            conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
+        }
+        _ => 16_384,
+    };
     let port = PortDescriptor {
         port_id: port_id("value"),
         value_kind: kind_id(value_kind),
@@ -256,7 +285,7 @@ fn offer(
         shorthand: None,
         capability_id: CapabilityId::from(format!("{kind}/{value_kind}")),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(implementation),
@@ -272,13 +301,13 @@ fn offer(
         } else {
             Vec::new()
         },
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 4,
-            max_queue_bytes: 16_384,
+            max_queue_bytes: maximum_bytes,
         },
     }
 }
@@ -302,7 +331,7 @@ pub(crate) fn install_navigation_catalog(
     for offer in navigation_source_offers() {
         install_offer(startup, catalog, offer);
     }
-    let request_kind = conduit_semantic_catalog::robotics_motion_request_type();
+    let request_kind = conduit_robotics::robotics_motion_request_type();
     install_offer(
         startup,
         catalog,
@@ -392,12 +421,12 @@ fn install_offer(
         })
         .expect("test local-model IO startup Kind is unique");
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: offer.kind_id,
             kind_contract_revision: offer.kind_contract_revision,
             inputs: offer.inputs,
             outputs: offer.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .expect("test local-model IO Kind is unique");
 }
@@ -482,41 +511,48 @@ fn validate(placement: &PlannedGear, direction: PortDirection) -> Result<(), Str
     Ok(())
 }
 
-fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn source_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, PortDirection::Output)?;
     let hosted_clip = placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND;
-    Ok(OperationBudget {
+    let maximum_bytes = if hosted_clip {
+        conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
+    } else if placement.outputs[0].value_kind.as_str()
+        == conduit_presentation::GENERATIVE_PRESENTER_INPUT_KIND
+    {
+        conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
+    } else {
+        4_096
+    };
+    Ok(BackBudget {
         value_items: 1,
-        value_bytes: if hosted_clip {
-            conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
-        } else {
-            4_096
-        },
+        value_bytes: maximum_bytes,
         host_requests: usize::from(hosted_clip),
         sign_items: 16,
-        maximum_value_bytes: if hosted_clip {
-            conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
-        } else {
-            4_096
-        },
+        maximum_value_bytes: maximum_bytes,
     })
 }
 
-fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn sink_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, PortDirection::Input)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 0,
         sign_items: 16,
-        maximum_value_bytes: 4_096,
+        maximum_value_bytes: if placement.inputs[0].value_kind.as_str()
+            == conduit_presentation::GENERATED_MANIFESTATION_KIND
+        {
+            conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32
+        } else {
+            4_096
+        },
     })
 }
 
 fn prepare_source(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement, PortDirection::Output)?;
     #[cfg(test)]
     let request = if placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND {
@@ -545,8 +581,8 @@ fn prepare_source(
     let value = values
         .store(&request)
         .map_err(|error| format!("store local-model test request: {error:?}"))?;
-    Ok(InstalledOperation::TestLocalModelSource(
-        TestLocalModelSourceOperation {
+    Ok(InstalledBack::TestLocalModelSource(
+        TestLocalModelSourceBack {
             value,
             emitted: false,
             hosted: placement.kind_id.as_str() == HOUSE_AUDIO_CLIP_SOURCE_KIND,
@@ -630,12 +666,44 @@ fn source_request(placement: &PlannedGear) -> Result<Vec<u8>, String> {
     } else if placement.outputs[0].value_kind.as_str()
         == conduit_presentation::GENERATIVE_PRESENTER_INPUT_KIND
     {
+        #[cfg(feature = "local-model-proof")]
+        if let Some(request) = GENERATIVE_PRESENTER_REQUEST.with(|value| value.borrow().clone()) {
+            request
+        } else {
+            serde_json::to_vec(&crate::hosted_local_model::ollama_present::proof_request()?)
+                .map_err(|error| format!("encode generative Presenter request: {error}"))?
+        }
+        #[cfg(not(feature = "local-model-proof"))]
         serde_json::to_vec(&crate::hosted_local_model::ollama_present::proof_request()?)
             .map_err(|error| format!("encode generative Presenter request: {error}"))?
     } else {
         b"Conduit bounded local model request".to_vec()
     };
     Ok(request)
+}
+
+#[cfg(feature = "local-model-proof")]
+pub(crate) fn with_generative_presenter_request<T>(
+    request: Vec<u8>,
+    run: impl FnOnce() -> Result<T, Box<dyn std::error::Error>>,
+) -> Result<T, Box<dyn std::error::Error>> {
+    struct Reset;
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            GENERATIVE_PRESENTER_REQUEST.with(|value| *value.borrow_mut() = None);
+        }
+    }
+
+    GENERATIVE_PRESENTER_REQUEST.with(|value| -> Result<(), Box<dyn std::error::Error>> {
+        let mut value = value.borrow_mut();
+        if value.is_some() {
+            return Err("generative Presenter proof request is already installed".into());
+        }
+        *value = Some(request);
+        Ok(())
+    })?;
+    let _reset = Reset;
+    run()
 }
 
 #[cfg(test)]
@@ -750,9 +818,9 @@ fn recorded_house_audio_block(start_frame: u64, samples: &[i16]) -> Result<Vec<u
 fn prepare_sink(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement, PortDirection::Input)?;
-    Ok(InstalledOperation::TestLocalModelSink(
-        TestLocalModelSinkOperation { complete: false },
-    ))
+    Ok(InstalledBack::TestLocalModelSink(TestLocalModelSinkBack {
+        complete: false,
+    }))
 }

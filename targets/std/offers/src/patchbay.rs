@@ -1,7 +1,7 @@
 //! Hosted std direct-Patchbay Presenter offers.
 
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_requirement, CapabilityOffer,
+    kind_id, present_host_call_requirement, resource_requirement, CapabilityOffer,
     PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity};
@@ -20,7 +20,7 @@ pub fn patchbay_presentation_offers() -> [CapabilityOffer; 4] {
                 implementation: &implementation,
                 artifact: "patchbay-model/direct-presentation@1",
             },
-            vec![present_host_operation_requirement(
+            vec![present_host_call_requirement(
                 kind_id("presentation/patchbay-surface@1"),
                 conduit_semantic_catalog::MAX_PATCHBAY_PRESENTATION_BYTES,
             )],

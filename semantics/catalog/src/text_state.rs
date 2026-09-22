@@ -3,12 +3,12 @@
 use alloc::vec::Vec;
 use alloc::{format, string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal,
 };
 
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
     TEXT_PRESENTATION_VALUE_KIND,
 };
 
@@ -111,10 +111,10 @@ fn contract(kind: &str, revision: &str, output: &str, summary: &str) -> Standard
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: false },
         }],
-        configuration: vec![StandardConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "maximum-bytes".to_string(),
             default_value: ConfigurationValue::U64(256),
-            rule: StandardConfigurationRule::U64Range {
+            rule: KindConfigurationRule::U64Range {
                 minimum: 1,
                 maximum: MAXIMUM_EDITED_TEXT_BYTES as u64,
             },
@@ -124,7 +124,7 @@ fn contract(kind: &str, revision: &str, output: &str, summary: &str) -> Standard
             max_queue_items: 4,
             max_queue_bytes: MAXIMUM_EDITED_TEXT_BYTES,
         },
-        terminal_behavior: TerminalBehavior::MirrorsInputTerminal,
+        terminal_behavior: KindTerminalBehavior::MirrorsInputTerminal,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -150,22 +150,26 @@ pub fn text_submit_lines_contract() -> StandardKindContract {
     )
 }
 
-pub fn text_edit_semantic_contract() -> SemanticCapabilityContract {
+pub fn text_edit_semantic_contract() -> Kind {
     semantic_contract(text_edit_contract(), TEXT_EDIT_REVISION)
 }
 
-pub fn text_submit_lines_semantic_contract() -> SemanticCapabilityContract {
+pub fn text_submit_lines_semantic_contract() -> Kind {
     semantic_contract(text_submit_lines_contract(), TEXT_SUBMIT_LINES_REVISION)
 }
 
-fn semantic_contract(contract: StandardKindContract, revision: &str) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
+    Kind {
         startup_parameters: super::startup_front(&contract.configuration),
         shorthand: None,
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         inputs: contract.inputs,
         outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
         limits: contract.limits,
     }
 }
@@ -176,7 +180,7 @@ pub fn install_text_state_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
     for (contract, revision) in [
@@ -192,15 +196,15 @@ pub fn install_text_state_catalogs(
             }],
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
-                configuration: vec![ConfigurationField {
+                configuration: vec![KindConfigurationField {
                     key: "maximum-bytes".to_string(),
                     default_value: ConfigurationValue::U64(256),
-                    validation: ConfigurationRule::U64Range {
+                    rule: KindConfigurationRule::U64Range {
                         minimum: 1,
                         maximum: MAXIMUM_EDITED_TEXT_BYTES as u64,
                     },

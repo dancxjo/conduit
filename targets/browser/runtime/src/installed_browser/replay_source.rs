@@ -1,15 +1,15 @@
 //! Browser realization of the reusable finite history-to-replay projection.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, PlannedGear, StructuredInfoType,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
+    StructuredInfoType,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-replay-source@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-replay-source@1";
 const IMPLEMENTATION: &str = "browser/bounded-replay-source@1";
 
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
@@ -65,15 +65,15 @@ impl PreparedReplaySource {
 fn offer() -> CapabilityOffer {
     let contract = conduit_time::replay_source_semantic_contract();
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-time/bounded-replay-source@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
@@ -92,10 +92,10 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     PreparedReplaySource::for_placement(placement)?
         .ok_or_else(|| "replay source placement selected another implementation".to_string())?;
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
         1,
     ))

@@ -64,8 +64,11 @@ fn split_type<'a>(
         0 => {
             checked_name(cursor.text()?)?;
         }
-        1 => {
+        tag @ (1 | 4) => {
             if usize::from(cursor.u16()?) > MAXIMUM_STRUCTURED_COLLECTION_ITEMS {
+                return Err(malformed());
+            }
+            if tag == 4 && input.get(1..3) == Some(&[0, 0]) {
                 return Err(malformed());
             }
             let (_, rest) = split_type(cursor.remaining, depth + 1, nodes)?;
@@ -125,6 +128,19 @@ fn validate_value(
         (1, 1) => {
             let count = usize::from(kind.u16()?);
             if value.length()? != count {
+                return Err(malformed());
+            }
+            let mut scratch = MAXIMUM_STRUCTURED_INFO_NODES;
+            let (element, rest) = split_type(kind.remaining, depth + 1, &mut scratch)?;
+            kind.remaining = rest;
+            for _ in 0..count {
+                validate_value(element, value, depth + 1, nodes)?;
+            }
+        }
+        (4, 1) => {
+            let capacity = usize::from(kind.u16()?);
+            let count = value.length()?;
+            if count > capacity {
                 return Err(malformed());
             }
             let mut scratch = MAXIMUM_STRUCTURED_INFO_NODES;

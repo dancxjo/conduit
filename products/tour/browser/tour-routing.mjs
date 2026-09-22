@@ -1,4 +1,4 @@
-import { browserHostOperationLimits, createBrowserHostOperations } from "../../../targets/browser/host/assets/browser-host-operations.mjs";
+import { browserHostCallLimits, createBrowserHostCalls } from "../../../targets/browser/host/assets/browser-host-calls.mjs";
 
 const MAXIMUM_LOCATION_SEQUENCE = 0xffff_ffff;
 const MAXIMUM_TOUR_PAGES = 16;
@@ -59,7 +59,7 @@ export function parseTourPages(chapters) {
 }
 
 export function createTourRouting({ host, applicationId, render, onFailure }) {
-  const operations = createBrowserHostOperations({
+  const calls = createBrowserHostCalls({
     hostId: host.hostId,
     bootId: host.bootId,
     applicationId,
@@ -90,10 +90,10 @@ export function createTourRouting({ host, applicationId, render, onFailure }) {
   };
   const moveToPath = async (path, mode) => {
     sequence = sequence === MAXIMUM_LOCATION_SEQUENCE ? 1 : sequence + 1;
-    const outcome = await operations.moveLocation({
-      contract: browserHostOperationLimits.contract,
+    const outcome = await calls.moveLocation({
+      contract: browserHostCallLimits.contract,
       kind: "location",
-      operationId: `tour/location-${sequence}`,
+      callId: `tour/location-${sequence}`,
       hostId: host.hostId,
       bootId: host.bootId,
       applicationId,

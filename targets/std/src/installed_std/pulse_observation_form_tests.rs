@@ -20,7 +20,7 @@ fn reusable_pulse_form_plans_and_executes_outside_choir() {
         })
         .unwrap();
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),

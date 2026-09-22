@@ -192,6 +192,7 @@ impl HostTrainingRealization {
             supported_formats: alloc::vec![self.format_profile.clone()],
             supported_precisions: alloc::vec![self.precision_profile.clone()],
             loaded_artifact_identity: artifact.content_identity(),
+            loaded_checkpoint_identity: None,
         }
     }
 }

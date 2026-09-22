@@ -144,7 +144,7 @@ impl ProductUsbLine {
             self.session.binding().attachment.line_id.as_str(),
             None,
         )?;
-        emit("usb-line-current", self, body_id, None);
+        emit("usb-line-current", self, body_id, None, "not-requested");
         crate::arch::early_write(b"CONDUIT_BOOT_STAGE usb-line-current\n");
         let binding = self.session.binding().clone();
         self.send(controller, device, binding.hello_frame().message)?;
@@ -156,7 +156,7 @@ impl ProductUsbLine {
             self.session.binding().attachment.line_id.as_str(),
             None,
         )?;
-        emit("peer-attached", self, body_id, None);
+        emit("peer-attached", self, body_id, None, "admitted-present");
         crate::arch::early_write(b"CONDUIT_BOOT_STAGE peer-attached\n");
         for sequence in 0..LINE_LIFETIME_VALUES {
             self.send(
@@ -183,7 +183,13 @@ impl ProductUsbLine {
             self.session.binding().attachment.line_id.as_str(),
             Some("HELLO USB LINE"),
         )?;
-        emit("line-value-visible", self, body_id, Some("HELLO USB LINE"));
+        emit(
+            "line-value-visible",
+            self,
+            body_id,
+            Some("HELLO USB LINE"),
+            "admitted-present",
+        );
         crate::arch::early_write(b"CONDUIT_BOOT_STAGE line-value-visible\n");
         let loss = self.session.receive(
             &mut self.carrier,
@@ -222,7 +228,7 @@ impl ProductUsbLine {
             self.session.binding().attachment.line_id.as_str(),
             None,
         )?;
-        emit("line-lost", self, body_id, None);
+        emit("line-lost", self, body_id, None, "admitted-offline");
         crate::arch::early_write(b"CONDUIT_BOOT_STAGE line-lost\n");
         Ok(())
     }
@@ -267,12 +273,12 @@ impl ProductUsbLine {
     }
 }
 
-fn emit(status: &str, line: &ProductUsbLine, body_id: &str, value: Option<&str>) {
+fn emit(status: &str, line: &ProductUsbLine, body_id: &str, value: Option<&str>, membership: &str) {
     let binding = line.session.binding();
     let value = value.map_or_else(|| "null".into(), |value| format!("\"{value}\""));
     crate::arch::early_write(
         format!(
-            "CONDUIT_USB_LINE_SIGN {{\"schema\":\"conduit.conduitos.usb-line/v1\",\"status\":\"{status}\",\"line_id\":\"{}\",\"binding_id\":\"{}\",\"base_instance_id\":\"{}\",\"plan_id\":\"{}\",\"source_active_play_id\":\"{}\",\"sink_active_play_id\":\"{}\",\"source_host_id\":\"{}\",\"source_boot_id\":\"{}\",\"sink_host_id\":\"{}\",\"sink_boot_id\":\"{}\",\"body_id\":\"{body_id}\",\"value\":{value},\"lifetime_values\":{},\"proof_class\":\"freestanding-emulator\",\"membership\":\"not-requested\",\"bounded\":true}}\n",
+            "CONDUIT_USB_LINE_SIGN {{\"schema\":\"conduit.conduitos.usb-line/v1\",\"status\":\"{status}\",\"line_id\":\"{}\",\"binding_id\":\"{}\",\"base_instance_id\":\"{}\",\"plan_id\":\"{}\",\"source_active_play_id\":\"{}\",\"sink_active_play_id\":\"{}\",\"source_host_id\":\"{}\",\"source_boot_id\":\"{}\",\"sink_host_id\":\"{}\",\"sink_boot_id\":\"{}\",\"body_id\":\"{body_id}\",\"value\":{value},\"lifetime_values\":{},\"proof_class\":\"freestanding-emulator\",\"membership\":\"{membership}\",\"bounded\":true}}\n",
             binding.attachment.line_id.as_str(),
             binding.attachment.link_binding_id.as_str(),
             binding.attachment.base_instance_id.as_str(),

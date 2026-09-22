@@ -553,13 +553,13 @@ pub const KERNEL_TAKEOVER_STEPS: &[Step] = &[
     ),
     Step::new(
         "check.kernel.sink-no-output",
-        "test admitted_sink_host_operation_may_have_no_output_payload",
+        "test admitted_sink_host_call_may_have_no_output_payload",
         "cargo",
         &[
             "test",
             "-p",
             "conduit-kernel",
-            "admitted_sink_host_operation_may_have_no_output_payload",
+            "admitted_sink_host_call_may_have_no_output_payload",
         ],
     ),
     Step::typed(
@@ -679,10 +679,10 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         &["test", "-p", "conduit-browser-runtime"],
     ),
     Step::new(
-        "check.browser.host-operations",
-        "Prove finite generic browser Host operations and negative outcomes",
+        "check.browser.host-calls",
+        "Prove finite generic browser Host Calls and negative outcomes",
         "node",
-        &["--test", "proof/browser/browser-host-operations.test.mjs"],
+        &["--test", "proof/browser/browser-host-calls.test.mjs"],
     ),
     Step::new(
         "check.browser.creche-rendezvous",

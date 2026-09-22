@@ -15,7 +15,7 @@ Every exposed entry is versioned, targets `browser/wasm32/page`, binds to `condu
 | Web Audio output | no selectable reviewed realization | API presence alone is insufficient; intentionally unadvertised |
 | WebSerial and WebUSB | selectable device bases | secure context, user activation, permission, explicit device acquisition |
 | browser host identity and body membership | host mechanism, not a configurable semantic base | durable profile and admitted membership authority |
-| application package loader/presentation bridge | host operation and product substrate | exact admitted package bytes |
+| application package loader/presentation bridge | Host Call and product substrate | exact admitted package bytes |
 | Book runners and browser proof fixtures | application/proof code, never ordinary host choices | intentionally excluded |
 | touch and gamepad | portable value contracts and deterministic fixtures exist, but no selectable live browser realization exists | intentionally unadvertised |
 
@@ -31,7 +31,7 @@ implementation.
 
 WebSerial and WebUSB follow the same boundary. PROFILE selection admits only a
 finite chooser capability; it performs no browser prompt. The adapter may call
-`requestPort` or `requestDevice` only after an explicit admitted host operation,
+`requestPort` or `requestDevice` only after an explicit admitted Host Call,
 then records the browser-visible opaque resource and optional numeric vendor or
 product fields without treating them as stable hardware identity. Transfer use
 requires a later immutable plan and remains bounded to one active device, one
@@ -87,7 +87,7 @@ one selected PROFILE; only their artifact layout and size may differ.
 
 `BROWSER_HUMAN_PRESENTATION_REALIZATIONS` is the checked join between each
 fabrication identity and its portable kind, ordinary runtime implementation,
-runtime artifact identity, host-operation contract, and finite limits. Runtime
+runtime artifact identity, Host Call contract, and finite limits. Runtime
 tests compare that table to the real installed `CapabilityOffer`s so a label in
 the configurator cannot silently drift away from what the planner selects.
 

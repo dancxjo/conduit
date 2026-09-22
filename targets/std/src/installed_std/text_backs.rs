@@ -1,0 +1,466 @@
+use super::back::{BackBudget, BackFactory, InstalledBack};
+use conduit_core::{ConfigurationValue, PlannedGear, PortDirection};
+use conduit_kernel::{
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, HostCallDisposition, HostCallId, HostCallOutcome, PortId, RequestId, ValueRef,
+    ValueStorage,
+};
+use conduit_semantic_catalog::{
+    MAX_TEXT_VALUES, TEXT_PRESENTATION_CONTRACT_REVISION, TEXT_PRESENTATION_KIND,
+    TEXT_PRESENTATION_VALUE_KIND,
+};
+use conduit_std_offers::{
+    TEXT_JOIN_ARTIFACT, TEXT_JOIN_EXECUTION_PROFILE, TEXT_JOIN_IMPLEMENTATION,
+    TEXT_LITERAL_ARTIFACT, TEXT_LITERAL_EXECUTION_PROFILE, TEXT_LITERAL_IMPLEMENTATION,
+    TEXT_PRESENTATION_ARTIFACT, TEXT_PRESENTATION_EXECUTION_PROFILE,
+    TEXT_PRESENTATION_IMPLEMENTATION, TEXT_UPPER_ARTIFACT, TEXT_UPPER_EXECUTION_PROFILE,
+    TEXT_UPPER_IMPLEMENTATION,
+};
+use conduit_text::{
+    MAX_TEXT_BYTES, TEXT_JOIN_CONTRACT_REVISION, TEXT_JOIN_KIND, TEXT_LITERAL_CONTRACT_REVISION,
+    TEXT_LITERAL_KIND, TEXT_UPPER_CONTRACT_REVISION, TEXT_UPPER_KIND,
+};
+
+pub(super) static TEXT_LITERAL_FACTORY: BackFactory = BackFactory {
+    implementation_id: TEXT_LITERAL_IMPLEMENTATION,
+    budget: text_literal_budget,
+    prepare: prepare_text_literal,
+};
+
+pub(super) static TEXT_UPPER_FACTORY: BackFactory = BackFactory {
+    implementation_id: TEXT_UPPER_IMPLEMENTATION,
+    budget: text_upper_budget,
+    prepare: prepare_text_upper,
+};
+
+pub(super) static TEXT_JOIN_FACTORY: BackFactory = BackFactory {
+    implementation_id: TEXT_JOIN_IMPLEMENTATION,
+    budget: text_join_budget,
+    prepare: prepare_text_join,
+};
+
+pub(super) static TEXT_PRESENTATION_FACTORY: BackFactory = BackFactory {
+    implementation_id: TEXT_PRESENTATION_IMPLEMENTATION,
+    budget: text_presentation_budget,
+    prepare: prepare_text_presentation,
+};
+
+pub(super) struct TextLiteralBack {
+    value: ValueRef,
+    emitted: bool,
+}
+
+impl<const PORTS: usize> StepBack<PORTS> for TextLiteralBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), self.value)
+            .expect("ready text literal output");
+        self.emitted = true;
+        StepOutcome::Progress
+    }
+}
+
+impl<const PORTS: usize> StepBack<PORTS> for TextTransformBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(step_failure(8));
+            }
+            let Some(output) = outcome.output else {
+                return StepOutcome::Fail(step_failure(8));
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume_host_completion()
+                .expect("observed text Host Call completion");
+            io.send(PortId(0), output.value)
+                .expect("ready text transform output");
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() || self.next >= self.maximum_values {
+                return StepOutcome::Fail(step_failure(8));
+            }
+            let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
+                return StepOutcome::Fail(step_failure(8));
+            };
+            let request = RequestId(self.next);
+            io.consume(PortId(0)).expect("present text input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("single text Host Call request");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed text input closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+impl<const PORTS: usize> StepBack<PORTS> for TextPresentationBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(step_failure(5));
+            }
+            io.consume_host_completion()
+                .expect("observed text Presentation completion");
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() || self.next >= self.maximum_values {
+                return StepOutcome::Fail(step_failure(5));
+            }
+            let Ok(input) = BoundedValueRef::new(value, MAX_TEXT_BYTES) else {
+                return StepOutcome::Fail(step_failure(5));
+            };
+            let request = RequestId(self.next);
+            io.consume(PortId(0))
+                .expect("present text Presentation input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("single text Presentation Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed text Presentation closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+fn step_failure(detail: u16) -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    }
+}
+
+pub(super) struct TextTransformBack {
+    pending: Option<RequestId>,
+    next: u32,
+    maximum_values: u32,
+    maximum_input_bytes: u32,
+}
+
+pub(super) struct TextPresentationBack {
+    pending: Option<RequestId>,
+    next: u32,
+    maximum_values: u32,
+}
+
+impl TextLiteralBack {}
+
+impl TextTransformBack {
+    pub(super) fn bounded(maximum_values: u32) -> Self {
+        Self::bounded_input(maximum_values, MAX_TEXT_BYTES)
+    }
+
+    pub(super) fn bounded_input(maximum_values: u32, maximum_input_bytes: u32) -> Self {
+        Self {
+            pending: None,
+            next: 0,
+            maximum_values,
+            maximum_input_bytes,
+        }
+    }
+}
+
+impl TextPresentationBack {
+    pub(super) fn bounded(maximum_values: u32) -> Self {
+        Self {
+            pending: None,
+            next: 0,
+            maximum_values,
+        }
+    }
+}
+
+fn text_literal_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate_text_literal(placement)?;
+    let text = text_configuration(placement, "value", MAX_TEXT_BYTES)?;
+    Ok(BackBudget {
+        value_items: 1,
+        value_bytes: u32::try_from(text.len()).map_err(|_| "text literal is too large")?,
+        host_requests: 0,
+        sign_items: 32,
+        maximum_value_bytes: MAX_TEXT_BYTES,
+    })
+}
+
+fn prepare_text_literal(
+    placement: &PlannedGear,
+    values: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    validate_text_literal(placement)?;
+    let text = text_configuration(placement, "value", MAX_TEXT_BYTES)?;
+    let value = values
+        .store(text.as_bytes())
+        .map_err(|error| format!("store text literal: {error:?}"))?;
+    Ok(InstalledBack::TextLiteral(TextLiteralBack {
+        value,
+        emitted: false,
+    }))
+}
+
+fn text_upper_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate_text_upper(placement)?;
+    Ok(BackBudget {
+        value_items: MAX_TEXT_VALUES as u16,
+        value_bytes: MAX_TEXT_BYTES * MAX_TEXT_VALUES as u32,
+        host_requests: MAX_TEXT_VALUES as usize,
+        sign_items: 64,
+        maximum_value_bytes: MAX_TEXT_BYTES,
+    })
+}
+
+fn prepare_text_upper(
+    placement: &PlannedGear,
+    _values: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    validate_text_upper(placement)?;
+    Ok(InstalledBack::TextUpper(TextTransformBack::bounded(
+        MAX_TEXT_VALUES as u32,
+    )))
+}
+
+fn text_join_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate_text_join(placement)?;
+    Ok(BackBudget {
+        value_items: MAX_TEXT_VALUES as u16,
+        value_bytes: MAX_TEXT_BYTES * MAX_TEXT_VALUES as u32,
+        host_requests: MAX_TEXT_VALUES as usize,
+        sign_items: 64,
+        maximum_value_bytes: MAX_TEXT_BYTES,
+    })
+}
+
+fn prepare_text_join(
+    placement: &PlannedGear,
+    _values: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    validate_text_join(placement)?;
+    Ok(InstalledBack::TextJoin(TextTransformBack::bounded(
+        MAX_TEXT_VALUES as u32,
+    )))
+}
+
+fn text_presentation_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate_text_presentation(placement)?;
+    let maximum_values = maximum_values(placement)?;
+    Ok(BackBudget {
+        value_items: 0,
+        value_bytes: 0,
+        host_requests: maximum_values as usize,
+        sign_items: 64,
+        maximum_value_bytes: MAX_TEXT_BYTES,
+    })
+}
+
+fn prepare_text_presentation(
+    placement: &PlannedGear,
+    _values: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    validate_text_presentation(placement)?;
+    Ok(InstalledBack::TextPresentation(TextPresentationBack {
+        pending: None,
+        next: 0,
+        maximum_values: maximum_values(placement)? as u32,
+    }))
+}
+
+fn text_configuration<'a>(
+    placement: &'a PlannedGear,
+    key: &str,
+    maximum: u32,
+) -> Result<&'a str, String> {
+    placement
+        .configuration
+        .iter()
+        .find(|entry| entry.key == key)
+        .and_then(|entry| match &entry.value {
+            ConfigurationValue::Text(value) if value.len() <= maximum as usize => {
+                Some(value.as_str())
+            }
+            _ => None,
+        })
+        .ok_or_else(|| format!("text configuration '{key}' is missing, invalid, or oversized"))
+}
+
+pub(super) fn join_prefix(placement: &PlannedGear) -> Result<&str, String> {
+    text_configuration(placement, "prefix", MAX_TEXT_BYTES)
+}
+
+fn maximum_values(placement: &PlannedGear) -> Result<u64, String> {
+    placement
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "maximum-values")
+        .and_then(|entry| match entry.value {
+            ConfigurationValue::U64(value) if (1..=MAX_TEXT_VALUES).contains(&value) => Some(value),
+            _ => None,
+        })
+        .ok_or_else(|| "text presentation maximum-values is invalid".to_string())
+}
+
+fn validate_text_literal(placement: &PlannedGear) -> Result<(), String> {
+    validate_identity(
+        placement,
+        TEXT_LITERAL_KIND,
+        TEXT_LITERAL_CONTRACT_REVISION,
+        TEXT_LITERAL_EXECUTION_PROFILE,
+        TEXT_LITERAL_IMPLEMENTATION,
+        TEXT_LITERAL_ARTIFACT,
+        0,
+        1,
+    )?;
+    text_configuration(placement, "value", MAX_TEXT_BYTES).map(|_| ())
+}
+
+fn validate_text_upper(placement: &PlannedGear) -> Result<(), String> {
+    validate_identity(
+        placement,
+        TEXT_UPPER_KIND,
+        TEXT_UPPER_CONTRACT_REVISION,
+        TEXT_UPPER_EXECUTION_PROFILE,
+        TEXT_UPPER_IMPLEMENTATION,
+        TEXT_UPPER_ARTIFACT,
+        1,
+        1,
+    )
+}
+
+fn validate_text_join(placement: &PlannedGear) -> Result<(), String> {
+    validate_identity(
+        placement,
+        TEXT_JOIN_KIND,
+        TEXT_JOIN_CONTRACT_REVISION,
+        TEXT_JOIN_EXECUTION_PROFILE,
+        TEXT_JOIN_IMPLEMENTATION,
+        TEXT_JOIN_ARTIFACT,
+        1,
+        1,
+    )?;
+    text_configuration(placement, "prefix", MAX_TEXT_BYTES).map(|_| ())
+}
+
+fn validate_text_presentation(placement: &PlannedGear) -> Result<(), String> {
+    validate_identity(
+        placement,
+        TEXT_PRESENTATION_KIND,
+        TEXT_PRESENTATION_CONTRACT_REVISION,
+        TEXT_PRESENTATION_EXECUTION_PROFILE,
+        TEXT_PRESENTATION_IMPLEMENTATION,
+        TEXT_PRESENTATION_ARTIFACT,
+        1,
+        0,
+    )?;
+    maximum_values(placement).map(|_| ())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn validate_identity(
+    placement: &PlannedGear,
+    kind: &str,
+    revision: &str,
+    profile: &str,
+    implementation: &str,
+    artifact: &str,
+    inputs: usize,
+    outputs: usize,
+) -> Result<(), String> {
+    if placement.kind_id.as_str() != kind
+        || placement.kind_contract_revision.as_str() != revision
+        || placement.execution_profile_id.as_str() != profile
+        || placement.implementation_id.as_str() != implementation
+        || placement.artifact_id.as_str() != artifact
+        || placement.inputs.len() != inputs
+        || placement.outputs.len() != outputs
+        || placement.inputs.iter().any(|port| {
+            port.port_id.as_str() != "text"
+                || port.value_kind.as_str() != TEXT_PRESENTATION_VALUE_KIND
+                || port.direction != PortDirection::Input
+        })
+        || placement.outputs.iter().any(|port| {
+            port.port_id.as_str() != "text"
+                || port.value_kind.as_str() != TEXT_PRESENTATION_VALUE_KIND
+                || port.direction != PortDirection::Output
+        })
+    {
+        return Err(format!(
+            "planned {kind} executable identity does not match its installation"
+        ));
+    }
+    Ok(())
+}
+
+pub(super) fn uppercase_utf8(input: &[u8], output: &mut Vec<u8>) -> Result<(), String> {
+    output.clear();
+    let text = core::str::from_utf8(input).map_err(|_| "text/upper input is not valid UTF-8")?;
+    for character in text.chars().flat_map(char::to_uppercase) {
+        let mut encoded = [0_u8; 4];
+        let bytes = character.encode_utf8(&mut encoded).as_bytes();
+        if output.len() + bytes.len() > MAX_TEXT_BYTES as usize {
+            output.clear();
+            return Err("text/upper output exceeds its admitted byte bound".to_string());
+        }
+        output.extend_from_slice(bytes);
+    }
+    Ok(())
+}
+
+pub(super) fn prefix_utf8(prefix: &str, input: &[u8], output: &mut Vec<u8>) -> Result<(), String> {
+    output.clear();
+    core::str::from_utf8(input).map_err(|_| "text/join input is not valid UTF-8")?;
+    let combined = prefix
+        .len()
+        .checked_add(input.len())
+        .ok_or_else(|| "text/join output byte length overflow".to_string())?;
+    if combined > MAX_TEXT_BYTES as usize {
+        return Err("text/join output exceeds its admitted byte bound".to_string());
+    }
+    output.extend_from_slice(prefix.as_bytes());
+    output.extend_from_slice(input);
+    Ok(())
+}
+
+pub(super) fn completed_with_output(value: ValueRef) -> HostCallOutcome {
+    HostCallOutcome {
+        disposition: HostCallDisposition::Completed,
+        output: Some(
+            BoundedValueRef::new(value, MAX_TEXT_BYTES)
+                .expect("text transform output was checked against the admitted bound"),
+        ),
+        failure: None,
+    }
+}

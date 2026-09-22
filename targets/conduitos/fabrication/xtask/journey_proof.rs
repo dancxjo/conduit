@@ -39,6 +39,7 @@ struct JourneyProof {
     expanded_form_id: String,
     body_id: String,
     born_sign_id: String,
+    fulfilled_sign_id: String,
     part_id: String,
     wake_id: String,
     plan_id: String,
@@ -93,6 +94,7 @@ struct JourneyProof {
     usb_line_body_unchanged: bool,
     open_effects: u8,
     body_retained_after_lull: bool,
+    body_fulfilled: bool,
     remained_alive: bool,
     stopped_by_harness: bool,
 }
@@ -233,7 +235,11 @@ fn execute_image(
                 "product-journey-front-door-timeout",
             )?;
             artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
-            journey_input::key_pair(&mut qmp, &mut reader, "ret", "creche-birth")?;
+            for _ in 0..7 {
+                journey_input::key_pair(&mut qmp, &mut reader, "tab", "creche-select-form")?;
+            }
+            journey_input::key_pair(&mut qmp, &mut reader, "spc", "creche-omit-form")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f3", "creche-birth")?;
             journey_input::wait_status(&serial_path, &mut child, "quiescent-awaiting-input")?;
             artifacts.capture(&mut qmp, &mut reader, "body-awake", true)?;
             for _ in 0..2 {
@@ -360,8 +366,48 @@ fn execute_image(
             journey_input::key_pair(&mut qmp, &mut reader, "esc", "leave-details")?;
             journey_input::wait_status(&serial_path, &mut child, "quiescent-awaiting-input")?;
             artifacts.capture(&mut qmp, &mut reader, "quiescent-awaiting-input", true)?;
-            super::journey_standing::type_hello(&mut qmp, &mut reader, &serial_path, &mut child)?;
+            super::journey_standing::type_hello(
+                &mut qmp,
+                &mut reader,
+                &serial_path,
+                &mut child,
+                0,
+            )?;
             artifacts.capture(&mut qmp, &mut reader, "input-continued", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f8", "admit-form")?;
+            hid_qmp::wait_for_stage(
+                &serial_path,
+                &mut child,
+                "\"workload_revision\":1",
+                "product-journey-workload-revision-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "workload-revised", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f5", "replan-workload")?;
+            hid_qmp::wait_for_stage_count(
+                &serial_path,
+                &mut child,
+                "\"status\":\"planned\"",
+                2,
+                "product-journey-workload-plan-timeout",
+            )?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f6", "resume-replanned-workload")?;
+            hid_qmp::wait_for_stage_count(
+                &serial_path,
+                &mut child,
+                "conduitos/product-interaction/play/",
+                2,
+                "product-journey-workload-play-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, "workload-replanned", true)?;
+            // The replacement Plan creates a distinct Play, so establish its
+            // own standing-input baseline before exercising all four Forms.
+            super::journey_standing::type_hello(
+                &mut qmp,
+                &mut reader,
+                &serial_path,
+                &mut child,
+                1,
+            )?;
             super::journey_workset::exercise(
                 &mut qmp,
                 &mut reader,
@@ -369,11 +415,6 @@ fn execute_image(
                 &mut child,
                 &mut artifacts,
             )?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f8", "stop")?;
-            journey_input::wait_status(&serial_path, &mut child, "stopped")?;
-            journey_input::key_pair(&mut qmp, &mut reader, "f7", "lull")?;
-            journey_input::wait_status(&serial_path, &mut child, "lulled")?;
-            artifacts.capture(&mut qmp, &mut reader, "lulled", true)?;
             journey_input::key_pair(&mut qmp, &mut reader, "f12", "usb-line")?;
             hid_qmp::wait_for_stage(
                 &serial_path,
@@ -418,6 +459,11 @@ fn execute_image(
                 "CONDUIT_BOOT_STAGE keyboard-resumed-after-line",
                 "product-journey-keyboard-resume-timeout",
             )?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f8", "stop")?;
+            journey_input::wait_status(&serial_path, &mut child, "stopped")?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f7", "lull")?;
+            journey_input::wait_status(&serial_path, &mut child, "lulled")?;
+            artifacts.capture(&mut qmp, &mut reader, "lulled", false)?;
             journey_input::key_pair(&mut qmp, &mut reader, "f9", "tour-open")?;
             journey_input::wait_tour_status(&serial_path, &mut child, "tour-opened")?;
             artifacts.capture(&mut qmp, &mut reader, "tour-opened", true)?;
@@ -447,6 +493,9 @@ fn execute_image(
             journey_input::key_pair(&mut qmp, &mut reader, "esc", "dismiss-refusal")?;
             journey_input::wait_transient_status_count(&serial_path, &mut child, "dismissed", 9)?;
             artifacts.capture(&mut qmp, &mut reader, "refusal-dismissed", true)?;
+            journey_input::key_pair(&mut qmp, &mut reader, "f8", "fulfill")?;
+            journey_input::wait_status(&serial_path, &mut child, "fulfilled")?;
+            artifacts.capture(&mut qmp, &mut reader, "fulfilled", false)?;
             journey_input::key_pair(&mut qmp, &mut reader, "f11", "tour-patchbay")?;
             journey_input::wait_tour_status(&serial_path, &mut child, "patchbay-open")?;
             hid_qmp::wait_for_stage(
@@ -552,6 +601,7 @@ fn execute_image(
             "quiescent-awaiting-input",
             "stopped",
             "lulled",
+            "fulfilled",
         ] {
             if !by_status.contains_key(status) {
                 return Err(ConduitosError::refusal(
@@ -575,16 +625,25 @@ fn execute_image(
                 "current, peer, value, and loss must produce exactly four Line records",
             ));
         }
-        for (record, status) in usb_line_records.iter().zip([
-            "usb-line-current",
-            "peer-attached",
-            "line-value-visible",
-            "line-lost",
-        ]) {
+        for ((record, status), membership) in usb_line_records
+            .iter()
+            .zip([
+                "usb-line-current",
+                "peer-attached",
+                "line-value-visible",
+                "line-lost",
+            ])
+            .zip([
+                "not-requested",
+                "admitted-present",
+                "admitted-present",
+                "admitted-offline",
+            ])
+        {
             if record.get("status").and_then(Value::as_str) != Some(status)
                 || record.get("proof_class").and_then(Value::as_str)
                     != Some("freestanding-emulator")
-                || record.get("membership").and_then(Value::as_str) != Some("not-requested")
+                || record.get("membership").and_then(Value::as_str) != Some(membership)
             {
                 return Err(ConduitosError::refusal(
                     "product-journey-usb-line-stage-invalid",
@@ -653,6 +712,7 @@ fn execute_image(
         let quiescent = by_status["quiescent-awaiting-input"];
         let (result, workset) = super::journey_workset::validate(&records)?;
         let lulled = by_status["lulled"];
+        let fulfilled = by_status["fulfilled"];
         let plan_id = text(planned, "plan_id")?;
         super::journey_workset::validate_causality(
             &serial, &records, opened, born, planned, quiescent, lulled,
@@ -664,7 +724,7 @@ fn execute_image(
             ));
         }
         let proof = JourneyProof {
-            schema: "conduit.conduitos/product-journey-proof@2",
+            schema: "conduit.conduitos/product-journey-proof@3",
             base_commit: git_head(&paths.root)?,
             image_sha256,
             profile_id: text(opened, "profile_id")?,
@@ -678,6 +738,7 @@ fn execute_image(
             expanded_form_id: text(born, "expanded_form_id")?,
             body_id: text(born, "body_id")?,
             born_sign_id: text(born, "born_sign_id")?,
+            fulfilled_sign_id: text(fulfilled, "fulfilled_sign_id")?,
             part_id: text(born, "part_id")?,
             wake_id: text(by_status["awake"], "wake_id")?,
             plan_id,
@@ -734,10 +795,11 @@ fn execute_image(
             usb_line_value: text(&usb_line_records[2], "value")?,
             usb_line_values: conduitos::product_usb_line::LINE_LIFETIME_VALUES,
             usb_line_acknowledgements: conduitos::product_usb_line::LINE_LIFETIME_VALUES * 2,
-            usb_line_membership: text(&usb_line_records[0], "membership")?,
+            usb_line_membership: text(&usb_line_records[1], "membership")?,
             usb_line_body_unchanged: true,
             open_effects: 0,
             body_retained_after_lull: true,
+            body_fulfilled: true,
             remained_alive: true,
             stopped_by_harness: true,
         };

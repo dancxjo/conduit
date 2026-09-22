@@ -6,7 +6,7 @@
 
 use crate::{
     AuthorityGrantId, BaseInstanceId, ExternalManifestationId, ExternalResourceId,
-    InteropAdapterId, InteropMappingId, KindContractRevision, KindId,
+    InteropAdapterId, InteropMappingId, KindId, KindIdentity,
 };
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
@@ -34,7 +34,7 @@ pub struct InteropMapping {
     pub base_instance_id: BaseInstanceId,
     pub external_resource_id: ExternalResourceId,
     pub semantic_kind: KindId,
-    pub semantic_revision: KindContractRevision,
+    pub semantic_revision: KindIdentity,
     pub direction: InteropDirection,
     pub authority_grant_id: AuthorityGrantId,
     pub maximum_payload_bytes: u32,

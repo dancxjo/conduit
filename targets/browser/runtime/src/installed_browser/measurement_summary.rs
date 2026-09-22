@@ -1,14 +1,14 @@
 //! Browser production realization of exact measurement summaries.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationRequirement, ImplementationId, PlannedGear,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-measurement-summary@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-measurement-summary@1";
 const IMPLEMENTATION: &str = "browser/kernel-measurement-summary@1";
 
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
@@ -21,15 +21,15 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 fn offer() -> CapabilityOffer {
     let contract = conduit_data::measurement_summary_semantic_contract();
     let kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-summary@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HOST_OPERATION.into(),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HOST_CALL.into(),
                 target_kind: Some(kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
@@ -42,15 +42,12 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     if !placement.configuration.is_empty() {
         return Err("measurement summary accepts no configuration".into());
     }
-    Ok(BrowserOperation::unary(
-        MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        1,
-    ))
+    Ok(BrowserBack::unary(MAXIMUM_BROWSER_VALUE_BYTES as u32, 1))
 }
 
 pub(crate) fn execute(input: &[u8]) -> Result<Vec<u8>, Failure> {

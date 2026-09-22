@@ -6,11 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 use crate::{job_lifecycle_type, job_registered_types, job_request_type};
 
@@ -19,7 +18,7 @@ pub const JOB_RUN_KIND: &str = "process/run-bounded";
 pub const JOB_REVISION: &str = "conduit.std/process-job@1";
 pub const JOB_EXECUTABLE_AUTHORITY: &str = "conduit.authority/execute-resource@1";
 
-pub fn job_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+pub fn job_semantic_contracts() -> Vec<Kind> {
     vec![
         contract(
             JOB_FIXTURE_KIND,
@@ -56,7 +55,7 @@ pub fn install_job_catalogs(
 fn insert_kind(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
-    contract: SemanticCapabilityContract,
+    contract: Kind,
 ) -> Result<(), String> {
     startup
         .insert(KindSignature {
@@ -65,7 +64,7 @@ fn insert_kind(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
@@ -75,18 +74,16 @@ fn insert_kind(
         .map_err(|error| error.to_string())
 }
 
-fn contract(
-    kind: &str,
-    inputs: Vec<PortDescriptor>,
-    outputs: Vec<PortDescriptor>,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn contract(kind: &str, inputs: Vec<PortDescriptor>, outputs: Vec<PortDescriptor>) -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(JOB_REVISION),
+        kind_contract_revision: KindIdentity::from(JOB_REVISION),
         inputs,
         outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: 4,

@@ -44,7 +44,7 @@ fn pointer_realizations_preserve_the_owner_front_and_only_narrow_capacity() {
     );
     assert_eq!(offer.limits.max_queue_bytes, 4_096);
     assert!(offer.limits.max_queue_bytes <= contract.limits.max_queue_bytes);
-    assert_eq!(offer.host_operations[0].maximum_output_bytes, 4_096);
+    assert_eq!(offer.host_calls[0].maximum_output_bytes, 4_096);
 }
 
 #[test]

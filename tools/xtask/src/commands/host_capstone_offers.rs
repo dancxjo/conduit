@@ -2,7 +2,7 @@
 
 use conduit_core::{
     kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId,
+    HostCallContractId, HostCallRequirement, ImplementationId,
 };
 use conduit_host_fabrication::RuntimeFacts;
 use conduit_presentation::{renderer_offer, RendererRealizationOffer, MAX_RENDERER_VALUE_BYTES};
@@ -19,8 +19,8 @@ pub(super) fn presenter_offer(
         execution_profile_id: ExecutionProfileId::from(execution),
         implementation_id: ImplementationId::from(implementation),
         artifact_id: ArtifactId::from(artifact),
-        host_operation: HostOperationRequirement {
-            contract_id: HostOperationContractId::from("conduit.host/present@1"),
+        host_call: HostCallRequirement {
+            contract_id: HostCallContractId::from("conduit.host/present@1"),
             target_kind: Some(kind_id(target)),
             maximum_in_flight: 1,
             maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,

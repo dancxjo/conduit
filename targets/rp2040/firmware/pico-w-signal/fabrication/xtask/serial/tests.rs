@@ -25,7 +25,7 @@ fn expected_identity() -> GeneratedImageIdentity {
         offer_generation: 1,
         nodes: 2,
         cords: 1,
-        host_operations: 2,
+        host_calls: 2,
         cord_value_slots: 1,
         cord_value_bytes: 9,
         sign_items: 7,

@@ -15,7 +15,7 @@ pub(super) enum RhythmCompareRefusal {
     CapacityExhausted = 3,
     DeltaOverflow = 4,
     MalformedFeedback = 5,
-    WrongOperation = 6,
+    WrongBack = 6,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -39,7 +39,7 @@ pub(super) struct RhythmCompareHost {
 impl RhythmCompareHost {
     pub(super) fn from_placement(placement: &PlannedGear) -> Result<Self, String> {
         let (target_offset_micros, tolerance_micros) =
-            super::rhythm_compare_operation::validate(placement)?;
+            super::rhythm_compare_back::validate(placement)?;
         let capacity = usize::from(conduit_semantic_catalog::RHYTHM_MAXIMUM_PENDING_BEATS);
         Ok(Self {
             target_offset_micros,
@@ -64,21 +64,21 @@ impl RhythmCompareHost {
         input: &[u8],
     ) -> Result<Option<&[u8]>, RhythmCompareRefusal> {
         match contract {
-            conduit_std_offers::RHYTHM_PERFORMANCE_HOST_OPERATION => {
+            conduit_std_offers::RHYTHM_PERFORMANCE_HOST_CALL => {
                 let note = MusicalNoteEvent::decode(input)
                     .map_err(|_| RhythmCompareRefusal::MalformedPerformance)?;
                 if note.gate == Gate::On {
                     self.push_performance(note.event_time_micros)?;
                 }
             }
-            conduit_std_offers::RHYTHM_REFERENCE_HOST_OPERATION => {
+            conduit_std_offers::RHYTHM_REFERENCE_HOST_CALL => {
                 let beat = decode_beat(input, &self.beat_type_prefix)?;
                 self.push_beat(beat)?;
             }
-            conduit_std_offers::RHYTHM_DRAIN_HOST_OPERATION => {
+            conduit_std_offers::RHYTHM_DRAIN_HOST_CALL => {
                 self.performance_closed = true;
             }
-            _ => return Err(RhythmCompareRefusal::WrongOperation),
+            _ => return Err(RhythmCompareRefusal::WrongBack),
         }
         self.next_feedback()
     }

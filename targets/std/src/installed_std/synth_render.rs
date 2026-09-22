@@ -33,8 +33,8 @@ pub(super) struct InstalledSynthState {
 
 impl InstalledSynthState {
     pub(super) fn from_placement(placement: &PlannedGear) -> Result<Self, String> {
-        super::synth_operation::validate(placement)?;
-        Self::new(super::synth_operation::profile(placement)?)
+        super::synth_back::validate(placement)?;
+        Self::new(super::synth_back::profile(placement)?)
     }
 
     fn new(profile: conduit_synth::ReferenceSynthProfile) -> Result<Self, String> {

@@ -23,6 +23,7 @@ pub enum RendezvousLineFamily {
     AuthenticatedConduitLine,
     LocalLoopbackWebSocket,
     AttendedSerial,
+    WebRtcDataChannel,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -275,6 +276,11 @@ mod tests {
                     RendezvousLineFamily::AuthenticatedConduitLine,
                     "relay:operator/one",
                 ),
+                candidate(
+                    "candidate/webrtc",
+                    RendezvousLineFamily::WebRtcDataChannel,
+                    "webrtc-bootstrap:operator/negotiation-7",
+                ),
             ],
             [19; 32],
             1_000,
@@ -283,6 +289,7 @@ mod tests {
         assert_eq!(descriptor.validate(1_000), Ok(()));
         assert_eq!(descriptor.candidates[0].candidate_id, "candidate/lan");
         assert_eq!(descriptor.candidates[1].candidate_id, "candidate/relay");
+        assert_eq!(descriptor.candidates[2].candidate_id, "candidate/webrtc");
         assert_eq!(descriptor.copy_session_secret_for_attempt(), [19; 32]);
         let encoded = serde_json::to_value(&descriptor).unwrap();
         assert_eq!(

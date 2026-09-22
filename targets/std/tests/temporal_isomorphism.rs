@@ -88,7 +88,7 @@ fn meeting_job_and_model_follow_up_share_time_without_sharing_domain_meaning() {
             payload: ModelEffectProposal {
                 proposal_id: "proposal/model-follow-up-effect".into(),
                 plan_id: PlanId::from("plan/candidate"),
-                operation_kind: KindId::from("process/run-bounded"),
+                back_kind: KindId::from("process/run-bounded"),
                 canonical_arguments: vec![1],
                 rationale: "bounded follow-up".into(),
                 evidence: vec![],

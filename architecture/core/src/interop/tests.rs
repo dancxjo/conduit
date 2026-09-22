@@ -8,7 +8,7 @@ fn mapping(id: &str, resource: &str, direction: InteropDirection) -> InteropMapp
         base_instance_id: BaseInstanceId::from("base/interop/one"),
         external_resource_id: ExternalResourceId::from(resource),
         semantic_kind: KindId::from("vision/image"),
-        semantic_revision: KindContractRevision::from("vision/image@1"),
+        semantic_revision: KindIdentity::from("vision/image@1"),
         direction,
         authority_grant_id: AuthorityGrantId::from(format!("grant/{id}")),
         maximum_payload_bytes: 128,

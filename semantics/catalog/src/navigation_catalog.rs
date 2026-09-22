@@ -6,11 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal, SemanticCapabilityContract, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 use crate::{
     navigation_control_type, navigation_goal_type, navigation_pose_type,
@@ -77,18 +76,20 @@ pub fn navigation_kind_contracts() -> Vec<NavigationKindContract> {
     ]
 }
 
-pub fn navigation_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+pub fn navigation_semantic_contracts() -> Vec<Kind> {
     navigation_kind_contracts()
         .into_iter()
         .map(|(kind_id, inputs, outputs)| {
             let max_queue_items = inputs.len() as u16;
-            SemanticCapabilityContract {
+            Kind {
                 startup_parameters: vec![],
                 shorthand: None,
                 kind_id,
-                kind_contract_revision: KindContractRevision::from(NAVIGATION_REVISION),
+                kind_contract_revision: KindIdentity::from(NAVIGATION_REVISION),
                 inputs,
                 outputs,
+                configuration: Default::default(),
+                semantic_laws: Default::default(),
                 limits: CapabilityLimits {
                     max_active_instances: 4,
                     max_queue_items,
@@ -117,9 +118,9 @@ pub fn install_navigation_catalogs(
             })
             .map_err(|error| error.to_string())?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: kind,
-                kind_contract_revision: KindContractRevision::from(NAVIGATION_REVISION),
+                kind_contract_revision: KindIdentity::from(NAVIGATION_REVISION),
                 inputs,
                 outputs,
                 configuration: vec![],

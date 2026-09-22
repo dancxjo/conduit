@@ -98,7 +98,10 @@ pub(super) fn retain(target: &Path) -> Result<(), ConduitosError> {
         ));
     }
     let output = target.join("home-front-conduitos");
-    fs::create_dir(&output).map_err(io_error)?;
+    // This is a derived proof directory. Re-running the supported entrance for
+    // the same exact journey replaces its two named outputs without requiring
+    // destructive cleanup of the surrounding target tree.
+    fs::create_dir_all(&output).map_err(io_error)?;
     fs::write(output.join("home-conduitos.png"), &artifact).map_err(io_error)?;
     let receipt = HomeFrontReceipt {
         schema: "conduit.evidence/home-front@1",

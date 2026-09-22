@@ -6,11 +6,10 @@ extern crate alloc;
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, Quantity, QuantityUnit, SemanticCapabilityContract, TemporalInstant,
-    TemporalScale,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, Quantity, QuantityUnit, TemporalInstant, TemporalScale,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 use conduit_data::{
     measurement_hysteresis_profile_type, measurement_sample_type, measurement_window_profile_type,
@@ -35,10 +34,10 @@ pub fn install_little_seismograph_fixture_catalog(
         .map_err(|error| error.to_string())
 }
 
-pub fn little_seismograph_fixture_definition() -> KindDefinition {
-    KindDefinition {
+pub fn little_seismograph_fixture_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(LITTLE_SEISMOGRAPH_FIXTURE_KIND),
-        kind_contract_revision: KindContractRevision::from(LITTLE_SEISMOGRAPH_FIXTURE_REVISION),
+        kind_contract_revision: KindIdentity::from(LITTLE_SEISMOGRAPH_FIXTURE_REVISION),
         inputs: vec![],
         outputs: vec![
             output(
@@ -61,15 +60,17 @@ pub fn little_seismograph_fixture_definition() -> KindDefinition {
     }
 }
 
-pub fn little_seismograph_fixture_semantic_contract() -> SemanticCapabilityContract {
+pub fn little_seismograph_fixture_semantic_contract() -> Kind {
     let definition = little_seismograph_fixture_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 3,

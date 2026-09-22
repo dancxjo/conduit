@@ -1,11 +1,11 @@
 //! Browser realizations of the shared, transport-neutral typed-record codecs.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    PlannedGear, StructuredInfoValue, StructuredInfoValueShape,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear, StructuredInfoValue,
+    StructuredInfoValueShape,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
@@ -60,15 +60,15 @@ fn offer(index: usize) -> CapabilityOffer {
     let contract = conduit_net::typed_record_semantic_contract(kind)
         .expect("typed-record codec semantic contract exists");
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(IMPLEMENTATIONS[index]),
             execution_profile_id: ExecutionProfileId::from("browser/typed-record-codec@1"),
             implementation_id: ImplementationId::from(IMPLEMENTATIONS[index]),
             artifact_id: ArtifactId::from("conduit-browser-runtime/typed-record-codecs@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(OPERATIONS[index]),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(OPERATIONS[index]),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM,
@@ -81,7 +81,7 @@ fn offer(index: usize) -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let index = IMPLEMENTATIONS
         .iter()
         .position(|id| *id == placement.implementation_id.as_str())
@@ -90,7 +90,7 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserO
     if !placement.configuration.is_empty() {
         return Err("unexpected typed-record codec configuration".into());
     }
-    Ok(BrowserOperation::unary(MAXIMUM, 4))
+    Ok(BrowserBack::unary(MAXIMUM, 4))
 }
 
 pub(crate) fn execute(contract: &str, input: &[u8]) -> Result<Vec<u8>, Failure> {

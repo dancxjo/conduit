@@ -1,10 +1,10 @@
 use conduit_audio::AUDIO_PCM_INFO_ID;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, FrontStartupParameter, KindContractRevision, KindId,
-    PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, FrontStartupParameter, Kind, KindId, KindIdentity,
+    PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
 use serde::{Deserialize, Serialize};
@@ -25,21 +25,23 @@ pub const MAXIMUM_AUDIO_FRAMES: u32 = 16_384;
 pub struct SpeechContract {
     pub startup_parameters: Vec<FrontStartupParameter>,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
 }
 
 impl SpeechContract {
-    pub fn into_semantic_capability_contract(self) -> SemanticCapabilityContract {
-        SemanticCapabilityContract {
+    pub fn into_semantic_capability_contract(self) -> Kind {
+        Kind {
             startup_parameters: self.startup_parameters,
             shorthand: None,
             kind_id: self.kind_id,
             kind_contract_revision: self.kind_contract_revision,
             inputs: self.inputs,
             outputs: self.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
             limits: self.limits,
         }
     }
@@ -57,7 +59,7 @@ pub fn synthesize_contract() -> SpeechContract {
     SpeechContract {
         startup_parameters: synthesis_startup_parameters(),
         kind_id: kind_id(SPEECH_SYNTHESIZE_KIND),
-        kind_contract_revision: KindContractRevision::from(SPEECH_SYNTHESIZE_REVISION),
+        kind_contract_revision: KindIdentity::from(SPEECH_SYNTHESIZE_REVISION),
         inputs: vec![port("text", TEXT_VALUE_KIND, PortDirection::Input)],
         outputs: vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Output)],
         limits: CapabilityLimits {
@@ -72,7 +74,7 @@ pub fn streaming_synthesize_contract() -> SpeechContract {
     SpeechContract {
         startup_parameters: synthesis_startup_parameters(),
         kind_id: kind_id(SPEECH_SYNTHESIZE_STREAM_KIND),
-        kind_contract_revision: KindContractRevision::from(SPEECH_SYNTHESIZE_STREAM_REVISION),
+        kind_contract_revision: KindIdentity::from(SPEECH_SYNTHESIZE_STREAM_REVISION),
         inputs: vec![flow_port(
             "text",
             crate::SPEAKABLE_TEXT_VALUE_KIND,
@@ -91,7 +93,7 @@ pub fn audio_play_contract() -> SpeechContract {
     SpeechContract {
         startup_parameters: Vec::new(),
         kind_id: kind_id(AUDIO_PLAY_KIND),
-        kind_contract_revision: KindContractRevision::from(AUDIO_PLAY_REVISION),
+        kind_contract_revision: KindIdentity::from(AUDIO_PLAY_REVISION),
         inputs: vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Input)],
         outputs: vec![],
         limits: CapabilityLimits {
@@ -122,7 +124,7 @@ pub fn install_speech_commit_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
@@ -159,18 +161,18 @@ fn install_contract(
         },
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
             configuration: if is_synthesis {
-                vec![ConfigurationField {
+                vec![KindConfigurationField {
                     key: "maximum-output-bytes".into(),
                     default_value: conduit_core::ConfigurationValue::U64(u64::from(
                         MAXIMUM_PCM_BYTES,
                     )),
-                    validation: ConfigurationRule::U64Range {
+                    rule: KindConfigurationRule::U64Range {
                         minimum: 1,
                         maximum: u64::from(MAXIMUM_PCM_BYTES),
                     },

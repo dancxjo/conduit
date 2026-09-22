@@ -74,7 +74,7 @@ fn portable_front_names_four_explicit_paths_and_no_realization_facts() {
         HYBRID_RETRIEVAL_CANDIDATES_VALUE_KIND
     );
     let offer = deterministic_hybrid_retrieval_offer("pid-7").unwrap();
-    assert!(offer.host_operations.is_empty());
+    assert!(offer.host_calls.is_empty());
     assert!(offer.resource_requirements.is_empty());
     assert!(offer.authority_requirements.is_empty());
 }

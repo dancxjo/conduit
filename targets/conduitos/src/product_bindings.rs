@@ -9,7 +9,7 @@ pub(crate) struct ProductBinding {
     pub action: PatchbayAction,
 }
 
-const PRODUCT_BINDINGS: [ProductBinding; 6] = [
+const PRODUCT_BINDINGS: [ProductBinding; 7] = [
     ProductBinding {
         usage: 60,
         label: "F3",
@@ -40,6 +40,11 @@ const PRODUCT_BINDINGS: [ProductBinding; 6] = [
         label: "F8",
         action: PatchbayAction::Stop,
     },
+    ProductBinding {
+        usage: 77,
+        label: "End",
+        action: PatchbayAction::Fulfill,
+    },
 ];
 
 #[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
@@ -63,7 +68,7 @@ mod tests {
 
     #[test]
     fn lifecycle_bindings_are_finite_unique_and_bidirectional() {
-        assert_eq!(PRODUCT_BINDINGS.len(), 6);
+        assert_eq!(PRODUCT_BINDINGS.len(), 7);
         for (index, binding) in PRODUCT_BINDINGS.iter().enumerate() {
             assert!(
                 PRODUCT_BINDINGS[..index]

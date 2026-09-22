@@ -122,7 +122,7 @@ pub fn recursive_form_demonstration() -> Result<conduit_presentation::Presentati
 }
 
 fn reviewed_back_front(
-    back: &conduit_core::RealizationBack,
+    back: &conduit_core::FormBack,
     startup: &StartupCatalog,
 ) -> Result<conduit_core::CheckedFront, String> {
     for source in [
@@ -296,7 +296,7 @@ fn text_literal_fixture_offer(implementation: &str) -> conduit_core::CapabilityO
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: contract.limits,

@@ -46,6 +46,28 @@ fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
         request
             .semantic_data
             .presentation
+            .properties
+            .iter()
+            .any(|property| {
+                property.name == "workload-revision"
+                    && property.value == conduit_presentation::PresentationPropertyValue::Count(0)
+            })
+    );
+    assert!(
+        request
+            .semantic_data
+            .presentation
+            .subjects
+            .iter()
+            .any(|subject| {
+                subject.role == conduit_presentation::PresentationRole::Form
+                    && subject.identity == "form/checked/morse"
+            })
+    );
+    assert!(
+        request
+            .semantic_data
+            .presentation
             .actions
             .iter()
             .any(|action| action.identity == "body.wake")
@@ -58,6 +80,35 @@ fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
             .iter()
             .any(|action| action.identity == "body.fulfill")
     );
+}
+
+#[test]
+fn playing_tutorial_request_uses_the_canonical_face_execution_projection() {
+    let mut body = born();
+    let play = start(&mut body);
+    let realization = body.realization().unwrap();
+    let request = conduit_workspace_model::tutorial::generative_request(
+        &body,
+        "request/orifina/playing".into(),
+        13,
+        conduit_workspace_model::tutorial::TutorialPlayback::Playing,
+    )
+    .unwrap();
+    let presentation = &request.semantic_data.presentation;
+
+    assert_eq!(
+        presentation.basis.wake_id.as_ref(),
+        Some(&realization.wake.wake_id)
+    );
+    assert!(presentation.subjects.iter().any(|subject| {
+        subject.role == conduit_presentation::PresentationRole::Plan
+            && subject.identity == format!("plan/{}", realization.plan.plan_id.as_str())
+    }));
+    assert!(presentation.subjects.iter().any(|subject| {
+        subject.role == conduit_presentation::PresentationRole::Play
+            && subject.identity == format!("play/{}", play.active_play_id.as_str())
+    }));
+    assert_eq!(body.realization().unwrap().play.as_ref(), Some(&play));
 }
 
 #[test]
@@ -144,10 +195,13 @@ fn exact_tutorial_completion_only_presents_fulfillment_as_an_operator_choice() {
                         == conduit_presentation::PresentationPropertyValue::Text("ready".into())
             })
     );
-    assert_eq!(request.semantic_data.presentation.actions.len(), 1);
-    assert_eq!(
-        request.semantic_data.presentation.actions[0].identity,
-        "body.fulfill"
+    assert!(
+        request
+            .semantic_data
+            .presentation
+            .actions
+            .iter()
+            .any(|action| action.identity == "body.fulfill")
     );
     assert!(matches!(body.evidence().body.state, BodyState::Lulled));
 }

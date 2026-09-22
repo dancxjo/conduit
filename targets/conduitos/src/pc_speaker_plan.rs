@@ -3,8 +3,8 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 use conduit_core::{
     ActivePlayIdentity, ArtifactId, BaseImplementationId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, HostAdvertisement, ImplementationId, KindContractRevision,
-    Plan, PortDescriptor, PortDirection, bind_active_play, kind_id, port_id,
+    CapabilityOffer, ExecutionProfileId, HostAdvertisement, ImplementationId, KindIdentity, Plan,
+    PortDescriptor, PortDirection, bind_active_play, kind_id, port_id,
 };
 use conduit_planner::{
     PlanningOptions, default_expanded_placements, plan_expanded_canonical_with_options,
@@ -24,7 +24,7 @@ const TONE_SOURCE_KIND: &str = "conduitos-fixture/tone-source";
 const TONE_SOURCE_REVISION: &str = "conduitos.fixture/tone-source@1";
 const TONE_SOURCE_PROFILE: &str = "conduitos/proof-tone-source@1";
 const TONE_SOURCE_IMPLEMENTATION: &str = "conduitos.fixture/tone-source@1";
-pub const TONE_SOURCE_HOST_OPERATION: &str = "conduitos.fixture/tone-sequence-step@1";
+pub const TONE_SOURCE_HOST_CALL: &str = "conduitos.fixture/tone-sequence-step@1";
 pub const PC_SPEAKER_FORM_SOURCE: &str = "form conduitos-tone {\n    source: conduitos-fixture/tone-source\n    speaker: sound/tone-play\n    source > speaker.tone\n}\n";
 
 pub struct PreparedPcSpeakerPlay {
@@ -116,9 +116,9 @@ pub fn validate(
         || placement.artifact_id.as_str() != alloc::format!("conduitos-build/{build_id}")
         || placement.inputs != expected_input
         || !placement.outputs.is_empty()
-        || placement.host_operations.len() != 1
-        || placement.host_operations[0].contract_id.as_str()
-            != crate::pc_speaker_offer::PC_SPEAKER_HOST_OPERATION
+        || placement.host_calls.len() != 1
+        || placement.host_calls[0].contract_id.as_str()
+            != crate::pc_speaker_offer::PC_SPEAKER_HOST_CALL
     {
         return Err(PreparationError::PlanRejected);
     }
@@ -192,12 +192,12 @@ fn checked_expanded(
         })
         .map_err(|_| PreparationError::FormRejected)?;
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: kind_id(TONE_SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from(TONE_SOURCE_REVISION),
+            kind_contract_revision: KindIdentity::from(TONE_SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: tone_source_offer("catalog").outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|_| PreparationError::FormRejected)?;
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
@@ -212,7 +212,7 @@ fn tone_source_offer(build_id: &str) -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-fixture-tone-source@1"),
         kind_id: kind_id(TONE_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(TONE_SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(TONE_SOURCE_REVISION),
         inputs: Vec::new(),
         outputs: alloc::vec![PortDescriptor {
             port_id: port_id("tone"),
@@ -225,8 +225,8 @@ fn tone_source_offer(build_id: &str) -> CapabilityOffer {
             implementation_id: ImplementationId::from(TONE_SOURCE_IMPLEMENTATION),
             artifact_id: ArtifactId::from(alloc::format!("conduitos-build/{build_id}")),
         },
-        host_operations: alloc::vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(TONE_SOURCE_HOST_OPERATION),
+        host_calls: alloc::vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(TONE_SOURCE_HOST_CALL),
             target_kind: None,
             maximum_in_flight: 1,
             maximum_input_bytes: 8,

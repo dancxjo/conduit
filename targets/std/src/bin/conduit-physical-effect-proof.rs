@@ -18,7 +18,7 @@ impl ConsequentialEffectProvider for WifiBroadcastProvider {
     ) -> Result<PhysicalObservation, ConsequentialProviderFailure> {
         if self.calls != 0
             || request.resource_id != "wifi/bounded-broadcast"
-            || request.operation_id != "transmit-one-datagram"
+            || request.call_id != "transmit-one-datagram"
             || request.magnitude != 1
             || request.duration_ticks != 1
             || request.rate != 1
@@ -219,7 +219,7 @@ fn prepare_gate(
     valid_from: u64,
     valid_until: u64,
 ) -> Result<(ConsequentialEffectGate, AttendanceHandle), String> {
-    let operation = HostOperationContractId::from("conduit.host/physical-datagram@1");
+    let operation = HostCallContractId::from("conduit.host/physical-datagram@1");
     let scope = BaseCapabilityScope {
         host_id: HostId::from("host/victus"),
         boot_id: BootId::from("boot/attended-proof"),
@@ -247,7 +247,7 @@ fn prepare_gate(
             grant: AuthorityGrant {
                 grant_id: scope.authority_grant_id.clone(),
                 contract_id: scope.authority_contract_id.clone(),
-                host_operation_contract_id: operation.clone(),
+                host_call_contract_id: operation.clone(),
                 subject_kind: scope.subject_kind.clone(),
                 host_id: scope.host_id.clone(),
                 boot_id: scope.boot_id.clone(),

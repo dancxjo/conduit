@@ -2,10 +2,8 @@
 
 use crate::SCALAR_FIELD2_INFO_ID;
 use alloc::{string::ToString, vec, vec::Vec};
-use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-};
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_core::{kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 pub const LENIA_PARTITION_KIND: &str = "alife/lenia-partition-three";
 pub const LENIA_REGION_STEP_KIND: &str = "alife/lenia-region-step";
@@ -30,7 +28,7 @@ pub fn install_distributed_lenia_catalogs(
     Ok(())
 }
 
-pub fn distributed_definitions() -> Vec<KindDefinition> {
+pub fn distributed_definitions() -> Vec<KindProjection> {
     vec![
         partition_definition(),
         worker_definition(),
@@ -39,10 +37,10 @@ pub fn distributed_definitions() -> Vec<KindDefinition> {
     ]
 }
 
-fn field_bitmap_definition() -> KindDefinition {
-    KindDefinition {
+fn field_bitmap_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(SCALAR_FIELD_GRAY8_KIND),
-        kind_contract_revision: KindContractRevision::from("conduit.graphics/scalar-field-gray8@1"),
+        kind_contract_revision: KindIdentity::from("conduit.graphics/scalar-field-gray8@1"),
         inputs: vec![port(
             "field",
             SCALAR_FIELD2_INFO_ID,
@@ -59,10 +57,10 @@ fn field_bitmap_definition() -> KindDefinition {
     }
 }
 
-fn partition_definition() -> KindDefinition {
-    KindDefinition {
+fn partition_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(LENIA_PARTITION_KIND),
-        kind_contract_revision: KindContractRevision::from("conduit.alife/lenia-partition-three@1"),
+        kind_contract_revision: KindIdentity::from("conduit.alife/lenia-partition-three@1"),
         inputs: vec![
             port(
                 "initial",
@@ -91,10 +89,10 @@ fn partition_definition() -> KindDefinition {
     }
 }
 
-fn worker_definition() -> KindDefinition {
-    KindDefinition {
+fn worker_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(LENIA_REGION_STEP_KIND),
-        kind_contract_revision: KindContractRevision::from("conduit.alife/lenia-region-step@1"),
+        kind_contract_revision: KindIdentity::from("conduit.alife/lenia-region-step@1"),
         inputs: vec![port(
             "work",
             LENIA_REGION_WORK_INFO_ID,
@@ -111,10 +109,10 @@ fn worker_definition() -> KindDefinition {
     }
 }
 
-fn join_definition() -> KindDefinition {
-    KindDefinition {
+fn join_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(LENIA_JOIN_KIND),
-        kind_contract_revision: KindContractRevision::from("conduit.alife/lenia-join-three@1"),
+        kind_contract_revision: KindIdentity::from("conduit.alife/lenia-join-three@1"),
         inputs: (0..3)
             .map(|index| {
                 port(

@@ -85,7 +85,7 @@ impl PlaybackMetrics {
 }
 
 /// Finite direct-hardware playback session. The process is absent until the
-/// first admitted PCM block crosses the host-operation boundary.
+/// first admitted PCM block crosses the Host Call boundary.
 pub struct AlsaAplaySession {
     selection: HostedPlaybackSelection,
     child: Option<Child>,

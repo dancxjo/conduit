@@ -2,11 +2,10 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
     bind_sign, kind_id, ArtifactId, AuthorityContractId, AuthorityGrantId, AuthorityRequirement,
-    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, CheckedFront, ExecutionProfileId, HostAdvertisement,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, KindContractRevision,
-    LineId, PortDescriptor, PortDirection, PortId, PortTemporal, SemanticCapabilityContract,
-    SignId, PROTOCOL_VERSION,
+    Back, BackOfferBuilder, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFront,
+    ExecutionProfileId, HostAdvertisement, HostCallContractId, HostCallRequirement,
+    ImplementationId, Kind, KindIdentity, LineId, PortDescriptor, PortDirection, PortId,
+    PortTemporal, SignId, PROTOCOL_VERSION,
 };
 use conduit_observatory::{HostReport, OperationalState};
 use conduit_wire::SessionBinding;
@@ -16,7 +15,7 @@ use crate::{DelegatedTransitionGrant, HostInstance};
 
 pub const REBOOT_OPERATION: &str = "lifecycle/reboot";
 pub const REBOOT_CONTRACT_REVISION: &str = "conduit.lifecycle/reboot@1";
-pub const REBOOT_HOST_OPERATION: &str = "conduit.host/lifecycle-reboot@1";
+pub const REBOOT_HOST_CALL: &str = "conduit.host/lifecycle-reboot@1";
 pub const REBOOT_AUTHORITY_CONTRACT: &str = "conduit.authority/lifecycle-reboot@1";
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -35,21 +34,21 @@ impl RebootRequestId {
 }
 
 /// One optional reboot realization. Its name is provenance; eligibility needs
-/// both the canonical checked Front and the reboot semantic contract.
+/// both the canonical checked front and the reboot semantic contract.
 pub fn delegated_reboot_offer(
     capability_id: CapabilityId,
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         delegated_reboot_contract(),
-        CapabilityRealization {
+        Back {
             capability_id,
             execution_profile_id: ExecutionProfileId::from("lifecycle/reboot-bounded@1"),
             implementation_id,
             artifact_id,
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(REBOOT_HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(REBOOT_HOST_CALL),
                 target_kind: None,
                 maximum_in_flight: 1,
                 maximum_input_bytes: 0,
@@ -58,7 +57,7 @@ pub fn delegated_reboot_offer(
             resource_requirements: vec![],
             authority_requirements: vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(REBOOT_AUTHORITY_CONTRACT),
-                host_operation_contract_id: HostOperationContractId::from(REBOOT_HOST_OPERATION),
+                host_call_contract_id: HostCallContractId::from(REBOOT_HOST_CALL),
                 subject_kind: kind_id("authority/peer"),
             }],
         },
@@ -66,12 +65,12 @@ pub fn delegated_reboot_offer(
     .build()
 }
 
-fn delegated_reboot_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn delegated_reboot_contract() -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: Some((PortId::from("request"), PortId::from("receipt"))),
         kind_id: kind_id(REBOOT_OPERATION),
-        kind_contract_revision: KindContractRevision::from(REBOOT_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(REBOOT_CONTRACT_REVISION),
         inputs: vec![PortDescriptor {
             port_id: PortId::from("request"),
             value_kind: kind_id("lifecycle/reboot-request"),
@@ -84,6 +83,8 @@ fn delegated_reboot_contract() -> SemanticCapabilityContract {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
@@ -111,7 +112,7 @@ pub struct RebootRequest {
     pub controller: HostInstance,
     pub target: HostInstance,
     pub required_front: CheckedFront,
-    pub semantic_contract: KindContractRevision,
+    pub semantic_contract: KindIdentity,
     pub selected_line_id: LineId,
 }
 

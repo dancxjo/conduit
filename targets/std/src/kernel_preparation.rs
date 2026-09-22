@@ -442,8 +442,7 @@ fn validate_exact_profile(
                 placement.authority.iter().any(|binding| {
                     !binding.grant_id.as_str().is_empty()
                         && binding.contract_id == requirement.contract_id
-                        && binding.host_operation_contract_id
-                            == requirement.host_operation_contract_id
+                        && binding.host_call_contract_id == requirement.host_call_contract_id
                         && binding.subject_kind == requirement.subject_kind
                         && binding.host_id == placement.host_id
                         && binding.boot_id == placement.boot_id
@@ -457,7 +456,7 @@ fn validate_exact_profile(
             || capability.implementation.artifact_id != placement.artifact_id
             || capability.inputs != placement.inputs
             || capability.outputs != placement.outputs
-            || capability.host_operations != placement.host_operations
+            || capability.host_calls != placement.host_calls
             || !resources_match
             || !authority_match
         {

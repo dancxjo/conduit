@@ -49,13 +49,13 @@ pub(super) fn execute(
         .ok_or_else(|| "external WebSocket request has no prepared listener".to_string())?;
     output.clear();
     match contract {
-        conduit_net::EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_OPERATION => {
+        conduit_net::EXTERNAL_WEBSOCKET_LISTENER_ACCEPT_HOST_CALL => {
             listener
                 .accept_peer()
                 .map_err(|error| format!("accept external WebSocket peer: {error:?}"))?;
             Ok(ExternalHostCompletion::NoOutput)
         }
-        conduit_net::EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_OPERATION => {
+        conduit_net::EXTERNAL_WEBSOCKET_LISTENER_RECEIVE_HOST_CALL => {
             let Some(peer) = input.first() else {
                 return Err("external WebSocket receive command is malformed".to_string());
             };
@@ -84,7 +84,7 @@ pub(super) fn execute(
                 Err(error) => Err(format!("receive external WebSocket message: {error:?}")),
             }
         }
-        conduit_net::EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_OPERATION => {
+        conduit_net::EXTERNAL_WEBSOCKET_LISTENER_SEND_HOST_CALL => {
             let Some(message) = input.get(2..) else {
                 return Err("external WebSocket send command is malformed".to_string());
             };
@@ -98,6 +98,6 @@ pub(super) fn execute(
             }
             Ok(ExternalHostCompletion::ReturnedInput)
         }
-        _ => Err("unsupported external WebSocket host-operation contract".to_string()),
+        _ => Err("unsupported external WebSocket Host Call contract".to_string()),
     }
 }

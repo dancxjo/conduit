@@ -4,21 +4,18 @@
 //! and drives the WebSocket session to the browser sink host.
 //!
 //! Stdin reads are performed exclusively inside `complete_trigger_wait`,
-//! i.e. within the admitted await-trigger host-operation lifecycle.
+//! i.e. within the admitted await-trigger Host Call lifecycle.
 //!
 //! Session/line transport lives in `line.rs`; tests live in `source_tests.rs`.
 
-use super::operation::{CapacitySeal, ToggleSourceOperation};
+use super::operation::{CapacitySeal, ToggleSourceBack};
 use super::plan::exact_distributed_toggle_plan;
 use crate::websocket::NativeWebSocketListener;
 use conduit_core::{bind_active_play, PlanFragment};
-use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
-    CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedSignLog, HostedValueStore, RemoteEndpointId, RequestId,
-    ValueStorage,
+    CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition, HostCallId, HostCallOutcome,
+    HostedSignLog, HostedValueStore, RemoteEndpointId, RequestId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -40,7 +37,7 @@ const MAXIMUM_STORED_BYTES: u32 =
 pub(super) const SIGN_ITEMS: u16 = 256;
 
 pub(super) type ToggleScheduler = FixedScheduler<
-    OperationDriver<ToggleSourceOperation, PORTS>,
+    ToggleSourceBack,
     HostedValueStore,
     HostedSignLog,
     2,
@@ -86,11 +83,11 @@ impl DistributedToggleSource {
             || lowered.cords.len() != 2
             || lowered.remote_endpoints.len() != 1
             || lowered.remote_endpoints[0].direction != RemoteCordDirection::Egress
-            || lowered.host_operations.len() != 1
+            || lowered.host_calls.len() != 1
         {
             return Err(format!(
                 "source fragment did not lower to two nodes with one local and one remote cord: nodes={} cords={} remote_endpoints={} host_ops={}",
-                lowered.nodes.len(), lowered.cords.len(), lowered.remote_endpoints.len(), lowered.host_operations.len()
+                lowered.nodes.len(), lowered.cords.len(), lowered.remote_endpoints.len(), lowered.host_calls.len()
             ));
         }
 
@@ -165,12 +162,9 @@ impl DistributedToggleSource {
         }
         routes.seal().map_err(|error| format!("{error:?}"))?;
 
-        let mut host_bindings = FixedHostOperationBindings::<2>::new(1);
+        let mut host_bindings = FixedHostCallBindings::<2>::new(1);
         host_bindings
-            .install(
-                lowered.host_operations[0].node,
-                lowered.host_operations[0].binding,
-            )
+            .install(lowered.host_calls[0].node, lowered.host_calls[0].binding)
             .map_err(|error| format!("{error:?}"))?;
         host_bindings.seal().map_err(|error| format!("{error:?}"))?;
 
@@ -195,25 +189,23 @@ impl DistributedToggleSource {
             })
             .ok_or("toggle node not found in lowered fragment")?;
 
-        let trigger_driver = OperationDriver::new(ToggleSourceOperation::Trigger {
+        let trigger_back = ToggleSourceBack::Trigger {
             tokens: token_values,
             values: trigger_values.clone(),
             next: 0,
             pending: None,
-        })
-        .map_err(|error| format!("{error:?}"))?;
-        let toggle_driver = OperationDriver::new(ToggleSourceOperation::Toggle {
+        };
+        let toggle_back = ToggleSourceBack::Toggle {
             values: toggle_values,
             expected_triggers: trigger_values,
             next: 0,
             initial_emitted: false,
-        })
-        .map_err(|error| format!("{error:?}"))?;
+        };
 
-        let drivers = if trigger_node_idx < toggle_node_idx {
-            [trigger_driver, toggle_driver]
+        let backs = if trigger_node_idx < toggle_node_idx {
+            [trigger_back, toggle_back]
         } else {
-            [toggle_driver, trigger_driver]
+            [toggle_back, trigger_back]
         };
 
         let sign_bytes = u32::from(SIGN_ITEMS)
@@ -243,7 +235,7 @@ impl DistributedToggleSource {
         )
         .map_err(|error| format!("{error:?}"))?;
 
-        let scheduler = ToggleScheduler::new_with_host_operations(
+        let scheduler = ToggleScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()
@@ -258,7 +250,7 @@ impl DistributedToggleSource {
                 .map_err(|_| "source cord table width".to_string())?,
             routes,
             host_bindings,
-            drivers,
+            backs,
             store,
             sign,
         )
@@ -279,7 +271,7 @@ impl DistributedToggleSource {
                     &lowered.identity,
                     trigger_node,
                     RequestId(sequence as u32),
-                    HostOperationId(0),
+                    HostCallId(0),
                 )
                 .map_err(|error| format!("{error:?}"))?;
         }
@@ -289,10 +281,10 @@ impl DistributedToggleSource {
         let seal = CapacitySeal {
             values: scheduler.values().allocation_capacities(),
             sign: scheduler.signs().allocation_capacity(),
-            drivers: scheduler
+            backs: scheduler
                 .drivers()
                 .iter()
-                .map(|driver| driver.operation().allocation_capacity())
+                .map(ToggleSourceBack::allocation_capacity)
                 .sum(),
             identity: identity.allocation_capacities(),
         };
@@ -312,11 +304,11 @@ impl DistributedToggleSource {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
             sign: self.scheduler.signs().allocation_capacity(),
-            drivers: self
+            backs: self
                 .scheduler
                 .drivers()
                 .iter()
-                .map(|driver| driver.operation().allocation_capacity())
+                .map(ToggleSourceBack::allocation_capacity)
                 .sum(),
             identity: self.identity.allocation_capacities(),
         }
@@ -329,7 +321,7 @@ impl DistributedToggleSource {
 
     fn complete_trigger_wait<R: BufRead>(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         report: &mut impl Write,
         stdin: &mut R,
         trigger_index: usize,
@@ -338,7 +330,7 @@ impl DistributedToggleSource {
             .identity
             .request(request.node, request.request)
             .ok_or_else(|| "unbound await-trigger request identity".to_string())?;
-        if expected.operation != request.operation {
+        if expected.call != request.call {
             return Err("await-trigger request operation identity mismatch".to_string());
         }
         writeln!(
@@ -357,11 +349,11 @@ impl DistributedToggleSource {
             );
         }
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },

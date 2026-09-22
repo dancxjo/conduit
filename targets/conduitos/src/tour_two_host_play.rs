@@ -86,7 +86,7 @@ pub fn run(
         idle_entries: 0,
         serial_presentations: 1,
         clock_monotonic: true,
-        pending_host_operations: 0,
+        pending_host_calls: 0,
         overlap_witness: false,
         timer_pending_during_text_progress: false,
         physical_parallelism: false,

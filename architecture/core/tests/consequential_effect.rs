@@ -29,7 +29,7 @@ impl ConsequentialEffectProvider for FixtureProvider {
 }
 
 fn issue() -> CapabilityIssueRequest {
-    let operation = HostOperationContractId::from("conduit.host/relay-pulse@1");
+    let operation = HostCallContractId::from("conduit.host/relay-pulse@1");
     let scope = BaseCapabilityScope {
         host_id: HostId::from("host/bench"),
         boot_id: BootId::from("boot/current"),
@@ -57,7 +57,7 @@ fn issue() -> CapabilityIssueRequest {
             grant: AuthorityGrant {
                 grant_id: scope.authority_grant_id.clone(),
                 contract_id: scope.authority_contract_id.clone(),
-                host_operation_contract_id: operation.clone(),
+                host_call_contract_id: operation.clone(),
                 subject_kind: scope.subject_kind.clone(),
                 host_id: scope.host_id.clone(),
                 boot_id: scope.boot_id.clone(),

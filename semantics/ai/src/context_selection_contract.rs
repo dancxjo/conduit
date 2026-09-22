@@ -3,8 +3,8 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer,
-    KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
+    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer, KindId,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const RERANK_KIND: &str = "retrieval/rerank";
@@ -22,7 +22,7 @@ pub const MAXIMUM_R3_PROCESS_IDENTITY_BYTES: usize = 256;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct R3Contract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
@@ -81,7 +81,7 @@ pub fn deterministic_context_select_offer(
 fn contract(kind: &str, revision: &str, input: &str, output: &str) -> R3Contract {
     R3Contract {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         inputs: vec![port("candidates", input, PortDirection::Input)],
         outputs: vec![port("result", output, PortDirection::Output)],
         limits: CapabilityLimits {
@@ -121,7 +121,7 @@ fn offer(
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
         },
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: contract.limits,
@@ -182,7 +182,7 @@ pub fn install_r3_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
 
     startup.insert(KindSignature {
         kind: RERANK_KIND.to_string(),
@@ -207,7 +207,7 @@ pub fn install_r3_catalog(
     })?;
     let rerank = rerank_contract();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: rerank.kind_id,
             kind_contract_revision: rerank.kind_contract_revision,
             inputs: rerank.inputs,
@@ -234,7 +234,7 @@ pub fn install_r3_catalog(
         .map_err(|error| error.to_string())?;
     let context = context_select_contract();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: context.kind_id,
             kind_contract_revision: context.kind_contract_revision,
             inputs: context.inputs,
@@ -298,22 +298,22 @@ fn count_parameter(name: &str, default: u32) -> conduit_form::StartupParameterSi
 }
 
 #[cfg(feature = "form-catalog")]
-fn text_choice(key: &str, default: &str, values: &[&str]) -> conduit_form::ConfigurationField {
-    conduit_form::ConfigurationField {
+fn text_choice(key: &str, default: &str, values: &[&str]) -> conduit_form::KindConfigurationField {
+    conduit_form::KindConfigurationField {
         key: key.into(),
         default_value: conduit_core::ConfigurationValue::Text(default.into()),
-        validation: conduit_form::ConfigurationRule::TextOneOf {
+        rule: conduit_form::KindConfigurationRule::TextOneOf {
             values: values.iter().map(|value| (*value).into()).collect(),
         },
     }
 }
 
 #[cfg(feature = "form-catalog")]
-fn count_field(key: &str, maximum: u64) -> conduit_form::ConfigurationField {
-    conduit_form::ConfigurationField {
+fn count_field(key: &str, maximum: u64) -> conduit_form::KindConfigurationField {
+    conduit_form::KindConfigurationField {
         key: key.into(),
         default_value: conduit_core::ConfigurationValue::U64(maximum),
-        validation: conduit_form::ConfigurationRule::U64Range {
+        rule: conduit_form::KindConfigurationRule::U64Range {
             minimum: 1,
             maximum,
         },

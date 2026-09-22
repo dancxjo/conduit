@@ -142,8 +142,7 @@ fn join_output_bound_and_selected_realization_identity_fail_before_presentation(
         .iter_mut()
         .find(|placement| placement.kind_id.as_str() == "text/join")
         .unwrap();
-    join.host_operations[0].contract_id =
-        conduit_core::HostOperationContractId::from("wrong/text-join@1");
+    join.host_calls[0].contract_id = conduit_core::HostCallContractId::from("wrong/text-join@1");
     let mut output = Vec::with_capacity(4_096);
     assert!(host
         .run_fragment_to(mutated.fragments.remove(0), &mut output, &mut timer)

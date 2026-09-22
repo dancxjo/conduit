@@ -6,12 +6,13 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
-    StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 use crate::{
@@ -62,29 +63,29 @@ pub fn install_linguistics_catalogs(
         .map_err(|error| error.to_string())
 }
 
-pub fn tokenize_four_definition() -> KindDefinition {
-    KindDefinition {
+pub fn tokenize_four_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(TOKENIZE_FOUR_KIND),
-        kind_contract_revision: KindContractRevision::from(LINGUISTICS_REVISION),
+        kind_contract_revision: KindIdentity::from(LINGUISTICS_REVISION),
         inputs: vec![],
         outputs: vec![port(
             "tokens",
             &linguistic_tokens_four_type(),
             PortDirection::Output,
         )],
-        configuration: vec![ConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "text".into(),
             default_value: ConfigurationValue::Text(String::new()),
-            validation: ConfigurationRule::TextBytes {
+            rule: KindConfigurationRule::TextBytes {
                 maximum: MAXIMUM_LINGUISTIC_TEXT_BYTES,
             },
         }],
     }
 }
 
-pub fn tokenize_four_semantic_contract() -> SemanticCapabilityContract {
+pub fn tokenize_four_semantic_contract() -> Kind {
     let definition = tokenize_four_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "text".into(),
             value_type: kind_id("value/text"),
@@ -95,14 +96,16 @@ pub fn tokenize_four_semantic_contract() -> SemanticCapabilityContract {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: linguistic_limits(),
     }
 }
 
-pub fn annotate_four_definition() -> KindDefinition {
-    KindDefinition {
+pub fn annotate_four_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(ANNOTATE_FOUR_KIND),
-        kind_contract_revision: KindContractRevision::from(LINGUISTICS_REVISION),
+        kind_contract_revision: KindIdentity::from(LINGUISTICS_REVISION),
         inputs: vec![port(
             "tokens",
             &linguistic_tokens_four_type(),
@@ -117,15 +120,17 @@ pub fn annotate_four_definition() -> KindDefinition {
     }
 }
 
-pub fn annotate_four_semantic_contract() -> SemanticCapabilityContract {
+pub fn annotate_four_semantic_contract() -> Kind {
     let definition = annotate_four_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: linguistic_limits(),
     }
 }

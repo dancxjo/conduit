@@ -4,14 +4,14 @@
 //! button transitions map to a current desired indicator state: pressed is on,
 //! released is off.
 
-use super::{input_button_transition_type, StandardKindContract, TerminalBehavior};
+use super::{input_button_transition_type, KindTerminalBehavior, StandardKindContract};
 mod prepared;
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, InfoBool, PortDescriptor, PortDirection, PortTemporal,
-    SemanticCapabilityContract, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, InfoBool, Kind, PortDescriptor, PortDirection,
+    PortTemporal, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
     StructuredInfoValue, StructuredInfoValueShape, BOOL_INFO_ID,
 };
 pub use prepared::PreparedButtonIndicatorMapper;
@@ -92,9 +92,9 @@ pub fn button_source_contract() -> StandardKindContract {
             .to_string(),
         inputs: Vec::new(),
         outputs: vec![button_port("transition", PortDirection::Output)],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: button_limits(),
-        terminal_behavior: TerminalBehavior::HostInputEndsOrFailsSource,
+        terminal_behavior: KindTerminalBehavior::HostInputEndsOrFailsSource,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -115,9 +115,9 @@ pub fn button_indicator_state_contract() -> StandardKindContract {
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
         }],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: button_limits(),
-        terminal_behavior: TerminalBehavior::MirrorsInputTerminal,
+        terminal_behavior: KindTerminalBehavior::MirrorsInputTerminal,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -138,13 +138,13 @@ pub fn indicator_state_presentation_contract() -> StandardKindContract {
             temporal: PortTemporal::Current,
         }],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 1,
             max_queue_bytes: 1,
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
@@ -152,32 +152,36 @@ pub fn indicator_state_presentation_contract() -> StandardKindContract {
     }
 }
 
-pub fn button_source_semantic_contract() -> SemanticCapabilityContract {
+pub fn button_source_semantic_contract() -> Kind {
     semantic_contract(button_source_contract(), BUTTON_SOURCE_REVISION)
 }
 
-pub fn button_indicator_state_semantic_contract() -> SemanticCapabilityContract {
+pub fn button_indicator_state_semantic_contract() -> Kind {
     semantic_contract(
         button_indicator_state_contract(),
         BUTTON_INDICATOR_STATE_REVISION,
     )
 }
 
-pub fn indicator_state_presentation_semantic_contract() -> SemanticCapabilityContract {
+pub fn indicator_state_presentation_semantic_contract() -> Kind {
     semantic_contract(
         indicator_state_presentation_contract(),
         INDICATOR_STATE_PRESENTATION_REVISION,
     )
 }
 
-fn semantic_contract(contract: StandardKindContract, revision: &str) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
+    Kind {
         startup_parameters: super::startup_front(&contract.configuration),
         shorthand: None,
         kind_id: contract.kind_id,
         kind_contract_revision: revision.into(),
         inputs: contract.inputs,
         outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
         limits: contract.limits,
     }
 }
@@ -266,8 +270,8 @@ pub fn install_button_indicator_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_core::KindContractRevision;
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_core::KindIdentity;
+    use conduit_form::{KindProjection, KindSignature};
     for (contract, revision) in [
         (button_source_contract(), BUTTON_SOURCE_REVISION),
         (
@@ -292,18 +296,18 @@ pub fn install_button_indicator_catalogs(
                 .collect(),
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration: contract
                     .configuration
                     .into_iter()
-                    .map(|field| conduit_form::ConfigurationField {
+                    .map(|field| conduit_form::KindConfigurationField {
                         key: field.key,
                         default_value: field.default_value,
-                        validation: conduit_form::ConfigurationRule::U64Range {
+                        rule: conduit_form::KindConfigurationRule::U64Range {
                             minimum: 1,
                             maximum: u64::from(BUTTON_TRANSITION_MAXIMUM_VALUES),
                         },

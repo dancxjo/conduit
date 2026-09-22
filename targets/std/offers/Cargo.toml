@@ -24,4 +24,5 @@ conduit-text = { path = "../../../semantics/text" }
 conduit-tongues = { path = "../../../semantics/tongues", optional = true }
 conduit-chat = { path = "../../../semantics/chat", features = ["form-catalog"] }
 conduit-presentation = { path = "../../../semantics/presentation" }
+conduit-robotics = { path = "../../../semantics/robotics" }
 conduit-web = { path = "../../../semantics/web" }

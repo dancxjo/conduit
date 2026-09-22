@@ -1,10 +1,10 @@
 use conduit_core::{
-    port_id, KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
+    port_id, KindId, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
     StructuredFieldType, StructuredInfoType, StructuredVariantCase, UnmatchedVariantDisposition,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document,
-    structured_selector_definition, CheckedCordStage, KindDefinition, KindSignature,
+    structured_selector_definition, CheckedCordStage, KindProjection, KindSignature,
     ProfileCatalog, StartupCatalog,
 };
 
@@ -224,10 +224,10 @@ fn primitive(
     input: Option<KindId>,
     output: Option<KindId>,
     temporal: PortTemporal,
-) -> KindDefinition {
-    KindDefinition {
+) -> KindProjection {
+    KindProjection {
         kind_id: KindId::from(kind),
-        kind_contract_revision: KindContractRevision::from(format!("{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: input
             .into_iter()
             .map(|value_kind| PortDescriptor {

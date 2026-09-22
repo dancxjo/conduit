@@ -1,6 +1,6 @@
 //! Typed timing observation fixture, excluded from production installations.
 use super::factory::{BrowserHostResult, BrowserInstallation, BrowserManifestation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::*;
 use conduit_kernel::HostedValueStore;
 pub(crate) const KIND: &str = "conduit-test/timing-sink";
@@ -27,7 +27,7 @@ pub(crate) fn offer() -> CapabilityOffer {
             implementation_id: KIND.into(),
             artifact_id: "conduit-test/timing-sink@1".into(),
         },
-        host_operations: vec![HostOperationRequirement {
+        host_calls: vec![HostCallRequirement {
             contract_id: "conduit-test/timing-output".into(),
             target_kind: Some(KIND.into()),
             maximum_in_flight: 1,
@@ -43,9 +43,9 @@ pub(crate) fn offer() -> CapabilityOffer {
         },
     }
 }
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     super::factory::validate_placement(placement, &offer())?;
-    Ok(BrowserOperation::presentation(4096, 1))
+    Ok(BrowserBack::presentation(4096, 1))
 }
 fn present(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
     Ok(BrowserHostResult {

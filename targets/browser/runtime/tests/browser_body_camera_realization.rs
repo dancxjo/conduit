@@ -8,8 +8,8 @@ use conduit_browser_runtime::human_media::{
 };
 use conduit_core::{
     resource_offer, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId,
-    BootId, CapabilityId, HostAdvertisement, HostId, HostOperationContractId, HostProfileId,
-    KindId, LineContinuation, LineContract, LineDuplex, LineOrdering, LineReliability, LineScope,
+    BootId, CapabilityId, HostAdvertisement, HostCallContractId, HostId, HostProfileId, KindId,
+    LineContinuation, LineContract, LineDuplex, LineOrdering, LineReliability, LineScope,
     LineSecurity, LineTrafficShape, LinkLimits, OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_form::{check_syntax_document, expand_canonical_form, parse_syntax_document};
@@ -116,7 +116,7 @@ fn body_plan_requires_new_resource_truth_and_seals_exact_camera_cord() {
     let use_grant = AuthorityGrant {
         grant_id: AuthorityGrantId::from("browser/source/use-opaque-track-7"),
         contract_id: AuthorityContractId::from(MEDIA_USE_AUTHORITY),
-        host_operation_contract_id: HostOperationContractId::from(MEDIA_USE_OPERATION),
+        host_call_contract_id: HostCallContractId::from(MEDIA_USE_OPERATION),
         subject_kind: KindId::from(CAMERA_FRAME_KIND),
         host_id: source.host_id.clone(),
         boot_id: source.boot_id.clone(),

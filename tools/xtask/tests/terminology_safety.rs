@@ -24,8 +24,49 @@ const ROOT_FILES: &[&str] = &[
 ];
 
 const TEXT_EXTENSIONS: &[&str] = &[
-    "c", "conf", "h", "html", "js", "json", "md", "mjs", "rs", "sh", "toml", "ts", "yml", "yaml",
+    "c", "conduit", "conf", "h", "html", "js", "json", "md", "mjs", "rs", "sh", "toml", "ts",
+    "yml", "yaml",
 ];
+
+#[test]
+fn obsolete_host_boundary_vocabulary_is_absent() {
+    let repository = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("xtask is beneath repository tools");
+    let forbidden = [
+        ["host", "operation"].concat(),
+        ["host", "_operation"].concat(),
+        ["host", "-operation"].concat(),
+        ["host", " operation"].concat(),
+    ];
+    let mut violations = Vec::new();
+    for vocabulary in &forbidden {
+        for root in ROOTS {
+            inspect_directory(
+                repository,
+                &repository.join(root),
+                vocabulary,
+                &mut violations,
+            );
+        }
+        for file in ROOT_FILES {
+            inspect_file(
+                repository,
+                &repository.join(file),
+                vocabulary,
+                &mut violations,
+            );
+        }
+    }
+    violations.sort();
+    violations.dedup();
+    assert!(
+        violations.is_empty(),
+        "obsolete Host Call predecessor vocabulary remains:\n{}",
+        violations.join("\n")
+    );
+}
 
 #[test]
 fn ordinary_interface_vocabulary_is_not_rewritten_as_front() {
@@ -83,6 +124,16 @@ fn inspect_directory(
         if path.is_dir() {
             inspect_directory(repository, &path, forbidden, violations);
             continue;
+        }
+        let relative = path
+            .strip_prefix(repository)
+            .expect("source beneath repository");
+        if relative
+            .to_string_lossy()
+            .to_ascii_lowercase()
+            .contains(forbidden)
+        {
+            violations.push(relative.display().to_string());
         }
         let Some(extension) = path.extension().and_then(|extension| extension.to_str()) else {
             continue;

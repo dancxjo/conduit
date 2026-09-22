@@ -3,17 +3,15 @@
 use alloc::vec::Vec;
 use conduit_core::InfoBool;
 use conduit_human::KeyEvent;
-use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{CordSpec, FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
-    FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, NodeId, ValueStorage,
+    FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, HostCallDisposition,
+    HostCallOutcome, NodeId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 
 use super::{
-    portable_state_input_operation::PortableStateInputOperation,
+    portable_state_input_back::PortableStateInputBack,
     portable_state_input_plan::{
         BOOL_SINK_KIND, CHORD_KEY_SINK_KIND, COUNT_SINK_KIND, KEY_SOURCE_KIND,
         PreparedPortableStateInput, TEXT_KEY_SINK_KIND, TICK_SOURCE_KIND,
@@ -31,7 +29,7 @@ const VALUE_BYTES: usize = 64;
 const SIGNS: usize = 192;
 
 type Kernel = FixedScheduler<
-    OperationDriver<PortableStateInputOperation, PORTS>,
+    PortableStateInputBack,
     FixedValueStore<VALUES, MAX_VALUE_BYTES>,
     FixedSignLog<SIGNS>,
     NODES,
@@ -141,7 +139,7 @@ pub fn run_portable_state_input(
 #[allow(clippy::too_many_arguments)]
 fn capture(
     scheduler: &mut Scheduler,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     counts: &mut [Option<u64>; 2],
     count_len: &mut usize,
     toggles: &mut [Option<bool>; 2],
@@ -175,11 +173,11 @@ fn capture(
     }
     scheduler
         .kernel
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -216,8 +214,8 @@ fn scheduler(
             .map_err(|_| PortableStateInputError::Kernel)?;
     }
     routes.seal().map_err(|_| PortableStateInputError::Kernel)?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(|_| PortableStateInputError::Kernel)?;
@@ -285,33 +283,26 @@ fn scheduler(
                 TICK_SOURCE_KIND if tick_source < ticks.len() => {
                     let value = ticks[tick_source];
                     tick_source += 1;
-                    PortableStateInputOperation::Source {
+                    PortableStateInputBack::Source {
                         value,
                         emitted: false,
                     }
                 }
-                KEY_SOURCE_KIND => PortableStateInputOperation::Source {
+                KEY_SOURCE_KIND => PortableStateInputBack::Source {
                     value: key,
                     emitted: false,
                 },
-                conduit_semantic_catalog::STATE_COUNT_KIND => PortableStateInputOperation::Count {
+                conduit_semantic_catalog::STATE_COUNT_KIND => PortableStateInputBack::Count {
                     values: count_values,
                     next: 0,
                     initial_emitted: false,
                 },
-                conduit_semantic_catalog::STATE_TOGGLE_KIND => {
-                    PortableStateInputOperation::Toggle {
-                        values: toggle_values,
-                        next: 0,
-                        initial_emitted: false,
-                    }
-                }
-                conduit_semantic_catalog::KEY_EVENT_TEE_KIND => {
-                    PortableStateInputOperation::KeyTee {
-                        pending: None,
-                        phase: 0,
-                    }
-                }
+                conduit_semantic_catalog::STATE_TOGGLE_KIND => PortableStateInputBack::Toggle {
+                    values: toggle_values,
+                    next: 0,
+                    initial_emitted: false,
+                },
+                conduit_semantic_catalog::KEY_EVENT_TEE_KIND => PortableStateInputBack::KeyTee,
                 COUNT_SINK_KIND | BOOL_SINK_KIND | TEXT_KEY_SINK_KIND | CHORD_KEY_SINK_KIND => {
                     let node = NodeId(index as u16);
                     let maximum_bytes = match placement.kind_id.as_str() {
@@ -332,7 +323,7 @@ fn scheduler(
                             conduit_human::KEY_EVENT_ENCODED_LEN as u32
                         }
                     };
-                    PortableStateInputOperation::Sink {
+                    PortableStateInputBack::Sink {
                         maximum_bytes,
                         pending: false,
                         next_request: 0,
@@ -340,7 +331,7 @@ fn scheduler(
                 }
                 _ => return Err(PortableStateInputError::Shape),
             };
-            OperationDriver::new(operation).map_err(|_| PortableStateInputError::Kernel)
+            Ok(operation)
         })
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
@@ -349,10 +340,9 @@ fn scheduler(
         (SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
     )
     .map_err(|_| PortableStateInputError::Kernel)?;
-    let kernel = FixedScheduler::new_with_host_operations(
-        nodes, cords, routes, bindings, drivers, values, signs,
-    )
-    .map_err(|_| PortableStateInputError::Kernel)?;
+    let kernel =
+        FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
+            .map_err(|_| PortableStateInputError::Kernel)?;
     Ok(Scheduler {
         kernel,
         count_sink: count_sink.ok_or(PortableStateInputError::Shape)?,

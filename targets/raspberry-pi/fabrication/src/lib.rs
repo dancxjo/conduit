@@ -23,7 +23,7 @@ fn bare_metal_target(label: &str, machine: &str) -> TargetDescriptor {
         os: None,
         host_core: "host-core/conduitos@1".into(),
         presenter: None,
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         toolchain_identity: "rustc:stable+armv6-none-eabi+rust-lld".into(),
         builder_adapter: "conduit-host-raspberry-pi/build-sd-image@1".into(),
         strategy: conduit_host_fabrication::FabricationStrategy::DeterministicSpecializedBuild,
@@ -60,7 +60,7 @@ fn raspberry_pi_os_target(
         os: Some("raspberry-pi-os-bookworm-64".into()),
         host_core: "host-core/std@1".into(),
         presenter: None,
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         toolchain_identity:
             "rustc:1.98.1+aarch64-unknown-linux-gnu+gcc-aarch64-linux-gnu+g++-aarch64-linux-gnu+libc6-dev-arm64-cross"
                 .into(),

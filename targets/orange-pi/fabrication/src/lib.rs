@@ -26,7 +26,7 @@ fn orange_pi_5_target() -> TargetDescriptor {
             implementation_id: "presenter/linear-serial@1".into(),
             interactive: false,
         }),
-        host_operations: vec!["conduit.host/present@1".into()],
+        host_calls: vec!["conduit.host/present@1".into()],
         toolchain_identity: "rustc:stable+aarch64-unknown-none+llvm-tools+u-boot-v2026.04-rk3588s"
             .into(),
         builder_adapter: "conduit-host-orange-pi/build-conduitos-sd-image@1".into(),
@@ -59,7 +59,7 @@ fn catalog() -> PackageCatalogContribution {
                 contract_revision: "conduit.presentation/linear@1".into(),
                 targets: vec![ORANGE_PI_5_TARGET.into()],
                 prerequisites: vec![
-                    PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                    PrerequisiteNode::HostCall("conduit.host/present@1".into()),
                     PrerequisiteNode::Base("serial/text".into()),
                 ],
             },
@@ -69,7 +69,7 @@ fn catalog() -> PackageCatalogContribution {
             PresenterMetadata {
                 targets: vec![ORANGE_PI_5_TARGET.into()],
                 prerequisites: vec![
-                    PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                    PrerequisiteNode::HostCall("conduit.host/present@1".into()),
                     PrerequisiteNode::Base("serial/text".into()),
                 ],
             },

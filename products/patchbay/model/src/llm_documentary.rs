@@ -115,13 +115,13 @@ pub fn llm_documentary_presentation() -> Result<Presentation, String> {
 
 fn documentary_proposal(
     proposal_id: &str,
-    operation_kind: &str,
+    back_kind: &str,
     plan_id: PlanId,
 ) -> ModelEffectProposal {
     ModelEffectProposal {
         proposal_id: proposal_id.into(),
         plan_id,
-        operation_kind: KindId::from(operation_kind),
+        back_kind: KindId::from(back_kind),
         canonical_arguments: br#"{"enabled":true}"#.to_vec(),
         rationale: "Model-derived suggestion awaiting ordinary authority".into(),
         evidence: vec![SignId::from("sign/observed-bird")],
@@ -192,7 +192,7 @@ fn documentary_placement(contract: &conduit_ai::LlmSemanticContract) -> PlannedG
         },
         inputs: contract.inputs.clone(),
         outputs: contract.outputs.clone(),
-        host_operations: vec![],
+        host_calls: vec![],
         resources: vec![],
         authority: vec![],
         pool_references: vec![],

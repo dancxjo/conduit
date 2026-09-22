@@ -18,9 +18,9 @@ pub(super) fn validate_plan(
     if placement.host_id != evidence.host_id
         || placement.boot_id != evidence.boot_id
         || placement.offer_generation != evidence.offer_generation
-        || placement.host_operations.len() != 1
-        || placement.host_operations[0].contract_id.as_str() != channel.operation_id()
-        || placement.host_operations[0].maximum_input_bytes != 0
+        || placement.host_calls.len() != 1
+        || placement.host_calls[0].contract_id.as_str() != channel.operation_id()
+        || placement.host_calls[0].maximum_input_bytes != 0
         || placement.resources.len() != 3
     {
         return Err("Plan does not seal the exact Create observation contract");

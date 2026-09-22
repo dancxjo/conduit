@@ -55,7 +55,7 @@ pub fn deliver_ready_reminder(
     let grant = grant.ok_or(ReminderDeliveryRefusal::MissingAuthority)?;
     if grant.grant_id.as_str().is_empty()
         || grant.contract_id.as_str() != REMINDER_DELIVERY_AUTHORITY
-        || grant.host_operation_contract_id.as_str() != REMINDER_DELIVER_OPERATION
+        || grant.host_call_contract_id.as_str() != REMINDER_DELIVER_OPERATION
         || grant.subject_kind.as_str() != REMINDER_DELIVER_KIND
     {
         return Err(ReminderDeliveryRefusal::MissingAuthority);

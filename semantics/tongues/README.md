@@ -9,7 +9,7 @@ the original graph remains `text_source.out -> tts.in -> audio_output.in`.
 The authored Conduit form retains only text-to-speech-to-audio meaning. Planning separately seals
 the exact implementation, artifact, host, boot, output base resource pool, authority grant, host
 operations, and capacity-one/32,768-byte cords. play uses the production `conduit-kernel`
-scheduler and its admitted host-operation table. There is no Tongues dispatcher in the execution
+scheduler and its admitted Host Call table. There is no Tongues dispatcher in the execution
 path.
 
 Two output conditions are deliberately different:

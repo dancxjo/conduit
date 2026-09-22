@@ -1,17 +1,17 @@
 //! Dynamic browser realization of exact structured field and variant selectors.
 
 use super::factory::{BrowserHostResult, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ConfigurationValue, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, PlannedGear, PortTemporal, StructuredCanonicalSelection, StructuredSelector,
-    StructuredSelectorRefusal, UnmatchedVariantDisposition, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
+    PortTemporal, StructuredCanonicalSelection, StructuredSelector, StructuredSelectorRefusal,
+    UnmatchedVariantDisposition, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
 pub(crate) const IMPLEMENTATION: &str = "browser/kernel-structured-selector@1";
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-structured-selector@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-structured-selector@1";
 
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
     implementation_id: IMPLEMENTATION,
@@ -66,17 +66,17 @@ impl PreparedSelector {
 pub(crate) fn offer(selector: &StructuredSelector, temporal: PortTemporal) -> CapabilityOffer {
     let contract = conduit_semantic_catalog::structured_selector_contract(selector, temporal);
     let target = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!("browser/{}", target.as_str())),
             execution_profile_id: ExecutionProfileId::from(
                 "browser/structured-selector-kernel-hosted@1",
             ),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-core/structured-selector@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
                 target_kind: Some(target),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
@@ -131,18 +131,18 @@ fn validate(placement: &PlannedGear, selector: &StructuredSelector) -> Result<()
         || placement.artifact_id != exact.implementation.artifact_id
         || placement.inputs != exact.inputs
         || placement.outputs != exact.outputs
-        || placement.host_operations != exact.host_operations
+        || placement.host_calls != exact.host_calls
     {
         return Err("planned structured selector differs from browser realization".into());
     }
     Ok(())
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let selector = selector_from_placement(placement)?;
     validate(placement, &selector)?;
-    Ok(BrowserOperation::installed(
-        conduit_semantic_catalog::StructuredSelectorOperation::new(
+    Ok(BrowserBack::installed_step(
+        conduit_semantic_catalog::StructuredSelectorBack::new(
             MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         ),
     ))

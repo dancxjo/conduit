@@ -1,10 +1,8 @@
 //! Stateful admitted std-host boundary for fixed-point Lenia evolution.
 
-use super::alife_operations::parameters;
+use super::alife_backs::parameters;
 use conduit_alife::{LeniaEngine, LeniaFieldView, LENIA_MAXIMUM_FIELD_BYTES, LENIA_Q16_ONE};
-use conduit_core::{
-    ConfigurationValue, HostOperationContractId, KindId, PlanFragment, PlannedGear,
-};
+use conduit_core::{ConfigurationValue, HostCallContractId, KindId, PlanFragment, PlannedGear};
 use conduit_kernel::{Failure, FailureCode, NodeId};
 use std::io::Write;
 
@@ -57,11 +55,11 @@ impl AlifeHost {
             .get_mut(index)
             .and_then(Option::as_mut)
             .ok_or(Failure {
-                code: FailureCode::HostOperationDenied,
+                code: FailureCode::HostCallDenied,
                 detail: 194,
             })?;
         engine.step_into(&mut self.output).map_err(|_| Failure {
-            code: FailureCode::HostOperationFailed,
+            code: FailureCode::HostCallFailed,
             detail: 195,
         })?;
         Ok(&self.output)
@@ -80,14 +78,14 @@ impl AlifeHost {
 
     pub(super) fn execute<'a, W: Write>(
         &'a mut self,
-        contract: &HostOperationContractId,
+        contract: &HostCallContractId,
         target: Option<&KindId>,
         node: NodeId,
         input: &[u8],
         fragment: &PlanFragment,
         output: &mut W,
     ) -> Option<AlifeCompletion<'a>> {
-        if contract.as_str() == conduit_std_offers::LENIA_INITIALIZE_HOST_OPERATION
+        if contract.as_str() == conduit_std_offers::LENIA_INITIALIZE_HOST_CALL
             && target.is_some_and(|kind| kind.as_str() == conduit_alife::LENIA_STEP_KIND)
         {
             return Some(match self.initialize(node, input) {
@@ -95,7 +93,7 @@ impl AlifeHost {
                 Err(failure) => AlifeCompletion::Failed(failure),
             });
         }
-        if contract.as_str() == conduit_std_offers::LENIA_STEP_HOST_OPERATION
+        if contract.as_str() == conduit_std_offers::LENIA_STEP_HOST_CALL
             && target.is_some_and(|kind| kind.as_str() == conduit_alife::LENIA_STEP_KIND)
         {
             return Some(match self.step(node, input) {
@@ -103,14 +101,14 @@ impl AlifeHost {
                 Err(failure) => AlifeCompletion::Failed(failure),
             });
         }
-        if contract.as_str() == conduit_core::PRESENT_HOST_OPERATION_CONTRACT
+        if contract.as_str() == conduit_core::PRESENT_HOST_CALL_CONTRACT
             && target.is_some_and(|kind| {
                 kind.as_str() == conduit_std_offers::SCALAR_FIELD_PRESENTATION_TARGET
             })
         {
             let Some(placement) = fragment.placements.get(usize::from(node.0)) else {
                 return Some(AlifeCompletion::Failed(Failure {
-                    code: FailureCode::HostOperationDenied,
+                    code: FailureCode::HostCallDenied,
                     detail: 205,
                 }));
             };
@@ -127,7 +125,7 @@ impl AlifeHost {
             .get_mut(usize::from(node.0))
             .and_then(Option::as_mut)
             .ok_or(Failure {
-                code: FailureCode::HostOperationDenied,
+                code: FailureCode::HostCallDenied,
                 detail: 196,
             })
     }
@@ -238,7 +236,7 @@ fn scalar_q16(placement: &PlannedGear, key: &str) -> Result<u32, Failure> {
 
 fn io_failure() -> Failure {
     Failure {
-        code: FailureCode::HostOperationFailed,
+        code: FailureCode::HostCallFailed,
         detail: 204,
     }
 }

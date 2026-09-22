@@ -1,10 +1,7 @@
 //! Browser timing transforms using the shared preallocated semantic codecs.
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
-use conduit_core::{
-    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, HostOperationRequirement,
-    PlannedGear,
-};
+use super::BrowserBack;
+use conduit_core::{Back, BackOfferBuilder, CapabilityOffer, HostCallRequirement, PlannedGear};
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 use conduit_semantic_catalog::{BoundedIntervalCodec, BoundedNormalizationCodec};
 
@@ -42,14 +39,14 @@ fn offer(index: usize) -> CapabilityOffer {
         conduit_semantic_catalog::normalize_relative_duration_semantic_contract()
     };
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: IMPLEMENTATIONS[index].into(),
             execution_profile_id: "browser/bounded-timing@1".into(),
             implementation_id: IMPLEMENTATIONS[index].into(),
             artifact_id: "conduit-browser-runtime/bounded-timing@1".into(),
-            host_operations: vec![HostOperationRequirement {
+            host_calls: vec![HostCallRequirement {
                 contract_id: OPERATIONS[index].into(),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
@@ -67,13 +64,13 @@ fn index(placement: &PlannedGear) -> Option<usize> {
         .iter()
         .position(|id| *id == placement.implementation_id.as_str())
 }
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let index = index(placement).ok_or("unknown timing implementation")?;
     validate_placement(placement, &offer(index))?;
     if !placement.configuration.is_empty() {
         return Err("unexpected timing configuration".into());
     }
-    Ok(BrowserOperation::unary(MAXIMUM, 1))
+    Ok(BrowserBack::unary(MAXIMUM, 1))
 }
 
 pub(crate) enum PreparedTiming {

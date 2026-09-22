@@ -1,16 +1,16 @@
 //! Exact hosted math request matching and completion.
 
-use super::{math_operations, InstalledScheduler};
-use conduit_core::{kind_id, HostOperationContractId, KindId, PlanFragment, SCALAR_ENCODED_LEN};
-use conduit_kernel::scheduler::HostOperationRequest;
-use conduit_kernel::{BoundedValueRef, HostOperationDisposition, HostOperationOutcome};
+use super::{math_backs, InstalledScheduler};
+use conduit_core::{kind_id, HostCallContractId, KindId, PlanFragment, SCALAR_ENCODED_LEN};
+use conduit_kernel::scheduler::HostCallRequest;
+use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
 
 pub(super) struct MathHost {
-    bindings: [(HostOperationContractId, KindId); 5],
+    bindings: [(HostCallContractId, KindId); 5],
     quantity_info_prefix: Vec<u8>,
     mappings: [Option<conduit_semantic_catalog::QuantityMapping>; super::MAX_NODES],
-    failures: [Option<(HostOperationRequest, conduit_kernel::Failure)>; super::MAX_NODES],
-    terminal_failure: Option<(HostOperationRequest, conduit_kernel::Failure)>,
+    failures: [Option<(HostCallRequest, conduit_kernel::Failure)>; super::MAX_NODES],
+    terminal_failure: Option<(HostCallRequest, conduit_kernel::Failure)>,
 }
 
 impl MathHost {
@@ -31,35 +31,31 @@ impl MathHost {
             terminal_failure: None,
             bindings: [
                 (
-                    conduit_std_offers::QUANTITY_INFO_HOST_OPERATION,
+                    conduit_std_offers::QUANTITY_INFO_HOST_CALL,
                     conduit_semantic_catalog::QUANTITY_INFO_WRAP_KIND,
                 ),
                 (
-                    conduit_std_offers::QUANTITY_MAP_HOST_OPERATION,
+                    conduit_std_offers::QUANTITY_MAP_HOST_CALL,
                     conduit_semantic_catalog::QUANTITY_MAP_KIND,
                 ),
                 (
-                    conduit_std_offers::MATH_CLAMP_HOST_OPERATION,
+                    conduit_std_offers::MATH_CLAMP_HOST_CALL,
                     conduit_semantic_catalog::MATH_CLAMP_KIND,
                 ),
                 (
-                    conduit_std_offers::MATH_SCALE_HOST_OPERATION,
+                    conduit_std_offers::MATH_SCALE_HOST_CALL,
                     conduit_semantic_catalog::MATH_SCALE_KIND,
                 ),
                 (
-                    conduit_std_offers::MATH_DEADBAND_HOST_OPERATION,
+                    conduit_std_offers::MATH_DEADBAND_HOST_CALL,
                     conduit_semantic_catalog::MATH_DEADBAND_KIND,
                 ),
             ]
-            .map(|(contract, kind)| (HostOperationContractId::from(contract), kind_id(kind))),
+            .map(|(contract, kind)| (HostCallContractId::from(contract), kind_id(kind))),
         })
     }
 
-    pub(super) fn matches(
-        &self,
-        contract: &HostOperationContractId,
-        target: Option<&KindId>,
-    ) -> bool {
+    pub(super) fn matches(&self, contract: &HostCallContractId, target: Option<&KindId>) -> bool {
         self.bindings
             .iter()
             .any(|(expected_contract, expected_target)| {
@@ -70,9 +66,9 @@ impl MathHost {
     pub(super) fn complete(
         &mut self,
         fragment: &PlanFragment,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         scheduler: &mut InstalledScheduler,
-        requests: &mut Vec<HostOperationRequest>,
+        requests: &mut Vec<HostCallRequest>,
     ) -> Result<(), String> {
         let placement = fragment
             .placements
@@ -83,8 +79,8 @@ impl MathHost {
             .map_err(|error| format!("read math scalar input: {error:?}"))?;
         if placement.kind_id.as_str() == conduit_semantic_catalog::QUANTITY_INFO_WRAP_KIND {
             let outcome = if conduit_core::Quantity::decode(input).is_err() {
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Failed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Failed,
                     output: None,
                     failure: Some(conduit_kernel::Failure {
                         code: conduit_kernel::FailureCode::InvalidInput,
@@ -100,8 +96,8 @@ impl MathHost {
                 let value = scheduler
                     .store_host_value(&encoded[..length])
                     .map_err(|error| format!("store structured Quantity: {error:?}"))?;
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(
                         BoundedValueRef::new(value, length as u32)
                             .map_err(|error| format!("bound structured Quantity: {error:?}"))?,
@@ -114,7 +110,7 @@ impl MathHost {
                 self.failures[usize::from(request.node.0)] = Some((request, failure));
             }
             return scheduler
-                .complete_host_operation(request.node, request.request, outcome)
+                .complete_host_call(request.node, request.request, outcome)
                 .map_err(|error| format!("complete Quantity wrapping: {error:?}"));
         }
         if placement.kind_id.as_str() == conduit_semantic_catalog::QUANTITY_MAP_KIND {
@@ -125,8 +121,8 @@ impl MathHost {
                     let value = scheduler
                         .store_host_value(&encoded)
                         .map_err(|error| format!("store quantity output: {error:?}"))?;
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: Some(
                             BoundedValueRef::new(value, conduit_core::QUANTITY_ENCODED_LEN as u32)
                                 .map_err(|error| format!("bound quantity output: {error:?}"))?,
@@ -134,8 +130,8 @@ impl MathHost {
                         failure: None,
                     }
                 }
-                Err(failure) => HostOperationOutcome {
-                    disposition: HostOperationDisposition::Failed,
+                Err(failure) => HostCallOutcome {
+                    disposition: HostCallDisposition::Failed,
                     output: None,
                     failure: Some(failure),
                 },
@@ -145,20 +141,20 @@ impl MathHost {
                 self.failures[usize::from(request.node.0)] = Some((request, failure));
             }
             return scheduler
-                .complete_host_operation(request.node, request.request, outcome)
+                .complete_host_call(request.node, request.request, outcome)
                 .map_err(|error| format!("complete quantity mapping: {error:?}"));
         }
-        let encoded = math_operations::transform_bytes(placement, input)?;
+        let encoded = math_backs::transform_bytes(placement, input)?;
         let value = scheduler
             .store_host_value(&encoded)
             .map_err(|error| format!("store math scalar output: {error:?}"))?;
         requests.push(request);
         scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(
                         BoundedValueRef::new(value, SCALAR_ENCODED_LEN as u32)
                             .map_err(|error| format!("bound math scalar output: {error:?}"))?,

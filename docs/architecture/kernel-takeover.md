@@ -15,13 +15,13 @@ exact plans through `conduit-kernel`.
 - numeric node IDs and fixed-width input-cord tables;
 - separate numeric input/output port ordinals with a directional reverse map;
 - item/byte-bounded cord specifications and direct fan-out route ranges;
-- per-node numeric host-operation admission bindings;
+- per-node numeric Host Call admission bindings;
 - per-node numeric resource references retaining their exact pool bindings;
 - numeric mandatory-sign targets;
 - exact aggregate cord queue-slot, cord byte, mandatory-sign-item, and
   mandatory-sign-byte budgets; and
 - a reverse identity map for plan, fragment, placement, port, connection,
-  host-operation contract, and resource binding identities.
+  Host Call contract, and resource binding identities.
 
 Lowering allocates and performs string/map lookup only before play start. Its
 result contains the tables the kernel can install without graph scans,
@@ -33,7 +33,7 @@ This checkpoint deliberately rejects:
 - remote connections;
 - more than sixteen inputs or outputs per node;
 - more than one cord targeting an input port;
-- host-operation concurrency other than one;
+- Host Call concurrency other than one;
 - malformed endpoints, ports, resources, and sign references; and
 - numeric or aggregate capacity overflow.
 
@@ -45,7 +45,7 @@ invalid in the general model.
 The unchanged two-node `flow/pulse -> presentation/show` local plan and its
 three-sink local fan-out now:
 
-- installs the lowered node, cord, route, and host-operation rows into one
+- installs the lowered node, cord, route, and Host Call rows into one
   fixed-capacity hosted kernel scheduler;
 - preallocates every signal and timer value before play start;
 - drives the public kernel `Operation` protocol for both placements;

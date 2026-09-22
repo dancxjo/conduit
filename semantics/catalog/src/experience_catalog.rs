@@ -6,10 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
     StructuredFieldType, StructuredInfoType, StructuredVariantCase,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 pub const EXPERIENCE_RELATE_KIND: &str = "experience/relate-current";
 pub const EXPERIENCE_RELATE_REVISION: &str = "conduit.experience/relate-current@1";
@@ -142,9 +142,9 @@ pub fn install_experience_catalogs(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(EXPERIENCE_RELATE_KIND),
-            kind_contract_revision: KindContractRevision::from(EXPERIENCE_RELATE_REVISION),
+            kind_contract_revision: KindIdentity::from(EXPERIENCE_RELATE_REVISION),
             inputs: vec![
                 flow_port("body", &experience_body_input_type()),
                 flow_port("human", &experience_human_input_type()),

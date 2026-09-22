@@ -5,9 +5,12 @@ use std::sync::{
 
 use conduit_core::Plan;
 use conduit_kernel::{
-    scheduler::{FixedScheduler, OperationDriver, RemoteIngressOutcome, SchedulerStatus},
-    FixedRoutes, FixedSignLog, FixedValueStore, Operation, OperationAction, OperationInput, PortId,
-    RemoteEndpointId, SignSink, ValueRef, ValueStorage,
+    scheduler::{
+        FixedScheduler, RemoteIngressOutcome, SchedulerStatus, StepBack, StepInputBytes, StepIo,
+        StepOutcome,
+    },
+    FixedRoutes, FixedSignLog, FixedValueStore, PortId, RemoteEndpointId, SignSink, ValueRef,
+    ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
@@ -26,51 +29,54 @@ enum Leaf {
     Sink { seen: Arc<AtomicBool> },
 }
 
-impl Operation for Leaf {
-    fn start(&mut self) -> OperationAction {
+impl StepBack<PORTS> for Leaf {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
-            Self::Source { value, .. } => OperationAction::Emit {
-                port: PortId(0),
-                value: *value,
-            },
-            Self::Pass { .. } | Self::Sink { .. } => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (Self::Pass { emitted }, OperationInput::Value { value, .. }) if !*emitted => {
+            Self::Source { value, emitted } => {
+                if *emitted {
+                    return StepOutcome::Complete;
+                }
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                io.send(PortId(0), *value).unwrap();
                 *emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value,
+                StepOutcome::Complete
+            }
+            Self::Pass { emitted } => {
+                if let Some(value) = io.input(PortId(0)) {
+                    if *emitted || !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume(PortId(0)).unwrap();
+                    io.send(PortId(0), value).unwrap();
+                    *emitted = true;
+                    return StepOutcome::Progress;
+                }
+                if *emitted {
+                    StepOutcome::Complete
+                } else {
+                    StepOutcome::Await
                 }
             }
-            (Self::Sink { seen }, OperationInput::Value { .. }) => {
+            Self::Sink { seen } => {
+                let Some(_) = io.input(PortId(0)) else {
+                    return StepOutcome::Await;
+                };
+                io.consume(PortId(0)).unwrap();
                 seen.store(true, Ordering::SeqCst);
-                OperationAction::Complete
+                StepOutcome::Complete
             }
-            _ => OperationAction::Await,
         }
     }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source { emitted, .. } if !*emitted => {
-                *emitted = true;
-                OperationAction::Complete
-            }
-            Self::Pass { emitted: true } => OperationAction::Complete,
-            _ => OperationAction::Await,
-        }
-    }
-
-    fn cancel(&mut self) {}
 }
 
-type Driver = OperationDriver<Leaf, PORTS>;
 type AKernel = FixedScheduler<
-    Driver,
+    Leaf,
     FixedValueStore<VALUE_SLOTS, VALUE_BYTES>,
     FixedSignLog<SIGNS>,
     5,
@@ -81,7 +87,7 @@ type AKernel = FixedScheduler<
     5,
 >;
 type BKernel = FixedScheduler<
-    Driver,
+    Leaf,
     FixedValueStore<VALUE_SLOTS, VALUE_BYTES>,
     FixedSignLog<SIGNS>,
     2,
@@ -187,9 +193,9 @@ fn kernel_a(
 ) -> (AKernel, ValueRef) {
     let mut values = FixedValueStore::<VALUE_SLOTS, VALUE_BYTES>::new(VALUE_BYTES as u32).unwrap();
     let source = values.store(b"provider-prompt").unwrap();
-    let drivers = core::array::from_fn(|index| {
+    let backs = core::array::from_fn(|index| {
         let kind = fragment.placements[index].kind_id.as_str();
-        let leaf = if kind == super::SOURCE {
+        if kind == super::SOURCE {
             Leaf::Source {
                 value: source,
                 emitted: false,
@@ -198,8 +204,7 @@ fn kernel_a(
             Leaf::Sink { seen: seen.clone() }
         } else {
             Leaf::Pass { emitted: false }
-        };
-        OperationDriver::new(leaf).unwrap()
+        }
     });
     let kernel = FixedScheduler::new(
         lowered.node_specs.clone().try_into().unwrap(),
@@ -211,7 +216,7 @@ fn kernel_a(
             .try_into()
             .unwrap(),
         routes::<{ 5 * PORTS }, 5>(lowered),
-        drivers,
+        backs,
         values,
         FixedSignLog::new_with_remote_storage(
             (SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
@@ -225,8 +230,7 @@ fn kernel_a(
 }
 
 fn kernel_b(fragment: &conduit_core::PlanFragment, lowered: &LoweredPlanFragment) -> BKernel {
-    let drivers =
-        core::array::from_fn(|_| OperationDriver::new(Leaf::Pass { emitted: false }).unwrap());
+    let backs = core::array::from_fn(|_| Leaf::Pass { emitted: false });
     assert!(fragment
         .placements
         .iter()
@@ -241,7 +245,7 @@ fn kernel_b(fragment: &conduit_core::PlanFragment, lowered: &LoweredPlanFragment
             .try_into()
             .unwrap(),
         routes::<{ 2 * PORTS }, 3>(lowered),
-        drivers,
+        backs,
         FixedValueStore::<VALUE_SLOTS, VALUE_BYTES>::new(VALUE_BYTES as u32).unwrap(),
         FixedSignLog::new_with_remote_storage(
             (SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,

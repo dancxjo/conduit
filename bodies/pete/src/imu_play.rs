@@ -7,8 +7,8 @@ use crate::{
 };
 use conduit_core::{BootId, HostId, OfferGeneration, Plan};
 use conduit_kernel::{
-    scheduler::{HostOperationRequest, SchedulerStatus},
-    BoundedValueRef, HostOperationDisposition, HostOperationOutcome, SignSink,
+    scheduler::{HostCallRequest, SchedulerStatus},
+    BoundedValueRef, HostCallDisposition, HostCallOutcome, SignSink,
 };
 use conduit_mpu6050::Mpu6050I2cProvider;
 
@@ -50,7 +50,7 @@ pub struct Mpu6050ExecutionReport {
 
 #[derive(Clone, Copy)]
 struct PendingCompletion {
-    request: HostOperationRequest,
+    request: HostCallRequest,
     output: BoundedValueRef,
     canonical: [u8; conduit_robotics::ROBOTICS_ORIENTATION_ENCODED_LEN],
 }
@@ -147,11 +147,11 @@ pub fn finish_mpu6050_execution(
     };
     if execution
         .scheduler
-        .complete_host_operation(
+        .complete_host_call(
             pending.request.node,
             pending.request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(pending.output),
                 failure: None,
             },
@@ -199,7 +199,7 @@ pub fn cancel_mpu6050_execution(
 
 fn next_request(
     execution: &mut PreparedMpu6050Execution,
-) -> Result<HostOperationRequest, Mpu6050PlayFailure> {
+) -> Result<HostCallRequest, Mpu6050PlayFailure> {
     for _ in 0..16 {
         execution
             .scheduler
@@ -221,21 +221,21 @@ fn next_request(
 
 fn fail_request(
     execution: &mut PreparedMpu6050Execution,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     failure: Mpu6050PlayFailure,
 ) {
     let detail = match failure {
         Mpu6050PlayFailure::DeviceOrDerivation(_) => 1,
         Mpu6050PlayFailure::KernelRefused => 2,
     };
-    let _ = execution.scheduler.complete_host_operation(
+    let _ = execution.scheduler.complete_host_call(
         request.node,
         request.request,
-        HostOperationOutcome {
-            disposition: HostOperationDisposition::Failed,
+        HostCallOutcome {
+            disposition: HostCallDisposition::Failed,
             output: None,
             failure: Some(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::HostOperationFailed,
+                code: conduit_kernel::FailureCode::HostCallFailed,
                 detail,
             }),
         },

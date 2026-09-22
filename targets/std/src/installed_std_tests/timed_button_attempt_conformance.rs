@@ -5,8 +5,8 @@ use conduit_core::{
     ResourceOffer, ResourcePoolId, StructuredInfoValue,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
 use std::collections::BTreeMap;
@@ -185,15 +185,15 @@ fn catalogs(
             })
             .unwrap();
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: offer.kind_id.clone(),
                 kind_contract_revision: offer.kind_contract_revision.clone(),
                 inputs: offer.inputs.clone(),
                 outputs: offer.outputs.clone(),
-                configuration: vec![ConfigurationField {
+                configuration: vec![KindConfigurationField {
                     key: parameter.into(),
                     default_value: ConfigurationValue::Text(hex(&value.canonical_bytes().unwrap())),
-                    validation: ConfigurationRule::TextBytes {
+                    rule: KindConfigurationRule::TextBytes {
                         maximum: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 8) as u32,
                     },
                 }],
@@ -206,7 +206,7 @@ fn catalogs(
 fn sequence_source_offer(value: &StructuredInfoValue) -> conduit_core::CapabilityOffer {
     let mut offer = fixture_offer(value, PortDirection::Output, SOURCE_KIND);
     offer.startup_parameters[0].name = "values".into();
-    offer.host_operations = vec![conduit_core::wait_host_operation_requirement()];
+    offer.host_calls = vec![conduit_core::wait_host_call_requirement()];
     offer.resource_requirements = vec![conduit_core::resource_requirement(
         conduit_core::TIMER_RESOURCE_CLASS,
         1,

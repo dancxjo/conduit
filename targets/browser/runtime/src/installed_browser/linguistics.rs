@@ -3,12 +3,12 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ConfigurationValue, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, PlannedGear, SemanticCapabilityContract,
-    StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES, PRESENTATION_RESOURCE_CLASS,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, Kind,
+    PlannedGear, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
 
@@ -16,7 +16,7 @@ const ARTIFACT: &str = "conduit-browser-runtime/installed-linguistics@1";
 const TOKENIZE_IMPLEMENTATION: &str = "browser/kernel-language-tokenize-four@1";
 const ANNOTATE_IMPLEMENTATION: &str = "browser/kernel-language-annotate-four@1";
 const PRESENTATION_IMPLEMENTATION: &str = "browser/presentation-structured-info@1";
-const HOST_OPERATION: &str = "conduit.host/browser-linguistics@1";
+const HOST_CALL: &str = "conduit.host/browser-linguistics@1";
 
 pub(super) static TOKENIZE: BrowserInstallation = BrowserInstallation {
     implementation_id: TOKENIZE_IMPLEMENTATION,
@@ -41,7 +41,7 @@ pub(super) fn install_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
     conduit_language::install_linguistics_catalogs(startup, profile)?;
     let contract = presentation_contract();
     startup.insert(KindSignature {
@@ -49,12 +49,12 @@ pub(super) fn install_catalogs(
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| error.to_string())
 }
@@ -79,14 +79,14 @@ fn annotate_offer() -> CapabilityOffer {
 }
 
 fn presentation_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         presentation_contract().into(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(PRESENTATION_IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(PRESENTATION_IMPLEMENTATION),
             implementation_id: ImplementationId::from(PRESENTATION_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations: vec![operation(PRESENTATION_IMPLEMENTATION, 0)],
+            host_calls: vec![operation(PRESENTATION_IMPLEMENTATION, 0)],
             resource_requirements: vec![conduit_core::resource_requirement(
                 PRESENTATION_RESOURCE_CLASS,
                 1,
@@ -98,18 +98,18 @@ fn presentation_offer() -> CapabilityOffer {
 }
 
 fn offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     implementation: &str,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations,
+            host_calls,
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -117,9 +117,9 @@ fn offer(
     .build()
 }
 
-fn operation(target: &str, output: u32) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(HOST_OPERATION),
+fn operation(target: &str, output: u32) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(HOST_CALL),
         target_kind: Some(kind_id(target)),
         maximum_in_flight: 1,
         maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
@@ -137,7 +137,7 @@ fn presentation_contract() -> conduit_semantic_catalog::StructuredValueContract 
 fn prepare_tokenize(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &tokenize_offer())?;
     let value = conduit_language::tokenize_four("tour/gear-lab", configuration_text(placement)?)
         .map_err(|error| format!("tokenize four: {error:?}"))?;
@@ -145,15 +145,15 @@ fn prepare_tokenize(
         .canonical_bytes()
         .map_err(|error| format!("encode linguistic tokens: {error:?}"))?;
     let stored = values.store(&canonical).map_err(debug_error)?;
-    Ok(BrowserOperation::source(stored))
+    Ok(BrowserBack::source(stored))
 }
 
 fn prepare_annotate(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &annotate_offer())?;
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         1,
     ))
@@ -162,9 +162,9 @@ fn prepare_annotate(
 fn prepare_presentation(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &presentation_offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         1,
     ))

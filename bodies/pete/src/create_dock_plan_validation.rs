@@ -83,10 +83,10 @@ pub(super) fn validate_create_dock_plan(
         || placement.offer_generation != evidence.offer_generation
         || placement.execution_profile_id.as_str() != expected_profile
         || placement.capability_id.as_str() != CREATE_DOCK_CAPABILITY
-        || placement.host_operations.len() != 1
-        || placement.host_operations[0].contract_id.as_str() != CREATE_DOCK_OPERATION
-        || placement.host_operations[0].maximum_input_bytes != BOOL_ENCODED_LEN as u32
-        || placement.host_operations[0].maximum_output_bytes != 0
+        || placement.host_calls.len() != 1
+        || placement.host_calls[0].contract_id.as_str() != CREATE_DOCK_OPERATION
+        || placement.host_calls[0].maximum_input_bytes != BOOL_ENCODED_LEN as u32
+        || placement.host_calls[0].maximum_output_bytes != 0
         || placement.resources.len() != 4
         || placement.authority.len() != 1
     {
@@ -108,7 +108,7 @@ pub(super) fn validate_create_dock_plan(
     }
     let authority = &placement.authority[0];
     if authority.contract_id.as_str() != expected_authority
-        || authority.host_operation_contract_id.as_str() != CREATE_DOCK_OPERATION
+        || authority.host_call_contract_id.as_str() != CREATE_DOCK_OPERATION
         || authority.subject_kind != kind_id(BOOL_INFO_ID)
         || authority.host_id != evidence.host_id
         || authority.boot_id != evidence.boot_id

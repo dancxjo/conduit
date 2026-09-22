@@ -203,6 +203,18 @@ fn add_node_properties(
             "collection-item-count",
             PresentationPropertyValue::Count(u64::from(*length)),
         )),
+        StructuredInfoInspectionShape::Sequence { length, capacity } => {
+            properties.push(property(
+                subject,
+                "sequence-item-count",
+                PresentationPropertyValue::Count(u64::from(*length)),
+            ));
+            properties.push(property(
+                subject,
+                "sequence-capacity",
+                PresentationPropertyValue::Count(u64::from(*capacity)),
+            ));
+        }
         StructuredInfoInspectionShape::Record {
             schema,
             field_count,

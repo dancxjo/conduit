@@ -3,10 +3,10 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    kind_id, ConfigurationValue, HostOperationContractId, HostOperationRequirement, InfoBool,
-    PlannedGear, Scalar, BOOL_ENCODED_LEN, PRESENTATION_RESOURCE_CLASS, SCALAR_ENCODED_LEN,
+    kind_id, ConfigurationValue, HostCallContractId, HostCallRequirement, InfoBool, PlannedGear,
+    Scalar, BOOL_ENCODED_LEN, PRESENTATION_RESOURCE_CLASS, SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
 
@@ -75,9 +75,9 @@ fn offer(
     implementation: &str,
     presentation: bool,
 ) -> conduit_core::CapabilityOffer {
-    let host_operations = presentation
-        .then(|| HostOperationRequirement {
-            contract_id: HostOperationContractId::from(implementation),
+    let host_calls = presentation
+        .then(|| HostCallRequirement {
+            contract_id: HostCallContractId::from(implementation),
             target_kind: Some(kind_id(implementation)),
             maximum_in_flight: 1,
             maximum_input_bytes: contract.limits.max_queue_bytes,
@@ -94,7 +94,7 @@ fn offer(
             implementation,
             artifact: ARTIFACT,
         },
-        host_operations,
+        host_calls,
         presentation
             .then(|| conduit_core::resource_requirement(PRESENTATION_RESOURCE_CLASS, 1))
             .into_iter()
@@ -106,7 +106,7 @@ fn offer(
 fn prepare_literal(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     let (offer, encoded): (_, Vec<u8>) = match placement.implementation_id.as_str() {
         SCALAR_LITERAL_IMPLEMENTATION => (
             scalar_literal_offer(),
@@ -124,21 +124,21 @@ fn prepare_literal(
     };
     validate_placement(placement, &offer)?;
     let stored = values.store(&encoded).map_err(debug_error)?;
-    Ok(BrowserOperation::source(stored))
+    Ok(BrowserBack::source(stored))
 }
 
 fn prepare_presentation(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     let offer = match placement.implementation_id.as_str() {
         SCALAR_PRESENTATION_IMPLEMENTATION => scalar_presentation_offer(),
         BOOL_PRESENTATION_IMPLEMENTATION => bool_presentation_offer(),
         _ => return Err("unknown value presentation installation".into()),
     };
     validate_placement(placement, &offer)?;
-    Ok(BrowserOperation::presentation(
-        placement.host_operations[0].maximum_input_bytes,
+    Ok(BrowserBack::presentation(
+        placement.host_calls[0].maximum_input_bytes,
         1,
     ))
 }

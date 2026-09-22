@@ -4,8 +4,8 @@
 //! ordering only. Semantic timeout or debounce policy remains in kernel
 //! operations.
 
-use conduit_kernel::scheduler::{HostOperationCancellation, HostOperationRequest};
-use conduit_kernel::{HostOperationId, NodeId, RequestId};
+use conduit_kernel::scheduler::{HostCallCancellation, HostCallRequest};
+use conduit_kernel::{HostCallId, NodeId, RequestId};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -13,25 +13,25 @@ use std::time::{Duration, Instant};
 pub struct DeadlineKey {
     pub node: NodeId,
     pub request: RequestId,
-    pub operation: HostOperationId,
+    pub host_call: HostCallId,
 }
 
-impl From<HostOperationRequest> for DeadlineKey {
-    fn from(request: HostOperationRequest) -> Self {
+impl From<HostCallRequest> for DeadlineKey {
+    fn from(request: HostCallRequest) -> Self {
         Self {
             node: request.node,
             request: request.request,
-            operation: request.operation,
+            host_call: request.call,
         }
     }
 }
 
-impl From<HostOperationCancellation> for DeadlineKey {
-    fn from(cancellation: HostOperationCancellation) -> Self {
+impl From<HostCallCancellation> for DeadlineKey {
+    fn from(cancellation: HostCallCancellation) -> Self {
         Self {
             node: cancellation.node,
             request: cancellation.request,
-            operation: cancellation.operation,
+            host_call: cancellation.call,
         }
     }
 }
@@ -213,7 +213,7 @@ impl<C: DeadlineClock, const SLOTS: usize> DeadlineHostAdapter<C, SLOTS> {
 
     pub fn arm(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         duration_ms: u64,
     ) -> Result<(), DeadlineHostError> {
         let now = self.now()?;
@@ -222,10 +222,7 @@ impl<C: DeadlineClock, const SLOTS: usize> DeadlineHostAdapter<C, SLOTS> {
             .map_err(DeadlineHostError::Reactor)
     }
 
-    pub fn cancel(
-        &mut self,
-        cancellation: HostOperationCancellation,
-    ) -> Result<(), DeadlineHostError> {
+    pub fn cancel(&mut self, cancellation: HostCallCancellation) -> Result<(), DeadlineHostError> {
         self.reactor
             .cancel(cancellation.into())
             .map_err(DeadlineHostError::Reactor)
@@ -303,11 +300,11 @@ mod tests {
         }
     }
 
-    fn request(node: u16, request: u32) -> HostOperationRequest {
-        HostOperationRequest {
+    fn request(node: u16, request: u32) -> HostCallRequest {
+        HostCallRequest {
             node: NodeId(node),
             request: RequestId(request),
-            operation: HostOperationId(0),
+            call: HostCallId(0),
             input: BoundedValueRef::new(
                 ValueRef {
                     slot: request as u16,

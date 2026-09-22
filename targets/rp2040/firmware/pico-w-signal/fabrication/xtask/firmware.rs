@@ -104,7 +104,7 @@ impl FirmwareIdentity {
                 || image.boot_id != conduit_r1_network_conformance::R1_PICO_BOOT_ID
                 || image.nodes != 1
                 || image.cords != 1
-                || image.host_operations != 1
+                || image.host_calls != 1
                 || image.cord_value_slots != 1
                 || image.cord_value_bytes != conduit_signal::SIGNAL_ENCODED_LEN
             {
@@ -135,7 +135,7 @@ pub struct GeneratedImageIdentity {
     pub offer_generation: u64,
     pub nodes: usize,
     pub cords: usize,
-    pub host_operations: usize,
+    pub host_calls: usize,
     pub cord_value_slots: u16,
     pub cord_value_bytes: u32,
     pub sign_items: u16,

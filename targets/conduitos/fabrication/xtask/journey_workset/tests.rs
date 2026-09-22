@@ -19,6 +19,7 @@ fn records() -> Vec<Value> {
             };
             serde_json::json!({
                 "status": "quiescent-awaiting-input", "revision": index + 10,
+                "workload_revision": 1,
                 "body_id": "body", "wake_id": "wake", "plan_id": plan_id, "active_play_id": active_play_id,
                 "source_document_id": form.source_document_id,
                 "checked_form_id": form.checked_form_id,

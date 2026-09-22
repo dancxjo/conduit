@@ -132,7 +132,7 @@ Public Rust identifiers use the same vocabulary deliberately:
 | Current internal name | Public meaning |
 |---|---|
 | `KindId` | reusable semantic behavior discovery/provenance identity |
-| `KindContractRevision` | revision provenance for a kind contract; not a compatibility gate |
+| `KindIdentity` | revision provenance for a kind contract; not a compatibility gate |
 | `GearId` | exact identity of one authored/expanded gear occurrence |
 | `CheckedGear` | one checked gear and its required canonical front |
 | `CapabilityOffer` | one boot-scoped exact host offer for a kind |

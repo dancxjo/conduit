@@ -81,6 +81,11 @@ pub(crate) fn validate_candidate_views<'a>(
         {
             return Err(RendezvousDescriptorRefusal::InsecureRemoteWebSocket);
         }
+        if candidate.line_family == RendezvousLineFamily::WebRtcDataChannel
+            && !candidate.reachability.starts_with("webrtc-bootstrap:")
+        {
+            return Err(RendezvousDescriptorRefusal::InvalidReachability);
+        }
     }
     Ok(())
 }

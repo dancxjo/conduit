@@ -249,6 +249,7 @@ fn prove_native_patchbay(paths: &Paths, proof: &ProofRecord) -> Result<usize, Co
     )?;
     let linear = String::from_utf8(output.stdout)
         .map_err(|error| ConduitosError::refusal("patchbay-rejected-report", error.to_string()))?;
+    let exact_base_count = format!("BASES {}", proof.first_observatory.bases.len());
     for required in [
         proof.first_boot.host_id.as_str(),
         proof.first_boot.boot_id.as_str(),
@@ -258,7 +259,7 @@ fn prove_native_patchbay(paths: &Paths, proof: &ProofRecord) -> Result<usize, Co
         proof.first_kernel.source_document_id.as_str(),
         proof.first_kernel.checked_form_id.as_str(),
         proof.first_kernel.expanded_form_id.as_str(),
-        "BASES 8",
+        exact_base_count.as_str(),
         "kind=conduitos.base/framebuffer@1",
         "SIGNS 19",
         "items=1 bytes=64",

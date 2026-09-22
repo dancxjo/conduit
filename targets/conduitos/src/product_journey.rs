@@ -3,9 +3,11 @@
 use alloc::{borrow::ToOwned, boxed::Box, format, string::String, vec::Vec};
 
 use conduit_body::{
-    Body, BodyMembership, BodyPlan, BodyPlayIdentity, BodyState, PartId, Wake, WakeLifecycleEvent,
+    AuthenticatedHostObservation, Body, BodyFulfillment, BodyMembership, BodyPlan,
+    BodyPlayIdentity, BodyState, FulfillmentObligation, MembershipProofId, PartId, Wake,
+    WakeLifecycleEvent,
 };
-use conduit_core::{BootId, ExpandedFormId, HostId, OfferGeneration, SignId};
+use conduit_core::{AuthorityGrantId, BootId, ExpandedFormId, HostId, OfferGeneration, SignId};
 
 use crate::{
     identity::BootIdentities,
@@ -37,6 +39,7 @@ pub enum JourneyStatus {
     QuiescentAwaitingInput,
     SemanticCompleted,
     Lulled,
+    Fulfilled,
     InputUnavailable,
     Stopped,
 }
@@ -52,6 +55,7 @@ impl JourneyStatus {
             Self::QuiescentAwaitingInput => "quiescent-awaiting-input",
             Self::SemanticCompleted => "semantic-completed",
             Self::Lulled => "lulled",
+            Self::Fulfilled => "fulfilled",
             Self::InputUnavailable => "input-unavailable",
             Self::Stopped => "stopped",
         }
@@ -134,6 +138,10 @@ pub struct JourneyProjection {
     pub body_id: Option<conduit_body::BodyId>,
     pub friendly_name: Option<String>,
     pub born_sign_id: Option<SignId>,
+    pub fulfilled_sign_id: Option<SignId>,
+    pub workload_revision: Option<u64>,
+    pub workload_sign_id: Option<SignId>,
+    pub workload_capacity_available: bool,
     pub part_id: Option<PartId>,
     pub wake_id: Option<conduit_body::WakeId>,
     pub wake_sign_id: Option<SignId>,
@@ -188,6 +196,75 @@ pub struct ProductJourney {
 }
 
 impl ProductJourney {
+    /// Admit the reviewed peer behind the current product Line as a distinct
+    /// Body Part after its bounded session handshake has completed.
+    pub fn admit_line_peer(
+        &mut self,
+        host_id: HostId,
+        boot_id: BootId,
+        proof_id: MembershipProofId,
+    ) -> Result<PartId, JourneyError> {
+        let body_id = self
+            .body
+            .as_ref()
+            .ok_or(JourneyError::BodyAbsent)?
+            .body_id
+            .clone();
+        let membership = self.membership.as_mut().ok_or(JourneyError::Membership)?;
+        let part = PartId::bind(&body_id, host_id.as_str(), membership.revision.0)
+            .map_err(|_| JourneyError::Membership)?;
+        membership
+            .admit(
+                &body_id,
+                membership.revision,
+                part.clone(),
+                proof_id.clone(),
+                SignId::from(format!("conduitos/product/peer-admitted/{}", self.revision)),
+            )
+            .map_err(|_| JourneyError::Membership)?;
+        membership
+            .observe_present(
+                &body_id,
+                membership.revision,
+                &part,
+                AuthenticatedHostObservation {
+                    host_id,
+                    boot_id,
+                    offer_generation: OfferGeneration(1),
+                    proof_id,
+                    sequence: 0,
+                },
+                SignId::from(format!("conduitos/product/peer-attached/{}", self.revision)),
+            )
+            .map_err(|_| JourneyError::Membership)?;
+        self.advance()?;
+        Ok(part)
+    }
+
+    pub fn observe_line_peer_offline(
+        &mut self,
+        part: &PartId,
+        boot_id: &BootId,
+    ) -> Result<(), JourneyError> {
+        let body_id = self
+            .body
+            .as_ref()
+            .ok_or(JourneyError::BodyAbsent)?
+            .body_id
+            .clone();
+        let membership = self.membership.as_mut().ok_or(JourneyError::Membership)?;
+        membership
+            .observe_offline(
+                &body_id,
+                membership.revision,
+                part,
+                boot_id,
+                SignId::from(format!("conduitos/product/peer-offline/{}", self.revision)),
+            )
+            .map_err(|_| JourneyError::Membership)?;
+        self.advance()
+    }
+
     pub fn new(
         host_id: HostId,
         boot_id: BootId,
@@ -279,6 +356,8 @@ impl ProductJourney {
             JourneyAction::Play => self.play()?,
             JourneyAction::Stop => self.stop()?,
             JourneyAction::Lull => self.lull()?,
+            JourneyAction::Fulfill => self.fulfill()?,
+            JourneyAction::AdmitForm => self.admit_next_form()?,
             _ => return Err(JourneyError::WrongTarget),
         }
         self.last_request_id = Some(request.request_id);
@@ -297,6 +376,13 @@ impl ProductJourney {
                 WakeLifecycleEvent::PlanReady { plan_id, sign_id }
                     if Some(plan_id) == self.plan.as_ref().map(|plan| &plan.plan_id) =>
                 {
+                    Some(sign_id.clone())
+                }
+                WakeLifecycleEvent::Replanned {
+                    replacement_plan_id,
+                    sign_id,
+                    ..
+                } if Some(replacement_plan_id) == self.plan.as_ref().map(|plan| &plan.plan_id) => {
                     Some(sign_id.clone())
                 }
                 _ => None,
@@ -330,6 +416,23 @@ impl ProductJourney {
             offer_generation: self.offer_generation,
             body_id: self.body.as_ref().map(|body| body.body_id.clone()),
             born_sign_id: self.born_sign_id.clone(),
+            fulfilled_sign_id: self.body.as_ref().and_then(|body| match &body.state {
+                BodyState::Fulfilled { sign_id } => Some(sign_id.clone()),
+                _ => None,
+            }),
+            workload_revision: self.body.as_ref().map(|body| body.workload_revision),
+            workload_sign_id: self.body.as_ref().and_then(|body| {
+                body.events.iter().rev().find_map(|event| match event {
+                    conduit_body::BodyLifecycleEvent::FormAdmitted { sign_id, .. } => {
+                        Some(sign_id.clone())
+                    }
+                    _ => None,
+                })
+            }),
+            workload_capacity_available: self
+                .body
+                .as_ref()
+                .is_some_and(|body| body.workset.len() < native_workset::NATIVE_FORM_CAPACITY),
             friendly_name: self.friendly_name.clone(),
             part_id: self.part_id.clone(),
             wake_id: self.wake.as_ref().map(|wake| wake.wake_id.clone()),
@@ -413,7 +516,9 @@ impl ProductJourney {
             | JourneyAction::Plan
             | JourneyAction::Play
             | JourneyAction::Stop
-            | JourneyAction::Lull => self
+            | JourneyAction::Lull
+            | JourneyAction::Fulfill
+            | JourneyAction::AdmitForm => self
                 .body
                 .as_ref()
                 .map(|body| format!("body/{}", body.body_id.as_str()))
@@ -460,6 +565,37 @@ impl ProductJourney {
             .revision
             .checked_add(1)
             .ok_or(JourneyError::RevisionExhausted)?;
+        Ok(())
+    }
+
+    fn fulfill(&mut self) -> Result<(), JourneyError> {
+        if self.status != JourneyStatus::Lulled || self.kernel.is_some() {
+            return Err(JourneyError::InvalidTransition);
+        }
+        let sign_id = SignId::from(format!("conduitos/product/fulfilled/{}", self.revision));
+        let final_wake_id = self.wake.as_ref().map(|wake| wake.wake_id.clone());
+        let body = self.body.as_ref().ok_or(JourneyError::BodyAbsent)?;
+        let fulfilled = body
+            .fulfill(
+                BodyFulfillment {
+                    final_wake_id,
+                    authority_grant_id: AuthorityGrantId::from("grant/conduitos/operator-fulfill"),
+                    attribution: "operator/conduitos-local-input".into(),
+                    settled_obligations: alloc::vec![FulfillmentObligation {
+                        obligation_id: "obligation/conduitos-runtime-empty".into(),
+                        settlement_sign_id: sign_id.clone(),
+                    }],
+                },
+                sign_id,
+            )
+            .map_err(|_| JourneyError::InvalidTransition)?;
+        let mut membership = self.membership.clone().ok_or(JourneyError::Membership)?;
+        membership
+            .seal_fulfilled(&fulfilled)
+            .map_err(|_| JourneyError::Membership)?;
+        self.body = Some(fulfilled);
+        self.membership = Some(membership);
+        self.status = JourneyStatus::Fulfilled;
         Ok(())
     }
 }

@@ -1,10 +1,10 @@
 //! Pure-kernel browser realizations of explicit framed-record temporal adapters.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, ImplementationId, PlannedGear, SemanticCapabilityContract,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    ImplementationId, Kind, PlannedGear,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -39,15 +39,15 @@ fn exactly_one_offer() -> CapabilityOffer {
     )
 }
 
-fn offer(contract: SemanticCapabilityContract, implementation: &str) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+fn offer(contract: Kind, implementation: &str) -> CapabilityOffer {
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from("browser/record-temporal@1"),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from("conduit-net/record-temporal@1"),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -58,15 +58,15 @@ fn offer(contract: SemanticCapabilityContract, implementation: &str) -> Capabili
 fn prepare_singleton(
     placement: &PlannedGear,
     _: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &singleton_offer())?;
-    Ok(BrowserOperation::singleton_stream(MAXIMUM))
+    Ok(BrowserBack::singleton_stream(MAXIMUM))
 }
 
 fn prepare_exactly_one(
     placement: &PlannedGear,
     _: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &exactly_one_offer())?;
-    Ok(BrowserOperation::exactly_one(MAXIMUM))
+    Ok(BrowserBack::exactly_one(MAXIMUM))
 }

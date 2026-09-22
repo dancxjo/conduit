@@ -4,8 +4,7 @@ use crate::hosted_indicator::{
 };
 use conduit_core::{ActivePlayIdentity, HostAdvertisement, InfoBool, PlanFragment};
 use conduit_kernel::{
-    scheduler::HostOperationRequest, Failure, FailureCode, HostOperationDisposition,
-    HostOperationOutcome, NodeId,
+    scheduler::HostCallRequest, Failure, FailureCode, HostCallDisposition, HostCallOutcome, NodeId,
 };
 use conduit_plan_lowering::lowering::KernelIdentityMap;
 
@@ -64,11 +63,7 @@ impl<'a> IndicatorHost<'a> {
         })
     }
 
-    pub(super) fn present(
-        &mut self,
-        request: HostOperationRequest,
-        input: &[u8],
-    ) -> HostOperationOutcome {
+    pub(super) fn present(&mut self, request: HostCallRequest, input: &[u8]) -> HostCallOutcome {
         let result = (|| {
             let (node, binding) = self
                 .selected
@@ -86,19 +81,19 @@ impl<'a> IndicatorHost<'a> {
             })
         })();
         match result {
-            Ok(()) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            Ok(()) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
-            Err(error) => HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            Err(error) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(Failure {
                     code: if error == IndicatorFailure::Cancelled {
                         FailureCode::Cancelled
                     } else {
-                        FailureCode::HostOperationFailed
+                        FailureCode::HostCallFailed
                     },
                     detail: error as u16,
                 }),

@@ -1,5 +1,9 @@
 //! Bounded Gear-reverse truth derived from canonical Form, Plan, and Host offers.
 
+use conduit_ai::{
+    CandidateEvaluation, LearnedLifecycleRefusal, LearnedRealizationIdentity, PromotionGrant,
+    PromotionReceipt, RollbackGrant,
+};
 use conduit_core::{
     verify_plan, ArtifactId, BootId, CapabilityId, HostAdvertisement, HostId, ImplementationId,
     Plan, PlannedGear,
@@ -28,7 +32,7 @@ pub struct GearRealizationAlternative {
     pub implementation_id: ImplementationId,
     pub artifact_id: ArtifactId,
     pub execution_profile_id: conduit_core::ExecutionProfileId,
-    pub host_operation_contracts: Vec<String>,
+    pub host_call_contracts: Vec<String>,
     pub resource_classes: Vec<String>,
 }
 
@@ -52,6 +56,14 @@ pub enum GearRealizationError {
     UnknownAlternative,
     SameRealization,
     Planning(PlannerError),
+    LearnedLifecycle(LearnedLifecycleRefusal),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LearnedImplementationSelection {
+    pub host_id: HostId,
+    pub capability_id: CapabilityId,
+    pub realization: LearnedRealizationIdentity,
 }
 
 impl core::fmt::Display for GearRealizationError {
@@ -122,8 +134,8 @@ impl GearRealizationInspection {
                     implementation_id: offer.implementation.implementation_id.clone(),
                     artifact_id: offer.implementation.artifact_id.clone(),
                     execution_profile_id: offer.implementation.execution_profile_id.clone(),
-                    host_operation_contracts: offer
-                        .host_operations
+                    host_call_contracts: offer
+                        .host_calls
                         .iter()
                         .map(|operation| operation.contract_id.as_str().to_owned())
                         .collect(),
@@ -207,6 +219,64 @@ pub fn replan_with_implementation(
         return Err(GearRealizationError::SameRealization);
     }
     Ok(replacement)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn replan_with_learned_promotion(
+    form: &ExpandedCanonicalForm,
+    current_plan: &Plan,
+    hosts: &[HostAdvertisement],
+    subject: &PatchbaySubjectRef,
+    selection: &LearnedImplementationSelection,
+    evaluation: &CandidateEvaluation,
+    grant: &PromotionGrant,
+    now_tick: u64,
+) -> Result<Plan, GearRealizationError> {
+    grant
+        .admit(evaluation, now_tick)
+        .map_err(GearRealizationError::LearnedLifecycle)?;
+    if selection.realization != grant.candidate {
+        return Err(GearRealizationError::LearnedLifecycle(
+            LearnedLifecycleRefusal::StaleCandidate,
+        ));
+    }
+    replan_with_implementation(
+        form,
+        current_plan,
+        hosts,
+        subject,
+        &selection.host_id,
+        &selection.capability_id,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn replan_with_learned_rollback(
+    form: &ExpandedCanonicalForm,
+    current_plan: &Plan,
+    hosts: &[HostAdvertisement],
+    subject: &PatchbaySubjectRef,
+    selection: &LearnedImplementationSelection,
+    promotion: &PromotionReceipt,
+    grant: &RollbackGrant,
+    now_tick: u64,
+) -> Result<Plan, GearRealizationError> {
+    grant
+        .admit(promotion, now_tick)
+        .map_err(GearRealizationError::LearnedLifecycle)?;
+    if selection.realization != grant.target {
+        return Err(GearRealizationError::LearnedLifecycle(
+            LearnedLifecycleRefusal::RollbackTargetMismatch,
+        ));
+    }
+    replan_with_implementation(
+        form,
+        current_plan,
+        hosts,
+        subject,
+        &selection.host_id,
+        &selection.capability_id,
+    )
 }
 
 fn selected_placement(

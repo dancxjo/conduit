@@ -16,13 +16,14 @@ for the clearest demonstration of the system so far.
 | Area | Available behavior and evidence | Boundary |
 |---|---|---|
 | **Language and composition** | Canonical `.conduit` parsing, located diagnostics, checking, recursive forms through fronts/backs, exact typed ports, and separate source/checked/expanded identities. Ordinary examples run through planning and the production kernel. | Supported semantics and implementations are finite; a catalog entry does not promise an implementation on every host. See [forms](forms/README.md). |
-| **Planning and execution** | One port-aware kernel, explicit fan-out, bounded queues and operations, resource and authority admission, immutable plans, cancellation, pressure, and correlated signs. Shared code serves hosted, browser, and embedded paths. | Deadline guarantees belong to specific admitted profiles. General SMP, preemption, and physical real-time guarantees are not established by cooperative execution. |
+| **Planning and execution** | One port-aware kernel, explicit fan-out, bounded queues and Host Calls, plan-owned per-Step fuel, fair cooperative yielding, resource and authority admission, immutable plans, cancellation, pressure, and correlated signs. Shared code serves hosted, browser, and embedded paths. Confined Wasm instruction fuel forcibly returns control even from a non-cooperative infinite loop. | Native in-process, browser, ConduitOS, and firmware Backs remain cooperative unless their exact Host profile names and proves a hard containment mechanism. General SMP, preemption, and physical real-time guarantees are not established by cooperative execution. |
 | **body lifecycle** | Zero/one/many initial forms, durable part membership, current/offline host presence, body-wide workload admission, one current plan and at most one active play. Multi-form execution and workload changes have hosted and browser evidence. | This is implemented, not merely the old #2062 proposal. Quiescence versus semantic completion still needs the runtime correction in [#3006](https://github.com/dancxjo/conduit/issues/3006). |
 | **Tour and browser hosts** | One seven-page Tour application owns the portable chapter/stage catalog, form sources, presentation state, and semantic actions used by browser, hosted desktop, and ConduitOS presenters. Browser/WASM execution, embedded Patchbay, independent browser hosts, and admitted browser operations remain available. | Browser permission, device availability, tab lifetime, and supported profile still apply. Browser, hosted, and emulator proofs establish different environments; none alone establishes physical-media behavior. |
 | **Patchbay** | A resident native projection shows the active forms on the present body with exact plan/play identities and presenter topology; broader native and browser inspection/editing, bounded Watches, observation replay, and scoped breakpoint/causal-trace support also exist. | Patchbay is a projection over authoritative body and execution truth, not a second scheduler. Replay is distinct from re-execution, and these features do not establish distributed stop-the-world debugging. |
 | **Crèche and fabrication** | Birth a body with reviewed forms, prepare target-native artifacts, inspect membership, and retain body evidence into Patchbay. Fabrication packages cover hosted computers, browser, ConduitOS, and board families. | Building or downloading an artifact is distinct from installing, booting, admitting a part, and executing work. Consult each [target](targets/README.md). |
 | **ConduitOS** | Five product targets: x86_64 and IA-32 PC, AArch64 and RISC-V64 virt, and LoongArch64 virt. The x86_64 graphical journey births a body, runs every Tour exercise across all seven pages, switches resident forms, opens simplified Patchbay, replans presenters, and exercises keyboard, pointer, timer, and USB line paths; the other four targets have serial product media. | The illustrated journey is **freestanding-emulator** proof. The physical laptop campaign is open. A target's boot proof does not establish graphics, drivers, or hardware parity. |
 | **lines and physical Pico work** | Recorded WebSocket/USB CDC execution and one-body Pico W control, including new-plan recovery and continuation over an already-admitted fallback line. | This is bounded, device-specific physical evidence. It does not imply arbitrary discovery, federation, public-Internet security, or a general reconnect policy. |
+| **Remote Host rendezvous** | One bounded CBOR/CDDL descriptor carries ordered authenticated direct, WebRTC DataChannel, protected user-operated relay, loopback WebSocket, and attended-serial candidates. Browser, native std, and ConduitOS consume the same candidate meanings; each target attempts only supported Lines. Candidate expiry, attempt count, timeout, ordered failure evidence, direct-versus-relayed truth, and the existing invitation/admission session remain distinct. | Automated proofs establish the shared wire semantics, finite fallback scheduler, real browser/native WebRTC transport, protected relay, and ordinary Host admission above a selected Line. They do not substitute for the attended multi-machine, multi-network run owned by [#3711](https://github.com/dancxjo/conduit/issues/3711). ConduitOS truthfully skips WebRTC rather than pretending to implement it. |
 | **Standard semantics and local tasks** | Executable text, time, state/flow, logic/math, input, presentation, and other reviewed families; protected local file-copy operations exist. Catalog and target gap reports derive availability from code. | The old “copy a file is disabled” record describes a retired prototype. ConduitOS storage and physical file-copy remain separate unfinished work. |
 
 For implementation owners, start with the [repository map](docs/repository-layout.md)
@@ -77,12 +78,20 @@ Their presence is not an additional physical or release acceptance claim:
   adapter rather than chat semantics. This source-level slice does not yet
   establish the five-host, voice, or ConduitOS experiences described in the
   [body Chat guide](forms/body-chat/README.md).
+- **Learned realization lifecycle (#3709):** checkpoint-bearing hosted model
+  execution, bounded effect-free shadow comparison, explicit evaluation and
+  operator promotion/rollback authority, ordinary replacement-Plan selection,
+  and Patchbay lifecycle projection exist as shared contracts. A Pete-scoped
+  deterministic conformance fixture exercises a harmless interpretation
+  candidate and return to its retained baseline without granting wheel effects.
+  This is deterministic source-level proof; it does not claim autonomous model
+  improvement, physical shadow evidence, or an attended operator decision.
 - **Reusable applications:** forms-as-gears is implemented, while several
   complete reusable application compositions still have open acceptance work.
   [The roadmap](docs/roadmap.md#reusable-forms) names those remaining slices.
 
 The current `cargo xtask conduitos std-gap` report also identifies missing
-ConduitOS host operations for `math/map-quantity` and
+ConduitOS Host Calls for `math/map-quantity` and
 `structured-info/wrap-quantity`, alongside the missing storage base for
 `file/copy`. Run the report for the current profile instead of relying on a
 frozen catalog count.

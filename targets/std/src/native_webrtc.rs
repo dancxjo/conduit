@@ -28,6 +28,12 @@ use crate::browser_admission::{
 #[path = "native_webrtc/session.rs"]
 mod session;
 pub use session::{NativeWebRtcSession, NativeWebRtcSessionRefusal};
+#[path = "native_webrtc/rendezvous.rs"]
+mod rendezvous;
+pub use rendezvous::{
+    open_native_webrtc_candidate, AuthenticatedWebRtcAnswer, NativeWebRtcCandidateConnection,
+    NativeWebRtcCandidateRefusal, NativeWebRtcSignaling,
+};
 
 pub const NATIVE_WEBRTC_IMPLEMENTATION_ID: &str = "std/webrtc-datachannel@1";
 pub const MAXIMUM_NATIVE_WEBRTC_FRAME_BYTES: usize = 128 * 1024;

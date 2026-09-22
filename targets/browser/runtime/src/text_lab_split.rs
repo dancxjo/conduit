@@ -1,12 +1,13 @@
 //! Browser production-kernel half of the exact split Text Lab Plan.
 
 use crate::presentation_nucleus::uppercase_utf8;
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
+use conduit_kernel::scheduler::{
+    FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
+};
 use conduit_kernel::{
-    BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RemoteEndpointId,
-    RequestId,
+    BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
+    HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, PortId,
+    RemoteEndpointId, RequestId,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
@@ -20,76 +21,76 @@ use conduit_text::{MAX_TEXT_BYTES, TEXT_UPPER_KIND};
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const SIGN_ITEMS: u16 = 128;
 
-type BrowserTextLabScheduler = FixedScheduler<
-    OperationDriver<UpperOperation, PORTS>,
-    HostedValueStore,
-    HostedSignLog,
-    1,
-    2,
-    PORTS,
-    2,
-    1,
-    1,
-    1,
-    1,
->;
+type BrowserTextLabScheduler =
+    FixedScheduler<UpperBack, HostedValueStore, HostedSignLog, 1, 2, PORTS, 2, 1, 1, 1, 1>;
 
-struct UpperOperation {
+struct UpperBack {
     pending: Option<RequestId>,
     next: u32,
 }
 
-impl UpperOperation {
-    fn fail(detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure {
+impl UpperBack {
+    fn fail(detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             detail,
         })
     }
 }
 
-impl Operation for UpperOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() && self.next < TEXT_LAB_MAXIMUM_VALUES as u32 => {
-                let request = RequestId(self.next);
-                self.pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(0),
-                    input: match BoundedValueRef::new(value, MAX_TEXT_BYTES) {
-                        Ok(value) => value,
-                        Err(_) => return Self::fail(1),
-                    },
-                }
-            }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.failure.is_none() =>
+impl StepBack<PORTS> for UpperBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if let Some(expected) = self.pending {
+            let Some((request, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            if request != expected
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
             {
-                let Some(output) = outcome.output else {
-                    return Self::fail(2);
-                };
-                self.pending = None;
-                self.next += 1;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
+                return Self::fail(3);
             }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
+            let Some(output) = outcome.output else {
+                return Self::fail(2);
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
             }
-            _ => Self::fail(3),
+            if io.consume_host_completion().is_err() || io.send(PortId(0), output.value).is_err() {
+                return Self::fail(3);
+            }
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
         }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.next >= TEXT_LAB_MAXIMUM_VALUES as u32 {
+                return Self::fail(3);
+            }
+            let request = RequestId(self.next);
+            let input = match BoundedValueRef::new(value, MAX_TEXT_BYTES) {
+                Ok(value) => value,
+                Err(_) => return Self::fail(1),
+            };
+            if io.consume(PortId(0)).is_err()
+                || io.request_host_call(request, HostCallId(0), input).is_err()
+            {
+                return Self::fail(3);
+            }
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            if io.consume_closed(PortId(0)).is_err() {
+                return Self::fail(3);
+            }
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 }
 
@@ -119,7 +120,7 @@ impl BrowserTextLabFragment {
         if lowered.nodes.len() != 1
             || lowered.cords.len() != 2
             || lowered.remote_endpoints.len() != 2
-            || lowered.host_operations.len() != 1
+            || lowered.host_calls.len() != 1
             || fragment.placements[0].kind_id.as_str() != TEXT_UPPER_KIND
         {
             return Err("split Text Lab browser fragment has the wrong exact shape".into());
@@ -146,12 +147,9 @@ impl BrowserTextLabFragment {
                 .map_err(|error| format!("{error:?}"))?;
         }
         routes.seal().map_err(|error| format!("{error:?}"))?;
-        let mut bindings = FixedHostOperationBindings::<1>::new(1);
+        let mut bindings = FixedHostCallBindings::<1>::new(1);
         bindings
-            .install(
-                lowered.host_operations[0].node,
-                lowered.host_operations[0].binding,
-            )
+            .install(lowered.host_calls[0].node, lowered.host_calls[0].binding)
             .map_err(|error| format!("{error:?}"))?;
         bindings.seal().map_err(|error| format!("{error:?}"))?;
         let values = HostedValueStore::new(2, MAX_TEXT_BYTES, MAX_TEXT_BYTES * 2)
@@ -168,12 +166,11 @@ impl BrowserTextLabFragment {
             remote_sign_bytes,
         )
         .map_err(|error| format!("{error:?}"))?;
-        let driver = OperationDriver::new(UpperOperation {
+        let back = UpperBack {
             pending: None,
             next: 0,
-        })
-        .map_err(|error| format!("{error:?}"))?;
-        let scheduler = BrowserTextLabScheduler::new_with_host_operations(
+        };
+        let scheduler = BrowserTextLabScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()
@@ -188,7 +185,7 @@ impl BrowserTextLabFragment {
                 .map_err(|_| "split Text Lab browser Cord width".to_string())?,
             routes,
             bindings,
-            [driver],
+            [back],
             values,
             signs,
         )
@@ -228,11 +225,11 @@ impl BrowserTextLabFragment {
                     .store_host_value(&output)
                     .map_err(|error| format!("{error:?}"))?;
                 self.scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: Some(
                                 BoundedValueRef::new(value, MAX_TEXT_BYTES)
                                     .map_err(|error| format!("{error:?}"))?,

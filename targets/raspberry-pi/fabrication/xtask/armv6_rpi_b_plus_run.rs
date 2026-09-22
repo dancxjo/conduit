@@ -148,7 +148,7 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
         || kernel["semantic_result"] != "HELLO, CONDUITOS"
         || kernel["allocation_stable_during_play"] != true
         || kernel["timer_irq_wakes"] != 1
-        || kernel["pending_host_operations"] != 0
+        || kernel["pending_host_calls"] != 0
         || identity["image_id"] != format!("conduitos-image/{commit}/{}/v1", board.identity_slug())
         || identity["wake_source"] != "bcm2835-system-timer-compare-1"
         || identity["wake_irq"] != 1

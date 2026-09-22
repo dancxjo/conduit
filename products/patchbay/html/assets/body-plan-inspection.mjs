@@ -28,7 +28,7 @@ export function presentBodyPlan(root, proposal) {
           for (const port of placement[direction]) paragraph(gear, `${direction}: ${JSON.stringify(port)}`);
         }
         paragraph(gear, `Resources: ${JSON.stringify(placement.resources)}`);
-        paragraph(gear, `Host operations: ${JSON.stringify(placement.host_operations)}`);
+        paragraph(gear, `Host Calls: ${JSON.stringify(placement.host_calls)}`);
         paragraph(gear, `Authority: ${JSON.stringify(placement.authority)}`);
       }
       const cords = details(formNode, `Cords · fragment ${fragment.fragment_id}`);

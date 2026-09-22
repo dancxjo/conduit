@@ -6,8 +6,9 @@ use conduit_core::{
     Observation, ObservationKind, SignId, PROTOCOL_VERSION,
 };
 use conduit_observatory::{
-    CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport, LineReport,
-    ObservatorySnapshot, OfferFreshness, OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
+    BaseReport, CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport,
+    LineReport, ObservatorySnapshot, OfferFreshness, OperationalState, RetentionReport,
+    SNAPSHOT_SCHEMA,
 };
 
 fn host_report(
@@ -112,6 +113,31 @@ fn bounded_fleet_view_keeps_exact_boot_capability_resource_line_and_gap_facts() 
     assert!(document.contains("base=conduit.base/websocket-rfc6455@1"));
     assert!(document.contains("base=conduit.base/usb-cdc-acm@1"));
     assert!(document.contains("visible_gaps=3"));
+}
+
+#[test]
+fn base_projection_keeps_exact_provider_provenance() {
+    let mut snapshot = fleet_snapshot(true);
+    let host = &snapshot.hosts[0].advertisement;
+    snapshot.bases.push(BaseReport {
+        host_id: host.host_id.clone(),
+        boot_id: host.boot_id.clone(),
+        base_id: conduit_core::HostBaseId::from("base/xhci/controller"),
+        provider_instance_id: conduit_core::BaseInstanceId::from("provider/xhci/one"),
+        provider_generation: 7,
+        kind_id: conduit_core::HostBaseKindId::from("conduitos.base/keyboard-input@1"),
+        implementation_id: Some(BaseImplementationId::from("conduitos.base/xhci@1")),
+        enforcement_class: Some(conduit_core::BaseEnforcementClass::ConduitOsKernelEnforced),
+        lifecycle: Some(conduit_core::BaseLifecycle::Ready),
+        state: OperationalState::Available,
+        capacity_units: 1,
+    });
+    let mut topology = PatchbayTopology::new(1).unwrap();
+    topology.ingest(&snapshot).unwrap();
+    let document = topology.document(None).unwrap().lines().join("\n");
+    assert!(document.contains("implementation=conduitos.base/xhci@1"));
+    assert!(document.contains("provider=provider/xhci/one generation=7"));
+    assert!(document.contains("enforcement=ConduitOsKernelEnforced lifecycle=Ready"));
 }
 
 #[test]

@@ -134,7 +134,7 @@ fn one_checked_experiencer_moves_between_compatible_hosts_without_changing_meani
                 )),
                 artifact_id: ArtifactId::from(format!("experience/{name}/artifact@1")),
             },
-            host_operations: vec![],
+            host_calls: vec![],
             resource_requirements: vec![],
             authority_requirements: vec![],
             limits: CapabilityLimits {

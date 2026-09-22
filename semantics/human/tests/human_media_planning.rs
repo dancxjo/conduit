@@ -1,6 +1,6 @@
 use conduit_core::{
-    AuthorityContractId, AuthorityGrantId, BootId, HostId, HostOperationContractId,
-    HostOperationId, KindId, OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId,
+    AuthorityContractId, AuthorityGrantId, BootId, HostCallContractId, HostCallId, HostId, KindId,
+    OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId,
 };
 use conduit_human::{
     plan_media_acquisition, select_acquired_media, AcquiredMediaResource, HumanMediaKind,
@@ -33,7 +33,7 @@ fn offer() -> MediaAcquisitionOffer {
         boot_id: BootId::from("browser-boot/one"),
         offer_generation: OfferGeneration(3),
         kind: HumanMediaKind::Camera,
-        operation_contract: HostOperationContractId::from("conduit.host/acquire-human-media@1"),
+        operation_contract: HostCallContractId::from("conduit.host/acquire-human-media@1"),
         request_authority_contract: AuthorityContractId::from(
             "conduit.authority/request-human-media@1",
         ),
@@ -55,7 +55,7 @@ fn authority() -> MediaAcquisitionAuthority {
 
 fn request() -> MediaAcquisitionRequest {
     MediaAcquisitionRequest {
-        operation_id: HostOperationId::from("operation/acquire-camera-1"),
+        operation_id: HostCallId::from("operation/acquire-camera-1"),
         constraints: camera_constraints(),
         flow_bounds: bounds(),
     }

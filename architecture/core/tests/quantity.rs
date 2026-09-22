@@ -48,6 +48,38 @@ fn signed_physical_values_remain_exact() {
 }
 
 #[test]
+fn affine_temperature_conversion_is_explicit_and_exact_only() {
+    assert_eq!(
+        Quantity::new(0, QuantityUnit::Celsius).convert(QuantityUnit::Millikelvin),
+        Ok(Quantity::new(273_150, QuantityUnit::Millikelvin))
+    );
+    assert_eq!(
+        Quantity::new(273_150, QuantityUnit::Millikelvin).convert(QuantityUnit::Celsius),
+        Ok(Quantity::new(0, QuantityUnit::Celsius))
+    );
+    assert_eq!(
+        Quantity::new(273_151, QuantityUnit::Millikelvin).convert(QuantityUnit::Celsius),
+        Err(QuantityConversionRefusal::Inexact)
+    );
+}
+
+#[test]
+fn current_charge_and_radian_families_are_concrete_and_angle_cross_conversion_refuses() {
+    assert_eq!(
+        Quantity::new(2, QuantityUnit::Ampere).convert(QuantityUnit::Milliampere),
+        Ok(Quantity::new(2_000, QuantityUnit::Milliampere))
+    );
+    assert_eq!(
+        Quantity::new(3, QuantityUnit::AmpereHour).convert(QuantityUnit::MilliampereHour),
+        Ok(Quantity::new(3_000, QuantityUnit::MilliampereHour))
+    );
+    assert_eq!(
+        Quantity::new(1, QuantityUnit::Radian).convert(QuantityUnit::Microdegree),
+        Err(QuantityConversionRefusal::Inexact)
+    );
+}
+
+#[test]
 fn incompatible_and_inexact_conversions_refuse_without_rounding() {
     assert_eq!(
         Quantity::new(1, QuantityUnit::Second).convert(QuantityUnit::Hertz),

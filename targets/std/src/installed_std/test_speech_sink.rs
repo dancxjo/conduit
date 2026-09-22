@@ -1,11 +1,14 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, ImplementationId, KindContractRevision, PlannedGear, PortDescriptor,
-    PortDirection, PortTemporal,
+    ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
+    PortTemporal,
 };
-use conduit_form::{KindDefinition, ProfileCatalog};
-use conduit_kernel::{OperationAction, OperationInput, PortId};
+use conduit_form::{KindProjection, ProfileCatalog};
+use conduit_kernel::{
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    Failure, FailureCode, PortId,
+};
 
 pub(crate) const KIND: &str = "conduit-proof/speech-pcm-sink";
 const REVISION: &str = "conduit-proof/speech-pcm-sink@1";
@@ -13,39 +16,41 @@ const PROFILE: &str = "conduit-proof/speech-pcm-sink-kernel@1";
 pub(super) const IMPLEMENTATION: &str = "conduit-proof/speech-pcm-sink@1";
 const ARTIFACT: &str = "conduit-std-host/proof-speech-pcm-sink@1";
 
-pub(super) static FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
     budget,
     prepare,
 };
 
-pub(super) struct TestSpeechSinkOperation {
+pub(super) struct TestSpeechSinkBack {
     blocks: u16,
 }
 
-impl TestSpeechSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if value.byte_len <= conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES
-                && self.blocks < conduit_std_offers::PIPER_MAXIMUM_BLOCKS =>
+impl<const PORTS: usize> StepBack<PORTS> for TestSpeechSinkBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = io.input(PortId(0)) {
+            if value.byte_len > conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES
+                || self.blocks >= conduit_std_offers::PIPER_MAXIMUM_BLOCKS
             {
-                self.blocks += 1;
-                OperationAction::Await
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidLifecycle,
+                    detail: 180,
+                });
             }
-            OperationInput::Closed { port: PortId(0) } if self.blocks != 0 => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(180),
+            io.consume(PortId(0)).expect("present test speech block");
+            self.blocks += 1;
+            return StepOutcome::Progress;
         }
+        if io.input_closed(PortId(0)) && self.blocks != 0 {
+            io.consume_closed(PortId(0))
+                .expect("observed test speech closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 }
+
+impl TestSpeechSinkBack {}
 
 pub(crate) fn offer() -> CapabilityOffer {
     CapabilityOffer {
@@ -53,7 +58,7 @@ pub(crate) fn offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("proof-speech-pcm-sink"),
         kind_id: kind_id(KIND),
-        kind_contract_revision: KindContractRevision::from(REVISION),
+        kind_contract_revision: KindIdentity::from(REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
@@ -61,7 +66,7 @@ pub(crate) fn offer() -> CapabilityOffer {
         },
         inputs: inputs(),
         outputs: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -75,12 +80,12 @@ pub(crate) fn offer() -> CapabilityOffer {
 
 pub(crate) fn install_catalog(catalog: &mut ProfileCatalog) {
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(KIND),
-            kind_contract_revision: KindContractRevision::from(REVISION),
+            kind_contract_revision: KindIdentity::from(REVISION),
             inputs: inputs(),
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .expect("test speech sink is unique");
 }
@@ -103,7 +108,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id.as_str() != ARTIFACT
         || placement.inputs != offer.inputs
         || !placement.outputs.is_empty()
-        || !placement.host_operations.is_empty()
+        || !placement.host_calls.is_empty()
         || !placement.resources.is_empty()
         || !placement.authority.is_empty()
         || !placement.configuration.is_empty()
@@ -113,9 +118,9 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     Ok(())
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 0,
@@ -127,9 +132,9 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
-    Ok(InstalledOperation::TestSpeechSink(
-        TestSpeechSinkOperation { blocks: 0 },
-    ))
+    Ok(InstalledBack::TestSpeechSink(TestSpeechSinkBack {
+        blocks: 0,
+    }))
 }

@@ -234,7 +234,7 @@ pub(crate) fn advertisement(
                 || capability.implementation != *implementation
         })
         || fixed.capabilities[2].required_base != crate::machine::BaseKind::Memory
-        || fixed.capabilities[2].host_operation.is_some()
+        || fixed.capabilities[2].host_call.is_some()
         || fixed.capabilities[2].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
         || fixed.capabilities[2].output.is_none_or(|port| {
             port.name != "text"
@@ -242,12 +242,11 @@ pub(crate) fn advertisement(
                 || port.direction != crate::offer::PortDirection::Output
         })
         || fixed.capabilities[3].required_base != crate::machine::BaseKind::Memory
-        || fixed.capabilities[3].host_operation
-            != Some(crate::functional_offers::TEXT_UPPER_HOST_OPERATION)
+        || fixed.capabilities[3].host_call != Some(crate::functional_offers::TEXT_UPPER_HOST_CALL)
         || fixed.capabilities[3].maximum_input_bytes != conduit_text::MAX_TEXT_BYTES
         || fixed.capabilities[3].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
         || fixed.capabilities[4].required_base != crate::machine::BaseKind::Serial
-        || fixed.capabilities[4].host_operation != Some("conduit.host/present@1")
+        || fixed.capabilities[4].host_call != Some("conduit.host/present@1")
         || fixed.capabilities[4].maximum_input_bytes != crate::offer::SERIAL_MAXIMUM_BYTES
         || fixed.capabilities[4].input.is_none_or(|port| {
             port.name != "text"

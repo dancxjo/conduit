@@ -113,7 +113,7 @@ export async function installB7Devices(page, { staleStatus = false } = {}) {
             execution_profile_id: "conduit.signal/show-hosted@1",
             implementation_id: "pico-w/kernel-cyw43-show-signal-v1",
             artifact_id: "conduit-signal/pico-cyw43-show-artifact-v1",
-            host_operations: [{ contract_id: "conduit.host/present@1", target_kind: "presentation/signal", maximum_in_flight: 1, maximum_input_bytes: 9, maximum_output_bytes: 256 }],
+            host_calls: [{ contract_id: "conduit.host/present@1", target_kind: "presentation/signal", maximum_in_flight: 1, maximum_input_bytes: 9, maximum_output_bytes: 256 }],
             resource_requirements: [{ class_id: "conduit.resource/presentation-slot@1", units: 1, protected_role: null, compute: null }],
             authority_requirements: [], limits: { max_active_instances: 1, max_queue_items: 1, max_queue_bytes: 9 },
           }],

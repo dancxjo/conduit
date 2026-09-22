@@ -60,7 +60,7 @@ fn portable_drive_meaning_has_one_effect_free_prewake_projection() {
         .iter()
         .filter(|placement| placement.kind_id.as_str().starts_with("robotics/"))
         .all(|placement| {
-            placement.host_operations.is_empty()
+            placement.host_calls.is_empty()
                 && placement.resources.is_empty()
                 && placement.authority.is_empty()
                 && placement.implementation_id.as_str().contains("prewake")
@@ -121,11 +121,11 @@ fn missing_stale_invalid_cancelled_pressure_and_unavailable_remain_distinct() {
     let missing = run_failure(&missing_source, "robot-missing");
     let stale = run_failure(&stale_source, "robot-stale");
     assert_ne!(missing, stale);
-    assert!(missing.contains("OperationFailed(Failure { code: InvalidInput, detail: 40 })"));
-    assert!(stale.contains("OperationFailed(Failure { code: InvalidInput, detail: 41 })"));
+    assert!(missing.contains("BackFailed(Failure { code: InvalidInput, detail: 40 })"));
+    assert!(stale.contains("BackFailed(Failure { code: InvalidInput, detail: 41 })"));
 
     for source in [
-        "form invalid {\n range: robotics/observe-range(distance-mm = 1000001)\n}\n",
+        "form invalid {\n range: robotics/observe-range(distance = 1000001mm)\n}\n",
         "form invalid {\n battery: robotics/observe-battery(charge-permille = 1001)\n}\n",
         "form invalid {\n odometry: robotics/observe-odometry(yaw-microradians = 3141594)\n}\n",
         "form invalid {\n drive: robotics/drive-differential(minimum-clearance-mm = 250)\n}\n",

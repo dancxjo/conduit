@@ -3,13 +3,12 @@
 
 use conduit_core::{bind_active_play, BootId, PlanFragment};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
+    FixedScheduler, HostCallRequest, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput, PortId,
-    RemoteEndpointId, RequestId, SignQuery, ValueStorage,
+    BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
+    HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore,
+    KernelEventKind, PortId, RemoteEndpointId, RequestId, SignQuery, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, RemoteCordDirection, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
@@ -74,87 +73,80 @@ impl Drop for VolatileCredentials {
     }
 }
 
-struct CredentialOperation {
+struct CredentialBack {
     output_port: PortId,
-    operation: HostOperationId,
+    host_call: HostCallId,
     pending: bool,
     emitted: bool,
     empty: conduit_kernel::ValueRef,
     output: conduit_kernel::ValueRef,
 }
 
-impl Operation for CredentialOperation {
-    fn start(&mut self) -> OperationAction {
-        self.pending = true;
-        OperationAction::RequestHostOperation {
-            request: RequestId(0),
-            operation: self.operation,
-            input: BoundedValueRef::new(self.empty, 1)
-                .expect("empty credential request is bounded"),
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending
-                    && request == RequestId(0)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.failure.is_none() =>
+impl StepBack<PORTS> for CredentialBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if self.pending {
+            let Some((request, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            let Some(output) = outcome.output else {
+                return Self::fail(1);
+            };
+            if request != RequestId(0)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
+                || !io.output_ready(self.output_port)
+                || io.consume_host_completion().is_err()
+                || io.send(self.output_port, output.value).is_err()
             {
-                let Some(output) = outcome.output else {
-                    return Self::fail(1);
-                };
-                self.pending = false;
-                self.emitted = true;
-                OperationAction::Emit {
-                    port: self.output_port,
-                    value: output.value,
-                }
+                return Self::fail(2);
             }
-            _ => Self::fail(2),
+            self.pending = false;
+            self.emitted = true;
+            return StepOutcome::Progress;
         }
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        let input =
+            BoundedValueRef::new(self.empty, 1).expect("empty credential request is bounded");
+        if io
+            .request_host_call(RequestId(0), self.host_call, input)
+            .is_err()
+        {
+            return Self::fail(3);
+        }
+        self.pending = true;
+        StepOutcome::Progress
     }
 
-    fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            OperationAction::Complete
-        } else {
-            Self::fail(3)
-        }
+    fn cancel(&mut self) {
+        self.pending = false;
     }
 }
 
-impl CredentialOperation {
-    fn fail(detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure {
+impl CredentialBack {
+    fn fail(detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             detail,
         })
     }
 }
 
-type CredentialScheduler = FixedScheduler<
-    OperationDriver<CredentialOperation, PORTS>,
-    HostedValueStore,
-    HostedSignLog,
-    1,
-    1,
-    PORTS,
-    1,
-    PORTS,
-    1,
-    1,
-    1,
->;
+type CredentialScheduler =
+    FixedScheduler<CredentialBack, HostedValueStore, HostedSignLog, 1, 1, PORTS, 1, PORTS, 1, 1, 1>;
 
 pub struct PicoWifiBootstrapSource {
     scheduler: CredentialScheduler,
     fragment: PlanFragment,
     endpoint: RemoteEndpointId,
     cord: CordId,
-    operation_node: conduit_kernel::NodeId,
-    operation: HostOperationId,
+    host_call_node: conduit_kernel::NodeId,
+    host_call: HostCallId,
     binding: SessionBinding,
     session: SessionMachine,
 }
@@ -177,7 +169,7 @@ impl PicoWifiBootstrapSource {
             || lowered.cords.len() != 1
             || lowered.remote_endpoints.len() != 1
             || lowered.remote_endpoints[0].direction != RemoteCordDirection::Egress
-            || lowered.host_operations.len() != 1
+            || lowered.host_calls.len() != 1
         {
             return Err("R1 std bootstrap fragment shape changed".to_owned());
         }
@@ -218,12 +210,9 @@ impl PicoWifiBootstrapSource {
                 .map_err(|error| format!("{error:?}"))?;
         }
         routes.seal().map_err(|error| format!("{error:?}"))?;
-        let mut host_bindings = FixedHostOperationBindings::<1>::new(1);
+        let mut host_bindings = FixedHostCallBindings::<1>::new(1);
         host_bindings
-            .install(
-                lowered.host_operations[0].node,
-                lowered.host_operations[0].binding,
-            )
+            .install(lowered.host_calls[0].node, lowered.host_calls[0].binding)
             .map_err(|error| format!("{error:?}"))?;
         host_bindings.seal().map_err(|error| format!("{error:?}"))?;
         let output_port = lowered.nodes[0]
@@ -231,16 +220,15 @@ impl PicoWifiBootstrapSource {
             .first()
             .map(|port| port.port)
             .ok_or_else(|| "credential source output missing".to_owned())?;
-        let operation = lowered.host_operations[0].binding.operation;
-        let driver = OperationDriver::new(CredentialOperation {
+        let host_call = lowered.host_calls[0].binding.call;
+        let back = CredentialBack {
             output_port,
-            operation,
+            host_call,
             pending: false,
             emitted: false,
             empty,
             output,
-        })
-        .map_err(|error| format!("{error:?}"))?;
+        };
         let sign_bytes = u32::from(SIGN_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or_else(|| "credential source sign bound overflow".to_owned())?;
@@ -253,7 +241,7 @@ impl PicoWifiBootstrapSource {
             remote_sign_bytes,
         )
         .map_err(|error| format!("{error:?}"))?;
-        let scheduler = CredentialScheduler::new_with_host_operations(
+        let scheduler = CredentialScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()
@@ -268,7 +256,7 @@ impl PicoWifiBootstrapSource {
                 .map_err(|_| "R1 source cord width")?,
             routes,
             host_bindings,
-            [driver],
+            [back],
             values,
             sign,
         )
@@ -284,8 +272,8 @@ impl PicoWifiBootstrapSource {
             fragment,
             endpoint: remote.endpoint,
             cord: remote.cord,
-            operation_node: lowered.host_operations[0].node,
-            operation,
+            host_call_node: lowered.host_calls[0].node,
+            host_call,
             binding,
             session,
         })
@@ -397,27 +385,27 @@ impl PicoWifiBootstrapSource {
             || !self
                 .scheduler
                 .signs()
-                .contains_kind(KernelEventKind::OperationCompleted)
+                .contains_kind(KernelEventKind::BackCompleted)
         {
             return Err("credential source terminal signs missing".to_owned());
         }
         Ok(1)
     }
 
-    fn complete_credentials(&mut self, request: HostOperationRequest) -> Result<(), String> {
-        if request.node != self.operation_node
-            || request.operation != self.operation
+    fn complete_credentials(&mut self, request: HostCallRequest) -> Result<(), String> {
+        if request.node != self.host_call_node
+            || request.call != self.host_call
             || request.request != RequestId(0)
         {
-            return Err("credential host operation identity mismatch".to_owned());
+            return Err("credential Host Call identity mismatch".to_owned());
         }
-        let value = self.scheduler.drivers()[0].operation().output;
+        let value = self.scheduler.drivers()[0].output;
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(
                         BoundedValueRef::new(value, conduit_net::MAXIMUM_JOIN_INPUT_BYTES)
                             .expect("credential output is bounded"),

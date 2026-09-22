@@ -138,10 +138,10 @@ fn representative_robot_debounce_and_timeout_run_through_one_production_kernel()
             .iter()
             .find(|placement| placement.kind_id.as_str() == kind)
             .expect("canonical timing placement exists");
-        assert_eq!(timing.host_operations.len(), 1);
+        assert_eq!(timing.host_calls.len(), 1);
         assert_eq!(
-            timing.host_operations[0].contract_id,
-            conduit_core::MONOTONIC_TIMER_HOST_OPERATION_CONTRACT.into()
+            timing.host_calls[0].contract_id,
+            conduit_core::MONOTONIC_TIMER_HOST_CALL_CONTRACT.into()
         );
         assert_eq!(timing.resources.len(), 1);
 
@@ -163,7 +163,7 @@ fn representative_robot_debounce_and_timeout_run_through_one_production_kernel()
         );
         if kind == conduit_semantic_catalog::TIME_THROTTLE_KIND {
             assert!(kernel.kernel_sign.iter().any(|event| event.kind
-                == conduit_kernel::KernelEventKind::HostOperationCancellationRequested));
+                == conduit_kernel::KernelEventKind::HostCallCancellationRequested));
         } else {
             assert!(!timer.deadlines.is_empty(), "{kind} requested no deadlines");
         }

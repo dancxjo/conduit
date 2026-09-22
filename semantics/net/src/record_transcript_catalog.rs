@@ -2,12 +2,11 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
-    StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
 
@@ -43,16 +42,16 @@ pub fn install_record_transcript_catalog(
         ],
     })?;
     profile
-        .insert(record_transcript_kind_definition())
+        .insert(record_transcript_kind_projection())
         .map_err(|error| error.to_string())
 }
 
-pub fn record_transcript_kind_definition() -> KindDefinition {
+pub fn record_transcript_kind_projection() -> KindProjection {
     let frame = framed_typed_record_type();
     let terminal = terminal_event_type();
-    KindDefinition {
+    KindProjection {
         kind_id: kind_id(RECORD_TRANSCRIPT_KIND),
-        kind_contract_revision: KindContractRevision::from(RECORD_TRANSCRIPT_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(RECORD_TRANSCRIPT_CONTRACT_REVISION),
         inputs: vec![
             port("sent", &frame, PortDirection::Input),
             port("received", &frame, PortDirection::Input),
@@ -92,9 +91,9 @@ pub fn record_transcript_kind_definition() -> KindDefinition {
     }
 }
 
-pub fn record_transcript_semantic_contract() -> SemanticCapabilityContract {
-    let definition = record_transcript_kind_definition();
-    SemanticCapabilityContract {
+pub fn record_transcript_semantic_contract() -> Kind {
+    let definition = record_transcript_kind_projection();
+    Kind {
         startup_parameters: [
             "maximum-items",
             "maximum-events",
@@ -112,6 +111,8 @@ pub fn record_transcript_semantic_contract() -> SemanticCapabilityContract {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 3,
@@ -133,11 +134,11 @@ fn parameter(name: &str, default: &str) -> StartupParameterSignature {
     }
 }
 
-fn count_field(key: &str, default: u64, minimum: u64, maximum: u64) -> ConfigurationField {
-    ConfigurationField {
+fn count_field(key: &str, default: u64, minimum: u64, maximum: u64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::U64(default),
-        validation: ConfigurationRule::U64Range { minimum, maximum },
+        rule: KindConfigurationRule::U64Range { minimum, maximum },
     }
 }
 

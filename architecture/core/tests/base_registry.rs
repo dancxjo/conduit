@@ -2,7 +2,7 @@ use conduit_core::{
     BaseEnforcementClass, BaseImplementationId, BaseInstanceId, BaseLifecycle, BaseProviderEntry,
     BaseRegistry, BaseRegistryLimits, BaseRegistryRefusal, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, HostBaseId, HostBaseKindId, HostId, HostProfileId, ImplementationOffer,
-    KindContractRevision, KindId, ThinHostSupervisor,
+    KindId, KindIdentity, ThinHostSupervisor,
 };
 
 fn limits() -> BaseRegistryLimits {
@@ -21,7 +21,7 @@ fn capability(id: &str) -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from(id),
         kind_id: KindId::from(id),
-        kind_contract_revision: KindContractRevision::from("revision"),
+        kind_contract_revision: KindIdentity::from("revision"),
         inputs: vec![],
         outputs: vec![],
         implementation: ImplementationOffer {
@@ -29,7 +29,7 @@ fn capability(id: &str) -> CapabilityOffer {
             artifact_id: conduit_core::ArtifactId::from(format!("artifact/{id}")),
             execution_profile_id: conduit_core::ExecutionProfileId::from("pure-or-base"),
         },
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: CapabilityLimits {

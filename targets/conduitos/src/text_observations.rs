@@ -1,4 +1,4 @@
-//! Latest values seen at the admitted text host-operation boundary.
+//! Latest values seen at the admitted text Host Call boundary.
 use crate::composition::MachineRunError;
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]

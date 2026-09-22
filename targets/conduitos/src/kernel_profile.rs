@@ -1,20 +1,19 @@
 //! Fenced P2/P3 hand-lowered regression fixture; production uses `planned_kernel`.
 
 use conduit_kernel::{
-    BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, KernelEvent, NodeId, Operation, OperationAction, OperationInput, PortId,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, NodeId, PortId,
     RequestId, RouteRange, RouteTarget, SignSink, ValueRef,
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver,
-        SchedulerError, SchedulerStatus,
+        CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, SchedulerError,
+        SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
     },
 };
 
 use crate::machine::KernelInterest;
 
-pub const WAIT_OPERATION: HostOperationId = HostOperationId(0);
-pub const PRESENT_OPERATION: HostOperationId = HostOperationId(0);
+pub const WAIT_OPERATION: HostCallId = HostCallId(0);
+pub const PRESENT_OPERATION: HostCallId = HostCallId(0);
 pub const TIMER_REQUEST: RequestId = RequestId(1);
 pub const PRESENT_REQUEST: RequestId = RequestId(2);
 pub const TIMER_VALUE: &[u8] = &0_u64.to_le_bytes();
@@ -32,9 +31,8 @@ const PENDING_REQUESTS: usize = 2;
 const VALUE_SLOTS: usize = 4;
 const VALUE_BYTES: usize = 64;
 
-type Driver = OperationDriver<ProfileOperation, PORTS>;
 type Scheduler = FixedScheduler<
-    Driver,
+    ProfileBack,
     FixedValueStore<VALUE_SLOTS, VALUE_BYTES>,
     FixedSignLog<SIGN_CAPACITY>,
     NODE_COUNT,
@@ -48,91 +46,80 @@ type Scheduler = FixedScheduler<
 >;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum TimerOperationState {
+enum TimerBackState {
     Waiting,
-    Emitting(ValueRef),
+    Requested,
     Complete,
     Cancelled,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct TimerOperation {
+struct TimerBack {
     wait: BoundedValueRef,
     tick: ValueRef,
-    state: TimerOperationState,
+    state: TimerBackState,
 }
 
-impl TimerOperation {
+impl TimerBack {
     fn new(wait: ValueRef, tick: ValueRef) -> Result<Self, SchedulerError> {
         Ok(Self {
             wait: BoundedValueRef::new(wait, 8)?,
             tick,
-            state: TimerOperationState::Waiting,
+            state: TimerBackState::Waiting,
         })
     }
 }
 
-impl Operation for TimerOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::RequestHostOperation {
-            request: TIMER_REQUEST,
-            operation: WAIT_OPERATION,
-            input: self.wait,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostOperationCompleted { request, outcome }
-                if request == TIMER_REQUEST
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none() =>
-            {
-                self.state = TimerOperationState::Emitting(self.tick);
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: self.tick,
-                }
-            }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if request == TIMER_REQUEST
-                    && outcome.disposition == HostOperationDisposition::Cancelled =>
-            {
-                OperationAction::Fail(conduit_kernel::Failure {
-                    code: conduit_kernel::FailureCode::Cancelled,
-                    detail: 10,
-                })
-            }
-            OperationInput::HostOperationCompleted { request, .. } if request == TIMER_REQUEST => {
-                OperationAction::Fail(conduit_kernel::Failure {
-                    code: conduit_kernel::FailureCode::HostOperationFailed,
-                    detail: 11,
-                })
-            }
-            _ => OperationAction::Fail(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::InvalidInput,
-                detail: 12,
-            }),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
+impl TimerBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
         match self.state {
-            TimerOperationState::Emitting(_) => {
-                self.state = TimerOperationState::Complete;
-                OperationAction::Complete
+            TimerBackState::Waiting => {
+                if io
+                    .request_host_call(TIMER_REQUEST, WAIT_OPERATION, self.wait)
+                    .is_err()
+                {
+                    return fail(conduit_kernel::FailureCode::InvalidInput, 12);
+                }
+                self.state = TimerBackState::Requested;
+                StepOutcome::Progress
             }
-            _ => OperationAction::Await,
+            TimerBackState::Requested => {
+                let Some((request, outcome)) = io.host_completion() else {
+                    return StepOutcome::Await;
+                };
+                if request != TIMER_REQUEST {
+                    return fail(conduit_kernel::FailureCode::InvalidInput, 12);
+                }
+                if outcome.disposition == HostCallDisposition::Cancelled {
+                    return fail(conduit_kernel::FailureCode::Cancelled, 10);
+                }
+                if outcome.disposition != HostCallDisposition::Completed
+                    || outcome.output.is_some()
+                    || outcome.failure.is_some()
+                {
+                    return fail(conduit_kernel::FailureCode::HostCallFailed, 11);
+                }
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                if io.consume_host_completion().is_err() || io.send(PortId(0), self.tick).is_err() {
+                    return fail(conduit_kernel::FailureCode::InvalidInput, 12);
+                }
+                self.state = TimerBackState::Complete;
+                StepOutcome::Complete
+            }
+            TimerBackState::Complete => StepOutcome::Complete,
+            TimerBackState::Cancelled => fail(conduit_kernel::FailureCode::Cancelled, 10),
         }
     }
 
     fn cancel(&mut self) {
-        self.state = TimerOperationState::Cancelled;
+        self.state = TimerBackState::Cancelled;
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum SerialOperationState {
+enum SerialBackState {
     Waiting,
     Presenting,
     Complete,
@@ -140,93 +127,75 @@ enum SerialOperationState {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct SerialOperation {
-    state: SerialOperationState,
+struct SerialBack {
+    state: SerialBackState,
 }
 
-impl Operation for SerialOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.state == SerialOperationState::Waiting => {
-                let Ok(input) = BoundedValueRef::new(value, 16) else {
-                    return OperationAction::Fail(conduit_kernel::Failure {
-                        code: conduit_kernel::FailureCode::InvalidInput,
-                        detail: 20,
-                    });
+impl SerialBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        match self.state {
+            SerialBackState::Waiting => {
+                let Some(value) = io.input(PortId(0)) else {
+                    return StepOutcome::Await;
                 };
-                self.state = SerialOperationState::Presenting;
-                OperationAction::RequestHostOperation {
-                    request: PRESENT_REQUEST,
-                    operation: PRESENT_OPERATION,
-                    input,
+                let Ok(input) = BoundedValueRef::new(value, 16) else {
+                    return fail(conduit_kernel::FailureCode::InvalidInput, 20);
+                };
+                if io.consume(PortId(0)).is_err()
+                    || io
+                        .request_host_call(PRESENT_REQUEST, PRESENT_OPERATION, input)
+                        .is_err()
+                {
+                    return fail(conduit_kernel::FailureCode::HostCallFailed, 22);
                 }
+                self.state = SerialBackState::Presenting;
+                StepOutcome::Progress
             }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if request == PRESENT_REQUEST
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none() =>
-            {
-                self.state = SerialOperationState::Complete;
-                OperationAction::Complete
+            SerialBackState::Presenting => {
+                let Some((request, outcome)) = io.host_completion() else {
+                    return StepOutcome::Await;
+                };
+                if request != PRESENT_REQUEST {
+                    return fail(conduit_kernel::FailureCode::HostCallFailed, 22);
+                }
+                if outcome.disposition == HostCallDisposition::Cancelled {
+                    return fail(conduit_kernel::FailureCode::Cancelled, 21);
+                }
+                if outcome.disposition != HostCallDisposition::Completed
+                    || outcome.output.is_some()
+                    || outcome.failure.is_some()
+                    || io.consume_host_completion().is_err()
+                {
+                    return fail(conduit_kernel::FailureCode::HostCallFailed, 22);
+                }
+                self.state = SerialBackState::Complete;
+                StepOutcome::Complete
             }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if request == PRESENT_REQUEST
-                    && outcome.disposition == HostOperationDisposition::Cancelled =>
-            {
-                OperationAction::Fail(conduit_kernel::Failure {
-                    code: conduit_kernel::FailureCode::Cancelled,
-                    detail: 21,
-                })
-            }
-            OperationInput::Closed { port: PortId(0) }
-                if self.state == SerialOperationState::Complete =>
-            {
-                OperationAction::Complete
-            }
-            _ => OperationAction::Fail(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::HostOperationFailed,
-                detail: 22,
-            }),
+            SerialBackState::Complete => StepOutcome::Complete,
+            SerialBackState::Cancelled => fail(conduit_kernel::FailureCode::Cancelled, 21),
         }
     }
 
     fn cancel(&mut self) {
-        self.state = SerialOperationState::Cancelled;
+        self.state = SerialBackState::Cancelled;
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ProfileOperation {
-    Timer(TimerOperation),
-    Serial(SerialOperation),
+enum ProfileBack {
+    Timer(TimerBack),
+    Serial(SerialBack),
 }
 
-impl Operation for ProfileOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepBack<PORTS> for ProfileBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
-            Self::Timer(operation) => operation.start(),
-            Self::Serial(operation) => operation.start(),
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Timer(operation) => operation.resume(input),
-            Self::Serial(operation) => operation.resume(input),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Timer(operation) => operation.advance(),
-            Self::Serial(operation) => operation.advance(),
+            Self::Timer(back) => back.step(io),
+            Self::Serial(back) => back.step(io),
         }
     }
 
@@ -236,6 +205,10 @@ impl Operation for ProfileOperation {
             Self::Serial(operation) => operation.cancel(),
         }
     }
+}
+
+const fn fail(code: conduit_kernel::FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure { code, detail })
 }
 
 pub struct KernelProfile {
@@ -260,19 +233,19 @@ impl KernelProfile {
         )?;
         routes.seal()?;
 
-        let mut bindings = FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(NODE_COUNT as u16);
+        let mut bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(NODE_COUNT as u16);
         bindings.install(
             NodeId(0),
-            HostOperationBinding {
-                operation: WAIT_OPERATION,
+            HostCallBinding {
+                call: WAIT_OPERATION,
                 maximum_input_bytes: 16,
                 maximum_output_bytes: 16,
             },
         )?;
         bindings.install(
             NodeId(1),
-            HostOperationBinding {
-                operation: PRESENT_OPERATION,
+            HostCallBinding {
+                call: PRESENT_OPERATION,
                 maximum_input_bytes: 16,
                 maximum_output_bytes: 0,
             },
@@ -282,7 +255,7 @@ impl KernelProfile {
         let nodes = [
             NodeSpec {
                 input_cords: [None; PORTS],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: {
@@ -290,7 +263,7 @@ impl KernelProfile {
                     cords[0] = Some(CordId(0));
                     cords
                 },
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
         ];
         let cords = [CordSpec::local(
@@ -305,19 +278,16 @@ impl KernelProfile {
             },
         )];
         let drivers = [
-            OperationDriver::new(ProfileOperation::Timer(TimerOperation::new(
-                timer_wait,
-                timer_value,
-            )?))?,
-            OperationDriver::new(ProfileOperation::Serial(SerialOperation {
-                state: SerialOperationState::Waiting,
-            }))?,
+            ProfileBack::Timer(TimerBack::new(timer_wait, timer_value)?),
+            ProfileBack::Serial(SerialBack {
+                state: SerialBackState::Waiting,
+            }),
         ];
         let sign_bytes = u32::try_from(SIGN_CAPACITY * core::mem::size_of::<KernelEvent>())
             .map_err(|_| SchedulerError::InvalidPlan)?;
         let signs = FixedSignLog::<SIGN_CAPACITY>::new(sign_bytes)?;
         Ok(Self {
-            scheduler: FixedScheduler::new_with_host_operations(
+            scheduler: FixedScheduler::new_with_host_calls(
                 nodes, cords, routes, bindings, drivers, values, signs,
             )?,
         })
@@ -327,7 +297,7 @@ impl KernelProfile {
         self.scheduler.step()
     }
 
-    pub fn next_host_request(&mut self) -> Option<HostOperationRequest> {
+    pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
         self.scheduler.next_host_request()
     }
 
@@ -335,12 +305,12 @@ impl KernelProfile {
         self.scheduler.host_value(value)
     }
 
-    pub fn timer_interest(request: HostOperationRequest) -> Result<KernelInterest, SchedulerError> {
+    pub fn timer_interest(request: HostCallRequest) -> Result<KernelInterest, SchedulerError> {
         if request.node != NodeId(0)
             || request.request != TIMER_REQUEST
-            || request.operation != WAIT_OPERATION
+            || request.call != WAIT_OPERATION
         {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
         Ok(KernelInterest {
             node: request.node,
@@ -350,11 +320,11 @@ impl KernelProfile {
     }
 
     pub fn complete_timer(&mut self, interest: KernelInterest) -> Result<(), SchedulerError> {
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             interest.node,
             interest.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -362,32 +332,32 @@ impl KernelProfile {
     }
 
     pub fn fail_timer(&mut self, interest: KernelInterest) -> Result<(), SchedulerError> {
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             interest.node,
             interest.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(conduit_kernel::Failure {
-                    code: conduit_kernel::FailureCode::HostOperationFailed,
+                    code: conduit_kernel::FailureCode::HostCallFailed,
                     detail: 1,
                 }),
             },
         )
     }
 
-    pub fn complete_serial(&mut self, request: HostOperationRequest) -> Result<(), SchedulerError> {
+    pub fn complete_serial(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
         if request.node != NodeId(1)
             || request.request != PRESENT_REQUEST
-            || request.operation != PRESENT_OPERATION
+            || request.call != PRESENT_OPERATION
         {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -406,8 +376,8 @@ impl KernelProfile {
         self.scheduler.signs().len()
     }
 
-    pub fn pending_host_operations(&self) -> usize {
-        self.scheduler.pending_host_operation_count()
+    pub fn pending_host_calls(&self) -> usize {
+        self.scheduler.pending_host_call_count()
     }
 }
 

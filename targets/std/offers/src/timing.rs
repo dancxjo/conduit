@@ -1,11 +1,10 @@
 //! Hosted std realizations of portable timing and render-cadence contracts.
 
 use conduit_core::{
-    monotonic_timer_host_operation_requirement, monotonic_timer_resource_requirement,
-    resource_requirement, wait_host_operation_requirement, ArtifactId, CapabilityId,
-    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId,
-    HostOperationRequirement, ImplementationId, ResourceRequirement, SemanticCapabilityContract,
-    TIMER_RESOURCE_CLASS,
+    monotonic_timer_host_call_requirement, monotonic_timer_resource_requirement,
+    resource_requirement, wait_host_call_requirement, ArtifactId, Back, BackOfferBuilder,
+    CapabilityId, CapabilityOffer, ExecutionProfileId, HostCallRequirement, ImplementationId, Kind,
+    ResourceRequirement, TIMER_RESOURCE_CLASS,
 };
 
 pub const TICK_EXECUTION_PROFILE: &str = "conduit.std/time-tick-kernel-hosted@2";
@@ -41,7 +40,7 @@ pub fn tick_capability_offer() -> CapabilityOffer {
             implementation: TICK_IMPLEMENTATION,
             artifact: TICK_ARTIFACT,
         },
-        vec![wait_host_operation_requirement()],
+        vec![wait_host_call_requirement()],
         vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
     )
 }
@@ -55,7 +54,7 @@ pub fn time_every_offer() -> CapabilityOffer {
             implementation: TIME_EVERY_IMPLEMENTATION,
             artifact: TIME_EVERY_ARTIFACT,
         },
-        vec![wait_host_operation_requirement()],
+        vec![wait_host_call_requirement()],
         vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
     )
 }
@@ -113,7 +112,7 @@ pub fn time_throttle_offer() -> CapabilityOffer {
 }
 
 fn timing_offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     capability: &str,
     profile: &str,
     implementation: &str,
@@ -130,14 +129,11 @@ fn timing_offer(
     )
 }
 
-fn monotonic_offer(
-    contract: SemanticCapabilityContract,
-    identity: Identity<'_>,
-) -> CapabilityOffer {
+fn monotonic_offer(contract: Kind, identity: Identity<'_>) -> CapabilityOffer {
     offer(
         contract,
         identity,
-        vec![monotonic_timer_host_operation_requirement()],
+        vec![monotonic_timer_host_call_requirement()],
         vec![monotonic_timer_resource_requirement()],
     )
 }
@@ -151,19 +147,19 @@ struct Identity<'a> {
 }
 
 fn offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     identity: Identity<'_>,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
     resources: Vec<ResourceRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(identity.capability),
             execution_profile_id: ExecutionProfileId::from(identity.profile),
             implementation_id: ImplementationId::from(identity.implementation),
             artifact_id: ArtifactId::from(identity.artifact),
-            host_operations,
+            host_calls,
             resource_requirements: resources,
             authority_requirements: Vec::new(),
         },
@@ -183,19 +179,19 @@ mod tests {
             time_delay_offer(),
             time_throttle_offer(),
         ] {
-            assert_eq!(offer.host_operations.len(), 1);
+            assert_eq!(offer.host_calls.len(), 1);
             assert_eq!(offer.resource_requirements.len(), 1);
             assert_eq!(
                 offer.startup_parameters[0].value_type.as_str(),
-                "value/duration"
+                conduit_core::QUANTITY_INFO_ID
             );
         }
         assert_eq!(
             time_every_offer().startup_parameters[0].value_type.as_str(),
-            "value/duration"
+            conduit_core::QUANTITY_INFO_ID
         );
         assert!(!time_every_offer().startup_parameters[0].has_default);
-        assert_eq!(tick_capability_offer().host_operations.len(), 1);
-        assert_eq!(audio_render_demand_offer().host_operations.len(), 1);
+        assert_eq!(tick_capability_offer().host_calls.len(), 1);
+        assert_eq!(audio_render_demand_offer().host_calls.len(), 1);
     }
 }

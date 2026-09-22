@@ -6,11 +6,11 @@ use conduit_plan_lowering::lowering::{LoweredPlanFragment, FIXED_KERNEL_STORAGE_
 
 use crate::model::{
     EmbeddedImageBounds, GeneratedConfigurationEntry, GeneratedConfigurationValue,
-    GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedExpectedTerminal,
-    GeneratedHostOperation, GeneratedPort, GeneratedSignTarget, GeneratedStartupDependency,
-    GeneratedStaticCord, GeneratedStaticNode, GeneratedStaticRemoteEndpoint,
-    GeneratedStaticResource, GeneratedStaticRoute, GeneratedStaticRouteTarget, GeneratedStaticSign,
-    GenerationError, UnsupportedPlanFeature,
+    GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedExpectedTerminal, GeneratedHostCall,
+    GeneratedPort, GeneratedSignTarget, GeneratedStartupDependency, GeneratedStaticCord,
+    GeneratedStaticNode, GeneratedStaticRemoteEndpoint, GeneratedStaticResource,
+    GeneratedStaticRoute, GeneratedStaticRouteTarget, GeneratedStaticSign, GenerationError,
+    UnsupportedPlanFeature,
 };
 use crate::validate::validate_shape;
 use crate::GENERATED_EMBEDDED_PLAN_SCHEMA_VERSION;
@@ -48,20 +48,20 @@ pub fn generate_embedded_plan(
     let cords = generate_cords(lowered)?;
     let remote_endpoints = generate_remote_endpoints(lowered, bounds)?;
     let (routes, route_targets) = generate_routes(lowered)?;
-    let host_operations = lowered
-        .host_operations
+    let host_calls = lowered
+        .host_calls
         .iter()
-        .map(|operation| GeneratedHostOperation {
-            node: operation.node.0,
-            operation: operation.operation.0,
-            contract_id: operation.contract_id.as_str().to_owned(),
-            target_kind: operation
+        .map(|call| GeneratedHostCall {
+            node: call.node.0,
+            call: call.call.0,
+            contract_id: call.contract_id.as_str().to_owned(),
+            target_kind: call
                 .target_kind
                 .as_ref()
                 .map(|kind| kind.as_str().to_owned()),
-            maximum_in_flight: operation.maximum_in_flight,
-            maximum_input_bytes: operation.binding.maximum_input_bytes,
-            maximum_output_bytes: operation.binding.maximum_output_bytes,
+            maximum_in_flight: call.maximum_in_flight,
+            maximum_input_bytes: call.binding.maximum_input_bytes,
+            maximum_output_bytes: call.binding.maximum_output_bytes,
         })
         .collect();
     let resources = lowered
@@ -109,7 +109,7 @@ pub fn generate_embedded_plan(
         remote_endpoints,
         routes,
         route_targets,
-        host_operations,
+        host_calls,
         resources,
         signs,
         startup_dependencies,
@@ -194,6 +194,11 @@ fn generate_configuration(
                         UnsupportedPlanFeature::StructuredConfiguration,
                     ));
                 }
+                ConfigurationValue::Quantity(_) => {
+                    return Err(GenerationError::Unsupported(
+                        UnsupportedPlanFeature::QuantityConfiguration,
+                    ));
+                }
             };
             generated.push(GeneratedConfigurationEntry {
                 node,
@@ -225,7 +230,7 @@ fn generate_nodes(
                 .get(index)
                 .ok_or(GenerationError::InconsistentLowering("node placement"))?;
             if placement.placement_id != node.placement_id
-                || spec.maximum_step_work != node.maximum_step_work
+                || spec.maximum_step_fuel != node.maximum_step_fuel
             {
                 return Err(GenerationError::InconsistentLowering("node table"));
             }
@@ -236,7 +241,7 @@ fn generate_nodes(
                 implementation_id: placement.implementation_id.as_str().to_owned(),
                 artifact_id: placement.artifact_id.as_str().to_owned(),
                 input_cords: spec.input_cords.map(|cord| cord.map(|cord| cord.0)),
-                maximum_step_work: node.maximum_step_work,
+                maximum_step_fuel: node.maximum_step_fuel,
             })
         })
         .collect()

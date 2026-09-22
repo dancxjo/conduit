@@ -1,4 +1,4 @@
-//! Production adapters from the portable vector-search Host operation to exact and HNSW indexes.
+//! Production adapters from the portable vector-search Host Call to exact and HNSW indexes.
 
 use conduit_ai::{
     exact_vector_search, exact_vector_search_offer, ExactVectorSearchCandidate,
@@ -310,7 +310,7 @@ fn decode_request<'a>(
         || placement.kind_id != capability.kind_id
         || placement.inputs != capability.inputs
         || placement.outputs != capability.outputs
-        || placement.host_operations != capability.host_operations
+        || placement.host_calls != capability.host_calls
     {
         return Err(());
     }

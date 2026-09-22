@@ -3,8 +3,8 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
-use conduit_core::{resource_requirement, CapabilityOffer, HostOperationRequirement, PlannedGear};
+use super::BrowserBack;
+use conduit_core::{resource_requirement, CapabilityOffer, HostCallRequirement, PlannedGear};
 use conduit_kernel::HostedValueStore;
 
 pub(crate) const EVENT_IMPLEMENTATION: &str = "browser/application-event-source@1";
@@ -84,7 +84,7 @@ fn offer(
             implementation,
             artifact: ARTIFACT,
         },
-        vec![HostOperationRequirement {
+        vec![HostCallRequirement {
             contract_id: operation.into(),
             target_kind: None,
             maximum_in_flight: 1,
@@ -109,25 +109,25 @@ fn offer(
 fn prepare_event(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &event_offer())?;
-    BrowserOperation::host_source(values, EVENT_BYTES)
+    BrowserBack::host_source(values, EVENT_BYTES)
 }
 
 fn prepare_state(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &state_offer())?;
-    BrowserOperation::application_state(values, EVENT_BYTES)
+    BrowserBack::application_state(values, EVENT_BYTES)
 }
 
 fn prepare_presentation(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &presentation_offer())?;
-    Ok(BrowserOperation::presentation(VIEW_BYTES, 1))
+    Ok(BrowserBack::presentation(VIEW_BYTES, 1))
 }
 
 fn perform_presentation(

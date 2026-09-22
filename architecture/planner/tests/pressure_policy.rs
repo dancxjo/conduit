@@ -1,10 +1,10 @@
 use conduit_core::{
     kind_id, port_id, BaseImplementationId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, ImplementationId, ImplementationOffer, KindContractRevision,
-    PortDescriptor, PortDirection, PortTemporal,
+    ExecutionProfileId, ImplementationId, ImplementationOffer, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
 use conduit_planner::{default_placements, plan_with_connection_limits};
@@ -17,7 +17,7 @@ fn tick_current_sink_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("fixture-tick-current-sink"),
         kind_id: kind_id("fixture/tick-current-sink"),
-        kind_contract_revision: KindContractRevision::from("fixture/tick-current-sink@1"),
+        kind_contract_revision: KindIdentity::from("fixture/tick-current-sink@1"),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from("fixture/tick-current-sink@1"),
             implementation_id: ImplementationId::from("fixture/tick-current-sink@1"),
@@ -32,7 +32,7 @@ fn tick_current_sink_offer() -> CapabilityOffer {
             temporal: PortTemporal::Current,
         }],
         outputs: vec![],
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: CapabilityLimits {
@@ -71,7 +71,7 @@ fn coalesce_latest_seals_distinct_downstream_pressure_policy_in_the_plan() {
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: tick_contract.kind_id,
             kind_contract_revision: tick.kind_contract_revision.clone(),
             inputs: vec![],
@@ -79,14 +79,14 @@ fn coalesce_latest_seals_distinct_downstream_pressure_policy_in_the_plan() {
             configuration: tick_contract
                 .configuration
                 .into_iter()
-                .map(|field| ConfigurationField {
+                .map(|field| KindConfigurationField {
                     key: field.key,
                     default_value: field.default_value,
-                    validation: match field.rule {
-                        conduit_semantic_catalog::StandardConfigurationRule::U64Range {
+                    rule: match field.rule {
+                        conduit_semantic_catalog::KindConfigurationRule::U64Range {
                             minimum,
                             maximum,
-                        } => ConfigurationRule::U64Range { minimum, maximum },
+                        } => KindConfigurationRule::U64Range { minimum, maximum },
                         rule => panic!("unexpected tick configuration rule: {rule:?}"),
                     },
                 })
@@ -107,7 +107,7 @@ fn coalesce_latest_seals_distinct_downstream_pressure_policy_in_the_plan() {
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),

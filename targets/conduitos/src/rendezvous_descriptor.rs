@@ -52,6 +52,7 @@ const fn family_code(family: RendezvousLineFamily) -> u8 {
         RendezvousLineFamily::AuthenticatedConduitLine => 1,
         RendezvousLineFamily::LocalLoopbackWebSocket => 2,
         RendezvousLineFamily::AttendedSerial => 3,
+        RendezvousLineFamily::WebRtcDataChannel => 4,
     }
 }
 
@@ -59,7 +60,11 @@ const fn family_code(family: RendezvousLineFamily) -> u8 {
 mod tests {
     use super::*;
     use alloc::vec::Vec;
-    use conduit_body::{RENDEZVOUS_COSE_SIGNATURE_BYTES, RendezvousCosePolicyRefusal};
+    use conduit_body::{
+        MAX_RENDEZVOUS_CBOR_BYTES, RENDEZVOUS_COSE_SIGNATURE_BYTES, RendezvousAuthentication,
+        RendezvousCandidate, RendezvousCosePolicyRefusal, RunningHostRendezvousDescriptor,
+        encode_running_host_rendezvous_cbor,
+    };
     use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 
     fn fixture() -> Vec<u8> {
@@ -149,5 +154,35 @@ mod tests {
         assert_eq!(receipt.candidate_count, 1);
         assert_eq!(receipt.line_family_mask, 0b0010);
         assert_eq!(attribution, "configured test operator");
+    }
+
+    #[test]
+    fn conduitos_inspects_webrtc_but_does_not_claim_an_implementation() {
+        let descriptor = RunningHostRendezvousDescriptor::new(
+            alloc::vec![RendezvousCandidate {
+                candidate_id: "candidate/webrtc".into(),
+                line_family: RendezvousLineFamily::WebRtcDataChannel,
+                reachability: "webrtc-bootstrap:operator/negotiation-7".into(),
+                authentication: RendezvousAuthentication {
+                    server_identity: "host/peer/key-7".into(),
+                    transport_binding_sha256: [0xef; 32],
+                },
+                expires_at_millis: 1_800_000_000_000,
+                maximum_attempts: 1,
+                attempt_timeout_millis: 10_000,
+            }],
+            [0xcd; 32],
+            1_700_000_000_000,
+        )
+        .unwrap();
+        let mut encoded = [0; MAX_RENDEZVOUS_CBOR_BYTES];
+        let length = encode_running_host_rendezvous_cbor(&descriptor, &mut encoded).unwrap();
+        assert_eq!(
+            inspect(&encoded[..length], 1_700_000_000_000),
+            Ok(RendezvousDescriptorReceipt {
+                candidate_count: 1,
+                line_family_mask: 0b1_0000,
+            })
+        );
     }
 }

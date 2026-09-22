@@ -12,10 +12,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, present_host_operation_requirement, process_owned_line_offer_with_limits,
-    resource_offer, resource_requirement, BaseImplementationId, BootId, CapabilityOffer,
-    HostAdvertisement, HostId, HostProfileId, LineOffer, LineScope, LineSecurity, LinkLimits,
-    OfferGeneration, Plan, INPUT_RESOURCE_CLASS, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    kind_id, present_host_call_requirement, process_owned_line_offer_with_limits, resource_offer,
+    resource_requirement, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId,
+    HostProfileId, LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration, Plan,
+    INPUT_RESOURCE_CLASS, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -299,7 +299,7 @@ fn keyboard_fixture_offer() -> CapabilityOffer {
             implementation: "text-lab/native-keyboard@1",
             artifact: "text-lab/native-keyboard@1",
         },
-        vec![conduit_core::HostOperationRequirement {
+        vec![conduit_core::HostCallRequirement {
             contract_id: "proof/input-next-key-event@1".into(),
             target_kind: Some(kind_id(conduit_human::KEY_EVENT_INFO_ID)),
             maximum_in_flight: 1,
@@ -321,7 +321,7 @@ fn text_presentation_fixture_offer() -> CapabilityOffer {
             implementation: "text-lab/native-text-presentation@1",
             artifact: "text-lab/native-fixture@1",
         },
-        vec![present_host_operation_requirement(
+        vec![present_host_call_requirement(
             kind_id("presentation/text-lab-native"),
             conduit_text::MAX_TEXT_BYTES,
         )],
@@ -340,8 +340,8 @@ fn keymap_fixture_offer() -> CapabilityOffer {
             implementation: "text-lab/native-keymap@1",
             artifact: "text-lab/native-fixture@1",
         },
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from("conduit.host/input-keymap@1"),
+        vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from("conduit.host/input-keymap@1"),
             target_kind: Some(kind_id("input/keymap-text-fragment")),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
@@ -367,8 +367,8 @@ fn text_upper_fixture_offer(
             implementation,
             artifact,
         },
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from("conduit.host/text-upper@1"),
+        vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from("conduit.host/text-upper@1"),
             target_kind: Some(kind_id("text/uppercase-utf8")),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,

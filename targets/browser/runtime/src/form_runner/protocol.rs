@@ -133,6 +133,7 @@ pub(super) enum TourHostEffect {
     PointerEvent(Box<TourKeyEventEffect>),
     ButtonTransition(Box<TourButtonTransitionEffect>),
     ApplicationEvent(Box<TourKeyEventEffect>),
+    TutorialPresenterRequest(Box<TourKeyEventEffect>),
 }
 
 impl TourHostEffect {
@@ -152,6 +153,9 @@ impl TourHostEffect {
             Self::PointerEvent(effect) => effect.source_interaction = Some(source_interaction),
             Self::ButtonTransition(effect) => effect.source_interaction = Some(source_interaction),
             Self::ApplicationEvent(effect) => effect.source_interaction = Some(source_interaction),
+            Self::TutorialPresenterRequest(effect) => {
+                effect.source_interaction = Some(source_interaction)
+            }
         }
     }
 }
@@ -311,6 +315,25 @@ pub(super) fn decode_manifestation(
                     series.omitted_samples()
                 )),
             ))
+        }
+        conduit_presentation::GENERATED_MANIFESTATION_KIND => {
+            let value = serde_json::from_slice::<conduit_presentation::GeneratedManifestation>(
+                &manifestation.canonical_value,
+            )
+            .map_err(|error| format!("decode generated manifestation: {error}"))?;
+            let mut text = String::new();
+            for (index, segment) in value.content.iter().enumerate() {
+                let segment = core::str::from_utf8(&segment.bytes)
+                    .map_err(|_| "generated manifestation content is not UTF-8")?;
+                if index > 0 {
+                    text.push('\n');
+                }
+                text.push_str(segment);
+            }
+            if text.is_empty() {
+                text = format!("Presenter {:?}", value.disposition);
+            }
+            Ok((0, Vec::new(), Some(text)))
         }
         conduit_data::MEASUREMENT_THRESHOLD_PRESENTATION_KIND => {
             let value = conduit_core::StructuredInfoValue::from_canonical_bytes(

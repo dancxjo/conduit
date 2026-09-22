@@ -10,7 +10,7 @@ use conduit_human::{
     BoundKind, InteractionContract, InteractionCurrentState, InteractionDomain, InteractionFamily,
     InteractionOption, InteractionValue, OptionAvailability, TEXT_INFO_ID,
 };
-use conduit_semantic_catalog::StandardConfigurationRule;
+use conduit_semantic_catalog::KindConfigurationRule;
 
 use crate::PatchbayGraphError;
 
@@ -92,14 +92,14 @@ pub fn project_controls(gear: &CheckedGear) -> Result<Vec<FaceControl>, Patchbay
                 .value
                 .clone();
             let kind = match (&value, &field.rule) {
-                (ConfigurationValue::Bool(_), StandardConfigurationRule::Any) => {
+                (ConfigurationValue::Bool(_), KindConfigurationRule::Any) => {
                     FaceControlKind::BooleanChoice {
                         choices: ["false", "true"],
                     }
                 }
                 (
                     ConfigurationValue::U64(_),
-                    StandardConfigurationRule::U64Range { minimum, maximum },
+                    KindConfigurationRule::U64Range { minimum, maximum },
                 ) => {
                     let unit = field.key.ends_with("-ms").then_some("ms");
                     if maximum.saturating_sub(*minimum) <= 100 {
@@ -118,26 +118,40 @@ pub fn project_controls(gear: &CheckedGear) -> Result<Vec<FaceControl>, Patchbay
                 }
                 (
                     ConfigurationValue::U64(_),
-                    StandardConfigurationRule::DurationMillis { minimum, maximum },
+                    KindConfigurationRule::DurationMillis { minimum, maximum },
                 ) => FaceControlKind::Number {
                     minimum: *minimum,
                     maximum: *maximum,
                     unit: Some("ms"),
                 },
                 (
+                    ConfigurationValue::Quantity(_),
+                    KindConfigurationRule::QuantityRange {
+                        minimum,
+                        maximum,
+                        canonical_unit,
+                    },
+                ) => FaceControlKind::Number {
+                    minimum: u64::try_from(*minimum)
+                        .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)?,
+                    maximum: u64::try_from(*maximum)
+                        .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)?,
+                    unit: Some(canonical_unit.form_suffix()),
+                },
+                (
                     ConfigurationValue::I64(_),
-                    StandardConfigurationRule::I64Range { minimum, maximum },
+                    KindConfigurationRule::I64Range { minimum, maximum },
                 ) => FaceControlKind::ScalarNumber {
                     minimum: *minimum,
                     maximum: *maximum,
                     unit: "µ",
                 },
-                (ConfigurationValue::Text(_), StandardConfigurationRule::TextBytes { maximum }) => {
+                (ConfigurationValue::Text(_), KindConfigurationRule::TextBytes { maximum }) => {
                     FaceControlKind::ShortText {
                         maximum_bytes: *maximum,
                     }
                 }
-                (ConfigurationValue::Text(_), StandardConfigurationRule::TextOneOf { values }) => {
+                (ConfigurationValue::Text(_), KindConfigurationRule::TextOneOf { values }) => {
                     FaceControlKind::TextChoice {
                         choices: values.clone(),
                     }
@@ -159,11 +173,11 @@ fn project_interaction(
     gear: &CheckedGear,
     key: &str,
     value: &ConfigurationValue,
-    rule: &StandardConfigurationRule,
+    rule: &KindConfigurationRule,
 ) -> Result<Option<FaceInteraction>, PatchbayGraphError> {
     let semantic_id = format!("configuration/{}/{}", gear.kind_id.as_str(), key);
     let (family, domain, current) = match (value, rule) {
-        (ConfigurationValue::Bool(value), StandardConfigurationRule::Any) => (
+        (ConfigurationValue::Bool(value), KindConfigurationRule::Any) => (
             InteractionFamily::Boolean,
             None,
             interaction_value(
@@ -178,8 +192,8 @@ fn project_interaction(
         ),
         (
             ConfigurationValue::U64(value),
-            StandardConfigurationRule::U64Range { minimum, maximum }
-            | StandardConfigurationRule::DurationMillis { minimum, maximum },
+            KindConfigurationRule::U64Range { minimum, maximum }
+            | KindConfigurationRule::DurationMillis { minimum, maximum },
         ) => {
             let Ok(value) = i64::try_from(*value) else {
                 return Ok(None);
@@ -189,7 +203,7 @@ fn project_interaction(
             if minimum > maximum || value < minimum || value > maximum {
                 return Ok(None);
             }
-            let unit = if matches!(rule, StandardConfigurationRule::DurationMillis { .. })
+            let unit = if matches!(rule, KindConfigurationRule::DurationMillis { .. })
                 || key.ends_with("-ms")
             {
                 QuantityUnit::Millisecond
@@ -209,10 +223,7 @@ fn project_interaction(
                 quantity_value(value, unit)?,
             )
         }
-        (
-            ConfigurationValue::I64(value),
-            StandardConfigurationRule::I64Range { minimum, maximum },
-        ) => (
+        (ConfigurationValue::I64(value), KindConfigurationRule::I64Range { minimum, maximum }) => (
             InteractionFamily::Scalar {
                 unit: QuantityUnit::Millionth,
                 minimum: *minimum,
@@ -224,7 +235,34 @@ fn project_interaction(
             None,
             quantity_value(*value, QuantityUnit::Millionth)?,
         ),
-        (ConfigurationValue::Text(value), StandardConfigurationRule::TextBytes { maximum }) => (
+        (
+            ConfigurationValue::Quantity(value),
+            KindConfigurationRule::QuantityRange {
+                minimum,
+                maximum,
+                canonical_unit,
+            },
+        ) => {
+            let value = value
+                .convert(*canonical_unit)
+                .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)?;
+            if value.value() < *minimum || value.value() > *maximum {
+                return Ok(None);
+            }
+            (
+                InteractionFamily::Scalar {
+                    unit: *canonical_unit,
+                    minimum: *minimum,
+                    minimum_bound: BoundKind::Inclusive,
+                    maximum: *maximum,
+                    maximum_bound: BoundKind::Inclusive,
+                    granularity: 1,
+                },
+                None,
+                quantity_value(value.value(), *canonical_unit)?,
+            )
+        }
+        (ConfigurationValue::Text(value), KindConfigurationRule::TextBytes { maximum }) => (
             InteractionFamily::Text {
                 maximum_bytes: *maximum,
                 allow_empty: true,
@@ -232,7 +270,7 @@ fn project_interaction(
             None,
             interaction_value(TEXT_INFO_ID, value.as_bytes())?,
         ),
-        (ConfigurationValue::Text(value), StandardConfigurationRule::TextOneOf { values }) => {
+        (ConfigurationValue::Text(value), KindConfigurationRule::TextOneOf { values }) => {
             let value_kind = KindId::from("configuration/text-choice@1");
             let options = values
                 .iter()

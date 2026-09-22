@@ -32,7 +32,7 @@ pub struct BrowserRealizationDescriptor {
     pub portable_kind: &'static str,
     pub runtime_implementation_id: &'static str,
     pub runtime_artifact_id: &'static str,
-    pub host_operation: &'static str,
+    pub host_call: &'static str,
     pub maximum_in_flight: u16,
     pub maximum_queue_items: u32,
     pub maximum_queue_bytes: u32,
@@ -447,7 +447,7 @@ const fn realization(
     portable_kind: &'static str,
     runtime_implementation_id: &'static str,
     runtime_artifact_id: &'static str,
-    host_operation: &'static str,
+    host_call: &'static str,
     limits: BrowserRealizationLimits,
 ) -> BrowserRealizationDescriptor {
     BrowserRealizationDescriptor {
@@ -455,7 +455,7 @@ const fn realization(
         portable_kind,
         runtime_implementation_id,
         runtime_artifact_id,
-        host_operation,
+        host_call,
         maximum_in_flight: limits.maximum_in_flight,
         maximum_queue_items: limits.maximum_queue_items,
         maximum_queue_bytes: limits.maximum_queue_bytes,

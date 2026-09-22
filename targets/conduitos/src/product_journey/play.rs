@@ -197,7 +197,10 @@ impl ProductJourney {
         build_id: &str,
     ) -> Result<(), JourneyError> {
         let wake = self.wake.as_ref().ok_or(JourneyError::BodyAbsent)?;
-        if wake.lifecycle != WakeLifecycle::AwaitingPlan {
+        if !matches!(
+            wake.lifecycle,
+            WakeLifecycle::AwaitingPlan | WakeLifecycle::Unsatisfied
+        ) {
             return Err(JourneyError::InvalidTransition);
         }
         let mut prepared = native_workset::prepare(wake, identities, offer, build_id)

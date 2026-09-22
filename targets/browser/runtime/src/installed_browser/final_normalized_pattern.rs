@@ -1,10 +1,10 @@
 //! Browser installation of finite Flow-to-final normalized-pattern selection.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ConfigurationValue, ExecutionProfileId, ImplementationId, PlannedGear,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, ImplementationId, PlannedGear,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -18,16 +18,16 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 };
 
 fn offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_semantic_catalog::final_normalized_pattern_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(
                 "browser/final-normalized-pattern-kernel@1",
             ),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-browser-runtime/final-normalized-pattern@1"),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -35,7 +35,7 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     let maximum = placement
         .configuration
@@ -48,8 +48,8 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserO
     if !(1..=conduit_semantic_catalog::MAXIMUM_FINAL_PATTERN_VALUES).contains(&maximum) {
         return Err("final normalized-pattern value bound is outside browser limits".into());
     }
-    Ok(BrowserOperation::installed(
-        conduit_semantic_catalog::FinalNormalizedPatternOperation::new(maximum),
+    Ok(BrowserBack::installed_step(
+        conduit_semantic_catalog::FinalNormalizedPatternBack::new(maximum),
     ))
 }
 
@@ -63,6 +63,6 @@ mod tests {
         let offer = offer();
         assert_eq!(offer.inputs, contract.inputs);
         assert_eq!(offer.outputs, contract.outputs);
-        assert!(offer.host_operations.is_empty());
+        assert!(offer.host_calls.is_empty());
     }
 }

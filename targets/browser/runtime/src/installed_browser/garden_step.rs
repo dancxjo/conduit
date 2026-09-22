@@ -1,15 +1,15 @@
 //! Browser production realization of the deterministic minimal Garden reducer.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationRequirement, ImplementationId,
-    PlannedGear, SemanticCapabilityContract,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
+    PortId, RequestId,
 };
 
 pub(crate) const OPERATIONS: [&str; 6] = [
@@ -172,23 +172,19 @@ fn enriched_offer() -> CapabilityOffer {
     offer_for(contract, ENRICHED_IMPLEMENTATION, &OPERATIONS[4..6])
 }
 
-fn offer_for(
-    contract: SemanticCapabilityContract,
-    implementation: &str,
-    operations: &[&str],
-) -> CapabilityOffer {
+fn offer_for(contract: Kind, implementation: &str, operations: &[&str]) -> CapabilityOffer {
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(implementation),
-            host_operations: operations
+            host_calls: operations
                 .iter()
                 .enumerate()
-                .map(|(index, contract_id)| HostOperationRequirement {
+                .map(|(index, contract_id)| HostCallRequirement {
                     contract_id: (*contract_id).into(),
                     target_kind: Some(target_kind.clone()),
                     maximum_in_flight: 1,
@@ -213,95 +209,103 @@ fn offer_for(
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     PreparedGardenStep::for_placement(placement)?
-        .ok_or_else(|| "Garden operation selected another implementation".to_string())?;
-    Ok(BrowserOperation::installed(GardenStepOperation::new()))
+        .ok_or_else(|| "Garden host_call selected another implementation".to_string())?;
+    Ok(BrowserBack::installed_step(GardenStepBack::new()))
 }
 
-struct GardenStepOperation {
+struct GardenStepBack {
     prior_ready: bool,
-    pending: Option<(RequestId, HostOperationId)>,
-    emitted: bool,
+    prior_closed: bool,
+    pending: Option<(RequestId, HostCallId)>,
 }
 
-impl GardenStepOperation {
+impl GardenStepBack {
     const fn new() -> Self {
         Self {
             prior_ready: false,
+            prior_closed: false,
             pending: None,
-            emitted: false,
         }
     }
 }
 
-impl Operation for GardenStepOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.prior_ready && self.pending.is_none() => {
-                self.request(value, RequestId(0), HostOperationId(0), 20)
+impl<const PORTS: usize> StepBack<PORTS> for GardenStepBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            let Some((expected, host_call)) = self.pending else {
+                return StepOutcome::Fail(failure(22));
+            };
+            if request != expected {
+                return StepOutcome::Fail(failure(22));
             }
-            OperationInput::Value {
-                port: PortId(1),
-                value,
-            } if self.prior_ready && self.pending.is_none() && !self.emitted => {
-                self.request(value, RequestId(1), HostOperationId(1), 21)
-            }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending.map(|pending| pending.0) == Some(request) =>
-            {
-                let Some((_, operation)) = self.pending.take() else {
-                    return OperationAction::Fail(failure(22));
-                };
-                match (
-                    operation,
-                    outcome.disposition,
-                    outcome.output,
-                    outcome.failure,
-                ) {
-                    (HostOperationId(0), HostOperationDisposition::Completed, None, None) => {
-                        self.prior_ready = true;
-                        OperationAction::Await
-                    }
-                    (
-                        HostOperationId(1),
-                        HostOperationDisposition::Completed,
-                        Some(output),
-                        None,
-                    ) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: PortId(0),
-                            value: output.value,
-                        }
-                    }
-                    (_, HostOperationDisposition::Failed, None, Some(reason)) => {
-                        OperationAction::Fail(reason)
-                    }
-                    _ => OperationAction::Fail(failure(22)),
+            match (
+                host_call,
+                outcome.disposition,
+                outcome.output,
+                outcome.failure,
+            ) {
+                (HostCallId(0), HostCallDisposition::Completed, None, None) => {
+                    io.consume_host_completion()
+                        .expect("observed Garden prior completion");
+                    self.pending = None;
+                    self.prior_ready = true;
+                    return StepOutcome::Progress;
                 }
+                (HostCallId(1), HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed Garden reduction completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready Garden output");
+                    self.pending = None;
+                    return StepOutcome::Complete;
+                }
+                (_, HostCallDisposition::Failed, None, Some(reason)) => {
+                    return StepOutcome::Fail(reason)
+                }
+                _ => return StepOutcome::Fail(failure(22)),
             }
-            OperationInput::Closed { port: PortId(0) } if self.prior_ready => {
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(1) } if self.emitted => OperationAction::Complete,
-            _ => OperationAction::Fail(failure(23)),
         }
-    }
 
-    fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
+        if let Some(value) = io.input(PortId(0)) {
+            if self.prior_ready || self.pending.is_some() {
+                return StepOutcome::Fail(failure(23));
+            }
+            if let Err(outcome) =
+                self.request(io, PortId(0), value, RequestId(0), HostCallId(0), 20)
+            {
+                return outcome;
+            }
+            return StepOutcome::Progress;
         }
+        if let Some(value) = io.input(PortId(1)) {
+            if !self.prior_ready || self.pending.is_some() {
+                return StepOutcome::Fail(failure(23));
+            }
+            if let Err(outcome) =
+                self.request(io, PortId(1), value, RequestId(1), HostCallId(1), 21)
+            {
+                return outcome;
+            }
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && !self.prior_closed {
+            if !self.prior_ready {
+                return StepOutcome::Fail(failure(23));
+            }
+            io.consume_closed(PortId(0))
+                .expect("observed Garden prior closure");
+            self.prior_closed = true;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(1)) {
+            return StepOutcome::Fail(failure(23));
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -309,23 +313,24 @@ impl Operation for GardenStepOperation {
     }
 }
 
-impl GardenStepOperation {
-    fn request(
+impl GardenStepBack {
+    fn request<const PORTS: usize>(
         &mut self,
+        io: &mut StepIo<PORTS>,
+        port: PortId,
         value: conduit_kernel::ValueRef,
         request: RequestId,
-        operation: HostOperationId,
+        host_call: HostCallId,
         detail: u16,
-    ) -> OperationAction {
+    ) -> Result<(), StepOutcome> {
         let Ok(input) = BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32) else {
-            return OperationAction::Fail(failure(detail));
+            return Err(StepOutcome::Fail(failure(detail)));
         };
-        self.pending = Some((request, operation));
-        OperationAction::RequestHostOperation {
-            request,
-            operation,
-            input,
-        }
+        io.consume(port).expect("present Garden input");
+        io.request_host_call(request, host_call, input)
+            .expect("Garden Host Call");
+        self.pending = Some((request, host_call));
+        Ok(())
     }
 }
 
@@ -361,7 +366,7 @@ mod tests {
             kind_id: offered.kind_id,
             kind_contract_revision: offered.kind_contract_revision,
             execution_profile_id: offered.implementation.execution_profile_id,
-            configuration: Vec::new(),
+            configuration: Default::default(),
             host_id: "browser/garden".into(),
             boot_id: "browser-boot/garden".into(),
             offer_generation: OfferGeneration(1),
@@ -373,7 +378,7 @@ mod tests {
             limits: offered.limits,
             inputs: offered.inputs,
             outputs: offered.outputs,
-            host_operations: offered.host_operations,
+            host_calls: offered.host_calls,
             resources: Vec::new(),
             authority: Vec::new(),
             pool_references: Vec::new(),

@@ -42,7 +42,7 @@ pub struct RequiredBaseReview {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct CapabilityPrerequisiteReview {
     pub implementations: Vec<String>,
-    pub host_operations: Vec<String>,
+    pub host_calls: Vec<String>,
     pub resources: Vec<String>,
     pub bases: Vec<RequiredBaseReview>,
     pub drivers: Vec<String>,
@@ -232,7 +232,7 @@ fn prerequisite_review(
     for node in nodes {
         match node {
             PrerequisiteNode::Implementation(value) => review.implementations.push(value),
-            PrerequisiteNode::HostOperation(value) => review.host_operations.push(value),
+            PrerequisiteNode::HostCall(value) => review.host_calls.push(value),
             PrerequisiteNode::Resource(value) => review.resources.push(value),
             PrerequisiteNode::Base(value) => {
                 let candidates = offers
@@ -325,7 +325,7 @@ mod tests {
                     targets: vec!["std/*/*".into()],
                     prerequisites: vec![
                         PrerequisiteNode::Base("clock/monotonic".into()),
-                        PrerequisiteNode::HostOperation("conduit.host/clock-read@1".into()),
+                        PrerequisiteNode::HostCall("conduit.host/clock-read@1".into()),
                     ],
                 },
             ),

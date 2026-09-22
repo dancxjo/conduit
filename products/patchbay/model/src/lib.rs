@@ -217,8 +217,9 @@ pub use front_door::{
 pub use front_door_session::{LocalFrontDoor, LocalFrontDoorProjection};
 pub use front_door_topology::MAX_FRONT_DOOR_LINES;
 pub use gear_realization::{
-    replan_with_implementation, GearRealizationAlternative, GearRealizationError,
-    GearRealizationInspection, RealizationDisposition, MAX_GEAR_REALIZATION_ALTERNATIVES,
+    replan_with_implementation, replan_with_learned_promotion, replan_with_learned_rollback,
+    GearRealizationAlternative, GearRealizationError, GearRealizationInspection,
+    LearnedImplementationSelection, RealizationDisposition, MAX_GEAR_REALIZATION_ALTERNATIVES,
 };
 pub use graphical_patchbay::{
     PatchbayComposition, PatchbayCompositionBinding, PatchbayConnectionCandidate, PatchbayCord,
@@ -238,10 +239,11 @@ pub use layout::{
     MAX_LAYOUT_COORDINATE, PATCHBAY_LAYOUT_VERSION,
 };
 pub use learned_watch::{
-    ClockAlignment, DynamicsWatch, LearnedWatchProjection, LearnedWatchProjectionKind,
-    ObjectiveComponent, ProbabilisticAlternative, ProbabilisticDisposition, ProbabilisticWatch,
-    SignalContinuity, SignalPoint, SignalStreamRole, SignalWatch, StateTransition, StateWatch,
-    TensorAxis, TensorWatch, TrainingPhase, TrainingWatch, MAX_LEARNED_WATCH_PROJECTIONS,
+    ClockAlignment, DynamicsWatch, LearnedLifecyclePhase, LearnedLifecycleWatch,
+    LearnedWatchProjection, LearnedWatchProjectionKind, ObjectiveComponent,
+    ProbabilisticAlternative, ProbabilisticDisposition, ProbabilisticWatch, SignalContinuity,
+    SignalPoint, SignalStreamRole, SignalWatch, StateTransition, StateWatch, TensorAxis,
+    TensorWatch, TrainingPhase, TrainingWatch, MAX_LEARNED_WATCH_PROJECTIONS,
     MAX_OBJECTIVE_COMPONENTS, MAX_PROBABILISTIC_ALTERNATIVES, MAX_SIGNAL_POINTS, MAX_TENSOR_AXES,
     MAX_TENSOR_SLICE_VALUES,
 };

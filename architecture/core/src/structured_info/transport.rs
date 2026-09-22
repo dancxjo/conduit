@@ -197,6 +197,17 @@ fn decode_node(
             }
             StructuredInfoValue::collection(expected.clone(), values)
         }
+        StructuredInfoTypeShape::Sequence { element, capacity } if tag == 1 => {
+            let length = cursor.length()?;
+            if length > usize::from(capacity) {
+                return Err(StructuredInfoTransportRefusal::MalformedRepresentation);
+            }
+            let mut values = Vec::with_capacity(length);
+            for _ in 0..length {
+                values.push(decode_node(element, cursor)?);
+            }
+            StructuredInfoValue::sequence(expected.clone(), values)
+        }
         StructuredInfoTypeShape::Record { fields, .. } if tag == 2 => {
             if cursor.length()? != fields.len() {
                 return Err(StructuredInfoTransportRefusal::MalformedRepresentation);

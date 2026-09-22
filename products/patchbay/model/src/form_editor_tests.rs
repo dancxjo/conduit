@@ -32,11 +32,9 @@ fn catalog_aware_editor_retains_exact_catalogs_for_recheck_and_expansion() {
         })
         .unwrap();
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: conduit_core::KindId::from("test/catalog-aware"),
-            kind_contract_revision: conduit_core::KindContractRevision::from(
-                "test/catalog-aware@1",
-            ),
+            kind_contract_revision: conduit_core::KindIdentity::from("test/catalog-aware@1"),
             inputs: vec![],
             outputs: vec![],
             configuration: vec![],

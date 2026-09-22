@@ -47,13 +47,13 @@ fn browser_quantity_range_and_inexact_refusals_cross_admitted_kernel_requests() 
         let capacity = scheduler.values().allocation_capacities();
         let result = drive(&mut scheduler, &fragment);
         assert!(
-            matches!(result, Err(ref error) if error == &format!("OperationFailed(Failure {{ code: InvalidInput, detail: {detail} }})"))
+            matches!(result, Err(ref error) if error == &format!("BackFailed(Failure {{ code: InvalidInput, detail: {detail} }})"))
         );
         assert_eq!(scheduler.values().allocation_capacities(), capacity);
         assert!(scheduler
             .signs()
             .events()
-            .any(|event| event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted));
+            .any(|event| event.kind == conduit_kernel::KernelEventKind::HostCallCompleted));
     }
 }
 
@@ -65,8 +65,8 @@ fn browser_quantity_realization_preserves_canonical_value_and_refuses_identity_d
         .iter()
         .find(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::QUANTITY_MAP_KIND)
         .unwrap();
-    assert_eq!(placement.host_operations[0].maximum_input_bytes, 8);
-    assert_eq!(placement.host_operations[0].maximum_output_bytes, 9);
+    assert_eq!(placement.host_calls[0].maximum_input_bytes, 8);
+    assert_eq!(placement.host_calls[0].maximum_output_bytes, 9);
     let value = crate::installed_browser::transform_quantity(
         crate::installed_browser::prepare_quantity_mapping(placement).unwrap(),
         &conduit_core::Scalar::from_raw_microunits(-1).encode(),

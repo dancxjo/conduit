@@ -1,5 +1,13 @@
 use super::*;
+use crate::hosted_speech::GeneratedSpeechRefusal;
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader};
+use conduit_presentation::{
+    Face, FaceContext, FaceFocus, GeneratedContentRole, GeneratedContentSegment,
+    GeneratedManifestation, GeneratedManifestationDisposition, GenerativeNarratorRole,
+    GenerativePresenterBounds, GenerativePresenterPolicy, GenerativePresenterRequest, Presentation,
+    PresentationBasis, PresentationDisclosure, PresentationDisclosureLevel, PresentationRole,
+    PresentationSubject,
+};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::sync::{
@@ -114,6 +122,104 @@ fn provider_receives_end_of_text_before_output_is_polled() {
     let mut adapter = fixture.adapter(8);
     let receipt = adapter.synthesize("Rosehip", || false, |_| Ok(())).unwrap();
     assert_eq!(receipt.frames, 1);
+}
+
+#[test]
+fn generated_speech_retains_presenter_and_voice_provenance() {
+    let _provider_process = provider_process();
+    let fixture = Fixture::new("#!/bin/sh\ncat >/dev/null\nprintf '\\001\\000'\n");
+    let mut adapter = fixture.adapter(8);
+    let presentation = Presentation::new_with_semantics(
+        7,
+        PresentationBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: None,
+            checked_form_id: None,
+            expanded_form_id: None,
+            plan_id: None,
+            active_play_id: None,
+            sign_ids: vec![],
+        },
+        vec![PresentationSubject {
+            identity: "body/current".into(),
+            role: PresentationRole::Body,
+            label: "Current body".into(),
+            accessibility_name: "Current body".into(),
+        }],
+        vec![],
+        vec![],
+        vec![],
+        vec![],
+        vec![PresentationDisclosure {
+            subject: "body/current".into(),
+            level: PresentationDisclosureLevel::Primary,
+        }],
+    )
+    .unwrap();
+    let request = GenerativePresenterRequest::from_face(
+        "request/present/voice".into(),
+        GenerativePresenterPolicy {
+            template_contract_revision: "voice/policy@1".into(),
+            narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
+            instructions: "Voice only supplied truth.".into(),
+        },
+        &Face {
+            context: FaceContext::Overview,
+            focus: FaceFocus::Body,
+            presentation,
+            application_actions: vec![],
+            operator_actions: vec![],
+        },
+        None,
+        GenerativePresenterBounds::reviewed_default(),
+    )
+    .unwrap();
+    let manifestation = GeneratedManifestation {
+        manifestation_identity: "manifestation/generated/7".into(),
+        request_identity: request.request_identity.clone(),
+        source_presentation_identity: request.semantic_data.source_presentation_identity.clone(),
+        source_presentation_revision: request.semantic_data.source_presentation_revision,
+        presenter_implementation_identity: "std/ollama-present@1".into(),
+        provider_identity: "ollama/1.2.3".into(),
+        model_identity: "model/fixture".into(),
+        template_contract_revision: request.policy.template_contract_revision.clone(),
+        generation_run_identity: "run/ollama/7".into(),
+        disposition: GeneratedManifestationDisposition::Produced,
+        content: vec![GeneratedContentSegment {
+            role: GeneratedContentRole::Speech,
+            bytes: b"I am awake.".to_vec(),
+        }],
+        affordances: vec![],
+    };
+    let receipt = adapter
+        .synthesize_generated_speech(&request, &manifestation, || false, |_| Ok(()))
+        .unwrap();
+
+    assert_eq!(
+        receipt.generated_manifestation_identity,
+        manifestation.manifestation_identity
+    );
+    assert_eq!(receipt.generation_run_identity, "run/ollama/7");
+    assert_eq!(receipt.presenter_provider_identity, "ollama/1.2.3");
+    assert_eq!(receipt.presenter_model_identity, "model/fixture");
+    assert_eq!(receipt.speech_sha256, receipt.synthesis.text_sha256);
+    assert_eq!(receipt.voice_model_sha256, adapter.discovery().model_sha256);
+    assert_eq!(receipt.synthesis.frames, 1);
+
+    let mut stale = manifestation.clone();
+    stale.source_presentation_revision += 1;
+    assert_eq!(
+        adapter.synthesize_generated_speech(&request, &stale, || false, |_| Ok(())),
+        Err(GeneratedSpeechRefusal::InvalidManifestation)
+    );
+
+    let cancelling_fixture = Fixture::new("#!/bin/sh\nsleep 2\n");
+    let mut cancelling = cancelling_fixture.adapter(8);
+    assert_eq!(
+        cancelling.synthesize_generated_speech(&request, &manifestation, || true, |_| Ok(())),
+        Err(GeneratedSpeechRefusal::Synthesis(PiperFailure::Cancelled))
+    );
 }
 
 #[test]

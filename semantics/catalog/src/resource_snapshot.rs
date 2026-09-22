@@ -1,5 +1,5 @@
 //! Exact-generation publication and reading of bounded JSON snapshot content.
-use crate::{StandardConfigurationField, StandardConfigurationRule, StandardKindContract};
+use crate::{KindConfigurationField, KindConfigurationRule, StandardKindContract};
 #[cfg(feature = "form-catalog")]
 use alloc::string::ToString;
 use conduit_core::{kind_id, ConfigurationValue, RESOURCE_REFERENCE_INFO_ID};
@@ -33,10 +33,10 @@ pub fn resource_snapshot_contract(publish: bool) -> StandardKindContract {
     } else {
         conduit_web::JSON_TEXT_INFO_ID
     });
-    contract.configuration.push(StandardConfigurationField {
+    contract.configuration.push(KindConfigurationField {
         key: "reference".into(),
         default_value: ConfigurationValue::Text("".into()),
-        rule: StandardConfigurationRule::TextBytes { maximum: 1024 },
+        rule: KindConfigurationRule::TextBytes { maximum: 1024 },
     });
     contract.limits.max_active_instances = 1;
     contract.limits.max_queue_items = 1;
@@ -59,15 +59,15 @@ pub fn install_resource_snapshot_catalogs(
             }],
         })?;
         profile
-            .insert(conduit_form::KindDefinition {
+            .insert(conduit_form::KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: SNAPSHOT_REVISION.into(),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
-                configuration: alloc::vec![conduit_form::ConfigurationField {
+                configuration: alloc::vec![conduit_form::KindConfigurationField {
                     key: "reference".into(),
                     default_value: ConfigurationValue::Text("".into()),
-                    validation: conduit_form::ConfigurationRule::TextBytes { maximum: 1024 },
+                    rule: conduit_form::KindConfigurationRule::TextBytes { maximum: 1024 },
                 }],
             })
             .map_err(|error| error.to_string())?;

@@ -130,7 +130,7 @@ pub fn live_indicator_advertisement(
         },
         inputs: conduit_signal::show_inputs(),
         outputs: Vec::new(),
-        host_operations: conduit_signal::show_host_operation_requirements(),
+        host_calls: conduit_signal::show_host_call_requirements(),
         resource_requirements: requirements,
         authority_requirements: vec![present_authority],
         limits: CapabilityLimits {

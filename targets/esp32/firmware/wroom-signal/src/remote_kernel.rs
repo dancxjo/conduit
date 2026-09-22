@@ -1,13 +1,13 @@
 //! Generated remote-ingress execution through the shared Conduit scheduler.
 
 use conduit_kernel::scheduler::{
-    FixedScheduler, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
+    FixedScheduler, RemoteIngressOutcome, SchedulerStatus, StepBack, StepInputBytes, StepIo,
+    StepOutcome,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    FixedSignLog, FixedValueStore, HostOperationDisposition, HostOperationOutcome, Operation,
-    OperationAction, OperationInput, PortId, RemoteEndpointId, RequestId, SignQuery, ValueStorage,
-    remote_sign_storage_bytes,
+    BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
+    FixedSignLog, FixedValueStore, HostCallDisposition, HostCallOutcome, PortId, RemoteEndpointId,
+    RequestId, SignQuery, ValueStorage, remote_sign_storage_bytes,
 };
 use conduit_signal::{SIGNAL_ENCODED_LEN, Signal, decode_signal_bytes};
 
@@ -19,7 +19,7 @@ const RUNTIME_SIGN_BYTES: u32 =
 const REMOTE_SIGN_ITEMS: u16 = 17;
 
 type SinkScheduler = FixedScheduler<
-    OperationDriver<ShowOperation, PORTS>,
+    ShowBack,
     FixedValueStore<QUEUE_SLOTS, { SIGNAL_ENCODED_LEN as usize }>,
     FixedSignLog<RUNTIME_SIGN_EVENTS>,
     1,
@@ -32,51 +32,67 @@ type SinkScheduler = FixedScheduler<
     1,
 >;
 
-struct ShowOperation {
+struct ShowBack {
     input_port: PortId,
     pending: Option<RequestId>,
     presented: usize,
 }
 
-impl Operation for ShowOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
+impl ShowBack {
+    fn fail(detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure {
+            code: FailureCode::InvalidLifecycle,
+            detail,
+        })
     }
+}
 
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value { port, value }
-                if port == self.input_port && self.pending.is_none() =>
-            {
+impl StepBack<PORTS> for ShowBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if self.pending.is_none() {
+            if let Some(value) = io.input(self.input_port) {
                 let request = RequestId(self.presented as u32);
-                self.pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: conduit_kernel::HostOperationId(0),
-                    input: BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
-                        .expect("generated Signal value is exactly bounded"),
+                if io.consume(self.input_port).is_err()
+                    || io
+                        .request_host_call(
+                            request,
+                            conduit_kernel::HostCallId(0),
+                            BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
+                                .expect("generated Signal value is exactly bounded"),
+                        )
+                        .is_err()
+                {
+                    return Self::fail(1);
                 }
+                self.pending = Some(request);
+                return StepOutcome::Progress;
             }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+            if io.input_closed(self.input_port) {
+                if io.consume_closed(self.input_port).is_err() {
+                    return Self::fail(2);
+                }
+                return StepOutcome::Complete;
+            }
+            return StepOutcome::Await;
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending == Some(request)
+                && outcome.disposition == HostCallDisposition::Completed
+                && outcome.output.is_none()
+                && outcome.failure.is_none()
+                && io.consume_host_completion().is_ok()
             {
                 self.pending = None;
                 self.presented += 1;
-                OperationAction::Await
+                return StepOutcome::Progress;
             }
-            OperationInput::Closed { port }
-                if port == self.input_port && self.pending.is_none() =>
-            {
-                OperationAction::Complete
-            }
-            _ => OperationAction::Fail(Failure {
-                code: FailureCode::InvalidLifecycle,
-                detail: 1,
-            }),
+            return Self::fail(3);
         }
+        StepOutcome::Await
     }
 }
 
@@ -99,28 +115,27 @@ impl Esp32RemoteSignalKernel {
             remote_sign_bytes,
         )
         .map_err(|_| "kernel-sign-storage")?;
-        let driver = OperationDriver::new(ShowOperation {
+        let back = ShowBack {
             input_port: PortId(0),
             pending: None,
             presented: 0,
-        })
-        .map_err(|_| "kernel-driver")?;
+        };
         let mut routes = FixedRoutes::<0, 0>::new(PORTS as u16);
         routes.seal().map_err(|_| "kernel-routes")?;
-        let mut host_bindings = FixedHostOperationBindings::<1>::new(1);
+        let mut host_bindings = FixedHostCallBindings::<1>::new(1);
         host_bindings
             .install(
                 conduit_kernel::NodeId(0),
-                crate::generated::GENERATED_HOST_OPERATIONS[0].1,
+                crate::generated::GENERATED_HOST_CALLS[0].1,
             )
             .map_err(|_| "kernel-host-binding")?;
         host_bindings.seal().map_err(|_| "kernel-host-binding")?;
-        let scheduler = SinkScheduler::new_with_host_operations(
+        let scheduler = SinkScheduler::new_with_host_calls(
             crate::generated::GENERATED_NODES,
             crate::generated::GENERATED_CORDS,
             routes,
             host_bindings,
-            [driver],
+            [back],
             values,
             sign,
         )
@@ -145,7 +160,7 @@ impl Esp32RemoteSignalKernel {
         loop {
             if let Some(request) = self.scheduler.next_host_request() {
                 if request.node != conduit_kernel::NodeId(0)
-                    || request.operation != conduit_kernel::HostOperationId(0)
+                    || request.call != conduit_kernel::HostCallId(0)
                 {
                     return Err("kernel-host-request");
                 }
@@ -166,11 +181,11 @@ impl Esp32RemoteSignalKernel {
                     signal.level
                 );
                 self.scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: None,
                             failure: None,
                         },
@@ -216,7 +231,7 @@ impl Esp32RemoteSignalKernel {
             || !self
                 .scheduler
                 .signs()
-                .contains_kind(conduit_kernel::KernelEventKind::OperationCompleted)
+                .contains_kind(conduit_kernel::KernelEventKind::BackCompleted)
         {
             return Err("kernel-terminal-invariant");
         }

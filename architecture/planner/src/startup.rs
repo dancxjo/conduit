@@ -2,7 +2,7 @@
 //!
 //! Ordinary data dependencies remain acyclic. A placement may break a runtime
 //! request/response loop only when its exact selected realization contains an
-//! admitted zero-input host operation that produces one of its output kinds.
+//! admitted zero-input Host Call that produces one of its output kinds.
 //! That is concrete Plan truth that the operation can begin from host input;
 //! it is not an inference from a semantic kind name.
 
@@ -43,7 +43,7 @@ pub(crate) fn startup_order(
 }
 
 fn starts_from_admitted_host_input(placement: &PlannedGear) -> bool {
-    placement.host_operations.iter().any(|operation| {
+    placement.host_calls.iter().any(|operation| {
         operation.maximum_input_bytes == 0
             && operation.maximum_output_bytes > 0
             && operation.target_kind.as_ref().is_some_and(|target| {

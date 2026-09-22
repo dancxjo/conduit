@@ -39,6 +39,10 @@ pub(super) fn born_projection(body_id: conduit_body::BodyId) -> JourneyProjectio
         body_id: Some(body_id),
         friendly_name: Some("Roseau".into()),
         born_sign_id: None,
+        fulfilled_sign_id: None,
+        workload_revision: Some(0),
+        workload_sign_id: None,
+        workload_capacity_available: false,
         part_id: None,
         wake_id: None,
         wake_sign_id: None,
@@ -156,6 +160,29 @@ fn stale_input_and_capacity_are_explicit_without_body_transition() {
     door.revision = u64::MAX;
     assert_eq!(door.accept(key(ENTER), u64::MAX), Err(Error::Presentation));
     assert!(door.presentation().unwrap().basis.body_id.is_none());
+}
+
+#[test]
+fn bounded_lifecycle_surface_resolves_revision_and_fulfillment_transitions() {
+    let mut door = door();
+    let mut projection = born_projection(body_id(2));
+    projection.status = JourneyStatus::QuiescentAwaitingInput;
+    projection.workload_capacity_available = true;
+    door.observe_journey(projection.clone()).unwrap();
+    assert_eq!(door.presentation().unwrap().actions.len(), 8);
+    assert!(
+        door.resolve_action(patchbay_control::PatchbayAction::AdmitForm, door.revision())
+            .is_ok()
+    );
+
+    projection.status = JourneyStatus::Lulled;
+    projection.workload_capacity_available = false;
+    door.observe_journey(projection).unwrap();
+    assert_eq!(door.presentation().unwrap().actions.len(), 8);
+    assert!(
+        door.resolve_action(patchbay_control::PatchbayAction::Fulfill, door.revision())
+            .is_ok()
+    );
 }
 
 #[test]

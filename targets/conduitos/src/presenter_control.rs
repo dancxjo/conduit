@@ -6,8 +6,8 @@ use conduit_body::{
     BodyPresenterTopology, ResidentForm,
 };
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId,
-    HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
+    ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
+    HostCallContractId, HostCallRequirement, HostId, HostProfileId, ImplementationId,
     OfferGeneration, PROTOCOL_VERSION, PlacementId, Plan, SignId, kind_id, resource_offer,
     resource_requirement,
 };
@@ -16,7 +16,7 @@ use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
     MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationLifecycle, Presentation,
     PresentationBasis, PresentationRole, PresentationSubject, RendererRealizationOffer,
-    renderer_kind_definition, renderer_offer,
+    renderer_kind_projection, renderer_offer,
 };
 use patchbay_application::{
     PatchbayPresenterMode, PatchbayPresenterStage, PatchbayPresenterTopology,
@@ -279,7 +279,7 @@ fn prepare_stage(
     target: &str,
 ) -> Result<PresenterStage, ()> {
     let mut catalog = ProfileCatalog::new();
-    catalog.insert(renderer_kind_definition()).map_err(|_| ())?;
+    catalog.insert(renderer_kind_projection()).map_err(|_| ())?;
     let form = parse(
         "form conduitos-presenter {\n    renderer: presentation/renderer\n}\n",
         &catalog,
@@ -342,8 +342,8 @@ fn renderer_host(
             execution_profile_id: ExecutionProfileId::from("conduitos/bounded-presenter@1"),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operation: HostOperationRequirement {
-                contract_id: HostOperationContractId::from("conduit.host/present@1"),
+            host_call: HostCallRequirement {
+                contract_id: HostCallContractId::from("conduit.host/present@1"),
                 target_kind: Some(kind_id(target_kind)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,

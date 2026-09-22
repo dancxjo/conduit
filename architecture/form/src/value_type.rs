@@ -18,7 +18,7 @@ pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
         "Bytes" => kind_id("value/bytes"),
         "Unit" => kind_id("value/unit"),
         "Quantity" => kind_id("value/quantity"),
-        "Duration" => kind_id("value/duration"),
+        "Duration" => kind_id(conduit_core::QUANTITY_INFO_ID),
         "Pool" => kind_id("value/pool-reference"),
         exact => kind_id(exact),
     }
@@ -68,7 +68,7 @@ pub(crate) fn checked_front(
                     },
                 )?,
                 // Presence is callable compatibility: callers need to know
-                // whether omission is legal. The checked Form identity owns
+                // whether omission is legal. The checked form identity owns
                 // the canonical default expression and therefore its meaning.
                 has_default: parameter.default.is_some(),
             })
@@ -127,7 +127,10 @@ mod tests {
         assert_eq!(canonical_value_kind("Text").as_str(), "value/text");
         assert_eq!(canonical_value_kind("Tick").as_str(), "value/tick@1");
         assert_eq!(canonical_value_kind("Count").as_str(), "value/count");
-        assert_eq!(canonical_value_kind("Duration").as_str(), "value/duration");
+        assert_eq!(
+            canonical_value_kind("Duration").as_str(),
+            conduit_core::QUANTITY_INFO_ID
+        );
         assert_eq!(
             canonical_value_kind("Pool").as_str(),
             "value/pool-reference"

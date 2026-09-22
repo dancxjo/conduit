@@ -105,6 +105,30 @@ impl FrontDoor {
                     ),
                 ),
             ]);
+            // The portable entrance has eight finite action slots. Surface the
+            // exceptional transition only at the lifecycle state where it can
+            // be exercised, rather than displacing an ordinary lifecycle verb
+            // with a permanently unavailable ninth action.
+            if status == JourneyStatus::QuiescentAwaitingInput
+                && self
+                    .journey
+                    .as_ref()
+                    .is_some_and(|journey| journey.workload_capacity_available)
+            {
+                rows.push(action(
+                    "admit-form",
+                    "Install Form",
+                    &lifecycle_target,
+                    PresentationActionAvailability::Available,
+                ));
+            } else if status == JourneyStatus::Lulled {
+                rows.push(action(
+                    "fulfill",
+                    "Fulfill",
+                    &lifecycle_target,
+                    PresentationActionAvailability::Available,
+                ));
+            }
         }
         rows
     }
@@ -176,5 +200,8 @@ pub(super) fn lifecycle_summary(journey: &JourneyProjection) -> &'static str {
             .unwrap_or("Input unavailable; inspect the retained loss Sign before recovery."),
         JourneyStatus::Stopped => "Play stopped; no late value was accepted.",
         JourneyStatus::Lulled => "Body retained; the prior Wake has ended.",
+        JourneyStatus::Fulfilled => {
+            "Body fulfilled; its closed biography remains available for inspection."
+        }
     }
 }

@@ -6,11 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal, SemanticCapabilityContract, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 use crate::{
     flow_coalesce_latest_contract, image_resource_type, install_flow_pressure_kind,
@@ -55,18 +54,20 @@ pub fn vision_kind_contracts() -> Vec<VisionKindContract> {
     contracts
 }
 
-pub fn vision_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+pub fn vision_semantic_contracts() -> Vec<Kind> {
     vision_kind_contracts()
         .into_iter()
         .map(|(kind_id, inputs, outputs)| {
             let revision = vision_kind_revision(kind_id.as_str());
-            SemanticCapabilityContract {
+            Kind {
                 startup_parameters: vec![],
                 shorthand: None,
                 kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs,
                 outputs,
+                configuration: Default::default(),
+                semantic_laws: Default::default(),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 1,
@@ -122,9 +123,9 @@ fn insert_kind(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(vision_kind_revision(kind)),
+            kind_contract_revision: KindIdentity::from(vision_kind_revision(kind)),
             inputs,
             outputs,
             configuration: vec![],

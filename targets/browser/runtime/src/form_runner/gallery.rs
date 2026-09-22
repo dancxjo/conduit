@@ -148,10 +148,10 @@ pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
                     },
                     realization_class: offer
                         .map(|entry| {
-                            if entry.host_operations.is_empty() {
+                            if entry.host_calls.is_empty() {
                                 "pure-kernel-or-local"
                             } else {
-                                "bounded-browser-host-operation"
+                                "bounded-browser-host-call"
                             }
                         })
                         .or_else(|| selector_offer.map(|_| "kernel-transform")),
@@ -218,7 +218,7 @@ pub(super) fn reviewed_gallery_view(
                 .map(|requirement| {
                     let class = match requirement.realization_class {
                         Some("pure-kernel-or-local") => "local",
-                        Some("bounded-browser-host-operation") => "browser Host",
+                        Some("bounded-browser-host-call") => "browser Host",
                         _ => "unrealized",
                     };
                     format!(

@@ -1,15 +1,15 @@
 //! Browser realization of the reusable bounded typed-history operation.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ExecutionProfileId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, PlannedGear, StructuredInfoType,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
+    StructuredInfoType,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-bounded-typed-history@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-bounded-typed-history@1";
 const IMPLEMENTATION: &str = "browser/bounded-typed-history@1";
 const MAXIMUM_COMMANDS: u32 = 16;
 const MAXIMUM_BROWSER_HISTORY_ENTRIES: usize = 4;
@@ -101,15 +101,15 @@ impl PreparedHistory {
 fn offer() -> CapabilityOffer {
     let contract = conduit_time::historical_timeline_semantic_contract();
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-time/bounded-typed-history@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(HOST_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_time::MAXIMUM_HISTORICAL_TIMELINE_COMMAND_BYTES as u32,
@@ -128,10 +128,10 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     PreparedHistory::for_placement(placement)?
         .ok_or_else(|| "bounded history placement selected another implementation".to_string())?;
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         conduit_time::MAXIMUM_HISTORICAL_TIMELINE_COMMAND_BYTES as u32,
         MAXIMUM_COMMANDS,
     ))
@@ -214,7 +214,7 @@ mod tests {
             limits: offer.limits,
             inputs: offer.inputs,
             outputs: offer.outputs,
-            host_operations: offer.host_operations,
+            host_calls: offer.host_calls,
             resources: Vec::new(),
             authority: Vec::new(),
             pool_references: Vec::new(),

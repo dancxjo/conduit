@@ -31,6 +31,9 @@ fn manifestation(effect: TourHostEffect) -> TourEffect {
         TourHostEffect::ApplicationEvent(_) => {
             panic!("the fixture must manifest before requesting application input")
         }
+        TourHostEffect::TutorialPresenterRequest(_) => {
+            panic!("the fixture must manifest before requesting a tutorial Presenter")
+        }
     }
 }
 
@@ -614,6 +617,9 @@ fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
             }
             TourHostEffect::ApplicationEvent(_) => {
                 panic!("timer fixture requested application input")
+            }
+            TourHostEffect::TutorialPresenterRequest(_) => {
+                panic!("timer fixture requested a tutorial Presenter")
             }
         }
         let progress = session.advance().unwrap();

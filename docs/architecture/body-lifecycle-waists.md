@@ -64,7 +64,7 @@ reachability and membership are not authority. CLI and Patchbay/Creche are
 front ends to this same operation and evidence result. Inspection is separate
 and read-only. Stale, denied, conflicting, and replayed requests remain distinct.
 
-plans assign an exact failure scope (gear, cord, form, play, host operation,
+plans assign an exact failure scope (gear, cord, form, play, Host Call,
 resource, or line) and one finite disposition: terminate scope, use a checked
 degraded alternative, wait for a bounded number of changes, request atomic
 replacement realization, or lull. There is no hidden retry or supervisor

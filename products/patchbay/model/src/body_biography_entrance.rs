@@ -51,16 +51,15 @@ impl PatchbayBodyAttachment {
             .map_err(|_| PatchbayBodyEntranceError::MalformedEvidence)?;
         let projection = project_body_biography(&evidence)
             .map_err(|_| PatchbayBodyEntranceError::InvalidEvidence)?;
-        let graduation = evidence
-            .graduation
-            .as_ref()
-            .ok_or(PatchbayBodyEntranceError::MissingGraduation)?;
-
         if let PatchbayBodyApplicationEntrance::Hosted {
             plan_id,
             implementation_id,
         } = &entrance
         {
+            let graduation = evidence
+                .graduation
+                .as_ref()
+                .ok_or(PatchbayBodyEntranceError::MissingGraduation)?;
             let exact_placement = graduation.choice == BodyGraduationChoice::HostedPatchbay
                 && graduation.patchbay_plan_id.as_ref() == Some(plan_id)
                 && graduation.patchbay_implementation_id.as_ref() == Some(implementation_id);
@@ -252,10 +251,19 @@ mod tests {
         ungraduated.graduation = None;
         ungraduated.records.pop();
         assert!(ungraduated.validate().is_ok());
+        let external = PatchbayBodyAttachment::open_serialized(
+            &serde_json::to_vec(&ungraduated).unwrap(),
+            PatchbayBodyApplicationEntrance::ExternalReader,
+        )
+        .unwrap();
+        assert!(external.evidence().graduation.is_none());
         assert_eq!(
             PatchbayBodyAttachment::open_serialized(
                 &serde_json::to_vec(&ungraduated).unwrap(),
-                PatchbayBodyApplicationEntrance::ExternalReader,
+                PatchbayBodyApplicationEntrance::Hosted {
+                    plan_id: PlanId::from(HOSTED_PLAN),
+                    implementation_id: ImplementationId::from(HOSTED_IMPLEMENTATION),
+                },
             ),
             Err(PatchbayBodyEntranceError::MissingGraduation)
         );

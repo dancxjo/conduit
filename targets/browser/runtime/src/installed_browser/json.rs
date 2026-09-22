@@ -1,11 +1,10 @@
 //! Browser realizations of the shared bounded JSON semantics.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ConfigurationValue, ExecutionProfileId, HostOperationRequirement, ImplementationId,
-    PlannedGear, SemanticCapabilityContract,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 use conduit_web::JsonValue;
@@ -73,18 +72,18 @@ fn offer(index: usize) -> CapabilityOffer {
 }
 
 fn json_realization_offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     index: usize,
     kind: conduit_core::KindId,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(IMPLEMENTATIONS[index]),
             execution_profile_id: ExecutionProfileId::from("browser/bounded-json@1"),
             implementation_id: ImplementationId::from(IMPLEMENTATIONS[index]),
             artifact_id: ArtifactId::from("conduit-browser-runtime/bounded-json@1"),
-            host_operations: vec![HostOperationRequirement {
+            host_calls: vec![HostCallRequirement {
                 contract_id: OPERATIONS[index].into(),
                 target_kind: Some(kind),
                 maximum_in_flight: 1,
@@ -98,7 +97,7 @@ fn json_realization_offer(
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let index = IMPLEMENTATIONS
         .iter()
         .position(|id| *id == placement.implementation_id.as_str())
@@ -109,7 +108,7 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserO
     } else if !placement.configuration.is_empty() {
         return Err("unexpected JSON configuration".into());
     }
-    Ok(BrowserOperation::unary(MAXIMUM, 4))
+    Ok(BrowserBack::unary(MAXIMUM, 4))
 }
 
 fn field(placement: &PlannedGear) -> Result<&str, String> {

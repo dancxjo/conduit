@@ -129,12 +129,12 @@ fn synth_playback_realization_is_an_ordinary_recursive_form() {
             })
             .unwrap();
         profile
-            .insert(conduit_form::KindDefinition {
+            .insert(conduit_form::KindProjection {
                 kind_id: kind_id(kind),
-                kind_contract_revision: KindContractRevision::from(alloc::format!("{kind}@1")),
+                kind_contract_revision: KindIdentity::from(alloc::format!("{kind}@1")),
                 inputs: Vec::new(),
                 outputs: vec![port("out", info, PortDirection::Output)],
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .unwrap();
     }

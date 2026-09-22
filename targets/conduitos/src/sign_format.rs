@@ -150,7 +150,7 @@ pub fn machine_accepted(
     }
     writeln!(
         output,
-        "],\"base_count\":{},\"memory_arena_bytes\":{},\"execution_regions\":2,\"execution_lanes\":2,\"region_ids\":[\"region/text\",\"region/timer\"],\"lane_resource_ids\":[\"{}\",\"{}\"],\"lane_base_id\":\"{}\",\"timer_slots\":1,\"serial_slots\":2,\"serial_maximum_bytes\":{},\"interrupt_fact_slots\":{},\"sign_item_slots\":{},\"logical_operations\":{},\"kernel_decisions\":{},\"kernel_signs\":{},\"timer_irq_wakes\":{},\"idle_entries\":{},\"serial_presentations\":{},\"clock_monotonic\":{},\"pending_host_operations\":{},\"overlap_witness\":{},\"timer_pending_during_text_progress\":{},\"physical_parallelism\":{},\"preemption\":false,\"isolation\":false,\"sse2\":{},\"rdrand\":{},\"invariant_tsc\":{}}}",
+        "],\"base_count\":{},\"memory_arena_bytes\":{},\"execution_regions\":2,\"execution_lanes\":2,\"region_ids\":[\"region/text\",\"region/timer\"],\"lane_resource_ids\":[\"{}\",\"{}\"],\"lane_base_id\":\"{}\",\"timer_slots\":1,\"serial_slots\":2,\"serial_maximum_bytes\":{},\"interrupt_fact_slots\":{},\"sign_item_slots\":{},\"logical_operations\":{},\"kernel_decisions\":{},\"kernel_signs\":{},\"timer_irq_wakes\":{},\"idle_entries\":{},\"serial_presentations\":{},\"clock_monotonic\":{},\"pending_host_calls\":{},\"overlap_witness\":{},\"timer_pending_during_text_progress\":{},\"physical_parallelism\":{},\"preemption\":false,\"isolation\":false,\"sse2\":{},\"rdrand\":{},\"invariant_tsc\":{}}}",
         offer.bases.len(),
         offer.runtime_arena_bytes,
         text_region.lane_resource.pool_id.as_str(),
@@ -166,7 +166,7 @@ pub fn machine_accepted(
         report.idle_entries,
         report.serial_presentations,
         report.clock_monotonic,
-        report.pending_host_operations,
+        report.pending_host_calls,
         report.overlap_witness,
         report.timer_pending_during_text_progress,
         report.physical_parallelism,
@@ -286,7 +286,7 @@ mod tests {
                 idle_entries: 1,
                 serial_presentations: 1,
                 clock_monotonic: true,
-                pending_host_operations: 0,
+                pending_host_calls: 0,
                 overlap_witness: true,
                 timer_pending_during_text_progress: true,
                 physical_parallelism: false,

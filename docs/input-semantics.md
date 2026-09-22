@@ -99,7 +99,7 @@ wanted. Each three-byte `input/key-event@1` value is admitted atomically to its
 drop, retry, reinterpret, or broadcast implicitly.
 
 All three kinds admit at most eight queued values. A std semantic operation
-admits at most sixteen input actions and one in-flight host operation per
+admits at most sixteen input actions and one in-flight Host Call per
 keymap/chord gear. Compose retains at most one prefix scalar; Unicode entry
 retains one scalar accumulator and a six-digit count. Cancellation clears the
 single pending operation, and closing input closes the finite gear.

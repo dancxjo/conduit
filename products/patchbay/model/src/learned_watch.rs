@@ -29,6 +29,7 @@ pub enum LearnedWatchProjectionKind {
     State(StateWatch),
     Training(TrainingWatch),
     Dynamics(DynamicsWatch),
+    Lifecycle(LearnedLifecycleWatch),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -201,6 +202,39 @@ pub struct DynamicsWatch {
     pub refusal: Option<String>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum LearnedLifecyclePhase {
+    Shadow,
+    Evaluated,
+    ApprovalDenied,
+    Approved,
+    Promoted,
+    Monitoring,
+    RollbackAuthorized,
+    RolledBack,
+    Failed,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LearnedLifecycleWatch {
+    pub phase: LearnedLifecyclePhase,
+    pub subject_identity: String,
+    pub active_artifact_identity: String,
+    pub active_checkpoint_identity: Option<String>,
+    pub candidate_artifact_identity: String,
+    pub candidate_checkpoint_identity: Option<String>,
+    pub shadow_run_identity: Option<String>,
+    pub shared_input_set_identity: String,
+    pub evaluation_identity: Option<String>,
+    pub approval_grant_identity: Option<String>,
+    pub before_plan_identity: String,
+    pub after_plan_identity: Option<String>,
+    pub rollback_target_identity: String,
+    pub rollback_receipt_identity: Option<String>,
+}
+
 impl LearnedWatchProjection {
     pub fn validate(&self) -> Result<(), &'static str> {
         if self.max_updates_per_second == 0 {
@@ -213,6 +247,7 @@ impl LearnedWatchProjection {
             LearnedWatchProjectionKind::State(value) => value.validate(),
             LearnedWatchProjectionKind::Training(value) => value.validate(),
             LearnedWatchProjectionKind::Dynamics(value) => value.validate(),
+            LearnedWatchProjectionKind::Lifecycle(value) => value.validate(),
         }
     }
 
@@ -228,6 +263,10 @@ impl LearnedWatchProjection {
             | (LearnedWatchProjectionKind::Dynamics(_), LearnedWatchProjectionKind::Dynamics(_)) => {
                 true
             }
+            (
+                LearnedWatchProjectionKind::Lifecycle(_),
+                LearnedWatchProjectionKind::Lifecycle(_),
+            ) => true,
             (
                 LearnedWatchProjectionKind::Signal(left),
                 LearnedWatchProjectionKind::Signal(right),
@@ -351,6 +390,43 @@ impl DynamicsWatch {
                 .is_some_and(|value| !identity(value))
         {
             return Err("invalid dynamics projection");
+        }
+        Ok(())
+    }
+}
+
+impl LearnedLifecycleWatch {
+    fn validate(&self) -> Result<(), &'static str> {
+        let required = [
+            self.subject_identity.as_str(),
+            self.active_artifact_identity.as_str(),
+            self.candidate_artifact_identity.as_str(),
+            self.shared_input_set_identity.as_str(),
+            self.before_plan_identity.as_str(),
+            self.rollback_target_identity.as_str(),
+        ];
+        let optional = [
+            self.active_checkpoint_identity.as_deref(),
+            self.candidate_checkpoint_identity.as_deref(),
+            self.shadow_run_identity.as_deref(),
+            self.evaluation_identity.as_deref(),
+            self.approval_grant_identity.as_deref(),
+            self.after_plan_identity.as_deref(),
+            self.rollback_receipt_identity.as_deref(),
+        ];
+        if required.iter().any(|value| !identity(value))
+            || optional.into_iter().flatten().any(|value| !identity(value))
+            || matches!(
+                self.phase,
+                LearnedLifecyclePhase::Promoted
+                    | LearnedLifecyclePhase::Monitoring
+                    | LearnedLifecyclePhase::RollbackAuthorized
+                    | LearnedLifecyclePhase::RolledBack
+            ) && (self.approval_grant_identity.is_none() || self.after_plan_identity.is_none())
+            || self.phase == LearnedLifecyclePhase::RolledBack
+                && self.rollback_receipt_identity.is_none()
+        {
+            return Err("invalid learned lifecycle projection");
         }
         Ok(())
     }

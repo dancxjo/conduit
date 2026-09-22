@@ -36,7 +36,7 @@ pub fn state_value_std_offer(
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: contract.limits,
@@ -62,7 +62,7 @@ mod tests {
         );
         assert_eq!(offer.limits.max_queue_bytes, STATE_VALUE_STD_MAXIMUM_BYTES);
         assert!(offer.limits.max_queue_bytes < contract.limits.max_queue_bytes);
-        assert!(offer.host_operations.is_empty());
+        assert!(offer.host_calls.is_empty());
         assert!(offer.authority_requirements.is_empty());
     }
 }

@@ -5,7 +5,7 @@
   "host_core": "host-core/conduitos@1",
   "fragments": [],
   "capabilities": [],
-  "host_operations": [],
+  "host_calls": [],
   "resources": [],
   "bases": [],
   "drivers": [],

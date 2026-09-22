@@ -1,18 +1,28 @@
-use super::RecordingTimer;
+use super::TimerAdapter;
 use crate::hosted_vision::{FiniteHostedVisionBase, HostedVisionFrame};
 use crate::{StdHost, StdHostComposition, StdHostConfig};
 use conduit_core::{
-    authority_grant, BaseImplementationId, BootId, CapabilityId, HostId, KindContractRevision,
+    authority_grant, BaseImplementationId, BootId, CapabilityId, HostId, KindIdentity,
     OfferGeneration, PortTemporal, ProtectedResourceAccess, ProtectedResourceCommitPolicy,
     ProtectedResourceGrant, ResourceBindingRoleId, ResourceClassId, ResourceHandleId,
     TerminalDisposition,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
 use std::collections::BTreeMap;
+
+struct VisionTimer;
+
+impl TimerAdapter for VisionTimer {
+    fn wait(&mut self, _: std::time::Duration) {}
+
+    fn monotonic_now_micros(&mut self) -> Option<u64> {
+        Some(41)
+    }
+}
 
 #[test]
 fn authored_motion_runs_through_protected_finite_base_and_production_kernel() {
@@ -22,6 +32,8 @@ fn authored_motion_runs_through_protected_finite_base_and_production_kernel() {
         "motions",
         conduit_std_offers::LOCAL_VISION_MOTION_OPERATION,
         conduit_semantic_catalog::vision_motions_type(),
+        false,
+        false,
     );
 }
 
@@ -32,7 +44,23 @@ fn authored_objects_run_through_protected_finite_base_and_production_kernel() {
         "objects",
         "detections",
         conduit_std_offers::LOCAL_VISION_OBJECTS_OPERATION,
-        conduit_semantic_catalog::local_vision_object_observations_type(),
+        conduit_semantic_catalog::vision_tracks_type(),
+        true,
+        false,
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn authored_ocr_runs_through_exact_provider_and_production_kernel() {
+    authored_local_vision_runs(
+        conduit_semantic_catalog::VISION_OCR_KIND,
+        "ocr",
+        "texts",
+        conduit_std_offers::LOCAL_VISION_OCR_OPERATION,
+        conduit_semantic_catalog::vision_texts_type(),
+        false,
+        true,
     );
 }
 
@@ -42,6 +70,8 @@ fn authored_local_vision_runs(
     output_port: &str,
     expected_operation: &str,
     output_type: conduit_core::StructuredInfoType,
+    track_objects: bool,
+    ocr: bool,
 ) {
     let image = conduit_semantic_catalog::deterministic_vision_fixture()
         .unwrap()
@@ -49,19 +79,37 @@ fn authored_local_vision_runs(
     let encoded = image.canonical_bytes().unwrap();
     let (_, resource, width, height) =
         crate::hosted_vision::decode_image_resource_for_test(&encoded);
-    let base = FiniteHostedVisionBase::new(
-        vec![HostedVisionFrame {
-            canonical_image: encoded.clone(),
-            resource,
-            width,
-            height,
-            grayscale_pixels: vec![0; usize::from(width) * usize::from(height)],
-        }],
+    let frame = HostedVisionFrame {
+        canonical_image: encoded.clone(),
+        resource,
         width,
         height,
-        4,
-        "finite-image-residence/plan-play-1",
-    )
+        grayscale_pixels: vec![0; usize::from(width) * usize::from(height)],
+    };
+    #[cfg(unix)]
+    let ocr_fixture = ocr.then(ocr_provider_fixture);
+    #[cfg(not(unix))]
+    let ocr_fixture: Option<(std::path::PathBuf, crate::TesseractOcrProvider)> = None;
+    let mut ocr_root = None;
+    let base = if let Some((root, provider)) = ocr_fixture {
+        ocr_root = Some(root);
+        FiniteHostedVisionBase::new_with_ocr(
+            vec![frame],
+            width,
+            height,
+            4,
+            "finite-image-residence/plan-play-1",
+            provider,
+        )
+    } else {
+        FiniteHostedVisionBase::new(
+            vec![frame],
+            width,
+            height,
+            4,
+            "finite-image-residence/plan-play-1",
+        )
+    }
     .unwrap();
     let mut host = StdHost::new_with_finite_vision(
         StdHostConfig {
@@ -83,10 +131,17 @@ fn authored_local_vision_runs(
         .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
     host.kernel_resources =
         crate::kernel_preparation::KernelResourceLedger::new(&host.advertisement).unwrap();
-    let source = format!(
-        "form proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n {gear_name}: {vision_kind}\n sink: conduit-test/local-model-result\n source.image > {gear_name}.image\n {gear_name}.{output_port} > sink.value\n}}\n",
-        hex(&encoded),
-    );
+    let source = if track_objects {
+        format!(
+            "form proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n {gear_name}: {vision_kind}\n track: vision/local-track\n sink: conduit-test/local-model-result\n source.image > {gear_name}.image\n {gear_name}.{output_port} > track.detections\n track.tracks > sink.value\n}}\n",
+            hex(&encoded),
+        )
+    } else {
+        format!(
+            "form proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n {gear_name}: {vision_kind}\n sink: conduit-test/local-model-result\n source.image > {gear_name}.image\n {gear_name}.{output_port} > sink.value\n}}\n",
+            hex(&encoded),
+        )
+    };
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "proof", &profile).unwrap();
     let hosts = [host.advertisement().clone()];
@@ -156,15 +211,30 @@ fn authored_local_vision_runs(
         conduit_core::BaseEnforcementClass::Cooperative
     );
     assert_eq!(
-        vision.host_operations[0].contract_id.as_str(),
+        vision.host_calls[0].contract_id.as_str(),
         expected_operation
     );
+    if track_objects {
+        let track = plan.fragments[0]
+            .placements
+            .iter()
+            .find(|placement| {
+                placement.kind_id.as_str() == conduit_semantic_catalog::VISION_TRACK_KIND
+            })
+            .unwrap();
+        assert!(track.resources.is_empty());
+        assert!(track.authority.is_empty());
+        assert_eq!(
+            track.host_calls[0].contract_id.as_str(),
+            conduit_std_offers::LOCAL_VISION_TRACK_OPERATION
+        );
+    }
 
     let report = host
         .run_fragment_to(
             plan.fragments[0].clone(),
             &mut Vec::with_capacity(2_048),
-            &mut RecordingTimer { waits: Vec::new() },
+            &mut VisionTimer,
         )
         .unwrap();
     assert!(matches!(
@@ -176,7 +246,42 @@ fn authored_local_vision_runs(
             disposition: TerminalDisposition::Completed
         })
     ));
-    assert_eq!(report.kernel.unwrap().post_play_start_allocations, 0);
+    let allocations = report.kernel.unwrap().post_play_start_allocations;
+    if !ocr {
+        // The in-process local CV and tracking Backs remain allocation-free
+        // after Play starts. The OCR Back invokes an admitted external provider.
+        assert_eq!(allocations, 0);
+    }
+    if let Some(root) = ocr_root {
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(unix)]
+fn ocr_provider_fixture() -> (std::path::PathBuf, crate::TesseractOcrProvider) {
+    use std::fs;
+    use std::os::unix::fs::PermissionsExt;
+    use std::time::Duration;
+
+    let root =
+        std::env::temp_dir().join(format!("conduit-local-vision-ocr-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir(&root).unwrap();
+    let executable = root.join("tesseract");
+    fs::write(
+        &executable,
+        "#!/bin/sh\ncat >/dev/null\nprintf 'level\\tpage_num\\tblock_num\\tpar_num\\tline_num\\tword_num\\tleft\\ttop\\twidth\\theight\\tconf\\ttext\\n5\\t1\\t1\\t1\\t1\\t1\\t0\\t0\\t1\\t1\\t95.0\\tCANTUS\\n'\n",
+    )
+    .unwrap();
+    fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
+    let provider = crate::TesseractOcrProvider::prepare(
+        &executable,
+        "eng",
+        conduit_semantic_catalog::MAXIMUM_LOCAL_CV_PIXELS,
+        Duration::from_secs(2),
+    )
+    .unwrap();
+    (root, provider)
 }
 
 fn catalogs(
@@ -217,15 +322,15 @@ fn catalogs(
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: conduit_core::kind_id(kind),
-            kind_contract_revision: KindContractRevision::from("conduit-test/structured-source@1"),
+            kind_contract_revision: KindIdentity::from("conduit-test/structured-source@1"),
             inputs: Vec::new(),
             outputs: offer.outputs.clone(),
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "value".into(),
                 default_value: conduit_core::ConfigurationValue::Text(String::new()),
-                validation: ConfigurationRule::TextBytes {
+                rule: KindConfigurationRule::TextBytes {
                     maximum: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 * 2,
                 },
             }],
@@ -238,12 +343,12 @@ fn catalogs(
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: sink_offer.kind_id.clone(),
             kind_contract_revision: sink_offer.kind_contract_revision.clone(),
             inputs: sink_offer.inputs.clone(),
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
     (startup, profile, offer, sink_offer)

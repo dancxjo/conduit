@@ -129,7 +129,7 @@ fn impression_contains_no_acquisition_presentation_or_action_authority() {
     for forbidden in [
         "MediaAcquisition",
         "AuthorityGrantId",
-        "HostOperationId",
+        "HostCallId",
         "PresentationAction",
         "BodyLifecycleEvent",
     ] {

@@ -1,11 +1,14 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, ImplementationId, KindContractRevision, PlannedGear, PortDescriptor,
-    PortDirection, PortTemporal, Scalar, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
+    ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
+    PortTemporal, Scalar, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
-use conduit_form::{KindDefinition, ProfileCatalog};
-use conduit_kernel::{OperationAction, PortId, ValueRef, ValueStorage};
+use conduit_form::{KindProjection, ProfileCatalog};
+use conduit_kernel::{
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    Failure, FailureCode, PortId, ValueRef, ValueStorage,
+};
 
 const KIND: &str = "conduit-test/logic-script";
 const REVISION: &str = "conduit-test/logic-script@1";
@@ -18,67 +21,67 @@ const SINK_PROFILE: &str = "conduit-test/logic-sink-kernel@1";
 const SINK_IMPLEMENTATION: &str = "conduit-test/logic-sink-kernel@1";
 const SINK_ARTIFACT: &str = "conduit-std-host/test-logic-sink@1";
 
-pub(super) static TEST_LOGIC_SCRIPT_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_LOGIC_SCRIPT_FACTORY: BackFactory = BackFactory {
     implementation_id: IMPLEMENTATION,
     budget,
     prepare,
 };
 
-pub(super) static TEST_LOGIC_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_LOGIC_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: SINK_IMPLEMENTATION,
     budget: sink_budget,
     prepare: prepare_sink,
 };
 
-pub(super) struct TestLogicScriptOperation {
+pub(super) struct TestLogicScriptBack {
     pub(super) values: [ValueRef; 4],
     pub(super) next: usize,
 }
 
-pub(super) struct TestLogicSinkOperation;
+pub(super) struct TestLogicSinkBack;
 
-impl TestLogicScriptOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.emit_or_complete()
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        self.emit_or_complete()
-    }
-
-    fn emit_or_complete(&self) -> OperationAction {
-        self.values
-            .get(self.next)
-            .copied()
-            .map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                port: PortId(u16::try_from(self.next).unwrap_or(u16::MAX)),
-                value,
-            })
-    }
-}
-
-impl TestLogicSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume_value(
-        &mut self,
-        port: PortId,
-        value: ValueRef,
-        canonical: &[u8],
-    ) -> OperationAction {
-        if port == PortId(0)
-            && value.byte_len == SCALAR_ENCODED_LEN as u32
-            && Scalar::decode(canonical) == Ok(Scalar::from_raw_microunits(-1))
-        {
-            OperationAction::Complete
-        } else {
-            InstalledOperation::fail(24)
+impl<const PORTS: usize> StepBack<PORTS> for TestLogicScriptBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        let Some(value) = self.values.get(self.next).copied() else {
+            return StepOutcome::Complete;
+        };
+        let port = PortId(u16::try_from(self.next).unwrap_or(u16::MAX));
+        if !io.output_ready(port) {
+            return StepOutcome::Await;
         }
+        io.send(port, value).expect("ready logic fixture output");
+        self.next += 1;
+        StepOutcome::Progress
     }
 }
+
+impl<const PORTS: usize> StepBack<PORTS> for TestLogicSinkBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        let Some(value) = io.input(PortId(0)) else {
+            return StepOutcome::Await;
+        };
+        let valid = value.byte_len == SCALAR_ENCODED_LEN as u32
+            && input_bytes
+                .input(PortId(0))
+                .is_some_and(|bytes| Scalar::decode(bytes) == Ok(Scalar::from_raw_microunits(-1)));
+        if !valid {
+            return StepOutcome::Fail(Failure {
+                code: FailureCode::InvalidLifecycle,
+                detail: 24,
+            });
+        }
+        io.consume(PortId(0)).expect("present logic fixture result");
+        StepOutcome::Complete
+    }
+}
+
+impl TestLogicScriptBack {}
+
+impl TestLogicSinkBack {}
 
 pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {
@@ -86,7 +89,7 @@ pub(super) fn offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-logic-script"),
         kind_id: kind_id(KIND),
-        kind_contract_revision: KindContractRevision::from(REVISION),
+        kind_contract_revision: KindIdentity::from(REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
@@ -97,7 +100,7 @@ pub(super) fn offer() -> CapabilityOffer {
             .into_iter()
             .map(scalar_output)
             .collect(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -114,7 +117,7 @@ pub(super) fn sink_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-logic-sink"),
         kind_id: kind_id(SINK_KIND),
-        kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+        kind_contract_revision: KindIdentity::from(SINK_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(SINK_PROFILE),
             implementation_id: ImplementationId::from(SINK_IMPLEMENTATION),
@@ -127,7 +130,7 @@ pub(super) fn sink_offer() -> CapabilityOffer {
             temporal: PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -140,21 +143,21 @@ pub(super) fn sink_offer() -> CapabilityOffer {
 
 pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(KIND),
-            kind_contract_revision: KindContractRevision::from(REVISION),
+            kind_contract_revision: KindIdentity::from(REVISION),
             inputs: Vec::new(),
             outputs: offer().outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .expect("logic script fixture kind is unique");
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(SINK_KIND),
-            kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+            kind_contract_revision: KindIdentity::from(SINK_REVISION),
             inputs: sink_offer().inputs,
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .expect("logic sink fixture kind is unique");
 }
@@ -168,9 +171,9 @@ fn scalar_output(name: &str) -> PortDescriptor {
     }
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 4,
         value_bytes: (SCALAR_ENCODED_LEN * 4) as u32,
         host_requests: 0,
@@ -182,7 +185,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     store: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
     let values = [
         Scalar::MIN,
@@ -199,14 +202,15 @@ fn prepare(
     .collect::<Result<Vec<_>, _>>()?
     .try_into()
     .map_err(|_| "logic fixture value count changed".to_string())?;
-    Ok(InstalledOperation::TestLogicScript(
-        TestLogicScriptOperation { values, next: 0 },
-    ))
+    Ok(InstalledBack::TestLogicScript(TestLogicScriptBack {
+        values,
+        next: 0,
+    }))
 }
 
-fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn sink_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate_sink(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 0,
@@ -218,9 +222,9 @@ fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_sink(
     placement: &PlannedGear,
     _store: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate_sink(placement)?;
-    Ok(InstalledOperation::TestLogicSink(TestLogicSinkOperation))
+    Ok(InstalledBack::TestLogicSink(TestLogicSinkBack))
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {

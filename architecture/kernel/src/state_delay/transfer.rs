@@ -2,7 +2,7 @@
 //!
 //! This is a numeric kernel mechanism, not migration permission. The caller must
 //! admit exact semantic identities, value kinds and destination realization
-//! before using it. It carries no Host operation, grant or Resource binding.
+//! before using it. It carries no Host Call, grant or Resource binding.
 
 use super::StateDelay;
 

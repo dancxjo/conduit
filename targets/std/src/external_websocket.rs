@@ -1,4 +1,4 @@
-//! Native adapter for the authored `net/websocket/listen` host operation.
+//! Native adapter for the authored `net/websocket/listen` Host Call.
 //! This is deliberately separate from the Conduit-session WebSocket line.
 
 use std::io;

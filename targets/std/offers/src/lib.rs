@@ -109,9 +109,7 @@ pub use microphone::*;
 mod vision;
 pub use vision::*;
 
-use conduit_core::{
-    CapabilityOffer, HostOperationContractId, HostOperationRequirement, SCALAR_ENCODED_LEN,
-};
+use conduit_core::{CapabilityOffer, HostCallContractId, HostCallRequirement, SCALAR_ENCODED_LEN};
 use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity};
 
 pub const LOGIC_COMPARE_SCALAR_IMPLEMENTATION: &str = "std/kernel-logic-compare-scalar@1";
@@ -120,9 +118,9 @@ pub const LOGIC_SELECT_SCALAR_IMPLEMENTATION: &str = "std/kernel-logic-select-sc
 pub const MATH_CLAMP_IMPLEMENTATION: &str = "std/kernel-math-clamp-scalar@1";
 pub const MATH_SCALE_IMPLEMENTATION: &str = "std/kernel-math-scale-scalar@1";
 pub const MATH_DEADBAND_IMPLEMENTATION: &str = "std/kernel-math-deadband-scalar@1";
-pub const MATH_CLAMP_HOST_OPERATION: &str = "conduit.host/math-clamp-scalar@1";
-pub const MATH_SCALE_HOST_OPERATION: &str = "conduit.host/math-scale-scalar@1";
-pub const MATH_DEADBAND_HOST_OPERATION: &str = "conduit.host/math-deadband-scalar@1";
+pub const MATH_CLAMP_HOST_CALL: &str = "conduit.host/math-clamp-scalar@1";
+pub const MATH_SCALE_HOST_CALL: &str = "conduit.host/math-scale-scalar@1";
+pub const MATH_DEADBAND_HOST_CALL: &str = "conduit.host/math-deadband-scalar@1";
 
 pub fn logic_compare_scalar_offer() -> CapabilityOffer {
     functional_offer(
@@ -168,7 +166,7 @@ pub fn math_clamp_offer() -> CapabilityOffer {
         "conduit.std/math-clamp-scalar-kernel@1",
         MATH_CLAMP_IMPLEMENTATION,
         "conduit-std-host/math-clamp-scalar@1",
-        Some(MATH_CLAMP_HOST_OPERATION),
+        Some(MATH_CLAMP_HOST_CALL),
     )
 }
 
@@ -180,7 +178,7 @@ pub fn math_scale_offer() -> CapabilityOffer {
         "conduit.std/math-scale-scalar-kernel@1",
         MATH_SCALE_IMPLEMENTATION,
         "conduit-std-host/math-scale-scalar@1",
-        Some(MATH_SCALE_HOST_OPERATION),
+        Some(MATH_SCALE_HOST_CALL),
     )
 }
 
@@ -192,7 +190,7 @@ pub fn math_deadband_offer() -> CapabilityOffer {
         "conduit.std/math-deadband-scalar-kernel@1",
         MATH_DEADBAND_IMPLEMENTATION,
         "conduit-std-host/math-deadband-scalar@1",
-        Some(MATH_DEADBAND_HOST_OPERATION),
+        Some(MATH_DEADBAND_HOST_CALL),
     )
 }
 
@@ -207,9 +205,9 @@ fn functional_offer(
     operation: Option<&str>,
 ) -> CapabilityOffer {
     let target = contract.kind_id.clone();
-    let host_operations = operation
-        .map(|operation| HostOperationRequirement {
-            contract_id: HostOperationContractId::from(operation),
+    let host_calls = operation
+        .map(|operation| HostCallRequirement {
+            contract_id: HostCallContractId::from(operation),
             target_kind: Some(target),
             maximum_in_flight: 1,
             maximum_input_bytes: SCALAR_ENCODED_LEN as u32,
@@ -226,7 +224,7 @@ fn functional_offer(
             implementation,
             artifact,
         },
-        host_operations,
+        host_calls,
         Vec::new(),
         Vec::new(),
     )

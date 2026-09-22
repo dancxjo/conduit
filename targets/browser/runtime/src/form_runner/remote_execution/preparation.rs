@@ -95,7 +95,7 @@ pub(super) fn validate<'a>(
             || gear.limits != offer.limits
             || gear.inputs != offer.inputs
             || gear.outputs != offer.outputs
-            || gear.host_operations != offer.host_operations
+            || gear.host_calls != offer.host_calls
             || !gear.authority.is_empty()
             || !offer.authority_requirements.is_empty()
         {

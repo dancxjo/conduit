@@ -1,8 +1,8 @@
 //! Finite browser source for an explicitly configured portable rhythm state.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ConfigurationValue, ExecutionProfileId, ImplementationId,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, ImplementationId,
 };
 use conduit_kernel::ValueStorage;
 
@@ -11,14 +11,14 @@ const IMPLEMENTATION: &str = "browser/kernel-rhythm-state-source@1";
 const ARTIFACT: &str = "conduit-browser-runtime/rhythm-state-source@1";
 
 fn offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_time::rhythm_state_source_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("rhythm-state-source"),
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations: vec![],
+            host_calls: vec![],
             resource_requirements: vec![],
             authority_requirements: vec![],
         },
@@ -29,7 +29,7 @@ fn offer() -> CapabilityOffer {
 fn prepare(
     placement: &conduit_core::PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<super::BrowserOperation, String> {
+) -> Result<super::BrowserBack, String> {
     super::factory::validate_placement(placement, &offer())?;
     let get = |key: &str| {
         placement
@@ -58,7 +58,7 @@ fn prepare(
     let value = values
         .store(&conduit_time::encode_rhythm_state(state))
         .map_err(|error| format!("admit rhythm state: {error:?}"))?;
-    Ok(super::BrowserOperation::source(value))
+    Ok(super::BrowserBack::source(value))
 }
 
 pub(super) static INSTALLATION: super::factory::BrowserInstallation =

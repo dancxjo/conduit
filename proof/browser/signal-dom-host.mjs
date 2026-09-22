@@ -87,7 +87,7 @@ export class BrowserDomHost {
       effect?.activePlayId,
       effect?.presentationId,
       effect?.signId,
-      effect?.hostOperationContractId,
+      effect?.hostCallContractId,
       effect?.placementId,
     ];
     const remoteIdentityFields = [
@@ -143,7 +143,7 @@ export class BrowserDomHost {
       requestNode: effect.requestNode,
       requestId: effect.requestId,
       operationId: effect.operationId,
-      hostOperationContractId: effect.hostOperationContractId,
+      hostCallContractId: effect.hostCallContractId,
       placementId: effect.placementId,
       sequence: presentation.sequence.toString(),
       level: presentation.level,
@@ -196,7 +196,7 @@ export class BrowserDomHost {
         requestNode: effect.requestNode,
         requestId: effect.requestId,
         operationId: effect.operationId,
-        hostOperationContractId: effect.hostOperationContractId,
+        hostCallContractId: effect.hostCallContractId,
         presentationId: effect.presentationId,
         signId: effect.signId,
         placementId: effect.placementId,

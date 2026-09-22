@@ -7,7 +7,7 @@
 //! - `abi`: thread-local state and `#[no_mangle]` WASM ABI exports.
 
 mod abi;
-mod operation;
+mod back;
 mod plan;
 mod sink;
 

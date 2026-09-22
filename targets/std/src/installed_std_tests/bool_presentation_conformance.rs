@@ -40,7 +40,7 @@ fn current_booleans_manifest_through_the_admitted_std_operation() {
         placement.implementation_id.as_str(),
         conduit_std_offers::BOOL_PRESENTATION_IMPLEMENTATION
     );
-    assert_eq!(placement.host_operations.len(), 1);
+    assert_eq!(placement.host_calls.len(), 1);
     assert_eq!(placement.resources.len(), 1);
 
     let mut output = Vec::with_capacity(1_024);

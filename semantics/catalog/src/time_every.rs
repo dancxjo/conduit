@@ -1,12 +1,12 @@
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    SemanticCapabilityContract,
+    kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, Quantity,
+    QuantityUnit,
 };
 
 pub fn time_every_contract() -> StandardKindContract {
@@ -18,12 +18,13 @@ pub fn time_every_contract() -> StandardKindContract {
                 .to_string(),
         inputs: Vec::new(),
         outputs: conduit_time::time_every_outputs(),
-        configuration: vec![StandardConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "freq".to_string(),
-            default_value: ConfigurationValue::U64(1_000),
-            rule: StandardConfigurationRule::DurationMillis {
+            default_value: ConfigurationValue::Quantity(Quantity::new(1_000, QuantityUnit::Millisecond)),
+            rule: KindConfigurationRule::QuantityRange {
                 minimum: 0,
-                maximum: u64::MAX,
+                maximum: i64::MAX,
+                canonical_unit: QuantityUnit::Millisecond,
             },
         }],
         limits: CapabilityLimits {
@@ -31,7 +32,7 @@ pub fn time_every_contract() -> StandardKindContract {
             max_queue_items: 4,
             max_queue_bytes: 64,
         },
-        terminal_behavior: TerminalBehavior::HostObservationEndsOrFailsSource,
+        terminal_behavior: KindTerminalBehavior::HostObservationEndsOrFailsSource,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
@@ -39,12 +40,12 @@ pub fn time_every_contract() -> StandardKindContract {
     }
 }
 
-pub fn time_every_semantic_contract() -> SemanticCapabilityContract {
+pub fn time_every_semantic_contract() -> Kind {
     let contract = time_every_contract();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "freq".into(),
-            value_type: kind_id("value/duration"),
+            value_type: kind_id(conduit_core::QUANTITY_INFO_ID),
             has_default: false,
         }],
         shorthand: None,
@@ -52,6 +53,10 @@ pub fn time_every_semantic_contract() -> SemanticCapabilityContract {
         kind_contract_revision: conduit_time::TIME_EVERY_CONTRACT_REVISION.into(),
         inputs: contract.inputs,
         outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
         limits: contract.limits,
     }
 }
@@ -71,7 +76,7 @@ mod tests {
         );
         assert_eq!(
             contract.terminal_behavior,
-            TerminalBehavior::HostObservationEndsOrFailsSource
+            KindTerminalBehavior::HostObservationEndsOrFailsSource
         );
         assert!(contract.browser_manifestation_honest);
         assert!(!contract.pico_manifestation_honest);
@@ -80,7 +85,7 @@ mod tests {
         let semantics = time_every_semantic_contract();
         assert_eq!(
             semantics.startup_parameters[0].value_type.as_str(),
-            "value/duration"
+            conduit_core::QUANTITY_INFO_ID
         );
         assert!(!semantics.startup_parameters[0].has_default);
     }

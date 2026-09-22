@@ -75,6 +75,10 @@ pub enum StructuredInfoTypeShape<'a> {
         element: &'a StructuredInfoType,
         length: u16,
     },
+    Sequence {
+        element: &'a StructuredInfoType,
+        capacity: u16,
+    },
     Record {
         schema: &'a KindId,
         fields: &'a [StructuredFieldType],
@@ -91,6 +95,10 @@ enum StructuredInfoTypeNode {
     Collection {
         element: alloc::boxed::Box<StructuredInfoType>,
         length: u16,
+    },
+    Sequence {
+        element: alloc::boxed::Box<StructuredInfoType>,
+        capacity: u16,
     },
     Record {
         schema: KindId,
@@ -162,6 +170,12 @@ impl StructuredInfoType {
                     length: *length,
                 }
             }
+            StructuredInfoTypeNode::Sequence { element, capacity } => {
+                StructuredInfoTypeShape::Sequence {
+                    element,
+                    capacity: *capacity,
+                }
+            }
             StructuredInfoTypeNode::Record { schema, fields } => {
                 StructuredInfoTypeShape::Record { schema, fields }
             }
@@ -188,6 +202,25 @@ impl StructuredInfoType {
         let value = Self(StructuredInfoTypeNode::Collection {
             element: alloc::boxed::Box::new(element),
             length,
+        });
+        value.validate_limits()?;
+        Ok(value)
+    }
+
+    /// A finite variable-length sequence whose actual length is carried by each value.
+    pub fn sequence(
+        element: StructuredInfoType,
+        capacity: u16,
+    ) -> Result<Self, StructuredInfoRefusal> {
+        if capacity == 0 {
+            return Err(StructuredInfoRefusal::EmptyShape);
+        }
+        if usize::from(capacity) > MAXIMUM_STRUCTURED_COLLECTION_ITEMS {
+            return Err(StructuredInfoRefusal::CollectionTooLarge);
+        }
+        let value = Self(StructuredInfoTypeNode::Sequence {
+            element: alloc::boxed::Box::new(element),
+            capacity,
         });
         value.validate_limits()?;
         Ok(value)
@@ -368,6 +401,22 @@ impl StructuredInfoValue {
             return Err(StructuredInfoRefusal::WrongType);
         };
         if values.len() != usize::from(*length) {
+            return Err(StructuredInfoRefusal::WrongCollectionLength);
+        }
+        if values.iter().any(|value| value.value_type != **element) {
+            return Err(StructuredInfoRefusal::WrongType);
+        }
+        Self::finish(value_type, StructuredInfoValueNode::Collection(values))
+    }
+
+    pub fn sequence(
+        value_type: StructuredInfoType,
+        values: Vec<StructuredInfoValue>,
+    ) -> Result<Self, StructuredInfoRefusal> {
+        let StructuredInfoTypeNode::Sequence { element, capacity } = &value_type.0 else {
+            return Err(StructuredInfoRefusal::WrongType);
+        };
+        if values.len() > usize::from(*capacity) {
             return Err(StructuredInfoRefusal::WrongCollectionLength);
         }
         if values.iter().any(|value| value.value_type != **element) {

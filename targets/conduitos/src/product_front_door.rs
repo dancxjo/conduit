@@ -630,6 +630,9 @@ pub fn run(
                         front_door.revision(),
                     )
                     .map_err(|error| error.as_str())?;
+                arch::early_write(
+                    format!("CONDUIT_PRODUCT_ACTION applied {}\n", action.as_str()).as_bytes(),
+                );
                 let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
                 emit_journey_sign(&journey.projection(), fabrication, &receipt);
                 return Ok(ProductInputControl::Continue);
@@ -678,11 +681,41 @@ pub fn run(
         .map_err(|error| error.as_str())?;
         let mut line =
             crate::product_usb_line::prepare(identities, controller_id, line_device, ready)?;
+        let peer_host_id = conduit_core::HostId::from(crate::product_usb_line::HARNESS_HOST_ID);
+        let peer_boot_id = conduit_core::BootId::from(crate::product_usb_line::HARNESS_BOOT_ID);
+        let peer_proof =
+            conduit_body::MembershipProofId::bind("conduitos/product/reviewed-qemu-line-peer")
+                .map_err(|_| "product-usb-line-membership-proof-invalid")?;
+        let mut peer_part = None;
         line.run(
             controller,
             line_device,
             body_id.as_str(),
             |status, line_id, value| {
+                match status {
+                    crate::front_door::ConnectivityStatus::PeerAttached => {
+                        peer_part = Some(
+                            journey
+                                .admit_line_peer(
+                                    peer_host_id.clone(),
+                                    peer_boot_id.clone(),
+                                    peer_proof.clone(),
+                                )
+                                .map_err(|error| error.as_str())?,
+                        );
+                    }
+                    crate::front_door::ConnectivityStatus::Lost => {
+                        journey
+                            .observe_line_peer_offline(
+                                peer_part
+                                    .as_ref()
+                                    .ok_or("product-usb-line-peer-not-admitted")?,
+                                &peer_boot_id,
+                            )
+                            .map_err(|error| error.as_str())?;
+                    }
+                    _ => {}
+                }
                 front_door
                     .observe_connectivity(crate::front_door::ConnectivityProjection {
                         line_id: line_id.into(),
@@ -691,9 +724,8 @@ pub fn run(
                         body_id: body_id.clone(),
                     })
                     .map_err(|error| error.as_str())?;
-                presenter
-                    .present(&front_door, display)
-                    .map_err(|error| error.as_str())?;
+                let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
+                emit_journey_sign(&journey.projection(), fabrication, &receipt);
                 Ok(())
             },
         )?;

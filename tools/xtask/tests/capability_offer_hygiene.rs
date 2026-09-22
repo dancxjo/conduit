@@ -112,7 +112,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
         "semantic contract owner",
     ),
     (
-        "semantics/catalog/src/robotics_structured_catalog.rs",
+        "semantics/robotics/src/structured.rs",
         0,
         "semantic contract owner",
     ),
@@ -547,7 +547,7 @@ const MIGRATED_PRODUCTION_PATHS: &[(&str, usize, &str)] = &[
     ),
     ("targets/std/src/installed_std/http.rs", 0, "fully migrated"),
     (
-        "targets/std/src/installed_std/recorded_speech_operation.rs",
+        "targets/std/src/installed_std/recorded_speech_back.rs",
         0,
         "fully migrated",
     ),
@@ -737,9 +737,9 @@ fn migrated_production_offers_cannot_restate_capability_truth() {
                 "{relative}: expected {expected_raw_literals} reviewed raw literal(s) ({reason}), found {raw_literals}; update the ratchet when migrating debt"
             ));
         }
-        if !source.contains("CapabilityOfferBuilder")
+        if !source.contains("BackOfferBuilder")
             && !source.contains("realization_offer")
-            && !source.contains("SemanticCapabilityContract")
+            && !source.contains("Kind")
         {
             violations.push(format!(
                 "{relative}: lost the canonical capability-offer construction path"

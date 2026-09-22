@@ -1,16 +1,17 @@
 //! Optional bounded audible embodiment of one exact frequency quantity.
 use super::{
     factory::{validate_placement, BrowserInstallation},
-    BrowserOperation,
+    BrowserBack,
 };
-use conduit_core::{kind_id, HostOperationRequirement, PlannedGear, QUANTITY_ENCODED_LEN};
+use conduit_core::{kind_id, HostCallRequirement, PlannedGear, QUANTITY_ENCODED_LEN};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId, RequestId,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
+    PortId, RequestId,
 };
 
 pub(crate) const IMPLEMENTATION: &str = "browser/pitch-tone@1";
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-pitch-tone@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-pitch-tone@1";
 pub(crate) static INSTALLATION: BrowserInstallation = BrowserInstallation {
     implementation_id: IMPLEMENTATION,
     offer,
@@ -28,8 +29,8 @@ fn offer() -> conduit_core::CapabilityOffer {
             implementation: IMPLEMENTATION,
             artifact: "conduit-browser-runtime/pitch-tone@1",
         },
-        vec![HostOperationRequirement {
-            contract_id: HOST_OPERATION.into(),
+        vec![HostCallRequirement {
+            contract_id: HOST_CALL.into(),
             target_kind: Some(kind_id("sound/optional-bounded-pitch-tone")),
             maximum_in_flight: 1,
             maximum_input_bytes: QUANTITY_ENCODED_LEN as u32,
@@ -43,9 +44,9 @@ fn offer() -> conduit_core::CapabilityOffer {
     )
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
-    Ok(BrowserOperation::installed(PitchTone {
+    Ok(BrowserBack::installed_step(PitchTone {
         pending: None,
         next: 0,
     }))
@@ -56,66 +57,64 @@ struct PitchTone {
     next: u32,
 }
 
-fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
+fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::InvalidLifecycle,
         detail,
     })
 }
 
-impl Operation for PitchTone {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => {
-                let Ok(input) = BoundedValueRef::new(value, QUANTITY_ENCODED_LEN as u32) else {
-                    return invalid(1);
-                };
-                let request = RequestId(self.next);
-                self.pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(0),
-                    input,
-                }
-            }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request) && outcome.output.is_none() =>
-            {
+impl<const PORTS: usize> StepBack<PORTS> for PitchTone {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending == Some(request) && outcome.output.is_none() {
                 let valid = match outcome.disposition {
-                    HostOperationDisposition::Completed => outcome.failure.is_none(),
-                    HostOperationDisposition::Denied => outcome
+                    HostCallDisposition::Completed => outcome.failure.is_none(),
+                    HostCallDisposition::Denied => outcome
                         .failure
-                        .is_some_and(|failure| failure.code == FailureCode::HostOperationDenied),
-                    HostOperationDisposition::Failed => outcome
+                        .is_some_and(|failure| failure.code == FailureCode::HostCallDenied),
+                    HostCallDisposition::Failed => outcome
                         .failure
-                        .is_some_and(|failure| failure.code == FailureCode::HostOperationFailed),
-                    HostOperationDisposition::Cancelled => false,
+                        .is_some_and(|failure| failure.code == FailureCode::HostCallFailed),
+                    HostCallDisposition::Cancelled => false,
                 };
                 if !valid {
                     return invalid(2);
                 }
-                self.pending = None;
                 let Some(next) = self.next.checked_add(1) else {
-                    return OperationAction::Fail(Failure {
+                    return StepOutcome::Fail(Failure {
                         code: FailureCode::IdentityCapacityExhausted,
                         detail: 1,
                     });
                 };
+                io.consume_host_completion()
+                    .expect("observed pitch-tone completion");
+                self.pending = None;
                 self.next = next;
-                OperationAction::Await
+                return StepOutcome::Progress;
             }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => invalid(3),
+            return invalid(3);
         }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_none() {
+                let Ok(input) = BoundedValueRef::new(value, QUANTITY_ENCODED_LEN as u32) else {
+                    return invalid(1);
+                };
+                let request = RequestId(self.next);
+                io.consume(PortId(0)).expect("present pitch-tone input");
+                io.request_host_call(request, HostCallId(0), input)
+                    .expect("pitch-tone Host Call");
+                self.pending = Some(request);
+                return StepOutcome::Progress;
+            }
+            return invalid(3);
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed pitch-tone closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {

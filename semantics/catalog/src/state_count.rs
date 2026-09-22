@@ -1,5 +1,5 @@
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
@@ -7,10 +7,10 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 #[cfg(feature = "form-catalog")]
-use conduit_core::KindContractRevision;
+use conduit_core::KindIdentity;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 
 pub const STATE_COUNT_KIND: &str = "state/count";
@@ -48,10 +48,10 @@ pub fn state_count_contract() -> StandardKindContract {
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
         }],
-        configuration: vec![StandardConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "start".to_string(),
             default_value: ConfigurationValue::U64(0),
-            rule: StandardConfigurationRule::U64Range {
+            rule: KindConfigurationRule::U64Range {
                 minimum: 0,
                 maximum: u64::MAX,
             },
@@ -61,7 +61,7 @@ pub fn state_count_contract() -> StandardKindContract {
             max_queue_items: 4,
             max_queue_bytes: 64,
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
@@ -69,15 +69,19 @@ pub fn state_count_contract() -> StandardKindContract {
     }
 }
 
-pub fn state_count_semantic_contract() -> SemanticCapabilityContract {
+pub fn state_count_semantic_contract() -> Kind {
     let contract = state_count_contract();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: super::startup_front(&contract.configuration),
         shorthand: None,
         kind_id: contract.kind_id,
         kind_contract_revision: STATE_COUNT_CONTRACT_REVISION.into(),
         inputs: contract.inputs,
         outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
         limits: contract.limits,
     }
 }
@@ -95,13 +99,13 @@ pub fn count_presentation_contract() -> StandardKindContract {
             temporal: PortTemporal::Current,
         }],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 4,
             max_queue_bytes: 64,
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
@@ -114,7 +118,9 @@ pub fn install_count_pipeline_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, KindSignature};
+    use conduit_form::{
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    };
     for (contract, revision) in [
         (state_count_contract(), STATE_COUNT_CONTRACT_REVISION),
         (
@@ -138,20 +144,20 @@ pub fn install_count_pipeline_catalogs(
                 .collect(),
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration: contract
                     .configuration
                     .into_iter()
-                    .map(|field| ConfigurationField {
+                    .map(|field| KindConfigurationField {
                         key: field.key,
                         default_value: field.default_value,
-                        validation: match field.rule {
-                            StandardConfigurationRule::U64Range { minimum, maximum } => {
-                                ConfigurationRule::U64Range { minimum, maximum }
+                        rule: match field.rule {
+                            KindConfigurationRule::U64Range { minimum, maximum } => {
+                                KindConfigurationRule::U64Range { minimum, maximum }
                             }
                             _ => unreachable!("count family only has Count ranges"),
                         },

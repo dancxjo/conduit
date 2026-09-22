@@ -307,6 +307,10 @@ fn encode_configuration_value(
             push_field(output, value.profile().as_str())?;
             push_blob(output, value.canonical_value())?;
         }
+        ConfigurationValue::Quantity(value) => {
+            output.push(6);
+            output.extend_from_slice(&value.encode());
+        }
     }
     Ok(())
 }
@@ -340,6 +344,18 @@ fn decode_configuration_value(
             conduit_core::StructuredConfigurationValue::new(profile, canonical)
                 .map(ConfigurationValue::Structured)
                 .ok_or(InteractionError::MalformedValue)
+        }
+        6 => {
+            let end = cursor
+                .checked_add(conduit_core::QUANTITY_ENCODED_LEN)
+                .ok_or(InteractionError::MalformedValue)?;
+            let encoded = input
+                .get(*cursor..end)
+                .ok_or(InteractionError::MalformedValue)?;
+            *cursor = end;
+            conduit_core::Quantity::decode(encoded)
+                .map(ConfigurationValue::Quantity)
+                .map_err(|_| InteractionError::MalformedValue)
         }
         _ => Err(InteractionError::MalformedValue),
     }

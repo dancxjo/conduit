@@ -278,9 +278,9 @@ fn capability_is_ready(
         .iter()
         .any(|item| item == implementation);
     if (!built_implementation && !built_presenter)
-        || offer.host_operations.iter().any(|requirement| {
+        || offer.host_calls.iter().any(|requirement| {
             !manifest
-                .host_operations
+                .host_calls
                 .iter()
                 .any(|item| item == requirement.contract_id.as_str())
         })
@@ -323,7 +323,7 @@ fn runtime_node_ready(
     }
     let ready = match node {
         PrerequisiteNode::Implementation(value) => manifest.implementations.contains(value),
-        PrerequisiteNode::HostOperation(value) => manifest.host_operations.contains(value),
+        PrerequisiteNode::HostCall(value) => manifest.host_calls.contains(value),
         PrerequisiteNode::Resource(value) => facts.ready_resource_classes.contains(value),
         PrerequisiteNode::Base(value) => {
             manifest

@@ -3,8 +3,8 @@
 use std::{io::Write, thread};
 
 use conduit_kernel::{
-    scheduler::{HostOperationRequest, RemoteIngressOutcome, SchedulerStatus},
-    HostOperationDisposition, HostOperationOutcome, RemoteEndpointId,
+    scheduler::{HostCallRequest, RemoteIngressOutcome, SchedulerStatus},
+    HostCallDisposition, HostCallOutcome, RemoteEndpointId,
 };
 use conduit_plan_lowering::lowering::RemoteCordDirection;
 use conduit_std_host::{
@@ -68,23 +68,23 @@ fn drive_sink(
 
 fn complete_text_presentation(
     runtime: &mut InstalledRemoteFragment,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     output: &mut impl Write,
 ) -> Result<(), String> {
     let work = runtime.describe_host_request(request)?;
-    if work.contract_id.as_str() != conduit_core::PRESENT_HOST_OPERATION_CONTRACT {
+    if work.contract_id.as_str() != conduit_core::PRESENT_HOST_CALL_CONTRACT {
         return Err(format!(
-            "unexpected two-Host operation {}",
+            "unexpected two-Host Call {}",
             work.contract_id.as_str()
         ));
     }
     let text =
         core::str::from_utf8(&work.input).map_err(|_| "presented two-Host text is not UTF-8")?;
     writeln!(output, "{text}").map_err(|error| error.to_string())?;
-    runtime.complete_host_operation(
+    runtime.complete_host_call(
         request,
-        HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output: None,
             failure: None,
         },

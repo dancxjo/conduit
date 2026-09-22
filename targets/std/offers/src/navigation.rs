@@ -1,9 +1,9 @@
 //! Finite hosted std offers for the portable navigation waist.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    SemanticCapabilityContract, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub const NAVIGATION_STD_ARTIFACT: &str = "conduit-std-host/navigation@1";
@@ -78,7 +78,7 @@ pub fn navigation_std_offers() -> Vec<CapabilityOffer> {
 }
 
 fn navigation_offer(
-    contract: SemanticCapabilityContract,
+    contract: Kind,
     capability: &str,
     profile: &str,
     implementation: &str,
@@ -87,27 +87,27 @@ fn navigation_offer(
     assert_eq!(
         contract.inputs.len(),
         operation_contracts.len(),
-        "each navigation input requires one exact host operation"
+        "each navigation input requires one exact Host Call"
     );
     let target_kind = contract.kind_id.clone();
-    let host_operations = operation_contracts
+    let host_calls = operation_contracts
         .iter()
-        .map(|operation_contract| HostOperationRequirement {
-            contract_id: HostOperationContractId::from(*operation_contract),
+        .map(|operation_contract| HostCallRequirement {
+            contract_id: HostCallContractId::from(*operation_contract),
             target_kind: Some(target_kind.clone()),
             maximum_in_flight: 1,
             maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
             maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         })
         .collect();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(NAVIGATION_STD_ARTIFACT),
-            host_operations,
+            host_calls,
             resource_requirements: vec![],
             authority_requirements: vec![],
         },
@@ -115,7 +115,7 @@ fn navigation_offer(
     .build()
 }
 
-fn navigation_contract(expected_kind: &str) -> SemanticCapabilityContract {
+fn navigation_contract(expected_kind: &str) -> Kind {
     conduit_semantic_catalog::navigation_semantic_contracts()
         .into_iter()
         .find(|contract| contract.kind_id.as_str() == expected_kind)
@@ -145,9 +145,9 @@ mod tests {
     }
 
     #[test]
-    fn every_input_has_one_finite_authority_free_host_operation() {
+    fn every_input_has_one_finite_authority_free_host_call() {
         for offer in navigation_std_offers() {
-            assert_eq!(offer.host_operations.len(), offer.inputs.len());
+            assert_eq!(offer.host_calls.len(), offer.inputs.len());
             assert!(offer.resource_requirements.is_empty());
             assert!(offer.authority_requirements.is_empty());
             assert_eq!(offer.limits.max_queue_items as usize, offer.inputs.len());
@@ -155,7 +155,7 @@ mod tests {
                 offer.limits.max_queue_bytes,
                 offer.inputs.len() as u32 * MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
             );
-            for operation in &offer.host_operations {
+            for operation in &offer.host_calls {
                 assert_eq!(operation.target_kind.as_ref(), Some(&offer.kind_id));
                 assert_eq!(operation.maximum_in_flight, 1);
                 assert_eq!(

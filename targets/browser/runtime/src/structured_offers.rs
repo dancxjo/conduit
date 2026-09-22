@@ -1,9 +1,9 @@
 //! Browser-owned realizations of portable structured-value contracts.
 
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_requirement, ArtifactId, CapabilityId,
-    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId,
-    ImplementationId, StructuredInfoType, PRESENTATION_RESOURCE_CLASS,
+    kind_id, present_host_call_requirement, resource_requirement, ArtifactId, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, ImplementationId,
+    StructuredInfoType, PRESENTATION_RESOURCE_CLASS,
 };
 
 pub(crate) struct BrowserOfferIdentity<'a> {
@@ -42,15 +42,15 @@ fn offer(
     identity: BrowserOfferIdentity<'_>,
     presentation: bool,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract.into(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(identity.capability),
             execution_profile_id: ExecutionProfileId::from(identity.profile),
             implementation_id: ImplementationId::from(identity.implementation),
             artifact_id: ArtifactId::from(identity.artifact),
-            host_operations: if presentation {
-                vec![present_host_operation_requirement(
+            host_calls: if presentation {
+                vec![present_host_call_requirement(
                     kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET),
                     conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
                 )]

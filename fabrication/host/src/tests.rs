@@ -58,7 +58,7 @@ fn aarch64_virt_profile_closes_the_exact_linear_serial_presenter() {
     let validated = validate_profile(profile.clone(), &catalog).unwrap();
     assert_eq!(validated.profile().target.key(), "conduitos/aarch64/virt");
     for required in [
-        "host-operation:conduit.host/present@1",
+        "host-call:conduit.host/present@1",
         "base:serial/text",
         "driver:conduitos/pl011@1",
     ] {
@@ -95,7 +95,7 @@ fn canonical_identity_ignores_declaration_order_but_not_meaning() {
     let expected = validate_profile(profile.clone(), &catalog).unwrap();
     let mut reordered = profile.clone();
     reordered.exclusions.reverse();
-    reordered.host_operations.reverse();
+    reordered.host_calls.reverse();
     reordered.resources.reverse();
     let actual = validate_profile(reordered, &catalog).unwrap();
     assert_eq!(expected.profile_id(), actual.profile_id());
@@ -114,17 +114,17 @@ fn canonical_std_offer_metadata_drives_exact_prerequisites() {
     let validated = validate_profile(profile.clone(), &catalog).unwrap();
     assert!(validated.dependency_paths().keys().any(|path| {
         path.contains("capability:time/tick@conduit.std/time-tick@2")
-            && path.contains("host-operation:conduit.host/wait@1")
+            && path.contains("host-call:conduit.host/wait@1")
     }));
 
     let mut missing = profile;
-    missing.host_operations.clear();
+    missing.host_calls.clear();
     let diagnostics = validate_profile(missing, &catalog).unwrap_err();
     assert!(diagnostics.iter().any(|diagnostic| matches!(
         diagnostic,
         ProfileDiagnostic::UnsatisfiedPrerequisite { requester, missing }
             if requester.contains("time/tick")
-                && missing == "host-operation:conduit.host/wait@1"
+                && missing == "host-call:conduit.host/wait@1"
     )));
 }
 
@@ -276,7 +276,7 @@ fn build_identity_uses_canonical_profile_meaning_not_declaration_order() {
     let profile = parse(STD_COMPUTER);
     let expected = test_build_host_image(profile.clone(), &catalog, &build_inputs()).unwrap();
     let mut reordered = profile;
-    reordered.host_operations.reverse();
+    reordered.host_calls.reverse();
     reordered.resources.reverse();
     reordered.presenters.reverse();
     let actual = test_build_host_image(reordered, &catalog, &build_inputs()).unwrap();

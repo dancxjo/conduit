@@ -54,7 +54,7 @@ fn unrelated_arithmetic_lesson_is_one_ordinary_plannable_form() {
     assert_eq!(plan.fragments[0].placements.len(), 2);
     for placement in &plan.fragments[0].placements {
         assert_eq!(
-            placement.host_operations[0].contract_id.as_str(),
+            placement.host_calls[0].contract_id.as_str(),
             DOMAIN_PROOF_OPERATION
         );
         assert!(placement.resources.is_empty());
@@ -177,10 +177,10 @@ fn lesson_state_and_hints_are_bounded_without_retained_learner_history() {
         .find(|field| field.name() == "hints")
         .unwrap()
         .value_type();
-    let StructuredInfoTypeShape::Collection { length, .. } = hints.shape() else {
-        panic!("hints must be a collection")
+    let StructuredInfoTypeShape::Sequence { capacity, .. } = hints.shape() else {
+        panic!("hints must be a bounded sequence")
     };
-    assert_eq!(length, MAXIMUM_EDUCATION_HINTS);
+    assert_eq!(capacity, MAXIMUM_EDUCATION_HINTS);
 
     let progress = education_progress_type();
     let rendered = format!("{progress:?}").to_ascii_lowercase();

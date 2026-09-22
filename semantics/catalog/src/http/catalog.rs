@@ -1,6 +1,6 @@
 //! Semantic-catalog descriptions projected from host-neutral HTTP contracts.
 
-use crate::{StandardKindContract, TerminalBehavior};
+use crate::{KindTerminalBehavior, StandardKindContract};
 use alloc::{string::ToString, vec, vec::Vec};
 
 pub fn http_contracts() -> Vec<StandardKindContract> {
@@ -12,7 +12,7 @@ pub fn http_client_contract() -> StandardKindContract {
         conduit_web::http_client_semantics(),
         "HTTP client",
         "Perform finite, explicitly authorized HTTP exchanges without implicit redirects, retries, cookies, caching, credentials, or decompression.",
-        TerminalBehavior::MirrorsInputTerminal,
+        KindTerminalBehavior::MirrorsInputTerminal,
         "client: http/client",
     )
 }
@@ -22,7 +22,7 @@ pub fn http_server_contract() -> StandardKindContract {
         conduit_web::http_server_semantics(),
         "HTTP server",
         "Expose finite inbound HTTP requests and accept exactly correlated responses; routing and authentication remain surrounding semantic work.",
-        TerminalBehavior::HostInputEndsOrFailsSource,
+        KindTerminalBehavior::HostInputEndsOrFailsSource,
         "server: http/server",
     )
 }
@@ -31,7 +31,7 @@ fn describe(
     contract: conduit_web::PortableKindContract,
     plain_name: &str,
     summary: &str,
-    terminal_behavior: TerminalBehavior,
+    terminal_behavior: KindTerminalBehavior,
     example: &str,
 ) -> StandardKindContract {
     StandardKindContract {
@@ -40,7 +40,7 @@ fn describe(
         summary: summary.to_string(),
         inputs: contract.inputs,
         outputs: contract.outputs,
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: contract.limits,
         terminal_behavior,
         hosted_implementation_required: true,

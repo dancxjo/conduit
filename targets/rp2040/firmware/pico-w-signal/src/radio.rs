@@ -5,7 +5,9 @@
 //!   PIN_23 (power), PIN_24 (DIO), PIN_25 (CS), PIN_29 (clock)
 
 use cyw43::Control;
-use cyw43_pio::{PioSpi, RM2_CLOCK_DIVIDER};
+use cyw43_pio::PioSpi;
+#[cfg(any(feature = "bluetooth-line", feature = "distributed-lenia"))]
+use cyw43_pio::RM2_CLOCK_DIVIDER;
 use embassy_executor::Spawner;
 use embassy_rp::{
     bind_interrupts, dma,

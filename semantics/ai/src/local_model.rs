@@ -8,9 +8,9 @@
 
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    compute_resource_requirement, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ComputeServiceGuarantee,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
+    compute_resource_requirement, resource_requirement, ArtifactId, Back, BackOfferBuilder,
+    CapabilityId, CapabilityLimits, CapabilityOffer, ComputeServiceGuarantee, ExecutionProfileId,
+    HostCallContractId, HostCallRequirement, ImplementationId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -266,8 +266,8 @@ impl LocalModelOffer {
 
     fn capability_offer(&self, profile: LocalModelKindProfile) -> CapabilityOffer {
         let contract = llm_contract(profile.kind()).expect("local profiles name catalogued kinds");
-        let operation = HostOperationRequirement {
-            contract_id: HostOperationContractId::from(LOCAL_MODEL_OPERATION),
+        let operation = HostCallRequirement {
+            contract_id: HostCallContractId::from(LOCAL_MODEL_OPERATION),
             target_kind: Some(contract.kind_id.clone()),
             maximum_in_flight: self.limits.maximum_in_flight,
             maximum_input_bytes: self.limits.work.maximum_input_bytes as u32,
@@ -302,9 +302,9 @@ impl LocalModelOffer {
         ];
         resource_requirements.sort();
         let semantic_maximum_queue_items = contract.limits.max_queue_items;
-        CapabilityOfferBuilder::new(
+        BackOfferBuilder::new(
             contract.into_capability_contract(),
-            CapabilityRealization {
+            Back {
                 capability_id: CapabilityId::from(alloc::format!(
                     "{LOCAL_MODEL_CAPABILITY_PREFIX}/{}",
                     profile.kind()
@@ -315,7 +315,7 @@ impl LocalModelOffer {
                     "{LOCAL_MODEL_ARTIFACT}/{}",
                     self.identity.model_content_identity
                 )),
-                host_operations: vec![operation],
+                host_calls: vec![operation],
                 resource_requirements,
                 authority_requirements: Vec::new(),
             },

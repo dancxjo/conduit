@@ -59,8 +59,8 @@ fn native_presenter_offer() -> conduit_core::CapabilityOffer {
         execution_profile_id: conduit_core::ExecutionProfileId::from("conduitos/native@1"),
         implementation_id: conduit_core::ImplementationId::from("presenter/native-graphical@1"),
         artifact_id: conduit_core::ArtifactId::from("conduitos/native-image@1"),
-        host_operation: conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from("conduit.host/present@1"),
+        host_call: conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from("conduit.host/present@1"),
             target_kind: Some(conduit_core::kind_id(
                 "presentation/base/native-compositor@1",
             )),

@@ -56,7 +56,7 @@ where
             if kernel.is_timer_request(&request) {
                 let interest = kernel
                     .timer_interest(request)
-                    .map_err(|_| MachineRunError::UnexpectedHostOperation)?;
+                    .map_err(|_| MachineRunError::UnexpectedHostCall)?;
                 timer
                     .arm(interest)
                     .map_err(|_| MachineRunError::TimerBaseFailure)?;
@@ -111,13 +111,13 @@ where
                     .map_err(|_| MachineRunError::KernelFailure)?;
                 continue;
             }
-            return Err(MachineRunError::UnexpectedHostOperation);
+            return Err(MachineRunError::UnexpectedHostCall);
         }
 
         match kernel.step().map_err(|_| MachineRunError::KernelFailure)? {
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Idle => {
-                if kernel.pending_host_operations() == 0 {
+                if kernel.pending_host_calls() == 0 {
                     return Err(MachineRunError::FalseIdle);
                 }
                 idle.wait_for_interrupt()
@@ -135,7 +135,7 @@ where
                     idle_entries: idle.idle_count(),
                     serial_presentations: serial.presentation_count(),
                     clock_monotonic: clock.now() >= started,
-                    pending_host_operations: kernel.pending_host_operations() as u8,
+                    pending_host_calls: kernel.pending_host_calls() as u8,
                     overlap_witness,
                     timer_pending_during_text_progress: overlap_witness,
                     physical_parallelism: false,

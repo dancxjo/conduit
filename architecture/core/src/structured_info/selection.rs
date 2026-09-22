@@ -21,7 +21,7 @@ pub enum UnmatchedVariantDisposition {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum StructuredSelectorOperation {
+enum StructuredSelectorBack {
     Field(String),
     Index(u16),
     Variant {
@@ -35,7 +35,7 @@ enum StructuredSelectorOperation {
 pub struct StructuredSelector {
     input_type: StructuredInfoType,
     output_type: StructuredInfoType,
-    operation: StructuredSelectorOperation,
+    operation: StructuredSelectorBack,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -174,7 +174,7 @@ impl StructuredSelector {
         Ok(Self {
             input_type,
             output_type,
-            operation: StructuredSelectorOperation::Field(field),
+            operation: StructuredSelectorBack::Field(field),
         })
     }
 
@@ -192,7 +192,7 @@ impl StructuredSelector {
         Ok(Self {
             input_type,
             output_type,
-            operation: StructuredSelectorOperation::Index(index),
+            operation: StructuredSelectorBack::Index(index),
         })
     }
 
@@ -214,7 +214,7 @@ impl StructuredSelector {
         Ok(Self {
             input_type,
             output_type,
-            operation: StructuredSelectorOperation::Variant { tag, unmatched },
+            operation: StructuredSelectorBack::Variant { tag, unmatched },
         })
     }
 
@@ -228,8 +228,8 @@ impl StructuredSelector {
 
     pub fn unmatched_disposition(&self) -> Option<UnmatchedVariantDisposition> {
         match self.operation {
-            StructuredSelectorOperation::Variant { unmatched, .. } => Some(unmatched),
-            StructuredSelectorOperation::Field(_) | StructuredSelectorOperation::Index(_) => None,
+            StructuredSelectorBack::Variant { unmatched, .. } => Some(unmatched),
+            StructuredSelectorBack::Field(_) | StructuredSelectorBack::Index(_) => None,
         }
     }
 
@@ -242,15 +242,15 @@ impl StructuredSelector {
             .map_err(|_| StructuredSelectorRefusal::CanonicalEncodingTooLarge)?;
         push_bytes(&mut encoded, &input);
         match &self.operation {
-            StructuredSelectorOperation::Field(field) => {
+            StructuredSelectorBack::Field(field) => {
                 encoded.push(0);
                 push_bytes(&mut encoded, field.as_bytes());
             }
-            StructuredSelectorOperation::Index(index) => {
+            StructuredSelectorBack::Index(index) => {
                 encoded.push(1);
                 encoded.extend_from_slice(&index.to_le_bytes());
             }
-            StructuredSelectorOperation::Variant { tag, unmatched } => {
+            StructuredSelectorBack::Variant { tag, unmatched } => {
                 encoded.push(2);
                 push_bytes(&mut encoded, tag.as_bytes());
                 encoded.push(match unmatched {
@@ -293,24 +293,22 @@ impl StructuredSelector {
             return Err(StructuredSelectorRefusal::WrongInputType);
         }
         match (&self.operation, &input.node) {
+            (StructuredSelectorBack::Field(field), StructuredInfoValueNode::Record(fields)) => {
+                fields
+                    .iter()
+                    .find(|candidate| candidate.name == *field)
+                    .map(|field| StructuredSelection::Matched(field.value.clone()))
+                    .ok_or(StructuredSelectorRefusal::MalformedCheckedValue)
+            }
+            (StructuredSelectorBack::Index(index), StructuredInfoValueNode::Collection(values)) => {
+                values
+                    .get(usize::from(*index))
+                    .cloned()
+                    .map(StructuredSelection::Matched)
+                    .ok_or(StructuredSelectorRefusal::MalformedCheckedValue)
+            }
             (
-                StructuredSelectorOperation::Field(field),
-                StructuredInfoValueNode::Record(fields),
-            ) => fields
-                .iter()
-                .find(|candidate| candidate.name == *field)
-                .map(|field| StructuredSelection::Matched(field.value.clone()))
-                .ok_or(StructuredSelectorRefusal::MalformedCheckedValue),
-            (
-                StructuredSelectorOperation::Index(index),
-                StructuredInfoValueNode::Collection(values),
-            ) => values
-                .get(usize::from(*index))
-                .cloned()
-                .map(StructuredSelection::Matched)
-                .ok_or(StructuredSelectorRefusal::MalformedCheckedValue),
-            (
-                StructuredSelectorOperation::Variant { tag, unmatched },
+                StructuredSelectorBack::Variant { tag, unmatched },
                 StructuredInfoValueNode::Variant {
                     tag: actual,
                     payload,

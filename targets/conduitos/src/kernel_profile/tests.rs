@@ -1,7 +1,7 @@
 use super::*;
 use conduit_kernel::{KernelEventKind, SignError, SignQuery};
 
-fn reach_timer_request(profile: &mut KernelProfile) -> HostOperationRequest {
+fn reach_timer_request(profile: &mut KernelProfile) -> HostCallRequest {
     assert!(matches!(
         profile.step().unwrap(),
         SchedulerStatus::Progress { .. }
@@ -33,18 +33,18 @@ fn production_kernel_owns_timer_to_serial_progress() {
             break;
         }
     }
-    assert_eq!(profile.pending_host_operations(), 0);
+    assert_eq!(profile.pending_host_calls(), 0);
     assert!(
         profile
             .scheduler
             .signs()
-            .contains_kind(KernelEventKind::HostOperationCompleted)
+            .contains_kind(KernelEventKind::HostCallCompleted)
     );
     assert!(
         profile
             .scheduler
             .signs()
-            .contains_kind(KernelEventKind::OperationCompleted)
+            .contains_kind(KernelEventKind::BackCompleted)
     );
 }
 
@@ -56,7 +56,7 @@ fn cancellation_rejects_late_machine_wake() {
     profile.cancel().unwrap();
     assert_eq!(
         profile.complete_timer(interest),
-        Err(SchedulerError::HostOperationCompletionRejected)
+        Err(SchedulerError::HostCallCompletionRejected)
     );
     assert_eq!(profile.step(), Ok(SchedulerStatus::Cancelled));
 }
@@ -73,8 +73,8 @@ fn base_failure_remains_failure_and_bounded_sign_eviction_stays_visible() {
     ));
     assert_eq!(
         profile.step(),
-        Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
-            code: conduit_kernel::FailureCode::HostOperationFailed,
+        Err(SchedulerError::BackFailed(conduit_kernel::Failure {
+            code: conduit_kernel::FailureCode::HostCallFailed,
             detail: 11
         }))
     );
@@ -82,10 +82,10 @@ fn base_failure_remains_failure_and_bounded_sign_eviction_stays_visible() {
     let event_bytes = core::mem::size_of::<KernelEvent>() as u32;
     let mut signs = FixedSignLog::<1>::new(event_bytes).unwrap();
     signs
-        .record(NodeId(0), None, None, KernelEventKind::Decision)
+        .record(NodeId(0), None, None, KernelEventKind::StepFuelGranted)
         .unwrap();
     signs
-        .record(NodeId(0), None, None, KernelEventKind::Decision)
+        .record(NodeId(0), None, None, KernelEventKind::StepFuelGranted)
         .unwrap();
     assert_eq!(
         signs.retention_gap(),
@@ -96,10 +96,10 @@ fn base_failure_remains_failure_and_bounded_sign_eviction_stays_visible() {
         })
     );
     signs
-        .record(NodeId(0), None, None, KernelEventKind::OperationCompleted)
+        .record(NodeId(0), None, None, KernelEventKind::BackCompleted)
         .unwrap();
     assert_eq!(
-        signs.record(NodeId(0), None, None, KernelEventKind::OperationFailed),
+        signs.record(NodeId(0), None, None, KernelEventKind::BackFailed),
         Err(SignError::ItemCapacityExceeded)
     );
 }

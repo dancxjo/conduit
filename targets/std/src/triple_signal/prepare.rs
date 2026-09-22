@@ -16,7 +16,7 @@ impl TripleSource {
             || lowered.routes.len() != 1
             || lowered.routes[0].targets.len() != 3
             || lowered.remote_endpoints.len() != 2
-            || lowered.host_operations.len() != 2
+            || lowered.host_calls.len() != 2
             || lowered.cord_value_slots != 3
         {
             return Err("triple source did not lower to the sealed fan-out profile".to_owned());
@@ -72,28 +72,22 @@ impl TripleSource {
                 .map_err(|error| format!("{error:?}"))?;
         }
         routes.seal().map_err(|error| format!("{error:?}"))?;
-        let mut host_bindings = FixedHostOperationBindings::<2>::new(1);
-        for operation in &lowered.host_operations {
+        let mut host_bindings = FixedHostCallBindings::<2>::new(1);
+        for operation in &lowered.host_calls {
             host_bindings
                 .install(operation.node, operation.binding)
                 .map_err(|error| format!("{error:?}"))?;
         }
         host_bindings.seal().map_err(|error| format!("{error:?}"))?;
-        let mut operations = [None, None];
-        operations[usize::from(pulse_node.0)] =
-            Some(TripleOperation::pulse(signals.clone(), waits));
-        operations[usize::from(show_node.0)] = Some(TripleOperation::show(signals));
-        let drivers = operations
-            .map(|operation| {
-                OperationDriver::new(
-                    operation.ok_or_else(|| "missing triple operation".to_owned())?,
-                )
-                .map_err(|error| format!("{error:?}"))
-            })
+        let mut backs = [None, None];
+        backs[usize::from(pulse_node.0)] = Some(TripleBack::pulse(signals.clone(), waits));
+        backs[usize::from(show_node.0)] = Some(TripleBack::show(signals));
+        let backs = backs
+            .map(|back| back.ok_or_else(|| "missing triple Back".to_owned()))
             .into_iter()
             .collect::<Result<Vec<_>, _>>()?
             .try_into()
-            .map_err(|_| "triple driver width".to_owned())?;
+            .map_err(|_| "triple Back width".to_owned())?;
         let sign_bytes = u32::from(SIGN_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or_else(|| "triple sign bytes overflow".to_owned())?;
@@ -106,7 +100,7 @@ impl TripleSource {
             remote_sign_bytes,
         )
         .map_err(|error| format!("{error:?}"))?;
-        let scheduler = TripleScheduler::new_with_host_operations(
+        let scheduler = TripleScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()
@@ -121,7 +115,7 @@ impl TripleSource {
                 .map_err(|_| "triple cord width".to_owned())?,
             routes,
             host_bindings,
-            drivers,
+            backs,
             values,
             sign,
         )
@@ -161,7 +155,7 @@ impl TripleSource {
             seal: CapacitySeal {
                 values: (0, 0),
                 sign: 0,
-                drivers: 0,
+                backs: 0,
                 identity: (0, 0, 0),
                 receipts: 0,
             },

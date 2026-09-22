@@ -8,8 +8,8 @@ use super::{
     SERIAL_REQUEST_AUTHORITY, SERIAL_RESOURCE_CLASS, SERIAL_USE_AUTHORITY,
 };
 use conduit_core::{
-    AuthorityContractId, AuthorityGrantId, BaseImplementationId, BaseInstanceId, BootId, HostId,
-    HostOperationContractId, HostOperationId, OfferGeneration, PlanId, ResourceClassId,
+    AuthorityContractId, AuthorityGrantId, BaseImplementationId, BaseInstanceId, BootId,
+    HostCallContractId, HostCallId, HostId, OfferGeneration, PlanId, ResourceClassId,
     ResourceHandleId,
 };
 use std::cell::RefCell;
@@ -24,7 +24,7 @@ pub(super) struct AbiState {
     pub(super) host_id: HostId,
     pub(super) boot_id: BootId,
     pub(super) session: BrowserSerialSession,
-    pub(super) operation_id: HostOperationId,
+    pub(super) operation_id: HostCallId,
     pub(super) acquisition_plan_id: PlanId,
     pub(super) use_plan_id: Option<PlanId>,
     pub(super) configuration: SerialConfiguration,
@@ -134,13 +134,12 @@ pub extern "C" fn conduit_browser_serial_start_acquisition(
         maximum_signal_operations,
         maximum_in_flight: 1,
     };
-    let operation_id =
-        HostOperationId::from(format!("{}/serial-acquire/1", host_id.as_str()).as_str());
+    let operation_id = HostCallId::from(format!("{}/serial-acquire/1", host_id.as_str()).as_str());
     let offer = SerialAcquisitionOffer {
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),
         offer_generation: OfferGeneration(1),
-        operation_contract: HostOperationContractId::from(SERIAL_ACQUIRE_OPERATION),
+        operation_contract: HostCallContractId::from(SERIAL_ACQUIRE_OPERATION),
         request_authority_contract: AuthorityContractId::from(SERIAL_REQUEST_AUTHORITY),
         maximum_in_flight: 1,
         maximum_result_bytes: MAXIMUM_SERIAL_RESULT_BYTES as u32,

@@ -6,7 +6,7 @@ use conduit_core::{
     resource_offer, AuthorityContractId, AuthorityGrantId, BaseEnforcementClass,
     BaseImplementationId, BaseInstanceId, BaseLifecycle, BaseProviderEntry, BaseRegistry,
     BaseRegistryLimits, BaseRegistryRefusal, BootId, HostAdvertisement, HostBaseId, HostBaseKindId,
-    HostId, HostOperationContractId, HostOperationId, OfferGeneration, PlanId, ResourceClassId,
+    HostCallContractId, HostCallId, HostId, OfferGeneration, PlanId, ResourceClassId,
     ResourceHandleId,
 };
 
@@ -65,7 +65,7 @@ pub(crate) struct UsbAcquisitionOffer {
     pub(crate) host_id: HostId,
     pub(crate) boot_id: BootId,
     pub(crate) offer_generation: OfferGeneration,
-    pub(crate) operation_contract: HostOperationContractId,
+    pub(crate) operation_contract: HostCallContractId,
     pub(crate) request_authority_contract: AuthorityContractId,
     pub(crate) maximum_in_flight: u8,
     pub(crate) maximum_result_bytes: u32,
@@ -81,7 +81,7 @@ pub(crate) struct UsbAcquisitionAuthority {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct UsbAcquisitionRequest {
-    pub(crate) operation_id: HostOperationId,
+    pub(crate) operation_id: HostCallId,
     pub(crate) configuration: UsbConfiguration,
     pub(crate) transfer_bounds: UsbTransferBounds,
 }
@@ -241,7 +241,7 @@ pub(crate) enum BrowserUsbRefusal {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct BrowserUsbSession {
     phase: BrowserUsbPhase,
-    expected_operation: Option<HostOperationId>,
+    expected_operation: Option<HostCallId>,
     expected_host_id: Option<HostId>,
     expected_boot_id: Option<BootId>,
     retained_transfer: Option<RetainedUsbTransfer>,
@@ -348,7 +348,7 @@ impl BrowserUsbSession {
 
     pub(crate) fn complete_acquisition(
         &mut self,
-        operation: &HostOperationId,
+        operation: &HostCallId,
         encoded_result_bytes: usize,
         result: UsbAcquisitionResult,
     ) -> Result<(), BrowserUsbRefusal> {

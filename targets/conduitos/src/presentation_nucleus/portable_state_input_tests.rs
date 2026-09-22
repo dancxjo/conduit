@@ -66,7 +66,7 @@ fn authoritative_offers_keep_exact_portable_contracts() {
     assert!(offers.iter().all(|offer| {
         offer.implementation.execution_profile_id.as_str()
             == crate::functional_offers::PORTABLE_STATE_INPUT_PROFILE
-            && offer.host_operations.is_empty()
+            && offer.host_calls.is_empty()
             && offer.resource_requirements.is_empty()
     }));
 }

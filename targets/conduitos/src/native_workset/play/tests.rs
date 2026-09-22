@@ -131,7 +131,7 @@ fn release_keeps_press_owner_and_cancel_retires_every_pending_request() {
     assert_eq!(play.pending[memory].unwrap().request, before.request);
     assert_ne!(play.pending[canvas].unwrap().request, held.request);
     play.cancel().unwrap();
-    assert_eq!(play.scheduler.pending_host_operation_count(), 0);
+    assert_eq!(play.scheduler.pending_host_call_count(), 0);
     assert_eq!(play.scheduler.values().used_items(), 0);
     assert_eq!(
         play.input(memory, key(5, KeyTransition::Pressed)),

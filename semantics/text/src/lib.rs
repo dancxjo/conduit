@@ -4,7 +4,7 @@
 //!
 //! This crate owns text Kind identity, exact typed fronts, semantic
 //! configuration, finite bounds, and canonical Form catalog installation. It
-//! owns no Host implementation, execution profile, host operation, artifact,
+//! owns no Host implementation, execution profile, Host Call, artifact,
 //! resource, authority, or manifestation claim.
 
 extern crate alloc;
@@ -29,8 +29,8 @@ pub use morse_values_into::*;
 
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const TEXT_VALUE_KIND: &str = "value/text";
@@ -57,7 +57,7 @@ pub struct TextConfigurationField {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextKindContract {
     pub kind_id: conduit_core::KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub configuration: Vec<TextConfigurationField>,
@@ -65,7 +65,7 @@ pub struct TextKindContract {
 }
 
 impl TextKindContract {
-    pub fn into_semantic_contract(self) -> SemanticCapabilityContract {
+    pub fn into_semantic_contract(self) -> Kind {
         let shorthand = match self.kind_id.as_str() {
             TEXT_UPPER_KIND | TEXT_JOIN_KIND => Some((
                 self.inputs[0].port_id.clone(),
@@ -73,7 +73,7 @@ impl TextKindContract {
             )),
             _ => None,
         };
-        SemanticCapabilityContract {
+        Kind {
             startup_parameters: self
                 .configuration
                 .iter()
@@ -88,6 +88,8 @@ impl TextKindContract {
             kind_contract_revision: self.kind_contract_revision,
             inputs: self.inputs,
             outputs: self.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
             limits: self.limits,
         }
     }
@@ -96,7 +98,7 @@ impl TextKindContract {
 pub fn text_literal_semantics() -> TextKindContract {
     TextKindContract {
         kind_id: kind_id(TEXT_LITERAL_KIND),
-        kind_contract_revision: KindContractRevision::from(TEXT_LITERAL_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(TEXT_LITERAL_CONTRACT_REVISION),
         inputs: Vec::new(),
         outputs: vec![text_port(PortDirection::Output)],
         configuration: vec![TextConfigurationField {
@@ -111,10 +113,10 @@ pub fn text_literal_semantics() -> TextKindContract {
 pub fn text_upper_semantics() -> TextKindContract {
     TextKindContract {
         kind_id: kind_id(TEXT_UPPER_KIND),
-        kind_contract_revision: KindContractRevision::from(TEXT_UPPER_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(TEXT_UPPER_CONTRACT_REVISION),
         inputs: vec![text_port(PortDirection::Input)],
         outputs: vec![text_port(PortDirection::Output)],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: text_limits(),
     }
 }
@@ -122,7 +124,7 @@ pub fn text_upper_semantics() -> TextKindContract {
 pub fn text_join_semantics() -> TextKindContract {
     TextKindContract {
         kind_id: kind_id(TEXT_JOIN_KIND),
-        kind_contract_revision: KindContractRevision::from(TEXT_JOIN_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(TEXT_JOIN_CONTRACT_REVISION),
         inputs: vec![text_port(PortDirection::Input)],
         outputs: vec![text_port(PortDirection::Output)],
         configuration: vec![TextConfigurationField {
@@ -137,7 +139,7 @@ pub fn text_join_semantics() -> TextKindContract {
 pub fn address_detect_semantics() -> TextKindContract {
     TextKindContract {
         kind_id: kind_id(ADDRESS_DETECT_KIND),
-        kind_contract_revision: KindContractRevision::from(ADDRESS_DETECT_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(ADDRESS_DETECT_CONTRACT_REVISION),
         inputs: vec![
             named_text_port("recognized", TEXT_VALUE_KIND, PortDirection::Input),
             named_text_port("addresses", ADDRESS_SET_VALUE_KIND, PortDirection::Input),
@@ -147,7 +149,7 @@ pub fn address_detect_semantics() -> TextKindContract {
             ADDRESS_DETECTION_VALUE_KIND,
             PortDirection::Output,
         )],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 2,
@@ -163,7 +165,7 @@ pub fn install_text_catalogs(
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
 
@@ -195,7 +197,7 @@ pub fn install_text_catalogs(
         address_detect_semantics(),
     ] {
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,
@@ -203,10 +205,10 @@ pub fn install_text_catalogs(
                 configuration: contract
                     .configuration
                     .into_iter()
-                    .map(|field| ConfigurationField {
+                    .map(|field| KindConfigurationField {
                         key: field.key.to_string(),
                         default_value: field.default_value,
-                        validation: ConfigurationRule::TextBytes {
+                        rule: KindConfigurationRule::TextBytes {
                             maximum: field.maximum_text_bytes,
                         },
                     })

@@ -7,7 +7,7 @@ use crate::{HostBounds, HostProfile, SporeOutputKind};
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PrerequisiteNode {
     Implementation(String),
-    HostOperation(String),
+    HostCall(String),
     Resource(String),
     Base(String),
     Driver(String),
@@ -107,7 +107,7 @@ pub struct TargetDescriptor {
     pub os: Option<String>,
     pub host_core: String,
     pub presenter: Option<TargetPresenter>,
-    pub host_operations: Vec<String>,
+    pub host_calls: Vec<String>,
     pub toolchain_identity: String,
     pub builder_adapter: String,
     pub strategy: FabricationStrategy,

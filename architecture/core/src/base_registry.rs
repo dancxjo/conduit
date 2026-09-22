@@ -262,7 +262,7 @@ impl BaseRegistry {
         Ok(())
     }
 
-    /// Projects current ready entries into one Host advertisement.
+    /// Projects current ready entries into one host advertisement.
     ///
     /// The ordinary offers and their provider ownership are emitted together;
     /// callers cannot accidentally flatten away Base provenance.

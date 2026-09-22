@@ -103,6 +103,7 @@ fn artifact_state_checkpoint_and_runtime_are_distinct_exact_identities() {
         supported_formats: vec![artifact.format_profile.clone()],
         supported_precisions: vec![artifact.precision_profile.clone()],
         loaded_artifact_identity: artifact.content_identity(),
+        loaded_checkpoint_identity: None,
     };
     runtime.admit(&artifact).unwrap();
     assert_ne!(checkpoint.content.identity, artifact.content.identity);

@@ -34,6 +34,7 @@ pub fn reviewed_pete_host_requirements() -> Vec<PeteHostRequirement> {
                 PeteWorkloadRole::AutobiographicalMemory,
                 PeteWorkloadRole::HistoricalIndex,
                 PeteWorkloadRole::Conversation,
+                PeteWorkloadRole::Homeostasis,
             ],
         },
         PeteHostRequirement {
@@ -44,13 +45,18 @@ pub fn reviewed_pete_host_requirements() -> Vec<PeteHostRequirement> {
                 PeteWorkloadRole::Situation,
                 PeteWorkloadRole::AutobiographicalMemory,
                 PeteWorkloadRole::HistoricalIndex,
+                PeteWorkloadRole::Homeostasis,
             ],
         },
         PeteHostRequirement {
             role: PeteHostRole::Brainstem,
             target_owned_configuration: PETE_BRAINSTEM_PROFILE,
             required_at_birth: true,
-            contributes_to: vec![PeteWorkloadRole::Situation, PeteWorkloadRole::Navigation],
+            contributes_to: vec![
+                PeteWorkloadRole::Situation,
+                PeteWorkloadRole::Navigation,
+                PeteWorkloadRole::Homeostasis,
+            ],
         },
         PeteHostRequirement {
             role: PeteHostRole::OptionalBrowser,

@@ -121,7 +121,7 @@ fn request(controller: &HostInstance, target: &HostInstance, id: &str) -> Reboot
         controller: controller.clone(),
         target: target.clone(),
         required_front: delegated_reboot_front(),
-        semantic_contract: conduit_core::KindContractRevision::from(
+        semantic_contract: conduit_core::KindIdentity::from(
             conduit_system_continuity::REBOOT_CONTRACT_REVISION,
         ),
         selected_line_id: LineId::from("line/controller-to-target"),
@@ -316,7 +316,7 @@ fn same_semantics_with_a_different_name_is_compatible_but_grant_stays_exact() {
 
     let mut different_meaning = renamed.clone();
     different_meaning.capabilities[0].kind_contract_revision =
-        conduit_core::KindContractRevision::from("vendor/different-maintenance-meaning@1");
+        conduit_core::KindIdentity::from("vendor/different-maintenance-meaning@1");
     let denied = DelegatedRebootTransaction::new(grant(&controller, &target)).submit(
         &request(&controller, &target, "request/different-meaning"),
         &different_meaning,

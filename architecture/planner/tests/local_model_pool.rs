@@ -2,17 +2,17 @@ use std::collections::BTreeMap;
 
 use conduit_core::{
     kind_id, ArtifactId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BootId,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId,
-    HostOperationContractId, HostProfileId, ImplementationId, KindContractRevision,
-    OfferGeneration, PlannerCapabilityOffer, PlannerLimits, PlannerProfileId,
-    PlanningRequestAuthority, PlayUnsatisfiedReason, PoolMemberLimits, PoolOperationId,
-    PoolRealizationHealth, PoolRealizationObservation, PoolSelectionDisposition,
-    PoolSelectionEvidence, ResourceHealth, ResourceObservation, SharedPoolId, SignId,
-    PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT,
-    SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT, SHARED_POOL_AUTHORITY_SUBJECT_KIND,
+    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement,
+    HostCallContractId, HostId, HostProfileId, ImplementationId, KindIdentity, OfferGeneration,
+    PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PlanningRequestAuthority,
+    PlayUnsatisfiedReason, PoolMemberLimits, PoolOperationId, PoolRealizationHealth,
+    PoolRealizationObservation, PoolSelectionDisposition, PoolSelectionEvidence, ResourceHealth,
+    ResourceObservation, SharedPoolId, SignId, PROTOCOL_VERSION,
+    SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_CALL_CONTRACT,
+    SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
     KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
 use conduit_kernel::{
@@ -64,9 +64,9 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
         .unwrap();
     let mut profile = ProfileCatalog::new();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("flow/pool-observe"),
-            kind_contract_revision: KindContractRevision::from("flow/pool-observe@1"),
+            kind_contract_revision: KindIdentity::from("flow/pool-observe@1"),
             inputs: vec![],
             outputs: vec![],
             configuration: vec![],
@@ -97,7 +97,7 @@ fn consumer_host(front: &conduit_core::CheckedFront) -> HostAdvertisement {
                 .map(|(input, output)| (input.clone(), output.clone())),
             capability_id: CapabilityId::from("consumer/pool-observe"),
             kind_id: kind_id("flow/pool-observe"),
-            kind_contract_revision: KindContractRevision::from("flow/pool-observe@1"),
+            kind_contract_revision: KindIdentity::from("flow/pool-observe@1"),
             implementation: conduit_core::ImplementationOffer {
                 execution_profile_id: ExecutionProfileId::from("test/hosted@1"),
                 implementation_id: ImplementationId::from("consumer/pool-observe@1"),
@@ -105,7 +105,7 @@ fn consumer_host(front: &conduit_core::CheckedFront) -> HostAdvertisement {
             },
             inputs: front.inputs().to_vec(),
             outputs: front.outputs().to_vec(),
-            host_operations: vec![],
+            host_calls: vec![],
             resource_requirements: vec![],
             authority_requirements: vec![],
             limits: CapabilityLimits {
@@ -132,9 +132,7 @@ fn authority() -> AuthorityGrant {
     AuthorityGrant {
         grant_id: AuthorityGrantId::from("grant/model-pool"),
         contract_id: AuthorityContractId::from(SHARED_POOL_ADMIT_AUTHORITY_CONTRACT),
-        host_operation_contract_id: HostOperationContractId::from(
-            SHARED_POOL_ADMIT_HOST_OPERATION_CONTRACT,
-        ),
+        host_call_contract_id: HostCallContractId::from(SHARED_POOL_ADMIT_HOST_CALL_CONTRACT),
         subject_kind: kind_id(SHARED_POOL_AUTHORITY_SUBJECT_KIND),
         host_id: HostId::from("host/consumer"),
         boot_id: BootId::from("boot/consumer/1"),

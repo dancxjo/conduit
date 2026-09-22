@@ -94,7 +94,7 @@ fn resource_and_effect_allowlists_are_hard_gates_not_rankings() {
     let no_host_effects = BTreeMap::from([(
         gear_id,
         HardRealizationRequirements {
-            permitted_host_operations: Some(BTreeSet::new()),
+            permitted_host_calls: Some(BTreeSet::new()),
             ..HardRealizationRequirements::default()
         },
     )]);

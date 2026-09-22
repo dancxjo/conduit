@@ -28,7 +28,7 @@ pub(super) fn install(
             execution_profile: "conduitos/foreground-keyboard-delivery@1",
             artifact: "conduitos/body-keyboard-delivery@1",
         },
-        vec![conduit_core::HostOperationRequirement {
+        vec![conduit_core::HostCallRequirement {
             contract_id: OPERATION.into(),
             target_kind: Some(conduit_human::KEY_EVENT_INFO_ID.into()),
             maximum_in_flight: 1,

@@ -5,11 +5,11 @@
 //! realization truth below these portable fronts.
 
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use conduit_form::{
-    check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindDefinition,
+    check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindProjection,
     KindSignature, ProfileCatalog, StartupCatalog,
 };
 use sha2::{Digest, Sha256};
@@ -134,10 +134,10 @@ impl AcousticWindow {
     }
 }
 
-pub fn speech_window_to_clip_definition() -> KindDefinition {
-    KindDefinition {
+pub fn speech_window_to_clip_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(SPEECH_WINDOW_TO_CLIP_KIND),
-        kind_contract_revision: KindContractRevision::from(SPEECH_WINDOW_TO_CLIP_REVISION),
+        kind_contract_revision: KindIdentity::from(SPEECH_WINDOW_TO_CLIP_REVISION),
         inputs: vec![port(
             "frames",
             conduit_audio::AUDIO_PCM_INFO_ID,
@@ -150,14 +150,14 @@ pub fn speech_window_to_clip_definition() -> KindDefinition {
             PortDirection::Output,
             PortTemporal::Value,
         )],
-        configuration: Vec::new(),
+        configuration: Default::default(),
     }
 }
 
-pub fn speech_result_to_event_stream_definition() -> KindDefinition {
-    KindDefinition {
+pub fn speech_result_to_event_stream_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(SPEECH_RESULT_TO_EVENT_STREAM_KIND),
-        kind_contract_revision: KindContractRevision::from(SPEECH_RESULT_TO_EVENT_STREAM_REVISION),
+        kind_contract_revision: KindIdentity::from(SPEECH_RESULT_TO_EVENT_STREAM_REVISION),
         inputs: vec![port(
             "result",
             crate::SPEECH_RECOGNITION_RESULT_KIND,
@@ -170,7 +170,7 @@ pub fn speech_result_to_event_stream_definition() -> KindDefinition {
             PortDirection::Output,
             PortTemporal::Flow { closes: true },
         )],
-        configuration: Vec::new(),
+        configuration: Default::default(),
     }
 }
 
@@ -191,31 +191,30 @@ pub fn speech_result_to_event_stream_limits() -> CapabilityLimits {
     }
 }
 
-pub fn speech_window_to_clip_semantic_contract() -> SemanticCapabilityContract {
+pub fn speech_window_to_clip_semantic_contract() -> Kind {
     semantic_contract(
         speech_window_to_clip_definition(),
         speech_window_to_clip_limits(),
     )
 }
 
-pub fn speech_result_to_event_stream_semantic_contract() -> SemanticCapabilityContract {
+pub fn speech_result_to_event_stream_semantic_contract() -> Kind {
     semantic_contract(
         speech_result_to_event_stream_definition(),
         speech_result_to_event_stream_limits(),
     )
 }
 
-fn semantic_contract(
-    definition: KindDefinition,
-    limits: CapabilityLimits,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn semantic_contract(definition: KindProjection, limits: CapabilityLimits) -> Kind {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits,
     }
 }
@@ -224,16 +223,16 @@ pub fn install_speech_recognition_adapters(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
-    for definition in [
-        speech_window_to_clip_definition(),
-        speech_result_to_event_stream_definition(),
+    for kind in [
+        speech_window_to_clip_semantic_contract(),
+        speech_result_to_event_stream_semantic_contract(),
     ] {
         startup.insert(KindSignature {
-            kind: definition.kind_id.as_str().to_string(),
+            kind: kind.kind_id.as_str().to_string(),
             startup_parameters: Vec::new(),
         })?;
         profile
-            .insert(definition)
+            .insert_kind(kind)
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -250,7 +249,7 @@ pub fn install_single_shot_streaming_recognition_back(
         check_syntax_document(&parse_syntax_document(STREAMING_RECOGNITION_BACK), startup)
             .map_err(|error| format!("check streaming-recognition Back: {error:?}"))?;
     let definition = profile
-        .get(&kind_id(STREAMING_SPEECH_RECOGNIZE_KIND))
+        .canonical_kind(&kind_id(STREAMING_SPEECH_RECOGNIZE_KIND))
         .ok_or_else(|| "missing streaming speech recognition definition".to_string())?;
     backs
         .insert(definition, &checked, STREAMING_SPEECH_RECOGNIZE_KIND)

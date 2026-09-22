@@ -2,6 +2,22 @@ use std::fs;
 use std::path::PathBuf;
 
 #[test]
+fn workspace_feedback_does_not_wait_for_emulator_proof() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    let workspace = workflow
+        .split("\n  workspace-check:\n")
+        .nth(1)
+        .expect("workspace check job");
+    let needs = workspace
+        .lines()
+        .find(|line| line.trim_start().starts_with("needs:"))
+        .expect("workspace prerequisites");
+    assert_eq!(needs.trim(), "needs: classify");
+}
+
+#[test]
 fn explicit_dev_integration_dispatch_bootstraps_across_the_trusted_main_schema() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/dev-integration.yml"))

@@ -1,14 +1,14 @@
 //! Two exact existing field selectors needed by the pointer controller.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ConfigurationValue, ExecutionProfileId, HostOperationRequirement,
-    ImplementationId, PlannedGear, PortTemporal, StructuredCanonicalSelection, StructuredSelector,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ConfigurationValue, ExecutionProfileId, HostCallRequirement, ImplementationId, PlannedGear,
+    PortTemporal, StructuredCanonicalSelection, StructuredSelector,
 };
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/structured-selector@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/structured-selector@1";
 pub(super) static POSITION: BrowserInstallation = BrowserInstallation {
     implementation_id: "browser/select-pointer-position@1",
     offer: position_offer,
@@ -58,15 +58,15 @@ fn offer(selector: &StructuredSelector, implementation: &str) -> CapabilityOffer
     let contract =
         conduit_semantic_catalog::structured_selector_contract(selector, PortTemporal::Value);
     let target_kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             artifact_id: ArtifactId::from("conduit-browser-runtime/pointer-selectors@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HOST_OPERATION.into(),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HOST_CALL.into(),
                 target_kind: Some(target_kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
@@ -88,9 +88,9 @@ fn offer(selector: &StructuredSelector, implementation: &str) -> CapabilityOffer
 fn prepare(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     PreparedSelector::new(placement)?;
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
         1,
     ))

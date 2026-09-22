@@ -1,11 +1,10 @@
 //! Browser installations for the typed finite Morse composition verbs.
 
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ConfigurationValue, ExecutionProfileId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, PlannedGear,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -107,15 +106,15 @@ fn symbols_to_text_offer() -> CapabilityOffer {
 fn offer(contract: conduit_text::MorseKindContract, implementation: &str) -> CapabilityOffer {
     let maximum_input_bytes = value_bound(contract.inputs[0].value_kind.as_str());
     let maximum_output_bytes = value_bound(contract.outputs[0].value_kind.as_str());
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract.into_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(implementation),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(implementation),
                 target_kind: Some(kind_id(implementation)),
                 maximum_in_flight: 1,
                 maximum_input_bytes,
@@ -146,15 +145,12 @@ fn value_bound(kind: &str) -> u32 {
     }
 }
 
-fn prepare(
-    placement: &PlannedGear,
-    _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let offer = installed_offer(placement.implementation_id.as_str())
         .ok_or_else(|| "unknown Morse composition installation".to_string())?;
     validate_placement(placement, &offer)?;
-    Ok(BrowserOperation::unary(
-        placement.host_operations[0].maximum_input_bytes,
+    Ok(BrowserBack::unary(
+        placement.host_calls[0].maximum_input_bytes,
         1,
     ))
 }

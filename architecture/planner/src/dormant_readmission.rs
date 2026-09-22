@@ -285,7 +285,7 @@ fn validate_authority(
     for requirement in &offer.authority_requirements {
         let grant = grants.iter().find(|grant| {
             grant.contract_id == requirement.contract_id
-                && grant.host_operation_contract_id == requirement.host_operation_contract_id
+                && grant.host_call_contract_id == requirement.host_call_contract_id
                 && grant.subject_kind == requirement.subject_kind
                 && grant.host_id == host.host_id
                 && grant.boot_id == host.boot_id

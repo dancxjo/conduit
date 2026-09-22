@@ -48,7 +48,7 @@ pub(super) fn validate(
                 && capability.outputs.len() == 1
                 && capability.outputs[0].port_id.as_str() == "key"
                 && capability.outputs[0].value_kind.as_str() == "input/key-event@1"
-                && capability.host_operations.len() == 1
+                && capability.host_calls.len() == 1
                 && capability.authority_requirements.is_empty()
                 && capability.resource_requirements.len() == 8
         })

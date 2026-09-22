@@ -70,7 +70,7 @@ The value contains no raw surface, DOM, framebuffer, or pixel payload.
 ## Realizations and planning
 
 hosts supply exact renderer offers beneath the shared checked front. An offer
-names its implementation, artifact, execution profile, host-operation target,
+names its implementation, artifact, execution profile, Host Call target,
 resource class, and finite limits. For example, a Linux host may bind a
 Wayland surface base while a browser host binds a DOM/SVG document
 base. Those facts enter the resulting plan and produce different plan
@@ -82,7 +82,7 @@ presentation.
 
 Renderer backs may themselves be forms when projection, layout, or rendering
 steps add reusable semantic value. Decomposition ends at admitted presentation
-host operations and resources. Wayland buffer commits, DOM mutation,
+Host Calls and resources. Wayland buffer commits, DOM mutation,
 framebuffer writes, and terminal escapes remain base mechanisms rather
 than a `machine/*` semantic catalog.
 

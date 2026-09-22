@@ -6,10 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 use crate::*;
 
@@ -19,7 +19,7 @@ pub const FINANCE_COMPARE_KIND: &str = "finance/compare-money";
 pub const FINANCE_CONVERT_KIND: &str = "finance/convert-money";
 pub const FINANCE_REVISION: &str = "conduit.std/finance-exact@1";
 
-pub fn finance_semantic_contracts() -> Vec<SemanticCapabilityContract> {
+pub fn finance_semantic_contracts() -> Vec<Kind> {
     let money = finance_money_type();
     vec![
         contract(
@@ -86,7 +86,7 @@ pub fn install_finance_catalogs(
             })
             .map_err(|error| error.to_string())?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,
@@ -123,18 +123,16 @@ fn finance_types() -> Vec<(&'static str, StructuredInfoType)> {
     ]
 }
 
-fn contract(
-    kind: &str,
-    inputs: Vec<PortDescriptor>,
-    outputs: Vec<PortDescriptor>,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn contract(kind: &str, inputs: Vec<PortDescriptor>, outputs: Vec<PortDescriptor>) -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(FINANCE_REVISION),
+        kind_contract_revision: KindIdentity::from(FINANCE_REVISION),
         inputs,
         outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 4,

@@ -4,7 +4,7 @@
   "target": { "family": "conduitos", "architecture": "loongarch64", "machine": "virt", "build_profile": "release" },
   "host_core": "host-core/conduitos@1",
   "fragments": [], "capabilities": [],
-  "host_operations": ["conduit.host/present@1"], "resources": [],
+  "host_calls": ["conduit.host/present@1"], "resources": [],
   "bases": [{ "id": "serial/main", "kind": "conduitos/loongarch64-uart-text", "driver": "conduitos/loongarch64-uart@1" }],
   "drivers": [{ "id": "driver/serial", "kind": "conduitos/loongarch64-uart@1" }],
   "lines": [],

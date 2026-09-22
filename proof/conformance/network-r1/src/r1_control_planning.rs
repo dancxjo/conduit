@@ -221,12 +221,12 @@ mod tests {
             .find(|capability| capability.kind_id.as_str() == conduit_signal::LEVEL_INPUT_KIND)
             .unwrap();
         assert_eq!(input.limits.max_active_instances, 3);
-        assert_eq!(input.host_operations.len(), 1);
+        assert_eq!(input.host_calls.len(), 1);
         assert_eq!(
-            input.host_operations[0].contract_id.as_str(),
-            conduit_signal::AWAIT_LEVEL_HOST_OPERATION_CONTRACT
+            input.host_calls[0].contract_id.as_str(),
+            conduit_signal::AWAIT_LEVEL_HOST_CALL_CONTRACT
         );
-        assert_eq!(input.host_operations[0].maximum_output_bytes, 1);
+        assert_eq!(input.host_calls[0].maximum_output_bytes, 1);
     }
 
     #[test]

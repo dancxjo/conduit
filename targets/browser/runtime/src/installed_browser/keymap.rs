@@ -1,12 +1,12 @@
 //! Stateful portable keyboard interpretation for the ordinary browser runner.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
-use conduit_core::{kind_id, HostOperationContractId, HostOperationRequirement, PlannedGear};
+use super::BrowserBack;
+use conduit_core::{kind_id, HostCallContractId, HostCallRequirement, PlannedGear};
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeymapDisposition, KeymapRefusal};
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-input-keymap@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-input-keymap@1";
 pub(super) const IMPLEMENTATION: &str = "browser/kernel-input-keymap@1";
 const ARTIFACT: &str = "conduit-browser-runtime/input-keymap@1";
 
@@ -27,8 +27,8 @@ fn offer() -> conduit_core::CapabilityOffer {
             implementation: IMPLEMENTATION,
             artifact: ARTIFACT,
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(HOST_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(HOST_CALL),
             target_kind: Some(kind_id("input/keymap-text-fragment")),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
@@ -39,12 +39,9 @@ fn offer() -> conduit_core::CapabilityOffer {
     )
 }
 
-fn prepare(
-    placement: &PlannedGear,
-    _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         conduit_human::KEY_EVENT_ENCODED_LEN as u32,
         1,
     ))

@@ -191,7 +191,7 @@ fn text_literals_reject_invalid_escape_and_the_exact_byte_bound() {
 }
 
 #[test]
-fn selected_upper_realization_and_host_operation_identity_fail_closed() {
+fn selected_upper_realization_and_host_call_identity_fail_closed() {
     let expanded = expanded();
     let host = StdHost::new();
     let plan = host.plan_expanded_local(&expanded).unwrap();
@@ -204,7 +204,7 @@ fn selected_upper_realization_and_host_operation_identity_fail_closed() {
     let mutations: [fn(&mut conduit_core::PlannedGear); 2] = [
         |placement| placement.artifact_id = conduit_core::ArtifactId::from("wrong/text-upper@1"),
         |placement| {
-            placement.host_operations[0].target_kind =
+            placement.host_calls[0].target_kind =
                 Some(conduit_core::KindId::from("wrong/transform"))
         },
     ];

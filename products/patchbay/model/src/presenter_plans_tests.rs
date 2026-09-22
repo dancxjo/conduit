@@ -3,11 +3,13 @@ use crate::{
     PatchbayInteractionRequest, PATCHBAY_PRESENTATION_KIND,
 };
 use conduit_core::{BootId, HostId};
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
+use conduit_kernel::scheduler::{
+    FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
+};
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition,
-    HostOperationId, HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEventKind,
-    Operation, OperationAction, OperationInput, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
+    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, KernelEventKind, RequestId,
+    ValueRef, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 
@@ -20,37 +22,47 @@ const SIGN_ITEMS: u16 = 128;
 #[derive(Debug)]
 struct PresentLeaf {
     input: ValueRef,
-    host_operation: Option<HostOperationId>,
+    host_call: Option<HostCallId>,
     pending: bool,
 }
 
-impl Operation for PresentLeaf {
-    fn start(&mut self) -> OperationAction {
-        let Some(operation) = self.host_operation else {
-            return OperationAction::Complete;
-        };
-        self.pending = true;
-        OperationAction::RequestHostOperation {
-            request: RequestId(0),
-            operation,
-            input: BoundedValueRef::new(self.input, 1).unwrap(),
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostOperationCompleted { outcome, .. }
-                if self.pending && outcome.disposition == HostOperationDisposition::Completed =>
+impl StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> for PresentLeaf {
+    fn step(
+        &mut self,
+        io: &mut StepIo<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>,
+        _: &StepInputBytes<'_, FIXED_KERNEL_STORAGE_PORTS_PER_NODE>,
+    ) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if !self.pending
+                || request != RequestId(0)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
             {
-                self.pending = false;
-                OperationAction::Complete
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidLifecycle,
+                    detail: 1,
+                });
             }
-            _ => OperationAction::Await,
+            io.consume_host_completion()
+                .expect("observed Presenter Host Call completion");
+            self.pending = false;
+            return StepOutcome::Complete;
         }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        OperationAction::Await
+        if self.pending {
+            return StepOutcome::Await;
+        }
+        let Some(operation) = self.host_call else {
+            return StepOutcome::Complete;
+        };
+        io.request_host_call(
+            RequestId(0),
+            operation,
+            BoundedValueRef::new(self.input, 1).unwrap(),
+        )
+        .expect("planned Presenter Host Call");
+        self.pending = true;
+        StepOutcome::Progress
     }
 
     fn cancel(&mut self) {
@@ -168,9 +180,9 @@ fn both_shapes_lower_and_execute_through_the_production_kernel_with_bounded_sign
     let direct = execute::<DIRECT_NODES, DIRECT_CORDS>(&proof.direct).unwrap();
     let recursive = execute::<RECURSIVE_NODES, RECURSIVE_CORDS>(&proof.recursive).unwrap();
     for signs in [&direct, &recursive] {
-        assert!(signs.contains(&KernelEventKind::HostOperationRequested));
-        assert!(signs.contains(&KernelEventKind::HostOperationCompleted));
-        assert!(signs.contains(&KernelEventKind::OperationCompleted));
+        assert!(signs.contains(&KernelEventKind::HostCallRequested));
+        assert!(signs.contains(&KernelEventKind::HostCallCompleted));
+        assert!(signs.contains(&KernelEventKind::BackCompleted));
         assert!(signs.len() <= usize::from(SIGN_ITEMS));
     }
     assert!(recursive.len() > direct.len());
@@ -300,24 +312,20 @@ fn execute<const NODES: usize, const CORDS: usize>(
         let input = values
             .store(&[0])
             .map_err(|error| format!("input: {error:?}"))?;
-        let host_operation = lowered
-            .host_operations
+        let host_call = lowered
+            .host_calls
             .iter()
             .find(|operation| operation.node == node.node)
-            .map(|operation| operation.operation);
-        prepared.push(
-            OperationDriver::new(PresentLeaf {
-                input,
-                host_operation,
-                pending: false,
-            })
-            .map_err(|error| format!("driver: {error:?}"))?,
-        );
+            .map(|operation| operation.call);
+        prepared.push(PresentLeaf {
+            input,
+            host_call,
+            pending: false,
+        });
     }
-    let drivers: [OperationDriver<PresentLeaf, FIXED_KERNEL_STORAGE_PORTS_PER_NODE>; NODES] =
-        prepared
-            .try_into()
-            .map_err(|_| "driver count changed".to_string())?;
+    let drivers: [PresentLeaf; NODES] = prepared
+        .try_into()
+        .map_err(|_| "driver count changed".to_string())?;
     let nodes = lowered
         .node_specs
         .clone()
@@ -344,8 +352,8 @@ fn execute<const NODES: usize, const CORDS: usize>(
     routes
         .seal()
         .map_err(|error| format!("routes: {error:?}"))?;
-    let mut bindings = FixedHostOperationBindings::<NODES>::new(1);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<NODES>::new(1);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(|error| format!("binding: {error:?}"))?;
@@ -370,16 +378,16 @@ fn execute<const NODES: usize, const CORDS: usize>(
             256,
             NODES,
             NODES,
-        >::new_with_host_operations(nodes, cords, routes, bindings, drivers, values, signs)
+        >::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
         .map_err(|error| format!("scheduler: {error:?}"))?;
     for _ in 0..64 {
         while let Some(request) = scheduler.next_host_request() {
             scheduler
-                .complete_host_operation(
+                .complete_host_call(
                     request.node,
                     request.request,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: None,
                         failure: None,
                     },

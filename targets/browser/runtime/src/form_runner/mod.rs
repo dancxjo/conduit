@@ -41,7 +41,7 @@ use std::collections::BTreeMap;
 struct TourSession {
     /// Logical resource reservations retained for the lifetime of a body Play.
     _resource_admissions: Option<conduit_core::ResourceAdmissionOwner>,
-    cancellation: Option<conduit_kernel::scheduler::HostOperationCancellation>,
+    cancellation: Option<conduit_kernel::scheduler::HostCallCancellation>,
     scheduler: engine::TourScheduler,
     pending: Vec<engine::PendingHostEffect>,
     host_outcomes: host_outcomes::HostOutcomes,

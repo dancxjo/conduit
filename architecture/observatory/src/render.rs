@@ -27,7 +27,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for capability in &report.capabilities {
         let _ = writeln!(
             output,
-            "capability host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} input_ports={} output_ports={} host_operations={:?} resource_requirements={:?} authority_requirements={:?} active_limit={} queue_items={} queue_bytes={} freshness={:?} support={:?} availability={:?}",
+            "capability host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} input_ports={} output_ports={} host_calls={:?} resource_requirements={:?} authority_requirements={:?} active_limit={} queue_items={} queue_bytes={} freshness={:?} support={:?} availability={:?}",
             capability.host_id.as_str(),
             capability.boot_id.as_str(),
             capability.capability_id.as_str(),
@@ -37,7 +37,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             capability.implementation_id.as_str(),
             capability.inputs.len(),
             capability.outputs.len(),
-            capability.host_operations,
+            capability.host_calls,
             capability.resource_requirements,
             capability.authority_requirements,
             capability.limits.max_active_instances,
@@ -162,7 +162,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for placement in &report.placements {
         let _ = writeln!(
             output,
-            "placement plan={} placement={} host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} artifact={} host_operations={:?} resources={:?} authority={:?}",
+            "placement plan={} placement={} host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} artifact={} host_calls={:?} resources={:?} authority={:?}",
             placement.plan_id.as_str(),
             placement.placement_id.as_str(),
             placement.host_id.as_str(),
@@ -173,7 +173,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             placement.execution_profile_id.as_str(),
             placement.implementation_id.as_str(),
             placement.artifact_id.as_str(),
-            placement.host_operations,
+            placement.host_calls,
             placement.resources,
             placement.authority
         );

@@ -6,7 +6,7 @@ pub enum FailureScope {
     Cord(CordId),
     Form(u16),
     Play,
-    HostOperation(HostOperationId),
+    HostCall(HostCallId),
     Resource(ResourceId),
     Line(RemoteEndpointId),
 }
@@ -67,10 +67,7 @@ const fn same_scope(a: FailureScope, b: FailureScope) -> bool {
         (FailureScope::Cord(CordId(a)), FailureScope::Cord(CordId(b))) => a == b,
         (FailureScope::Form(a), FailureScope::Form(b)) => a == b,
         (FailureScope::Play, FailureScope::Play) => true,
-        (
-            FailureScope::HostOperation(HostOperationId(a)),
-            FailureScope::HostOperation(HostOperationId(b)),
-        ) => a == b,
+        (FailureScope::HostCall(HostCallId(a)), FailureScope::HostCall(HostCallId(b))) => a == b,
         (FailureScope::Resource(ResourceId(a)), FailureScope::Resource(ResourceId(b))) => a == b,
         (FailureScope::Line(RemoteEndpointId(a)), FailureScope::Line(RemoteEndpointId(b))) => {
             a == b
@@ -79,4 +76,4 @@ const fn same_scope(a: FailureScope, b: FailureScope) -> bool {
     }
 }
 
-use crate::{CordId, HostOperationId, NodeId, RemoteEndpointId, ResourceId};
+use crate::{CordId, HostCallId, NodeId, RemoteEndpointId, ResourceId};

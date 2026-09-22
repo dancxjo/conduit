@@ -8,19 +8,18 @@ use super::super::{
     write_typed_presentation_frame, FrameWriter, PreparedProjection, FRAME_CAPACITY,
     MAXIMUM_RECEIPTS, PORTS,
 };
-use super::operation::{CapacitySeal, ToggleShowOperation};
+use super::back::{CapacitySeal, ToggleShowBack};
 use super::plan::exact_toggle_plan;
 use conduit_core::{
     bind_active_play, bind_presentation, bind_sign, InfoBool, PlanFragment, BOOL_ENCODED_LEN,
 };
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
+    FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
-    CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, KernelEventKind, RemoteEndpointId, RequestId, SignError, SignQuery,
-    ValueStorage,
+    CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
+    HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore, KernelEventKind,
+    RemoteEndpointId, RequestId, SignError, SignQuery, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -45,7 +44,7 @@ pub(super) const SIGN_ITEMS: u16 = 256;
 const PRESSURE_HOLD_SEQUENCE: u64 = 1;
 
 pub(super) type ToggleSinkScheduler = FixedScheduler<
-    OperationDriver<ToggleShowOperation, PORTS>,
+    ToggleShowBack,
     HostedValueStore,
     HostedSignLog,
     1,
@@ -71,7 +70,7 @@ pub(super) struct ToggleDistributedSink {
     pub(super) output_kind: i32,
     expected_completion: [u8; FRAME_CAPACITY],
     expected_completion_len: usize,
-    current: Option<(HostOperationRequest, usize)>,
+    current: Option<(HostCallRequest, usize)>,
     pending_delivery: Option<u64>,
     delivery_after_presentation: Option<u64>,
     pending_pressure: Option<u64>,
@@ -100,7 +99,7 @@ impl ToggleDistributedSink {
             || lowered.cords.len() != 1
             || lowered.remote_endpoints.len() != 1
             || lowered.remote_endpoints[0].direction != RemoteCordDirection::Ingress
-            || lowered.host_operations.len() != 1
+            || lowered.host_calls.len() != 1
             || fragment.placements[0].kind_id.as_str() != TOGGLE_PRESENTATION_KIND
         {
             return Err(ERROR_PREPARE);
@@ -120,12 +119,9 @@ impl ToggleDistributedSink {
         .map_err(|_| ERROR_SESSION)?;
         let mut routes = FixedRoutes::<ROUTE_SLOTS, 1>::new(PORTS as u16);
         routes.seal().map_err(|_| ERROR_PREPARE)?;
-        let mut host_bindings = FixedHostOperationBindings::<1>::new(1);
+        let mut host_bindings = FixedHostCallBindings::<1>::new(1);
         host_bindings
-            .install(
-                lowered.host_operations[0].node,
-                lowered.host_operations[0].binding,
-            )
+            .install(lowered.host_calls[0].node, lowered.host_calls[0].binding)
             .map_err(|_| ERROR_PREPARE)?;
         host_bindings.seal().map_err(|_| ERROR_PREPARE)?;
         let values = HostedValueStore::new(1, BOOL_ENCODED_LEN as u32, BOOL_ENCODED_LEN as u32)
@@ -143,12 +139,11 @@ impl ToggleDistributedSink {
             remote_sign_bytes,
         )
         .map_err(|_| ERROR_PREPARE)?;
-        let driver = OperationDriver::new(ToggleShowOperation {
+        let driver = ToggleShowBack {
             next: 0,
             pending: None,
-        })
-        .map_err(|_| ERROR_PREPARE)?;
-        let scheduler = ToggleSinkScheduler::new_with_host_operations(
+        };
+        let scheduler = ToggleSinkScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()
@@ -187,7 +182,7 @@ impl ToggleDistributedSink {
         for index in 0..MAXIMUM_RECEIPTS {
             let request = RequestId(0x8000_0000 | index as u32);
             identity
-                .bind_request(&lowered.identity, show_node, request, HostOperationId(0))
+                .bind_request(&lowered.identity, show_node, request, HostCallId(0))
                 .map_err(|_| ERROR_PREPARE)?;
             // Canonical toggle emits its configured initial value, then flips for every Tick.
             let signal = conduit_signal::Signal {
@@ -446,7 +441,7 @@ impl ToggleDistributedSink {
                         || !self
                             .scheduler
                             .signs()
-                            .contains_kind(KernelEventKind::OperationCompleted)
+                            .contains_kind(KernelEventKind::BackCompleted)
                         || self.capacity_seal() != self.seal
                         || self.pressure_retries != 1
                     {
@@ -471,10 +466,7 @@ impl ToggleDistributedSink {
         }
     }
 
-    pub(super) fn prepare_presentation(
-        &mut self,
-        request: HostOperationRequest,
-    ) -> Result<(), i32> {
+    pub(super) fn prepare_presentation(&mut self, request: HostCallRequest) -> Result<(), i32> {
         let projection = self
             .projections
             .get(self.receipts)
@@ -494,7 +486,7 @@ impl ToggleDistributedSink {
         if projection.node != request.node
             || projection.signal.sequence != self.receipts as u64
             || projection.signal.level != level
-            || request_identity.operation != request.operation
+            || request_identity.call != request.call
         {
             return Err(ERROR_PRESENTATION);
         }
@@ -554,14 +546,14 @@ impl ToggleDistributedSink {
         };
         if !success || projection != self.receipts {
             self.scheduler
-                .complete_host_operation(
+                .complete_host_call(
                     request.node,
                     request.request,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Failed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Failed,
                         output: None,
                         failure: Some(Failure {
-                            code: FailureCode::HostOperationFailed,
+                            code: FailureCode::HostCallFailed,
                             detail: 1,
                         }),
                     },
@@ -570,11 +562,11 @@ impl ToggleDistributedSink {
             return self.fail_session(32, ERROR_PRESENTATION);
         }
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },

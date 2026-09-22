@@ -1,14 +1,14 @@
 //! Adapter-side completion of exact installed keyboard host requests.
 
 use super::InstalledScheduler;
-use conduit_kernel::scheduler::HostOperationRequest;
-use conduit_kernel::{BoundedValueRef, HostOperationDisposition, HostOperationOutcome};
+use conduit_kernel::scheduler::HostCallRequest;
+use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
 
 pub(super) struct KeyboardInputHost<'a> {
     adapter: Option<&'a mut dyn crate::hosted_keyboard::HostedKeyboardAdapter>,
     keyboard_source: bool,
-    pending_keyboard: Option<HostOperationRequest>,
-    pending_button: Option<HostOperationRequest>,
+    pending_keyboard: Option<HostCallRequest>,
+    pending_button: Option<HostCallRequest>,
     button_encoder: conduit_semantic_catalog::PreparedButtonTransitionEncoder,
     button_held: bool,
     button_sequence: u64,
@@ -41,7 +41,7 @@ impl<'a> KeyboardInputHost<'a> {
 
     pub(super) fn accept(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         input: &[u8],
         kind: InputRequestKind,
     ) -> Result<(), String> {
@@ -135,14 +135,14 @@ impl<'a> KeyboardInputHost<'a> {
                 return Ok(true);
             }
             crate::hosted_keyboard::HostedKeyboardPoll::Cancelled => {
-                self.complete_all(scheduler, HostOperationDisposition::Cancelled, None)?;
+                self.complete_all(scheduler, HostCallDisposition::Cancelled, None)?;
             }
             crate::hosted_keyboard::HostedKeyboardPoll::Failed(detail) => {
                 self.complete_all(
                     scheduler,
-                    HostOperationDisposition::Failed,
+                    HostCallDisposition::Failed,
                     Some(conduit_kernel::Failure {
-                        code: conduit_kernel::FailureCode::HostOperationFailed,
+                        code: conduit_kernel::FailureCode::HostCallFailed,
                         detail,
                     }),
                 )?;
@@ -154,7 +154,7 @@ impl<'a> KeyboardInputHost<'a> {
     fn complete_value(
         &mut self,
         scheduler: &mut InstalledScheduler,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         encoded: &[u8],
         maximum: u32,
     ) -> Result<(), String> {
@@ -167,18 +167,18 @@ impl<'a> KeyboardInputHost<'a> {
     fn complete_stored_value(
         &mut self,
         scheduler: &mut InstalledScheduler,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         value: conduit_kernel::ValueRef,
         maximum: u32,
     ) -> Result<(), String> {
         let output = BoundedValueRef::new(value, maximum)
             .map_err(|error| format!("bound portable input event: {error:?}"))?;
         scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: Some(output),
                     failure: None,
                 },
@@ -189,7 +189,7 @@ impl<'a> KeyboardInputHost<'a> {
     fn complete_all(
         &mut self,
         scheduler: &mut InstalledScheduler,
-        disposition: HostOperationDisposition,
+        disposition: HostCallDisposition,
         failure: Option<conduit_kernel::Failure>,
     ) -> Result<(), String> {
         for request in [self.pending_keyboard.take(), self.pending_button.take()]
@@ -197,10 +197,10 @@ impl<'a> KeyboardInputHost<'a> {
             .flatten()
         {
             scheduler
-                .complete_host_operation(
+                .complete_host_call(
                     request.node,
                     request.request,
-                    HostOperationOutcome {
+                    HostCallOutcome {
                         disposition,
                         output: None,
                         failure,
@@ -214,16 +214,16 @@ impl<'a> KeyboardInputHost<'a> {
     fn complete_failure(
         &mut self,
         scheduler: &mut InstalledScheduler,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         code: conduit_kernel::FailureCode,
         detail: u16,
     ) -> Result<bool, String> {
         scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Failed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Failed,
                     output: None,
                     failure: Some(conduit_kernel::Failure { code, detail }),
                 },

@@ -1,13 +1,10 @@
 //! Portable contract for one exact host/boot-scoped monotonic deadline slot.
 
-use crate::{
-    resource_requirement, HostOperationContractId, HostOperationRequirement, ResourceRequirement,
-};
+use crate::{resource_requirement, HostCallContractId, HostCallRequirement, ResourceRequirement};
 
 pub const MONOTONIC_MILLISECOND_TIMER_RESOURCE_CLASS: &str =
     "conduit.resource/monotonic-millisecond-timer-slot@1";
-pub const MONOTONIC_TIMER_HOST_OPERATION_CONTRACT: &str =
-    "conduit.host/monotonic-millisecond-timer@1";
+pub const MONOTONIC_TIMER_HOST_CALL_CONTRACT: &str = "conduit.host/monotonic-millisecond-timer@1";
 pub const MONOTONIC_TIMER_INPUT_BYTES: u32 = core::mem::size_of::<u64>() as u32;
 
 /// One relative millisecond duration. The selected host/boot-scoped Base
@@ -28,9 +25,9 @@ pub enum MonotonicTimerInputError {
     WrongLength,
 }
 
-pub fn monotonic_timer_host_operation_requirement() -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(MONOTONIC_TIMER_HOST_OPERATION_CONTRACT),
+pub fn monotonic_timer_host_call_requirement() -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(MONOTONIC_TIMER_HOST_CALL_CONTRACT),
         target_kind: None,
         maximum_in_flight: 1,
         maximum_input_bytes: MONOTONIC_TIMER_INPUT_BYTES,
@@ -48,10 +45,10 @@ mod tests {
 
     #[test]
     fn contract_is_exact_bounded_and_round_trips_every_boundary() {
-        let operation = monotonic_timer_host_operation_requirement();
+        let operation = monotonic_timer_host_call_requirement();
         assert_eq!(
             operation.contract_id.as_str(),
-            MONOTONIC_TIMER_HOST_OPERATION_CONTRACT
+            MONOTONIC_TIMER_HOST_CALL_CONTRACT
         );
         assert_eq!(operation.maximum_in_flight, 1);
         assert_eq!(operation.maximum_input_bytes, 8);

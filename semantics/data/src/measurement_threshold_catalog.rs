@@ -2,11 +2,10 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::{
     measurement_summary_type, MEASUREMENT_HYSTERESIS_PROFILE_INFO_ID,
@@ -50,19 +49,17 @@ pub fn install_measurement_threshold_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(measurement_hysteresis_kind_definition())
+        .insert(measurement_hysteresis_kind_projection())
         .map_err(|error| error.to_string())?;
     profile
         .insert(measurement_threshold_presentation_definition())
         .map_err(|error| error.to_string())
 }
 
-pub fn measurement_threshold_presentation_definition() -> KindDefinition {
-    KindDefinition {
+pub fn measurement_threshold_presentation_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(MEASUREMENT_THRESHOLD_PRESENTATION_KIND),
-        kind_contract_revision: KindContractRevision::from(
-            MEASUREMENT_THRESHOLD_PRESENTATION_REVISION,
-        ),
+        kind_contract_revision: KindIdentity::from(MEASUREMENT_THRESHOLD_PRESENTATION_REVISION),
         inputs: vec![port(
             "decision",
             &measurement_threshold_decision_type(),
@@ -73,15 +70,17 @@ pub fn measurement_threshold_presentation_definition() -> KindDefinition {
     }
 }
 
-pub fn measurement_threshold_presentation_semantic_contract() -> SemanticCapabilityContract {
+pub fn measurement_threshold_presentation_semantic_contract() -> Kind {
     let definition = measurement_threshold_presentation_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
@@ -90,12 +89,10 @@ pub fn measurement_threshold_presentation_semantic_contract() -> SemanticCapabil
     }
 }
 
-pub fn measurement_hysteresis_kind_definition() -> KindDefinition {
-    KindDefinition {
+pub fn measurement_hysteresis_kind_projection() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(MEASUREMENT_HYSTERESIS_KIND),
-        kind_contract_revision: KindContractRevision::from(
-            MEASUREMENT_HYSTERESIS_CONTRACT_REVISION,
-        ),
+        kind_contract_revision: KindIdentity::from(MEASUREMENT_HYSTERESIS_CONTRACT_REVISION),
         inputs: vec![
             port(
                 "profile",
@@ -113,15 +110,17 @@ pub fn measurement_hysteresis_kind_definition() -> KindDefinition {
     }
 }
 
-pub fn measurement_hysteresis_semantic_contract() -> SemanticCapabilityContract {
-    let definition = measurement_hysteresis_kind_definition();
-    SemanticCapabilityContract {
+pub fn measurement_hysteresis_semantic_contract() -> Kind {
+    let definition = measurement_hysteresis_kind_projection();
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 2,

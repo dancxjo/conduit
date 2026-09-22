@@ -82,7 +82,7 @@ impl PreparedSnapshotRecord {
             ResourceAccessMode::WriteCandidatePublish => PUBLISH_OPERATION,
             ResourceAccessMode::ReadPublished => READ_OPERATION,
         };
-        let [host_operation] = placement.host_operations.as_slice() else {
+        let [host_call] = placement.host_calls.as_slice() else {
             return Err(SnapshotRefusal::InvalidBinding);
         };
         let expected_bounds = if contract.access == ResourceAccessMode::WriteCandidatePublish {
@@ -97,15 +97,15 @@ impl PreparedSnapshotRecord {
             )
         };
         if (
-            host_operation.maximum_input_bytes,
-            host_operation.maximum_output_bytes,
+            host_call.maximum_input_bytes,
+            host_call.maximum_output_bytes,
         ) != expected_bounds
         {
             return Err(SnapshotRefusal::InvalidBinding);
         }
-        if host_operation.contract_id.as_str() != operation
-            || host_operation.target_kind.as_ref() != Some(&placement.kind_id)
-            || host_operation.maximum_in_flight != 1
+        if host_call.contract_id.as_str() != operation
+            || host_call.target_kind.as_ref() != Some(&placement.kind_id)
+            || host_call.maximum_in_flight != 1
         {
             return Err(SnapshotRefusal::InvalidBinding);
         }
@@ -114,7 +114,7 @@ impl PreparedSnapshotRecord {
         };
         if authority.grant_id.as_str().is_empty()
             || authority.contract_id.as_str() != AUTHORITY_CONTRACT
-            || authority.host_operation_contract_id != host_operation.contract_id
+            || authority.host_call_contract_id != host_call.contract_id
             || authority.subject_kind != placement.kind_id
             || authority.capability_id != placement.capability_id
         {

@@ -1,17 +1,17 @@
 use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
-    kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, KindContractRevision,
-    SemanticCapabilityContract,
+    kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, KindIdentity,
+    Quantity, QuantityUnit,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
 
 use crate::{
-    historical_timeline_kind_definition, replay_control_kind_definition,
-    replay_source_kind_definition, tick_outputs, time_every_outputs, HISTORICAL_TIMELINE_KIND,
+    historical_timeline_kind_projection, replay_control_kind_projection,
+    replay_source_kind_projection, tick_outputs, time_every_outputs, HISTORICAL_TIMELINE_KIND,
     MAX_TICK_COUNT, PHASE_SYNCHRONIZE_KIND, PHASE_SYNCHRONIZE_REVISION,
     PULSE_OBSERVATION_VALUE_KIND, PULSE_OBSERVE_KIND, PULSE_OBSERVE_REVISION, REPLAY_SOURCE_KIND,
     RHYTHM_STATE_VALUE_KIND, TICK_CONTRACT_REVISION, TICK_KIND, TICK_VALUE_KIND,
@@ -19,25 +19,25 @@ use crate::{
 };
 use conduit_core::{port_id, PortDescriptor, PortDirection, PortTemporal};
 
-pub fn tick_kind_definition() -> KindDefinition {
-    KindDefinition {
+pub fn tick_kind_projection() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(TICK_KIND),
-        kind_contract_revision: KindContractRevision::from(TICK_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(TICK_CONTRACT_REVISION),
         inputs: alloc::vec::Vec::new(),
         outputs: tick_outputs(),
         configuration: vec![
-            ConfigurationField {
+            KindConfigurationField {
                 key: "count".to_string(),
                 default_value: ConfigurationValue::U64(4),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 0,
                     maximum: MAX_TICK_COUNT,
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "period-ms".to_string(),
                 default_value: ConfigurationValue::U64(1_000),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 0,
                     maximum: u64::MAX,
                 },
@@ -46,18 +46,22 @@ pub fn tick_kind_definition() -> KindDefinition {
     }
 }
 
-pub fn time_every_kind_definition() -> KindDefinition {
-    KindDefinition {
+pub fn time_every_kind_projection() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(TIME_EVERY_KIND),
-        kind_contract_revision: KindContractRevision::from(TIME_EVERY_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(TIME_EVERY_CONTRACT_REVISION),
         inputs: alloc::vec::Vec::new(),
         outputs: time_every_outputs(),
-        configuration: vec![ConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "freq".to_string(),
-            default_value: ConfigurationValue::U64(1_000),
-            validation: ConfigurationRule::DurationMillis {
+            default_value: ConfigurationValue::Quantity(Quantity::new(
+                1_000,
+                QuantityUnit::Millisecond,
+            )),
+            rule: KindConfigurationRule::QuantityRange {
                 minimum: 0,
-                maximum: u64::MAX,
+                maximum: i64::MAX,
+                canonical_unit: QuantityUnit::Millisecond,
             },
         }],
     }
@@ -83,7 +87,7 @@ pub fn install_tick_catalog(
         ],
     })?;
     profile
-        .insert(tick_kind_definition())
+        .insert(tick_kind_projection())
         .map_err(|error| error.to_string())
 }
 
@@ -95,12 +99,12 @@ pub fn install_time_every_catalog(
         kind: TIME_EVERY_KIND.to_string(),
         startup_parameters: vec![StartupParameterSignature {
             name: "freq".to_string(),
-            value_type: "Duration".to_string(),
+            value_type: "Quantity".to_string(),
             default: None,
         }],
     })?;
     profile
-        .insert(time_every_kind_definition())
+        .insert(time_every_kind_projection())
         .map_err(|error| error.to_string())
 }
 
@@ -117,14 +121,14 @@ pub fn install_rhythm_catalog(
         }],
     })?;
     profile
-        .insert(pulse_observe_kind_definition())
+        .insert(pulse_observe_kind_projection())
         .map_err(|error| error.to_string())?;
     startup.insert(KindSignature {
         kind: PHASE_SYNCHRONIZE_KIND.into(),
         startup_parameters: vec![],
     })?;
     profile
-        .insert(phase_synchronize_kind_definition())
+        .insert(phase_synchronize_kind_projection())
         .map_err(|error| error.to_string())?;
     startup.insert(KindSignature {
         kind: crate::RHYTHM_STATE_SOURCE_KIND.into(),
@@ -143,14 +147,14 @@ pub fn install_rhythm_catalog(
         .collect(),
     })?;
     profile
-        .insert(rhythm_state_source_kind_definition())
+        .insert(rhythm_state_source_kind_projection())
         .map_err(|error| error.to_string())
 }
 
-pub fn rhythm_state_source_kind_definition() -> KindDefinition {
-    KindDefinition {
+pub fn rhythm_state_source_kind_projection() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(crate::RHYTHM_STATE_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(crate::RHYTHM_STATE_SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(crate::RHYTHM_STATE_SOURCE_REVISION),
         inputs: vec![],
         outputs: vec![flow_port(
             "state",
@@ -170,9 +174,9 @@ pub fn rhythm_state_source_kind_definition() -> KindDefinition {
     }
 }
 
-pub fn rhythm_state_source_semantic_contract() -> SemanticCapabilityContract {
-    let definition = rhythm_state_source_kind_definition();
-    SemanticCapabilityContract {
+pub fn rhythm_state_source_semantic_contract() -> Kind {
+    let definition = rhythm_state_source_kind_projection();
+    Kind {
         startup_parameters: [
             "sequence",
             "next-pulse-at-ms",
@@ -191,6 +195,8 @@ pub fn rhythm_state_source_semantic_contract() -> SemanticCapabilityContract {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 1,
@@ -199,21 +205,21 @@ pub fn rhythm_state_source_semantic_contract() -> SemanticCapabilityContract {
     }
 }
 
-fn count_field(key: &str, minimum: u64, maximum: u64) -> ConfigurationField {
-    ConfigurationField {
+fn count_field(key: &str, minimum: u64, maximum: u64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.into(),
         default_value: ConfigurationValue::U64(match key {
             "period-ms" => 240,
             _ => 0,
         }),
-        validation: ConfigurationRule::U64Range { minimum, maximum },
+        rule: KindConfigurationRule::U64Range { minimum, maximum },
     }
 }
 
-pub fn phase_synchronize_kind_definition() -> KindDefinition {
-    KindDefinition {
+pub fn phase_synchronize_kind_projection() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(PHASE_SYNCHRONIZE_KIND),
-        kind_contract_revision: KindContractRevision::from(PHASE_SYNCHRONIZE_REVISION),
+        kind_contract_revision: KindIdentity::from(PHASE_SYNCHRONIZE_REVISION),
         inputs: vec![
             flow_port("local", RHYTHM_STATE_VALUE_KIND, PortDirection::Input),
             flow_port("peer", PULSE_OBSERVATION_VALUE_KIND, PortDirection::Input),
@@ -227,15 +233,17 @@ pub fn phase_synchronize_kind_definition() -> KindDefinition {
     }
 }
 
-pub fn phase_synchronize_semantic_contract() -> SemanticCapabilityContract {
-    let definition = phase_synchronize_kind_definition();
-    SemanticCapabilityContract {
+pub fn phase_synchronize_semantic_contract() -> Kind {
+    let definition = phase_synchronize_kind_projection();
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 2,
@@ -246,20 +254,20 @@ pub fn phase_synchronize_semantic_contract() -> SemanticCapabilityContract {
 }
 
 /// Nominal pulse period is semantic; each observation remains finite.
-pub fn pulse_observe_kind_definition() -> KindDefinition {
-    KindDefinition {
+pub fn pulse_observe_kind_projection() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(PULSE_OBSERVE_KIND),
-        kind_contract_revision: KindContractRevision::from(PULSE_OBSERVE_REVISION),
+        kind_contract_revision: KindIdentity::from(PULSE_OBSERVE_REVISION),
         inputs: vec![flow_port("tick", TICK_VALUE_KIND, PortDirection::Input)],
         outputs: vec![flow_port(
             "observation",
             PULSE_OBSERVATION_VALUE_KIND,
             PortDirection::Output,
         )],
-        configuration: vec![ConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "period-ms".into(),
             default_value: ConfigurationValue::U64(240),
-            validation: ConfigurationRule::U64Range {
+            rule: KindConfigurationRule::U64Range {
                 minimum: crate::MINIMUM_PERIOD_MS.into(),
                 maximum: crate::MAXIMUM_PERIOD_MS.into(),
             },
@@ -267,9 +275,9 @@ pub fn pulse_observe_kind_definition() -> KindDefinition {
     }
 }
 
-pub fn pulse_observe_semantic_contract() -> SemanticCapabilityContract {
-    let definition = pulse_observe_kind_definition();
-    SemanticCapabilityContract {
+pub fn pulse_observe_semantic_contract() -> Kind {
+    let definition = pulse_observe_kind_projection();
+    Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "period-ms".into(),
             value_type: kind_id("value/count"),
@@ -280,6 +288,8 @@ pub fn pulse_observe_semantic_contract() -> SemanticCapabilityContract {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 1,
@@ -342,7 +352,7 @@ pub fn install_replay_control_catalog(
         ],
     })?;
     profile
-        .insert(replay_control_kind_definition())
+        .insert(replay_control_kind_projection())
         .map_err(|error| error.to_string())
 }
 
@@ -406,7 +416,7 @@ pub fn install_historical_timeline_catalog(
         ],
     })?;
     profile
-        .insert(historical_timeline_kind_definition())
+        .insert(historical_timeline_kind_projection())
         .map_err(|error| error.to_string())
 }
 
@@ -426,7 +436,7 @@ pub fn install_replay_source_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(replay_source_kind_definition())
+        .insert(replay_source_kind_projection())
         .map_err(|error| error.to_string())
 }
 
@@ -435,11 +445,11 @@ mod tests {
     use super::*;
     #[test]
     fn definitions_preserve_exact_identities_and_bounds() {
-        let tick = tick_kind_definition();
+        let tick = tick_kind_projection();
         assert_eq!(tick.kind_id.as_str(), TICK_KIND);
         assert_eq!(tick.outputs[0].value_kind.as_str(), crate::TICK_VALUE_KIND);
         assert_eq!(tick.kind_contract_revision.as_str(), TICK_CONTRACT_REVISION);
-        let every = time_every_kind_definition();
+        let every = time_every_kind_projection();
         assert_eq!(every.kind_id.as_str(), TIME_EVERY_KIND);
         assert_eq!(
             every.kind_contract_revision.as_str(),

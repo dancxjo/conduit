@@ -4,7 +4,7 @@ use conduit_ai::{
     LocalModelKindProfile, LocalModelLifecycleState, LocalModelLimits, LocalModelOffer,
 };
 use conduit_core::{BootId, HostId, OfferGeneration, PlannedGear};
-use conduit_kernel::{HostOperationDisposition, HostOperationOutcome};
+use conduit_kernel::{HostCallDisposition, HostCallOutcome};
 use sha2::Digest;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
@@ -21,10 +21,10 @@ fn complete_remote_work(
         conduit_kernel::BoundedValueRef::new(value.value, work.maximum_output_bytes).unwrap()
     });
     runtime
-        .complete_host_operation(
+        .complete_host_call(
             work.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output,
                 failure: None,
             },
@@ -376,7 +376,7 @@ fn addressed_microphone_response_is_spoken_and_committed_in_the_same_play() {
             base_identity: "fixture-base".into(),
         },
         BootId::from("spoken-house-boot"),
-        OfferGeneration(1),
+        OfferGeneration(2),
         FakePlaybackBehavior::Success,
     );
     let receipt = run_spoken_microphone(
@@ -435,7 +435,7 @@ fn addressed_microphone_response_is_spoken_and_committed_in_the_same_play() {
             base_identity: "fixture-base".into(),
         },
         BootId::from("spoken-house-unaddressed-boot"),
-        OfferGeneration(1),
+        OfferGeneration(2),
         FakePlaybackBehavior::Success,
     );
     let calls = Arc::new(AtomicUsize::new(0));

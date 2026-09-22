@@ -99,7 +99,7 @@ pub enum Coverage {
 pub(crate) enum GapClassification {
     Implemented,
     PortableImplementationMissing,
-    MissingHostOperation,
+    MissingHostCall,
     MissingResource,
     MissingBase,
     UnsupportedOnThisMachine,
@@ -111,7 +111,7 @@ pub(super) struct InstalledImplementation {
     pub(super) implementation_id: String,
     pub(super) artifact_id: String,
     pub(super) execution_profile_id: String,
-    pub(super) host_operation_families: Vec<String>,
+    pub(super) host_call_families: Vec<String>,
     pub(super) resource_families: Vec<String>,
 }
 
@@ -123,7 +123,7 @@ struct MatrixEntry {
     coverage: Coverage,
     classification: GapClassification,
     reason_code: Option<&'static str>,
-    required_host_operations: Vec<String>,
+    required_host_calls: Vec<String>,
     required_resources: Vec<String>,
     required_bases: Vec<String>,
     unsatisfied_prerequisites: Vec<String>,
@@ -227,7 +227,7 @@ fn build_report(
         classification_vocabulary: [
             GapClassification::Implemented,
             GapClassification::PortableImplementationMissing,
-            GapClassification::MissingHostOperation,
+            GapClassification::MissingHostCall,
             GapClassification::MissingResource,
             GapClassification::MissingBase,
             GapClassification::UnsupportedOnThisMachine,
@@ -298,8 +298,8 @@ fn matrix_entry(
             .execution_profile_id
             .as_str()
             .to_owned(),
-        host_operation_families: capability
-            .host_operations
+        host_call_families: capability
+            .host_calls
             .iter()
             .map(|requirement| requirement.contract_id.as_str().to_owned())
             .collect(),
@@ -322,7 +322,7 @@ fn matrix_entry(
         },
         classification: prerequisites.classification,
         reason_code: prerequisites.reason_code,
-        required_host_operations: prerequisites.required_host_operations,
+        required_host_calls: prerequisites.required_host_calls,
         required_resources: prerequisites.required_resources,
         required_bases: prerequisites.required_bases,
         unsatisfied_prerequisites: prerequisites.unsatisfied,

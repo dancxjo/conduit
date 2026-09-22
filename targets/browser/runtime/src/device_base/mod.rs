@@ -6,8 +6,8 @@ use conduit_core::{
     resource_offer, AuthorityContractId, AuthorityGrantId, BaseEnforcementClass,
     BaseImplementationId, BaseInstanceId, BaseLifecycle, BaseProviderEntry, BaseRegistry,
     BaseRegistryLimits, BaseRegistryRefusal, BootId, CapabilityId, DeviceAssociation,
-    HostAdvertisement, HostBaseId, HostBaseKindId, HostId, HostOperationContractId,
-    HostOperationId, OfferGeneration, PlanId, ResourceClassId, ResourceHandleId,
+    HostAdvertisement, HostBaseId, HostBaseKindId, HostCallContractId, HostCallId, HostId,
+    OfferGeneration, PlanId, ResourceClassId, ResourceHandleId,
 };
 
 mod abi;
@@ -78,7 +78,7 @@ pub(crate) struct SerialAcquisitionOffer {
     pub(crate) host_id: HostId,
     pub(crate) boot_id: BootId,
     pub(crate) offer_generation: OfferGeneration,
-    pub(crate) operation_contract: HostOperationContractId,
+    pub(crate) operation_contract: HostCallContractId,
     pub(crate) request_authority_contract: AuthorityContractId,
     pub(crate) maximum_in_flight: u8,
     pub(crate) maximum_result_bytes: u32,
@@ -94,7 +94,7 @@ pub(crate) struct SerialAcquisitionAuthority {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SerialAcquisitionRequest {
-    pub(crate) operation_id: HostOperationId,
+    pub(crate) operation_id: HostCallId,
     pub(crate) configuration: SerialConfiguration,
     pub(crate) transfer_bounds: SerialTransferBounds,
 }
@@ -208,7 +208,7 @@ pub(crate) enum BrowserSerialRefusal {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct BrowserSerialSession {
     phase: BrowserSerialPhase,
-    expected_operation: Option<HostOperationId>,
+    expected_operation: Option<HostCallId>,
     expected_host_id: Option<HostId>,
     expected_boot_id: Option<BootId>,
     expected_offer_generation: Option<OfferGeneration>,
@@ -333,7 +333,7 @@ impl BrowserSerialSession {
 
     pub(crate) fn complete_acquisition(
         &mut self,
-        operation: &HostOperationId,
+        operation: &HostCallId,
         encoded_result_bytes: usize,
         result: SerialAcquisitionResult,
     ) -> Result<(), BrowserSerialRefusal> {

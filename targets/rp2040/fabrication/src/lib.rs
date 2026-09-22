@@ -24,7 +24,7 @@ impl HostFabricationPackage for Rp2040FabricationPackage {
                 os: None,
                 host_core: "host-core/conduitos@1".into(),
                 presenter: None,
-                host_operations: Vec::new(),
+                host_calls: Vec::new(),
                 toolchain_identity: "rustc:stable+thumbv6m-none-eabi".into(),
                 builder_adapter: BUILDER_ADAPTER.into(),
                 strategy:

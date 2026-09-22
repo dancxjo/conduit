@@ -95,12 +95,12 @@ pub(super) fn catalogs(
         &conduit_semantic_catalog::pattern_comparison_type(),
     );
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: comparison_presentation.kind_id,
             kind_contract_revision: comparison_presentation.kind_contract_revision,
             inputs: comparison_presentation.inputs,
             outputs: comparison_presentation.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| error.to_string())?;
     conduit_alife::install_lenia_catalogs(&mut startup, &mut profile)?;
@@ -115,6 +115,10 @@ pub(super) fn catalogs(
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_model_text_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_generate_text_catalog(&mut startup, &mut profile)?;
+    conduit_workspace_model::tutorial_presenter::install_tutorial_presenter_catalog(
+        &mut startup,
+        &mut profile,
+    )?;
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_form_catalog(&mut startup, &mut profile)?;
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile)?;

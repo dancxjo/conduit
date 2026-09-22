@@ -452,7 +452,7 @@ fn append_request_stages(
         content.identity(
             &proposal.proposal_id,
             "operation-kind",
-            proposal.operation_kind.as_str(),
+            proposal.back_kind.as_str(),
         );
         content.count(
             &proposal.proposal_id,

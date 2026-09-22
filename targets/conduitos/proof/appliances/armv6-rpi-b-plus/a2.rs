@@ -94,7 +94,7 @@ pub extern "C" fn conduitos_armv6_rpi_b_plus_a2_start() -> ! {
     decimal(idle_entries);
     arch::present(b",\"timer_wakes\":");
     decimal(timer_wakes);
-    arch::present(b",\"pending_host_operations\":0,\"a3_ordinary_form_claimed\":false}\n");
+    arch::present(b",\"pending_host_calls\":0,\"a3_ordinary_form_claimed\":false}\n");
     loop {
         unsafe { core::arch::asm!("wfe", options(nomem, nostack)) };
     }

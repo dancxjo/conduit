@@ -1,5 +1,5 @@
 //! Portable request to manifest one exact frequency as a bounded tone.
-use crate::{StandardKindContract, TerminalBehavior};
+use crate::{KindTerminalBehavior, StandardKindContract};
 #[cfg(feature = "form-catalog")]
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
@@ -25,13 +25,13 @@ pub fn pitch_tone_contract() -> StandardKindContract {
             temporal: PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 1,
             max_queue_bytes: QUANTITY_ENCODED_LEN as u32,
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
@@ -50,7 +50,7 @@ pub fn install_pitch_tone_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: PITCH_TONE_REVISION.into(),
             inputs: contract.inputs,

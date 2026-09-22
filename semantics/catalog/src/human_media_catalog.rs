@@ -2,8 +2,8 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 
 pub const CAMERA_ACQUIRE_KIND: &str = "media/acquire-camera@1";
@@ -29,17 +29,17 @@ pub const MAXIMUM_MEDIA_QUEUE_ITEMS: u16 = 4;
 pub const MAXIMUM_MEDIA_QUEUE_BYTES: u32 = 4 * MAXIMUM_MEDIA_RESULT_BYTES;
 pub const MAXIMUM_MEDIA_VALUE_BYTES: u32 = 64 * 1024;
 
-pub fn media_acquisition_semantic_contract(kind: &str) -> Option<SemanticCapabilityContract> {
+pub fn media_acquisition_semantic_contract(kind: &str) -> Option<Kind> {
     let request_kind = match kind {
         CAMERA_ACQUIRE_KIND => CAMERA_REQUEST_KIND,
         MICROPHONE_ACQUIRE_KIND => MICROPHONE_REQUEST_KIND,
         _ => return None,
     };
-    Some(SemanticCapabilityContract {
+    Some(Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from("conduit.std/human-media@1"),
+        kind_contract_revision: KindIdentity::from("conduit.std/human-media@1"),
         inputs: vec![PortDescriptor {
             port_id: port_id("request"),
             value_kind: kind_id(request_kind),
@@ -52,6 +52,8 @@ pub fn media_acquisition_semantic_contract(kind: &str) -> Option<SemanticCapabil
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: MAXIMUM_MEDIA_QUEUE_ITEMS,
@@ -60,26 +62,30 @@ pub fn media_acquisition_semantic_contract(kind: &str) -> Option<SemanticCapabil
     })
 }
 
-pub fn camera_source_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn camera_source_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(CAMERA_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from("conduit.std/camera-source@1"),
+        kind_contract_revision: KindIdentity::from("conduit.std/camera-source@1"),
         inputs: vec![],
         outputs: vec![camera_frame_port(PortDirection::Output)],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: camera_limits(),
     }
 }
 
-pub fn camera_frame_sink_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn camera_frame_sink_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(CAMERA_FRAME_SINK_KIND),
-        kind_contract_revision: KindContractRevision::from("conduit.std/camera-frame-sink@1"),
+        kind_contract_revision: KindIdentity::from("conduit.std/camera-frame-sink@1"),
         inputs: vec![camera_frame_port(PortDirection::Input)],
         outputs: vec![],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: camera_limits(),
     }
 }
@@ -101,12 +107,12 @@ fn camera_limits() -> CapabilityLimits {
     }
 }
 
-pub fn microphone_clip_source_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn microphone_clip_source_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(MICROPHONE_CLIP_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(MICROPHONE_CLIP_SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(MICROPHONE_CLIP_SOURCE_REVISION),
         inputs: vec![PortDescriptor {
             port_id: port_id("request"),
             value_kind: kind_id(conduit_text::TEXT_VALUE_KIND),
@@ -119,6 +125,8 @@ pub fn microphone_clip_source_semantic_contract() -> SemanticCapabilityContract 
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
@@ -132,7 +140,7 @@ pub fn install_microphone_clip_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
 
     startup.insert(KindSignature {
         kind: MICROPHONE_CLIP_SOURCE_KIND.into(),
@@ -140,7 +148,7 @@ pub fn install_microphone_clip_catalogs(
     })?;
     let contract = microphone_clip_source_semantic_contract();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
@@ -155,7 +163,7 @@ pub(crate) fn install_camera_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
 
     for contract in [
         camera_source_semantic_contract(),
@@ -166,7 +174,7 @@ pub(crate) fn install_camera_catalogs(
             startup_parameters: vec![],
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,

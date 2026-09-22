@@ -1,10 +1,8 @@
 use alloc::{string::String, vec::Vec};
-use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, ValueStorage,
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallOutcome, ValueStorage,
 };
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use conduit_presentation::{
@@ -12,7 +10,7 @@ use conduit_presentation::{
     MAX_GRAPHICS_SCENE_BYTES, PresentationComposition,
 };
 
-use super::{PreparedPresentationPlay, TEXT_SOURCE_KIND, operation::PresentationOperation};
+use super::{PreparedPresentationPlay, TEXT_SOURCE_KIND, back::PresentationBack};
 use crate::display::{DisplayReceipt, PixelTarget, render_scene};
 
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -26,7 +24,7 @@ const VALUE_BYTES: usize = VALUES * MAX_VALUE_BYTES;
 const SIGNS: usize = 256;
 
 type PresentationScheduler = FixedScheduler<
-    OperationDriver<PresentationOperation, PORTS>,
+    PresentationBack,
     FixedValueStore<VALUES, MAX_VALUE_BYTES>,
     FixedSignLog<SIGNS>,
     NODES,
@@ -49,7 +47,7 @@ pub struct PresentationProof {
     pub text_display: DisplayReceipt,
     pub display: DisplayReceipt,
     pub kernel_signs: u16,
-    pub realization_back: conduit_core::RealizationBack,
+    pub realization_back: conduit_core::FormBack,
     pub node_count: u8,
     pub cord_count: u8,
 }
@@ -157,7 +155,7 @@ pub fn run(
                             .store_host_value(&output)
                             .map_err(|_| PresentationRunError::Value)?;
                         let maximum = placement
-                            .host_operations
+                            .host_calls
                             .first()
                             .ok_or(PresentationRunError::Shape)?
                             .maximum_output_bytes;
@@ -252,8 +250,8 @@ fn prepare_scheduler(
             .map_err(|_| PresentationRunError::Kernel)?;
     }
     routes.seal().map_err(|_| PresentationRunError::Kernel)?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(|_| PresentationRunError::Kernel)?;
@@ -279,18 +277,18 @@ fn prepare_scheduler(
             TEXT_SOURCE_KIND => source(&mut values, b"Gear Front")?,
             conduit_semantic_catalog::TEXT_PRESENTATION_KIND
             | conduit_semantic_catalog::GRAPHICS_PRESENTATION_KIND
-            | conduit_semantic_catalog::LAYOUT_COLUMN_KIND => PresentationOperation::Sink {
+            | conduit_semantic_catalog::LAYOUT_COLUMN_KIND => PresentationBack::Sink {
                 maximum_input_bytes: placement
-                    .host_operations
+                    .host_calls
                     .first()
                     .ok_or(PresentationRunError::Shape)?
                     .maximum_input_bytes,
                 pending: false,
                 complete: false,
             },
-            _ => PresentationOperation::Transform {
+            _ => PresentationBack::Transform {
                 maximum_input_bytes: placement
-                    .host_operations
+                    .host_calls
                     .first()
                     .ok_or(PresentationRunError::Shape)?
                     .maximum_input_bytes,
@@ -298,7 +296,7 @@ fn prepare_scheduler(
                 emitted: false,
             },
         };
-        drivers.push(OperationDriver::new(operation).map_err(|_| PresentationRunError::Kernel)?);
+        drivers.push(operation);
     }
     let drivers = drivers
         .try_into()
@@ -309,15 +307,15 @@ fn prepare_scheduler(
             .max((SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
     )
     .map_err(|_| PresentationRunError::Kernel)?;
-    FixedScheduler::new_with_host_operations(nodes, cords, routes, bindings, drivers, values, signs)
+    FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
         .map_err(|_| PresentationRunError::Kernel)
 }
 
 fn source(
     values: &mut FixedValueStore<VALUES, MAX_VALUE_BYTES>,
     bytes: &[u8],
-) -> Result<PresentationOperation, PresentationRunError> {
-    Ok(PresentationOperation::Source {
+) -> Result<PresentationBack, PresentationRunError> {
+    Ok(PresentationBack::Source {
         value: values
             .store(bytes)
             .map_err(|_| PresentationRunError::Value)?,
@@ -374,15 +372,15 @@ fn encode_scene(scene: GraphicsScene) -> Result<Vec<u8>, PresentationRunError> {
 
 fn complete(
     scheduler: &mut PresentationScheduler,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     output: Option<BoundedValueRef>,
 ) -> Result<(), PresentationRunError> {
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output,
                 failure: None,
             },

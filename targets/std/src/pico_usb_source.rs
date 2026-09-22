@@ -4,13 +4,11 @@ use std::thread;
 use std::time::Duration;
 
 use conduit_core::{bind_active_play, BootId, HostId, Plan, PlanFragment};
-use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
-    CordId, FixedHostOperationBindings, FixedRoutes, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEventKind, RemoteEndpointId,
-    RequestId, SignQuery, ValueStorage,
+    CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition, HostCallId, HostCallOutcome,
+    HostedSignLog, HostedValueStore, KernelEventKind, RemoteEndpointId, RequestId, SignQuery,
+    ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -26,7 +24,7 @@ use conduit_wire::{
 };
 
 mod pulse;
-use pulse::{PulseOperation, MAXIMUM_VALUES, MAXIMUM_WAITS};
+use pulse::{PulseBack, MAXIMUM_VALUES, MAXIMUM_WAITS};
 
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const MAXIMUM_STORED_ITEMS: u16 = (MAXIMUM_VALUES + MAXIMUM_WAITS) as u16;
@@ -34,19 +32,8 @@ const MAXIMUM_STORED_BYTES: u32 =
     MAXIMUM_VALUES as u32 * SIGNAL_ENCODED_LEN + MAXIMUM_WAITS as u32 * 8;
 const SIGN_ITEMS: u16 = 256;
 
-type SourceScheduler = FixedScheduler<
-    OperationDriver<PulseOperation, PORTS>,
-    HostedValueStore,
-    HostedSignLog,
-    1,
-    1,
-    PORTS,
-    1,
-    PORTS,
-    1,
-    1,
-    1,
->;
+type SourceScheduler =
+    FixedScheduler<PulseBack, HostedValueStore, HostedSignLog, 1, 1, PORTS, 1, PORTS, 1, 1, 1>;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct CapacitySeal {
@@ -96,7 +83,7 @@ impl PicoUsbSource {
                 .remote_endpoints
                 .iter()
                 .any(|endpoint| endpoint.direction != RemoteCordDirection::Egress)
-            || lowered.host_operations.len() != 1
+            || lowered.host_calls.len() != 1
         {
             return Err("std fragment is not one exact kernel remote egress".to_owned());
         }
@@ -169,16 +156,12 @@ impl PicoUsbSource {
                 .map_err(|error| format!("{error:?}"))?;
         }
         routes.seal().map_err(|error| format!("{error:?}"))?;
-        let mut host_bindings = FixedHostOperationBindings::<1>::new(1);
+        let mut host_bindings = FixedHostCallBindings::<1>::new(1);
         host_bindings
-            .install(
-                lowered.host_operations[0].node,
-                lowered.host_operations[0].binding,
-            )
+            .install(lowered.host_calls[0].node, lowered.host_calls[0].binding)
             .map_err(|error| format!("{error:?}"))?;
         host_bindings.seal().map_err(|error| format!("{error:?}"))?;
-        let driver = OperationDriver::new(PulseOperation::new(signal_values, waits))
-            .map_err(|error| format!("{error:?}"))?;
+        let driver = PulseBack::new(signal_values, waits);
         let sign_bytes = u32::from(SIGN_ITEMS)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or_else(|| "source sign byte bound overflow".to_owned())?;
@@ -191,7 +174,7 @@ impl PicoUsbSource {
             remote_sign_bytes,
         )
         .map_err(|error| format!("{error:?}"))?;
-        let scheduler = SourceScheduler::new_with_host_operations(
+        let scheduler = SourceScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()
@@ -225,7 +208,7 @@ impl PicoUsbSource {
                     &lowered.identity,
                     lowered.nodes[0].node,
                     RequestId(sequence as u32),
-                    HostOperationId(0),
+                    HostCallId(0),
                 )
                 .map_err(|error| format!("{error:?}"))?;
         }
@@ -234,7 +217,7 @@ impl PicoUsbSource {
         let seal = CapacitySeal {
             values: scheduler.values().allocation_capacities(),
             sign: scheduler.signs().allocation_capacity(),
-            driver: scheduler.drivers()[0].operation().allocation_capacity(),
+            driver: scheduler.drivers()[0].allocation_capacity(),
             identity: identity.allocation_capacities(),
         };
         Ok(Self {
@@ -410,7 +393,7 @@ impl PicoUsbSource {
             || !self
                 .scheduler
                 .signs()
-                .contains_kind(KernelEventKind::OperationCompleted)
+                .contains_kind(KernelEventKind::BackCompleted)
             || self.capacity_seal() != self.seal
         {
             return Err("source kernel terminal/capacity invariants failed".to_owned());
@@ -435,12 +418,12 @@ impl PicoUsbSource {
         (remote.endpoint, remote.cord)
     }
 
-    fn complete_wait(&mut self, request: HostOperationRequest) -> Result<(), String> {
+    fn complete_wait(&mut self, request: HostCallRequest) -> Result<(), String> {
         let identity = self
             .identity
             .request(request.node, request.request)
             .ok_or_else(|| "unbound std wait request".to_owned())?;
-        if identity.operation != request.operation {
+        if identity.call != request.call {
             return Err("std wait operation identity mismatch".to_owned());
         }
         let duration = u64::from_le_bytes(
@@ -452,11 +435,11 @@ impl PicoUsbSource {
         );
         thread::sleep(Duration::from_millis(duration));
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },
@@ -468,9 +451,7 @@ impl PicoUsbSource {
         CapacitySeal {
             values: self.scheduler.values().allocation_capacities(),
             sign: self.scheduler.signs().allocation_capacity(),
-            driver: self.scheduler.drivers()[0]
-                .operation()
-                .allocation_capacity(),
+            driver: self.scheduler.drivers()[0].allocation_capacity(),
             identity: self.identity.allocation_capacities(),
         }
     }

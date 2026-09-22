@@ -1,9 +1,9 @@
 //! Native realization of the existing portable retained text contract.
 use alloc::{format, vec};
-use conduit_core::{CapabilityOffer, HostOperationRequirement, resource_requirement};
+use conduit_core::{CapabilityOffer, HostCallRequirement, resource_requirement};
 
 pub(crate) const TEXT_EDIT_IMPLEMENTATION: &str = "conduitos/kernel-text-edit@1";
-pub(crate) const TEXT_EDIT_HOST_OPERATION: &str = "conduit.host/conduitos-text-edit@1";
+pub(crate) const TEXT_EDIT_HOST_CALL: &str = "conduit.host/conduitos-text-edit@1";
 
 pub(super) fn offer(build_id: &str) -> CapabilityOffer {
     let mut offer = conduit_semantic_catalog::realization_offer(
@@ -15,8 +15,8 @@ pub(super) fn offer(build_id: &str) -> CapabilityOffer {
             implementation: TEXT_EDIT_IMPLEMENTATION,
             artifact: "conduitos/text-state@1",
         },
-        vec![HostOperationRequirement {
-            contract_id: TEXT_EDIT_HOST_OPERATION.into(),
+        vec![HostCallRequirement {
+            contract_id: TEXT_EDIT_HOST_CALL.into(),
             target_kind: Some("text/bounded-state-output@1".into()),
             maximum_in_flight: 1,
             maximum_input_bytes: 4,

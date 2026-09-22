@@ -314,7 +314,7 @@ mod tests {
             identity: "gear/demo".into(),
             gear_id: GearId::from("demo"),
             kind_id: kind_id("presentation/text"),
-            kind_contract_revision: conduit_core::KindContractRevision::from(
+            kind_contract_revision: conduit_core::KindIdentity::from(
                 "conduit.std/presentation-text@1",
             ),
             source_form: "demo".into(),

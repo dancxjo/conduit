@@ -325,7 +325,7 @@ fn run_kernel(
             }
             Ok(SchedulerStatus::Progress { .. }) | Ok(SchedulerStatus::Idle) => {}
             Ok(SchedulerStatus::Cancelled) => return TimingOutcome::Cancelled,
-            Err(SchedulerError::OperationFailed(_)) | Err(_) => {
+            Err(SchedulerError::BackFailed(_)) | Err(_) => {
                 return TimingOutcome::KernelFailure;
             }
         }

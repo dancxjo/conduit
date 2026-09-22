@@ -1,6 +1,6 @@
 //! Portable non-metric robot input and inertial observation contracts.
 
-use crate::{StandardKindContract, TerminalBehavior};
+use crate::{KindTerminalBehavior, StandardKindContract};
 use alloc::format;
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
@@ -118,13 +118,13 @@ fn observation_contract(
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
         }],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 1,
             max_queue_bytes: maximum_value_bytes,
         },
-        terminal_behavior: TerminalBehavior::HostObservationEndsOrFailsSource,
+        terminal_behavior: KindTerminalBehavior::HostObservationEndsOrFailsSource,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,

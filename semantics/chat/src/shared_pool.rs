@@ -3,10 +3,9 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId, FrontStartupParameter,
-    ImplementationId, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    SemanticCapabilityContract,
+    kind_id, port_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ExecutionProfileId, FrontStartupParameter, ImplementationId, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const CHAT_PEER_KIND: &str = "chat/peer";
@@ -30,14 +29,14 @@ fn offer(
     inputs: alloc::vec::Vec<PortDescriptor>,
     outputs: alloc::vec::Vec<PortDescriptor>,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         pool_chat_contract(kind, inputs, outputs),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!("std/pool-webchat/{kind}")),
             execution_profile_id: ExecutionProfileId::from("conduit.chat/shared-pool-hosted@1"),
             implementation_id: ImplementationId::from(format!("std/pool-webchat/{kind}@1")),
             artifact_id: ArtifactId::from("conduit-std-host/pool-webchat@1"),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
         },
@@ -49,8 +48,8 @@ fn pool_chat_contract(
     kind: &str,
     inputs: alloc::vec::Vec<PortDescriptor>,
     outputs: alloc::vec::Vec<PortDescriptor>,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+) -> Kind {
+    Kind {
         startup_parameters: if kind == CHAT_PEER_KIND {
             Vec::new()
         } else {
@@ -62,9 +61,11 @@ fn pool_chat_contract(
         },
         shorthand: None,
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("conduit.{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("conduit.{kind}@1")),
         inputs,
         outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: if kind == CHAT_PEER_KIND {
                 POOL_WEBCHAT_MAXIMUM_PEERS
@@ -99,7 +100,7 @@ pub fn install_pool_chat_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature, StartupParameterSignature};
+    use conduit_form::{KindProjection, KindSignature, StartupParameterSignature};
 
     startup.insert_value_kind_alias("ChatMessage", kind_id(CHAT_MESSAGE_KIND))?;
 
@@ -113,12 +114,12 @@ pub fn install_pool_chat_catalogs(
             }],
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: offer.kind_id,
                 kind_contract_revision: offer.kind_contract_revision,
                 inputs: offer.inputs,
                 outputs: offer.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|error| error.to_string())?;
     }

@@ -144,9 +144,6 @@ pub fn competing_hosts() -> [conduit_core::HostAdvertisement; 2] {
 
     let mut capable_offer = pulse.clone();
     capable_offer.capability_id = CapabilityId::from("capable/pulse");
-    capable_offer.kind_id = conduit_core::kind_id("alternate/nominal-pulse");
-    // A different catalog name and Back may realize the same semantic contract.
-    capable_offer.kind_contract_revision = pulse.kind_contract_revision.clone();
     capable_offer.implementation.implementation_id = ImplementationId::from("capable/pulse@1");
     capable_offer.implementation.artifact_id = ArtifactId::from("capable/pulse-artifact@1");
     capable_offer.limits.max_queue_items = 8;

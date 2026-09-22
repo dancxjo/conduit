@@ -20,7 +20,7 @@ fn profile() -> HostProfile {
         host_core: "host-core/conduitos@1".into(),
         fragments: Vec::new(),
         capabilities: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resources: Vec::new(),
         bases: vec![BaseSelection {
             id: "base/audio".into(),

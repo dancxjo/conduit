@@ -1,15 +1,14 @@
 //! Bounded retained text editing and repeated line submission.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ConfigurationValue, ExecutionProfileId, HostOperationRequirement,
-    ImplementationId, PlannedGear, SemanticCapabilityContract,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-text-state@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-text-state@1";
 const EDIT_IMPLEMENTATION: &str = "browser/kernel-text-edit@1";
 const SUBMIT_IMPLEMENTATION: &str = "browser/kernel-text-submit-lines@1";
 
@@ -38,16 +37,16 @@ fn submit_offer() -> CapabilityOffer {
         SUBMIT_IMPLEMENTATION,
     )
 }
-fn offer(contract: SemanticCapabilityContract, implementation: &'static str) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+fn offer(contract: Kind, implementation: &'static str) -> CapabilityOffer {
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(implementation),
             execution_profile_id: ExecutionProfileId::from(implementation),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from("conduit-browser-runtime/text-state@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HOST_OPERATION.into(),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HOST_CALL.into(),
                 target_kind: Some(kind_id("text/bounded-state-output@1")),
                 maximum_in_flight: 1,
                 maximum_input_bytes: 4,
@@ -60,14 +59,14 @@ fn offer(contract: SemanticCapabilityContract, implementation: &'static str) -> 
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let expected = match placement.implementation_id.as_str() {
         EDIT_IMPLEMENTATION => edit_offer(),
         SUBMIT_IMPLEMENTATION => submit_offer(),
         _ => return Err("unsupported text state implementation".into()),
     };
     validate_placement(placement, &expected)?;
-    Ok(BrowserOperation::unary(4, 1))
+    Ok(BrowserBack::unary(4, 1))
 }
 
 pub(crate) struct PreparedTextState(conduit_semantic_catalog::BoundedTextState);

@@ -146,7 +146,7 @@ pub(super) fn expanded_identity(
     connections: &[CheckedConnection],
     shared_pools: &[ExpandedSharedPool],
     provenance: &[ExpandedGearProvenance],
-    realization_backs: &[conduit_core::RealizationBack],
+    realization_backs: &[conduit_core::FormBack],
 ) -> ExpandedFormId {
     let mut canonical = format!("canonical-expanded:{}", form.checked_form_id.as_str());
     for gear in gears {
@@ -204,6 +204,10 @@ pub(super) fn expanded_identity(
                     push(&mut canonical, "structured");
                     push(&mut canonical, value.profile().as_str());
                     push(&mut canonical, &hex(value.canonical_value()));
+                }
+                conduit_core::ConfigurationValue::Quantity(value) => {
+                    push(&mut canonical, "quantity");
+                    push(&mut canonical, &hex(&value.encode()));
                 }
             }
         }

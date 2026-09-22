@@ -2,11 +2,11 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
+    kind_id, port_id, ConfigurationValue, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, QUANTITY_INFO_ID,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
 
@@ -29,10 +29,10 @@ pub fn install_measurement_observation_catalog(
         .map_err(|error| error.to_string())
 }
 
-pub fn measurement_observation_definition() -> KindDefinition {
-    KindDefinition {
+pub fn measurement_observation_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(MEASUREMENT_OBSERVATION_KIND),
-        kind_contract_revision: KindContractRevision::from(MEASUREMENT_OBSERVATION_REVISION),
+        kind_contract_revision: KindIdentity::from(MEASUREMENT_OBSERVATION_REVISION),
         inputs: vec![PortDescriptor {
             port_id: port_id("quantity"),
             value_kind: kind_id(QUANTITY_INFO_ID),
@@ -49,10 +49,10 @@ pub fn measurement_observation_definition() -> KindDefinition {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
-        configuration: vec![ConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "clock-basis".into(),
             default_value: ConfigurationValue::Text("control-occurrence".into()),
-            validation: ConfigurationRule::TextBytes {
+            rule: KindConfigurationRule::TextBytes {
                 maximum: MAXIMUM_MEASUREMENT_CLOCK_BASIS_BYTES,
             },
         }],

@@ -100,6 +100,11 @@ enum Request {
         revision: u32,
         playback: conduit_workspace_model::tutorial::TutorialPlayback,
     },
+    TutorialPresenterInput {
+        request_identity: String,
+        presentation_revision: u64,
+        playback: conduit_workspace_model::tutorial::TutorialPlayback,
+    },
     InvitationView {
         invitation_id: String,
         body_id: String,
@@ -495,6 +500,22 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")))?;
                 return view.encode()
                     .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")));
+            }
+            Request::TutorialPresenterInput {
+                request_identity,
+                presentation_revision,
+                playback,
+            } => {
+                let request = conduit_workspace_model::tutorial::generative_request(
+                    current,
+                    request_identity,
+                    presentation_revision,
+                    playback,
+                )
+                .map_err(|error| {
+                    Refusal::new("TutorialPresenterRequest", format!("{error:?}"))
+                })?;
+                return encode(&request);
             }
             Request::InvitationView { invitation_id, body_id, body_name, expires_at_millis,
                 transfer_uri, revision, clipboard_available, share_available } => {

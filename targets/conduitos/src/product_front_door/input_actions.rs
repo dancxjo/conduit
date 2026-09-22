@@ -15,6 +15,16 @@ pub(super) fn action_for(
     front_door: &FrontDoor,
     journey: &ProductJourney,
 ) -> Option<JourneyAction> {
+    if usage == 65 {
+        if journey.status() == JourneyStatus::QuiescentAwaitingInput
+            && journey.projection().workload_capacity_available
+        {
+            return Some(JourneyAction::AdmitForm);
+        }
+        if journey.status() == JourneyStatus::Lulled {
+            return Some(JourneyAction::Fulfill);
+        }
+    }
     if usage == ENTER && !front_door.exact_details_open() {
         return Some(JourneyAction::OpenBack);
     }
@@ -76,7 +86,7 @@ pub(super) fn admitted_product_action(usage: u8) -> Option<AdmittedProductAction
             ProductControl::SuggestOrDetails,
             ProductActionScope::Inspection,
         ),
-        60..=65 => action(
+        60..=65 | 77 => action(
             "product.body.lifecycle",
             ProductControl::Lifecycle,
             ProductActionScope::BodyLifecycle,
@@ -156,7 +166,7 @@ mod tests {
     fn reserved_shell_keys_are_one_explicit_product_control_vocabulary() {
         assert_eq!(product_control(4), None);
         assert_eq!(product_control(40), None);
-        for usage in [41, 43, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69] {
+        for usage in [41, 43, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 77] {
             let action = admitted_product_action(usage).unwrap();
             assert!(!action.id.is_empty());
             assert_eq!(product_control(usage), Some(action.control));

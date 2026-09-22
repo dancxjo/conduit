@@ -12,7 +12,7 @@ use conduit_host_fabrication::{
 };
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
 use conduit_presentation::{
-    renderer_kind_definition, Manifestation, ManifestationAdmission, ManifestationLifecycle,
+    renderer_kind_projection, Manifestation, ManifestationAdmission, ManifestationLifecycle,
     ManifestationSet, Presentation, PresentationBasis, PresentationRole, PresentationSubject,
     PresentationText,
 };
@@ -318,7 +318,7 @@ fn bind_profile(
 fn checked_form() -> Result<conduit_form::CheckedForm, Box<dyn std::error::Error>> {
     let mut catalog = ProfileCatalog::new();
     catalog
-        .insert(renderer_kind_definition())
+        .insert(renderer_kind_projection())
         .map_err(debug_error)?;
     parse(FORM_SOURCE, &catalog).map_err(debug_error)
 }

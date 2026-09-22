@@ -6,10 +6,9 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType,
+    kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 use crate::{
     schedule_assessment_type, schedule_observation_type, schedule_registered_types,
@@ -87,9 +86,9 @@ fn insert_kind(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(SCHEDULE_REVISION),
+            kind_contract_revision: KindIdentity::from(SCHEDULE_REVISION),
             inputs,
             outputs,
             configuration: vec![],

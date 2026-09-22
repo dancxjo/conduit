@@ -4,10 +4,11 @@ use serde_json::{json, Value};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
 // The complete seven-page Tour adds per-exercise and per-page evidence to the
-// ordinary resident-Form journey. Forty-seven retains the exact forty-six
-// normal checkpoints, including Home/Prompt/Forms/return, plus one
-// failure frame without coalescing distinct proof checkpoints.
-const MAX_CHECKPOINTS: usize = 47;
+// ordinary resident-Form journey. Fifty retains the exact forty-nine
+// normal checkpoints, including workload revision/replanning and
+// Home/Prompt/Forms/return, plus one failure frame without coalescing distinct
+// proof checkpoints.
+const MAX_CHECKPOINTS: usize = 50;
 
 pub(super) struct Artifacts {
     directory: PathBuf,
@@ -48,7 +49,7 @@ impl Artifacts {
         if self.entries.len() >= MAX_CHECKPOINTS {
             return Err(ConduitosError::refusal(
                 "qemu-display-checkpoint-bound",
-                "at most forty-seven captures admitted",
+                "at most fifty captures admitted",
             ));
         }
         let mut serial = Vec::new();

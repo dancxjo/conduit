@@ -1,68 +1,69 @@
 //! Exact installed implementation factory catalog.
 
-use super::address_detect_operation::FACTORY as ADDRESS_DETECT_FACTORY;
-use super::alife_operations::{
+use super::address_detect_back::FACTORY as ADDRESS_DETECT_FACTORY;
+use super::alife_backs::{
     LENIA_STEP_FACTORY, ORBIUM_SEED_FACTORY, SCALAR_FIELD_PRESENTATION_FACTORY,
 };
-use super::audio_play_operation::AUDIO_PLAY_FACTORY;
-use super::body_chat_prompt_operation::FACTORY as BODY_CHAT_PROMPT_FACTORY;
-use super::body_conversation_context_operation::FACTORY as BODY_CONVERSATION_CONTEXT_FACTORY;
+use super::audio_play_back::AUDIO_PLAY_FACTORY;
+use super::back::BackFactory;
+use super::body_chat_prompt_back::FACTORY as BODY_CHAT_PROMPT_FACTORY;
+use super::body_conversation_context_back::FACTORY as BODY_CONVERSATION_CONTEXT_FACTORY;
 use super::bool_presentation::BOOL_PRESENTATION_FACTORY;
-use super::calendar_proposal_operation::FACTORY as CALENDAR_PROPOSAL_FACTORY;
-use super::calendar_provider_operation::{
+use super::calendar_proposal_back::FACTORY as CALENDAR_PROPOSAL_FACTORY;
+use super::calendar_provider_back::{
     CALENDAR_CANCEL_FACTORY, CALENDAR_CREATE_FACTORY, CALENDAR_FREE_BUSY_FACTORY,
     CALENDAR_INVITE_FACTORY, CALENDAR_READ_FACTORY, CALENDAR_UPDATE_FACTORY,
 };
-use super::count_operations::{COUNT_PRESENTATION_FACTORY, STATE_COUNT_FACTORY};
+use super::count_backs::{COUNT_PRESENTATION_FACTORY, STATE_COUNT_FACTORY};
 use super::external_websocket::EXTERNAL_WEBSOCKET_LISTENER_FACTORY;
-use super::final_normalized_pattern_operation::FACTORY as FINAL_NORMALIZED_PATTERN_FACTORY;
-use super::flow_gate_operation::FLOW_GATE_SCALAR_FACTORY;
-use super::flow_pressure_operations::{FLOW_BACKPRESSURE_FACTORY, FLOW_COALESCE_LATEST_FACTORY};
-use super::flow_state_operations::{FLOW_TEE_SCALAR_FACTORY, STATE_LATEST_SCALAR_FACTORY};
+use super::final_normalized_pattern_back::FACTORY as FINAL_NORMALIZED_PATTERN_FACTORY;
+use super::flow_gate_back::FLOW_GATE_SCALAR_FACTORY;
+use super::flow_pressure_backs::{FLOW_BACKPRESSURE_FACTORY, FLOW_COALESCE_LATEST_FACTORY};
+use super::flow_state_backs::{FLOW_TEE_SCALAR_FACTORY, STATE_LATEST_SCALAR_FACTORY};
 use super::generate_text::{
     GENERATE_TEXT_LARGE_FACTORY, GENERATE_TEXT_REMOTE_FACTORY, GENERATE_TEXT_SMALL_FACTORY,
 };
-use super::generated_speech_commit_operation::FACTORY as GENERATED_SPEECH_COMMIT_FACTORY;
-use super::house_prompt_operation::FACTORY as HOUSE_PROMPT_FACTORY;
+use super::generated_speech_commit_back::FACTORY as GENERATED_SPEECH_COMMIT_FACTORY;
+use super::house_prompt_back::FACTORY as HOUSE_PROMPT_FACTORY;
 use super::http::{HTTP_CLIENT_FACTORY, HTTP_SERVER_FACTORY};
-use super::image_text_operation::FACTORY as IMAGE_TEXT_FACTORY;
-use super::image_text_record_operation::FACTORY as IMAGE_TEXT_RECORD_FACTORY;
-use super::input_semantic_operations::{CHORDS_FACTORY, KEYMAP_FACTORY, KEY_EVENT_TEE_FACTORY};
-use super::instrument_map_operation::FACTORY as INSTRUMENT_MAP_FACTORY;
-use super::json_operations::{
-    JSON_COLLECTION_STEP_FACTORY, JSON_DECODE_FACTORY, JSON_ENCODE_FACTORY,
-};
-use super::json_summary_operation::JSON_BOOLEAN_SUMMARY_FACTORY;
-use super::keyboard_input_operation::FACTORY as KEYBOARD_INPUT_FACTORY;
+use super::image_text_back::FACTORY as IMAGE_TEXT_FACTORY;
+use super::image_text_record_back::FACTORY as IMAGE_TEXT_RECORD_FACTORY;
+use super::input_semantic_backs::{CHORDS_FACTORY, KEYMAP_FACTORY, KEY_EVENT_TEE_FACTORY};
+use super::instrument_map_back::FACTORY as INSTRUMENT_MAP_FACTORY;
+use super::json_backs::{JSON_COLLECTION_STEP_FACTORY, JSON_DECODE_FACTORY, JSON_ENCODE_FACTORY};
+use super::json_summary_back::JSON_BOOLEAN_SUMMARY_FACTORY;
+use super::keyboard_input_back::FACTORY as KEYBOARD_INPUT_FACTORY;
 #[cfg(test)]
-use super::layout_operations::TEST_LAYOUT_SINK_FACTORY;
-use super::layout_operations::{
+use super::layout_backs::TEST_LAYOUT_SINK_FACTORY;
+use super::layout_backs::{
     LAYOUT_ALIGN_FACTORY, LAYOUT_COLUMN_FACTORY, LAYOUT_INSET_FACTORY, LAYOUT_ROW_FACTORY,
     LAYOUT_STACK_FACTORY, LAYOUT_VIEWPORT_FACTORY,
 };
-use super::local_model_operation::LOCAL_MODEL_FACTORY;
-use super::local_vision_operation::FACTORY as LOCAL_VISION_FACTORY;
-use super::logic_operations::{
+use super::local_model_back::LOCAL_MODEL_FACTORY;
+use super::local_vision_back::{
+    FACTORY as LOCAL_VISION_FACTORY, OCR_FACTORY as LOCAL_VISION_OCR_FACTORY,
+    TRACK_FACTORY as LOCAL_VISION_TRACK_FACTORY,
+};
+use super::logic_backs::{
     LOGIC_COMPARE_SCALAR_FACTORY, LOGIC_NOT_FACTORY, LOGIC_SELECT_SCALAR_FACTORY,
 };
-use super::math_operations::{MATH_CLAMP_FACTORY, MATH_DEADBAND_FACTORY, MATH_SCALE_FACTORY};
-use super::microphone_clip_operation::FACTORY as MICROPHONE_CLIP_FACTORY;
-use super::midi_input_operation::MIDI_INPUT_FACTORY;
-use super::midi_output_operation::MIDI_OUTPUT_FACTORY;
-use super::model_text_operation::FACTORY as MODEL_TEXT_FACTORY;
-use super::morse_operations::{
+use super::math_backs::{MATH_CLAMP_FACTORY, MATH_DEADBAND_FACTORY, MATH_SCALE_FACTORY};
+use super::microphone_clip_back::FACTORY as MICROPHONE_CLIP_FACTORY;
+use super::midi_input_back::MIDI_INPUT_FACTORY;
+use super::midi_output_back::MIDI_OUTPUT_FACTORY;
+use super::model_text_back::FACTORY as MODEL_TEXT_FACTORY;
+use super::morse_backs::{
     INDICATOR_PRESENTATION_FACTORY, MORSE_FLATTEN_FACTORY, MORSE_INTERSPERSE_FACTORY,
     MORSE_LOOKUP_FACTORY, MORSE_SYMBOLS_TO_PATTERN_FACTORY, TEXT_CHARACTERS_FACTORY,
     TEXT_MORSE_FACTORY,
 };
-use super::navigation_operations::{
+use super::navigation_backs::{
     CONTROL_FACTORY as NAVIGATION_CONTROL_FACTORY, ROUTE_FACTORY as NAVIGATION_ROUTE_FACTORY,
     TIME_FACTORY as NAVIGATION_TIME_FACTORY,
 };
-use super::operation::InstalledFactory;
-use super::pacing_operations::{TIME_DELAY_FACTORY, TIME_THROTTLE_FACTORY};
-use super::pattern_comparison_operation::FACTORY as PATTERN_COMPARISON_FACTORY;
-use super::pcm_profile_conversion_operation::FACTORY as PCM_PROFILE_CONVERSION_FACTORY;
+use super::pacing_backs::{TIME_DELAY_FACTORY, TIME_THROTTLE_FACTORY};
+use super::pattern_comparison_back::FACTORY as PATTERN_COMPARISON_FACTORY;
+use super::pcm_profile_conversion_back::FACTORY as PCM_PROFILE_CONVERSION_FACTORY;
 use super::presentation_composition::{
     GRAPHICS_ICON_FACTORY, GRAPHICS_PRESENTATION_FACTORY, GRAPHICS_RECT_FACTORY,
     GRAPHICS_TEXT_FACTORY, PRESENTATION_BADGE_FACTORY, PRESENTATION_FRAME_FACTORY,
@@ -70,43 +71,43 @@ use super::presentation_composition::{
 };
 #[cfg(test)]
 use super::presentation_composition::{TEST_GRAPHICS_SINK_FACTORY, TEST_PRESENTATION_SINK_FACTORY};
-use super::recognition_text_operation::FACTORY as RECOGNITION_TEXT_FACTORY;
-use super::recognized_turn_commit_operation::FACTORY as RECOGNIZED_TURN_COMMIT_FACTORY;
-use super::record_delivery_operation::FACTORY as RECORD_DELIVERY_STATUS_FACTORY;
-use super::record_queue_operation::FACTORY as RECORD_QUEUE_FACTORY;
-use super::record_temporal_operation::{
+use super::recognition_text_back::FACTORY as RECOGNITION_TEXT_FACTORY;
+use super::recognized_turn_commit_back::FACTORY as RECOGNIZED_TURN_COMMIT_FACTORY;
+use super::record_delivery_back::FACTORY as RECORD_DELIVERY_STATUS_FACTORY;
+use super::record_queue_back::FACTORY as RECORD_QUEUE_FACTORY;
+use super::record_temporal_back::{
     EXACTLY_ONE as RECORD_EXACTLY_ONE_FACTORY, SINGLETON as RECORD_SINGLETON_STREAM_FACTORY,
 };
-use super::record_transcript_operation::FACTORY as RECORD_TRANSCRIPT_FACTORY;
+use super::record_transcript_back::FACTORY as RECORD_TRANSCRIPT_FACTORY;
 #[cfg(any(test, feature = "local-model-proof"))]
-use super::recorded_speech_operation::FACTORY as RECORDED_SPEECH_FACTORY;
-use super::recurrence_operation::FACTORY as RECURRENCE_FACTORY;
-use super::render_demand_operation::AUDIO_RENDER_DEMAND_FACTORY;
-use super::rhythm_compare_operation::FACTORY as RHYTHM_COMPARE_FACTORY;
-use super::robotics_operations::{
+use super::recorded_speech_back::FACTORY as RECORDED_SPEECH_FACTORY;
+use super::recurrence_back::FACTORY as RECURRENCE_FACTORY;
+use super::render_demand_back::AUDIO_RENDER_DEMAND_FACTORY;
+use super::rhythm_compare_back::FACTORY as RHYTHM_COMPARE_FACTORY;
+use super::robotics_backs::{
     ROBOTICS_DRIVE_DIFFERENTIAL_FACTORY, ROBOTICS_OBSERVE_BATTERY_FACTORY,
     ROBOTICS_OBSERVE_BUMP_FACTORY, ROBOTICS_OBSERVE_IMU_FACTORY, ROBOTICS_OBSERVE_ODOMETRY_FACTORY,
     ROBOTICS_OBSERVE_RANGE_FACTORY, ROBOTICS_VELOCITY_INTENT_FACTORY,
 };
-use super::sequence_normalization_operation::FACTORY as SEQUENCE_NORMALIZATION_FACTORY;
-use super::speech_recognition_adapter_operation::{
+use super::sequence_normalization_back::FACTORY as SEQUENCE_NORMALIZATION_FACTORY;
+use super::speech_recognition_adapter_back::{
     RESULT_STREAM_FACTORY as SPEECH_RESULT_STREAM_FACTORY, WINDOW_FACTORY as SPEECH_WINDOW_FACTORY,
 };
 #[cfg(test)]
-use super::speech_synthesis_operation::DETERMINISTIC_FACTORY as DETERMINISTIC_SPEECH_FACTORY;
+use super::speech_synthesis_back::DETERMINISTIC_FACTORY as DETERMINISTIC_SPEECH_FACTORY;
 #[cfg(test)]
-use super::speech_synthesis_operation::DETERMINISTIC_STREAMING_FACTORY;
-use super::speech_synthesis_operation::{
+use super::speech_synthesis_back::DETERMINISTIC_STREAMING_FACTORY;
+use super::speech_synthesis_back::{
     FACTORY as SPEECH_SYNTHESIS_FACTORY, STREAMING_FACTORY as STREAMING_SPEECH_FACTORY,
 };
-use super::state_select_operation::STATE_SELECT_SCALAR_FACTORY;
-use super::structured_selector_operation::FACTORY as STRUCTURED_SELECTOR_FACTORY;
-use super::structured_values_operation::{
+use super::state_select_back::STATE_SELECT_SCALAR_FACTORY;
+use super::structured_selector_back::FACTORY as STRUCTURED_SELECTOR_FACTORY;
+use super::structured_values_back::{
     LITERAL_FACTORY as STRUCTURED_LITERAL_FACTORY,
     PRESENTATION_FACTORY as STRUCTURED_PRESENTATION_FACTORY,
 };
-use super::synth_operation::MUSIC_SYNTH_FACTORY;
-use super::template_storage_operation::FACTORY as TEMPLATE_STORAGE_FACTORY;
+use super::synth_back::MUSIC_SYNTH_FACTORY;
+use super::template_storage_back::FACTORY as TEMPLATE_STORAGE_FACTORY;
 use super::test_audio_source::FACTORY as TEST_PCM_SOURCE_FACTORY;
 #[cfg(test)]
 use super::test_gate::{TEST_GATE_SCRIPT_FACTORY, TEST_SLOW_SCALAR_SINK_FACTORY};
@@ -136,32 +137,34 @@ use super::test_structured_selector::{
 use super::test_text_source::TEST_TEXT_SOURCE_FACTORY;
 #[cfg(test)]
 use super::test_timing_sink::{TEST_TIMING_SINK_FACTORY, TEST_TIMING_SOURCE_FACTORY};
-use super::text_operations::{
+use super::text_backs::{
     TEXT_JOIN_FACTORY, TEXT_LITERAL_FACTORY, TEXT_PRESENTATION_FACTORY, TEXT_UPPER_FACTORY,
 };
-use super::text_state_operation::{
+use super::text_state_back::{
     EDIT_FACTORY as TEXT_EDIT_FACTORY, SUBMIT_FACTORY as TEXT_SUBMIT_FACTORY,
 };
 #[cfg(test)]
-use super::tick_operations::TEST_OBSERVER_FACTORY;
-use super::tick_operations::{EVERY_FACTORY, TICK_FACTORY};
+use super::tick_backs::TEST_OBSERVER_FACTORY;
+use super::tick_backs::{EVERY_FACTORY, TICK_FACTORY};
 use super::tick_presentation::TICK_PRESENTATION_FACTORY;
-use super::timed_button_attempt_operation::FACTORY as TIMED_BUTTON_ATTEMPT_FACTORY;
-use super::timed_pattern_operation::FACTORY as TIMED_PATTERN_FACTORY;
-use super::timing_operations::{TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
-use super::toggle_operation::STATE_TOGGLE_FACTORY;
-use super::typed_record_operation::{
+use super::timed_button_attempt_back::FACTORY as TIMED_BUTTON_ATTEMPT_FACTORY;
+use super::timed_pattern_back::FACTORY as TIMED_PATTERN_FACTORY;
+use super::timing_backs::{TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
+use super::toggle_back::STATE_TOGGLE_FACTORY;
+use super::typed_record_back::{
     DEFRAME as TYPED_RECORD_DEFRAME_FACTORY, FRAME as TYPED_RECORD_FRAME_FACTORY,
     RECORD_TO_TEXT as TYPED_RECORD_TO_TEXT_FACTORY, TEXT_TO_RECORD as TEXT_TO_TYPED_RECORD_FACTORY,
 };
-use super::vector_search_operation::{EXACT_FACTORY as EXACT_VECTOR_SEARCH_FACTORY, HNSW_FACTORY};
-use super::wav_artifact_operation::FACTORY as WAV_ARTIFACT_FACTORY;
-use super::whisper_speech_operation::{
+use super::vector_search_back::{EXACT_FACTORY as EXACT_VECTOR_SEARCH_FACTORY, HNSW_FACTORY};
+use super::vision_describe_back::FACTORY as VISION_DESCRIBE_FACTORY;
+use super::vision_experience_back::FACTORY as VISION_EXPERIENCE_FACTORY;
+use super::wav_artifact_back::FACTORY as WAV_ARTIFACT_FACTORY;
+use super::whisper_speech_back::{
     CLIP_FACTORY as WHISPER_CLIP_SPEECH_FACTORY, FACTORY as WHISPER_SPEECH_FACTORY,
 };
 use conduit_core::{ImplementationId, PlanFragment};
 
-const FACTORIES: &[&InstalledFactory] = &[
+const FACTORIES: &[&BackFactory] = &[
     #[cfg(any(test, feature = "local-model-proof"))]
     &RECORDED_SPEECH_FACTORY,
     &WHISPER_SPEECH_FACTORY,
@@ -173,12 +176,12 @@ const FACTORIES: &[&InstalledFactory] = &[
     &SPEECH_WINDOW_FACTORY,
     &SPEECH_RESULT_STREAM_FACTORY,
     &KEYBOARD_INPUT_FACTORY,
-    &super::keyboard_input_operation::button::FACTORY,
-    &super::keyboard_input_operation::button::indicator::MAPPER,
-    &super::keyboard_input_operation::button::indicator::INDICATOR,
-    &super::keyboard_input_operation::button::indicator::RESOURCE_INDICATOR,
+    &super::keyboard_input_back::button::FACTORY,
+    &super::keyboard_input_back::button::indicator::MAPPER,
+    &super::keyboard_input_back::button::indicator::INDICATOR,
+    &super::keyboard_input_back::button::indicator::RESOURCE_INDICATOR,
     &TICK_FACTORY,
-    &super::pulse_observation_operation::FACTORY,
+    &super::pulse_observation_back::FACTORY,
     #[cfg(test)]
     &super::pulse_observation_sink::FACTORY,
     &EVERY_FACTORY,
@@ -237,6 +240,10 @@ const FACTORIES: &[&InstalledFactory] = &[
     &LOGIC_SELECT_SCALAR_FACTORY,
     &LOCAL_MODEL_FACTORY,
     &LOCAL_VISION_FACTORY,
+    &LOCAL_VISION_OCR_FACTORY,
+    &LOCAL_VISION_TRACK_FACTORY,
+    &VISION_DESCRIBE_FACTORY,
+    &VISION_EXPERIENCE_FACTORY,
     &MODEL_TEXT_FACTORY,
     &GENERATED_SPEECH_COMMIT_FACTORY,
     &NAVIGATION_ROUTE_FACTORY,
@@ -247,8 +254,8 @@ const FACTORIES: &[&InstalledFactory] = &[
     &MATH_CLAMP_FACTORY,
     &MATH_SCALE_FACTORY,
     &MATH_DEADBAND_FACTORY,
-    &super::math_operations::QUANTITY_MAP_FACTORY,
-    &super::math_operations::QUANTITY_INFO_FACTORY,
+    &super::math_backs::QUANTITY_MAP_FACTORY,
+    &super::math_backs::QUANTITY_INFO_FACTORY,
     &LAYOUT_VIEWPORT_FACTORY,
     &LAYOUT_INSET_FACTORY,
     &LAYOUT_ROW_FACTORY,
@@ -362,7 +369,7 @@ const FACTORIES: &[&InstalledFactory] = &[
     &TEST_OBSERVER_FACTORY,
 ];
 
-pub(super) fn factory(implementation_id: &ImplementationId) -> Option<&'static InstalledFactory> {
+pub(super) fn factory(implementation_id: &ImplementationId) -> Option<&'static BackFactory> {
     FACTORIES
         .iter()
         .copied()

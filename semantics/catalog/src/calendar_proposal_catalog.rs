@@ -7,13 +7,14 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
-    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
-    StructuredInfoValue, StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredFieldType,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
+    StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 pub const CALENDAR_PROPOSAL_REQUEST_TYPE: &str = "CalendarMeetingProposalRequest";
@@ -24,8 +25,8 @@ pub const CALENDAR_PROPOSAL_MAXIMUM_INTERVALS: u16 = 8;
 pub const CALENDAR_PROPOSAL_MAXIMUM_CANDIDATES: u16 = 8;
 pub const CALENDAR_PROPOSAL_MAXIMUM_RESULTS: u16 = 3;
 
-pub fn calendar_proposal_semantic_contract() -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+pub fn calendar_proposal_semantic_contract() -> Kind {
+    Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "request".into(),
             value_type: calendar_proposal_request_type()
@@ -37,7 +38,7 @@ pub fn calendar_proposal_semantic_contract() -> SemanticCapabilityContract {
         }],
         shorthand: None,
         kind_id: kind_id(CALENDAR_PROPOSAL_KIND),
-        kind_contract_revision: KindContractRevision::from(CALENDAR_PROPOSAL_REVISION),
+        kind_contract_revision: KindIdentity::from(CALENDAR_PROPOSAL_REVISION),
         inputs: vec![],
         outputs: vec![PortDescriptor {
             port_id: port_id("proposal"),
@@ -49,6 +50,8 @@ pub fn calendar_proposal_semantic_contract() -> SemanticCapabilityContract {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: CALENDAR_PROPOSAL_MAXIMUM_RESULTS,
@@ -308,9 +311,9 @@ pub fn install_calendar_proposal_catalogs(
         .map_err(|error| error.to_string())?;
     let request_profile = request.profile().map_err(|error| format!("{error:?}"))?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(CALENDAR_PROPOSAL_KIND),
-            kind_contract_revision: KindContractRevision::from(CALENDAR_PROPOSAL_REVISION),
+            kind_contract_revision: KindIdentity::from(CALENDAR_PROPOSAL_REVISION),
             inputs: vec![],
             outputs: vec![PortDescriptor {
                 port_id: port_id("proposal"),
@@ -322,7 +325,7 @@ pub fn install_calendar_proposal_catalogs(
                 direction: PortDirection::Output,
                 temporal: PortTemporal::Value,
             }],
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "request".into(),
                 default_value: ConfigurationValue::Structured(
                     conduit_core::StructuredConfigurationValue::new(
@@ -333,7 +336,7 @@ pub fn install_calendar_proposal_catalogs(
                     )
                     .ok_or_else(|| "default calendar request is invalid".to_string())?,
                 ),
-                validation: ConfigurationRule::Structured {
+                rule: KindConfigurationRule::Structured {
                     profile: request_profile.value_kind().clone(),
                 },
             }],

@@ -10,13 +10,20 @@ pub(in super::super) fn validate(
     playing: &Value,
     lulled: &Value,
 ) -> Result<(), ConduitosError> {
-    let plan_id = planned["plan_id"].as_str().ok_or_else(|| {
+    planned["plan_id"].as_str().ok_or_else(|| {
         ConduitosError::refusal("product-journey-plan-absent", "planned identity absent")
     })?;
+    let planned_ids = records
+        .iter()
+        .filter(|record| record["status"] == "planned")
+        .filter_map(|record| record["plan_id"].as_str())
+        .collect::<Vec<_>>();
     let inspected_plan = serial.lines().any(|line| {
         line.contains("CONDUIT_FRONT_DOOR_SIGN")
             && line.contains("\"label\":\"PLAN ID\"")
-            && line.contains(&format!("\"value\":\"{plan_id}\""))
+            && planned_ids
+                .iter()
+                .any(|candidate| line.contains(&format!("\"value\":\"{candidate}\"")))
     });
     if planned.get("active_play_id") != Some(&Value::Null)
         || planned

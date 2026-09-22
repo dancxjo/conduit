@@ -29,7 +29,7 @@ running-host-rendezvous = {
 
 rendezvous-candidate = {
   0: bounded-text,
-  1: 0 / 1 / 2 / 3,
+  1: 0 / 1 / 2 / 3 / 4,
   2: bounded-text,
   3: { 0: bounded-text, 1: bytes .size 32 },
   4: uint,

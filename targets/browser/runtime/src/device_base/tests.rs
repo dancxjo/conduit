@@ -25,7 +25,7 @@ fn offer() -> SerialAcquisitionOffer {
         host_id: HostId::from("browser/one"),
         boot_id: BootId::from("browser-boot/one"),
         offer_generation: OfferGeneration(1),
-        operation_contract: HostOperationContractId::from(SERIAL_ACQUIRE_OPERATION),
+        operation_contract: HostCallContractId::from(SERIAL_ACQUIRE_OPERATION),
         request_authority_contract: AuthorityContractId::from(SERIAL_REQUEST_AUTHORITY),
         maximum_in_flight: 1,
         maximum_result_bytes: MAXIMUM_SERIAL_RESULT_BYTES as u32,
@@ -41,8 +41,8 @@ fn authority() -> SerialAcquisitionAuthority {
     }
 }
 
-fn operation() -> HostOperationId {
-    HostOperationId::from("serial-acquire/one")
+fn operation() -> HostCallId {
+    HostCallId::from("serial-acquire/one")
 }
 
 fn request() -> SerialAcquisitionRequest {

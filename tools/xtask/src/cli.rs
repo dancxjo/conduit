@@ -287,6 +287,7 @@ pub enum ProveTarget {
     DistributedLenia,
     DormantReadmission,
     RecursiveRecovery,
+    EmergencyControl,
     LlmEmbodiment,
     LlmCrossHost,
     LocalModelPool,

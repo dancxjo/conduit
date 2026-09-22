@@ -377,9 +377,11 @@ pub extern "C" fn conduit_browser_remote_drive() -> i32 {
                 let mut effect = serde_json::json!({
                     "schema": "conduit.browser/remote-host-effect@1",
                     "active_play_id": state.active_play_id,
+                    "plan_id": state.execution.fragment.plan_id,
                     "placement_id": placement.placement_id,
                     "host_id": placement.host_id,
                     "boot_id": placement.boot_id,
+                    "request_sequence": pending.request.request.0,
                 });
                 let object = effect.as_object_mut().unwrap();
                 match &pending.effect {
@@ -423,6 +425,9 @@ pub extern "C" fn conduit_browser_remote_drive() -> i32 {
                     }
                     BrowserHostEffect::ApplicationEvent => {
                         object.insert("effect_kind".into(), "application-event".into());
+                    }
+                    BrowserHostEffect::TutorialPresenterRequest => {
+                        object.insert("effect_kind".into(), "tutorial-presenter-request".into());
                     }
                     BrowserHostEffect::Manifestation(manifestation) => {
                         object.insert("effect_kind".into(), "manifestation".into());

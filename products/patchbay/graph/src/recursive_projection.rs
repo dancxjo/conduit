@@ -3,8 +3,7 @@
 use crate::prelude::*;
 
 use conduit_core::{
-    CheckedFormId, CheckedFront, ExpandedFormId, GearId, KindContractRevision, KindId,
-    SourceDocumentId,
+    CheckedFormId, CheckedFront, ExpandedFormId, GearId, KindId, KindIdentity, SourceDocumentId,
 };
 use conduit_form::{CheckedConnection, ExpandedCanonicalForm};
 
@@ -12,7 +11,7 @@ use conduit_form::{CheckedConnection, ExpandedCanonicalForm};
 pub struct RecursiveFormGearProjection {
     pub invocation_path: String,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,

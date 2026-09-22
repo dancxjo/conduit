@@ -16,5 +16,5 @@ pub use github_transport::GitHubHttpsTransport;
 pub use offer::{
     github_messaging_authority_grant, github_messaging_offer, github_messaging_resource_offer,
     messaging_std_offers, GITHUB_MESSAGING_AUTHORITY, GITHUB_MESSAGING_RESOURCE_CLASS,
-    MESSAGING_DELIVERY_AUTHORITY, MESSAGING_HOST_OPERATION,
+    MESSAGING_DELIVERY_AUTHORITY, MESSAGING_HOST_CALL,
 };

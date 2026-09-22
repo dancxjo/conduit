@@ -3,12 +3,12 @@ use conduit_assigned_plan::{
     AssignedSingleSourceRequirements, AssignedSingleSourceView, ASSIGNED_PLAN_HEADER_BYTES,
 };
 
-pub const CONTACT_OPERATION: &str = "pete.host/create1-observe-contact@1";
+pub const CONTACT_HOST_CALL: &str = "pete.host/create1-observe-contact@1";
 pub const HOST_IDENTITY: AssignedIdentity = AssignedIdentity([
     0xb8, 0xe0, 0x1c, 0x63, 0xb5, 0x99, 0x17, 0x31, 0x79, 0x49, 0xaf, 0x70, 0x80, 0xbd,
     0xe0, 0x01,
 ]);
-const CONTACT_OPERATION_IDENTITY: AssignedIdentity = AssignedIdentity([
+const CONTACT_HOST_CALL_IDENTITY: AssignedIdentity = AssignedIdentity([
     0x1f, 0x0a, 0x63, 0xdc, 0x4d, 0x76, 0x71, 0x9c, 0x37, 0x09, 0x52, 0x83, 0xca, 0xad,
     0xdc, 0x91,
 ]);
@@ -82,12 +82,12 @@ impl AssignedReceiver {
                 host,
                 boot,
                 counts: EXACT_COUNTS,
-                operation: CONTACT_OPERATION_IDENTITY,
+                host_call: CONTACT_HOST_CALL_IDENTITY,
                 resources: &RESOURCE_IDS,
             },
         )
         .map_err(ReceiveRefusal::Assigned)?;
-        if plan.maximum_step_work < 3
+        if plan.maximum_step_fuel < 3
             || plan.maximum_output_bytes != 1
             || plan.output_port != 0
         {

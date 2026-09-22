@@ -47,7 +47,8 @@ test("x86 gates expensive checks and the release product pipeline without rebuil
   for (const name of Object.keys(jobs)) visit(name);
   assert.deepEqual(prerequisites("conduitos-x86"),
     ["classify", "conduitos-limine", "conduitos-tools", "conduitos-proof-image"]);
-  for (const name of ["workspace-check", "esp32-firmware", "browser-host",
+  assert.deepEqual(prerequisites("workspace-check"), ["classify"]);
+  for (const name of ["esp32-firmware", "browser-host",
     "conduitos-architecture", "conduitos-aarch64-product"]) {
     assert.ok(prerequisites(name).includes("conduitos-x86"), name);
     const guard = jobs[name].match(/\(needs\.conduitos-x86\.result == 'success' \|\| !inputs\.full_suite && needs\.conduitos-x86\.result == 'skipped'\)/)?.[0];

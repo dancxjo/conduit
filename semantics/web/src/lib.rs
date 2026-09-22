@@ -4,7 +4,7 @@
 //!
 //! This crate owns portable value shape, validation, codecs, Kind identity,
 //! and canonical Form catalog installation. It owns no Host implementation,
-//! execution profile, host operation, resource, authority, or transport.
+//! execution profile, Host Call, resource, authority, or transport.
 
 extern crate alloc;
 

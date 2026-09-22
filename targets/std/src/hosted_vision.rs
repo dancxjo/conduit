@@ -13,16 +13,25 @@ use conduit_semantic_catalog::{
     ContinuousLocalVisionRefusal, MAXIMUM_LOCAL_CV_PIXELS,
 };
 
+mod describe;
+mod experience;
+mod ocr;
+
 pub const MAXIMUM_HOSTED_VISION_RESOURCES: usize = 8;
 
 pub struct FiniteHostedVisionBase {
     provider_instance_id: String,
     provider: FiniteVisionProvider,
+    observation_images: Vec<Vec<u8>>,
     workspace: ContinuousLocalVision,
     last_frame: Option<usize>,
     last_observation: Option<ContinuousLocalVisionObservation>,
-    motion_encoder: conduit_semantic_catalog::PreparedLocalVisionMotionEncoder,
+    motion_encoder: conduit_semantic_catalog::PreparedVisualMotionEncoder,
     object_encoder: conduit_semantic_catalog::PreparedLocalVisionObjectEncoder,
+    ocr_provider: Option<crate::TesseractOcrProvider>,
+    ocr_output: Vec<u8>,
+    describe: Option<describe::VisualDescriptionState>,
+    experience: experience::VisualExperienceState,
     minimum_motion_delta: u8,
     component_threshold: u8,
     minimum_component_area: u32,
@@ -36,21 +45,90 @@ impl FiniteHostedVisionBase {
         maximum_components: usize,
         provider_instance_id: impl Into<String>,
     ) -> Result<Self, HostedVisionRefusal> {
-        let provider_instance_id = provider_instance_id.into();
+        Self::prepare(
+            frames,
+            width,
+            height,
+            maximum_components,
+            provider_instance_id.into(),
+            None,
+            None,
+        )
+    }
+
+    pub fn new_with_ocr(
+        frames: Vec<HostedVisionFrame>,
+        width: u16,
+        height: u16,
+        maximum_components: usize,
+        provider_instance_id: impl Into<String>,
+        ocr_provider: crate::TesseractOcrProvider,
+    ) -> Result<Self, HostedVisionRefusal> {
+        Self::prepare(
+            frames,
+            width,
+            height,
+            maximum_components,
+            provider_instance_id.into(),
+            Some(ocr_provider),
+            None,
+        )
+    }
+
+    pub fn with_visual_model(
+        mut self,
+        visual_model: impl crate::hosted_local_model::HostedVisualModelAdapter + 'static,
+    ) -> Self {
+        self.describe = Some(describe::VisualDescriptionState::new(Box::new(
+            visual_model,
+        )));
+        self
+    }
+
+    fn prepare(
+        frames: Vec<HostedVisionFrame>,
+        width: u16,
+        height: u16,
+        maximum_components: usize,
+        provider_instance_id: String,
+        ocr_provider: Option<crate::TesseractOcrProvider>,
+        visual_model: Option<Box<dyn crate::hosted_local_model::HostedVisualModelAdapter>>,
+    ) -> Result<Self, HostedVisionRefusal> {
         if provider_instance_id.is_empty()
             || provider_instance_id.len()
                 > conduit_semantic_catalog::MAXIMUM_LOCAL_VISION_IDENTITY_BYTES
         {
             return Err(HostedVisionRefusal::InvalidOutput);
         }
+        let observation_images = frames
+            .iter()
+            .map(|frame| {
+                let image = conduit_human::ImageObservationReference::new(
+                    frame.resource.clone(),
+                    frame.width,
+                    frame.height,
+                    &frame.resource.content_profile,
+                )
+                .map_err(|_| HostedVisionRefusal::InvalidOutput)?;
+                conduit_semantic_catalog::image_observation_value(&image)
+                    .and_then(|value| {
+                        value
+                            .canonical_bytes()
+                            .map_err(|_| conduit_semantic_catalog::ImageTextValueRefusal::Malformed)
+                    })
+                    .map_err(|_| HostedVisionRefusal::InvalidOutput)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         let provider = FiniteVisionProvider::new(frames)?;
-        let motion_encoder = conduit_semantic_catalog::PreparedLocalVisionMotionEncoder::new(
+        let object_encoder = conduit_semantic_catalog::PreparedLocalVisionObjectEncoder::new(
             conduit_std_offers::LOCAL_VISION_IMPLEMENTATION,
             provider_instance_id.clone(),
             conduit_std_offers::LOCAL_VISION_ARTIFACT,
+            width,
+            height,
         )
         .map_err(|_| HostedVisionRefusal::InvalidOutput)?;
-        let object_encoder = conduit_semantic_catalog::PreparedLocalVisionObjectEncoder::new(
+        let motion_encoder = conduit_semantic_catalog::PreparedVisualMotionEncoder::new(
             conduit_std_offers::LOCAL_VISION_IMPLEMENTATION,
             provider_instance_id.clone(),
             conduit_std_offers::LOCAL_VISION_ARTIFACT,
@@ -61,12 +139,17 @@ impl FiniteHostedVisionBase {
         Ok(Self {
             provider_instance_id,
             provider,
+            observation_images,
             workspace: ContinuousLocalVision::new(width, height, maximum_components)
                 .map_err(HostedVisionRefusal::LocalCv)?,
             last_frame: None,
             last_observation: None,
             motion_encoder,
             object_encoder,
+            ocr_provider,
+            ocr_output: Vec::with_capacity(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES),
+            describe: visual_model.map(describe::VisualDescriptionState::new),
+            experience: experience::VisualExperienceState::new(),
             minimum_motion_delta: 32,
             component_threshold: 128,
             minimum_component_area: 2,
@@ -99,10 +182,41 @@ impl FiniteHostedVisionBase {
             .expect("reviewed local objects offer")
     }
 
+    pub fn ocr_offer(&self) -> Option<conduit_core::CapabilityOffer> {
+        self.ocr_provider.as_ref().map(|_| {
+            conduit_std_offers::local_vision_offers()
+                .into_iter()
+                .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::VISION_OCR_KIND)
+                .expect("reviewed local OCR offer")
+        })
+    }
+
+    pub fn describe_offer(&self) -> Option<conduit_core::CapabilityOffer> {
+        self.describe.as_ref().map(|_| {
+            conduit_std_offers::local_vision_offers()
+                .into_iter()
+                .find(|offer| {
+                    offer.kind_id.as_str() == conduit_semantic_catalog::VISION_DESCRIBE_KIND
+                })
+                .expect("reviewed visual description offer")
+        })
+    }
+
+    pub fn experience_offer() -> conduit_core::CapabilityOffer {
+        conduit_std_offers::local_vision_offers()
+            .into_iter()
+            .find(|offer| {
+                offer.kind_id.as_str() == conduit_semantic_catalog::VISION_EXPERIENCE_KIND
+            })
+            .expect("reviewed visual experience offer")
+    }
+
     pub(crate) fn execute_motion(
         &mut self,
         input: &[u8],
         run_id: &str,
+        observed_at_micros: u64,
+        clock_basis: &str,
     ) -> Result<&[u8], HostedVisionRefusal> {
         let (frame_index, pixels) = self.provider.resolve_exact_canonical(input)?;
         if self.last_frame != Some(frame_index) {
@@ -123,7 +237,15 @@ impl FiniteHostedVisionBase {
             .as_ref()
             .ok_or(HostedVisionRefusal::InvalidOutput)?;
         self.motion_encoder
-            .encode(input, observation, run_id)
+            .encode(
+                self.observation_images
+                    .get(frame_index)
+                    .ok_or(HostedVisionRefusal::InvalidOutput)?,
+                observation.motion,
+                run_id,
+                observed_at_micros,
+                clock_basis,
+            )
             .map_err(|_| HostedVisionRefusal::InvalidOutput)
     }
 
@@ -131,6 +253,8 @@ impl FiniteHostedVisionBase {
         &mut self,
         input: &[u8],
         run_id: &str,
+        observed_at_micros: u64,
+        clock_basis: &str,
     ) -> Result<&[u8], HostedVisionRefusal> {
         let (frame_index, pixels) = self.provider.resolve_exact_canonical(input)?;
         if self.last_frame != Some(frame_index) {
@@ -151,7 +275,15 @@ impl FiniteHostedVisionBase {
             .as_ref()
             .ok_or(HostedVisionRefusal::InvalidOutput)?;
         self.object_encoder
-            .encode(input, observation, run_id)
+            .encode(
+                self.observation_images
+                    .get(frame_index)
+                    .ok_or(HostedVisionRefusal::InvalidOutput)?,
+                observation,
+                run_id,
+                observed_at_micros,
+                clock_basis,
+            )
             .map_err(|_| HostedVisionRefusal::InvalidOutput)
     }
 }
@@ -173,6 +305,8 @@ pub enum HostedVisionRefusal {
     ResourceCapacity,
     InvalidOutput,
     LocalCv(ContinuousLocalVisionRefusal),
+    Ocr(crate::OcrProviderRefusal),
+    VisualModel,
 }
 
 pub trait HostedVisionProvider: Send {
@@ -519,7 +653,7 @@ mod tests {
         let value = StructuredInfoValue::from_canonical_bytes(output).unwrap();
         assert_eq!(
             value.value_type(),
-            &conduit_semantic_catalog::vision_motions_type()
+            &conduit_semantic_catalog::local_vision_motion_observations_type()
         );
         assert_eq!(vision.storage().previous_pixels, 64 * 48);
     }
@@ -546,21 +680,27 @@ mod tests {
         )
         .unwrap();
         let objects = vision
-            .execute_objects(&encoded, "play/test/request-1")
+            .execute_objects(&encoded, "play/test/request-1", 41, "boot/test/monotonic")
             .unwrap()
             .to_vec();
         let object_value = StructuredInfoValue::from_canonical_bytes(&objects).unwrap();
         assert_eq!(
             object_value.value_type(),
-            &conduit_semantic_catalog::local_vision_object_observations_type()
+            &conduit_semantic_catalog::vision_objects_type()
         );
-        assert_eq!(record_field(&object_value, "source_image").unwrap(), &image);
+        let profile = reference(&encoded).content_profile;
+        let decoded =
+            conduit_semantic_catalog::object_observations_from_value(&object_value, &profile)
+                .unwrap();
+        assert_eq!(decoded.len(), 1);
+        assert_eq!(decoded[0].candidate_label, "bright-component");
+        assert_eq!(decoded[0].provenance.observed_at.ticks, 41);
         assert_eq!(
-            count(record_field(&object_value, "sequence").unwrap()).unwrap(),
-            1
+            decoded[0].provenance.observation_sign_id.as_str(),
+            "play/test/request-1/observation-0"
         );
         vision
-            .execute_motion(&encoded, "play/test/request-2")
+            .execute_motion(&encoded, "play/test/request-2", 42, "boot/test/monotonic")
             .unwrap();
         assert_eq!(vision.last_observation.unwrap().sequence, 1);
     }

@@ -8,9 +8,7 @@ use conduit_core::{
 };
 #[cfg(test)]
 use conduit_core::{BootId, CapabilityId, GearId, HostId};
-use conduit_kernel::scheduler::{
-    FixedScheduler, StepInputBytes, StepIo, StepOperation, StepOutcome,
-};
+use conduit_kernel::scheduler::{FixedScheduler, StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{
     FixedRoutes, FixedSignLog, FixedValueStore, PortId, SignQuery, ValueRef, ValueStorage,
 };
@@ -101,7 +99,7 @@ pub(super) enum Driver {
     },
 }
 
-impl StepOperation<PORTS> for Driver {
+impl StepBack<PORTS> for Driver {
     fn step(&mut self, io: &mut StepIo<PORTS>, _input: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
             Self::Source { values, next } => {

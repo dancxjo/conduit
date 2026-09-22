@@ -280,7 +280,7 @@ pub fn append_offer(advertisement: &mut HostAdvertisement) -> Result<(), String>
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
-        host_operations: vec![conduit_std_offers::next_key_event_host_operation_requirement()],
+        host_calls: vec![conduit_std_offers::next_key_event_host_call_requirement()],
         resource_requirements: requirements,
         authority_requirements: Vec::new(),
         limits: contract.limits,

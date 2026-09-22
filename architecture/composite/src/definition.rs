@@ -169,7 +169,7 @@ impl KernelCompositeDefinition {
                 },
                 inputs: exported.inputs,
                 outputs: exported.outputs,
-                host_operations: vec![],
+                host_calls: vec![],
                 resource_requirements: vec![],
                 authority_requirements: vec![],
                 limits: CapabilityLimits {

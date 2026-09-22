@@ -127,7 +127,7 @@ test("unchanged toggle form runs std kernel to browser WASM kernel over live bou
       "requestNode",
       "requestId",
       "operationId",
-      "hostOperationContractId",
+      "hostCallContractId",
       "placementId",
       "presentationId",
       "signId",

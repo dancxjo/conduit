@@ -1,16 +1,15 @@
 //! Browser production realization of finite measurement plot projection.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ConfigurationValue, ExecutionProfileId, HostOperationRequirement, ImplementationId,
-    PlannedGear,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, HostCallRequirement, ImplementationId, PlannedGear,
 };
 use conduit_data::{MeasurementPlotOverflowPolicy, MeasurementPlotProfile, MeasurementPlotSeries};
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-measurement-plot@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-measurement-plot@1";
 const IMPLEMENTATION: &str = "browser/kernel-measurement-plot@1";
 
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
@@ -23,15 +22,15 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 fn offer() -> CapabilityOffer {
     let contract = conduit_data::measurement_plot_semantic_contract();
     let kind = contract.kind_id.clone();
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         contract,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-browser-runtime/measurement-plot@1"),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HOST_OPERATION.into(),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HOST_CALL.into(),
                 target_kind: Some(kind),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
@@ -44,13 +43,10 @@ fn offer() -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     profile(placement).map_err(|_| "invalid browser measurement plot configuration".to_string())?;
-    Ok(BrowserOperation::unary(
-        MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        1,
-    ))
+    Ok(BrowserBack::unary(MAXIMUM_BROWSER_VALUE_BYTES as u32, 1))
 }
 
 pub(crate) fn execute(placement: &PlannedGear, input: &[u8]) -> Result<Vec<u8>, Failure> {
@@ -176,7 +172,7 @@ mod tests {
             limits: offered.limits,
             inputs: offered.inputs,
             outputs: offered.outputs,
-            host_operations: offered.host_operations,
+            host_calls: offered.host_calls,
             resources: Vec::new(),
             authority: Vec::new(),
             pool_references: Vec::new(),

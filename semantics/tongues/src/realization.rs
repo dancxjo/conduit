@@ -4,9 +4,9 @@ use crate::{
 };
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId,
-    AuthorityRequirement, BootId, CapabilityId, CapabilityOfferBuilder, CapabilityRealization,
-    ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
+    AuthorityRequirement, Back, BackOfferBuilder, BootId, CapabilityId, ExecutionProfileId,
+    HostAdvertisement, HostCallContractId, HostCallRequirement, HostId, HostProfileId,
+    ImplementationId, OfferGeneration, PROTOCOL_VERSION,
 };
 use serde::{Deserialize, Serialize};
 
@@ -76,17 +76,17 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
     let synth = synthesize_contract();
     let present = audio_play_contract();
     let synthesis_operation =
-        host_operation(SYNTHESIZE_OPERATION, MAXIMUM_TEXT_BYTES, MAXIMUM_PCM_BYTES);
-    let mut output_operation_requirement = host_operation(output_operation, MAXIMUM_PCM_BYTES, 256);
+        host_call(SYNTHESIZE_OPERATION, MAXIMUM_TEXT_BYTES, MAXIMUM_PCM_BYTES);
+    let mut output_operation_requirement = host_call(output_operation, MAXIMUM_PCM_BYTES, 256);
     output_operation_requirement.target_kind = Some(kind_id(AUDIO_PLAY_KIND));
-    let synthesis = CapabilityOfferBuilder::new(
+    let synthesis = BackOfferBuilder::new(
         synth.into_semantic_capability_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!("{host}/synthesize")),
             execution_profile_id: ExecutionProfileId::from("conduit.speech/deterministic-hosted@1"),
             implementation_id: ImplementationId::from("tongues/fixture-tts-adapter@5748f20e"),
             artifact_id: ArtifactId::from("tongues-pipeline/text-to-speech@5748f20e"),
-            host_operations: vec![synthesis_operation],
+            host_calls: vec![synthesis_operation],
             resource_requirements: {
                 let mut requirements = vec![
                     resource_requirement(CPU_RESOURCE, 1),
@@ -99,18 +99,18 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
         },
     )
     .build();
-    let output = CapabilityOfferBuilder::new(
+    let output = BackOfferBuilder::new(
         present.into_semantic_capability_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(format!("{host}/output")),
             execution_profile_id: ExecutionProfileId::from("conduit.audio/bounded-output@1"),
             implementation_id: ImplementationId::from(output_impl),
             artifact_id: ArtifactId::from(output_artifact),
-            host_operations: vec![output_operation_requirement.clone()],
+            host_calls: vec![output_operation_requirement.clone()],
             resource_requirements: vec![resource_requirement(resource, 1)],
             authority_requirements: vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(authority),
-                host_operation_contract_id: output_operation_requirement.contract_id,
+                host_call_contract_id: output_operation_requirement.contract_id,
                 subject_kind: kind_id(AUDIO_PLAY_KIND),
             }],
         },
@@ -146,9 +146,9 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
     }
 }
 
-fn host_operation(contract: &str, input: u32, output: u32) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(contract),
+fn host_call(contract: &str, input: u32, output: u32) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(contract),
         target_kind: None,
         maximum_in_flight: 1,
         maximum_input_bytes: input,

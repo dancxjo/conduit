@@ -1,10 +1,9 @@
-use crate::StandardConfigurationField;
+use crate::KindConfigurationField;
 use alloc::vec::Vec;
 use conduit_core::{
-    ArtifactId, AuthorityRequirement, CapabilityId, CapabilityOffer, CapabilityOfferBuilder,
-    CapabilityRealization, ConfigurationValue, ExecutionProfileId, FrontStartupParameter,
-    HostOperationRequirement, ImplementationId, KindContractRevision, ResourceRequirement,
-    SemanticCapabilityContract,
+    ArtifactId, AuthorityRequirement, Back, BackOfferBuilder, CapabilityId, CapabilityOffer,
+    ConfigurationValue, ExecutionProfileId, FrontStartupParameter, HostCallRequirement,
+    ImplementationId, Kind, KindIdentity, ResourceRequirement,
 };
 
 /// Host-supplied identity for one realization of a portable contract.
@@ -22,26 +21,30 @@ pub fn realization_offer(
     contract: crate::StandardKindContract,
     revision: &str,
     identity: RealizationOfferIdentity<'_>,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
     resource_requirements: Vec<ResourceRequirement>,
     authority_requirements: Vec<AuthorityRequirement>,
 ) -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
-        SemanticCapabilityContract {
+    BackOfferBuilder::new(
+        Kind {
             startup_parameters: startup_front(&contract.configuration),
             shorthand: None,
             kind_id: contract.kind_id,
-            kind_contract_revision: KindContractRevision::from(revision),
+            kind_contract_revision: KindIdentity::from(revision),
             inputs: contract.inputs,
             outputs: contract.outputs,
+            configuration: contract.configuration,
+            semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+                contract.terminal_behavior
+            )],
             limits: contract.limits,
         },
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(identity.capability),
             execution_profile_id: ExecutionProfileId::from(identity.execution_profile),
             implementation_id: ImplementationId::from(identity.implementation),
             artifact_id: ArtifactId::from(identity.artifact),
-            host_operations,
+            host_calls,
             resource_requirements,
             authority_requirements,
         },
@@ -49,7 +52,7 @@ pub fn realization_offer(
     .build()
 }
 
-pub fn startup_front(fields: &[StandardConfigurationField]) -> Vec<FrontStartupParameter> {
+pub fn startup_front(fields: &[KindConfigurationField]) -> Vec<FrontStartupParameter> {
     fields
         .iter()
         .map(|field| FrontStartupParameter {
@@ -59,6 +62,7 @@ pub fn startup_front(fields: &[StandardConfigurationField]) -> Vec<FrontStartupP
                 ConfigurationValue::U64(_) => "value/count",
                 ConfigurationValue::I64(_) => "value/scalar",
                 ConfigurationValue::Text(_) => "value/text",
+                ConfigurationValue::Quantity(_) => "value/quantity",
                 ConfigurationValue::Structured(ref value) => value.profile().as_str(),
             }),
             has_default: true,

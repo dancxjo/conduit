@@ -203,7 +203,7 @@ fn renderer_self_inspection_lines(
             resource.units
         )
     }));
-    lines.extend(placement.host_operations.iter().map(|operation| {
+    lines.extend(placement.host_calls.iter().map(|operation| {
         format!(
             "RENDERER BASE contract={} target={} in-flight={} input-bytes={} output-bytes={}",
             operation.contract_id.as_str(),

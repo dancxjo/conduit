@@ -44,7 +44,7 @@ impl PicoControlSource {
                     || endpoint.source_fragment_id != first_remote.source_fragment_id
                     || endpoint.sink_fragment_id != first_remote.sink_fragment_id
             })
-            || lowered.host_operations.len() != 3
+            || lowered.host_calls.len() != 3
         {
             return Err("R1 control source is not the exact three-input merge fragment".into());
         }

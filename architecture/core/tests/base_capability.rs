@@ -2,7 +2,7 @@ use conduit_core::{
     ActivePlayId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseCapabilityAuthority,
     BaseCapabilityRefusal, BaseCapabilityScope, BaseCapabilityTable, BaseInstanceId,
     BaseOperationClaim, BootId, CapabilityEnvelopeId, CapabilityId, CapabilityIssueRequest,
-    CapabilityLifecycle, HostId, HostOperationContractId, ImplementationId, KindId, PlanId,
+    CapabilityLifecycle, HostCallContractId, HostId, ImplementationId, KindId, PlanId,
     ResourceGenerationId, ResourcePoolId,
 };
 
@@ -18,7 +18,7 @@ fn scope() -> BaseCapabilityScope {
         authority_contract_id: AuthorityContractId::from("authority/file-read@1"),
         capability_id: CapabilityId::from("file/copy"),
         implementation_id: ImplementationId::from("implementation/file-copy@1"),
-        operation_contract_id: HostOperationContractId::from("conduit.host/file-read@1"),
+        operation_contract_id: HostCallContractId::from("conduit.host/file-read@1"),
         subject_kind: KindId::from("file/source"),
         resource_pool_id: ResourcePoolId::from("files/project/source"),
         resource_generation_id: ResourceGenerationId("resource-generation/7".into()),
@@ -36,7 +36,7 @@ fn authority() -> BaseCapabilityAuthority {
         grant: AuthorityGrant {
             grant_id: AuthorityGrantId::from("grant/visible"),
             contract_id: AuthorityContractId::from("authority/file-read@1"),
-            host_operation_contract_id: HostOperationContractId::from("conduit.host/file-read@1"),
+            host_call_contract_id: HostCallContractId::from("conduit.host/file-read@1"),
             subject_kind: KindId::from("file/source"),
             host_id: HostId::from("host/one"),
             boot_id: BootId::from("boot/one"),
@@ -46,7 +46,7 @@ fn authority() -> BaseCapabilityAuthority {
         base_provider_generation: 4,
         resource_pool_id: ResourcePoolId::from("files/project/source"),
         resource_generation_id: ResourceGenerationId("resource-generation/7".into()),
-        operation_contract_id: HostOperationContractId::from("conduit.host/file-read@1"),
+        operation_contract_id: HostCallContractId::from("conduit.host/file-read@1"),
         envelope_id: CapabilityEnvelopeId::from("file/read-only/project-source/max-64"),
         maximum_parameter_bytes: 256,
         maximum_result_bytes: 512,
@@ -147,7 +147,7 @@ fn provider_checks_every_exact_scope_field_at_operation_time() {
         Box::new(|claim| claim.active_play_id = ActivePlayId::from("play/sibling")),
         Box::new(|claim| claim.implementation_id = ImplementationId::from("implementation/evil")),
         Box::new(|claim| {
-            claim.operation_contract_id = HostOperationContractId::from("conduit.host/file-write@1")
+            claim.operation_contract_id = HostCallContractId::from("conduit.host/file-write@1")
         }),
         Box::new(|claim| claim.subject_kind = KindId::from("file/sibling")),
         Box::new(|claim| claim.resource_pool_id = ResourcePoolId::from("files/sibling")),

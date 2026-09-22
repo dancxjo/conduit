@@ -88,7 +88,10 @@ impl ObjectObservation {
         validate_text(&self.candidate_label, MAXIMUM_VISUAL_LABEL_BYTES)?;
         self.region.validate(&self.source_image)?;
         validate_confidence(self.confidence_permille)?;
-        if self.provenance.evidence_class != VisualEvidenceClass::StatisticalCandidate {
+        if !matches!(
+            self.provenance.evidence_class,
+            VisualEvidenceClass::DeterministicDerived | VisualEvidenceClass::StatisticalCandidate
+        ) {
             return Err(VisualObservationRefusal::WrongEvidenceClass);
         }
         self.provenance.validate()

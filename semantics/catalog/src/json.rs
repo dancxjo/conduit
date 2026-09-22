@@ -1,9 +1,9 @@
 //! Portable bounded JSON encode/decode Kind contracts.
 
-use super::{StandardKindContract, TerminalBehavior};
+use super::{KindTerminalBehavior, StandardKindContract};
 use alloc::string::ToString;
 use alloc::vec::Vec;
-use conduit_core::{port_id, FrontStartupParameter, SemanticCapabilityContract};
+use conduit_core::{port_id, FrontStartupParameter, Kind};
 
 pub fn json_encode_contract() -> StandardKindContract {
     contract(
@@ -35,29 +35,29 @@ pub fn json_boolean_summary_contract() -> StandardKindContract {
         "Boolean collection summary",
         "Count true, false and total records for an exact Boolean field.",
     );
-    value.configuration.push(super::StandardConfigurationField {
+    value.configuration.push(super::KindConfigurationField {
         key: "field".into(),
         default_value: conduit_core::ConfigurationValue::Text("enabled".into()),
-        rule: super::StandardConfigurationRule::TextBytes {
+        rule: super::KindConfigurationRule::TextBytes {
             maximum: conduit_web::JSON_MAXIMUM_KEY_BYTES as u32,
         },
     });
     value
 }
 
-pub fn json_encode_semantic_contract() -> SemanticCapabilityContract {
+pub fn json_encode_semantic_contract() -> Kind {
     semantic_contract(conduit_web::json_encode_semantics(), Vec::new())
 }
 
-pub fn json_decode_semantic_contract() -> SemanticCapabilityContract {
+pub fn json_decode_semantic_contract() -> Kind {
     semantic_contract(conduit_web::json_decode_semantics(), Vec::new())
 }
 
-pub fn json_collection_step_semantic_contract() -> SemanticCapabilityContract {
+pub fn json_collection_step_semantic_contract() -> Kind {
     semantic_contract(conduit_web::json_collection_step_semantics(), Vec::new())
 }
 
-pub fn json_boolean_summary_semantic_contract() -> SemanticCapabilityContract {
+pub fn json_boolean_summary_semantic_contract() -> Kind {
     semantic_contract(
         conduit_web::json_boolean_summary_semantics(),
         alloc::vec![FrontStartupParameter {
@@ -71,14 +71,16 @@ pub fn json_boolean_summary_semantic_contract() -> SemanticCapabilityContract {
 fn semantic_contract(
     contract: conduit_web::PortableKindContract,
     startup_parameters: Vec<FrontStartupParameter>,
-) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+) -> Kind {
+    Kind {
         startup_parameters,
         shorthand: Some((port_id("value"), port_id("value"))),
         kind_id: contract.kind_id,
         kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: contract.limits,
     }
 }
@@ -95,9 +97,9 @@ fn contract(
         summary: summary.to_string(),
         inputs: contract.inputs,
         outputs: contract.outputs,
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: contract.limits,
-        terminal_behavior: TerminalBehavior::MirrorsInputTerminal,
+        terminal_behavior: KindTerminalBehavior::MirrorsInputTerminal,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,

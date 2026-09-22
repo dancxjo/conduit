@@ -5,10 +5,9 @@ use crate::{
     CreateSensorLoweringError, OiMode,
 };
 use conduit_core::{
-    resource_offer, resource_requirement, ArtifactId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization, ExecutionProfileId,
-    HostAdvertisement, HostId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    OfferGeneration, PROTOCOL_VERSION,
+    resource_offer, resource_requirement, ArtifactId, Back, BackOfferBuilder, BootId, CapabilityId,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostCallContractId,
+    HostCallRequirement, HostId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_robotics::{
     BatteryObservation, ROBOTICS_BATTERY_ENCODED_LEN, ROBOTICS_BEACON_ENCODED_LEN,
@@ -171,15 +170,15 @@ pub fn live_create_observation_advertisement(
 pub(crate) fn observation_offer(channel: CreateObservationChannel) -> CapabilityOffer {
     let (contract, revision, maximum_output_bytes) = contract(channel);
     let semantic = contract.into_semantic_contract(revision);
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         semantic,
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from(channel.capability_id()),
             execution_profile_id: ExecutionProfileId::from(CREATE_OBSERVATION_PROFILE),
             implementation_id: ImplementationId::from(channel.implementation_id()),
             artifact_id: ArtifactId::from(CREATE_OBSERVATION_ARTIFACT),
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(channel.operation_id()),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(channel.operation_id()),
                 target_kind: Some(output_kind(channel)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: 0,

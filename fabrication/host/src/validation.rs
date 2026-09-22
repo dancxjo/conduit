@@ -101,7 +101,7 @@ fn validate_shape(
     }
     for (field, count) in [
         ("capabilities", profile.capabilities.len()),
-        ("host_operations", profile.host_operations.len()),
+        ("host_calls", profile.host_calls.len()),
         ("resources", profile.resources.len()),
         ("bases", profile.bases.len()),
         ("drivers", profile.drivers.len()),
@@ -407,7 +407,7 @@ fn profile_satisfies(profile: &HostProfile, node: &PrerequisiteNode) -> bool {
             .capabilities
             .iter()
             .any(|capability| capability.implementation == *value),
-        PrerequisiteNode::HostOperation(value) => profile.host_operations.contains(value),
+        PrerequisiteNode::HostCall(value) => profile.host_calls.contains(value),
         PrerequisiteNode::Resource(value) => profile
             .resources
             .iter()
@@ -423,7 +423,7 @@ fn profile_satisfies(profile: &HostProfile, node: &PrerequisiteNode) -> bool {
 fn node_label(node: &PrerequisiteNode) -> String {
     match node {
         PrerequisiteNode::Implementation(value) => format!("implementation:{value}"),
-        PrerequisiteNode::HostOperation(value) => format!("host-operation:{value}"),
+        PrerequisiteNode::HostCall(value) => format!("host-call:{value}"),
         PrerequisiteNode::Resource(value) => format!("resource:{value}"),
         PrerequisiteNode::Base(value) => format!("base:{value}"),
         PrerequisiteNode::Driver(value) => format!("driver:{value}"),

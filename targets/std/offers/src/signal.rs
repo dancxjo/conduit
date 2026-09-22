@@ -1,22 +1,21 @@
 //! Exact Signal implementation offers owned by the hosted std Host.
 
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, CapabilityOfferBuilder, CapabilityRealization,
-    ImplementationId,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ImplementationId,
 };
 
 pub const SIGNAL_PULSE_STD_IMPLEMENTATION: &str = "std/pulse-v1";
 pub const SIGNAL_SHOW_STD_IMPLEMENTATION: &str = "std/stdout-show-signal-v1";
 
 pub fn signal_pulse_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_signal::pulse_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("pulse-1"),
             execution_profile_id: conduit_signal::pulse_execution_profile(),
             implementation_id: ImplementationId::from(SIGNAL_PULSE_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-signal/pulse-artifact-v1"),
-            host_operations: conduit_signal::pulse_host_operation_requirements(),
+            host_calls: conduit_signal::pulse_host_call_requirements(),
             resource_requirements: conduit_signal::pulse_resource_requirements(),
             authority_requirements: Vec::new(),
         },
@@ -25,14 +24,14 @@ pub fn signal_pulse_offer() -> CapabilityOffer {
 }
 
 pub fn signal_show_offer() -> CapabilityOffer {
-    CapabilityOfferBuilder::new(
+    BackOfferBuilder::new(
         conduit_signal::show_semantic_contract(),
-        CapabilityRealization {
+        Back {
             capability_id: CapabilityId::from("stdout-show-1"),
             execution_profile_id: conduit_signal::show_execution_profile(),
             implementation_id: ImplementationId::from(SIGNAL_SHOW_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-signal/show-artifact-v1"),
-            host_operations: conduit_signal::show_host_operation_requirements(),
+            host_calls: conduit_signal::show_host_call_requirements(),
             resource_requirements: conduit_signal::show_resource_requirements(),
             authority_requirements: Vec::new(),
         },

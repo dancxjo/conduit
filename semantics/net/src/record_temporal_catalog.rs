@@ -2,10 +2,10 @@
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, SemanticCapabilityContract, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::framed_typed_record_type;
 
@@ -29,24 +29,24 @@ pub fn install_record_temporal_catalogs(
     Ok(())
 }
 
-pub fn record_singleton_stream_definition() -> KindDefinition {
+pub fn record_singleton_stream_definition() -> KindProjection {
     definitions()[0].clone()
 }
 
-pub fn record_exactly_one_definition() -> KindDefinition {
+pub fn record_exactly_one_definition() -> KindProjection {
     definitions()[1].clone()
 }
 
-pub fn record_singleton_stream_semantic_contract() -> SemanticCapabilityContract {
+pub fn record_singleton_stream_semantic_contract() -> Kind {
     semantic_contract(record_singleton_stream_definition())
 }
 
-pub fn record_exactly_one_semantic_contract() -> SemanticCapabilityContract {
+pub fn record_exactly_one_semantic_contract() -> Kind {
     semantic_contract(record_exactly_one_definition())
 }
 
-fn semantic_contract(definition: KindDefinition) -> SemanticCapabilityContract {
-    SemanticCapabilityContract {
+fn semantic_contract(definition: KindProjection) -> Kind {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: Some((
             definition.inputs[0].port_id.clone(),
@@ -56,6 +56,8 @@ fn semantic_contract(definition: KindDefinition) -> SemanticCapabilityContract {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 4,
@@ -64,16 +66,16 @@ fn semantic_contract(definition: KindDefinition) -> SemanticCapabilityContract {
     }
 }
 
-fn definitions() -> [KindDefinition; 2] {
+fn definitions() -> [KindProjection; 2] {
     let kind = framed_typed_record_type()
         .profile()
         .expect("framed record profile is finite")
         .value_kind()
         .clone();
     [
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id(RECORD_SINGLETON_STREAM_KIND),
-            kind_contract_revision: KindContractRevision::from(RECORD_TEMPORAL_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(RECORD_TEMPORAL_CONTRACT_REVISION),
             inputs: vec![port(
                 "record",
                 kind.clone(),
@@ -86,11 +88,11 @@ fn definitions() -> [KindDefinition; 2] {
                 PortDirection::Output,
                 PortTemporal::Flow { closes: true },
             )],
-            configuration: Vec::new(),
+            configuration: Default::default(),
         },
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id(RECORD_EXACTLY_ONE_KIND),
-            kind_contract_revision: KindContractRevision::from(RECORD_TEMPORAL_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(RECORD_TEMPORAL_CONTRACT_REVISION),
             inputs: vec![port(
                 "stream",
                 kind.clone(),
@@ -103,7 +105,7 @@ fn definitions() -> [KindDefinition; 2] {
                 PortDirection::Output,
                 PortTemporal::Value,
             )],
-            configuration: Vec::new(),
+            configuration: Default::default(),
         },
     ]
 }

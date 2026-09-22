@@ -5,12 +5,12 @@ use alloc::{
     vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter,
-    KindContractRevision, PortDescriptor, PortDirection, PortTemporal, SemanticCapabilityContract,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 pub const TIMED_BUTTON_ATTEMPT_KIND: &str = "time/pressed-button-attempt";
@@ -21,10 +21,10 @@ pub const MAXIMUM_ATTEMPT_TRANSITIONS: u64 = 32;
 pub const DEFAULT_ATTEMPT_TIMEOUT_MS: u64 = 3_000;
 pub const MAXIMUM_ATTEMPT_TIMEOUT_MS: u64 = 60_000;
 
-pub fn timed_button_attempt_definition() -> KindDefinition {
-    KindDefinition {
+pub fn timed_button_attempt_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(TIMED_BUTTON_ATTEMPT_KIND),
-        kind_contract_revision: KindContractRevision::from(TIMED_BUTTON_ATTEMPT_REVISION),
+        kind_contract_revision: KindIdentity::from(TIMED_BUTTON_ATTEMPT_REVISION),
         inputs: vec![PortDescriptor {
             port_id: port_id("transition"),
             value_kind: crate::input_button_transition_type()
@@ -46,26 +46,26 @@ pub fn timed_button_attempt_definition() -> KindDefinition {
             temporal: PortTemporal::Value,
         }],
         configuration: vec![
-            ConfigurationField {
+            KindConfigurationField {
                 key: "maximum-presses".into(),
                 default_value: ConfigurationValue::U64(DEFAULT_ATTEMPT_PRESSES),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 2,
                     maximum: crate::MAXIMUM_TIMED_EVENTS as u64,
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "maximum-transitions".into(),
                 default_value: ConfigurationValue::U64(DEFAULT_ATTEMPT_TRANSITIONS),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 2,
                     maximum: MAXIMUM_ATTEMPT_TRANSITIONS,
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "timeout-ms".into(),
                 default_value: ConfigurationValue::U64(DEFAULT_ATTEMPT_TIMEOUT_MS),
-                validation: ConfigurationRule::DurationMillis {
+                rule: KindConfigurationRule::DurationMillis {
                     minimum: 1,
                     maximum: MAXIMUM_ATTEMPT_TIMEOUT_MS,
                 },
@@ -74,9 +74,9 @@ pub fn timed_button_attempt_definition() -> KindDefinition {
     }
 }
 
-pub fn timed_button_attempt_semantic_contract() -> SemanticCapabilityContract {
+pub fn timed_button_attempt_semantic_contract() -> Kind {
     let definition = timed_button_attempt_definition();
-    SemanticCapabilityContract {
+    Kind {
         startup_parameters: vec![
             FrontStartupParameter {
                 name: "maximum-transitions".into(),
@@ -90,7 +90,7 @@ pub fn timed_button_attempt_semantic_contract() -> SemanticCapabilityContract {
             },
             FrontStartupParameter {
                 name: "timeout-ms".into(),
-                value_type: kind_id("value/duration"),
+                value_type: kind_id(conduit_core::QUANTITY_INFO_ID),
                 has_default: true,
             },
         ],
@@ -99,6 +99,8 @@ pub fn timed_button_attempt_semantic_contract() -> SemanticCapabilityContract {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: crate::MAXIMUM_TIMED_EVENTS as u16,
@@ -166,7 +168,7 @@ mod tests {
         assert_eq!(contract.startup_parameters[1].name, "maximum-presses");
         assert_eq!(
             contract.startup_parameters[2].value_type.as_str(),
-            "value/duration"
+            conduit_core::QUANTITY_INFO_ID
         );
         assert!(contract
             .startup_parameters

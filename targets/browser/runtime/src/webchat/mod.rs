@@ -7,5 +7,5 @@ mod session_runtime;
 mod tests;
 
 pub(crate) use catalog::advertisement as admission_advertisement;
-pub(crate) use operation::BrowserChatOperation;
+pub(crate) use operation::BrowserChatBack;
 pub(crate) use session::{BrowserChatEffect, BrowserChatSession};

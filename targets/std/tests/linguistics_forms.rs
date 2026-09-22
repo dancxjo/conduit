@@ -13,7 +13,7 @@ use conduit_language::{
     ANNOTATE_FOUR_KIND, LINGUISTIC_DEPENDENCY_COUNT, LINGUISTIC_FEATURE_SLOTS,
     LINGUISTIC_TOKEN_COUNT, MAXIMUM_LINGUISTIC_TEXT_BYTES, TOKENIZE_FOUR_KIND,
 };
-use conduit_std_host::hosted_linguistics::{linguistics_std_offers, LINGUISTICS_HOST_OPERATION};
+use conduit_std_host::hosted_linguistics::{linguistics_std_offers, LINGUISTICS_HOST_CALL};
 
 const SOURCE: &str = include_str!("../../../forms/linguistic-annotations/main.conduit");
 
@@ -80,8 +80,8 @@ fn canonical_form_tokenizes_and_projects_annotations_without_json() {
         .find(|placement| placement.kind_id.as_str() == ANNOTATE_FOUR_KIND)
         .unwrap();
     assert_eq!(
-        annotation.host_operations[0].contract_id.as_str(),
-        LINGUISTICS_HOST_OPERATION
+        annotation.host_calls[0].contract_id.as_str(),
+        LINGUISTICS_HOST_CALL
     );
 }
 

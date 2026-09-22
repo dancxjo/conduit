@@ -43,6 +43,8 @@ export function decodeRendezvousCbor(bytes, nowMillis = Date.now()) {
     if (candidate.line_family === "local-loopback-websocket"
       && !candidate.reachability.startsWith("ws://127.0.0.1:")
       && !candidate.reachability.startsWith("ws://[::1]:")) invalid();
+    if (candidate.line_family === "web-rtc-data-channel"
+      && !candidate.reachability.startsWith("webrtc-bootstrap:")) invalid();
   }
   return Object.freeze({
     schema: "conduit.host/rendezvous-cbor@1",
@@ -118,7 +120,7 @@ function decodeCandidate(reader) {
   const candidateId = reader.text();
   reader.exactUnsigned(1);
   const lineFamily = ["authenticated-tls-stream", "authenticated-conduit-line",
-    "local-loopback-websocket", "attended-serial"][reader.unsigned()];
+    "local-loopback-websocket", "attended-serial", "web-rtc-data-channel"][reader.unsigned()];
   if (!lineFamily) invalid();
   reader.exactUnsigned(2);
   const reachability = reader.text();

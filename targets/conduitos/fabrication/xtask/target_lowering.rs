@@ -69,7 +69,7 @@ pub(super) fn lower_x86_64_pc(
     let closure = [
         (
             PRESENT_OPERATION,
-            manifest.host_operations.contains(&PRESENT_OPERATION.into()),
+            manifest.host_calls.contains(&PRESENT_OPERATION.into()),
         ),
         (
             NATIVE_COMPOSITOR,
@@ -229,7 +229,7 @@ pub(super) fn lower_aarch64_virt(
     if drivers.as_slice() != [PL011_DRIVER] {
         return Err(aarch64_closure_refusal("driver", PL011_DRIVER, &drivers));
     }
-    if manifest.host_operations.as_slice() != [PRESENT_OPERATION]
+    if manifest.host_calls.as_slice() != [PRESENT_OPERATION]
         || !manifest.facilities.is_empty()
         || !manifest.resource_budgets.is_empty()
         || !manifest.profile_fragments.is_empty()
@@ -297,7 +297,7 @@ pub(super) fn lower_ia32_pc(manifest: &BuildManifest) -> Result<TargetBuildInput
             &drivers,
         ));
     }
-    if manifest.host_operations.as_slice() != [PRESENT_OPERATION]
+    if manifest.host_calls.as_slice() != [PRESENT_OPERATION]
         || !manifest.facilities.is_empty()
         || !manifest.resource_budgets.is_empty()
         || !manifest.profile_fragments.is_empty()
@@ -354,7 +354,7 @@ pub(super) fn lower_riscv64_virt(
         || bases != [RISCV64_SBI_BASE]
         || drivers != [RISCV64_SBI_DRIVER]
         || manifest.base_selections[0].driver != RISCV64_SBI_DRIVER
-        || manifest.host_operations.as_slice() != [PRESENT_OPERATION]
+        || manifest.host_calls.as_slice() != [PRESENT_OPERATION]
         || !manifest.facilities.is_empty()
         || !manifest.resource_budgets.is_empty()
         || !manifest.profile_fragments.is_empty()

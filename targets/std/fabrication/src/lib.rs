@@ -59,10 +59,10 @@ fn package_catalog() -> PackageCatalogContribution {
         .map(|offer| {
             let implementation = offer.implementation.implementation_id.as_str().to_owned();
             let mut prerequisites = offer
-                .host_operations
+                .host_calls
                 .iter()
                 .map(|requirement| {
-                    PrerequisiteNode::HostOperation(requirement.contract_id.as_str().to_owned())
+                    PrerequisiteNode::HostCall(requirement.contract_id.as_str().to_owned())
                 })
                 .chain(offer.resource_requirements.iter().map(|requirement| {
                     PrerequisiteNode::Resource(requirement.class_id.as_str().to_owned())
@@ -121,7 +121,7 @@ fn target(label: &str, architecture: &str, machine: &str, os: &str) -> TargetDes
         os: Some(os.into()),
         host_core: "host-core/std@1".into(),
         presenter: None,
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         toolchain_identity: "rustc:stable".into(),
         builder_adapter: "conduit-host-hosted/build-native@1".into(),
         strategy: conduit_host_fabrication::FabricationStrategy::DeterministicSpecializedBuild,

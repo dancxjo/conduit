@@ -65,7 +65,7 @@ fn ordinary_form_plans_one_bounded_admitted_job() {
         .find(|placement| placement.kind_id.as_str() == JOB_RUN_KIND)
         .unwrap();
     assert_eq!(
-        run.host_operations[0].contract_id.as_str(),
+        run.host_calls[0].contract_id.as_str(),
         common::JOB_PROOF_RUN_OPERATION
     );
 

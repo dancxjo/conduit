@@ -76,6 +76,7 @@ pub(super) fn scene(
             .unwrap_or("Input unavailable. Inspect details before recovery."),
         JourneyStatus::Stopped => "Play stopped.",
         JourneyStatus::Lulled => "Body lulled. Its installed forms remain included.",
+        JourneyStatus::Fulfilled => "Body fulfilled. Its closed biography remains inspectable.",
         _ => "Preparing your body...",
     };
     text(
@@ -127,6 +128,7 @@ pub(super) fn scene(
         JourneyStatus::InputUnavailable
         | JourneyStatus::Stopped
         | JourneyStatus::SemanticCompleted => "  ·  F7 Lull",
+        JourneyStatus::Lulled => "  ·  End Fulfill",
         _ => "",
     };
     text(

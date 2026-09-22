@@ -191,15 +191,15 @@ fn generic_remote_fragment_routes_through_latest_and_atomic_tee() {
                 assert_eq!(work.request, request);
                 assert_eq!(
                     work.contract_id,
-                    conduit_core::wait_host_operation_requirement().contract_id
+                    conduit_core::wait_host_call_requirement().contract_id
                 );
                 assert_eq!(work.input.len(), request.input.value.byte_len as usize);
                 assert_eq!(work.maximum_output_bytes, 0);
                 source_runtime
-                    .complete_host_operation(
+                    .complete_host_call(
                         request,
-                        conduit_kernel::HostOperationOutcome {
-                            disposition: conduit_kernel::HostOperationDisposition::Completed,
+                        conduit_kernel::HostCallOutcome {
+                            disposition: conduit_kernel::HostCallDisposition::Completed,
                             output: None,
                             failure: None,
                         },

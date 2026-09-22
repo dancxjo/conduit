@@ -1,4 +1,4 @@
-//! Bounded canonical values derived by an operation during one kernel step.
+//! Bounded canonical values derived by an call during one kernel step.
 
 use super::SchedulerError;
 use crate::{PortId, StorageError, ValueRef, ValueStorage};

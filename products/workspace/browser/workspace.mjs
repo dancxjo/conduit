@@ -9,8 +9,9 @@ import { readWorkspaceHandoff, consumeWorkspaceHandoff } from "./workspace-hando
 import { acquireBrowserBodyContinuity } from "../../../targets/browser/host/assets/browser-body-continuity.mjs";
 import { createBodyInvitationReceiver, openWorkspaceMembership, readBodyInvitation, readSharedBodyInvitation } from "./workspace-membership.mjs";
 import { prepareWorkspaceVoicePlay } from "./workspace-voice-play.mjs";
+import { prepareWorkspaceTutorialPresenterPlay } from "./workspace-tutorial-presenter-play.mjs";
 import { createMemoryReleaseCache, openReleaseCatalog } from "../../creche/browser/creche-release-catalog.mjs";
-import { browserHostOperationLimits, createBrowserHostOperations } from "../../../targets/browser/host/assets/browser-host-operations.mjs";
+import { browserHostCallLimits, createBrowserHostCalls } from "../../../targets/browser/host/assets/browser-host-calls.mjs";
 
 export async function startApplication(application) {
   const root = document.querySelector('.workspace-shell');
@@ -50,16 +51,16 @@ export async function startApplication(application) {
         return catalog.resolve(profile, signal);
       },
     });
-    const operations = createBrowserHostOperations({ hostId: host.hostId, bootId: host.bootId,
+    const calls = createBrowserHostCalls({ hostId: host.hostId, bootId: host.bootId,
       applicationId: application.manifest.applicationId, applicationGeneration: 1, authorityGeneration: 1 });
     let artifactSequence = 0;
-    const hostOperations = Object.freeze({
+    const hostCalls = Object.freeze({
       handoffArtifact(artifact) {
         artifactSequence += 1;
-        return operations.handoffArtifact({
-          contract: browserHostOperationLimits.contract,
+        return calls.handoffArtifact({
+          contract: browserHostCallLimits.contract,
           kind: 'artifact-handoff',
-          operationId: `workspace/artifact-${artifactSequence}`,
+          callId: `workspace/artifact-${artifactSequence}`,
           hostId: host.hostId,
           bootId: host.bootId,
           applicationId: application.manifest.applicationId,
@@ -279,6 +280,11 @@ export async function startApplication(application) {
         onApplicationEvent: ({ checkedFormId, event }) => {
           if (checkedFormId === tutorialForm.checked_form_id) handleTutorialEvent(event, true);
         },
+        onTutorialPresenterRequest: effect => session.tutorialPresenterRequest(
+          `tutorial-presenter/${effect.active_play_id}/${effect.request_sequence}`,
+          ++tutorialRevision,
+          playback.state,
+        ),
         async prepareExternal(proposal) {
           const distributed = proposal.plan.forms.filter(form => form.plan.fragments.length > 1);
           if (!distributed.length) return null;
@@ -286,7 +292,16 @@ export async function startApplication(application) {
           const plan = distributed[0].plan;
           const peer = plan.fragments.find(fragment => fragment.host_id !== host.hostId || fragment.boot_id !== host.bootId);
           const joined = peer && membership?.executionLine(peer.host_id, peer.boot_id);
-          if (!joined) throw new Error('The planned Voice Host Line is no longer current');
+          if (!joined) throw new Error('The planned remote Host Line is no longer current');
+          const presenter = plan.fragments.some(fragment => fragment.placements.some(placement =>
+            placement.kind_id === 'llm/present'));
+          if (presenter) {
+            const tutorialPresenter = await prepareWorkspaceTutorialPresenterPlay({ api: host.runtime,
+              localAdvertisement: host.membership.advertisement(), joined, plan, outputRoot: tutorialResident,
+              request: identity => session.tutorialPresenterRequest(identity, ++tutorialRevision, playback.state) });
+            return Object.freeze({ planId: plan.plan_id, identity: tutorialPresenter.identity,
+              run: () => tutorialPresenter.run(), close: () => tutorialPresenter.close() });
+          }
           await joined.line.installBodyContext(session.conversationContext());
           const voice = await prepareWorkspaceVoicePlay({ api: host.runtime,
             localAdvertisement: host.membership.advertisement(), joined, plan,
@@ -347,7 +362,7 @@ export async function startApplication(application) {
       onClose() { library.hide(); render(); root.querySelector('[data-open-library]')?.focus(); },
     });
     globalThis.__conduitWorkspace = Object.freeze({ host, current: session.current, evidence: session.evidence, state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
-    membership = openWorkspaceMembership({ root, session, host, hostOperations, invitation, presentationFor: application.presentationFor,
+    membership = openWorkspaceMembership({ root, session, host, hostCalls, invitation, presentationFor: application.presentationFor,
       invitationLabel: () => catalog.forms.find(form => form.checked_form_id === selected)?.name === 'firefly-choir'
         ? 'Invite another phone' : 'Invite another host',
       async beforeAdmission() {

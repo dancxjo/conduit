@@ -6,10 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
     StructuredFieldType, StructuredInfoType, StructuredVariantCase,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 pub const PURPOSE_READINESS_KIND: &str = "purpose/fulfillment-readiness";
 pub const PURPOSE_STATE_TYPE: &str = "PurposeState";
@@ -126,11 +126,9 @@ pub fn install_purpose_catalogs(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(PURPOSE_READINESS_KIND),
-            kind_contract_revision: KindContractRevision::from(
-                "conduit.purpose/fulfillment-readiness@1",
-            ),
+            kind_contract_revision: KindIdentity::from("conduit.purpose/fulfillment-readiness@1"),
             inputs: vec![port("purpose", &purpose_state_type(), PortDirection::Input)],
             outputs: vec![port(
                 "readiness",

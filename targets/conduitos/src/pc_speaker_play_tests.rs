@@ -74,7 +74,7 @@ fn cancellation_closes_gate_and_rejects_late_completion() {
     assert_eq!(kernel.scheduler.step(), Ok(SchedulerStatus::Cancelled));
     assert_eq!(
         kernel.complete(pending),
-        Err(SchedulerError::HostOperationCompletionRejected)
+        Err(SchedulerError::HostCallCompletionRejected)
     );
 }
 

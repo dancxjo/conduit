@@ -1,5 +1,5 @@
 //! Catalog fixture shared by canonical timing Form conformance consumers.
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 pub(super) fn install_catalogs(startup: &mut StartupCatalog, profile: &mut ProfileCatalog) {
     conduit_semantic_catalog::install_button_indicator_catalogs(startup, profile).unwrap();
@@ -21,12 +21,12 @@ pub(super) fn install_catalogs(startup: &mut StartupCatalog, profile: &mut Profi
         &conduit_semantic_catalog::pattern_comparison_type(),
     );
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: presenter.kind_id,
             kind_contract_revision: presenter.kind_contract_revision,
             inputs: presenter.inputs,
             outputs: presenter.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
 }

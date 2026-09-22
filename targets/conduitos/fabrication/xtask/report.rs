@@ -132,7 +132,7 @@ pub struct GuestKernelSign {
     pub idle_entries: u32,
     pub serial_presentations: u32,
     pub clock_monotonic: bool,
-    pub pending_host_operations: u8,
+    pub pending_host_calls: u8,
     pub overlap_witness: bool,
     pub timer_pending_during_text_progress: bool,
     pub physical_parallelism: bool,

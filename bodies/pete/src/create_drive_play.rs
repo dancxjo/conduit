@@ -10,9 +10,7 @@ use crate::{
     SafeDispositionCause, SafetyObservation,
 };
 use conduit_core::{BootId, HostId, OfferGeneration, Plan, Scalar, SCALAR_ENCODED_LEN};
-use conduit_kernel::{
-    scheduler::HostOperationRequest, HostOperationDisposition, HostOperationOutcome, SignSink,
-};
+use conduit_kernel::{scheduler::HostCallRequest, HostCallDisposition, HostCallOutcome, SignSink};
 
 pub struct PreparedCreateDriveExecution {
     scheduler: DriveScheduler,
@@ -172,11 +170,11 @@ pub fn dispatch_create_drive_execution<'a, P: CreateUartProvider>(
     };
     if execution
         .scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -256,7 +254,7 @@ pub fn cancel_create_drive_execution<P: CreateUartProvider>(
 
 fn next_request(
     execution: &mut PreparedCreateDriveExecution,
-) -> Result<HostOperationRequest, CreateDriveExecutionRefusal> {
+) -> Result<HostCallRequest, CreateDriveExecutionRefusal> {
     for _ in 0..32 {
         execution
             .scheduler
@@ -271,7 +269,7 @@ fn next_request(
 
 fn decode_request(
     execution: &PreparedCreateDriveExecution,
-    request: HostOperationRequest,
+    request: HostCallRequest,
 ) -> Result<(Scalar, Scalar), CreateDriveExecutionRefusal> {
     if request.node != DRIVE_NODE
         || request.request != DRIVE_REQUEST
@@ -307,7 +305,7 @@ fn settle_admission(execution: &mut PreparedCreateDriveExecution) -> bool {
 
 fn fail_request(
     execution: &mut PreparedCreateDriveExecution,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     refusal: CreateDriveExecutionRefusal,
 ) {
     let detail = match refusal {
@@ -319,14 +317,14 @@ fn fail_request(
         CreateDriveExecutionRefusal::KernelRefused
         | CreateDriveExecutionRefusal::InvalidLifecycle => 6,
     };
-    let _ = execution.scheduler.complete_host_operation(
+    let _ = execution.scheduler.complete_host_call(
         request.node,
         request.request,
-        HostOperationOutcome {
-            disposition: HostOperationDisposition::Failed,
+        HostCallOutcome {
+            disposition: HostCallDisposition::Failed,
             output: None,
             failure: Some(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::HostOperationFailed,
+                code: conduit_kernel::FailureCode::HostCallFailed,
                 detail,
             }),
         },

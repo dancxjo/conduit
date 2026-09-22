@@ -1,8 +1,6 @@
 use super::session::{BrowserChatEffect, BrowserChatSession, InteractionFrame};
-use conduit_kernel::scheduler::{HostOperationRequest, SchedulerStatus};
-use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationOutcome,
-};
+use conduit_kernel::scheduler::{HostCallRequest, SchedulerStatus};
+use conduit_kernel::{BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallOutcome};
 use conduit_presentation::{
     Manifestation, ManifestationLifecycle, PresentationInteraction,
     PresentationInteractionDisposition,
@@ -13,19 +11,19 @@ impl BrowserChatSession {
         self.current
             .and_then(|request| self.contract(request).ok())
             .map_or(BrowserChatEffect::None, |contract| match contract {
-                conduit_net::EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_OPERATION => {
+                conduit_net::EXTERNAL_WEBSOCKET_CLIENT_OPEN_HOST_CALL => {
                     BrowserChatEffect::SocketOpen
                 }
-                conduit_net::EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_OPERATION => {
+                conduit_net::EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_CALL => {
                     BrowserChatEffect::SocketReceive
                 }
-                conduit_net::EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_OPERATION => {
+                conduit_net::EXTERNAL_WEBSOCKET_CLIENT_SEND_HOST_CALL => {
                     BrowserChatEffect::SocketSend
                 }
-                conduit_net::EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_OPERATION => {
+                conduit_net::EXTERNAL_WEBSOCKET_CLIENT_CLOSE_HOST_CALL => {
                     BrowserChatEffect::SocketClose
                 }
-                conduit_chat::BROWSER_RENDER_HOST_OPERATION => BrowserChatEffect::Present,
+                conduit_chat::BROWSER_RENDER_HOST_CALL => BrowserChatEffect::Present,
                 _ => BrowserChatEffect::None,
             })
     }
@@ -104,7 +102,7 @@ impl BrowserChatSession {
         } else {
             None
         };
-        self.complete_request(request, HostOperationDisposition::Completed, output, None)?;
+        self.complete_request(request, HostCallDisposition::Completed, output, None)?;
         self.drive()
     }
 
@@ -119,12 +117,7 @@ impl BrowserChatSession {
             BoundedValueRef::new(value, conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES)
                 .map_err(|_| -222)?;
         let request = self.current.take().ok_or(-221)?;
-        self.complete_request(
-            request,
-            HostOperationDisposition::Completed,
-            Some(output),
-            None,
-        )?;
+        self.complete_request(request, HostCallDisposition::Completed, Some(output), None)?;
         self.drive()
     }
 
@@ -175,14 +168,14 @@ impl BrowserChatSession {
         let input_request = self.parked_input.take().ok_or(-224)?;
         self.complete_request(
             input_request,
-            HostOperationDisposition::Completed,
+            HostCallDisposition::Completed,
             Some(output),
             None,
         )?;
         let receive = self.current.take().ok_or(-223)?;
         self.complete_request(
             receive,
-            HostOperationDisposition::Cancelled,
+            HostCallDisposition::Cancelled,
             None,
             Some(Failure {
                 code: FailureCode::Cancelled,
@@ -201,7 +194,7 @@ impl BrowserChatSession {
         let output = BoundedValueRef::new(value, 1).map_err(|_| -226)?;
         self.complete_request(
             receive,
-            HostOperationDisposition::Cancelled,
+            HostCallDisposition::Cancelled,
             Some(output),
             Some(Failure {
                 code: FailureCode::Cancelled,
@@ -211,7 +204,7 @@ impl BrowserChatSession {
         if let Some(input) = self.parked_input.take() {
             self.complete_request(
                 input,
-                HostOperationDisposition::Cancelled,
+                HostCallDisposition::Cancelled,
                 None,
                 Some(Failure {
                     code: FailureCode::Cancelled,
@@ -231,31 +224,31 @@ impl BrowserChatSession {
                         &self.lowered_identity,
                         request.node,
                         request.request,
-                        request.operation,
+                        request.call,
                     )
                     .map_err(|_| -227)?;
                 let contract = self.contract(request)?.to_owned();
-                if contract == conduit_chat::BROWSER_INTERACTION_HOST_OPERATION {
+                if contract == conduit_chat::BROWSER_INTERACTION_HOST_CALL {
                     if self.parked_input.replace(request).is_some() {
                         return Err(-228);
                     }
                     continue;
                 }
-                if contract == conduit_net::EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_OPERATION {
+                if contract == conduit_net::EXTERNAL_WEBSOCKET_CLIENT_RECEIVE_HOST_CALL {
                     if self.parked_receive.replace(request).is_some() {
                         return Err(-233);
                     }
                     continue;
                 }
-                if contract == conduit_chat::CHAT_STATE_MESSAGE_HOST_OPERATION
-                    || contract == conduit_chat::CHAT_STATE_CONNECTION_HOST_OPERATION
+                if contract == conduit_chat::CHAT_STATE_MESSAGE_HOST_CALL
+                    || contract == conduit_chat::CHAT_STATE_CONNECTION_HOST_CALL
                 {
                     let input = self
                         .scheduler
                         .host_value(request.input.value)
                         .map_err(|_| -232)?
                         .to_vec();
-                    if contract == conduit_chat::CHAT_STATE_MESSAGE_HOST_OPERATION {
+                    if contract == conduit_chat::CHAT_STATE_MESSAGE_HOST_CALL {
                         self.chat_state.receive(&input).map_err(|_| -239)?;
                     } else {
                         self.chat_state
@@ -276,15 +269,15 @@ impl BrowserChatSession {
                     .map_err(|_| -232)?;
                     self.complete_request(
                         request,
-                        HostOperationDisposition::Completed,
+                        HostCallDisposition::Completed,
                         Some(output),
                         None,
                     )?;
                     continue;
                 }
-                if contract == conduit_chat::CHAT_FROM_WEBSOCKET_HOST_OPERATION
-                    || contract == conduit_chat::CHAT_TO_WEBSOCKET_HOST_OPERATION
-                    || contract == conduit_chat::CHAT_CONNECTION_FROM_WEBSOCKET_HOST_OPERATION
+                if contract == conduit_chat::CHAT_FROM_WEBSOCKET_HOST_CALL
+                    || contract == conduit_chat::CHAT_TO_WEBSOCKET_HOST_CALL
+                    || contract == conduit_chat::CHAT_CONNECTION_FROM_WEBSOCKET_HOST_CALL
                 {
                     let bytes = self
                         .scheduler
@@ -298,13 +291,13 @@ impl BrowserChatSession {
                             .map_err(|_| -232)?;
                     self.complete_request(
                         request,
-                        HostOperationDisposition::Completed,
+                        HostCallDisposition::Completed,
                         Some(output),
                         None,
                     )?;
                     continue;
                 }
-                if contract == conduit_chat::CHAT_SUBMIT_HOST_OPERATION {
+                if contract == conduit_chat::CHAT_SUBMIT_HOST_CALL {
                     let input = self
                         .scheduler
                         .host_value(request.input.value)
@@ -329,7 +322,7 @@ impl BrowserChatSession {
                     self.evidence_text.extend_from_slice(&encoded_evidence);
                     self.complete_request(
                         request,
-                        HostOperationDisposition::Completed,
+                        HostCallDisposition::Completed,
                         Some(output),
                         None,
                     )?;
@@ -358,25 +351,25 @@ impl BrowserChatSession {
         }
     }
 
-    fn contract(&self, request: HostOperationRequest) -> Result<&str, i32> {
+    fn contract(&self, request: HostCallRequest) -> Result<&str, i32> {
         self.lowered_identity
-            .host_operation_contract(request.node, request.operation)
+            .host_call_contract(request.node, request.call)
             .map(|contract| contract.as_str())
             .ok_or(-231)
     }
 
     fn complete_request(
         &mut self,
-        request: HostOperationRequest,
-        disposition: HostOperationDisposition,
+        request: HostCallRequest,
+        disposition: HostCallDisposition,
         output: Option<BoundedValueRef>,
         failure: Option<Failure>,
     ) -> Result<(), i32> {
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
+                HostCallOutcome {
                     disposition,
                     output,
                     failure,

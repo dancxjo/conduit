@@ -70,9 +70,9 @@ fn live_advertisement_is_exact_bounded_and_shares_one_session() {
         .all(|resource| resource.capacity_units == 1));
     for capability in &advertisement.capabilities {
         assert_eq!(capability.resource_requirements.len(), 3);
-        assert_eq!(capability.host_operations.len(), 1);
-        assert_eq!(capability.host_operations[0].maximum_in_flight, 1);
-        assert_eq!(capability.host_operations[0].maximum_input_bytes, 0);
+        assert_eq!(capability.host_calls.len(), 1);
+        assert_eq!(capability.host_calls[0].maximum_in_flight, 1);
+        assert_eq!(capability.host_calls[0].maximum_input_bytes, 0);
         assert_eq!(capability.limits.max_active_instances, 1);
         assert_eq!(capability.limits.max_queue_items, 1);
     }
@@ -111,7 +111,7 @@ fn one_correlated_observation_encodes_each_portable_channel_exactly() {
             .expect("fixture has every optional channel");
         assert_eq!(
             encoded.as_bytes().len() as u32,
-            observation_offer(channel).host_operations[0].maximum_output_bytes
+            observation_offer(channel).host_calls[0].maximum_output_bytes
         );
     }
     assert_ne!(
@@ -171,7 +171,7 @@ fn mechanism_free_form_plans_to_exact_create_realization() {
         placement.implementation_id.as_str(),
         CreateObservationChannel::Contact.implementation_id()
     );
-    assert_eq!(placement.host_operations.len(), 1);
+    assert_eq!(placement.host_calls.len(), 1);
     assert_eq!(placement.resources.len(), 3);
 }
 
@@ -221,10 +221,7 @@ fn one_form_swaps_tiny_hosts_and_encodes_the_selected_fragment() {
         avr_placement.implementation_id
     );
     assert_eq!(pico_placement.artifact_id, avr_placement.artifact_id);
-    assert_eq!(
-        pico_placement.host_operations,
-        avr_placement.host_operations
-    );
+    assert_eq!(pico_placement.host_calls, avr_placement.host_calls);
     assert_eq!(
         pico_placement.resources.len(),
         avr_placement.resources.len()
