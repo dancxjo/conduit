@@ -91,6 +91,18 @@ export async function openReleaseCatalog({ source, minimumGeneration = 0, signal
 }
 
 export async function acquireConfiguredHostRelease(host, profile, signal) {
+  if (typeof host?.resolveReviewedRelease === "function") {
+    const resolved = await host.resolveReviewedRelease(profile, signal);
+    if (resolved) {
+      return acquireHostRelease(profile, signal, {
+        manifestUrl: resolved.manifestUrl,
+        manifestBytes: resolved.manifest,
+        fetcher: fetch,
+        cache: host.releaseArtifactCache,
+      });
+    }
+    return acquireHostRelease(profile, signal);
+  }
   if (!host?.releaseCatalogSource) return acquireHostRelease(profile, signal);
   const release = await openReleaseCatalog({
     source: host.releaseCatalogSource,

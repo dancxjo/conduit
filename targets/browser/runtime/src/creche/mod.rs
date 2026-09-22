@@ -33,7 +33,7 @@ pub(crate) struct PlanningAuthority {
     pub browser_audio: bool,
 }
 mod spore;
-pub(crate) use spore::prepare_workspace_browser;
+pub(crate) use spore::{prepare_workspace_browser, prepare_workspace_physical};
 mod spore_target;
 
 #[cfg(test)]

@@ -96,11 +96,11 @@ function productContribution(profile) {
       unavailable_carriers: Object.freeze(["browser-raw-disk-writer", "browser-vm-launcher", "network-boot"]),
       physical_boot_claimed: false,
     }),
-    createAdapter: ({ host }) => createConduitOsAdapter({ host, profile }),
+    createAdapter: ({ host, prepareSpore = null }) => createConduitOsAdapter({ host, profile, prepareSpore }),
   });
 }
 
-export function createConduitOsAdapter({ host, profile, loader } = {}) {
+export function createConduitOsAdapter({ host, profile, loader, prepareSpore = null } = {}) {
   let loaderReceipt = null;
   function createOptions() {
     const note = document.createElement("p"); note.className = "target-option-note";
@@ -123,13 +123,17 @@ export function createConduitOsAdapter({ host, profile, loader } = {}) {
     const targetBytes = encoder.encode(profile.target.id); const digestBytes = encoder.encode(release.digest);
     const resolvedImageBytes = encoder.encode(JSON.stringify(release.manifest.resolved_image));
     try {
-      const inputLength = entropy.length + targetBytes.length + digestBytes.length + resolvedImageBytes.length;
-      if (inputLength > host.runtime.conduit_creche_input_capacity()) refuse(profile, mode, "bind", "ArtifactBound", "resolved ConduitOS IMAGE description exceeds the bounded Crèche handoff");
-      const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), inputLength);
-      input.set(entropy); input.set(targetBytes, entropy.length); input.set(digestBytes, entropy.length + targetBytes.length); input.set(resolvedImageBytes, entropy.length + targetBytes.length + digestBytes.length);
-      const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target_with_image(targetBytes.length, digestBytes.length, resolvedImageBytes.length, BigInt(nowMillis));
-      if (code < 0) throw outputError(host.runtime, "ConduitOS spore preparation", code);
-      const prepared = readOutput(host.runtime);
+      const prepared = prepareSpore
+        ? await prepareSpore({ targetId: profile.target.id, imageDigest: release.digest, reviewedImage: resolvedImageBytes, nowMillis, entropy })
+        : (() => {
+          const inputLength = entropy.length + targetBytes.length + digestBytes.length + resolvedImageBytes.length;
+          if (inputLength > host.runtime.conduit_creche_input_capacity()) refuse(profile, mode, "bind", "ArtifactBound", "resolved ConduitOS IMAGE description exceeds the bounded Crèche handoff");
+          const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), inputLength);
+          input.set(entropy); input.set(targetBytes, entropy.length); input.set(digestBytes, entropy.length + targetBytes.length); input.set(resolvedImageBytes, entropy.length + targetBytes.length + digestBytes.length);
+          const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target_with_image(targetBytes.length, digestBytes.length, resolvedImageBytes.length, BigInt(nowMillis));
+          if (code < 0) throw outputError(host.runtime, "ConduitOS spore preparation", code);
+          return readOutput(host.runtime);
+        })();
       if (prepared.target_id !== profile.target.id || prepared.image_content_digest !== release.digest || prepared.output !== "disk-image" || prepared.fabrication_package_id !== "conduitos-image@1" || prepared.deployment_adapter !== profile.deploymentAdapter) {
         refuse(profile, mode, "bind", "BindingIdentity", "prepared invitation lost exact ConduitOS target, IMAGE, or loader-adapter truth");
       }

@@ -1,44 +1,15 @@
-import { openCrecheStep } from "./creche-test-actions.mjs";
-import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { reviewAndBirth } from "./creche-test-actions.mjs";
 import { downloadArtifact, sha256 } from "./download-artifact.mjs";
+import { openWorkspaceMachineRunner, startWorkspaceMachineProduct } from "./workspace-machine-test-actions.mjs";
 
 const TARGET_ID = "avr/avr5/sparkfun-pro-micro-atmega32u4-5v-16mhz";
 const MANIFEST_NAME = "avr-promicro-atmega32u4-5v-16mhz.json";
 const ARTIFACT_NAME = "promicro-atmega32u4-5v-16mhz.hex";
 let entrance;
 
-async function startCreche() {
-  const child = spawn("target/debug/conduit-browser-host", ["--application", "target/creche-product", "--mount", "/creche/", "--no-open"], {
-    cwd: new URL("../..", import.meta.url).pathname,
-    env: process.env,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let output = "";
-  const url = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Crèche was not ready\n${output}`)), 10_000);
-    const inspect = (chunk) => {
-      output += chunk.toString();
-      const match = output.match(/CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/creche\/)/);
-      if (match) {
-        clearTimeout(timeout);
-        resolve(match[1]);
-      }
-    };
-    child.stdout.on("data", inspect);
-    child.stderr.on("data", inspect);
-    child.once("exit", (code) => {
-      clearTimeout(timeout);
-      reject(new Error(`Crèche exited (${code})\n${output}`));
-    });
-  });
-  return { child, url };
-}
-
 async function installReviewedRelease(page) {
-  const root = new URL("../../target/creche-product/artifacts/", import.meta.url);
+  const root = new URL("../../target/workspace-product/artifacts/", import.meta.url);
   const manifest = JSON.parse(await readFile(new URL(MANIFEST_NAME, root), "utf8"));
   const artifact = await readFile(new URL(ARTIFACT_NAME, root));
   await page.route(`**/artifacts/${MANIFEST_NAME}`, (route) => route.fulfill({
@@ -55,22 +26,18 @@ async function installReviewedRelease(page) {
 }
 
 async function birthBody(page) {
-  await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  await reviewAndBirth(page);
-  await openCrecheStep(page, "3. Physical Host");
+  return openWorkspaceMachineRunner(page, entrance);
 }
 
 test.beforeEach(async () => {
-  entrance = await startCreche();
+  entrance = await startWorkspaceMachineProduct();
 });
 
 test.afterEach(() => entrance?.child.kill());
 
 test("the exact Pro Micro release becomes a body-bound downloadable spore", async ({ page }) => {
   const release = await installReviewedRelease(page);
-  await birthBody(page);
-  const runner = page.locator(".physical-host-runner");
+  const runner = await birthBody(page);
   await runner.locator('[data-application-key="physical-target"]').selectOption(TARGET_ID);
   await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
 
@@ -165,8 +132,8 @@ test("the Pro Micro contract keeps board, bootloader, reset, port, and flash ref
   const { manifest } = await installReviewedRelease(page);
   await birthBody(page);
   const terminals = await page.evaluate(async ({ releaseManifest }) => {
-    const module = await import("/creche/targets/avr/browser-deployment/image.mjs");
-    const adapter = await import("/creche/targets/avr/browser-deployment/creche-adapter.mjs");
+    const module = await import(new URL("targets/avr/browser-deployment/image.mjs", location.href).href);
+    const adapter = await import(new URL("targets/avr/browser-deployment/creche-adapter.mjs", location.href).href);
     const capture = (work) => {
       try {
         work();

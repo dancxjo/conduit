@@ -1,9 +1,7 @@
-import { openCrecheStep } from "./creche-test-actions.mjs";
-import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { reviewAndBirth } from "./creche-test-actions.mjs";
 import { downloadArtifact, sha256 } from "./download-artifact.mjs";
+import { openWorkspaceMachineRunner, startWorkspaceMachineProduct } from "./workspace-machine-test-actions.mjs";
 
 const X86 = "conduitos/x86_64/pc";
 const AARCH64 = "conduitos/aarch64/virt";
@@ -14,28 +12,8 @@ const PROMOTED = Object.freeze([
 ]);
 let entrance;
 
-async function startCreche() {
-  const child = spawn("target/debug/conduit-browser-host", ["--application", "target/creche-product", "--mount", "/creche/", "--no-open"], {
-    cwd: new URL("../..", import.meta.url).pathname,
-    env: process.env,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let output = "";
-  const url = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Crèche was not ready\n${output}`)), 10_000);
-    const inspect = (chunk) => {
-      output += chunk.toString();
-      const match = output.match(/CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/creche\/)/);
-      if (match) { clearTimeout(timeout); resolve(match[1]); }
-    };
-    child.stdout.on("data", inspect); child.stderr.on("data", inspect);
-    child.once("exit", (code) => { clearTimeout(timeout); reject(new Error(`Crèche exited (${code})\n${output}`)); });
-  });
-  return { child, url };
-}
-
 async function installRelease(page, name) {
-  const root = new URL("../../target/creche-product/artifacts/", import.meta.url);
+  const root = new URL("../../target/workspace-product/artifacts/", import.meta.url);
   const manifest = JSON.parse(await readFile(new URL(name, root), "utf8"));
   const bytes = await readFile(new URL(manifest.artifact.path, root));
   const requested = [];
@@ -45,14 +23,10 @@ async function installRelease(page, name) {
 }
 
 async function birthBody(page) {
-  await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  await reviewAndBirth(page);
-  await openCrecheStep(page, "3. Physical Host");
-  return page.locator(".physical-host-runner");
+  return openWorkspaceMachineRunner(page, entrance);
 }
 
-test.beforeEach(async () => { entrance = await startCreche(); });
+test.beforeEach(async () => { entrance = await startWorkspaceMachineProduct(); });
 test.afterEach(() => entrance?.child.kill());
 
 test("exact x86_64 product IMAGE obtains and binds as a downloadable spore without device authority", async ({ page }) => {
@@ -69,8 +43,8 @@ test("exact x86_64 product IMAGE obtains and binds as a downloadable spore witho
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.obtainment).toMatchObject({ target_id: X86, artifact_role: "product-host", image_id: release.manifest.image_id, image_sha256: release.manifest.artifact.sha256, image_bytes: release.manifest.artifact.bytes, does_not_prove: ["load", "boot", "join", "membership"] });
   expect(release.requested).toEqual([
-    expect.stringMatching(/\/creche\/artifacts\/conduitos-x86_64-pc-release\.json$/),
-    expect.stringMatching(/\/creche\/artifacts\/conduitos-x86_64-pc\.iso$/),
+    expect.stringMatching(/\/workspace\/artifacts\/conduitos-x86_64-pc-release\.json$/),
+    expect.stringMatching(/\/workspace\/artifacts\/conduitos-x86_64-pc\.iso$/),
   ]);
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   const handoff = runner.locator('[data-application-key="download-spore"]');

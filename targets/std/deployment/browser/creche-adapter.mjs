@@ -63,7 +63,7 @@ export const STD_EXISTING_COMPUTER_CONTRIBUTIONS = Object.freeze(PROFILES.map((t
   bounds: EXISTING_COMPUTER_BOUNDS,
   expected_join_contract: "conduit.host/native-spawn-observation@1",
   target_profile: targetProfile.declaration,
-  createAdapter: ({ host }) => createExistingComputerAdapter({ host, profile: targetProfile }),
+  createAdapter: ({ host, prepareSpore = null }) => createExistingComputerAdapter({ host, profile: targetProfile, prepareSpore }),
 })));
 
 function profile({ id, label, profileId, manifest, os, architecture, machine }) {

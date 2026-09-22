@@ -1,6 +1,7 @@
 import { connectRendezvousHost } from "../../creche/browser/creche-rendezvous.mjs";
 import { createPhysicalHostRunner } from "../../creche/browser/creche-physical.mjs";
 import { createPhysicalHostTargetCatalog } from "../../creche/browser/creche-target-catalog.mjs";
+import { createInstalledCrecheTargetCatalog } from "../../creche/browser/creche-installed-targets.mjs";
 import { BROWSER_EXISTING_COMPUTER_CONTRIBUTION } from "../../../targets/browser/deployment/browser/creche-adapter.mjs";
 import { createBrowserConfigurationOutfitter } from "./workspace-host-configuration.mjs";
 
@@ -200,18 +201,33 @@ export function openWorkspaceMembership({ root, session, host, hostCalls, invita
   function renderAddHost() {
     if (!session.current()) throw new Error("A body must exist before configuring another host");
     let outfitter;
+    let targetKind = "browser";
     const redraw = () => {
       content.replaceChildren();
       const kicker = document.createElement("p"); kicker.className = "membership-kicker"; kicker.textContent = "Add a host";
-      const heading = document.createElement("h3"); heading.textContent = "What should this browser contribute?";
+      const heading = document.createElement("h3"); heading.textContent = targetKind === "browser" ? "What should this browser contribute?" : "Which physical Host should this Body prepare?";
       const explanation = document.createElement("p");
-      explanation.textContent = "Choose a reviewed purpose preset or inspect and pin the exact Base implementations. Review creates only a checked configuration and PROFILE; it creates no Host, membership, readiness, offer, Plan, or Play.";
-      content.append(kicker, heading, explanation, outfitter.render());
+      explanation.textContent = targetKind === "browser"
+        ? "Choose a reviewed purpose preset or inspect and pin the exact Base implementations. Review creates only a checked configuration and PROFILE; it creates no Host, membership, readiness, offer, Plan, or Play."
+        : "Select exact target machinery from the shared standard catalog. Preparation and Body binding create no running Host, membership, readiness, offer, Plan, or Play.";
+      const kind = document.createElement("div"); kind.className = "membership-actions";
+      for (const [value, label] of [["browser", "This browser"], ["machine", "Another machine"]]) {
+        const button = document.createElement("button"); button.type = "button"; button.textContent = label;
+        button.disabled = targetKind === value;
+        button.addEventListener("click", () => { targetKind = value; redraw(); });
+        kind.append(button);
+      }
+      content.append(kicker, heading, explanation, kind);
+      if (targetKind === "browser") content.append(outfitter.render());
       const actions = document.createElement("div"); actions.className = "membership-actions";
       const back = document.createElement("button"); back.type = "button"; back.textContent = "Back to members";
       back.addEventListener("click", render);
       actions.append(back);
-      if (outfitter.checked()) {
+      if (targetKind === "machine") {
+        const proceed = document.createElement("button"); proceed.type = "button"; proceed.textContent = "Continue with machine catalog";
+        proceed.addEventListener("click", renderMachineFabrication);
+        actions.prepend(proceed);
+      } else if (outfitter.checked()) {
         const proceed = document.createElement("button"); proceed.type = "button"; proceed.textContent = "Continue with reviewed host";
         proceed.addEventListener("click", () => renderBrowserFabrication(outfitter.selection()));
         actions.prepend(proceed);
@@ -220,6 +236,41 @@ export function openWorkspaceMembership({ root, session, host, hostCalls, invita
     };
     outfitter = createBrowserConfigurationOutfitter({ host, presentationFor, onChange: redraw });
     redraw();
+  }
+
+  function renderMachineFabrication() {
+    content.replaceChildren();
+    const kicker = document.createElement("p"); kicker.className = "membership-kicker"; kicker.textContent = "Add a host";
+    const heading = document.createElement("h3"); heading.textContent = "Prepare and bind an exact physical Host";
+    const explanation = document.createElement("p");
+    explanation.textContent = "The shared target catalog prepares exact machinery and binds a finite Body invitation. Admission remains a separate observed-Boot step.";
+    const runner = createPhysicalHostRunner({
+      host,
+      hostCalls,
+      presentationFor,
+      targetCatalog: createInstalledCrecheTargetCatalog(),
+      adapterContext: {
+        async prepareSpore({ targetId, imageDigest = null, reviewedImage = null, nowMillis, entropy }) {
+          const nonce = crypto.getRandomValues(new Uint8Array(32));
+          try {
+            return await session.preparePhysicalSpore(targetId, imageDigest, reviewedImage, entropy, nonce, nowMillis);
+          } finally {
+            nonce.fill(0);
+          }
+        },
+      },
+      async admitJoin(join) {
+        await beforeAdmission();
+        const proof = { invitation_id: join.invitation_id, body_id: join.body_id, host_id: join.host_id, boot_id: join.boot_id, nonce: join.nonce, signature: join.signature };
+        const receipt = await session.admitInvitation(join.advertisement, proof, join.observed_at_millis);
+        return Object.freeze({ schema: "conduit.workspace/physical-host-admission@1", membership_revision: receipt.body.evidence.membership.revision, offer_count: receipt.body.current_host_offers.length });
+      },
+      onBodyChanged() { onChanged(); render(); },
+    });
+    const actions = document.createElement("div"); actions.className = "membership-actions";
+    const back = document.createElement("button"); back.type = "button"; back.textContent = "Back to Host selection";
+    back.addEventListener("click", renderAddHost); actions.append(back);
+    content.append(kicker, heading, explanation, runner, actions);
   }
 
   function renderBrowserFabrication(configurationSelection) {

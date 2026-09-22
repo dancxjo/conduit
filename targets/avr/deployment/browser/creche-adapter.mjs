@@ -86,10 +86,10 @@ export const AVR_PRO_MICRO_CRECHE_TARGET_CONTRIBUTION = Object.freeze({
   bounds: BOUNDS,
   expected_join_contract: "conduit.avr/external-cdc-attestation-before-join@1",
   target_profile: declaration,
-  createAdapter: ({ host }) => createAvrProMicroCrecheAdapter({ host }),
+  createAdapter: ({ host, prepareSpore = null }) => createAvrProMicroCrecheAdapter({ host, prepareSpore }),
 });
 
-export function createAvrProMicroCrecheAdapter({ host, externalProgrammer } = {}) {
+export function createAvrProMicroCrecheAdapter({ host, externalProgrammer, prepareSpore = null } = {}) {
   function createOptions({ mode }) {
     const note = document.createElement("p");
     note.className = "target-option-note";
@@ -132,13 +132,15 @@ export function createAvrProMicroCrecheAdapter({ host, externalProgrammer } = {}
     const targetBytes = encoder.encode(AVR_PRO_MICRO_PROFILE.target.id);
     const digestBytes = encoder.encode(release.digest);
     try {
-      const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
-      input.set(entropy);
-      input.set(targetBytes, entropy.length);
-      input.set(digestBytes, entropy.length + targetBytes.length);
-      const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(targetBytes.length, digestBytes.length, BigInt(nowMillis));
-      if (code < 0) throw outputError(host.runtime, "Pro Micro spore preparation", code);
-      const prepared = readOutput(host.runtime);
+      const prepared = prepareSpore
+        ? await prepareSpore({ targetId: AVR_PRO_MICRO_PROFILE.target.id, imageDigest: release.digest, nowMillis, entropy })
+        : (() => {
+          const input = new Uint8Array(host.runtime.memory.buffer, host.runtime.conduit_creche_input_ptr(), entropy.length + targetBytes.length + digestBytes.length);
+          input.set(entropy); input.set(targetBytes, entropy.length); input.set(digestBytes, entropy.length + targetBytes.length);
+          const code = host.runtime.conduit_creche_prepare_selected_physical_spore_for_target(targetBytes.length, digestBytes.length, BigInt(nowMillis));
+          if (code < 0) throw outputError(host.runtime, "Pro Micro spore preparation", code);
+          return readOutput(host.runtime);
+        })();
       if (prepared.target_id !== AVR_PRO_MICRO_PROFILE.target.id || prepared.image_content_digest !== release.digest
         || prepared.output !== "intel-hex" || prepared.fabrication_package_id !== AVR_PRO_MICRO_PROFILE.packageId
         || prepared.deployment_adapter !== null) {

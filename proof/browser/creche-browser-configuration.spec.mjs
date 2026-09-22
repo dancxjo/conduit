@@ -1,17 +1,15 @@
-import { openCrecheStep } from "./creche-test-actions.mjs";
-import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { reviewAndBirth } from "./creche-test-actions.mjs";
 import { EXISTING_COMPUTER_BOUNDS } from "../../products/creche/browser/creche-existing-computer.mjs";
+import { startWorkspaceMachineProduct } from "./workspace-machine-test-actions.mjs";
 
 let entrance;
 
-test.beforeEach(async () => { entrance = await startCreche(); });
+test.beforeEach(async () => { entrance = await startWorkspaceMachineProduct(); });
 test.afterEach(() => entrance?.child.kill());
 
 test("Crèche evidence budgets cover the release runtime's canonical advertisement and join envelope", async () => {
-  const runtime = await readFile(new URL("../../target/creche-product/artifacts/runtime.wasm", import.meta.url));
+  const runtime = await readFile(new URL("../../target/workspace-product/artifacts/runtime.wasm", import.meta.url));
   const { instance: { exports: api } } = await WebAssembly.instantiate(runtime, {});
   const advertisementBytes = api.conduit_browser_membership_output_capacity();
   // Check the actual release ABI, not a second copy of the Rust catalog limit.
@@ -89,36 +87,22 @@ test("one reviewed distribution fabricates materially different, capability-enfo
 test("browser outfitting is catalog-driven, editable, and handed to checked fabrication", async ({ page }) => {
   const release = await installBrowserRelease(page);
   await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  await reviewAndBirth(page);
-  await openCrecheStep(page, "3. Physical Host");
+  await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
+  await page.getByRole("button", { name: "Add a host", exact: true }).click();
+  await expect(page.getByRole("group", { name: "What should this host help with?", exact: true })).toBeVisible();
+  await page.getByRole("checkbox", { name: "Keyboard and pointer input", exact: true }).uncheck();
+  await expect(page.getByRole("checkbox", { name: "Keyboard and pointer input", exact: true })).not.toBeChecked();
+  await page.getByRole("checkbox", { name: "Keyboard and pointer input", exact: true }).check();
+  await page.getByRole("button", { name: "Resolve reviewed Bases", exact: true }).click();
+  await page.getByRole("button", { name: "Back / Edit", exact: true }).click();
+  await page.getByRole("checkbox", { name: /browser\/indexeddb@1/ }).check();
+  await page.getByRole("button", { name: "Review Host", exact: true }).press("Enter");
+  await expect(page.locator('[data-application-key="configuration-review-values"]')).toContainText("browser/indexeddb@1");
+  await expect(page.locator(".browser-configuration")).toContainText("Configuration creates no HostId, BootId");
+  await page.getByRole("button", { name: "Continue with reviewed host", exact: true }).click();
   const runner = page.locator(".physical-host-runner");
-  await runner.locator('[data-application-key="physical-target"]').selectOption("browser/wasm32/page");
   await expect(runner.locator('[data-application-key="physical-status"]')).toHaveAttribute("data-application-component", "status");
-  await expect(runner.locator('[data-application-key="physical-evidence"]')).toHaveAttribute("data-application-component", "artifact");
-
-  await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).toContainText("waiting");
-  await expect(runner.locator('fieldset[data-application-key^="configuration-group-"]')).toHaveCount(6);
-  await expect(runner.locator('input[type="checkbox"][data-application-action^="implementation.change-"]')).toHaveCount(12);
-  await expect(runner.getByRole("checkbox", { name: /browser\/audio-cue@1/ })).not.toBeChecked();
-  await expect(runner.getByRole("checkbox", { name: /browser\/web-audio-output@1/ })).toHaveCount(0);
-  await expect(runner.getByRole("checkbox", { name: /browser\/dom@1/ })).toBeChecked();
-  await expect(runner.getByRole("checkbox", { name: /browser\/keyboard-events@1/ })).toBeChecked();
-
-  await runner.getByRole("button", { name: "Minimal" }).click();
-  await expect(runner.getByRole("checkbox", { name: /browser\/dom-presentation@1/ })).toBeChecked();
-  await expect(runner.getByRole("checkbox", { name: /browser\/keyboard-events@1/ })).not.toBeChecked();
-  await runner.getByRole("button", { name: "Interactive" }).click();
-  await runner.getByRole("checkbox", { name: /browser\/indexeddb@1/ }).check();
-  await runner.getByRole("button", { name: "Review Host" }).press("Enter");
-
-  await expect(runner.locator('[data-application-key="configuration-review-values"]')).toContainText("browser/indexeddb@1");
-  await expect(runner.locator(".browser-configuration pre")).toContainText("host creche-browser-page");
-  await expect(runner.locator(".browser-configuration")).toContainText("self-joining Body spore (separate later step)");
-  await expect(runner.locator(".browser-configuration")).toContainText("Configuration creates no HostId, BootId");
-  await runner.getByRole("button", { name: "Back / Edit" }).click();
-  await expect(runner.getByRole("button", { name: "Review Host" })).toBeVisible();
-  await runner.getByRole("button", { name: "Review Host" }).click();
   await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
 
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
@@ -149,7 +133,7 @@ test("browser outfitting is catalog-driven, editable, and handed to checked fabr
     boot_module_sha256: expect.stringMatching(/^sha256:/),
   });
   expect(realized.implementation_registry.map(({ id }) => id).sort()).toEqual(
-    ["browser/dom@1", "browser/indexeddb@1", "browser/keyboard-events@1", "browser/pointer-events@1"].sort(),
+    ["browser/dom-presentation@1", "browser/dom@1", "browser/indexeddb@1", "browser/keyboard-events@1", "browser/pointer-events@1"].sort(),
   );
   expect(realized.inspection.every(({ configured }) => configured)).toBe(true);
   expect(realized.inspection.some(({ implementation_id }) => implementation_id === "browser/media-devices-camera@1")).toBe(false);
@@ -157,14 +141,14 @@ test("browser outfitting is catalog-driven, editable, and handed to checked fabr
 
 test("stale restored browser choices are refused before lifecycle change", async ({ page }) => {
   await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await expect(page.getByRole("button", { name: "Birth Body", exact: true })).toBeVisible();
   await page.evaluate(async () => {
-    const { createBrowserConfigurationOutfitter } = await import(new URL("../creche-browser-configuration.mjs", location.href).href);
+    const { createBrowserConfigurationOutfitter } = await import(new URL("browser-host-configuration.mjs", location.href).href);
     const root = document.createElement("div");
     root.id = "stale-browser-configuration";
     const outfitter = createBrowserConfigurationOutfitter({
-      host: globalThis.__conduitCrecheHost,
-      presentationFor: globalThis.__conduitBrowserApplication.presentationFor,
+      host: globalThis.__conduitWorkspace.host,
+      presentationFor: globalThis.__conduitWorkspace.presentationFor,
       restoredSelection: { catalog_generation: 0, implementations: ["browser/retired@1"] },
       onChange() {},
     });
@@ -173,35 +157,13 @@ test("stale restored browser choices are refused before lifecycle change", async
   });
   await expect(page.locator("#stale-browser-configuration [role=alert]")).toContainText("StaleCatalogGeneration");
   await expect(page.locator("#stale-browser-configuration")).not.toContainText("PROFILE");
-  expect(await page.evaluate(() => globalThis.__conduitCrecheHost.runtime.conduit_creche_current())).toBe(1);
+  expect(await page.evaluate(() => globalThis.__conduitWorkspace.current())).toBeNull();
 });
-
-async function startCreche() {
-  const product = process.env.CONDUIT_CRECHE_PRODUCT_ROOT ?? "target/creche-product";
-  const child = spawn("target/debug/conduit-browser-host", ["--application", product, "--mount", "/creche/", "--no-open"], {
-    cwd: new URL("../..", import.meta.url).pathname,
-    env: process.env,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let output = "";
-  const url = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Crèche was not ready\n${output}`)), 10_000);
-    const inspect = (chunk) => {
-      output += chunk.toString();
-      const match = output.match(/CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/creche\/)/);
-      if (match) { clearTimeout(timeout); resolve(match[1]); }
-    };
-    child.stdout.on("data", inspect);
-    child.stderr.on("data", inspect);
-    child.once("exit", (code) => { clearTimeout(timeout); reject(new Error(`Crèche exited (${code})\n${output}`)); });
-  });
-  return { child, url };
-}
 
 async function installBrowserRelease(page) {
   const root = process.env.CONDUIT_CRECHE_PRODUCT_ROOT
     ? new URL(`../../${process.env.CONDUIT_CRECHE_PRODUCT_ROOT}/artifacts/`, import.meta.url)
-    : new URL("../../target/creche-product/artifacts/", import.meta.url);
+    : new URL("../../target/workspace-product/artifacts/", import.meta.url);
   const manifest = JSON.parse(await readFile(new URL("browser-page.json", root), "utf8"));
   for (const file of manifest.files) {
     const bytes = await readFile(new URL(file.path, root));
@@ -220,25 +182,31 @@ async function installBrowserRelease(page) {
 }
 
 async function fabricateBrowserHost(page, { preset, add = [] }) {
-  await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
-  await reviewAndBirth(page);
-  await openCrecheStep(page, "3. Physical Host");
-  const runner = page.locator(".physical-host-runner");
-  await runner.locator('[data-application-key="physical-target"]').selectOption("browser/wasm32/page");
-  const edit = runner.getByRole("button", { name: "Back / Edit" });
-  if (await edit.isVisible()) await edit.click();
-  await runner.getByRole("button", { name: preset }).click();
-  for (const implementation of add) {
-    await runner.getByRole("checkbox", { name: implementation }).check();
-  }
-  await runner.getByRole("button", { name: "Review Host" }).click();
+  const runner = await openBrowserRunner(page, preset, add);
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   await runner.getByRole("button", { name: "Realize selected host" }).click();
   await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("BrowserBundleLoaded");
   evidence = JSON.parse(await runner.locator("details code").textContent());
   return evidence;
+}
+
+async function openBrowserRunner(page, preset = "Interactive", add = []) {
+  await page.goto(entrance.url);
+  await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
+  await page.getByRole("button", { name: "Add a host", exact: true }).click();
+  if (preset === "Minimal") {
+    await page.getByRole("checkbox", { name: "Keyboard and pointer input", exact: true }).uncheck();
+  }
+  await page.getByRole("button", { name: "Resolve reviewed Bases", exact: true }).click();
+  if (add.length > 0) {
+    await page.getByRole("button", { name: "Back / Edit", exact: true }).click();
+    for (const implementation of add) await page.getByRole("checkbox", { name: implementation }).check();
+    await page.getByRole("button", { name: "Review Host", exact: true }).click();
+  }
+  await page.getByRole("button", { name: "Continue with reviewed host", exact: true }).click();
+  return page.locator(".physical-host-runner");
 }
 
 async function exerciseProfile(page, realization, rich) {
