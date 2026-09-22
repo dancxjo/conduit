@@ -36,6 +36,7 @@ pub struct PeteResidentForm {
     pub may_request_motion: bool,
     /// Exact checked expansion supplied to ordinary planning; not a placement.
     pub expanded: conduit_form::ExpandedCanonicalForm,
+    pub authoring: conduit_form::ExpandedAuthoringForm,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -238,7 +239,8 @@ fn check_resident(
         ),
         required_kinds,
         may_request_motion,
-        expanded: expanded.expanded,
+        expanded: expanded.expanded.clone(),
+        authoring: expanded,
     })
 }
 

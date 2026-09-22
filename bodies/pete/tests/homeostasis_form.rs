@@ -22,7 +22,11 @@ fn homeostasis_is_one_ordinary_checked_authority_free_form() {
         authored.expanded.gears[0].kind_id.as_str(),
         conduit_pete::HOMEOSTASIS_REDUCE_KIND
     );
-    assert_eq!(authored.expanded.gears[0].inputs.len(), 6);
+    assert_eq!(authored.expanded.gears[0].inputs.len(), 7);
+    assert!(authored.expanded.gears[0]
+        .inputs
+        .iter()
+        .any(|port| port.port_id.as_str() == "reduction_at"));
     assert_eq!(authored.expanded.gears[0].outputs.len(), 1);
     assert_eq!(authored.expanded.gears[0].configuration.len(), 7);
     assert!(authored.expanded.gears[0]

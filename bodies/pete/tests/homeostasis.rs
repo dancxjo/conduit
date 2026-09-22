@@ -15,6 +15,7 @@ fn at(ticks: u64) -> TemporalInstant {
 fn observed<T>(source: &str, value: T, sign: &str) -> SourceObservation<T> {
     SourceObservation {
         source_identity: source.into(),
+        subject_identity: source.into(),
         availability: SourceAvailability::Present,
         value: Some(value),
         observation_sign_id: Some(SignId::from(sign)),
@@ -25,13 +26,14 @@ fn observed<T>(source: &str, value: T, sign: &str) -> SourceObservation<T> {
     }
 }
 
-fn unavailable<T>(source: &str) -> SourceObservation<T> {
+fn unavailable<T>(source: &str, sign: &str) -> SourceObservation<T> {
     SourceObservation {
         source_identity: source.into(),
+        subject_identity: source.into(),
         availability: SourceAvailability::Unavailable,
         value: None,
-        observation_sign_id: None,
-        observed_at: None,
+        observation_sign_id: Some(SignId::from(sign)),
+        observed_at: Some(at(99)),
         freshness_limit_ticks: 5,
         uncertainty_permille: 0,
         calibration_profile_identity: None,
@@ -62,7 +64,7 @@ fn inputs() -> HomeostaticInputs {
             },
             "sign/compute/3",
         ),
-        storage_pressure: unavailable("motherbrain/storage"),
+        storage_pressure: unavailable("motherbrain/storage", "sign/storage-unavailable/2"),
         motion_safety: observed(
             "brainstem/safety",
             SafetyCondition {
@@ -71,7 +73,7 @@ fn inputs() -> HomeostaticInputs {
             },
             "sign/safety/8",
         ),
-        important_capability: unavailable("provider/model"),
+        important_capability: unavailable("provider/model", "sign/provider-unavailable/2"),
     }
 }
 
@@ -83,8 +85,9 @@ fn reviewed_policy_reduces_facts_without_fabricating_unavailable_health() {
     assert_eq!(state.thermal, ThermalState::Constrained);
     assert_eq!(state.compute_pressure, ResourcePressureState::High);
     assert_eq!(state.storage_pressure, ResourcePressureState::Unknown);
-    assert_eq!(state.motion, AvailabilityState::Unavailable);
+    assert_eq!(state.motion, MotionState::Inhibited);
     assert_eq!(state.important_capability, AvailabilityState::Unknown);
+    assert_eq!(state.important_capability_identity, "provider/model");
     assert_eq!(state.policy_revision, HOMEOSTASIS_POLICY_REVISION);
     assert_eq!(state.source_observations.len(), 6);
 }
@@ -93,7 +96,7 @@ fn reviewed_policy_reduces_facts_without_fabricating_unavailable_health() {
 fn self_observation_feeds_experience_and_retains_every_exact_source_sign() {
     let state = reduce_homeostasis(&at(100), &HomeostasisPolicy::default(), &inputs()).unwrap();
     let self_observation = state
-        .as_body_self_observation(SignId::from("sign/homeostasis/1"), at(100))
+        .as_body_self_observation(SignId::from("sign/homeostasis/1"))
         .unwrap();
     let decoded =
         conduit_core::StructuredInfoValue::from_canonical_bytes(&self_observation.canonical_state)
@@ -113,11 +116,31 @@ fn self_observation_feeds_experience_and_retains_every_exact_source_sign() {
         "sign/thermal/4",
         "sign/compute/3",
         "sign/safety/8",
+        "sign/storage-unavailable/2",
+        "sign/provider-unavailable/2",
     ] {
         assert!(item
             .sources
             .contains(&ExperienceSourceRef::Sign(SignId::from(sign))));
     }
+}
+
+#[test]
+fn unavailable_is_witnessed_and_can_go_stale() {
+    let mut values = inputs();
+    values.storage_pressure.observed_at = Some(at(80));
+    assert_eq!(
+        reduce_homeostasis(&at(100), &HomeostasisPolicy::default(), &values),
+        Err(HomeostasisRefusal::StaleObservation)
+    );
+}
+
+#[test]
+fn policy_identity_covers_thresholds_not_only_revision() {
+    let first = HomeostasisPolicy::default();
+    let mut second = first.clone();
+    second.energy_low_permille += 1;
+    assert_ne!(first.identity().unwrap(), second.identity().unwrap());
 }
 
 #[test]

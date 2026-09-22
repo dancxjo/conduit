@@ -1,4 +1,4 @@
-use conduit_core::{SignId, TemporalInstant, TemporalScale};
+use conduit_core::{SignId, StructuredInfoValue, TemporalInstant, TemporalScale};
 use conduit_human::*;
 use conduit_pete::*;
 use patchbay_model::inspect_current_experience_item;
@@ -16,10 +16,11 @@ fn at(ticks: u64) -> TemporalInstant {
 fn unavailable<T>(source: &str) -> SourceObservation<T> {
     SourceObservation {
         source_identity: source.into(),
+        subject_identity: source.into(),
         availability: SourceAvailability::Unavailable,
         value: None,
-        observation_sign_id: None,
-        observed_at: None,
+        observation_sign_id: Some(SignId::from(format!("sign/{source}/unavailable/20"))),
+        observed_at: Some(at(20)),
         freshness_limit_ticks: 10,
         uncertainty_permille: 0,
         calibration_profile_identity: None,
@@ -29,6 +30,7 @@ fn unavailable<T>(source: &str) -> SourceObservation<T> {
 fn observed<T>(source: &str, value: T, sign: &str) -> SourceObservation<T> {
     SourceObservation {
         source_identity: source.into(),
+        subject_identity: source.into(),
         availability: SourceAvailability::Present,
         value: Some(value),
         observation_sign_id: Some(SignId::from(sign)),
@@ -69,7 +71,7 @@ fn patchbay_traces_self_state_to_exact_source_observations() {
     )
     .unwrap();
     let observation = state
-        .as_body_self_observation(SignId::from("sign/homeostasis/20"), at(20))
+        .as_body_self_observation(SignId::from("sign/homeostasis/20"))
         .unwrap();
     let item = body_self_experience(
         "self/homeostasis",
@@ -113,4 +115,23 @@ fn patchbay_traces_self_state_to_exact_source_observations() {
     assert!(trace.item.sources.contains(&ExperienceSourceRef::Source {
         source_id: "create/battery".into(),
     }));
+    let decoded = StructuredInfoValue::from_canonical_bytes(&trace.item.encoded_content).unwrap();
+    let debug = format!("{decoded:?}");
+    assert!(debug.contains("reserve_permille"));
+    assert!(contains_leaf(&decoded, b"create/battery"));
+}
+
+fn contains_leaf(value: &StructuredInfoValue, expected: &[u8]) -> bool {
+    match value.shape() {
+        conduit_core::StructuredInfoValueShape::Leaf(bytes) => bytes == expected,
+        conduit_core::StructuredInfoValueShape::Collection(values) => {
+            values.iter().any(|value| contains_leaf(value, expected))
+        }
+        conduit_core::StructuredInfoValueShape::Record(fields) => fields
+            .iter()
+            .any(|field| contains_leaf(field.value(), expected)),
+        conduit_core::StructuredInfoValueShape::Variant { payload, .. } => {
+            contains_leaf(payload, expected)
+        }
+    }
 }

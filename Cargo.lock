@@ -1139,6 +1139,7 @@ dependencies = [
  "conduit-ai",
  "conduit-audio",
  "conduit-body",
+ "conduit-composite",
  "conduit-core",
  "conduit-create-oi",
  "conduit-embedded-build",
@@ -1170,10 +1171,14 @@ version = "0.1.0"
 dependencies = [
  "conduit-ai",
  "conduit-body",
+ "conduit-composite",
  "conduit-core",
+ "conduit-form",
  "conduit-human",
+ "conduit-kernel",
  "conduit-pete",
  "conduit-planner",
+ "conduit-presentation",
  "conduit-std-host",
  "patchbay-model",
 ]

@@ -7,6 +7,7 @@ use conduit_core::{SignId, TemporalInstant};
 use std::{string::String, vec, vec::Vec};
 
 use conduit_human::{SourceAvailability, SourceObservation};
+use sha2::{Digest, Sha256};
 
 pub const HOMEOSTATIC_STATE_KIND: &str = "pete/homeostatic-state@1";
 pub const HOMEOSTASIS_POLICY_REVISION: &str = "conduit.pete/homeostasis-thresholds@1";
@@ -70,6 +71,14 @@ pub enum AvailabilityState {
     Unknown,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MotionState {
+    Available,
+    Inhibited,
+    Unavailable,
+    Unknown,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HomeostasisPolicy {
     pub revision: String,
@@ -95,6 +104,23 @@ impl Default for HomeostasisPolicy {
     }
 }
 
+impl HomeostasisPolicy {
+    /// Exact identity of the complete threshold set, not merely its label.
+    pub fn identity(&self) -> Result<String, HomeostasisRefusal> {
+        validate_policy(self)?;
+        let mut digest = Sha256::new();
+        digest.update(self.revision.as_bytes());
+        digest.update([0]);
+        digest.update(self.energy_low_permille.to_be_bytes());
+        digest.update(self.energy_critical_permille.to_be_bytes());
+        digest.update(self.thermal_constrained_milli_celsius.to_be_bytes());
+        digest.update(self.thermal_critical_milli_celsius.to_be_bytes());
+        digest.update(self.pressure_high_permille.to_be_bytes());
+        digest.update(self.pressure_critical_permille.to_be_bytes());
+        Ok(format!("sha256:{:x}", digest.finalize()))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HomeostaticInputs {
     pub power: SourceObservation<PowerCondition>,
@@ -108,19 +134,25 @@ pub struct HomeostaticInputs {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HomeostaticState {
     pub policy_revision: String,
+    pub policy_identity: String,
+    pub reduced_at: TemporalInstant,
     pub energy: EnergyState,
     pub charging: Option<bool>,
     pub thermal: ThermalState,
     pub compute_pressure: ResourcePressureState,
     pub storage_pressure: ResourcePressureState,
-    pub motion: AvailabilityState,
+    pub motion: MotionState,
     pub important_capability: AvailabilityState,
+    pub important_capability_identity: String,
+    /// Exact typed source observations used by this reduction.
+    pub source_inputs: HomeostaticInputs,
     pub source_observations: Vec<HomeostaticSourceFact>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HomeostaticSourceFact {
     pub source_identity: String,
+    pub subject_identity: String,
     pub availability: SourceAvailability,
     pub observation_sign_id: Option<SignId>,
     pub observed_at: Option<TemporalInstant>,
@@ -164,6 +196,8 @@ pub fn reduce_homeostasis(
     }
     Ok(HomeostaticState {
         policy_revision: policy.revision.clone(),
+        policy_identity: policy.identity()?,
+        reduced_at: reference_at.clone(),
         energy: present(&inputs.power)
             .map(|value| {
                 if value.reserve_permille <= policy.energy_critical_permille {
@@ -192,12 +226,14 @@ pub fn reduce_homeostasis(
         motion: present(&inputs.motion_safety)
             .map(|value| {
                 if value.motion_available && !value.inhibited {
-                    AvailabilityState::Available
+                    MotionState::Available
+                } else if value.inhibited {
+                    MotionState::Inhibited
                 } else {
-                    AvailabilityState::Unavailable
+                    MotionState::Unavailable
                 }
             })
-            .unwrap_or(AvailabilityState::Unknown),
+            .unwrap_or(MotionState::Unknown),
         important_capability: present(&inputs.important_capability)
             .map(|value| {
                 if value.available {
@@ -207,6 +243,8 @@ pub fn reduce_homeostasis(
                 }
             })
             .unwrap_or(AvailabilityState::Unknown),
+        important_capability_identity: inputs.important_capability.subject_identity.clone(),
+        source_inputs: inputs.clone(),
         source_observations: facts,
     })
 }
@@ -248,6 +286,8 @@ fn validate<T>(
 ) -> Result<(), HomeostasisRefusal> {
     if observation.source_identity.is_empty()
         || observation.source_identity.len() > 128
+        || observation.subject_identity.is_empty()
+        || observation.subject_identity.len() > 128
         || observation.uncertainty_permille > 1_000
         || observation.freshness_limit_ticks == 0
         || observation
@@ -258,15 +298,22 @@ fn validate<T>(
         return Err(HomeostasisRefusal::InvalidSource);
     }
     match observation.availability {
-        SourceAvailability::Present => {
-            let (Some(value), Some(sign), Some(at)) = (
-                observation.value.as_ref(),
+        SourceAvailability::Present | SourceAvailability::Unavailable => {
+            let (Some(sign), Some(at)) = (
                 observation.observation_sign_id.as_ref(),
                 observation.observed_at.as_ref(),
             ) else {
                 return Err(HomeostasisRefusal::InvalidObservation);
             };
-            if sign.as_str().is_empty() || !value_valid(value) {
+            if sign.as_str().is_empty()
+                || observation.availability == SourceAvailability::Present
+                    && observation
+                        .value
+                        .as_ref()
+                        .is_none_or(|value| !value_valid(value))
+                || observation.availability == SourceAvailability::Unavailable
+                    && observation.value.is_some()
+            {
                 return Err(HomeostasisRefusal::InvalidObservation);
             }
             let relation = at
@@ -284,7 +331,7 @@ fn validate<T>(
                 _ => {}
             }
         }
-        SourceAvailability::Missing | SourceAvailability::Unavailable => {
+        SourceAvailability::Missing => {
             if observation.value.is_some()
                 || observation.observation_sign_id.is_some()
                 || observation.observed_at.is_some()
@@ -322,6 +369,7 @@ fn pressure_state(
 fn fact<T>(observation: &SourceObservation<T>) -> HomeostaticSourceFact {
     HomeostaticSourceFact {
         source_identity: observation.source_identity.clone(),
+        subject_identity: observation.subject_identity.clone(),
         availability: observation.availability,
         observation_sign_id: observation.observation_sign_id.clone(),
         observed_at: observation.observed_at.clone(),

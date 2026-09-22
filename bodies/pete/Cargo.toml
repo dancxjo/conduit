@@ -9,11 +9,13 @@ conduit-ai = { path = "../../semantics/ai", features = ["form-catalog"] }
 conduit-audio = { path = "../../semantics/audio" }
 conduit-create-oi = { path = "../../mechanisms/devices/create-oi" }
 conduit-core = { path = "../../architecture/core" }
+conduit-composite = { path = "../../architecture/composite" }
 conduit-body = { path = "../../architecture/body" }
 conduit-human = { path = "../../semantics/human" }
 conduit-robotics = { path = "../../semantics/robotics" }
 conduit-form = { path = "../../architecture/form" }
 conduit-kernel = { path = "../../architecture/kernel" }
+conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
 conduit-mpu6050 = { path = "../../mechanisms/devices/mpu6050" }
 conduit-presentation = { path = "../../semantics/presentation" }
 conduit-ssd1306 = { path = "../../mechanisms/devices/ssd1306" }
@@ -31,5 +33,4 @@ sha2 = "0.10"
 
 [dev-dependencies]
 conduit-embedded-build = { path = "../../fabrication/embedded-build" }
-conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
 patchbay-model = { path = "../../products/patchbay/model" }

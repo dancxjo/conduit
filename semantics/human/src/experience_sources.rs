@@ -10,7 +10,8 @@ use crate::{
 };
 
 pub const MAXIMUM_UTTERANCE_BYTES: usize = 2_048;
-pub const MAXIMUM_BODY_SELF_STATE_BYTES: usize = 4_096;
+/// Bounded room for a structured self-state plus its exact source evidence.
+pub const MAXIMUM_BODY_SELF_STATE_BYTES: usize = 8_192;
 pub const MAXIMUM_RECOLLECTION_BYTES: usize = 4_096;
 pub const MAXIMUM_RECOLLECTION_SOURCE_REFS: usize = 32;
 pub const MAXIMUM_EXPERIENCE_SOURCE_IDENTITY_BYTES: usize = 128;

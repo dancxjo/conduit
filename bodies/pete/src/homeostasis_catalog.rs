@@ -33,7 +33,7 @@ fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
     StructuredInfoType::record(kind_id(kind), fields).expect("reviewed homeostasis record")
 }
 
-fn temporal_instant_type() -> StructuredInfoType {
+pub(crate) fn temporal_instant_type() -> StructuredInfoType {
     record(
         "time/instant@1",
         vec![
@@ -69,7 +69,10 @@ fn optional_calibration_type() -> StructuredInfoType {
 
 /// The shared observation envelope is domain-neutral; only `payload_type`
 /// belongs to Homeostasis.
-fn observation_envelope_type(kind: &str, payload_type: StructuredInfoType) -> StructuredInfoType {
+pub(crate) fn observation_envelope_type(
+    kind: &str,
+    payload_type: StructuredInfoType,
+) -> StructuredInfoType {
     let present = record(
         &format!("{kind}/present@1"),
         vec![
@@ -83,7 +86,16 @@ fn observation_envelope_type(kind: &str, payload_type: StructuredInfoType) -> St
         vec![
             case("missing", leaf("value/unit")),
             case("present", present),
-            case("unavailable", leaf("value/unit")),
+            case(
+                "unavailable",
+                record(
+                    &format!("{kind}/unavailable@1"),
+                    vec![
+                        field("observed_at", temporal_instant_type()),
+                        field("observation_sign_identity", leaf("value/text")),
+                    ],
+                ),
+            ),
         ],
     )
     .unwrap();
@@ -94,6 +106,7 @@ fn observation_envelope_type(kind: &str, payload_type: StructuredInfoType) -> St
             field("calibration_profile", optional_calibration_type()),
             field("freshness_limit_ticks", leaf("value/count")),
             field("source_identity", leaf("value/text")),
+            field("subject_identity", leaf("value/text")),
             field("uncertainty_permille", leaf("value/count")),
         ],
     )
@@ -168,6 +181,7 @@ pub fn homeostasis_registered_types() -> Vec<(&'static str, StructuredInfoType)>
                 ),
             ),
         ),
+        ("PeteReductionInstant", temporal_instant_type()),
     ]
 }
 
@@ -181,9 +195,10 @@ pub fn install_homeostasis_catalogs(
             .insert_structured_type(*name, value_type.clone())
             .map_err(|error| error.to_string())?;
     }
-    // The output deliberately uses the existing body-input waist consumed by
-    // CurrentExperience. Homeostasis does not create a second experience path.
-    let output = conduit_semantic_catalog::experience_body_input_type();
+    startup
+        .insert_structured_type("PeteHomeostaticState", crate::homeostatic_state_type())
+        .map_err(|error| error.to_string())?;
+    let output = crate::homeostatic_state_type();
     startup
         .insert(KindSignature {
             kind: HOMEOSTASIS_REDUCE_KIND.into(),
@@ -280,6 +295,7 @@ fn input_port(type_name: &str) -> &'static str {
         "PeteStoragePressureObservation" => "storage_pressure",
         "PeteMotionSafetyObservation" => "motion_safety",
         "PeteImportantCapabilityObservation" => "important_capability",
+        "PeteReductionInstant" => "reduction_at",
         _ => unreachable!("reviewed homeostasis type"),
     }
 }
@@ -296,7 +312,7 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
         temporal: if direction == PortDirection::Input {
             PortTemporal::Flow { closes: false }
         } else {
-            PortTemporal::Current
+            PortTemporal::Value
         },
     }
 }
