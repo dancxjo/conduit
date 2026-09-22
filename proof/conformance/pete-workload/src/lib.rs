@@ -27,6 +27,7 @@ mod tests {
             &[
                 PeteWorkloadRole::HistoricalIndex,
                 PeteWorkloadRole::Conversation,
+                PeteWorkloadRole::Homeostasis,
             ],
         );
         let motherbrain = proof_host(
@@ -71,7 +72,7 @@ mod tests {
         .unwrap();
         let first = project_body_plan(session.current_plan());
         assert_eq!(first.body_id, body.body_id);
-        assert_eq!(first.active_forms.len(), 4);
+        assert_eq!(first.active_forms.len(), 5);
         assert!(first
             .active_forms
             .iter()
@@ -98,7 +99,7 @@ mod tests {
         let replacement = project_body_plan(session.current_plan());
         assert_eq!(replacement.body_id, first.body_id);
         assert_ne!(replacement.plan_id, first.plan_id);
-        assert_eq!(replacement.active_forms.len(), 4);
+        assert_eq!(replacement.active_forms.len(), 5);
         assert_eq!(hosts_in(&replacement).len(), 3);
         assert!(!hosts_in(&replacement).contains("proof/pete-optional-browser"));
         assert!(hosts_in(&replacement).contains("proof/pete-forebrain"));
@@ -249,6 +250,7 @@ mod tests {
             PeteWorkloadRole::HistoricalIndex => "proof/pete-forebrain",
             PeteWorkloadRole::Conversation if use_browser => "proof/pete-optional-browser",
             PeteWorkloadRole::Conversation => "proof/pete-forebrain",
+            PeteWorkloadRole::Homeostasis => "proof/pete-forebrain",
             PeteWorkloadRole::Navigation => {
                 unreachable!("navigation is not in the initial workset")
             }

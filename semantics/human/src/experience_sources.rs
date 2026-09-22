@@ -36,6 +36,9 @@ pub struct BodySelfObservation {
     pub observation_sign_id: SignId,
     pub observed_at: TemporalInstant,
     pub certainty: ExperienceCertainty,
+    /// Exact source evidence used to derive this self-state. The reducer's
+    /// own sign remains separate in `observation_sign_id`.
+    pub source_refs: Vec<ExperienceSourceRef>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -203,9 +206,21 @@ pub fn body_self_experience(
         certainty: observation.certainty,
         observed_at: Some(observation.observed_at.clone()),
         recorded_at: None,
-        sources: vec![ExperienceSourceRef::Sign(
-            observation.observation_sign_id.clone(),
-        )],
+        sources: {
+            let mut sources = Vec::with_capacity(observation.source_refs.len() + 1);
+            sources.push(ExperienceSourceRef::Sign(
+                observation.observation_sign_id.clone(),
+            ));
+            for source in &observation.source_refs {
+                if !sources.contains(source) {
+                    sources.push(source.clone());
+                }
+            }
+            if sources.len() > MAXIMUM_RECOLLECTION_SOURCE_REFS {
+                return Err(ExperienceSourceRefusal::SourceBound);
+            }
+            sources
+        },
     })
 }
 
