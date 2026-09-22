@@ -273,8 +273,8 @@ fn documentary_artifacts_are_digest_bound_and_root_confined() {
 fn published_index_preserves_semantic_assertions_and_non_claims() {
     let contract = contract();
     let index = ThreeBodyJourneyIndex {
-        schema: INDEX_SCHEMA,
-        disposition: "complete",
+        schema: INDEX_SCHEMA.into(),
+        disposition: "complete".into(),
         journey_id: contract.journey_id,
         git_commit: contract.git_commit,
         semantic_steps: contract.steps,
@@ -326,8 +326,8 @@ fn presenter_policy_has_its_own_documentary_evidence_rung() {
 fn publication_writes_both_views_and_refuses_overwrite() {
     let contract = contract();
     let index = ThreeBodyJourneyIndex {
-        schema: INDEX_SCHEMA,
-        disposition: "complete",
+        schema: INDEX_SCHEMA.into(),
+        disposition: "complete".into(),
         journey_id: contract.journey_id,
         git_commit: contract.git_commit,
         semantic_steps: contract.steps,
