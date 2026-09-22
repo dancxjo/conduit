@@ -21,6 +21,8 @@ use conduit_plan_lowering::lowering::{
 };
 use conduit_wire::SessionMessage;
 
+mod vision;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RemoteValueTransfer {
     pub endpoint: RemoteEndpointId,
@@ -53,6 +55,11 @@ pub struct InstalledRemoteFragment {
     generated_speech_commit_hosts:
         Vec<Option<super::generated_speech_commit_back::GeneratedSpeechCommitHost>>,
     body_chat_prompt_hosts: Vec<Option<super::body_chat_prompt_back::BodyChatPromptHost>>,
+    vision_tracker: Option<crate::vision_tracker::LocalVisionTracker>,
+    vision_request_sequence: u64,
+    vision_active_play_id: String,
+    vision_run_id: String,
+    vision_clock_basis: String,
     pending_body_context: Option<HostCallRequest>,
     delivered_body_context: Option<[u8; 32]>,
 }
@@ -138,6 +145,24 @@ impl InstalledRemoteFragment {
         let generated_speech_commit_hosts =
             super::generated_speech_commit_back::prepare_hosts(fragment)?;
         let body_chat_prompt_hosts = super::body_chat_prompt_back::prepare_hosts(fragment);
+        let vision_tracker = if fragment.placements.iter().any(|placement| {
+            placement.implementation_id.as_str()
+                == conduit_std_offers::LOCAL_VISION_TRACK_IMPLEMENTATION
+        }) {
+            Some(crate::vision_tracker::LocalVisionTracker::prepare(
+                format!(
+                    "{}/{}",
+                    fragment.host_id.as_str(),
+                    fragment.boot_id.as_str()
+                ),
+                format!("{}/vision-track", play.active_play_id.as_str()),
+            )?)
+        } else {
+            None
+        };
+        let vision_run_id = String::with_capacity(play.active_play_id.as_str().len() + 64);
+        let vision_active_play_id = play.active_play_id.as_str().to_string();
+        let vision_clock_basis = format!("{}/monotonic", fragment.boot_id.as_str());
         Ok(Self {
             scheduler,
             lowered,
@@ -152,6 +177,11 @@ impl InstalledRemoteFragment {
             speech_result_stream_hosts,
             generated_speech_commit_hosts,
             body_chat_prompt_hosts,
+            vision_tracker,
+            vision_request_sequence: 0,
+            vision_active_play_id,
+            vision_run_id,
+            vision_clock_basis,
             pending_body_context: None,
             delivered_body_context: None,
         })
@@ -202,6 +232,7 @@ impl InstalledRemoteFragment {
             .complete_host_call(request.node, request.request, outcome)
             .map_err(|error| format!("complete remote std host-call: {error:?}"))
     }
+
     pub fn complete_portable_host_call(
         &mut self,
         request: HostCallRequest,
