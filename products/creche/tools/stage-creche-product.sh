@@ -106,7 +106,12 @@ node targets/browser/tools/build-browser-application-package.mjs \
   products/creche/browser/creche.application.template.json "$destination" creche.application.json
 
 file_count=$(find "$destination" -type f | wc -l)
-test "$file_count" -le 128
+# The release carrier includes the complete bounded multi-target catalog. The
+# browser-proof carrier deliberately omits those native artifacts.
+case "$mode" in
+  release) test "$file_count" -le 130 ;;
+  browser-proof) test "$file_count" -le 128 ;;
+esac
 test -f "$destination/creche.application.json"
 test -f "$destination/creche-browser-configuration.mjs"
 test -z "$(find "$destination" -type f \( -name 'book*.mjs' -o -name 'book*.css' -o -name 'chapter-*.md' \) -print -quit)"
