@@ -20,7 +20,7 @@ function subjects(snapshot,role) {
   return snapshot.presentation.subjects.filter(subject=>subject.role===role);
 }
 
-test("the same model gains expression and protected power only through exact Form Cords",async({page})=>{
+test("the same model gains expression and protected power only through exact form Cords",async({page})=>{
   const snapshots=[];
   for (const stage of [0,1,2]) {
     const server=startStage(stage);

@@ -25,7 +25,9 @@ mod webrtc_signaling;
 pub use webrtc_signaling::{
     browser_webrtc_line_contract, BrowserWebRtcDescription, BrowserWebRtcGrant,
     BrowserWebRtcRendezvous, BrowserWebRtcRendezvousRefusal, BrowserWebRtcRole,
-    BrowserWebRtcSignal, RoutedBrowserWebRtcSignal, MAX_WEBRTC_DESCRIPTION_BYTES,
+    BrowserWebRtcSignal, RoutedBrowserWebRtcSignal, WebRtcBootstrapConfiguration, WebRtcIceServer,
+    WebRtcIceTransportPolicy, MAX_WEBRTC_BOOTSTRAP_LIFETIME_MILLIS, MAX_WEBRTC_DESCRIPTION_BYTES,
+    MAX_WEBRTC_ICE_SERVERS, MAX_WEBRTC_ICE_TEXT_BYTES, MAX_WEBRTC_ICE_URLS_PER_SERVER,
     MAX_WEBRTC_NEGOTIATIONS, MAX_WEBRTC_SESSION_HELLO_BYTES,
 };
 

@@ -12,7 +12,7 @@ use conduit_presentation::{
     path2_type, path2_value, point2_type, point2_value, robotics_pose2_type, transform2_value,
     GeometryRefusal, APPLY_TRANSFORM2_KIND, MAXIMUM_GEOMETRY_PATH_POINTS, POINT2_LITERAL_KIND,
 };
-use conduit_std_host::hosted_geometry::{geometry_std_offers, GEOMETRY_HOST_OPERATION};
+use conduit_std_host::hosted_geometry::{geometry_std_offers, GEOMETRY_HOST_CALL};
 
 const SOURCE: &str = include_str!("../../../forms/geometry-spatial/main.conduit");
 
@@ -63,8 +63,8 @@ fn canonical_geometry_configuration_flows_through_one_checked_form_and_plan() {
         .find(|placement| placement.kind_id.as_str() == APPLY_TRANSFORM2_KIND)
         .unwrap();
     assert_eq!(
-        transform.host_operations[0].contract_id.as_str(),
-        GEOMETRY_HOST_OPERATION
+        transform.host_calls[0].contract_id.as_str(),
+        GEOMETRY_HOST_CALL
     );
 }
 
@@ -227,6 +227,7 @@ fn host() -> HostAdvertisement {
         boot_id: BootId::from("boot/geometry-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/geometry-proof@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: geometry_std_offers(),

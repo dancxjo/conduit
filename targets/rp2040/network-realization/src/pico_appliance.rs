@@ -1,6 +1,6 @@
 //! Truthful finite Host offers for the optional Pico W Hello appliance.
 //!
-//! These are Host implementation facts, not authored Form vocabulary and not
+//! These are Host implementation facts, not authored form vocabulary and not
 //! Conduit-session Line semantics. A composition advertises this family only
 //! after every exact artifact and resource has initialized.
 
@@ -9,9 +9,9 @@ use alloc::vec::Vec;
 
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostId,
-    HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
-    ImplementationOffer, KindContractRevision, OfferGeneration, ResourceOffer, PROTOCOL_VERSION,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostCallContractId,
+    HostCallRequirement, HostId, HostProfileId, ImplementationId, ImplementationOffer,
+    KindIdentity, OfferGeneration, ResourceOffer, PROTOCOL_VERSION,
 };
 
 pub const PICO_APPLIANCE_PROFILE: &str = "pico/appliance-hello@1";
@@ -92,6 +92,7 @@ pub fn pico_appliance_advertisement(
             boot_id: BootId::from(boot_id),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from(PICO_MINIMAL_PROFILE),
+            bases: vec![],
             resources: vec![],
             capabilities: vec![],
             planner_capabilities: vec![],
@@ -105,6 +106,7 @@ pub fn pico_appliance_advertisement(
         boot_id: BootId::from(boot_id),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(PICO_APPLIANCE_PROFILE),
+        bases: vec![],
         resources: appliance_resources(),
         capabilities: vec![
             appliance_offer(ApplianceOfferSpec {
@@ -112,7 +114,7 @@ pub fn pico_appliance_advertisement(
                 artifact: AP_SERVICE_ARTIFACT,
                 kind: "network/ap-ready",
                 revision: "conduit.network/ap-ready@1",
-                host_operation: "conduit.host/pico-ap-start@1",
+                host_call: "conduit.host/pico-ap-start@1",
                 resource_class: AP_RESOURCE_CLASS,
                 resource_units: 1,
                 maximum_input_bytes: 1,
@@ -123,7 +125,7 @@ pub fn pico_appliance_advertisement(
                 artifact: DHCP_SERVICE_ARTIFACT,
                 kind: "network/dhcp-lease-service",
                 revision: "conduit.network/dhcp-lease-service@1",
-                host_operation: "conduit.host/pico-dhcp-serve@1",
+                host_call: "conduit.host/pico-dhcp-serve@1",
                 resource_class: DHCP_RESOURCE_CLASS,
                 resource_units: MAXIMUM_DHCP_LEASES as u32,
                 maximum_input_bytes: 576,
@@ -134,7 +136,7 @@ pub fn pico_appliance_advertisement(
                 artifact: DNS_SERVICE_ARTIFACT,
                 kind: "network/dns-response-service",
                 revision: "conduit.network/dns-response-service@1",
-                host_operation: "conduit.host/pico-dns-serve@1",
+                host_call: "conduit.host/pico-dns-serve@1",
                 resource_class: DNS_RESOURCE_CLASS,
                 resource_units: 1,
                 maximum_input_bytes: MAXIMUM_DNS_PACKET_BYTES,
@@ -145,7 +147,7 @@ pub fn pico_appliance_advertisement(
                 artifact: HTTP_SERVICE_ARTIFACT,
                 kind: "network/http-hello-service",
                 revision: "conduit.network/http-hello-service@1",
-                host_operation: "conduit.host/pico-http-serve@1",
+                host_call: "conduit.host/pico-http-serve@1",
                 resource_class: HTTP_RESOURCE_CLASS,
                 resource_units: 1,
                 maximum_input_bytes: MAXIMUM_HTTP_REQUEST_BYTES,
@@ -192,7 +194,7 @@ struct ApplianceOfferSpec<'a> {
     artifact: &'a str,
     kind: &'a str,
     revision: &'a str,
-    host_operation: &'a str,
+    host_call: &'a str,
     resource_class: &'a str,
     resource_units: u32,
     maximum_input_bytes: u32,
@@ -203,7 +205,7 @@ fn appliance_offer(spec: ApplianceOfferSpec<'_>) -> CapabilityOffer {
     CapabilityOffer {
         capability_id: CapabilityId::from(spec.capability),
         kind_id: kind_id(spec.kind),
-        kind_contract_revision: KindContractRevision::from(spec.revision),
+        kind_contract_revision: KindIdentity::from(spec.revision),
         implementation: ImplementationOffer {
             implementation_id: ImplementationId::from(spec.capability),
             artifact_id: ArtifactId::from(spec.artifact),
@@ -213,8 +215,8 @@ fn appliance_offer(spec: ApplianceOfferSpec<'_>) -> CapabilityOffer {
         inputs: vec![],
         outputs: vec![],
         shorthand: None,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(spec.host_operation),
+        host_calls: vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(spec.host_call),
             target_kind: None,
             maximum_in_flight: 1,
             maximum_input_bytes: spec.maximum_input_bytes,
@@ -291,7 +293,7 @@ mod tests {
         assert!(advertisement.capabilities.iter().all(|offer| {
             offer.implementation.execution_profile_id.as_str() == PICO_APPLIANCE_PROFILE
                 && offer.limits.max_active_instances == 1
-                && offer.host_operations.len() == 1
+                && offer.host_calls.len() == 1
                 && offer.resource_requirements.len() == 1
         }));
     }

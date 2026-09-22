@@ -108,7 +108,7 @@ fn assigned_plan_refuses_identity_inventory_capacity_and_global_mutations() {
             AssignedPlanMaxima::TINY_HOST,
             requirements(&local, &unknown_operation, &resources, &[])
         ),
-        Err(AssignedPlanRefusal::UnknownOperation)
+        Err(AssignedPlanRefusal::UnknownHostCall)
     );
 
     let mut route_maxima = AssignedPlanMaxima::TINY_HOST;
@@ -196,7 +196,7 @@ fn generated_for(fragment: &conduit_core::PlanFragment) -> GeneratedEmbeddedPlan
 }
 
 fn operation_requirements(plan: &GeneratedEmbeddedPlan) -> Vec<AssignedIdentity> {
-    plan.host_operations
+    plan.host_calls
         .iter()
         .map(|item| AssignedIdentity::from_text(&item.contract_id))
         .collect()
@@ -228,7 +228,7 @@ fn requirements<'a>(
     AssignedPlanRequirements {
         host: AssignedIdentity::from_text(&plan.host_id),
         boot: AssignedIdentity::from_text(&plan.boot_id),
-        operations,
+        host_calls: operations,
         resources,
         remote_bindings: remotes,
     }

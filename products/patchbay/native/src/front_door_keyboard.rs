@@ -1,4 +1,4 @@
-//! Native bindings for actions advertised by the zero-Body Presentation.
+//! Native bindings for actions advertised by the zero-body Presentation.
 
 use super::PatchbayApplication;
 use conduit_presentation::{NavigationOperation, PresentationDepth};

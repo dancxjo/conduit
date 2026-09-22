@@ -70,9 +70,9 @@ pub const BROWSER_LINE_REALIZATIONS: &[BrowserLineRealizationDescriptor] = &[
         maximum_frame_bytes: 128 * 1024,
         maximum_buffered_bytes: 256 * 1024,
         maximum_received_messages: 16,
-        endpoint_authority: "Body-scoped runtime grant",
+        endpoint_authority: "body-scoped runtime grant",
         credential_requirement: "Body-grant-scoped session credential",
-        signaling_bootstrap: Some("Body-scoped signaling session"),
+        signaling_bootstrap: Some("body-scoped signaling session"),
         initiates_outbound_only: true,
     },
 ];

@@ -22,7 +22,7 @@ pub struct BrowserPalettePort {
 pub struct BrowserPaletteConfiguration {
     pub key: String,
     pub default_value: conduit_core::ConfigurationValue,
-    pub rule: conduit_semantic_catalog::StandardConfigurationRule,
+    pub rule: conduit_semantic_catalog::KindConfigurationRule,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -68,16 +68,16 @@ pub struct RendererSnapshot {
     pub authoring: Option<BrowserAuthoring>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body_workbench: Option<BrowserBodyWorkbench>,
-    /// Current, display-only evidence reported by an admitted Host.
+    /// Current, display-only evidence reported by an admitted host.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body_host_offer_evidence: Option<conduit_body::HostOfferProjection>,
-    /// Explicitly policy-admitted current offer detail; not itself a Plan.
+    /// Explicitly policy-admitted current offer detail; not itself a plan.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body_host_planning_offer: Option<conduit_body::HostOfferProjection>,
-    /// Ordinary Body/Wake/Plan state derived from policy-admitted offers.
+    /// Ordinary body/Wake/Plan state derived from policy-admitted offers.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body_planning: Option<patchbay_model::BodyPlanningSessionSnapshot>,
-    /// Portable semantic projection of the selected Body Presenter chains.
+    /// Portable semantic projection of the selected body Presenter chains.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub presenter_topology: Option<Presentation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

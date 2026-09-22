@@ -119,7 +119,7 @@ fn native_pointer_and_keyboard_cross_surface_routing_before_typed_tour_interacti
         .unwrap();
     let play = update
         .play
-        .expect("keyboard invocation must complete an admitted Play");
+        .expect("keyboard invocation must complete an admitted play");
     assert!(!play.plan_id.as_str().is_empty());
     assert!(!play.active_play_id.as_str().is_empty());
     assert_eq!(serial.0, [conduit_tour_model::CANONICAL_RESULT.as_bytes()]);

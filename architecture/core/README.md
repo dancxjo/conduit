@@ -12,6 +12,7 @@ depends on semantic, application, target, or proof packages.
 | `lib.rs` | universal architecture | Exact identity types and the generic form/host/boot/plan/play/line/sign records shared by the architecture. It is the crate facade, not a domain attic. |
 | `base_registry.rs` | universal architecture | Bounded thin-host truth for exact base provider identity, generation, lifecycle, enforcement class, and ordinary capability/resource offer aggregation; no planning, authority issuance, or effects. |
 | `base_capability.rs` | universal architecture | Opaque issuer-private base capability possession, exact per-play scope narrowing, finite operation leases, revocation, and non-secret lifecycle inspection. |
+| `capability_offer.rs` | universal architecture | Generic bounded host capability offers, realization limits, and exact implementation, operation, resource, and authority requirements. |
 | `consequential_effect.rs` | universal architecture | Generic attended last-mile gating for bounded consequential physical effects, including exact resource generation, safety readiness, one-shot authority, uncertain outcomes, and safe disposition. |
 | `characteristic.rs` | universal architecture | Generic realization, resource, topology, base, and observation characteristics. |
 | `completion.rs` | universal architecture | Exact live-versus-semantic-completion policy sealed from checked form meaning into plan and fragment identity. |
@@ -40,6 +41,7 @@ depends on semantic, application, target, or proof packages.
 | `resource_collection.rs` | generic mechanism | Finite typed collection membership, immutable generations, and bounded deterministic selection. |
 | `resource_acquisition.rs` | generic mechanism | Attended resource request, acquisition, release, revocation, loss, and fresh-generation fencing. |
 | `info.rs` | generic value mechanism | Minimal bool/scalar envelopes, decode refusal, and semantic digest used by unrelated domains. |
+| `primitive_info.rs` | generic value mechanism | Closed canonical primitive identity registry plus allocation-free validation and count encoding. |
 | `quantity.rs` | generic value mechanism | Exact finite dimensioned quantity and exact-only conversion used across unrelated domains. |
 | `structured_info.rs` and children | generic value mechanism | Finite canonical structured type/value, selection, inspection, transport, and profile machinery. |
 | `temporal.rs` | generic value mechanism | Exact finite temporal identity, instant, relation, and offset-only civil primitives without clocks or timezone databases. |

@@ -51,7 +51,7 @@ fn image_bounds() -> EmbeddedImageBounds {
         maximum_cords: 1,
         maximum_routes: 1,
         maximum_route_targets: 1,
-        maximum_host_operations: 2,
+        maximum_host_calls: 2,
         maximum_resources: 2,
         maximum_sign_expectations: 8,
         maximum_configuration_entries: 0,

@@ -86,7 +86,7 @@ pub fn run(args: &ProveArgs, root: &Path, opts: &GlobalOpts) -> Result<(), StepE
         ));
     }
     if opts.dry_run {
-        println!("calendar-google: would execute read, free-busy, create, update, and cancel through ordinary Plan/Play");
+        println!("calendar-google: would execute read, free-busy, create, update, and cancel through ordinary plan/Play");
         return Ok(());
     }
 

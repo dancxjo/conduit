@@ -1,6 +1,6 @@
-# Deterministic two-Host proof entrance. A Plan places `ticks` and `observe` on
-# one Host and the state, synchronizer, and manifestation on another. The
-# authored Form names no Host or transport; its pulse Cord is ordinary.
+# Deterministic two-Host proof entrance. A plan places `ticks` and `observe` on
+# one host and the state, synchronizer, and manifestation on another. The
+# authored form names no Host or transport; its pulse Cord is ordinary.
 form firefly-line-follower {
     ticks: time/every(240ms)
     observe: time/pulse-observe(period-ms = 240)

@@ -1,6 +1,6 @@
 //! One pending acknowledgement of an actual Body start, including synchronous
 //! completion. This receipt does not own execution. An empty kernel slot is not
-//! a terminal receipt; the Host retains that outcome before requesting Lull.
+//! a terminal receipt; the host retains that outcome before requesting Lull.
 use conduit_body::BodyPlayIdentity;
 use std::cell::RefCell;
 
@@ -29,7 +29,7 @@ pub(crate) fn require_started(play: &BodyPlayIdentity) -> Result<(), String> {
 pub(crate) fn require_empty() -> Result<(), String> {
     super::abi::SESSION.with(|slot| {
         if slot.borrow().is_some() {
-            Err("Retire the browser Play before changing its Body lifecycle".into())
+            Err("Retire the browser Play before changing its body lifecycle".into())
         } else {
             Ok(())
         }

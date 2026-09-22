@@ -1,7 +1,7 @@
 //! Admitted native implementations for the portable application Form seam.
 
 use alloc::{boxed::Box, format, vec};
-use conduit_core::{CapabilityOffer, HostOperationRequirement, resource_requirement};
+use conduit_core::{CapabilityOffer, HostCallRequirement, resource_requirement};
 
 pub(super) enum NativeApplication {
     Tour(Box<conduit_tour_model::TourApplicationPort>),
@@ -133,7 +133,7 @@ fn offer(
             implementation,
             artifact: "conduitos/application@1",
         },
-        vec![HostOperationRequirement {
+        vec![HostCallRequirement {
             contract_id: operation.into(),
             target_kind: None,
             maximum_in_flight: 1,

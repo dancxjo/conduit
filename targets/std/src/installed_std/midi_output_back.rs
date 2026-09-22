@@ -1,0 +1,288 @@
+use super::back::{BackBudget, BackFactory, InstalledBack};
+use conduit_core::{PlannedGear, PortDirection};
+use conduit_kernel::{
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+};
+
+pub(super) static MIDI_OUTPUT_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::MUSIC_PLAY_MIDI_IMPLEMENTATION,
+    budget,
+    prepare,
+};
+
+pub(super) struct MidiOutputBack {
+    pending: Option<RequestId>,
+    next_request: u32,
+    closed: [bool; 2],
+}
+
+impl<const PORTS: usize> StepBack<PORTS> for MidiOutputBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return step_fail(81);
+            }
+            if let Some(failure) = outcome.failure {
+                return StepOutcome::Fail(failure);
+            }
+            if outcome.disposition != HostCallDisposition::Completed || outcome.output.is_some() {
+                return step_fail(83);
+            }
+            io.consume_host_completion()
+                .expect("observed MIDI output completion");
+            self.pending = None;
+            return StepOutcome::Progress;
+        }
+
+        for port in [PortId(0), PortId(1)] {
+            let Some(value) = io.input(port) else {
+                continue;
+            };
+            let index = usize::from(port.0);
+            if self.pending.is_some()
+                || self.closed[index]
+                || self.next_request
+                    >= u32::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS)
+            {
+                return step_fail(81);
+            }
+            let maximum = if port == PortId(0) {
+                conduit_audio::NOTE_EVENT_ENCODED_LEN as u32
+            } else {
+                conduit_audio::CONTROL_EVENT_ENCODED_LEN as u32
+            };
+            let Ok(input) = BoundedValueRef::new(value, maximum) else {
+                return step_fail(82);
+            };
+            let request = RequestId(self.next_request);
+            let Some(next) = self.next_request.checked_add(1) else {
+                return step_fail(82);
+            };
+            io.consume(port).expect("present MIDI output event");
+            io.request_host_call(
+                request,
+                if port == PortId(0) {
+                    HostCallId(1)
+                } else {
+                    HostCallId(0)
+                },
+                input,
+            )
+            .expect("MIDI output Host Call");
+            self.next_request = next;
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+
+        for port in [PortId(0), PortId(1)] {
+            let index = usize::from(port.0);
+            if io.input_closed(port) && !self.closed[index] {
+                io.consume_closed(port)
+                    .expect("observed MIDI input closure");
+                self.closed[index] = true;
+                return if self.closed.into_iter().all(|closed| closed) {
+                    StepOutcome::Complete
+                } else {
+                    StepOutcome::Progress
+                };
+            }
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+        self.closed = [true; 2];
+    }
+}
+
+const fn step_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidLifecycle,
+        detail,
+    })
+}
+
+impl MidiOutputBack {}
+
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate(placement)?;
+    Ok(BackBudget {
+        value_items: 0,
+        value_bytes: 0,
+        host_requests: usize::from(conduit_semantic_catalog::MAXIMUM_MUSICAL_EVENT_ITEMS),
+        sign_items: 64,
+        maximum_value_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN
+            .max(conduit_audio::CONTROL_EVENT_ENCODED_LEN) as u32,
+    })
+}
+
+fn prepare(
+    placement: &PlannedGear,
+    _values: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    validate(placement)?;
+    Ok(InstalledBack::MidiOutput(MidiOutputBack {
+        pending: None,
+        next_request: 0,
+        closed: [false; 2],
+    }))
+}
+
+fn validate(placement: &PlannedGear) -> Result<(), String> {
+    let offer = conduit_std_offers::music_play_midi_offer();
+    if placement.kind_id != offer.kind_id
+        || placement.kind_contract_revision != offer.kind_contract_revision
+        || placement.execution_profile_id != offer.implementation.execution_profile_id
+        || placement.implementation_id != offer.implementation.implementation_id
+        || placement.artifact_id != offer.implementation.artifact_id
+        || placement.inputs != offer.inputs
+        || placement.outputs != offer.outputs
+        || placement.host_calls != offer.host_calls
+        || placement.limits != offer.limits
+        || placement.inputs.len() != 2
+        || placement.inputs[0].port_id.as_str() != "notes"
+        || placement.inputs[1].port_id.as_str() != "controls"
+        || placement
+            .inputs
+            .iter()
+            .any(|port| port.direction != PortDirection::Input)
+        || placement.resources.len() != 1
+        || placement.resources[0].class_id.as_str()
+            != conduit_std_offers::MIDI_OUTPUT_RESOURCE_CLASS
+        || placement.resources[0].units != 1
+        || placement.resources[0].protected.is_some()
+        || placement.resources[0].compute.is_some()
+        || placement.authority.len() != 2
+        || !placement.authority.iter().all(|authority| {
+            authority.contract_id.as_str() == conduit_std_offers::MIDI_OUTPUT_AUTHORITY_CONTRACT
+                && authority.host_id == placement.host_id
+                && authority.boot_id == placement.boot_id
+                && authority.capability_id == placement.capability_id
+        })
+        || !placement.configuration.is_empty()
+    {
+        return Err("planned music/play MIDI identity/resource/authority mismatch".into());
+    }
+    for (authority, operation) in placement.authority.iter().zip(&placement.host_calls) {
+        if authority.host_call_contract_id != operation.contract_id
+            || authority.subject_kind.as_str()
+                != operation
+                    .target_kind
+                    .as_ref()
+                    .map_or("", conduit_core::KindId::as_str)
+        {
+            return Err("planned MIDI authority does not match typed operation".into());
+        }
+    }
+    Ok(())
+}
+
+pub(super) fn prepare_session(
+    placement: &PlannedGear,
+    selected: Option<&crate::hosted_midi::MidiOutputSelection>,
+) -> Result<crate::hosted_midi::MidiOutputSession, String> {
+    validate(placement)?;
+    let selected = selected
+        .ok_or_else(|| "planned music/play has no exact selected MIDI output".to_string())?;
+    let advertisement = selected
+        .output_realization_advertisement(placement.host_id.clone())
+        .map_err(str::to_string)?;
+    if selected.boot_id() != &placement.boot_id
+        || selected.offer_generation() != placement.offer_generation
+        || placement.resources[0].pool_id != selected.resource_pool_id()
+        || placement.realization_characteristics != advertisement.characteristics
+    {
+        return Err("planned MIDI output resource is stale or differs from selection".into());
+    }
+    crate::hosted_midi::MidiOutputSession::prepare(selected.clone())
+        .map_err(|error| format!("open planned MIDI output: {error:?}"))
+}
+
+pub(super) fn prepare_adapter() -> Result<conduit_midi::MidiOutputAdapter, String> {
+    let profile = conduit_midi::MidiProfile::new(
+        crate::hosted_midi::A4_REFERENCE_MILLIHERTZ,
+        None,
+        crate::hosted_midi::OUTPUT_CHANNEL,
+    )
+    .map_err(|error| format!("prepare MIDI output profile: {error:?}"))?;
+    Ok(conduit_midi::MidiOutputAdapter::new(profile))
+}
+
+pub(super) fn execute(
+    adapter: &mut conduit_midi::MidiOutputAdapter,
+    session: &mut crate::hosted_midi::MidiOutputSession,
+    contract: &str,
+    input: &[u8],
+) -> conduit_kernel::HostCallOutcome {
+    if contract == conduit_std_offers::MUSIC_PLAY_MIDI_NOTE_OPERATION {
+        let Ok(event) = conduit_audio::MusicalNoteEvent::decode(input) else {
+            return failed(conduit_kernel::FailureCode::InvalidInput, 84);
+        };
+        let Ok(encoded) = adapter.encode_note(event) else {
+            return failed(conduit_kernel::FailureCode::InvalidInput, 84);
+        };
+        return match session.send_note(event, encoded) {
+            Ok(()) => completed(),
+            Err(error) => output_failure(error),
+        };
+    }
+    let encoded = if contract == conduit_std_offers::MUSIC_PLAY_MIDI_CONTROL_OPERATION {
+        conduit_audio::MusicalControlEvent::decode(input)
+            .map_err(|_| ())
+            .and_then(|event| adapter.encode_control(event).map_err(|_| ()))
+    } else {
+        Err(())
+    };
+    match encoded {
+        Ok(encoded) => match session.send(encoded) {
+            Ok(()) => completed(),
+            Err(error) => output_failure(error),
+        },
+        Err(()) => failed(conduit_kernel::FailureCode::InvalidInput, 84),
+    }
+}
+
+fn completed() -> conduit_kernel::HostCallOutcome {
+    conduit_kernel::HostCallOutcome {
+        disposition: HostCallDisposition::Completed,
+        output: None,
+        failure: None,
+    }
+}
+
+fn output_failure(error: crate::hosted_midi::MidiOutputFailure) -> conduit_kernel::HostCallOutcome {
+    use crate::hosted_midi::MidiOutputFailure;
+    match error {
+        MidiOutputFailure::BackendUnavailable => denied(85),
+        MidiOutputFailure::Pressure => failed(conduit_kernel::FailureCode::StorageExhausted, 86),
+        MidiOutputFailure::ProviderLost => failed(conduit_kernel::FailureCode::HostCallFailed, 87),
+        MidiOutputFailure::InvalidLifecycle => {
+            failed(conduit_kernel::FailureCode::InvalidLifecycle, 88)
+        }
+    }
+}
+
+fn denied(detail: u16) -> conduit_kernel::HostCallOutcome {
+    conduit_kernel::HostCallOutcome {
+        disposition: HostCallDisposition::Denied,
+        output: None,
+        failure: Some(conduit_kernel::Failure {
+            code: conduit_kernel::FailureCode::HostCallDenied,
+            detail,
+        }),
+    }
+}
+
+fn failed(code: conduit_kernel::FailureCode, detail: u16) -> conduit_kernel::HostCallOutcome {
+    conduit_kernel::HostCallOutcome {
+        disposition: HostCallDisposition::Failed,
+        output: None,
+        failure: Some(conduit_kernel::Failure { code, detail }),
+    }
+}
+
+#[cfg(test)]
+#[path = "midi_output_back_tests.rs"]
+mod tests;

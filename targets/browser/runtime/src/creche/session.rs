@@ -39,7 +39,7 @@ pub(super) fn birth(
         return Err("BIRTH sequence must be nonzero".into());
     }
     if current().is_some() {
-        return Err("this Crèche session already has a Body; duplicate BIRTH was refused".into());
+        return Err("this Crèche session already has a body; duplicate BIRTH was refused".into());
     }
     let friendly_name = friendly_name.trim();
     if friendly_name.is_empty() || friendly_name.len() > 64 {
@@ -285,7 +285,7 @@ pub(super) fn leave_here(host: &str, boot: &str, sequence: u64) -> Result<BirthR
             .receipt
             .here_part_id
             .as_deref()
-            .ok_or_else(|| "this Body has no admitted browser Part".to_string())?;
+            .ok_or_else(|| "this body has no admitted browser Part".to_string())?;
         if session.receipt.host_id.as_deref() != Some(host_id.as_str())
             || session.receipt.boot_id.as_deref() != Some(boot_id.as_str())
         {
@@ -333,7 +333,7 @@ pub(super) fn revoke_here(host: &str, boot: &str, sequence: u64) -> Result<Birth
             .receipt
             .here_part_id
             .as_deref()
-            .ok_or_else(|| "this Body has no admitted browser Part".to_string())?;
+            .ok_or_else(|| "this body has no admitted browser Part".to_string())?;
         if session.receipt.host_id.as_deref() != Some(host_id.as_str()) {
             return Err("only the admitted browser Host may revoke its Part".into());
         }
@@ -408,7 +408,7 @@ pub(super) fn durable_snapshot() -> Option<DurableBodySession> {
 
 pub(super) fn restore_durable(snapshot: DurableBodySession) -> Result<BirthReceipt, String> {
     if current().is_some() {
-        return Err("this Crèche session already has a Body; durable restore was refused".into());
+        return Err("this Crèche session already has a body; durable restore was refused".into());
     }
     super::durable::validate(&snapshot)?;
     let admission = AdmissionManager::new(snapshot.receipt.raw_body.body_id.clone())

@@ -34,7 +34,7 @@ fn exact_boot_offer_is_finite_and_bases_do_not_imply_authority() {
     assert_eq!(offer.resources[0].base, BaseKind::Memory);
     assert_eq!(offer.capabilities[1].maximum_in_flight, 1);
     assert_eq!(
-        offer.capabilities[1].host_operation,
+        offer.capabilities[1].host_call,
         Some("conduit.host/present@1")
     );
     assert_eq!(

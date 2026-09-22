@@ -12,7 +12,7 @@ pub struct NativeFormExecution {
     pub output: Vec<u8>,
 }
 
-/// Run a finite installed Form through Conduit's ordinary hosted execution kernel.
+/// Run a finite installed form through Conduit's ordinary hosted execution kernel.
 ///
 /// The other installed examples are standing Forms. The native presenter does not
 /// yet own a Stop channel or a background execution lifetime for them, so it must
@@ -25,7 +25,7 @@ pub fn execute_installed_form(form_index: usize) -> Result<NativeFormExecution, 
                 "this standing Form needs native Stop and background-lifetime support".into(),
             );
         }
-        _ => return Err("installed Form index is outside the native inventory".into()),
+        _ => return Err("installed form index is outside the native inventory".into()),
     };
 
     let mut output = Vec::new();
@@ -38,11 +38,11 @@ pub fn execute_installed_form(form_index: usize) -> Result<NativeFormExecution, 
             }
         )
     });
-    let terminal = terminal.ok_or("hosted Form did not complete its Plan")?;
+    let terminal = terminal.ok_or("hosted Form did not complete its plan")?;
     let active_play_id = terminal
         .active_play_id
         .as_ref()
-        .ok_or("completed Plan did not retain its active Play identity")?;
+        .ok_or("completed Plan did not retain its active play identity")?;
 
     Ok(NativeFormExecution {
         form_index,

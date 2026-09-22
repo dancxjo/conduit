@@ -1,10 +1,10 @@
-//! Checked meaning of the exact Forms offered at native birth.
+//! Checked meaning of the exact forms offered at native birth.
 use super::WorksetRefusal;
 use conduit_body::ResidentForm;
 use conduit_form::{ExpandedCanonicalForm, ProfileCatalog, StartupCatalog};
 
 /// Finite native product profile. Capacity is a reviewed deployment choice,
-/// not a claim that a Body conceptually consists of these particular Forms.
+/// not a claim that a body conceptually consists of these particular Forms.
 pub const NATIVE_FORM_CAPACITY: usize = 4;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

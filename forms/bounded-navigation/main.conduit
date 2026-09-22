@@ -1,5 +1,5 @@
 # Portable bounded navigation from a validated spatial goal to body-motion
-# intent. The exact Host implementations, authority, actuator lowering, and
+# intent. The exact host implementations, authority, actuator lowering, and
 # mandatory physical safety remain choices and obligations of the Conduit Plan.
 form bounded-navigation (
     > pose: NavigationPose

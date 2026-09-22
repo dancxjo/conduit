@@ -7,7 +7,7 @@ export const BrowserDomFailure = Object.freeze({
 
 const SIGNAL_VALUE_KIND = "value/signal";
 const SIGNAL_PRESENTATION_KIND = "presentation/signal";
-const BOOL_VALUE_KIND = "value/bool@1";
+const BOOL_VALUE_KIND = "value/bool";
 const BOOL_PRESENTATION_KIND = "presentation/bool";
 const LOCAL_PRESENTATION_EFFECT = 2;
 const DISTRIBUTED_PRESENTATION_EFFECT = 3;
@@ -87,7 +87,7 @@ export class BrowserDomHost {
       effect?.activePlayId,
       effect?.presentationId,
       effect?.signId,
-      effect?.hostOperationContractId,
+      effect?.hostCallContractId,
       effect?.placementId,
     ];
     const remoteIdentityFields = [
@@ -143,7 +143,7 @@ export class BrowserDomHost {
       requestNode: effect.requestNode,
       requestId: effect.requestId,
       operationId: effect.operationId,
-      hostOperationContractId: effect.hostOperationContractId,
+      hostCallContractId: effect.hostCallContractId,
       placementId: effect.placementId,
       sequence: presentation.sequence.toString(),
       level: presentation.level,
@@ -196,7 +196,7 @@ export class BrowserDomHost {
         requestNode: effect.requestNode,
         requestId: effect.requestId,
         operationId: effect.operationId,
-        hostOperationContractId: effect.hostOperationContractId,
+        hostCallContractId: effect.hostCallContractId,
         presentationId: effect.presentationId,
         signId: effect.signId,
         placementId: effect.placementId,

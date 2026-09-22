@@ -5,7 +5,7 @@ use super::engine::{
     DriveStatus,
 };
 use conduit_core::{Quantity, QuantityUnit, StructuredInfoValueShape, TemporalScale};
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical_with_options};
 use std::collections::BTreeMap;
 
@@ -34,12 +34,12 @@ fn fragment() -> conduit_core::PlanFragment {
         })
         .unwrap();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
     let source = format!(
@@ -105,12 +105,12 @@ fn interactive_fragment() -> conduit_core::PlanFragment {
         })
         .unwrap();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
     let source = format!(
@@ -192,7 +192,7 @@ fn deterministic_control_runs_the_authored_measurement_form_in_the_production_ke
     assert!(scheduler
         .signs()
         .events()
-        .any(|event| { event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted }));
+        .any(|event| { event.kind == conduit_kernel::KernelEventKind::HostCallCompleted }));
 }
 
 #[test]
@@ -237,5 +237,5 @@ fn browser_pointer_and_deterministic_control_share_the_exact_measurement_form() 
     assert!(scheduler
         .signs()
         .events()
-        .any(|event| { event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted }));
+        .any(|event| { event.kind == conduit_kernel::KernelEventKind::HostCallCompleted }));
 }

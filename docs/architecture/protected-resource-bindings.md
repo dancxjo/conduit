@@ -8,4 +8,4 @@ The planner admits a grant only when all of that scope matches a named `Resource
 
 The resulting `ProtectedResourceBinding` is sealed into the ordinary resource binding in the plan. Its opaque handle, role, access, maximum byte count, and commit policy therefore contribute to fragment and plan identity. Changing any of them after sealing invalidates verification. The binding conveys neither a raw path nor ambient permission; later play start must still resolve it through the exact planned host and boot base boundary.
 
-This contract does not implement copying or resource access. It establishes the planning seam required before a bounded copy implementation can cross the admitted host-operation boundary.
+This contract does not implement copying or resource access. It establishes the planning seam required before a bounded copy implementation can cross the admitted Host Call boundary.

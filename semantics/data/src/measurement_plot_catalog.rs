@@ -1,12 +1,13 @@
-//! Ordinary Form-facing contract for finite measurement plot projection.
+//! Ordinary form-facing contract for finite measurement plot projection.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
 
@@ -43,7 +44,7 @@ pub fn install_measurement_plot_catalog(
         ],
     })?;
     profile
-        .insert(measurement_plot_kind_definition())
+        .insert(measurement_plot_kind_projection())
         .map_err(|error| error.to_string())?;
     startup.insert(KindSignature {
         kind: MEASUREMENT_PLOT_PRESENTATION_KIND.to_string(),
@@ -54,10 +55,10 @@ pub fn install_measurement_plot_catalog(
         .map_err(|error| error.to_string())
 }
 
-pub fn measurement_plot_presentation_definition() -> KindDefinition {
-    KindDefinition {
+pub fn measurement_plot_presentation_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(MEASUREMENT_PLOT_PRESENTATION_KIND),
-        kind_contract_revision: KindContractRevision::from(MEASUREMENT_PLOT_PRESENTATION_REVISION),
+        kind_contract_revision: KindIdentity::from(MEASUREMENT_PLOT_PRESENTATION_REVISION),
         inputs: vec![port(
             "series",
             &measurement_plot_series_type(),
@@ -68,10 +69,29 @@ pub fn measurement_plot_presentation_definition() -> KindDefinition {
     }
 }
 
-pub fn measurement_plot_kind_definition() -> KindDefinition {
-    KindDefinition {
+pub fn measurement_plot_presentation_semantic_contract() -> Kind {
+    let definition = measurement_plot_presentation_definition();
+    Kind {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
+    }
+}
+
+pub fn measurement_plot_kind_projection() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(MEASUREMENT_PLOT_KIND),
-        kind_contract_revision: KindContractRevision::from(MEASUREMENT_PLOT_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(MEASUREMENT_PLOT_CONTRACT_REVISION),
         inputs: vec![port(
             "window",
             &measurement_window_type(),
@@ -83,22 +103,52 @@ pub fn measurement_plot_kind_definition() -> KindDefinition {
             PortDirection::Output,
         )],
         configuration: vec![
-            ConfigurationField {
+            KindConfigurationField {
                 key: "points".to_string(),
                 default_value: ConfigurationValue::U64(8),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: MAXIMUM_MEASUREMENT_PLOT_POINTS as u64,
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "when-full".to_string(),
                 default_value: ConfigurationValue::Text("evenly-spaced".to_string()),
-                validation: ConfigurationRule::TextOneOf {
+                rule: KindConfigurationRule::TextOneOf {
                     values: vec!["reject".to_string(), "evenly-spaced".to_string()],
                 },
             },
         ],
+    }
+}
+
+pub fn measurement_plot_semantic_contract() -> Kind {
+    let definition = measurement_plot_kind_projection();
+    Kind {
+        startup_parameters: vec![
+            FrontStartupParameter {
+                name: "points".into(),
+                value_type: kind_id("value/count"),
+                has_default: true,
+            },
+            FrontStartupParameter {
+                name: "when-full".into(),
+                value_type: kind_id("value/text"),
+                has_default: true,
+            },
+        ],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
     }
 }
 

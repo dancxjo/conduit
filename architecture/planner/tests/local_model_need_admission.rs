@@ -122,6 +122,7 @@ fn host(id: &str, lanes: u32, need: (u32, u32, u32)) -> HostAdvertisement {
         boot_id: BootId::from(format!("boot/{id}/1")),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("conduit.host/local-model-fixture@1"),
+        bases: vec![],
         resources,
         capabilities: offer.capability_offers().unwrap(),
         planner_capabilities: vec![],

@@ -13,7 +13,7 @@ pub(super) struct AbiState {
     pub(super) host_id: HostId,
     pub(super) boot_id: BootId,
     pub(super) session: BrowserUsbSession,
-    pub(super) operation_id: HostOperationId,
+    pub(super) operation_id: HostCallId,
     pub(super) acquisition_plan_id: PlanId,
     pub(super) use_plan_id: Option<PlanId>,
     pub(super) configuration: UsbConfiguration,
@@ -78,7 +78,7 @@ pub extern "C" fn conduit_browser_usb_start_acquisition(
     explicit_action: i32,
     request_authority: i32,
     configuration_value: u8,
-    interfront_number: u8,
+    interface_number: u8,
     alternate_setting: u8,
     in_endpoint: u8,
     out_endpoint: u8,
@@ -100,7 +100,7 @@ pub extern "C" fn conduit_browser_usb_start_acquisition(
     };
     let configuration = UsbConfiguration {
         configuration_value,
-        interfront_number,
+        interface_number,
         alternate_setting,
         in_endpoint,
         out_endpoint,
@@ -111,13 +111,12 @@ pub extern "C" fn conduit_browser_usb_start_acquisition(
         maximum_out_transfers,
         maximum_in_flight: 1,
     };
-    let operation_id =
-        HostOperationId::from(format!("{}/usb-acquire/1", host_id.as_str()).as_str());
+    let operation_id = HostCallId::from(format!("{}/usb-acquire/1", host_id.as_str()).as_str());
     let offer = UsbAcquisitionOffer {
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),
         offer_generation: OfferGeneration(1),
-        operation_contract: HostOperationContractId::from(USB_ACQUIRE_OPERATION),
+        operation_contract: HostCallContractId::from(USB_ACQUIRE_OPERATION),
         request_authority_contract: AuthorityContractId::from(USB_REQUEST_AUTHORITY),
         maximum_in_flight: 1,
         maximum_result_bytes: MAXIMUM_USB_RESULT_BYTES as u32,
@@ -202,10 +201,12 @@ pub extern "C" fn conduit_browser_usb_complete_acquisition(
                 UsbAcquisitionResult::Acquired(Box::new(AcquiredUsbResource {
                     host_id: state.host_id.clone(),
                     boot_id: state.boot_id.clone(),
+                    offer_generation: OfferGeneration(1),
                     handle_id: ResourceHandleId::from(handle.as_str()),
                     class_id: ResourceClassId::from(USB_RESOURCE_CLASS),
                     base_implementation_id: BaseImplementationId::from(USB_BASE_IMPLEMENTATION),
                     base_instance_id: BaseInstanceId::from(base_instance.as_str()),
+                    provider_generation: 1,
                     configuration: state.configuration,
                     transfer_bounds: state.transfer_bounds,
                     use_authority_contract: AuthorityContractId::from(USB_USE_AUTHORITY),
@@ -287,6 +288,7 @@ pub extern "C" fn conduit_browser_usb_start_use(plan_len: usize, use_authority: 
             class_id: resource.class_id.clone(),
             base_implementation_id: resource.base_implementation_id.clone(),
             base_instance_id: resource.base_instance_id.clone(),
+            provider_generation: resource.provider_generation,
             configuration: state.configuration,
             transfer_bounds: state.transfer_bounds,
         };

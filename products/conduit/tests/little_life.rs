@@ -53,13 +53,13 @@ fn canonical_little_life_completes_exactly_thirty_two_presented_generations() {
         .expect("report retains observations")
         .iter()
         .find(|item| item.pointer("/kind/PlanTerminal").is_some())
-        .expect("report retains a Plan terminal");
+        .expect("report retains a plan terminal");
     assert_eq!(
         terminal.pointer("/kind/PlanTerminal/disposition"),
         Some(&Value::String("Completed".into()))
     );
     let play_id = terminal["active_play_id"]
         .as_str()
-        .expect("terminal has active Play identity");
+        .expect("terminal has active play identity");
     println!("{EVIDENCE_MARKER}{{\"plan_id\":\"{plan_id}\",\"play_id\":\"{play_id}\"}}");
 }

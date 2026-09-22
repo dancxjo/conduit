@@ -6,10 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 use crate::{
     delivery_request_type, delivery_update_type, messaging_registered_types,
@@ -29,58 +29,83 @@ pub fn install_messaging_catalogs(
             .insert_structured_type(name, value_type)
             .map_err(|error| error.to_string())?;
     }
-    insert_kind(
-        startup,
-        profile,
-        MESSAGING_MESSAGE_KIND,
-        vec![],
-        vec![
-            port("message", &portable_message_type(), PortDirection::Output),
-            port("request", &delivery_request_type(), PortDirection::Output),
-        ],
-    )?;
-    insert_kind(
-        startup,
-        profile,
-        MESSAGING_DELIVERY_KIND,
-        vec![port(
-            "request",
-            &delivery_request_type(),
-            PortDirection::Input,
-        )],
-        vec![
-            port(
-                "notification",
-                &notification_event_type(),
-                PortDirection::Output,
-            ),
-            port("update", &delivery_update_type(), PortDirection::Output),
-        ],
-    )
+    for contract in messaging_semantic_contracts() {
+        insert_kind(startup, profile, contract)?;
+    }
+    Ok(())
 }
 
 fn insert_kind(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
-    kind: &str,
-    inputs: Vec<PortDescriptor>,
-    outputs: Vec<PortDescriptor>,
+    contract: Kind,
 ) -> Result<(), String> {
     startup
         .insert(KindSignature {
-            kind: kind.into(),
+            kind: contract.kind_id.as_str().into(),
             startup_parameters: vec![],
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
-            kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(MESSAGING_REVISION),
-            inputs,
-            outputs,
+        .insert(KindProjection {
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
             configuration: vec![],
         })
         .map_err(|error| error.to_string())
+}
+
+pub fn messaging_semantic_contracts() -> Vec<Kind> {
+    vec![
+        messaging_semantic_contract(
+            MESSAGING_MESSAGE_KIND,
+            vec![],
+            vec![
+                port("message", &portable_message_type(), PortDirection::Output),
+                port("request", &delivery_request_type(), PortDirection::Output),
+            ],
+        ),
+        messaging_semantic_contract(
+            MESSAGING_DELIVERY_KIND,
+            vec![port(
+                "request",
+                &delivery_request_type(),
+                PortDirection::Input,
+            )],
+            vec![
+                port(
+                    "notification",
+                    &notification_event_type(),
+                    PortDirection::Output,
+                ),
+                port("update", &delivery_update_type(), PortDirection::Output),
+            ],
+        ),
+    ]
+}
+
+fn messaging_semantic_contract(
+    kind: &str,
+    inputs: Vec<PortDescriptor>,
+    outputs: Vec<PortDescriptor>,
+) -> Kind {
+    Kind {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id(kind),
+        kind_contract_revision: KindIdentity::from(MESSAGING_REVISION),
+        inputs,
+        outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 4,
+            max_queue_items: 4,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
+        },
+    }
 }
 
 fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -> PortDescriptor {
@@ -93,5 +118,33 @@ fn port(name: &str, value_type: &StructuredInfoType, direction: PortDirection) -
             .clone(),
         direction,
         temporal: PortTemporal::Value,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn messaging_semantic_contracts_own_exact_ports_and_finite_bounds() {
+        let contracts = messaging_semantic_contracts();
+        assert_eq!(contracts.len(), 2);
+        let message = &contracts[0];
+        let delivery = &contracts[1];
+        assert_eq!(message.kind_id.as_str(), MESSAGING_MESSAGE_KIND);
+        assert_eq!(message.inputs.len(), 0);
+        assert_eq!(message.outputs.len(), 2);
+        assert_eq!(delivery.kind_id.as_str(), MESSAGING_DELIVERY_KIND);
+        assert_eq!(delivery.inputs.len(), 1);
+        assert_eq!(delivery.outputs.len(), 2);
+        for contract in contracts {
+            assert_eq!(contract.kind_contract_revision.as_str(), MESSAGING_REVISION);
+            assert_eq!(contract.limits.max_active_instances, 4);
+            assert_eq!(contract.limits.max_queue_items, 4);
+            assert_eq!(
+                contract.limits.max_queue_bytes,
+                (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32
+            );
+        }
     }
 }

@@ -3,14 +3,15 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    kind_id, resource_requirement, wait_host_operation_requirement, ConfigurationValue,
-    PlannedGear, PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
+    kind_id, resource_requirement, wait_host_call_requirement, ConfigurationValue, PlannedGear,
+    PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 use conduit_kernel::{
-    BoundedValueRef, CanonicalValue, HostOperationDisposition, HostOperationId, Operation,
-    OperationAction, OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, CanonicalValue, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef,
+    ValueStorage,
 };
 
 const ARTIFACT: &str = "conduit-browser-runtime/installed-state-time@1";
@@ -46,11 +47,10 @@ fn time_every_offer() -> conduit_core::CapabilityOffer {
         conduit_semantic_catalog::time_every_contract(),
         conduit_time::TIME_EVERY_CONTRACT_REVISION,
         identity(TIME_EVERY_IMPLEMENTATION),
-        vec![wait_host_operation_requirement()],
+        vec![wait_host_call_requirement()],
         vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
         Vec::new(),
     );
-    offer.startup_parameters[0].value_type = "Duration".into();
     offer.startup_parameters[0].has_default = false;
     offer
 }
@@ -71,8 +71,8 @@ fn count_presentation_offer() -> conduit_core::CapabilityOffer {
         conduit_semantic_catalog::count_presentation_contract(),
         conduit_semantic_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
         identity(COUNT_PRESENTATION_IMPLEMENTATION),
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(COUNT_PRESENTATION_OPERATION),
+        vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(COUNT_PRESENTATION_OPERATION),
             target_kind: Some(kind_id("presentation/browser-count")),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_semantic_catalog::COUNT_ENCODED_LEN,
@@ -97,13 +97,14 @@ fn identity(
 fn prepare_time_every(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &time_every_offer())?;
-    let period_millis = configuration(placement, "freq", BROWSER_TIMER_MAXIMUM_MILLIS)?;
+    let period_millis =
+        quantity_millis_configuration(placement, "freq", BROWSER_TIMER_MAXIMUM_MILLIS)?;
     let wait = values
         .store(&period_millis.to_le_bytes())
         .map_err(debug_error)?;
-    Ok(BrowserOperation::installed(TimeEveryOperation {
+    Ok(BrowserBack::installed_step(TimeEveryBack {
         wait,
         sequence: 0,
         next_request: 0,
@@ -114,10 +115,10 @@ fn prepare_time_every(
 fn prepare_state_count(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &state_count_offer())?;
-    let start = configuration(placement, "start", u64::MAX)?;
-    Ok(BrowserOperation::installed(StateCountOperation {
+    let start = u64_configuration(placement, "start", u64::MAX)?;
+    Ok(BrowserBack::installed_step(StateCountBack {
         current: start,
         initial_emitted: false,
     }))
@@ -126,9 +127,9 @@ fn prepare_state_count(
 fn prepare_count_presentation(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &count_presentation_offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         conduit_semantic_catalog::COUNT_ENCODED_LEN,
         1,
     ))
@@ -151,7 +152,31 @@ fn perform_count_presentation(
     })
 }
 
-fn configuration(placement: &PlannedGear, key: &str, maximum: u64) -> Result<u64, String> {
+fn quantity_millis_configuration(
+    placement: &PlannedGear,
+    key: &str,
+    maximum: u64,
+) -> Result<u64, String> {
+    placement
+        .configuration
+        .iter()
+        .find_map(|entry| match (entry.key.as_str(), &entry.value) {
+            (found, ConfigurationValue::Quantity(value)) if found == key => value
+                .convert(conduit_core::QuantityUnit::Millisecond)
+                .ok()
+                .and_then(|value| u64::try_from(value.value()).ok())
+                .filter(|value| *value <= maximum),
+            _ => None,
+        })
+        .ok_or_else(|| {
+            format!(
+                "{} configuration '{key}' is missing or exceeds the browser bound",
+                placement.kind_id.as_str()
+            )
+        })
+}
+
+fn u64_configuration(placement: &PlannedGear, key: &str, maximum: u64) -> Result<u64, String> {
     placement
         .configuration
         .iter()
@@ -169,69 +194,71 @@ fn configuration(placement: &PlannedGear, key: &str, maximum: u64) -> Result<u64
         })
 }
 
-struct TimeEveryOperation {
+struct TimeEveryBack {
     wait: ValueRef,
     sequence: u64,
     next_request: u32,
     pending: Option<RequestId>,
 }
 
-impl TimeEveryOperation {
-    fn request_wait(&mut self) -> OperationAction {
+impl TimeEveryBack {
+    fn request_wait<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+    ) -> Result<(), StepOutcome> {
         let request = RequestId(self.next_request);
-        self.pending = Some(request);
-        OperationAction::RequestHostOperation {
+        io.request_host_call(
             request,
-            operation: HostOperationId(0),
-            input: BoundedValueRef::new(self.wait, conduit_time::TICK_ENCODED_LEN)
+            HostCallId(0),
+            BoundedValueRef::new(self.wait, conduit_time::TICK_ENCODED_LEN)
                 .expect("browser timer duration is exactly eight bytes"),
-        }
+        )
+        .expect("recurring browser timer Host Call");
+        self.pending = Some(request);
+        Ok(())
     }
 }
 
-impl Operation for TimeEveryOperation {
-    fn start(&mut self) -> OperationAction {
-        self.request_wait()
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+impl<const PORTS: usize> StepBack<PORTS> for TimeEveryBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
             {
-                self.pending = None;
-                let encoded = conduit_time::encode_tick(self.sequence);
-                let Ok(value) = CanonicalValue::new(&encoded) else {
-                    return fail(20);
-                };
-                OperationAction::EmitCanonical {
-                    port: PortId(0),
-                    value,
-                }
+                return outcome.failure.map_or_else(|| fail(20), StepOutcome::Fail);
             }
-            _ => fail(20),
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(sequence) = self.sequence.checked_add(1) else {
+                return capacity_fail(20);
+            };
+            let Some(next_request) = self.next_request.checked_add(1) else {
+                return capacity_fail(20);
+            };
+            let value = CanonicalValue::new(&conduit_time::encode_tick(self.sequence))
+                .expect("Tick has a fixed canonical encoding");
+            io.consume_host_completion()
+                .expect("observed recurring timer completion");
+            io.send_canonical(PortId(0), value)
+                .expect("ready recurring Tick output");
+            self.pending = None;
+            self.sequence = sequence;
+            self.next_request = next_request;
+            if let Err(outcome) = self.request_wait(io) {
+                return outcome;
+            }
+            return StepOutcome::Progress;
         }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        let Some(sequence) = self.sequence.checked_add(1) else {
-            return OperationAction::Fail(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::IdentityCapacityExhausted,
-                detail: 20,
-            });
-        };
-        let Some(next_request) = self.next_request.checked_add(1) else {
-            return OperationAction::Fail(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::IdentityCapacityExhausted,
-                detail: 20,
-            });
-        };
-        self.sequence = sequence;
-        self.next_request = next_request;
-        self.request_wait()
+        if self.pending.is_none() {
+            if let Err(outcome) = self.request_wait(io) {
+                return outcome;
+            }
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -239,54 +266,63 @@ impl Operation for TimeEveryOperation {
     }
 }
 
-struct StateCountOperation {
+struct StateCountBack {
     current: u64,
     initial_emitted: bool,
 }
 
-impl Operation for StateCountOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::EmitCanonical {
-            port: PortId(0),
-            value: CanonicalValue::new(&self.current.to_le_bytes()).expect("Count is eight bytes"),
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.initial_emitted && value.byte_len == conduit_time::TICK_ENCODED_LEN => {
-                let Some(current) = self.current.checked_add(1) else {
-                    return OperationAction::Fail(conduit_kernel::Failure {
-                        code: conduit_kernel::FailureCode::IdentityCapacityExhausted,
-                        detail: 21,
-                    });
-                };
-                self.current = current;
-                OperationAction::EmitCanonical {
-                    port: PortId(0),
-                    value: CanonicalValue::new(&current.to_le_bytes())
-                        .expect("Count is eight bytes"),
-                }
+impl<const PORTS: usize> StepBack<PORTS> for StateCountBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if !self.initial_emitted {
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
             }
-            OperationInput::Closed { port: PortId(0) } if self.initial_emitted => {
-                OperationAction::Complete
-            }
-            _ => fail(21),
+            io.send_canonical(
+                PortId(0),
+                CanonicalValue::new(&self.current.to_le_bytes()).expect("Count is eight bytes"),
+            )
+            .expect("ready initial Count output");
+            self.initial_emitted = true;
+            return StepOutcome::Progress;
         }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        self.initial_emitted = true;
-        OperationAction::Await
+        if let Some(value) = io.input(PortId(0)) {
+            if value.byte_len != conduit_time::TICK_ENCODED_LEN {
+                return fail(21);
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(current) = self.current.checked_add(1) else {
+                return capacity_fail(21);
+            };
+            io.consume(PortId(0)).expect("present Tick input");
+            io.send_canonical(
+                PortId(0),
+                CanonicalValue::new(&current.to_le_bytes()).expect("Count is eight bytes"),
+            )
+            .expect("ready Count output");
+            self.current = current;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed Tick input closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 }
 
-fn fail(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+fn fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    })
+}
+
+fn capacity_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::IdentityCapacityExhausted,
         detail,
     })
 }
@@ -298,7 +334,18 @@ fn debug_error(error: impl core::fmt::Debug) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_kernel::HostOperationOutcome;
+    use conduit_kernel::HostCallOutcome;
+
+    #[test]
+    fn time_every_offer_keeps_the_canonical_quantity_startup_contract() {
+        let offer = time_every_offer();
+        assert_eq!(offer.startup_parameters.len(), 1);
+        assert_eq!(
+            offer.startup_parameters[0].value_type.as_str(),
+            conduit_core::QUANTITY_INFO_ID
+        );
+        assert!(!offer.startup_parameters[0].has_default);
+    }
 
     #[test]
     fn every_rearms_one_wait_and_emits_tick_five_and_later() {
@@ -307,39 +354,45 @@ mod tests {
             generation: 1,
             byte_len: conduit_time::TICK_ENCODED_LEN,
         };
-        let mut operation = TimeEveryOperation {
+        let mut operation = TimeEveryBack {
             wait,
             sequence: 0,
             next_request: 0,
             pending: None,
         };
-        let mut action = operation.start();
+        let mut start = StepIo::test_frame([None], [false], [Some(8)], None, 4);
+        assert_eq!(
+            operation.step(&mut start, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert_eq!(
+            start.test_host_request().map(|request| request.0),
+            Some(RequestId(0))
+        );
         for sequence in 0..7_u64 {
-            assert!(matches!(
-                action,
-                OperationAction::RequestHostOperation {
-                    request: RequestId(found),
-                    ..
-                } if u64::from(found) == sequence
-            ));
-            let emitted = operation.resume(OperationInput::HostOperationCompleted {
-                request: RequestId(sequence as u32),
-                outcome: HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
-                    output: None,
-                    failure: None,
-                },
-            });
-            let OperationAction::EmitCanonical { port, value } = emitted else {
-                panic!("recurring interval did not emit tick {sequence}");
+            let outcome = HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: None,
+                failure: None,
             };
-            assert_eq!(port, PortId(0));
+            let mut io = StepIo::test_frame(
+                [None],
+                [false],
+                [Some(conduit_time::TICK_ENCODED_LEN)],
+                Some((RequestId(sequence as u32), outcome)),
+                5,
+            );
+            assert_eq!(
+                operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
+                StepOutcome::Progress
+            );
+            let (port, value) = io.test_canonical_output().unwrap();
+            assert_eq!(*port, PortId(0));
             assert_eq!(value.as_slice(), conduit_time::encode_tick(sequence));
-            action = operation.advance();
+            assert_eq!(
+                io.test_host_request().map(|request| request.0),
+                Some(RequestId(sequence as u32 + 1))
+            );
         }
-        assert!(matches!(
-            action,
-            OperationAction::RequestHostOperation { .. }
-        ));
     }
 }

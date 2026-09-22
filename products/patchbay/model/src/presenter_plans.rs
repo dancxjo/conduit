@@ -122,9 +122,9 @@ pub fn recursive_form_demonstration() -> Result<conduit_presentation::Presentati
 }
 
 fn reviewed_back_front(
-    back: &conduit_core::RealizationBack,
+    back: &conduit_core::FormBack,
     startup: &StartupCatalog,
-) -> Result<conduit_core::CheckedFace, String> {
+) -> Result<conduit_core::CheckedFront, String> {
     for source in [
         conduit_semantic_catalog::PATCHBAY_ROOT_BACK_SOURCE,
         conduit_semantic_catalog::PATCHBAY_GEAR_FACE_BACK_SOURCE,
@@ -145,7 +145,7 @@ fn reviewed_back_front(
         }
     }
     Err(format!(
-        "checked Front for recursive Back {} is absent",
+        "checked front for recursive Back {} is absent",
         back.kind_id.as_str()
     ))
 }
@@ -264,6 +264,7 @@ fn host(
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(profile),
+        bases: vec![],
         resources: vec![resource_offer(
             &format!("{host}/display"),
             PRESENTATION_RESOURCE_CLASS,
@@ -277,9 +278,9 @@ fn host(
 fn text_literal_fixture_offer(implementation: &str) -> conduit_core::CapabilityOffer {
     let contract = conduit_text::text_literal_semantics();
     conduit_core::CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
+        startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "value".into(),
-            value_type: "Text".into(),
+            value_type: conduit_core::kind_id("value/text"),
             has_default: false,
         }],
         shorthand: None,
@@ -295,7 +296,7 @@ fn text_literal_fixture_offer(implementation: &str) -> conduit_core::CapabilityO
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: contract.limits,

@@ -1,4 +1,4 @@
-//! Exact source edits initiated by compact controls on a Gear Front.
+//! Exact source edits initiated by compact controls on a gear Front.
 
 use conduit_core::{
     ConfigurationValue, InfoBool, KindId, Quantity, BOOL_INFO_ID, QUANTITY_INFO_ID,
@@ -8,7 +8,7 @@ use conduit_human::{
     HumanInteractionProposal, InteractionFamily, InteractionProposalPayload, InteractionValue,
     TEXT_INFO_ID,
 };
-use conduit_semantic_catalog::StandardConfigurationRule;
+use conduit_semantic_catalog::KindConfigurationRule;
 
 use crate::{FormEditor, FormEditorError, PatchbayGraph};
 
@@ -45,6 +45,17 @@ impl FormEditor {
                 "configuration is not representable by the common interaction contract".into(),
             )
         })?;
+        let rule = conduit_semantic_catalog::supported_nucleus_contracts()
+            .into_iter()
+            .find(|contract| contract.kind_id == gear.kind_id)
+            .and_then(|contract| {
+                contract
+                    .configuration
+                    .into_iter()
+                    .find(|field| field.key == key)
+            })
+            .ok_or_else(|| FormEditorError::UnknownConfiguration(key.into()))?
+            .rule;
         proposal
             .validate_against(&interaction.contract, &interaction.state)
             .map_err(|refusal| {
@@ -52,7 +63,7 @@ impl FormEditor {
                     "common interaction refused: {refusal:?}"
                 ))
             })?;
-        let value = configuration_from_proposal(&interaction.contract.family, proposal)?;
+        let value = configuration_from_proposal(&interaction.contract.family, &rule, proposal)?;
         self.set_gear_configuration_exact(
             offered_revision,
             offered_expanded_form_id,
@@ -232,6 +243,9 @@ fn proposal_for_configuration(
                 Quantity::new(value, *unit).encode().to_vec(),
             )
         }
+        (InteractionFamily::Scalar { .. }, ConfigurationValue::Quantity(value)) => {
+            InteractionValue::new(KindId::from(QUANTITY_INFO_ID), value.encode().to_vec())
+        }
         (InteractionFamily::ChooseOne { value_kind, .. }, ConfigurationValue::Text(value)) => {
             InteractionValue::new(value_kind.clone(), value.into_bytes())
         }
@@ -241,7 +255,7 @@ fn proposal_for_configuration(
         _ => {
             return Err(FormEditorError::InvalidConfiguration(
                 "value does not fit the common interaction family".into(),
-            ))
+            ));
         }
     }
     .map_err(|refusal| {
@@ -264,6 +278,7 @@ fn proposal_for_configuration(
 
 fn configuration_from_proposal(
     family: &InteractionFamily,
+    rule: &KindConfigurationRule,
     proposal: &HumanInteractionProposal,
 ) -> Result<ConfigurationValue, FormEditorError> {
     let InteractionProposalPayload::Values(values) = &proposal.payload else {
@@ -288,6 +303,28 @@ fn configuration_from_proposal(
             })?;
             if *unit == conduit_core::QuantityUnit::Millionth {
                 Ok(ConfigurationValue::I64(decoded.value()))
+            } else if matches!(rule, KindConfigurationRule::DurationMillis { .. }) {
+                decoded
+                    .convert(*unit)
+                    .and_then(|value| {
+                        u64::try_from(value.value())
+                            .map_err(|_| conduit_core::QuantityConversionRefusal::Overflow)
+                    })
+                    .map(ConfigurationValue::U64)
+                    .map_err(|_| {
+                        FormEditorError::InvalidConfiguration(
+                            "inexact, incompatible, or negative quantity".into(),
+                        )
+                    })
+            } else if *unit != conduit_core::QuantityUnit::One {
+                decoded
+                    .convert(*unit)
+                    .map(ConfigurationValue::Quantity)
+                    .map_err(|_| {
+                        FormEditorError::InvalidConfiguration(
+                            "inexact or incompatible quantity".into(),
+                        )
+                    })
             } else {
                 decoded
                     .value()
@@ -316,58 +353,78 @@ fn configuration_from_proposal(
     }
 }
 
-fn accepts(rule: &StandardConfigurationRule, value: &ConfigurationValue) -> bool {
+fn accepts(rule: &KindConfigurationRule, value: &ConfigurationValue) -> bool {
     match (rule, value) {
-        (StandardConfigurationRule::Any, ConfigurationValue::Bool(_)) => true,
-        (
-            StandardConfigurationRule::U64Range { minimum, maximum },
-            ConfigurationValue::U64(value),
-        )
+        (KindConfigurationRule::Any, ConfigurationValue::Bool(_)) => true,
+        (KindConfigurationRule::U64Range { minimum, maximum }, ConfigurationValue::U64(value))
         | (
-            StandardConfigurationRule::DurationMillis { minimum, maximum },
+            KindConfigurationRule::DurationMillis { minimum, maximum },
             ConfigurationValue::U64(value),
         ) => (*minimum..=*maximum).contains(value),
-        (
-            StandardConfigurationRule::I64Range { minimum, maximum },
-            ConfigurationValue::I64(value),
-        ) => (*minimum..=*maximum).contains(value),
-        (StandardConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
+        (KindConfigurationRule::I64Range { minimum, maximum }, ConfigurationValue::I64(value)) => {
+            (*minimum..=*maximum).contains(value)
+        }
+        (KindConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
             value.len() <= *maximum as usize
         }
-        (StandardConfigurationRule::TextOneOf { values }, ConfigurationValue::Text(value)) => {
+        (KindConfigurationRule::TextOneOf { values }, ConfigurationValue::Text(value)) => {
             values.contains(value)
         }
+        (
+            KindConfigurationRule::QuantityRange {
+                minimum,
+                maximum,
+                canonical_unit,
+            },
+            ConfigurationValue::Quantity(value),
+        ) => value
+            .convert(*canonical_unit)
+            .map(|value| (*minimum..=*maximum).contains(&value.value()))
+            .unwrap_or(false),
         _ => false,
     }
 }
 
-fn configuration_refusal(rule: &StandardConfigurationRule) -> String {
+fn configuration_refusal(rule: &KindConfigurationRule) -> String {
     match rule {
-        StandardConfigurationRule::Any => "expected a Boolean value".into(),
-        StandardConfigurationRule::U64Range { minimum, maximum } => {
+        KindConfigurationRule::Any => "expected a Boolean value".into(),
+        KindConfigurationRule::U64Range { minimum, maximum } => {
             format!("enter a number from {minimum} through {maximum}")
         }
-        StandardConfigurationRule::I64Range { minimum, maximum } => {
+        KindConfigurationRule::I64Range { minimum, maximum } => {
             format!("enter scalar microunits from {minimum} through {maximum}")
         }
-        StandardConfigurationRule::DurationMillis { minimum, maximum } => {
+        KindConfigurationRule::DurationMillis { minimum, maximum } => {
             format!("enter milliseconds from {minimum} through {maximum}")
         }
-        StandardConfigurationRule::TextBytes { maximum } => {
+        KindConfigurationRule::QuantityRange {
+            minimum,
+            maximum,
+            canonical_unit,
+        } => {
+            format!(
+                "enter an exact {} quantity from {minimum} through {maximum}",
+                canonical_unit.semantic_id()
+            )
+        }
+        KindConfigurationRule::TextBytes { maximum } => {
             format!("enter at most {maximum} bytes of text")
         }
-        StandardConfigurationRule::TextOneOf { values } => {
+        KindConfigurationRule::TextOneOf { values } => {
             format!("choose one of {}", values.join(", "))
+        }
+        KindConfigurationRule::Structured { profile } => {
+            format!("enter a value with exact profile {}", profile.as_str())
         }
     }
 }
 
 pub(crate) fn configuration_spelling(
-    rule: &StandardConfigurationRule,
+    rule: &KindConfigurationRule,
     value: &ConfigurationValue,
 ) -> String {
     match (rule, value) {
-        (StandardConfigurationRule::DurationMillis { .. }, ConfigurationValue::U64(value)) => {
+        (KindConfigurationRule::DurationMillis { .. }, ConfigurationValue::U64(value)) => {
             format!("{value}ms")
         }
         (_, ConfigurationValue::Bool(value)) => value.to_string(),
@@ -381,5 +438,8 @@ pub(crate) fn configuration_spelling(
             value.profile().as_str(),
             value.canonical_value().len()
         ),
+        (_, ConfigurationValue::Quantity(value)) => {
+            format!("{}{}", value.value(), value.unit().form_suffix())
+        }
     }
 }

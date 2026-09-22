@@ -47,7 +47,7 @@ fn offer() -> LocalModelOffer {
             LocalModelKindProfile::ExtractValidatedInfo,
             LocalModelKindProfile::EmbedFiniteVector,
             LocalModelKindProfile::InterpretSignEvidence,
-            LocalModelKindProfile::PresentSemanticFace,
+            LocalModelKindProfile::PresentSemanticFront,
         ],
         initialized: true,
         lifecycle: LocalModelLifecycleState::Ready,
@@ -68,9 +68,9 @@ fn initialized_offer_exposes_eight_exact_finite_l0_capabilities() {
     assert_eq!(offers[6].kind_id.as_str(), "llm/interpret");
     assert_eq!(offers[7].kind_id.as_str(), "llm/present");
     for capability in offers {
-        assert_eq!(capability.host_operations.len(), 1);
+        assert_eq!(capability.host_calls.len(), 1);
         assert_eq!(
-            capability.host_operations[0].contract_id.as_str(),
+            capability.host_calls[0].contract_id.as_str(),
             LOCAL_MODEL_OPERATION
         );
         assert_eq!(capability.resource_requirements.len(), 5);
@@ -87,7 +87,14 @@ fn initialized_offer_exposes_eight_exact_finite_l0_capabilities() {
                 })
         }));
         assert_eq!(capability.limits.max_active_instances, 1);
-        assert_eq!(capability.limits.max_queue_items, 4);
+        assert_eq!(
+            capability.limits.max_queue_items,
+            if capability.kind_id.as_str() == "llm/generate-stream" {
+                4
+            } else {
+                1
+            }
+        );
         assert_eq!(capability.limits.max_queue_bytes, 16_384);
         assert!(capability.authority_requirements.is_empty());
         assert_eq!(

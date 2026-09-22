@@ -1,11 +1,11 @@
 //! Portable robotics contracts required by physical hazard and docking Hosts.
 //!
-//! These are semantic catalog definitions, not std simulation offers. A Host
+//! These are semantic catalog definitions, not std simulation offers. A host
 //! may advertise an implementation only after observing the exact mechanism,
 //! resources, freshness, safety boundary, and authority required by that
 //! implementation.
 
-use crate::{StandardKindContract, TerminalBehavior};
+use crate::{KindTerminalBehavior, StandardKindContract};
 use alloc::format;
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
@@ -84,18 +84,18 @@ pub fn robotics_dock_contract() -> StandardKindContract {
             PortDirection::Input,
         )],
         outputs: Vec::new(),
-        configuration: vec![crate::StandardConfigurationField {
+        configuration: vec![crate::KindConfigurationField {
             key: "timeout-ms".to_string(),
             default_value: conduit_core::ConfigurationValue::U64(
                 ROBOTICS_DOCK_DEFAULT_TIMEOUT_MS,
             ),
-            rule: crate::StandardConfigurationRule::U64Range {
+            rule: crate::KindConfigurationRule::U64Range {
                 minimum: ROBOTICS_DOCK_MINIMUM_TIMEOUT_MS,
                 maximum: ROBOTICS_DOCK_MAXIMUM_TIMEOUT_MS,
             },
         }],
         limits: limits(1),
-        terminal_behavior: TerminalBehavior::CompletesAfterDockedRefusedOrDeadline,
+        terminal_behavior: KindTerminalBehavior::CompletesAfterDockedRefusedOrDeadline,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -150,9 +150,9 @@ fn observation_contract(
         summary: summary.to_string(),
         inputs: Vec::new(),
         outputs: vec![current_port(port_name, info, PortDirection::Output)],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: limits(12),
-        terminal_behavior: TerminalBehavior::HostObservationEndsOrFailsSource,
+        terminal_behavior: KindTerminalBehavior::HostObservationEndsOrFailsSource,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -181,7 +181,7 @@ fn limits(maximum_value_bytes: u32) -> CapabilityLimits {
 mod tests {
     use super::*;
     use alloc::collections::BTreeSet;
-    use conduit_core::KindContractRevision;
+    use conduit_core::KindIdentity;
 
     #[test]
     fn portable_contracts_are_exact_distinct_bounded_and_mechanism_free() {
@@ -244,7 +244,7 @@ mod tests {
     fn revisions_are_exact_and_unique() {
         let revisions = robotics_hazard_contracts_with_revisions()
             .into_iter()
-            .map(|(_, revision)| KindContractRevision::from(revision))
+            .map(|(_, revision)| KindIdentity::from(revision))
             .collect::<BTreeSet<_>>();
         assert_eq!(revisions.len(), 5);
     }

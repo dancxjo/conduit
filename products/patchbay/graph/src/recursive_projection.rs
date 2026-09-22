@@ -3,8 +3,7 @@
 use crate::prelude::*;
 
 use conduit_core::{
-    CheckedFace, CheckedFormId, ExpandedFormId, GearId, KindContractRevision, KindId,
-    SourceDocumentId,
+    CheckedFormId, CheckedFront, ExpandedFormId, GearId, KindId, KindIdentity, SourceDocumentId,
 };
 use conduit_form::{CheckedConnection, ExpandedCanonicalForm};
 
@@ -12,11 +11,11 @@ use conduit_form::{CheckedConnection, ExpandedCanonicalForm};
 pub struct RecursiveFormGearProjection {
     pub invocation_path: String,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub source_document_id: SourceDocumentId,
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
-    pub front: CheckedFace,
+    pub front: CheckedFront,
     pub open: bool,
     pub nested_gear_count: u16,
     pub boundary_connections: Vec<CheckedConnection>,
@@ -37,7 +36,7 @@ pub enum RecursiveFormProjectionError {
 pub fn project_recursive_form_gear(
     form: &ExpandedCanonicalForm,
     invocation_path: &str,
-    front: CheckedFace,
+    front: CheckedFront,
     open: bool,
 ) -> Result<RecursiveFormGearProjection, RecursiveFormProjectionError> {
     let back = form

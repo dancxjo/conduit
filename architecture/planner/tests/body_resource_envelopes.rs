@@ -94,7 +94,7 @@ fn ordinary_planning_cannot_exceed_body_allowance_despite_host_capacity() {
         &[envelope.planning_allowances()],
         &observations,
     )
-    .expect("the exact two-unit requirement fits the Body allowance");
+    .expect("the exact two-unit requirement fits the body allowance");
     assert_eq!(plan.fragments[0].placements[0].resources[0].units, 2);
 
     allowances

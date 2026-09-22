@@ -1,12 +1,12 @@
 //! Shared finite table installation for the existing std execution kernel.
 //! Partitions retain their own provenance; this module creates no Plan or Play.
 use super::{
-    InstalledOperation, InstalledScheduler, HOST_BINDING_SLOTS, HOST_OPERATIONS_PER_NODE,
-    MAX_CORDS, MAX_NODES, PORTS, ROUTE_SLOTS, ROUTE_TARGETS,
+    InstalledBack, InstalledScheduler, HOST_BINDING_SLOTS, HOST_CALLS_PER_NODE, MAX_CORDS,
+    MAX_NODES, PORTS, ROUTE_SLOTS, ROUTE_TARGETS,
 };
-use conduit_kernel::scheduler::{CordSpec, NodeSpec, OperationDriver};
+use conduit_kernel::scheduler::{CordSpec, NodeSpec};
 use conduit_kernel::{
-    CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes, HostedSignLog, HostedValueStore,
+    CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
     NodeId, PortId,
 };
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
@@ -17,7 +17,7 @@ pub(super) struct KernelTables {
     nodes: [NodeSpec<PORTS>; MAX_NODES],
     cords: [CordSpec; MAX_CORDS],
     routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
-    host_bindings: FixedHostOperationBindings<HOST_BINDING_SLOTS>,
+    host_bindings: FixedHostCallBindings<HOST_BINDING_SLOTS>,
 }
 
 impl KernelTables {
@@ -27,7 +27,7 @@ impl KernelTables {
             active_cords: 0,
             nodes: [NodeSpec {
                 input_cords: [None; PORTS],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             }; MAX_NODES],
             cords: [CordSpec {
                 cord: CordId(u16::MAX),
@@ -39,7 +39,7 @@ impl KernelTables {
                 pressure_policy: Default::default(),
             }; MAX_CORDS],
             routes: FixedRoutes::new(PORTS as u16),
-            host_bindings: FixedHostOperationBindings::new(HOST_OPERATIONS_PER_NODE),
+            host_bindings: FixedHostCallBindings::new(HOST_CALLS_PER_NODE),
         };
         for partition in partitions {
             if partition.nodes.len() != partition.node_specs.len() {
@@ -77,11 +77,11 @@ impl KernelTables {
                     )
                     .map_err(|error| format!("install std route: {error:?}"))?;
             }
-            for operation in &partition.host_operations {
+            for operation in &partition.host_calls {
                 tables
                     .host_bindings
                     .install(operation.node, operation.binding)
-                    .map_err(|error| format!("install std host operation: {error:?}"))?;
+                    .map_err(|error| format!("install std host-call: {error:?}"))?;
             }
         }
         tables
@@ -91,17 +91,17 @@ impl KernelTables {
         tables
             .host_bindings
             .seal()
-            .map_err(|error| format!("seal std host operations: {error:?}"))?;
+            .map_err(|error| format!("seal std Host Calls: {error:?}"))?;
         Ok(tables)
     }
 
     pub(super) fn install(
         self,
-        drivers: [OperationDriver<InstalledOperation, PORTS>; MAX_NODES],
+        drivers: [InstalledBack; MAX_NODES],
         values: HostedValueStore,
         sign: HostedSignLog,
     ) -> Result<InstalledScheduler, String> {
-        InstalledScheduler::new_with_active_counts_and_host_operations(
+        InstalledScheduler::new_with_active_counts_and_host_calls(
             self.active_nodes,
             self.active_cords,
             self.nodes,

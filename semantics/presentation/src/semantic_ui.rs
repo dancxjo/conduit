@@ -316,7 +316,7 @@ impl From<ApplicationViewRefusal> for SemanticPresentationRefusal {
 }
 
 impl SemanticApplicationView {
-    /// Lowers the semantic vocabulary without consulting a Host, DOM, or
+    /// Lowers the semantic vocabulary without consulting a host, DOM, or
     /// application-global registry. The resulting low-level view performs the
     /// existing finite node/depth/text/action validation.
     pub fn lower(&self) -> Result<ApplicationView, SemanticPresentationRefusal> {

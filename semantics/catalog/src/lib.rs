@@ -1,3 +1,8 @@
+//! Curated assembly and discovery over contracts owned by semantic domain crates.
+//!
+//! Domain meaning belongs with its domain owner. This crate installs those
+//! contracts into authoring catalogs and supplies cross-domain discovery data.
+
 #![no_std]
 
 extern crate alloc;
@@ -5,9 +10,9 @@ extern crate alloc;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, present_host_operation_requirement, resource_requirement,
-    wait_host_operation_requirement, HostOperationRequirement, KindId, ResourceRequirement,
-    PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
+    kind_id, present_host_call_requirement, resource_requirement, wait_host_call_requirement,
+    HostCallRequirement, KindId, ResourceRequirement, PRESENTATION_RESOURCE_CLASS,
+    TIMER_RESOURCE_CLASS,
 };
 
 mod functional_front;
@@ -58,12 +63,20 @@ mod vision_realization;
 pub use vision_realization::*;
 mod vision_experience_catalog;
 pub use vision_experience_catalog::*;
+mod vision_experience_codec;
+pub use vision_experience_codec::*;
+mod vision_experience_motion_prepared;
+pub use vision_experience_motion_prepared::*;
+mod vision_experience_decode;
+pub use vision_experience_decode::*;
 mod vision_local_cv;
 pub use vision_local_cv::*;
 mod vision_continuous_local;
 pub use vision_continuous_local::*;
 mod vision_local_observation;
 pub use vision_local_observation::*;
+mod vision_local_objects;
+pub use vision_local_objects::*;
 #[cfg(feature = "form-catalog")]
 mod vision_catalog;
 #[cfg(feature = "form-catalog")]
@@ -121,6 +134,8 @@ mod browser_human_io;
 pub use browser_human_io::*;
 mod human_media_catalog;
 pub use human_media_catalog::*;
+mod emergency;
+pub use emergency::*;
 #[cfg(feature = "body-coordination-plan")]
 mod body_coordination_plan;
 #[cfg(feature = "body-coordination-plan")]
@@ -248,10 +263,6 @@ mod robotics_hazard;
 pub use robotics_hazard::*;
 mod robotics_input;
 pub use robotics_input::*;
-mod robotics_structured;
-pub use robotics_structured::*;
-mod robotics_structured_realization;
-pub use robotics_structured_realization::*;
 mod navigation;
 pub use navigation::*;
 mod navigation_realization;
@@ -322,12 +333,11 @@ pub const RIGHT_PORT: &str = "right";
 pub const ENABLE_PORT: &str = "enable";
 
 mod contract;
-pub use contract::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
-};
+pub use conduit_core::{KindConfigurationField, KindConfigurationRule, KindTerminalBehavior};
+pub use contract::StandardKindContract;
 
-/// User-facing semantic contracts, including portable Kinds without a currently
-/// installed std implementation. This is discovery truth, not a Host offer.
+/// User-facing semantic contracts, including portable kinds without a currently
+/// installed std implementation. This is discovery truth, not a host offer.
 pub fn palette_contracts() -> Vec<StandardKindContract> {
     let mut contracts = supported_nucleus_contracts();
     contracts.extend(patchbay_presentation_contracts());
@@ -341,38 +351,52 @@ pub fn palette_contracts() -> Vec<StandardKindContract> {
 
 #[cfg(feature = "form-catalog")]
 pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
-    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
+    use conduit_form::{
+        KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog,
+    };
 
     let mut catalog = ProfileCatalog::new();
     for (contract, revision) in supported_nucleus_contracts_with_revisions() {
         catalog
-            .insert(KindDefinition {
-                kind_contract_revision: conduit_core::KindContractRevision::from(revision),
+            .insert(KindProjection {
+                kind_contract_revision: conduit_core::KindIdentity::from(revision),
                 kind_id: contract.kind_id,
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration: contract
                     .configuration
                     .into_iter()
-                    .map(|field| ConfigurationField {
+                    .map(|field| KindConfigurationField {
                         key: field.key,
                         default_value: field.default_value,
-                        validation: match field.rule {
-                            StandardConfigurationRule::Any => ConfigurationRule::Any,
-                            StandardConfigurationRule::U64Range { minimum, maximum } => {
-                                ConfigurationRule::U64Range { minimum, maximum }
+                        rule: match field.rule {
+                            KindConfigurationRule::Any => KindConfigurationRule::Any,
+                            KindConfigurationRule::U64Range { minimum, maximum } => {
+                                KindConfigurationRule::U64Range { minimum, maximum }
                             }
-                            StandardConfigurationRule::I64Range { minimum, maximum } => {
-                                ConfigurationRule::I64Range { minimum, maximum }
+                            KindConfigurationRule::I64Range { minimum, maximum } => {
+                                KindConfigurationRule::I64Range { minimum, maximum }
                             }
-                            StandardConfigurationRule::DurationMillis { minimum, maximum } => {
-                                ConfigurationRule::DurationMillis { minimum, maximum }
+                            KindConfigurationRule::DurationMillis { minimum, maximum } => {
+                                KindConfigurationRule::DurationMillis { minimum, maximum }
                             }
-                            StandardConfigurationRule::TextBytes { maximum } => {
-                                ConfigurationRule::TextBytes { maximum }
+                            KindConfigurationRule::QuantityRange {
+                                minimum,
+                                maximum,
+                                canonical_unit,
+                            } => KindConfigurationRule::QuantityRange {
+                                minimum,
+                                maximum,
+                                canonical_unit,
+                            },
+                            KindConfigurationRule::TextBytes { maximum } => {
+                                KindConfigurationRule::TextBytes { maximum }
                             }
-                            StandardConfigurationRule::TextOneOf { values } => {
-                                ConfigurationRule::TextOneOf { values }
+                            KindConfigurationRule::TextOneOf { values } => {
+                                KindConfigurationRule::TextOneOf { values }
+                            }
+                            KindConfigurationRule::Structured { profile } => {
+                                KindConfigurationRule::Structured { profile }
                             }
                         },
                     })
@@ -383,13 +407,13 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
     catalog
 }
 
-pub fn standard_host_operation_requirements(
-    operation_kind: &KindId,
+pub fn standard_host_call_requirements(
+    back_kind: &KindId,
     maximum_value_bytes: u32,
-) -> Vec<HostOperationRequirement> {
-    match operation_kind.as_str() {
-        PULSE_KIND | TICK_KIND => vec![wait_host_operation_requirement()],
-        SHOW_KIND => vec![present_host_operation_requirement(
+) -> Vec<HostCallRequirement> {
+    match back_kind.as_str() {
+        PULSE_KIND | TICK_KIND => vec![wait_host_call_requirement()],
+        SHOW_KIND => vec![present_host_call_requirement(
             kind_id("presentation/stdout"),
             maximum_value_bytes,
         )],
@@ -473,24 +497,24 @@ mod supported_nucleus_tests {
     }
 }
 
-#[cfg(feature = "kernel-operation")]
-mod pattern_comparison_operation;
-#[cfg(feature = "kernel-operation")]
-pub use pattern_comparison_operation::PatternComparisonOperation;
+#[cfg(feature = "kernel-step")]
+mod pattern_comparison_back;
+#[cfg(feature = "kernel-step")]
+pub use pattern_comparison_back::PatternComparisonBack;
 
-#[cfg(feature = "kernel-operation")]
-mod template_storage_operation;
-#[cfg(feature = "kernel-operation")]
-pub use template_storage_operation::TemplateStorageOperation;
+#[cfg(feature = "kernel-step")]
+mod template_storage_back;
+#[cfg(feature = "kernel-step")]
+pub use template_storage_back::TemplateStorageBack;
 #[cfg(feature = "form-catalog")]
 mod template_store;
 #[cfg(feature = "form-catalog")]
 pub use template_store::{BoundedTemplateStore, TemplateStoreRefusal};
-#[cfg(feature = "kernel-operation")]
-mod final_pattern_operation;
-#[cfg(feature = "kernel-operation")]
-pub use final_pattern_operation::FinalNormalizedPatternOperation;
-#[cfg(feature = "kernel-operation")]
-mod structured_selector_operation;
-#[cfg(feature = "kernel-operation")]
-pub use structured_selector_operation::StructuredSelectorOperation;
+#[cfg(feature = "kernel-step")]
+mod final_pattern_back;
+#[cfg(feature = "kernel-step")]
+pub use final_pattern_back::FinalNormalizedPatternBack;
+#[cfg(feature = "kernel-step")]
+mod structured_selector_back;
+#[cfg(feature = "kernel-step")]
+pub use structured_selector_back::StructuredSelectorBack;

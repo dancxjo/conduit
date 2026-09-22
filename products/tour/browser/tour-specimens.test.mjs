@@ -31,8 +31,8 @@ test("two uses of one canonical Form share identity across presentation modes", 
 });
 
 test("lesson-local conceptual state is explicit and finite", () => {
-  assert.deepEqual(conceptualTourStage("The Body", "body-continuity"), {
-    identity: "tour-companion:body-continuity", label: "The Body", mode: "conceptual",
+  assert.deepEqual(conceptualTourStage("The body", "body-continuity"), {
+    identity: "tour-companion:body-continuity", label: "The body", mode: "conceptual",
   });
 });
 
@@ -43,15 +43,15 @@ route: a-form
 companion: form-laboratory
 stage: canonical-form:hello|run
 ---
-# A Form
+# A form
 
 \`\`\`conduit run
 form hello {}
 \`\`\``;
   assert.deepEqual(parseTourPages([source])[0], {
-    identity: "first-form", route: "a-form", companion: "form-laboratory", title: "A Form",
+    identity: "first-form", route: "a-form", companion: "form-laboratory", title: "A form",
     stages: [{ identity: "canonical-form:hello", mode: "run" }],
-    markdown: "# A Form\n\n```conduit run\nform hello {}\n```",
+    markdown: "# A form\n\n```conduit run\nform hello {}\n```",
   });
   assert.throws(() => parseTourPages(["# Accidental topology"]), /metadata is missing/);
   assert.throws(() => parseTourPages([source, source]), /duplicated/);
@@ -81,7 +81,7 @@ form hello {}
   ]);
   assert.equal(model.blocks[2].stage.identity, "canonical-form:hello");
   assert.equal(model.blocks[2].stage.mode, "run");
-  assert.equal(model.blocks[3].label, "Admit a first Host in the Crèche");
+  assert.equal(model.blocks[3].label, "Admit a first host in the Crèche");
   assert.equal("plan_id" in model.blocks[2].stage, false);
   assert.equal("play_id" in model.blocks[2].stage, false);
   assert.equal("authority" in model.blocks[2].stage, false);

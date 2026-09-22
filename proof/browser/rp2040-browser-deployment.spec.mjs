@@ -272,7 +272,7 @@ test("target-owned fabrication returns exact attributable bytes through two loca
   expect(result.oversized.code).toBe("ConfigurationBound");
 });
 
-test("one reviewed IMAGE yields distinct directly plantable Body-bound UF2 spores", async ({ page }) => {
+test("one reviewed IMAGE yields distinct directly plantable body-bound UF2 spores", async ({ page }) => {
   await page.goto(`${await startEntrance()}creche/`);
   const result = await page.evaluate(async () => {
     const {
@@ -564,7 +564,7 @@ test("exact RP2040 UF2 deploys through one finite WebUSB Base without runtime pr
     admitted_in_transfers: 12,
     admitted_out_transfers: 8,
     use_plan_id: "rp2040-deployment-plan/one",
-    configuration: { interfront_number: 1, in_endpoint: 4, out_endpoint: 3 },
+    configuration: { interface_number: 1, in_endpoint: 4, out_endpoint: 3 },
   });
   expect(result.terminalBase).toMatchObject({ phase: "terminal", terminal: "DeviceLost" });
   expect(result.resourceEvidence).toMatchObject({

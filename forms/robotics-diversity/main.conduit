@@ -1,4 +1,4 @@
-# Deterministic structured robotics values. This Form does not actuate.
+# Deterministic structured robotics values. This form does not actuate.
 form robotics-diversity (
     contact: RoboticsContactEvent >
     motion: RoboticsMotionRequest >

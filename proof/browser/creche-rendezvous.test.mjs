@@ -1,8 +1,195 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { connectRendezvousHost, decodeRendezvousCode } from "../../products/creche/browser/creche-rendezvous.mjs";
+import { readFileSync } from "node:fs";
+import {
+  connectRendezvousHost,
+  decodeRendezvousCode,
+  openRemoteRendezvousCandidates,
+} from "../../products/creche/browser/creche-rendezvous.mjs";
+import { decodeRendezvousCoseSign1, decodeRendezvousManifestation } from "../../products/creche/browser/rendezvous-cbor.mjs";
+import {
+  adaptBrowserDataChannelLine,
+  adaptProtectedRelayLine,
+} from "../../products/creche/browser/rendezvous-candidate-schedule.mjs";
 
-test("running Host rendezvous code resolves one authenticated loopback WebSocket Line", () => {
+test("browser decodes the exact canonical Rust and ConduitOS rendezvous vector", () => {
+  const hex = readFileSync(new URL("../../architecture/body/schemas/running-host-rendezvous-v1.hex", import.meta.url), "utf8").trim();
+  const envelope = `conduit-rendezvous-v1:${Buffer.from(hex, "hex").toString("base64url")}`;
+  const decoded = decodeRendezvousManifestation(envelope, 1_700_000_000_000);
+  assert.equal(decoded.schema, "conduit.host/rendezvous-cbor@1");
+  assert.deepEqual(decoded.candidates.map(({ candidate_id }) => candidate_id),
+    ["candidate/direct", "candidate/relay"]);
+  assert.deepEqual([...decoded.session_secret], new Array(32).fill(0x55));
+});
+
+test("browser decodes the shared bounded WebRTC candidate without retaining signaling", () => {
+  const candidate = new Map([
+    [0, "candidate/webrtc"],
+    [1, 4],
+    [2, "webrtc-bootstrap:operator/negotiation-7"],
+    [3, new Map([[0, "host/peer/key-7"], [1, new Uint8Array(32).fill(0xef)]])],
+    [4, Date.now() + 30_000],
+    [5, 1],
+    [6, 10_000],
+  ]);
+  const decoded = decodeRendezvousManifestation(
+    `conduit-rendezvous-v1:${Buffer.from(encodeCanonicalCbor(new Map([
+      [0, 1], [1, [candidate]], [2, new Uint8Array(32).fill(0xcd)],
+    ]))).toString("base64url")}`,
+  );
+  assert.equal(decoded.candidates[0].line_family, "web-rtc-data-channel");
+  assert.equal(decoded.candidates[0].reachability, "webrtc-bootstrap:operator/negotiation-7");
+  assert.equal("sdp" in decoded.candidates[0], false);
+  assert.equal("ice_credentials" in decoded.candidates[0], false);
+});
+
+test("browser records ordered direct failure before WebRTC selection", async () => {
+  const line = Object.freeze({
+    sendBytes() {},
+    async receiveBytes() { return new Uint8Array([1]); },
+    async close() {},
+    closed: Promise.resolve(),
+  });
+  const candidates = [
+    Object.freeze({
+      supported: true,
+      candidate_id: "candidate/direct",
+      carrier: "websocket",
+      line_id: "conduit-line/authenticated-tls-stream@1",
+      url: "wss://direct.test/conduit",
+      expires_at_millis: 2_000,
+      maximum_attempts: 1,
+      attempt_timeout_millis: 100,
+    }),
+    Object.freeze({
+      supported: true,
+      candidate_id: "candidate/webrtc",
+      carrier: "webrtc",
+      line_id: "conduit-line/webrtc-data-channel@1",
+      reachability: "webrtc-bootstrap:operator/negotiation-7",
+      expires_at_millis: 2_000,
+      maximum_attempts: 1,
+      attempt_timeout_millis: 100,
+    }),
+    Object.freeze({
+      supported: true,
+      candidate_id: "candidate/relay",
+      carrier: "relay",
+      line_id: "conduit-line/authenticated-conduit@1",
+      reachability: "relay:operator/route-7",
+      expires_at_millis: 2_000,
+      maximum_attempts: 1,
+      attempt_timeout_millis: 100,
+    }),
+  ];
+  class RefusingWebSocket {
+    constructor() { throw new Error("direct route unavailable"); }
+  }
+  let relayOpened = false;
+  const opened = await openRemoteRendezvousCandidates({ candidates }, {
+    WebSocketClass: RefusingWebSocket,
+    openWebRtcLine: async () => line,
+    openRelayLine: async () => { relayOpened = true; return line; },
+    now: () => 1_000,
+  });
+  assert.equal(opened.selected.candidate_id, "candidate/webrtc");
+  assert.equal(relayOpened, false);
+  assert.deepEqual(opened.evidence, [
+    { candidate_id: "candidate/direct", attempt: 1, timeout_millis: 100, outcome: "route-unavailable" },
+    { candidate_id: "candidate/webrtc", attempt: 1, timeout_millis: 100, outcome: "connected" },
+  ]);
+  assert.equal(JSON.stringify(opened.evidence).includes("negotiation-7"), false);
+});
+
+test("browser records direct and WebRTC failure before protected relay fallback", async () => {
+  const line = Object.freeze({
+    sendBytes() {}, async receiveBytes() { return new Uint8Array([1]); }, async close() {},
+  });
+  const candidate = (candidateId, carrier, lineId) => Object.freeze({
+    supported: true,
+    candidate_id: candidateId,
+    carrier,
+    line_id: lineId,
+    url: carrier === "websocket" ? "wss://direct.test/conduit" : undefined,
+    reachability: carrier === "webrtc" ? "webrtc-bootstrap:operator/negotiation-7"
+      : carrier === "relay" ? "relay:operator/route-7" : undefined,
+    expires_at_millis: 2_000,
+    maximum_attempts: 1,
+    attempt_timeout_millis: 100,
+  });
+  class RefusingWebSocket { constructor() { throw new Error("direct unavailable"); } }
+  const opened = await openRemoteRendezvousCandidates({ candidates: [
+    candidate("candidate/direct", "websocket", "conduit-line/authenticated-tls-stream@1"),
+    candidate("candidate/webrtc", "webrtc", "conduit-line/webrtc-data-channel@1"),
+    candidate("candidate/relay", "relay", "conduit-line/authenticated-conduit@1"),
+  ] }, {
+    WebSocketClass: RefusingWebSocket,
+    openWebRtcLine: async () => { throw new Error("ICE exhausted"); },
+    openRelayLine: async () => line,
+    now: () => 1_000,
+  });
+  assert.equal(opened.selected.candidate_id, "candidate/relay");
+  assert.deepEqual(opened.evidence.map(({ candidate_id, outcome }) => [candidate_id, outcome]), [
+    ["candidate/direct", "route-unavailable"],
+    ["candidate/webrtc", "route-unavailable"],
+    ["candidate/relay", "connected"],
+  ]);
+});
+
+test("candidate adapters reuse bounded WebRTC and protected-relay Line APIs", async () => {
+  const received = new Uint8Array([4, 5, 6]);
+  const sent = [];
+  let dataChannelClosed = false;
+  const webrtc = await adaptBrowserDataChannelLine({
+    async open() {},
+    async writable(length) { assert.equal(length, 3); },
+    send(bytes) { sent.push([...bytes]); return { accepted: true }; },
+    async receive() { return { ok: true, bytes: received }; },
+    close() { dataChannelClosed = true; },
+    closed() { return Promise.resolve({ ok: false, reason: "closed" }); },
+  });
+  await webrtc.sendBytes(new Uint8Array([1, 2, 3]));
+  assert.deepEqual(await webrtc.receiveBytes(), received);
+  await webrtc.close();
+  assert.deepEqual(sent, [[1, 2, 3]]);
+  assert.equal(dataChannelClosed, true);
+
+  let relayClosed = false;
+  const relay = adaptProtectedRelayLine({
+    async sendSessionFrame(bytes) { sent.push([...bytes]); },
+    async receiveSessionFrame() { return received; },
+    close() { relayClosed = true; },
+  });
+  await relay.sendBytes(new Uint8Array([7, 8, 9]));
+  assert.deepEqual(await relay.receiveBytes(), received);
+  await relay.close();
+  assert.equal(relayClosed, true);
+});
+test("browser verifies the exact RFC 9052 Sign1 vector under caller-owned policy", async () => {
+  const hex = readFileSync(new URL("../../architecture/body/schemas/running-host-rendezvous-sign1-v1.hex", import.meta.url), "utf8").trim();
+  const publicKey = await crypto.subtle.importKey("raw",
+    Buffer.from("ee45ecb9aca01a0abd83ef56dd985c8c874e6e7f4aebcedf20bd8d88c2a0add7", "hex"),
+    "Ed25519", false, ["verify"]);
+  const verified = await decodeRendezvousCoseSign1(Buffer.from(hex, "hex"), async ({
+    keyId, sigStructure, signature,
+  }) => {
+    assert.equal(new TextDecoder().decode(keyId), "operator-signing-key-1");
+    return await crypto.subtle.verify("Ed25519", publicKey, signature, sigStructure)
+      ? "configured test operator" : null;
+  }, 1_700_000_000_000);
+  assert.equal(verified.schema, "conduit.host/rendezvous-cose-sign1@1");
+  assert.equal(verified.attribution, "configured test operator");
+  assert.equal(verified.descriptor.candidates[0].candidate_id, "candidate/relay");
+
+  const altered = Buffer.from(hex, "hex");
+  altered[altered.length - 1] ^= 1;
+  await assert.rejects(() => decodeRendezvousCoseSign1(altered, async ({
+    sigStructure, signature,
+  }) => await crypto.subtle.verify("Ed25519", publicKey, signature, sigStructure),
+  1_700_000_000_000), /invalid rendezvous COSE/);
+});
+
+test("running host rendezvous code resolves one authenticated loopback WebSocket Line", () => {
   const code = `C1-WS-104D-${"AB".repeat(32)}`;
   const decoded = decodeRendezvousCode(code.toLowerCase());
   assert.equal(decoded.url, "ws://127.0.0.1:4173/conduit");
@@ -24,35 +211,107 @@ test("serial rendezvous code selects the browser-attended serial Line", () => {
 });
 
 test("finite secure LAN descriptor selects the authenticated TLS Line", () => {
-  const descriptor = JSON.stringify({
-    schema: "conduit.host/rendezvous-descriptor@1",
-    candidates: [{
-      candidate_id: "candidate/secure-lan",
-      line_family: "authenticated-tls-stream",
-      reachability: "wss://conduit-host.test:7443/conduit",
-      authentication: {
-        server_identity: "conduit-host.test",
-        transport_binding_sha256: new Array(32).fill(0xab),
-      },
-      expires_at_millis: Date.now() + 30_000,
-      maximum_attempts: 1,
-      attempt_timeout_millis: 10_000,
-    }],
-    session_secret: new Array(32).fill(0xcd),
-  });
+  const descriptor = secureDescriptor();
   const decoded = decodeRendezvousCode(descriptor);
   assert.equal(decoded.url, "wss://conduit-host.test:7443/conduit");
   assert.equal(decoded.line_id, "conduit-line/authenticated-tls-stream@1");
   assert.equal(decoded.maximum_attempts, 1);
   assert.equal(decoded.transport_binding_sha256, "ab".repeat(32));
 
-  const stale = JSON.parse(descriptor);
-  stale.candidates[0].expires_at_millis = Date.now() - 1;
-  assert.throws(() => decodeRendezvousCode(JSON.stringify(stale)), { code: "InvalidDescriptor" });
-  const relabelled = JSON.parse(descriptor);
-  relabelled.candidates[0].reachability = "ws://conduit-host.test:7443/conduit";
-  assert.throws(() => decodeRendezvousCode(JSON.stringify(relabelled)), { code: "InvalidDescriptor" });
+  assert.throws(() => decodeRendezvousCode(secureDescriptor({ expiresAt: Date.now() - 1 })),
+    { code: "InvalidDescriptor" });
+  assert.throws(() => decodeRendezvousCode(secureDescriptor({ scheme: "ws" })),
+    { code: "InvalidDescriptor" });
+  assert.throws(() => decodeRendezvousCode(`conduit-rendezvous-v1:${descriptor.split(":")[1]}A`),
+    { code: "InvalidDescriptor" });
 });
+
+test("shared WebRTC candidate carries the unchanged running-Host admission session", async () => {
+  const line = new FakeRendezvousLine("conduit-line/webrtc-data-channel@1");
+  const session = await connectRendezvousHost(webRtcDescriptor(), {
+    openWebRtcLine: async () => line,
+  });
+  assert.equal(session.line_id, "conduit-line/webrtc-data-channel@1");
+  assert.deepEqual(session.rendezvous_attempts.map(({ candidate_id, outcome }) => [
+    candidate_id, outcome,
+  ]), [["candidate/webrtc", "connected"]]);
+  const prepared = {
+    spore_id: "spore/webrtc", image_id: "image/webrtc",
+    invitation_id: "invitation/webrtc", body_id: "body/webrtc",
+    invitation_nonce: new Array(32).fill(23),
+    invitation_secret: new Array(32).fill(31),
+    invitation_expires_at_millis: Date.now() + 60_000,
+  };
+  const join = await session.invite(prepared);
+  assert.equal(join.spore_id, "spore/webrtc");
+  assert.equal(join.signature.length, 64);
+  assert.equal(line.closed, true);
+});
+
+function secureDescriptor({ expiresAt = Date.now() + 30_000, scheme = "wss" } = {}) {
+  const candidate = new Map([
+    [0, "candidate/secure-lan"],
+    [1, 0],
+    [2, `${scheme}://conduit-host.test:7443/conduit`],
+    [3, new Map([[0, "conduit-host.test"], [1, new Uint8Array(32).fill(0xab)]])],
+    [4, expiresAt],
+    [5, 1],
+    [6, 10_000],
+  ]);
+  const bytes = encodeCanonicalCbor(new Map([
+    [0, 1], [1, [candidate]], [2, new Uint8Array(32).fill(0xcd)],
+  ]));
+  return `conduit-rendezvous-v1:${Buffer.from(bytes).toString("base64url")}`;
+}
+
+function webRtcDescriptor(expiresAt = Date.now() + 30_000) {
+  const candidate = new Map([
+    [0, "candidate/webrtc"],
+    [1, 4],
+    [2, "webrtc-bootstrap:operator/negotiation-7"],
+    [3, new Map([[0, "host/peer/key-7"], [1, new Uint8Array(32).fill(0xef)]])],
+    [4, expiresAt],
+    [5, 1],
+    [6, 10_000],
+  ]);
+  const bytes = encodeCanonicalCbor(new Map([
+    [0, 1], [1, [candidate]], [2, new Uint8Array(32).fill(0xcd)],
+  ]));
+  return `conduit-rendezvous-v1:${Buffer.from(bytes).toString("base64url")}`;
+}
+
+function encodeCanonicalCbor(value) {
+  if (Number.isSafeInteger(value)) return encodeCborHead(0, value);
+  if (typeof value === "string") {
+    const bytes = new TextEncoder().encode(value);
+    return concat(encodeCborHead(3, bytes.length), bytes);
+  }
+  if (value instanceof Uint8Array) return concat(encodeCborHead(2, value.length), value);
+  if (Array.isArray(value)) return concat(encodeCborHead(4, value.length), ...value.map(encodeCanonicalCbor));
+  if (value instanceof Map) return concat(encodeCborHead(5, value.size),
+    ...[...value].flatMap(([key, item]) => [encodeCanonicalCbor(key), encodeCanonicalCbor(item)]));
+  throw new TypeError("unsupported test CBOR value");
+}
+
+function encodeCborHead(major, value) {
+  if (value < 24) return Uint8Array.of(major << 5 | value);
+  const size = value <= 0xff ? 1 : value <= 0xffff ? 2 : value <= 0xffff_ffff ? 4 : 8;
+  const result = new Uint8Array(1 + size);
+  result[0] = major << 5 | ({ 1: 24, 2: 25, 4: 26, 8: 27 })[size];
+  let remaining = value;
+  for (let index = size; index > 0; index -= 1) {
+    result[index] = remaining % 256;
+    remaining = Math.floor(remaining / 256);
+  }
+  return result;
+}
+
+function concat(...parts) {
+  const result = new Uint8Array(parts.reduce((length, part) => length + part.length, 0));
+  let offset = 0;
+  for (const part of parts) { result.set(part, offset); offset += part.length; }
+  return result;
+}
 
 test("one code carries a current advertisement and exactly one invitation proof", async () => {
   const code = `C1-WS-104D-${"AB".repeat(32)}`;
@@ -96,6 +355,22 @@ test("Workspace may retain the authenticated joined Line until explicit close", 
   assert.equal(retained.body_id, credential.body_id);
   assert.equal(retained.part_id, credential.part_id);
   await assert.rejects(() => join.line.retainMembership(credential), { code: "Replay" });
+  const realization = {
+    host_id: "host/test", boot_id: "boot/test", offer_generation: 1,
+    capability_id: "capability/model/generate", implementation_id: "std/local-model@1",
+    artifact_id: "model/sha256-fixture", member_capacity: 1,
+    resources: [{
+      pool_id: "std/local-model-inference-slots", class_id: "ai/local-model-inference-slot",
+      units: 1,
+    }],
+  };
+  const observation = await join.line.observeLocalModelPool(realization);
+  assert.equal(observation.health, "Ready");
+  assert.equal(observation.host_id, realization.host_id);
+  assert.equal(observation.resources[0].unreserved_units, 1);
+  await assert.rejects(() => join.line.observeLocalModelPool({
+    ...realization, boot_id: "boot/stale",
+  }), { code: "PoolRealization" });
   await assert.rejects(() => join.line.prepareRemote({ plan_id: "plan/too-early" }), { code: "BodyContextAbsent" });
   const context = {
     schema: "conduit.body/conversation-context-value@2",
@@ -114,6 +389,23 @@ test("Workspace may retain the authenticated joined Line until explicit close", 
   const installed = await join.line.installBodyContext(context);
   assert.equal(installed.body_id, context.body_id);
   assert.equal(installed.basis_revision, context.basis.revision);
+  await assert.rejects(() => join.line.preparePoolMember({
+    plan: { plan_id: "plan/retained" },
+    selection: { plan_id: "plan/retained", disposition: "CapacityRefused" },
+    consumerPlacementId: "placement/client",
+  }), { code: "PoolMemberSelection" });
+  const poolPrepared = await join.line.preparePoolMember({
+    plan: { plan_id: "plan/pool" },
+    selection: {
+      plan_id: "plan/pool", pool_id: "pool/workers", operation_id: "request/1",
+      selected_realization: 0, observation_sign_ids: ["sign/provider/1"],
+      disposition: "Selected", sign_id: "sign/selection/1",
+    },
+    consumerPlacementId: "placement/client",
+  });
+  assert.equal(poolPrepared.identity.plan_id, "plan/pool");
+  assert.equal(FakeWebSocket.last.sent.at(-1).kind, "prepare-pool-member");
+  await join.line.releaseRemote();
   const remote = await join.line.prepareRemote({ plan_id: "plan/retained" });
   assert.equal(remote.identity.host_id, "host/test");
   assert.equal(remote.identity.boot_id, "boot/test");
@@ -187,7 +479,23 @@ class FakeWebSocket extends EventTarget {
     } : request.kind === "body-context" ? {
       kind: "body-context-installed", protocol: 1,
       body_id: request.context.body_id, basis_revision: request.context.basis.revision,
-    } : request.kind === "prepare-remote" ? {
+    } : request.kind === "observe-local-model-pool" ? {
+      kind: "local-model-pool-observed", protocol: 1,
+      observation: {
+        host_id: request.realization.host_id, boot_id: request.realization.boot_id,
+        offer_generation: request.realization.offer_generation,
+        capability_id: request.realization.capability_id,
+        implementation_id: request.realization.implementation_id,
+        artifact_id: request.realization.artifact_id,
+        health: "Ready", sign_id: "sign/provider/current",
+        resources: request.realization.resources.map((binding, index) => ({
+          host_id: request.realization.host_id, boot_id: request.realization.boot_id,
+          offer_generation: request.realization.offer_generation,
+          pool_id: binding.pool_id, class_id: binding.class_id, health: "Ready",
+          unreserved_units: 1, utilized_units: 0, sign_id: `sign/resource/${index}`,
+        })),
+      },
+    } : request.kind === "prepare-remote" || request.kind === "prepare-pool-member" ? {
       kind: "remote-prepared", protocol: 1,
       identity: {
         host_id: advertisement.host_id, boot_id: advertisement.boot_id,
@@ -210,6 +518,38 @@ class FakeWebSocket extends EventTarget {
     this.readyState = 3;
     this.dispatchEvent(new Event("close"));
   }
+}
+
+class FakeRendezvousLine {
+  constructor(lineId) {
+    this.lineId = lineId;
+    this.responses = [];
+    this.waiter = null;
+    this.closed = false;
+  }
+  async sendBytes(bytes) {
+    const request = JSON.parse(new TextDecoder().decode(bytes));
+    if (request.kind === "close") { this.closed = true; return; }
+    const advertisement = { host_id: "host/webrtc", boot_id: "boot/webrtc", offer_generation: 1 };
+    const response = request.kind === "hello" ? {
+      kind: "host", protocol: 1, friendly_label: "This running computer",
+      target_id: "std/x86_64/computer", image_content_digest: `sha256:${"3".repeat(64)}`,
+      advertisement, lines: [this.lineId],
+    } : {
+      kind: "join", protocol: 1, spore_id: request.spore_id, image_id: request.image_id,
+      advertisement, invitation_id: request.claim.invitation_id, body_id: request.claim.body_id,
+      host_id: advertisement.host_id, boot_id: advertisement.boot_id, nonce: request.claim.nonce,
+      signature: new Array(64).fill(9), observed_at_millis: Date.now(),
+    };
+    const encoded = new TextEncoder().encode(JSON.stringify(response));
+    if (this.waiter) { const waiter = this.waiter; this.waiter = null; waiter(encoded); }
+    else this.responses.push(encoded);
+  }
+  async receiveBytes() {
+    if (this.responses.length) return this.responses.shift();
+    return await new Promise((resolve) => { this.waiter = resolve; });
+  }
+  async close() { this.closed = true; }
 }
 
 class FakeSerialPort {

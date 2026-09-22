@@ -48,14 +48,14 @@ pub(super) fn complete_clock(
         .transpose()?;
     let result = scheduler
         .kernel
-        .complete_host_operation(
+        .complete_host_call(
             pending.request.node,
             pending.request.request,
-            HostOperationOutcome {
+            HostCallOutcome {
                 disposition: if failure.is_some() {
-                    HostOperationDisposition::Failed
+                    HostCallDisposition::Failed
                 } else {
-                    HostOperationDisposition::Completed
+                    HostCallDisposition::Completed
                 },
                 output: value
                     .map(|value| BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32))

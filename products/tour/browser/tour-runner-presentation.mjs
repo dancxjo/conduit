@@ -51,7 +51,7 @@ export function createTourRunnerField(presentation, slot, listingId, label, sour
       { parent: 1, component: "field-label", key: "source-label", text: label, action: null },
       {
         parent: 1, component: "field-help", key: "source-help",
-        text: "Editing checks this Form without starting a Play.", action: null,
+        text: "Editing checks this form without starting a play.", action: null,
       },
     ],
   }, {
@@ -63,9 +63,9 @@ export function createTourRunnerField(presentation, slot, listingId, label, sour
 }
 
 const RUN_IDENTITIES = Object.freeze([
-  ["source_document_id", "Source document"], ["checked_form_id", "Checked Form"],
+  ["source_document_id", "Source document"], ["checked_form_id", "Checked form"],
   ["expanded_form_id", "Expanded Form"], ["plan_id", "Plan"],
-  ["fragment_id", "Plan fragment"], ["active_play_id", "Active Play"],
+  ["fragment_id", "Plan fragment"], ["active_play_id", "Active play"],
   ["presentation_id", "Presentation"], ["placement_id", "Placement"],
   ["host_id", "Host"], ["boot_id", "Boot"],
 ]);
@@ -91,9 +91,9 @@ export function createTourEvidenceTables(presentation, exactSlot, runSlot) {
   let runEntries = [];
   return Object.freeze({
     projection(projection) {
-      presentDefinitions(presentation, exactSlot, ++exactRevision, "Checked Form identities", "projection", [
+      presentDefinitions(presentation, exactSlot, ++exactRevision, "Checked form identities", "projection", [
         ["Source", projection.source_document_id],
-        ["Checked Form", projection.checked_form_id],
+        ["Checked form", projection.checked_form_id],
         ["Visible expansion", projection.visible_expanded_form_id || "not available — source is invalid"],
         ["Realization expansion", projection.realization_expanded_form_id || "not available — source is invalid"],
         ["Realization", projection.realization],
@@ -132,7 +132,7 @@ export function createTourPlanPresentation(presentation, slot) {
       if (!Array.isArray(plan.hosts) || plan.hosts.length === 0 || plan.hosts.length > MAXIMUM_PROJECTED_HOSTS
         || plan.hosts.some((host) => !Array.isArray(host.gears)
           || host.gears.length === 0 || host.gears.length > MAXIMUM_GEARS_PER_HOST)) {
-        throw new Error("Tour Plan projection exceeds its admitted Host or Gear bound");
+        throw new Error("Tour Plan projection exceeds its admitted host or Gear bound");
       }
       const rawPlan = JSON.stringify(plan.raw_plan, null, 2);
       if (new TextEncoder().encode(rawPlan).length > MAXIMUM_RAW_PLAN_BYTES) {
@@ -149,7 +149,7 @@ export function createTourPlanPresentation(presentation, slot) {
         const card = nodes.length;
         nodes.push({
           parent: 3, component: "artifact", key: `host-${hostIndex}`,
-          text: `${projected.label} · one Play`, action: null,
+          text: `${projected.label} · one play`, action: null,
         });
         nodes.push({
           parent: card, component: "code", key: `host-${hostIndex}-identity`,
@@ -158,7 +158,7 @@ export function createTourPlanPresentation(presentation, slot) {
         const gears = nodes.length;
         nodes.push({
           parent: card, component: "definition-table", key: `host-${hostIndex}-gears`,
-          text: `${projected.label} selected Gears`, action: null,
+          text: `${projected.label} selected gears`, action: null,
         });
         for (const [gearIndex, gear] of projected.gears.entries()) {
           nodes.push({

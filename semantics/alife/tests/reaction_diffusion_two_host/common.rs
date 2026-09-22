@@ -8,12 +8,12 @@ use conduit_alife::{
 use conduit_core::{
     kind_id, port_id, process_owned_line_offer_with_limits, ArtifactId, BaseImplementationId,
     BootId, CapabilityId, CapabilityLimits, CapabilityOffer, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, ImplementationOffer, KindContractRevision, LinkLimits,
+    HostProfileId, ImplementationId, ImplementationOffer, Kind, KindIdentity, LinkLimits,
     OfferGeneration, PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_with_backs, parse_syntax_document,
-    CanonicalBackCatalog, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -136,11 +136,11 @@ pub fn distributed_plan() -> (conduit_form::ExpandedCanonicalForm, conduit_core:
     (expanded, plan)
 }
 
-fn catalogs() -> (StartupCatalog, ProfileCatalog, KindDefinition) {
+fn catalogs() -> (StartupCatalog, ProfileCatalog, Kind) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_alife::install_reaction_diffusion_catalogs(&mut startup, &mut profile).unwrap();
-    let field = profile.get(&kind_id(FIELD)).unwrap().clone();
+    let field = profile.canonical_kind(&kind_id(FIELD)).unwrap().clone();
     let definitions = [
         definition(PREPARE, &[STATE, REQUEST], &[WORK, BOUNDARY]),
         definition(WORKER, &[WORK, BOUNDARY], &[RESULT]),
@@ -158,10 +158,10 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog, KindDefinition) {
     (startup, profile, field)
 }
 
-fn definition(kind: &str, inputs: &[&str], outputs: &[&str]) -> KindDefinition {
-    KindDefinition {
+fn definition(kind: &str, inputs: &[&str], outputs: &[&str]) -> KindProjection {
+    KindProjection {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: inputs
             .iter()
             .enumerate()
@@ -215,6 +215,7 @@ fn host(name: &str, kinds: &[&str], profile: &ProfileCatalog) -> HostAdvertiseme
         boot_id: BootId::from(format!("boot/{name}")),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(format!("std/a2-{name}@1")),
+        bases: vec![],
         resources: vec![],
         capabilities: kinds
             .iter()
@@ -235,7 +236,7 @@ fn host(name: &str, kinds: &[&str], profile: &ProfileCatalog) -> HostAdvertiseme
                         implementation_id: ImplementationId::from(format!("std/{name}/{kind}@1")),
                         artifact_id: ArtifactId::from(format!("std/a2-{name}-image@1")),
                     },
-                    host_operations: vec![],
+                    host_calls: vec![],
                     resource_requirements: vec![],
                     authority_requirements: vec![],
                     limits: CapabilityLimits {

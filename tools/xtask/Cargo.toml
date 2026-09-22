@@ -45,6 +45,7 @@ conduit-form = { path = "../../architecture/form" }
 conduit-host-fabrication = { path = "../../fabrication/host" }
 conduit-embedded-build = { path = "../../fabrication/embedded-build" }
 conduit-workspace-fabrication = { path = "../../fabrication/workspace" }
+conduit-workspace-model = { path = "../../products/workspace/model" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-midi = { path = "../../mechanisms/protocols/midi" }
 conduit-semantic-catalog = { path = "../../semantics/catalog", features = ["body-coordination-plan"] }
@@ -54,6 +55,8 @@ conduit-text = { path = "../../semantics/text" }
 conduitos = { path = "../../targets/conduitos", features = ["hosted-tools"] }
 conduit-net = { path = "../../semantics/net", features = ["form-catalog"] }
 conduit-data = { path = "../../semantics/data" }
+conduit-finance = { path = "../../semantics/finance" }
+conduit-little-seismograph-fixture = { path = "../../forms/little-seismograph/fixture" }
 conduit-language = { path = "../../semantics/language" }
 conduit-tongues = { path = "../../semantics/tongues" }
 conduit-web = { path = "../../semantics/web", default-features = false, features = ["form-catalog"] }

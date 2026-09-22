@@ -54,7 +54,7 @@ impl PatchbayHtmlServer {
             return Err(ServerError::InvalidRequest);
         }
         if matches!(request.action, ExecutionAction::Claim { .. }) {
-            // Check current workload and admitted Host/Boot/offer generation at
+            // Check current workload and admitted host/Boot/offer generation at
             // the mutation boundary, not merely when the proposal was fetched.
             self.body_execution_proposal()?;
         }

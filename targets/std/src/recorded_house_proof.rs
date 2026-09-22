@@ -1,4 +1,4 @@
-//! Recorded speech through address-gated House generation in one ordinary Plan/Play.
+//! Recorded speech through address-gated House generation in one ordinary plan/Play.
 
 use crate::hosted_local_model::{HostedLocalModelAdapter, LocalModelAdapterTerminal};
 use crate::hosted_microphone::{AlsaMicrophoneAdapter, MicrophoneCaptureReceipt};

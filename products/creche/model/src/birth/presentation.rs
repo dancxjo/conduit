@@ -46,7 +46,7 @@ impl BirthDraft {
             PresentationMechanism::Status {
                 kind: StatusKind::Ordinary,
                 title: "No Forms match your search.".into(),
-                detail: "Your selected Forms are still included.".into(),
+                detail: "Your selected forms are still included.".into(),
             }
         } else {
             PresentationMechanism::ChoiceGroup {
@@ -64,7 +64,7 @@ impl BirthDraft {
                     node(
                         "creche-heading",
                         PresentationMechanism::Heading {
-                            text: "A Body of your own".into(),
+                            text: "A body of your own".into(),
                         },
                         vec![],
                     ),
@@ -131,7 +131,7 @@ impl BirthDraft {
                     "form-search",
                     PresentationMechanism::FormField(FormField {
                         label: "Search Forms".into(),
-                        help: "Find a Form by name or what it uses.".into(),
+                        help: "Find a form by name or what it uses.".into(),
                         error: None,
                         value: self.search.clone(),
                         value_capacity: 128,

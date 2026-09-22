@@ -9,8 +9,8 @@ fn mapping(id: &str, topic: &str, direction: InteropDirection) -> InteropMapping
         adapter_id: InteropAdapterId::from(ADAPTER),
         base_instance_id: BaseInstanceId::from("base/ros2/topics"),
         external_resource_id: topic_resource(topic),
-        semantic_kind: KindId::from("value/text@1"),
-        semantic_revision: KindContractRevision::from("1"),
+        semantic_kind: KindId::from("value/text"),
+        semantic_revision: KindIdentity::from("1"),
         direction,
         authority_grant_id: AuthorityGrantId::from(format!("grant/{id}")),
         maximum_payload_bytes: 68,
@@ -26,7 +26,7 @@ pub(crate) fn topic(id: &str, name: &str, direction: InteropDirection) -> RosTop
     RosTopicConfiguration {
         mapping: mapping(id, name, direction),
         topic_name: name.into(),
-        interfront_type: ROS_STRING_TYPE.into(),
+        interface_type: ROS_STRING_TYPE.into(),
         qos: RosQos {
             reliability: RosReliability::Reliable,
             durability: RosDurability::Volatile,
@@ -37,7 +37,7 @@ pub(crate) fn topic(id: &str, name: &str, direction: InteropDirection) -> RosTop
 }
 
 pub(crate) fn authority(mapping_id: &str, operation: &str) -> RosTopicAuthority {
-    let operation = HostOperationContractId::from(operation);
+    let operation = HostCallContractId::from(operation);
     let scope = BaseCapabilityScope {
         host_id: HostId::from("host/ros2"),
         boot_id: BootId::from("boot/current"),
@@ -50,7 +50,7 @@ pub(crate) fn authority(mapping_id: &str, operation: &str) -> RosTopicAuthority 
         capability_id: CapabilityId::from(format!("ros2/{mapping_id}")),
         implementation_id: ImplementationId::from("ros2/native-topic-base@1"),
         operation_contract_id: operation.clone(),
-        subject_kind: KindId::from("value/text@1"),
+        subject_kind: KindId::from("value/text"),
         resource_pool_id: ResourcePoolId::from(mapping_id),
         resource_generation_id: ResourceGenerationId(format!("{mapping_id}/generation-1")),
         envelope_id: CapabilityEnvelopeId::from("ros2/string/max-68/queue-4"),
@@ -65,7 +65,7 @@ pub(crate) fn authority(mapping_id: &str, operation: &str) -> RosTopicAuthority 
             grant: AuthorityGrant {
                 grant_id: scope.authority_grant_id.clone(),
                 contract_id: scope.authority_contract_id.clone(),
-                host_operation_contract_id: operation.clone(),
+                host_call_contract_id: operation.clone(),
                 subject_kind: scope.subject_kind.clone(),
                 host_id: scope.host_id.clone(),
                 boot_id: scope.boot_id.clone(),
@@ -129,12 +129,12 @@ impl NativeRosTopicProvider for Provider {
     fn publish(
         &mut self,
         topic_name: &str,
-        interfront_type: &str,
+        interface_type: &str,
         _qos: RosQos,
         encoded: &[u8],
         origin: &str,
     ) -> Result<(), RosBaseRefusal> {
-        assert_eq!(interfront_type, ROS_STRING_TYPE);
+        assert_eq!(interface_type, ROS_STRING_TYPE);
         self.messages
             .push((topic_name.into(), encoded.into(), origin.into()));
         Ok(())

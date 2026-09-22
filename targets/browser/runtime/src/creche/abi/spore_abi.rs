@@ -1,4 +1,4 @@
-//! Bounded ABI entrances for Body-owned physical-spore preparation and admission.
+//! Bounded ABI entrances for body-owned physical-spore preparation and admission.
 
 use super::{
     clear_output, refuse, write_output, ERROR_ADMISSION, ERROR_INPUT, ERROR_OUTPUT, ERROR_SPORE,

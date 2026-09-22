@@ -2,7 +2,7 @@
 
 use alloc::vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
     PortDirection, PortTemporal,
 };
 
@@ -125,7 +125,7 @@ fn contract_with_ports(
 ) -> MorseKindContract {
     MorseKindContract {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(MORSE_COMPOSITION_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(MORSE_COMPOSITION_CONTRACT_REVISION),
         inputs: vec![port(input_port, input_kind, PortDirection::Input)],
         outputs: vec![port(output_port, output_kind, PortDirection::Output)],
         configuration: configuration.into_iter().collect(),
@@ -165,8 +165,7 @@ pub(crate) fn install_morse_composition_catalogs(
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
-        StartupParameterSignature,
+        KindConfigurationField, KindConfigurationRule, KindSignature, StartupParameterSignature,
     };
 
     for contract in [
@@ -194,25 +193,22 @@ pub(crate) fn install_morse_composition_catalogs(
                 })
                 .collect(),
         })?;
-        profile
-            .insert(KindDefinition {
-                kind_id: contract.kind_id,
-                kind_contract_revision: contract.kind_contract_revision,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: contract
-                    .configuration
-                    .into_iter()
-                    .map(|(key, value)| ConfigurationField {
-                        key: key.to_string(),
-                        default_value: value,
-                        validation: ConfigurationRule::U64Range {
-                            minimum: u64::from(MINIMUM_MORSE_UNIT_MILLIS),
-                            maximum: u64::from(MAXIMUM_MORSE_UNIT_MILLIS),
-                        },
-                    })
-                    .collect(),
+        let configuration = contract
+            .configuration
+            .iter()
+            .map(|(key, value)| KindConfigurationField {
+                key: key.to_string(),
+                default_value: value.clone(),
+                rule: KindConfigurationRule::U64Range {
+                    minimum: u64::from(MINIMUM_MORSE_UNIT_MILLIS),
+                    maximum: u64::from(MAXIMUM_MORSE_UNIT_MILLIS),
+                },
             })
+            .collect();
+        let mut kind = contract.into_semantic_contract();
+        kind.configuration = configuration;
+        profile
+            .insert_kind(kind)
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -243,6 +239,21 @@ mod tests {
         assert_eq!(
             text_morse_symbols_semantics().outputs[0].value_kind,
             morse_symbols_to_pattern_semantics().inputs[0].value_kind
+        );
+        let timing = morse_symbols_to_pattern_semantics().into_semantic_contract();
+        assert_eq!(timing.startup_parameters.len(), 1);
+        assert_eq!(timing.startup_parameters[0].name, MORSE_UNIT_MILLIS_KEY);
+        assert!(timing.startup_parameters[0].has_default);
+        assert_eq!(
+            timing.shorthand,
+            Some((
+                timing.inputs[0].port_id.clone(),
+                timing.outputs[0].port_id.clone()
+            ))
+        );
+        assert_eq!(
+            timing.limits.max_queue_bytes,
+            MAXIMUM_MORSE_PATTERN_BYTES as u32
         );
     }
 }

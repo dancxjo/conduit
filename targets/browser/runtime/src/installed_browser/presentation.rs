@@ -3,23 +3,23 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, PlannedGear,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
     PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::HostedValueStore;
 
 const INDICATOR_IMPLEMENTATION: &str = "browser/dom-indicator@2";
 const ARTIFACT: &str = "conduit-browser-runtime/installed-presentation@1";
-const HOST_OPERATION: &str = "conduit.host/browser-present-indicator@1";
+const HOST_CALL: &str = "conduit.host/browser-present-indicator@1";
 const BOOL_IMPLEMENTATION: &str = "browser/presentation-bool@1";
-const BOOL_HOST_OPERATION: &str = "conduit.host/browser-present-current-bool@1";
+const BOOL_HOST_CALL: &str = "conduit.host/browser-present-current-bool@1";
 const PATCHBAY_IMPLEMENTATION: &str = "browser/patchbay-surface@1";
-const PATCHBAY_HOST_OPERATION: &str = "conduit.host/browser-present-patchbay@1";
+const PATCHBAY_HOST_CALL: &str = "conduit.host/browser-present-patchbay@1";
 const GARDEN_IMPLEMENTATION: &str = "browser/presentation-garden-state@1";
-const GARDEN_HOST_OPERATION: &str = "conduit.host/browser-present-garden-state@1";
+const GARDEN_HOST_CALL: &str = "conduit.host/browser-present-garden-state@1";
 
 pub(super) static INDICATOR: BrowserInstallation = BrowserInstallation {
     implementation_id: INDICATOR_IMPLEMENTATION,
@@ -47,46 +47,42 @@ pub(super) static GARDEN: BrowserInstallation = BrowserInstallation {
 };
 
 fn garden_offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::garden_state_presentation_definition();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(GARDEN_IMPLEMENTATION),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: conduit_core::ImplementationOffer {
+    BackOfferBuilder::new(
+        conduit_semantic_catalog::garden_state_presentation_semantic_contract(),
+        Back {
+            capability_id: CapabilityId::from(GARDEN_IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(GARDEN_IMPLEMENTATION),
             implementation_id: ImplementationId::from(GARDEN_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(GARDEN_HOST_CALL),
+                target_kind: Some(kind_id("presentation/browser-garden-state")),
+                maximum_in_flight: 1,
+                maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                maximum_output_bytes: 0,
+            }],
+            resource_requirements: vec![conduit_core::resource_requirement(
+                PRESENTATION_RESOURCE_CLASS,
+                1,
+            )],
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(GARDEN_HOST_OPERATION),
-            target_kind: Some(kind_id("presentation/browser-garden-state")),
-            maximum_in_flight: 1,
-            maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-            maximum_output_bytes: 0,
-        }],
-        resource_requirements: vec![conduit_core::resource_requirement(
-            PRESENTATION_RESOURCE_CLASS,
-            1,
-        )],
-        authority_requirements: Vec::new(),
-        limits: conduit_core::CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        },
-    }
+    )
+    .narrow_capacity(CapabilityLimits {
+        max_active_instances: 1,
+        max_queue_items: 1,
+        max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+    })
+    .expect("browser Garden presentation capacity narrows its semantic contract")
+    .build()
 }
 
 fn prepare_garden(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &garden_offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
         1,
     ))
@@ -119,8 +115,8 @@ fn patchbay_offer() -> CapabilityOffer {
             implementation: PATCHBAY_IMPLEMENTATION,
             artifact: ARTIFACT,
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(PATCHBAY_HOST_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(PATCHBAY_HOST_CALL),
             target_kind: Some(kind_id("presentation/patchbay-surface")),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_semantic_catalog::MAX_PATCHBAY_PRESENTATION_BYTES,
@@ -137,9 +133,9 @@ fn patchbay_offer() -> CapabilityOffer {
 fn prepare_patchbay(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &patchbay_offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         conduit_semantic_catalog::MAX_PATCHBAY_PRESENTATION_BYTES,
         1,
     ))
@@ -168,8 +164,8 @@ fn bool_offer() -> CapabilityOffer {
             implementation: BOOL_IMPLEMENTATION,
             artifact: ARTIFACT,
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(BOOL_HOST_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(BOOL_HOST_CALL),
             target_kind: Some(kind_id("presentation/browser-current-bool")),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
@@ -186,9 +182,9 @@ fn bool_offer() -> CapabilityOffer {
 fn prepare_bool(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &bool_offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         conduit_core::BOOL_ENCODED_LEN as u32,
         conduit_semantic_catalog::MAX_TOGGLE_VALUES as u32,
     ))
@@ -207,45 +203,34 @@ fn perform_bool(_placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostRes
 }
 
 fn indicator_offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::indicator_presentation_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("browser/indicator-presentation@2"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: conduit_core::KindContractRevision::from(
-            conduit_semantic_catalog::INDICATOR_PRESENTATION_CONTRACT_REVISION,
-        ),
-        implementation: conduit_core::ImplementationOffer {
+    BackOfferBuilder::new(
+        conduit_semantic_catalog::indicator_presentation_semantic_contract(),
+        Back {
+            capability_id: CapabilityId::from("browser/indicator-presentation@2"),
             execution_profile_id: ExecutionProfileId::from("browser/presentation-indicator@2"),
             implementation_id: ImplementationId::from(INDICATOR_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
+                target_kind: Some(kind_id("presentation/browser-indicator")),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
+                maximum_output_bytes: 0,
+            }],
+            resource_requirements: vec![conduit_core::resource_requirement(
+                PRESENTATION_RESOURCE_CLASS,
+                1,
+            )],
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(HOST_OPERATION),
-            target_kind: Some(kind_id("presentation/browser-indicator")),
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
-            maximum_output_bytes: 0,
-        }],
-        resource_requirements: vec![conduit_core::resource_requirement(
-            PRESENTATION_RESOURCE_CLASS,
-            1,
-        )],
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
-fn prepare(
-    placement: &PlannedGear,
-    _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &indicator_offer())?;
-    Ok(BrowserOperation::presentation(
-        placement.host_operations[0].maximum_input_bytes,
+    Ok(BrowserBack::presentation(
+        placement.host_calls[0].maximum_input_bytes,
         4,
     ))
 }
@@ -286,6 +271,17 @@ mod tests {
 
     #[test]
     fn garden_presenter_preserves_exact_state_and_refuses_malformed_input() {
+        let offer = garden_offer();
+        let semantic = conduit_semantic_catalog::garden_state_presentation_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert!(offer.limits.max_queue_bytes < semantic.limits.max_queue_bytes);
         let canonical =
             conduit_semantic_catalog::garden_state_value(conduit_semantic_catalog::GardenState {
                 vitality: Scalar::from_raw_microunits(500_000),
@@ -302,5 +298,20 @@ mod tests {
         );
         assert_eq!(manifestation.canonical_value, canonical);
         assert!(garden_manifestation(b"not Garden state").is_err());
+    }
+
+    #[test]
+    fn indicator_presenter_preserves_its_exact_semantic_contract() {
+        let offer = indicator_offer();
+        let semantic = conduit_semantic_catalog::indicator_presentation_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert_eq!(offer.limits, semantic.limits);
     }
 }

@@ -171,7 +171,7 @@ impl NativeControl {
 
     fn prepare_plan(&mut self, editor: &FormEditor, identity: &str) -> Result<(), String> {
         if self.active.is_some() {
-            return Err("cannot replace a Plan while its Play is active".into());
+            return Err("cannot replace a plan while its play is active".into());
         }
         let form_name = editor.view().open_form;
         let expanded = editor
@@ -207,7 +207,7 @@ impl NativeControl {
         let result = self.start_run(editor);
         match &result {
             Ok(()) => {
-                let plan = self.plan.as_ref().expect("admitted Run retains its Plan");
+                let plan = self.plan.as_ref().expect("admitted Run retains its plan");
                 self.record_action(format!(
                     "RUN request={request} disposition=Accepted plan={} terminal=pending",
                     plan.plan_id.as_str()
@@ -222,17 +222,17 @@ impl NativeControl {
 
     fn start_run(&mut self, editor: &FormEditor) -> Result<(), String> {
         if self.active.is_some() {
-            return Err("a Play is already active".into());
+            return Err("a play is already active".into());
         }
         let plan = self
             .plan
             .clone()
-            .ok_or("Run requires a current exact Plan")?;
+            .ok_or("Run requires a current exact plan")?;
         let source = editor
             .view()
             .checked
             .source_document_id
-            .ok_or("Run requires a currently checked Form")?;
+            .ok_or("Run requires a currently checked form")?;
         admit_run(
             &plan,
             &source,
@@ -286,7 +286,7 @@ impl NativeControl {
         let identity = self.next_request("stop");
         let result = (|| {
             let request = RunControlRequestId::new(identity.clone())?;
-            let active = self.active.as_ref().ok_or("Stop requires an active Play")?;
+            let active = self.active.as_ref().ok_or("Stop requires an active play")?;
             active.control.request_stop(request).map_err(|rejected| {
                 format!(
                     "Stop request {} rejected: {:?}",
@@ -317,7 +317,7 @@ impl NativeControl {
         let presentation = self
             .presentation
             .as_mut()
-            .expect("an active Play has retained presentation storage");
+            .expect("an active play has retained presentation storage");
         let changed = presentation.as_slice() != live_output.as_slice();
         if changed {
             presentation.clear();
@@ -329,7 +329,7 @@ impl NativeControl {
                 let plan = self
                     .plan
                     .as_ref()
-                    .ok_or("completed Play lost its exact Plan")?;
+                    .ok_or("completed Play lost its exact plan")?;
                 let kernel = report
                     .kernel
                     .as_ref()

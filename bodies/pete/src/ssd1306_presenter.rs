@@ -2,14 +2,14 @@
 
 use conduit_core::{
     bind_active_play, resource_offer, resource_requirement, ArtifactId, BootId, CapabilityId,
-    CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, OfferGeneration, Plan, SignId,
+    CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostCallContractId,
+    HostCallRequirement, HostId, HostProfileId, ImplementationId, OfferGeneration, Plan, SignId,
     PROTOCOL_VERSION,
 };
 use conduit_form::{parse, ProfileCatalog};
 use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
-    renderer_kind_definition, renderer_offer, Manifestation, ManifestationFailure,
+    renderer_kind_projection, renderer_offer, Manifestation, ManifestationFailure,
     ManifestationLifecycle, Presentation, PresentationRole, RendererRealizationOffer,
     MAX_RENDERER_VALUE_BYTES,
 };
@@ -91,7 +91,7 @@ impl Ssd1306Presenter {
         validate_evidence(&evidence, now_tick)?;
         let mut catalog = ProfileCatalog::new();
         catalog
-            .insert(renderer_kind_definition())
+            .insert(renderer_kind_projection())
             .map_err(|_| Ssd1306PresenterError::Catalog)?;
         let form = parse(FORM, &catalog).map_err(|_| Ssd1306PresenterError::Catalog)?;
         let host = advertisement(&evidence);
@@ -214,8 +214,8 @@ pub fn validate_ssd1306_plan(
     if placement.host_id != evidence.host_id
         || placement.boot_id != evidence.boot_id
         || placement.offer_generation != evidence.offer_generation
-        || placement.host_operations.len() != 1
-        || placement.host_operations[0].contract_id.as_str() != SSD1306_PRESENT_OPERATION
+        || placement.host_calls.len() != 1
+        || placement.host_calls[0].contract_id.as_str() != SSD1306_PRESENT_OPERATION
         || placement.resources.len() != 3
     {
         return Err(Ssd1306PresenterError::WrongPlan);
@@ -255,8 +255,8 @@ fn advertisement(evidence: &Ssd1306PresenterEvidence) -> HostAdvertisement {
         execution_profile_id: ExecutionProfileId::from(SSD1306_PRESENTER_PROFILE),
         implementation_id: ImplementationId::from(SSD1306_PRESENTER_IMPLEMENTATION),
         artifact_id: ArtifactId::from(SSD1306_PRESENTER_ARTIFACT),
-        host_operation: HostOperationRequirement {
-            contract_id: HostOperationContractId::from(SSD1306_PRESENT_OPERATION),
+        host_call: HostCallRequirement {
+            contract_id: HostCallContractId::from(SSD1306_PRESENT_OPERATION),
             target_kind: Some(conduit_core::kind_id("presentation/base/ssd1306-128x32@1")),
             maximum_in_flight: 1,
             maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,
@@ -283,6 +283,7 @@ fn advertisement(evidence: &Ssd1306PresenterEvidence) -> HostAdvertisement {
         boot_id: evidence.boot_id.clone(),
         offer_generation: evidence.offer_generation,
         profile: HostProfileId::from(SSD1306_PRESENTER_PROFILE),
+        bases: vec![],
         resources,
         capabilities: vec![capability],
         planner_capabilities: Vec::new(),

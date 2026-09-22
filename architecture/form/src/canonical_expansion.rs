@@ -1,10 +1,10 @@
 use crate::prelude::*;
 use crate::{
-    hash_string, AuthoringFaceBinding, CanonicalBackCatalog, CanonicalExpansionDiagnostic,
+    hash_string, AuthoringFrontBinding, CanonicalBackCatalog, CanonicalExpansionDiagnostic,
     CanonicalStartupValue, CheckedCanonicalForm, CheckedCanonicalGear, CheckedConnection,
-    CheckedCordStage, CheckedGear, CheckedSyntaxDocument, ConfigurationRule, ConfigurationValue,
+    CheckedCordStage, CheckedGear, CheckedSyntaxDocument, ConfigurationValue,
     ExpandedAuthoringForm, ExpandedCanonicalForm, ExpandedGearProvenance, ExpandedSharedPool,
-    ProfileCatalog, RuntimePortDirection, MAXIMUM_FORM_NESTING_DEPTH,
+    KindConfigurationRule, ProfileCatalog, RuntimePortDirection, MAXIMUM_FORM_NESTING_DEPTH,
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{GearId, KindId, PortDescriptor};
@@ -75,7 +75,7 @@ fn expand_instance(
     environment: &BTreeMap<String, CanonicalStartupValue>,
     path: &[String],
     stack: &mut Vec<String>,
-    realization_backs: &mut Vec<conduit_core::RealizationBack>,
+    realization_backs: &mut Vec<conduit_core::FormBack>,
     depth: usize,
 ) -> Result<Fragment, CanonicalExpansionDiagnostic> {
     if depth > MAXIMUM_FORM_NESTING_DEPTH {
@@ -117,7 +117,7 @@ fn expand_instance_inner(
     environment: &BTreeMap<String, CanonicalStartupValue>,
     path: &[String],
     stack: &mut Vec<String>,
-    realization_backs: &mut Vec<conduit_core::RealizationBack>,
+    realization_backs: &mut Vec<conduit_core::FormBack>,
     depth: usize,
 ) -> Result<Fragment, CanonicalExpansionDiagnostic> {
     let scoped_environment = bind_pool_environment(form, environment, path)?;
@@ -296,7 +296,7 @@ fn instantiate_gear(
     environment: &BTreeMap<String, CanonicalStartupValue>,
     path: &[String],
     stack: &mut Vec<String>,
-    realization_backs: &mut Vec<conduit_core::RealizationBack>,
+    realization_backs: &mut Vec<conduit_core::FormBack>,
     depth: usize,
     gears: &mut Vec<CheckedGear>,
     connections: &mut Vec<CheckedConnection>,
@@ -382,15 +382,7 @@ fn instantiate_gear(
         gear_id: gear_id.clone(),
         kind_id: definition.kind_id.clone(),
         kind_contract_revision: definition.kind_contract_revision.clone(),
-        startup_parameters: gear
-            .startup_parameters
-            .iter()
-            .map(|parameter| conduit_core::FaceStartupParameter {
-                name: parameter.name.clone(),
-                value_type: parameter.value_type.clone(),
-                has_default: parameter.default.is_some(),
-            })
-            .collect(),
+        startup_parameters: gear.startup_parameters.clone(),
         shorthand: match (definition.inputs.as_slice(), definition.outputs.as_slice()) {
             ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
             _ => None,

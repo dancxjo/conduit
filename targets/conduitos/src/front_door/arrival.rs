@@ -298,9 +298,9 @@ impl Arrival {
 
 fn refusal_text(error: BirthDraftRefusal) -> &'static str {
     match error {
-        BirthDraftRefusal::InvalidName => "Give your Body a name of at most 64 bytes.",
-        BirthDraftRefusal::EmptySelection => "Include at least one Form to begin.",
-        BirthDraftRefusal::UnavailableForm => "This Form cannot run with the current capabilities.",
+        BirthDraftRefusal::InvalidName => "Give your body a name of at most 64 bytes.",
+        BirthDraftRefusal::EmptySelection => "Include at least one form to begin.",
+        BirthDraftRefusal::UnavailableForm => "This form cannot run with the current capabilities.",
         BirthDraftRefusal::StalePresentation => "This choice has changed. Please choose again.",
         _ => "The Crèche could not accept this change.",
     }

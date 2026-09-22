@@ -1,16 +1,15 @@
 //! Browser production realization of the reusable finite semantic stroke capture.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::{BrowserOperation, MAXIMUM_BROWSER_VALUE_BYTES};
+use super::{BrowserBack, MAXIMUM_BROWSER_VALUE_BYTES};
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
-    PlannedGear, StructuredInfoValue,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, HostCallRequirement, ImplementationId, PlannedGear, StructuredInfoValue,
 };
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
-    RequestId, ValueRef, ValueStorage,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
+    PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(crate) const OPERATIONS: [&str; 2] = [
@@ -81,167 +80,139 @@ impl PreparedStrokeCapture {
 }
 
 fn offer() -> CapabilityOffer {
-    let definition = conduit_presentation::capture_bounded_stroke_kind_definition();
-    let kind = definition.kind_id.clone();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(IMPLEMENTATION),
-        kind_id: kind.clone(),
-        kind_contract_revision: KindContractRevision::from(conduit_presentation::GEOMETRY_REVISION),
-        implementation: ImplementationOffer {
+    let contract = conduit_presentation::capture_bounded_stroke_semantic_contract();
+    let target_kind = contract.kind_id.clone();
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-presentation/bounded-stroke-capture@1"),
+            host_calls: vec![
+                HostCallRequirement {
+                    contract_id: OPERATIONS[0].into(),
+                    target_kind: Some(target_kind.clone()),
+                    maximum_in_flight: 1,
+                    maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                    maximum_output_bytes: 0,
+                },
+                HostCallRequirement {
+                    contract_id: OPERATIONS[1].into(),
+                    target_kind: Some(target_kind),
+                    maximum_in_flight: 1,
+                    maximum_input_bytes: FINISH_INPUT.len() as u32,
+                    maximum_output_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                },
+            ],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations: vec![
-            HostOperationRequirement {
-                contract_id: OPERATIONS[0].into(),
-                target_kind: Some(kind.clone()),
-                maximum_in_flight: 1,
-                maximum_input_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-                maximum_output_bytes: 0,
-            },
-            HostOperationRequirement {
-                contract_id: OPERATIONS[1].into(),
-                target_kind: Some(kind),
-                maximum_in_flight: 1,
-                maximum_input_bytes: FINISH_INPUT.len() as u32,
-                maximum_output_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-            },
-        ],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 2,
-            max_queue_items: MAXIMUM_POINTS as u16,
-            max_queue_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
-        },
-    }
+    )
+    .narrow_capacity(CapabilityLimits {
+        max_active_instances: 2,
+        max_queue_items: MAXIMUM_POINTS as u16,
+        max_queue_bytes: MAXIMUM_BROWSER_VALUE_BYTES as u32,
+    })
+    .expect("browser stroke-capture capacity narrows its semantic contract")
+    .build()
 }
 
-fn prepare(
-    placement: &PlannedGear,
-    values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     PreparedStrokeCapture::for_placement(placement)?
         .ok_or_else(|| "bounded stroke capture selected another implementation".to_string())?;
     let finish = values
         .store(FINISH_INPUT)
         .map_err(|error| format!("prepare bounded stroke finish: {error:?}"))?;
-    Ok(BrowserOperation::installed(StrokeCaptureOperation::new(
-        finish,
-    )))
+    Ok(BrowserBack::installed_step(StrokeCaptureBack::new(finish)))
 }
 
-struct StrokeCaptureOperation {
+struct StrokeCaptureBack {
     pending: Option<RequestId>,
     next_point: u32,
-    input_closed: bool,
     finish: Option<ValueRef>,
-    emitted: bool,
 }
 
-impl StrokeCaptureOperation {
+impl StrokeCaptureBack {
     const fn new(finish: ValueRef) -> Self {
         Self {
             pending: None,
             next_point: 0,
-            input_closed: false,
             finish: Some(finish),
-            emitted: false,
-        }
-    }
-
-    fn complete_host(
-        &mut self,
-        request: RequestId,
-        outcome: HostOperationOutcome,
-    ) -> OperationAction {
-        if self.pending != Some(request) {
-            return OperationAction::Fail(failure(20));
-        }
-        self.pending = None;
-        if let (HostOperationDisposition::Failed, None, Some(failure)) =
-            (outcome.disposition, outcome.output, outcome.failure)
-        {
-            return OperationAction::Fail(failure);
-        }
-        match (
-            request,
-            outcome.disposition,
-            outcome.output,
-            outcome.failure,
-        ) {
-            (FINISH_REQUEST, HostOperationDisposition::Completed, Some(output), None) => {
-                self.emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            (_, HostOperationDisposition::Completed, None, None) if request != FINISH_REQUEST => {
-                self.next_point = self.next_point.saturating_add(1);
-                OperationAction::Await
-            }
-            _ => OperationAction::Fail(failure(21)),
         }
     }
 }
 
-impl Operation for StrokeCaptureOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() && self.next_point < MAXIMUM_POINTS => {
-                let Ok(input) = BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32)
-                else {
-                    return OperationAction::Fail(failure(22));
-                };
-                let request = RequestId(self.next_point);
-                self.pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(0),
-                    input,
+impl<const PORTS: usize> StepBack<PORTS> for StrokeCaptureBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request) {
+                return StepOutcome::Fail(failure(20));
+            }
+            if let (HostCallDisposition::Failed, None, Some(reason)) =
+                (outcome.disposition, outcome.output, outcome.failure)
+            {
+                return StepOutcome::Fail(reason);
+            }
+            match (
+                request,
+                outcome.disposition,
+                outcome.output,
+                outcome.failure,
+            ) {
+                (FINISH_REQUEST, HostCallDisposition::Completed, Some(output), None) => {
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed stroke finish completion");
+                    io.send(PortId(0), output.value)
+                        .expect("ready captured stroke output");
+                    self.pending = None;
+                    return StepOutcome::Complete;
                 }
-            }
-            OperationInput::HostOperationCompleted { request, outcome } => {
-                self.complete_host(request, outcome)
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                self.input_closed = true;
-                let Some(value) = self.finish.take() else {
-                    return OperationAction::Fail(failure(23));
-                };
-                let Ok(input) = BoundedValueRef::new(value, FINISH_INPUT.len() as u32) else {
-                    return OperationAction::Fail(failure(23));
-                };
-                self.pending = Some(FINISH_REQUEST);
-                OperationAction::RequestHostOperation {
-                    request: FINISH_REQUEST,
-                    operation: HostOperationId(1),
-                    input,
+                (_, HostCallDisposition::Completed, None, None) if request != FINISH_REQUEST => {
+                    io.consume_host_completion()
+                        .expect("observed stroke point completion");
+                    self.pending = None;
+                    self.next_point = self.next_point.saturating_add(1);
+                    return StepOutcome::Progress;
                 }
+                _ => return StepOutcome::Fail(failure(21)),
             }
-            _ => OperationAction::Fail(failure(24)),
         }
-    }
 
-    fn advance(&mut self) -> OperationAction {
-        if self.emitted && self.input_closed {
-            OperationAction::Complete
-        } else {
-            OperationAction::Await
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() || self.next_point >= MAXIMUM_POINTS {
+                return StepOutcome::Fail(failure(24));
+            }
+            let input = match BoundedValueRef::new(value, MAXIMUM_BROWSER_VALUE_BYTES as u32) {
+                Ok(input) => input,
+                Err(_) => return StepOutcome::Fail(failure(22)),
+            };
+            let request = RequestId(self.next_point);
+            io.consume(PortId(0)).expect("present stroke point");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("stroke point Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
         }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            let Some(value) = self.finish.take() else {
+                return StepOutcome::Fail(failure(23));
+            };
+            let input = match BoundedValueRef::new(value, FINISH_INPUT.len() as u32) {
+                Ok(input) => input,
+                Err(_) => return StepOutcome::Fail(failure(23)),
+            };
+            io.consume_closed(PortId(0))
+                .expect("observed stroke point closure");
+            io.request_host_call(FINISH_REQUEST, HostCallId(1), input)
+                .expect("stroke finish Host Call");
+            self.pending = Some(FINISH_REQUEST);
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
     }
 
     fn cancel(&mut self) {
@@ -280,6 +251,24 @@ mod tests {
     use super::*;
     use conduit_core::{OfferGeneration, Quantity, QuantityUnit};
 
+    #[test]
+    fn browser_stroke_capture_preserves_semantics_and_narrows_capacity() {
+        let offer = offer();
+        let semantic = conduit_presentation::capture_bounded_stroke_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert_eq!(offer.limits.max_active_instances, 2);
+        assert_eq!(offer.limits.max_queue_items, MAXIMUM_POINTS as u16);
+        assert!(offer.limits.max_active_instances < semantic.limits.max_active_instances);
+        assert!(offer.limits.max_queue_bytes < semantic.limits.max_queue_bytes);
+    }
+
     fn placement() -> PlannedGear {
         let offered = offer();
         PlannedGear {
@@ -288,18 +277,19 @@ mod tests {
             kind_id: offered.kind_id,
             kind_contract_revision: offered.kind_contract_revision,
             execution_profile_id: offered.implementation.execution_profile_id,
-            configuration: Vec::new(),
+            configuration: Default::default(),
             host_id: "browser/capture".into(),
             boot_id: "browser-boot/capture".into(),
             offer_generation: OfferGeneration(1),
             capability_id: offered.capability_id,
             implementation_id: offered.implementation.implementation_id,
             artifact_id: offered.implementation.artifact_id,
+            base: None,
             realization_characteristics: Vec::new(),
             limits: offered.limits,
             inputs: offered.inputs,
             outputs: offered.outputs,
-            host_operations: offered.host_operations,
+            host_calls: offered.host_calls,
             resources: Vec::new(),
             authority: Vec::new(),
             pool_references: Vec::new(),

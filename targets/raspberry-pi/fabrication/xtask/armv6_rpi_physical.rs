@@ -95,13 +95,13 @@ pub fn execute(
         || kernel["semantic_result"] != "HELLO, CONDUITOS"
         || kernel["allocation_stable_during_play"] != true
         || kernel["timer_irq_wakes"] != 1
-        || kernel["pending_host_operations"] != 0
+        || kernel["pending_host_calls"] != 0
         || identity["image_id"] != format!("conduitos-image/{commit}/{}/v1", board.identity_slug())
         || identity["a3_ordinary_form_claimed"] != true
     {
         return Err(refusal(
             "physical-a3-sign-invalid",
-            "UART Signs do not prove the exact current-head ordinary Form/Plan/Play",
+            "UART Signs do not prove the exact current-head ordinary form/Plan/Play",
         ));
     }
     let digest = format!("{:x}", Sha256::digest(&transcript));

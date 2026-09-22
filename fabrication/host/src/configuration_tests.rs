@@ -137,27 +137,27 @@ fn checked_in_configurations_cover_every_catalog_target_with_exact_provenance() 
         (
             "targets/browser/profiles/browser-page.host.conduit",
             "sha256:d32fd79e5344a1d2d3156aa962458f794046eb15d88911942762a9c4acc91b1a",
-            "sha256:6d37d4075664d2a1fc7d48f2b5b5fbe5ce3c2dc570ddb4aba619186239a9b200",
+            "sha256:2412a5624c572a8dfaa0a0ae8f7d10416f610b8edf0a118121be1fab0eb6e1d7",
         ),
         (
             "targets/conduitos/profiles/conduitos-aarch64-virt.host.conduit",
             "sha256:9cc965dac8190afab6afc54b1d265ed39e5ac8255642a055c61f87c32f1e848c",
-            "sha256:0fc73d339059080e43378f0634d46af42c218dac8abab6b76998e405fa1a8f06",
+            "sha256:e26eab043c52c45117cad48342b570d63cf05c54410b4b7bf6ff421b10dd40c6",
         ),
         (
             "targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit",
             "sha256:9ba54ff0fb5cf22a4b2b031bf24580a244305fd1036110bd23bf05ab30b76738",
-            "sha256:485b9a6a941e3961b7dbabd811da32fa6f833a21a9ea896315ee4598f2a257c3",
+            "sha256:063f375b6a42358e5650bc6c0502315cdc9d0973df6962446c46a15b97e9fc85",
         ),
         (
             "targets/rp2040/profiles/pico-w.host.conduit",
             "sha256:c3067ec55f4936c284666a3ab9c6cd39ace1db6edfb2783c673d6bba4174cf22",
-            "sha256:fc4acf3747304e9aa55e981d6799938f4ab42a0bbff42849507ddb20ec0c96fa",
+            "sha256:94fe214ac7de69502467762c67388bf02f44d0b731c668fe557249d4dd20b7c9",
         ),
         (
             "targets/std/profiles/linux-computer.host.conduit",
             "sha256:fae0becde708c48b6bb0f3adc795efbbdc39bb6d0e96f87a4762afd3beb20b26",
-            "sha256:747201fefd484f9f2e8582436b29d32cdcebaca631632756291a66ceea73a4e4",
+            "sha256:bfb464f102209ba4ec2c459f47f0027faca9a84c8f70948da83dc861e3337e88",
         ),
     ];
     let packages = test_package_set();

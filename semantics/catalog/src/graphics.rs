@@ -1,11 +1,11 @@
 //! Canonical finite graphics leaves shared by recursive presenters.
 
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
     PortDirection, PortTemporal,
 };
 use conduit_presentation::{
@@ -110,7 +110,7 @@ fn contract(
     kind: &str,
     name: &str,
     summary: &str,
-    configuration: Vec<StandardConfigurationField>,
+    configuration: Vec<KindConfigurationField>,
     input_kind: &str,
 ) -> StandardKindContract {
     StandardKindContract {
@@ -131,7 +131,7 @@ fn contract(
                 as u32,
         },
         terminal_behavior:
-            TerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
+            KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
@@ -146,7 +146,7 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
         temporal: PortTemporal::Value,
     }
 }
-fn geometry_fields() -> Vec<StandardConfigurationField> {
+fn geometry_fields() -> Vec<KindConfigurationField> {
     vec![
         u16_field(GRAPHICS_X_KEY, 8, 0),
         u16_field(GRAPHICS_Y_KEY, 8, 0),
@@ -158,30 +158,30 @@ fn geometry_fields() -> Vec<StandardConfigurationField> {
         u16_field(CLIP_HEIGHT_KEY, 540, 1),
     ]
 }
-fn u16_field(key: &str, default: u64, minimum: u64) -> StandardConfigurationField {
-    StandardConfigurationField {
+fn u16_field(key: &str, default: u64, minimum: u64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::U64(default),
-        rule: StandardConfigurationRule::U64Range {
+        rule: KindConfigurationRule::U64Range {
             minimum,
             maximum: u64::from(MAX_LAYOUT_EXTENT),
         },
     }
 }
-fn one_of(key: &str, default: &str, values: &[&str]) -> StandardConfigurationField {
-    StandardConfigurationField {
+fn one_of(key: &str, default: &str, values: &[&str]) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::Text(default.into()),
-        rule: StandardConfigurationRule::TextOneOf {
+        rule: KindConfigurationRule::TextOneOf {
             values: values.iter().map(|value| (*value).to_string()).collect(),
         },
     }
 }
-fn text_field(key: &str, default: &str) -> StandardConfigurationField {
-    StandardConfigurationField {
+fn text_field(key: &str, default: &str) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::Text(default.into()),
-        rule: StandardConfigurationRule::TextBytes {
+        rule: KindConfigurationRule::TextBytes {
             maximum: MAX_GRAPHICS_TEXT_BYTES as u32,
         },
     }
@@ -196,7 +196,7 @@ pub fn install_graphics_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
     for contract in [
@@ -227,29 +227,27 @@ pub fn install_graphics_catalogs(
         let configuration = contract
             .configuration
             .into_iter()
-            .map(|field| ConfigurationField {
+            .map(|field| KindConfigurationField {
                 key: field.key,
                 default_value: field.default_value,
-                validation: match field.rule {
-                    StandardConfigurationRule::U64Range { minimum, maximum } => {
-                        ConfigurationRule::U64Range { minimum, maximum }
+                rule: match field.rule {
+                    KindConfigurationRule::U64Range { minimum, maximum } => {
+                        KindConfigurationRule::U64Range { minimum, maximum }
                     }
-                    StandardConfigurationRule::TextBytes { maximum } => {
-                        ConfigurationRule::TextBytes { maximum }
+                    KindConfigurationRule::TextBytes { maximum } => {
+                        KindConfigurationRule::TextBytes { maximum }
                     }
-                    StandardConfigurationRule::TextOneOf { values } => {
-                        ConfigurationRule::TextOneOf { values }
+                    KindConfigurationRule::TextOneOf { values } => {
+                        KindConfigurationRule::TextOneOf { values }
                     }
                     _ => unreachable!(),
                 },
             })
             .collect();
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(
-                    GRAPHICS_SCENE_CONTRACT_REVISION,
-                ),
+                kind_contract_revision: KindIdentity::from(GRAPHICS_SCENE_CONTRACT_REVISION),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration,

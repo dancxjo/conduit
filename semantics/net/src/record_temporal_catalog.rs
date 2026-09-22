@@ -2,9 +2,10 @@
 
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::framed_typed_record_type;
 
@@ -28,24 +29,53 @@ pub fn install_record_temporal_catalogs(
     Ok(())
 }
 
-pub fn record_singleton_stream_definition() -> KindDefinition {
+pub fn record_singleton_stream_definition() -> KindProjection {
     definitions()[0].clone()
 }
 
-pub fn record_exactly_one_definition() -> KindDefinition {
+pub fn record_exactly_one_definition() -> KindProjection {
     definitions()[1].clone()
 }
 
-fn definitions() -> [KindDefinition; 2] {
+pub fn record_singleton_stream_semantic_contract() -> Kind {
+    semantic_contract(record_singleton_stream_definition())
+}
+
+pub fn record_exactly_one_semantic_contract() -> Kind {
+    semantic_contract(record_exactly_one_definition())
+}
+
+fn semantic_contract(definition: KindProjection) -> Kind {
+    Kind {
+        startup_parameters: Vec::new(),
+        shorthand: Some((
+            definition.inputs[0].port_id.clone(),
+            definition.outputs[0].port_id.clone(),
+        )),
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 4,
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 * 4,
+        },
+    }
+}
+
+fn definitions() -> [KindProjection; 2] {
     let kind = framed_typed_record_type()
         .profile()
         .expect("framed record profile is finite")
         .value_kind()
         .clone();
     [
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id(RECORD_SINGLETON_STREAM_KIND),
-            kind_contract_revision: KindContractRevision::from(RECORD_TEMPORAL_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(RECORD_TEMPORAL_CONTRACT_REVISION),
             inputs: vec![port(
                 "record",
                 kind.clone(),
@@ -58,11 +88,11 @@ fn definitions() -> [KindDefinition; 2] {
                 PortDirection::Output,
                 PortTemporal::Flow { closes: true },
             )],
-            configuration: Vec::new(),
+            configuration: Default::default(),
         },
-        KindDefinition {
+        KindProjection {
             kind_id: kind_id(RECORD_EXACTLY_ONE_KIND),
-            kind_contract_revision: KindContractRevision::from(RECORD_TEMPORAL_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(RECORD_TEMPORAL_CONTRACT_REVISION),
             inputs: vec![port(
                 "stream",
                 kind.clone(),
@@ -75,7 +105,7 @@ fn definitions() -> [KindDefinition; 2] {
                 PortDirection::Output,
                 PortTemporal::Value,
             )],
-            configuration: Vec::new(),
+            configuration: Default::default(),
         },
     ]
 }
@@ -112,5 +142,26 @@ mod tests {
             PortTemporal::Flow { closes: true }
         );
         assert_eq!(exactly_one.outputs[0].temporal, PortTemporal::Value);
+    }
+
+    #[test]
+    fn semantic_contracts_own_shorthand_and_capacity() {
+        for contract in [
+            record_singleton_stream_semantic_contract(),
+            record_exactly_one_semantic_contract(),
+        ] {
+            assert_eq!(
+                contract.shorthand,
+                Some((
+                    contract.inputs[0].port_id.clone(),
+                    contract.outputs[0].port_id.clone()
+                ))
+            );
+            assert_eq!(contract.limits.max_queue_items, 4);
+            assert_eq!(
+                contract.limits.max_queue_bytes,
+                MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 * 4
+            );
+        }
     }
 }

@@ -20,8 +20,8 @@ pub(super) fn open(
     offer: &HostOffer<'_>,
     fabrication: &FabricationRecord,
 ) -> Result<(), &'static str> {
-    // Crèche is the zero-Body entrance. Do not open a Form merely to make the
-    // arrival surface exist: reviewed Forms belong to the Crèche inventory and
+    // Crèche is the zero-body entrance. Do not open a form merely to make the
+    // arrival surface exist: reviewed forms belong to the Crèche inventory and
     // become lifecycle truth only after an explicit birth selection.
     door.observe_journey(journey.projection())
         .map_err(|e| e.as_str())?;

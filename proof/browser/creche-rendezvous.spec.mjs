@@ -25,14 +25,14 @@ test("a rendezvous code admits one already-running raw Host through the web Crè
     const runner = page.locator(".physical-host-runner");
     await runner.locator('[data-application-key="physical-target"]').selectOption("std/x86_64/computer");
     await runner.locator('[data-application-key="physical-mode"]').selectOption("attach-running");
-    const input = runner.getByLabel("Running Host rendezvous code");
+    const input = runner.getByLabel("Running host rendezvous code");
     await input.fill(code);
     await input.press("Tab");
     await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).toContainText("attachment");
 
     await runner.getByRole("button", { name: "Bind Body invitation" }).click();
     await expect(runner.locator('[data-application-key="physical-stage-bind"]')).not.toContainText("waiting");
-    await runner.getByRole("button", { name: "Realize selected Host" }).click();
+    await runner.getByRole("button", { name: "Realize selected host" }).click();
     await expect(runner.locator('[data-application-key="physical-stage-realize"]')).toContainText("InvitationDelivered");
     await runner.getByRole("button", { name: "Observe Boot and join" }).click();
     await expect(runner.locator('[data-application-key="physical-stage-observe"]')).not.toContainText("waiting");
@@ -70,7 +70,7 @@ function rendezvousCode(child) {
     child.stderr.on("data", inspect);
     child.once("exit", (status) => {
       clearTimeout(timeout);
-      reject(new Error(`running Host exited before producing a code (${status})\n${output}`));
+      reject(new Error(`running host exited before producing a code (${status})\n${output}`));
     });
   });
 }

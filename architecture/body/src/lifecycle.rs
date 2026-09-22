@@ -59,7 +59,7 @@ pub struct BodyHistoryCheckpoint {
 pub struct Body {
     pub body_id: BodyId,
     pub identity_derivation: BodyIdentityDerivation,
-    /// Exact current Form workload. Birth establishes revision zero.
+    /// Exact current form workload. Birth establishes revision zero.
     pub workset: BodyWorkset,
     pub workload_revision: u64,
     pub birth_sequence: u64,
@@ -178,7 +178,7 @@ impl From<BodyWorksetError> for BodyLifecycleError {
 }
 
 impl Body {
-    /// Convenience entrance for a one-Form initial workset. The Form has no
+    /// Convenience entrance for a one-Form initial workset. The form has no
     /// privileged status after birth.
     pub fn born(
         source_document_id: SourceDocumentId,
@@ -288,7 +288,7 @@ impl Body {
         Ok(next)
     }
 
-    /// Conclude this Body's useful continuity after external runtime cleanup
+    /// Conclude this body's useful continuity after external runtime cleanup
     /// and persistence obligations have produced exact settlement evidence.
     /// Fulfillment is deliberately admitted only from retained rest.
     pub fn fulfill(

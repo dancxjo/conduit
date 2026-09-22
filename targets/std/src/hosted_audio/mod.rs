@@ -1,6 +1,6 @@
 //! Explicit, boot-scoped hosted PCM playback discovery and realization.
 //!
-//! Discovery never opens a PCM handle. A selected observation becomes a Host
+//! Discovery never opens a PCM handle. A selected observation becomes a host
 //! resource offer; an independent authority grant is still required before a
 //! Plan can carry the playback operation.
 

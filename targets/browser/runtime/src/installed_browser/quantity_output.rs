@@ -3,9 +3,12 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    CapabilityOffer, PlannedGear, Quantity, StructuredInfoValue, StructuredInfoValueShape,
+    kind_id, present_host_call_requirement, resource_requirement, ArtifactId, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, ImplementationId,
+    PlannedGear, Quantity, StructuredInfoValue, StructuredInfoValueShape,
+    PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_semantic_catalog::{
     quantity_info_prefix, wrapped_quantity_type, QUANTITY_INFO_MAXIMUM_BYTES,
@@ -49,7 +52,7 @@ fn wrap_offer() -> CapabilityOffer {
             implementation: WRAP_IMPLEMENTATION,
             artifact: "conduit-browser-runtime/wrap-quantity@1",
         },
-        vec![conduit_core::HostOperationRequirement {
+        vec![conduit_core::HostCallRequirement {
             contract_id: WRAP_OPERATION.into(),
             target_kind,
             maximum_in_flight: 1,
@@ -75,17 +78,22 @@ pub(super) fn presentation_offer() -> CapabilityOffer {
 }
 
 pub(super) fn direct_presentation_offer() -> CapabilityOffer {
-    let mut offer = presentation_offer();
-    let contract = conduit_semantic_catalog::quantity_presentation_definition();
-    offer.kind_id = contract.kind_id.clone();
-    offer.kind_contract_revision = contract.kind_contract_revision;
-    offer.capability_id = DIRECT_PRESENTATION_IMPLEMENTATION.into();
-    offer.implementation.execution_profile_id = DIRECT_PRESENTATION_IMPLEMENTATION.into();
-    offer.implementation.implementation_id = DIRECT_PRESENTATION_IMPLEMENTATION.into();
-    offer.implementation.artifact_id = "conduit-browser-runtime/quantity-presentation@1".into();
-    offer.host_operations[0].contract_id = "conduit.host/presentation-quantity@1".into();
-    offer.host_operations[0].target_kind = Some(contract.kind_id);
-    offer
+    BackOfferBuilder::new(
+        conduit_semantic_catalog::quantity_presentation_semantic_contract(),
+        Back {
+            capability_id: CapabilityId::from(DIRECT_PRESENTATION_IMPLEMENTATION),
+            execution_profile_id: ExecutionProfileId::from(DIRECT_PRESENTATION_IMPLEMENTATION),
+            implementation_id: ImplementationId::from(DIRECT_PRESENTATION_IMPLEMENTATION),
+            artifact_id: ArtifactId::from("conduit-browser-runtime/quantity-presentation@1"),
+            host_calls: vec![present_host_call_requirement(
+                kind_id(conduit_semantic_catalog::QUANTITY_PRESENTATION_KIND),
+                conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            )],
+            resource_requirements: vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+            authority_requirements: Vec::new(),
+        },
+    )
+    .build()
 }
 
 pub(super) fn install_catalogs(
@@ -98,10 +106,10 @@ pub(super) fn install_catalogs(
 fn prepare_wrap(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &wrap_offer())?;
     PREFIX.get_or_init(quantity_info_prefix);
-    Ok(BrowserOperation::unary(
+    Ok(BrowserBack::unary(
         conduit_core::QUANTITY_ENCODED_LEN as u32,
         1,
     ))
@@ -122,9 +130,9 @@ pub(crate) fn wrap(input: &[u8]) -> Result<([u8; QUANTITY_INFO_MAXIMUM_BYTES], u
 fn prepare_presentation(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &presentation_offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         1,
     ))
@@ -133,9 +141,9 @@ fn prepare_presentation(
 fn prepare_direct_presentation(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &direct_presentation_offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         QUANTITY_INFO_MAXIMUM_BYTES as u32,
         1,
     ))
@@ -173,4 +181,27 @@ fn present_direct(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, St
             canonical_value: input.to_vec(),
         }),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn direct_quantity_realization_preserves_owner_issued_front() {
+        let contract = conduit_semantic_catalog::quantity_presentation_semantic_contract();
+        let offer = direct_presentation_offer();
+        assert_eq!(offer.startup_parameters, contract.startup_parameters);
+        assert_eq!(offer.shorthand, contract.shorthand);
+        assert_eq!(offer.kind_id, contract.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            contract.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, contract.inputs);
+        assert_eq!(offer.outputs, contract.outputs);
+        assert_eq!(offer.limits, contract.limits);
+        assert_eq!(offer.host_calls.len(), 1);
+        assert_eq!(offer.resource_requirements.len(), 1);
+    }
 }

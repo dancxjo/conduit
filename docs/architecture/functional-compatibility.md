@@ -1,24 +1,27 @@
-# Functional compatibility: the front is the contract
+# Callable compatibility and semantic realization
 
 **Status:** canonical architecture direction  
 **Applies to:** forms, catalog kinds, host offers, planning, reusable composition, and shared pools
 **Related:** #507, #511, #512, #514, #515
 
-## Rule
+## Two relations
 
-Conduit uses **functional compatibility**, not nominal compatibility.
+Conduit keeps callable fit separate from semantic substitutability.
 
-> **Two callable Conduit things are compatible when their canonical checked fronts are equal.**
+> **Equal canonical checked fronts mean two things can be called the same way. They do not, by themselves, mean the things do the same work.**
 
-A catalog path, form name, kind ID, gear ID, implementation name, artifact identity, or revision label does not by itself make two things compatible or incompatible.
+Interface compatibility is exact `CheckedFront` equality. Semantic realization
+eligibility additionally requires the candidate to claim the authored gear's
+exact semantic contract identity.
 
 Names remain valuable for authorship, discovery, catalog organization, provenance, diagnostics, sign, and exact realization records. They are not hidden nominal types.
 
-Compatibility uses exact checked equality:
+Ordinary realization therefore uses both gates:
 
 ```text
-same canonical checked front     -> compatible
-different canonical checked front -> incompatible
+same canonical checked front + same semantic contract -> eligible
+same front + different semantic contract               -> ineligible
+different Front                                         -> ineligible
 ```
 
 This is exact equality, not a width/depth/variance subtyping lattice.
@@ -46,9 +49,15 @@ shorthand path
     the declared input -> output path, if any
 ```
 
-The back does not participate in compatibility. Two forms may have radically different backs and remain compatible if their checked fronts are equal.
+The Back does not participate in interface compatibility or semantic contract
+identity. Two materially different implementations may realize the same
+semantic contract, while two identical-looking `Text -> Text` operations may
+mean uppercase and redact and must not substitute for each other.
 
-If an observable semantic distinction must prevent substitution, that distinction must be represented in the checked front contract. It may not be hidden behind a friendly name and then enforced nominally.
+Terminal, liveness, effect, and domain laws that affect substitutability belong
+to the semantic contract identity even when they do not alter the callable
+Front. Resource, authority, and Host Call requirements remain later exact
+admission gates; they do not define the operation's meaning.
 
 ## forms and kinds share the same compatibility law
 
@@ -65,7 +74,9 @@ form loud (
 }
 ```
 
-If another callable thing has the same checked front as `loud`, it is compatible with `loud` at that boundary regardless of whether it is:
+If another callable thing has the same checked front as `loud`, it fits that
+boundary. It realizes `loud` only when it also declares the same semantic
+contract. It may still be:
 
 - another reusable form;
 - a standard catalog kind;
@@ -73,18 +84,20 @@ If another callable thing has the same checked front as `loud`, it is compatible
 - a browser/WASM realization;
 - a bounded embedded realization.
 
-The planner may therefore choose among front-compatible realizations without requiring their catalog/form names to match.
+The planner may choose among Front-compatible realizations with the same
+semantic contract without requiring their catalog/form names or Back identities
+to match.
 
 ## Planning
 
 Planning separates **compatibility** from **exact realization**.
 
-Candidate admission begins with front compatibility:
+Candidate admission begins with both compatibility relations:
 
 ```text
-gear's required checked front
+gear's required checked front + semantic contract
         ↓
-front-compatible host/form realizations
+Front-compatible realizations of that semantic contract
         ↓
 resource + authority + observation + policy filtering
         ↓
@@ -107,18 +120,22 @@ Functional compatibility therefore does **not** mean runtime improvisation. A co
 
 ## Names and revisions
 
-Names and revisions are provenance and catalog facts, not compatibility gates.
+Friendly names are provenance and catalog facts, not compatibility gates. The
+current `KindIdentity` value is the immutable semantic-kind contract
+identity: despite its historical name, it is not merely a display version and
+must eventually be derived from the reviewed semantic contract under #3712.
 
 Therefore:
 
 ```text
-same front + different name       -> compatible
-same front + different revision   -> compatible
-different front + same name       -> incompatible
-different front + same revision   -> incompatible
+same front + same contract + different name/back -> eligible
+same front + different contract                  -> ineligible
+different Front + same contract                  -> ineligible
 ```
 
-A revision change that changes the checked front is naturally incompatible because the front changed. A revision change that leaves the canonical checked front unchanged does not create incompatibility merely by changing the revision token.
+A semantic-contract change remains incompatible even when the front does not
+change. Implementations and artifacts remain exact selected realization facts;
+they are deliberately absent from semantic identity.
 
 Proof and conformance sign remain attached to the exact implementation/artifact/revision that was actually tested. Functional compatibility does not transfer historical proof claims to an untested implementation.
 
@@ -129,6 +146,7 @@ Keep these identities separate:
 ```text
 source/form/catalog identity
 checked front identity
+semantic contract identity
 expanded form identity
 selected implementation/artifact identity
 plan identity
@@ -156,7 +174,11 @@ A host compiled with an opt-in family still advertises only the exact realizatio
 
 ## Shared pools
 
-A shared pool's member contract is likewise a checked front. A pool may admit members that are functionally compatible with the pool's declared member front even if those members come from differently named forms or host-provided kinds.
+A shared pool declaration is the canonical structural higher-order case in the
+current language: it explicitly declares a member Front and bounded membership,
+so its authored meaning is to accept any exact front-compatible member. This is
+not the default rule for ordinary gears. A future pool syntax that promises one
+particular worker behavior must additionally carry that semantic contract.
 
 Pool identity, member identity, membership epochs, authority, and finite capacity remain exact runtime/plan facts. front compatibility does not make pools ambient or unbounded.
 
@@ -165,12 +187,13 @@ Pool identity, member identity, membership epochs, authority, and finite capacit
 Prefer diagnostics such as:
 
 ```text
-front mismatch
+Front mismatch
+semantic contract mismatch
 missing startup parameter
 runtime port mismatch
 temporal shape mismatch
 shorthand mismatch
-no front-compatible realization
+no semantically eligible Front-compatible realization
 ```
 
 over nominal errors such as:
@@ -184,9 +207,12 @@ wrong revision
 
 A name/revision may still appear in a diagnostic to identify the candidate being discussed, but it must not be the reason for incompatibility when the fronts are equal.
 
-## Migration from the nominal checkpoint
+## Explicit structural polymorphism
 
-PRs #520 and #521 intentionally implemented the then-current nominal rule. That rule is now superseded.
+An authored operation whose meaning really is “any callable with this exact
+Front” uses the reviewed `conduit.semantic/structural-polymorphic@1` contract.
+Only the requirement side may use this marker. It is not an ambient planner
+fallback and does not let an offer grant itself broader eligibility.
 
 The migration replaced the former expectations that:
 
@@ -195,11 +221,11 @@ The migration replaced the former expectations that:
 - a revision difference alone makes a candidate incompatible;
 - structural/front coincidence must be rejected.
 
-The current compatibility contract requires positive and negative proofs:
+The compatibility contract requires positive and negative proofs:
 
-1. differently named callables with exactly equal checked fronts are compatible;
-2. a same-named callable with a changed front is incompatible;
-3. planning can choose a differently named front-compatible host offer and still seal its exact implementation/artifact identity;
+1. equal-Front callables with different semantic contracts do not substitute;
+2. differently named/implemented callables with one semantic contract remain eligible;
+3. an explicit structural-polymorphic requirement accepts any equal Front;
 4. changing only the selected exact realization changes plan identity as appropriate without changing front compatibility;
 5. incompatible startup/runtime/temporal/shorthand fronts fail closed.
 
@@ -218,4 +244,4 @@ This rule does not introduce:
 
 ## Canonical sentence
 
-> **The front is the contract. If the front is the same, it fits. The plan still records exactly what was chosen.**
+> **The front says how to call it. The semantic contract says what it means. The plan records exactly what was chosen.**

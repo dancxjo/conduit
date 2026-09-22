@@ -2,13 +2,13 @@ use conduit_host_fabrication::BuildManifest;
 
 use super::{refusal, ConduitosError};
 
-const IMPLEMENTATION: &str = "conduitos/kernel-http-client-http1-literal@1";
-const HOST_OPERATION: &str = "conduit.host/http-client-exchange@1";
-const CLIENT_RESOURCE: &str = "conduit.resource/network/http-client@1";
+const IMPLEMENTATION: &str = "conduitos/kernel-http-client-http1-literal";
+const HOST_CALL: &str = "conduit.host/http-client-exchange";
+const CLIENT_RESOURCE: &str = "conduit.resource/network/http-client";
 const PACKET_RESOURCE: &str = "network/packet-buffer@1";
 const SOCKET_RESOURCE: &str = "network/tcp-socket@1";
 const TIMER_RESOURCE: &str = "network/timer@1";
-const FACILITY: &str = "network/http1-literal-client@1";
+const FACILITY: &str = "network/http1-literal-client";
 const BASE: &str = "network/ipv4-tcp";
 const DRIVER: &str = "conduitos/deterministic-ipv4-tcp@1";
 
@@ -28,11 +28,8 @@ pub(super) fn lower(manifest: &BuildManifest) -> Result<HttpInputs, ConduitosErr
         .any(|item| item == IMPLEMENTATION);
     let present = [
         (
-            HOST_OPERATION,
-            manifest
-                .host_operations
-                .iter()
-                .any(|item| item == HOST_OPERATION),
+            HOST_CALL,
+            manifest.host_calls.iter().any(|item| item == HOST_CALL),
         ),
         (
             CLIENT_RESOURCE,

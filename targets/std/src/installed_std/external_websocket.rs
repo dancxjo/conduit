@@ -1,11 +1,12 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId, ValueRef, ValueStorage,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
-pub(super) static EXTERNAL_WEBSOCKET_LISTENER_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static EXTERNAL_WEBSOCKET_LISTENER_FACTORY: BackFactory = BackFactory {
     implementation_id: "std/native-external-websocket-listener@1",
     budget,
     prepare,
@@ -23,7 +24,7 @@ enum AfterEmit {
     AwaitSend,
 }
 
-pub(super) struct ExternalWebSocketListenerOperation {
+pub(super) struct ExternalWebSocketListenerBack {
     accept_commands: [ValueRef; 2],
     initial_receive_command: Option<ValueRef>,
     connected: [bool; 2],
@@ -35,159 +36,211 @@ pub(super) struct ExternalWebSocketListenerOperation {
     after_emit: AfterEmit,
 }
 
-impl ExternalWebSocketListenerOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.request_accept()
-    }
+impl<const PORTS: usize> StepBack<PORTS> for ExternalWebSocketListenerBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if request != RequestId(self.next_request.saturating_sub(1)) {
+                return step_fail(20);
+            }
+            let Some(pending) = self.pending else {
+                return step_fail(20);
+            };
+            match pending {
+                Pending::Accept(peer)
+                    if outcome.disposition == HostCallDisposition::Completed
+                        && outcome.failure.is_none()
+                        && outcome.output.is_none() =>
+                {
+                    io.consume_host_completion()
+                        .expect("observed external WebSocket accept completion");
+                    self.pending = None;
+                    self.connected[peer] = true;
+                    self.accepted += 1;
+                    if self.accepted < self.connected.len() {
+                        return self.request_accept_step(io);
+                    }
+                    return self.request_initial_receive_step(io);
+                }
+                Pending::Receive(_peer)
+                    if outcome.disposition == HostCallDisposition::Completed
+                        && outcome.failure.is_none() =>
+                {
+                    let Some(output) = outcome.output else {
+                        return step_fail(22);
+                    };
+                    if !io.output_ready(PortId(1)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_host_completion()
+                        .expect("observed external WebSocket receive completion");
+                    io.send(PortId(1), output.value)
+                        .expect("ready external WebSocket receive output");
+                    self.pending = None;
+                    self.received = self.received.saturating_add(1);
+                    self.after_emit = AfterEmit::AwaitSend;
+                    return if self.received >= conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_HISTORY_ITEMS
+                    {
+                        StepOutcome::Complete
+                    } else {
+                        StepOutcome::Progress
+                    };
+                }
+                Pending::Receive(peer)
+                    if outcome.disposition == HostCallDisposition::Cancelled
+                        && outcome.failure.is_none() =>
+                {
+                    io.consume_host_completion()
+                        .expect("observed external WebSocket peer closure");
+                    self.pending = None;
+                    self.connected[peer] = false;
+                    if self.connected.iter().any(|connected| *connected) {
+                        let Some(output) = outcome.output else {
+                            return step_fail(25);
+                        };
+                        return self.request_receive_step(io, output.value);
+                    }
+                    return StepOutcome::Complete;
+                }
+                Pending::Send
+                    if outcome.disposition == HostCallDisposition::Completed
+                        && outcome.failure.is_none() =>
+                {
+                    let Some(output) = outcome.output else {
+                        return step_fail(26);
+                    };
+                    io.consume_host_completion()
+                        .expect("observed external WebSocket send completion");
+                    self.pending = None;
+                    return self.request_receive_step(io, output.value);
+                }
+                _ => return step_fail(23),
+            }
+        }
 
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => self.request(
-                Pending::Send,
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() {
+                return step_fail(24);
+            }
+            let Ok(input) = BoundedValueRef::new(
                 value,
                 conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
-            ),
-            OperationInput::HostOperationCompleted { request, outcome }
-                if request == RequestId(self.next_request.saturating_sub(1)) =>
-            {
-                let Some(pending) = self.pending.take() else {
-                    return InstalledOperation::fail(20);
-                };
-                match pending {
-                    Pending::Accept(peer)
-                        if outcome.disposition == HostOperationDisposition::Completed
-                            && outcome.failure.is_none() =>
-                    {
-                        if outcome.output.is_some() {
-                            return InstalledOperation::fail(21);
-                        }
-                        self.connected[peer] = true;
-                        self.accepted += 1;
-                        if self.accepted < self.connected.len() {
-                            self.request_accept()
-                        } else {
-                            self.request_receive()
-                        }
-                    }
-                    Pending::Receive(_peer)
-                        if outcome.disposition == HostOperationDisposition::Completed
-                            && outcome.failure.is_none() =>
-                    {
-                        let Some(output) = outcome.output else {
-                            return InstalledOperation::fail(22);
-                        };
-                        self.received = self.received.saturating_add(1);
-                        self.after_emit = AfterEmit::AwaitSend;
-                        OperationAction::Emit {
-                            port: PortId(1),
-                            value: output.value,
-                        }
-                    }
-                    Pending::Receive(peer)
-                        if outcome.disposition == HostOperationDisposition::Cancelled
-                            && outcome.failure.is_none() =>
-                    {
-                        self.connected[peer] = false;
-                        if self.connected.iter().any(|connected| *connected) {
-                            let Some(output) = outcome.output else {
-                                return InstalledOperation::fail(25);
-                            };
-                            self.request_receive_with(output.value)
-                        } else {
-                            OperationAction::Complete
-                        }
-                    }
-                    Pending::Send
-                        if outcome.disposition == HostOperationDisposition::Completed
-                            && outcome.failure.is_none() =>
-                    {
-                        let Some(output) = outcome.output else {
-                            return InstalledOperation::fail(26);
-                        };
-                        self.request_receive_with(output.value)
-                    }
-                    _ => InstalledOperation::fail(23),
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(24),
+            ) else {
+                return step_fail(24);
+            };
+            let Some((request, next)) = self.next_request_id() else {
+                return step_failure(FailureCode::StorageExhausted, 27);
+            };
+            io.consume(PortId(0))
+                .expect("present external WebSocket send input");
+            io.request_host_call(request, HostCallId(2), input)
+                .expect("external WebSocket send Host Call");
+            self.next_request = next;
+            self.pending = Some(Pending::Send);
+            return StepOutcome::Progress;
         }
+
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed external WebSocket send closure");
+            return StepOutcome::Complete;
+        }
+
+        if self.pending.is_none() && self.accepted == 0 {
+            return self.request_accept_step(io);
+        }
+        StepOutcome::Await
     }
 
-    pub(super) fn advance(&mut self) -> OperationAction {
-        match self.after_emit {
-            AfterEmit::AwaitSend => {
-                if self.received >= conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_HISTORY_ITEMS {
-                    OperationAction::Complete
-                } else {
-                    OperationAction::Await
-                }
-            }
-        }
-    }
-
-    pub(super) fn cancel(&mut self) {
+    fn cancel(&mut self) {
         self.pending = None;
     }
+}
 
-    fn request_accept(&mut self) -> OperationAction {
+impl ExternalWebSocketListenerBack {
+    fn next_request_id(&self) -> Option<(RequestId, u32)> {
+        self.next_request
+            .checked_add(1)
+            .map(|next| (RequestId(self.next_request), next))
+    }
+
+    fn request_accept_step<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
         let peer = self.accepted;
-        self.request(Pending::Accept(peer), self.accept_commands[peer], 64)
+        let Some(value) = self.accept_commands.get(peer).copied() else {
+            return step_fail(21);
+        };
+        self.request_step(io, Pending::Accept(peer), value, 64)
     }
 
-    fn request_receive(&mut self) -> OperationAction {
-        let Some(peer) = (0..self.connected.len())
-            .map(|offset| (self.receive_cursor + offset) % self.connected.len())
-            .find(|peer| self.connected[*peer])
-        else {
-            return OperationAction::Complete;
-        };
-        self.receive_cursor = (peer + 1) % self.connected.len();
+    fn request_initial_receive_step<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+    ) -> StepOutcome {
         let Some(value) = self.initial_receive_command.take() else {
-            return OperationAction::Complete;
+            return StepOutcome::Complete;
         };
-        self.request(Pending::Receive(peer), value, 1)
+        self.request_receive_step(io, value)
     }
 
-    fn request_receive_with(&mut self, value: ValueRef) -> OperationAction {
+    fn request_receive_step<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        value: ValueRef,
+    ) -> StepOutcome {
         let Some(peer) = (0..self.connected.len())
             .map(|offset| (self.receive_cursor + offset) % self.connected.len())
             .find(|peer| self.connected[*peer])
         else {
-            return OperationAction::Complete;
+            return StepOutcome::Complete;
         };
         self.receive_cursor = (peer + 1) % self.connected.len();
-        self.request(
+        self.request_step(
+            io,
             Pending::Receive(peer),
             value,
             conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_PEER_MESSAGE_BYTES,
         )
     }
 
-    fn request(&mut self, pending: Pending, value: ValueRef, maximum: u32) -> OperationAction {
-        let request = RequestId(self.next_request);
-        self.next_request = self.next_request.saturating_add(1);
-        self.pending = Some(pending);
-        OperationAction::RequestHostOperation {
+    fn request_step<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        pending: Pending,
+        value: ValueRef,
+        maximum: u32,
+    ) -> StepOutcome {
+        let Some((request, next)) = self.next_request_id() else {
+            return step_failure(FailureCode::StorageExhausted, 27);
+        };
+        let Ok(input) = BoundedValueRef::new(value, maximum) else {
+            return step_fail(24);
+        };
+        io.request_host_call(
             request,
-            operation: HostOperationId(match pending {
+            HostCallId(match pending {
                 Pending::Accept(_) => 0,
                 Pending::Receive(_) => 1,
                 Pending::Send => 2,
             }),
-            input: BoundedValueRef::new(value, maximum).expect("prepared host input is bounded"),
-        }
+            input,
+        )
+        .expect("external WebSocket Host Call");
+        self.next_request = next;
+        self.pending = Some(pending);
+        StepOutcome::Progress
     }
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+const fn step_failure(code: FailureCode, detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure { code, detail })
+}
+
+const fn step_fail(detail: u16) -> StepOutcome {
+    step_failure(FailureCode::InvalidLifecycle, detail)
+}
+
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_ITEMS,
         value_bytes: conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_BYTES,
         host_requests: 2
@@ -201,7 +254,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
     let bind = placement
         .configuration
@@ -213,8 +266,8 @@ fn prepare(
         .ok_or_else(|| "external WebSocket listener has no bind address".to_string())?;
     let accept_commands = [store(values, bind)?, store(values, bind)?];
     let initial_receive_command = store(values, &[0])?;
-    Ok(InstalledOperation::ExternalWebSocketListener(
-        ExternalWebSocketListenerOperation {
+    Ok(InstalledBack::ExternalWebSocketListener(
+        ExternalWebSocketListenerBack {
             accept_commands,
             initial_receive_command: Some(initial_receive_command),
             connected: [false; 2],
@@ -243,7 +296,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
     {
         return Err("external WebSocket listener placement differs from its installation".into());
     }

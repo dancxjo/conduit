@@ -1,4 +1,4 @@
-//! Portable, bounded semantic relation of a Body's current experience.
+//! Portable, bounded semantic relation of a body's current experience.
 
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{

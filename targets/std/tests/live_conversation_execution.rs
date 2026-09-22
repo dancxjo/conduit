@@ -167,7 +167,7 @@ fn checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
     let committed = StreamEvent::CommittedSegment {
         role: TextRole::Recognition,
         segment_id: SegmentId("recognition/fake-one".into()),
-        text: "How is the Body?".into(),
+        text: "How is the body?".into(),
         words: Vec::new(),
         language: None,
         speaker_id: None,
@@ -175,9 +175,9 @@ fn checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
     };
     let message = committed_user_message(&committed)
         .unwrap()
-        .expect("committed recognition becomes one Body turn");
+        .expect("committed recognition becomes one body turn");
     let user_text = project_committed_turn_text(&message).unwrap();
-    assert_eq!(user_text, "How is the Body?");
+    assert_eq!(user_text, "How is the body?");
     assert!(!message.turn_identity.is_empty());
 
     let encoded_context = conduit_chat::encode_body_conversation_context(&context()).unwrap();
@@ -192,7 +192,7 @@ fn checked_live_form_executes_one_streaming_turn_with_fake_asr_model_and_tts() {
     let chunks = [
         GeneratedTextChunk {
             sequence: 0,
-            text: "The Body is awake. ".into(),
+            text: "The body is awake. ".into(),
         },
         GeneratedTextChunk {
             sequence: 1,

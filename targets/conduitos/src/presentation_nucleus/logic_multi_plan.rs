@@ -1,11 +1,11 @@
-//! Exact ordinary Form and Plan preparation for bounded multi-input logic.
+//! Exact ordinary form and Plan preparation for bounded multi-input logic.
 
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection,
-    PortTemporal, Scalar, kind_id, port_id,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindIdentity,
+    OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection, PortTemporal, Scalar,
+    kind_id, port_id,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
@@ -20,7 +20,7 @@ pub(super) const SINK_KIND: &str = "conduitos/fixture-logic-sink";
 const SOURCE_REVISION: &str = "conduitos/fixture-logic-scalar-source@1";
 const SINK_REVISION: &str = "conduitos/fixture-logic-scalar-sink@1";
 const FIXTURE_ARTIFACT: &str = "conduitos/logic-multi-fixture@1";
-pub(super) const SINK_HOST_OPERATION: &str = "conduitos.fixture/capture-scalar@1";
+pub(super) const SINK_HOST_CALL: &str = "conduitos.fixture/capture-scalar@1";
 
 pub struct PreparedLogicMulti {
     pub advertisement: HostAdvertisement,
@@ -54,22 +54,22 @@ pub fn prepare_logic_multi(
     for (kind, value) in sources {
         let offer = source_offer(kind, value);
         catalog
-            .insert(conduit_form::KindDefinition {
+            .insert(conduit_form::KindProjection {
                 kind_id: kind_id(kind),
-                kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+                kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
                 inputs: Vec::new(),
                 outputs: offer.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|_| LogicMultiError::Catalog)?;
     }
     catalog
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: kind_id(SINK_KIND),
-            kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+            kind_contract_revision: KindIdentity::from(SINK_REVISION),
             inputs: sink_offer().inputs,
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|_| LogicMultiError::Catalog)?;
     let operator = match comparison {
@@ -137,6 +137,7 @@ fn advertisement(
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("conduitos/two-lane-cooperative@1"),
+        bases: vec![],
         resources: Vec::new(),
         planner_capabilities: Vec::new(),
         capabilities,
@@ -153,7 +154,7 @@ fn source_offer(kind: &str, value: Scalar) -> CapabilityOffer {
             value.raw_microunits()
         )),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
                 crate::functional_offers::FUNCTIONAL_KERNEL_PROFILE,
@@ -168,7 +169,7 @@ fn source_offer(kind: &str, value: Scalar) -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: limits(),
@@ -178,7 +179,7 @@ fn source_offer(kind: &str, value: Scalar) -> CapabilityOffer {
 fn sink_offer() -> CapabilityOffer {
     let mut offer = source_offer(SINK_KIND, Scalar::ZERO);
     offer.capability_id = CapabilityId::from("conduitos-fixture-logic-sink@1");
-    offer.kind_contract_revision = KindContractRevision::from(SINK_REVISION);
+    offer.kind_contract_revision = KindIdentity::from(SINK_REVISION);
     offer.implementation.implementation_id =
         ImplementationId::from("conduitos.fixture/logic-sink@1");
     offer.inputs = vec![PortDescriptor {
@@ -188,8 +189,8 @@ fn sink_offer() -> CapabilityOffer {
         temporal: PortTemporal::Value,
     }];
     offer.outputs.clear();
-    offer.host_operations = vec![conduit_core::HostOperationRequirement {
-        contract_id: conduit_core::HostOperationContractId::from(SINK_HOST_OPERATION),
+    offer.host_calls = vec![conduit_core::HostCallRequirement {
+        contract_id: conduit_core::HostCallContractId::from(SINK_HOST_CALL),
         target_kind: Some(kind_id(SINK_KIND)),
         maximum_in_flight: 1,
         maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,

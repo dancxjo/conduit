@@ -65,7 +65,7 @@ fn ordinary_form_plans_one_bounded_admitted_job() {
         .find(|placement| placement.kind_id.as_str() == JOB_RUN_KIND)
         .unwrap();
     assert_eq!(
-        run.host_operations[0].contract_id.as_str(),
+        run.host_calls[0].contract_id.as_str(),
         common::JOB_PROOF_RUN_OPERATION
     );
 
@@ -134,6 +134,7 @@ fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
         boot_id: BootId::from("boot/job-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/job-proof@1"),
+        bases: vec![],
         resources: vec![resource_offer(
             "pool/job-executable",
             common::JOB_PROOF_RESOURCE_CLASS,

@@ -1,11 +1,11 @@
-//! Exact ordinary Form and Plan preparation for bounded scalar latest/tee.
+//! Exact ordinary form and Plan preparation for bounded scalar latest/tee.
 
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection,
-    PortTemporal, Scalar, kind_id, port_id,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindIdentity,
+    OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection, PortTemporal, Scalar,
+    kind_id, port_id,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
@@ -18,7 +18,7 @@ pub(super) const RIGHT_SINK_KIND: &str = "conduitos/fixture-flow-right-sink";
 const SOURCE_REVISION: &str = "conduitos/fixture-flow-source@1";
 const SINK_REVISION: &str = "conduitos/fixture-flow-sink@1";
 const FIXTURE_ARTIFACT: &str = "conduitos/flow-state-fixture@1";
-pub(super) const SINK_HOST_OPERATION: &str = "conduitos.fixture/capture-flow-scalar@1";
+pub(super) const SINK_HOST_CALL: &str = "conduitos.fixture/capture-flow-scalar@1";
 
 pub struct PreparedFlowState {
     pub advertisement: HostAdvertisement,
@@ -41,12 +41,12 @@ pub fn prepare_flow_state(
         sink_offer(RIGHT_SINK_KIND),
     ] {
         catalog
-            .insert(conduit_form::KindDefinition {
+            .insert(conduit_form::KindProjection {
                 kind_id: offer.kind_id,
                 kind_contract_revision: offer.kind_contract_revision,
                 inputs: offer.inputs,
                 outputs: offer.outputs,
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|_| FlowStateError::Catalog)?;
     }
@@ -90,6 +90,7 @@ fn advertisement(host: &str, boot: &str, value: Scalar) -> HostAdvertisement {
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("conduitos/two-lane-cooperative@1"),
+        bases: vec![],
         resources: Vec::new(),
         planner_capabilities: Vec::new(),
         capabilities: vec![
@@ -111,7 +112,7 @@ fn source_offer(value: Scalar) -> CapabilityOffer {
             value.raw_microunits()
         )),
         kind_id: kind_id(SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
         implementation: fixture_implementation("conduitos.fixture/flow-source@1"),
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
@@ -120,7 +121,7 @@ fn source_offer(value: Scalar) -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: true },
         }],
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: limits(),
@@ -133,12 +134,12 @@ fn sink_offer(kind: &str) -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from(format!("{}-capability@1", kind.replace('/', "-"))),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(SINK_REVISION),
+        kind_contract_revision: KindIdentity::from(SINK_REVISION),
         implementation: fixture_implementation("conduitos.fixture/flow-sink@1"),
         inputs: vec![scalar_port("value", PortDirection::Input)],
         outputs: Vec::new(),
-        host_operations: vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(SINK_HOST_OPERATION),
+        host_calls: vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(SINK_HOST_CALL),
             target_kind: Some(kind_id(kind)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,

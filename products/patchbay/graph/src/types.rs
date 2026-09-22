@@ -3,8 +3,8 @@
 use crate::prelude::*;
 
 use conduit_core::{
-    CheckedFormId, ExpandedFormId, GearId, KindContractRevision, KindId, PortDescriptor,
-    PortTemporal, SourceDocumentId,
+    CheckedFormId, ExpandedFormId, GearId, KindId, KindIdentity, PortDescriptor, PortTemporal,
+    SourceDocumentId,
 };
 
 pub const MAX_PATCHBAY_GEARS: usize = 128;
@@ -92,7 +92,7 @@ pub struct PatchbayPort {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PatchbayFacePort {
+pub struct PatchbayFrontPort {
     pub identity: String,
     pub descriptor: PortDescriptor,
 }
@@ -109,8 +109,8 @@ pub struct PatchbayComposition {
     pub gear_name: String,
     pub back_name: String,
     pub checked_form_id: CheckedFormId,
-    pub inputs: Vec<PatchbayFacePort>,
-    pub outputs: Vec<PatchbayFacePort>,
+    pub inputs: Vec<PatchbayFrontPort>,
+    pub outputs: Vec<PatchbayFrontPort>,
     pub input_bindings: Vec<PatchbayCompositionBinding>,
     pub output_bindings: Vec<PatchbayCompositionBinding>,
 }
@@ -120,7 +120,7 @@ pub struct PatchbayGear {
     pub identity: String,
     pub gear_id: GearId,
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub source_form: String,
     pub form_path: Vec<String>,
     pub inputs: Vec<PatchbayPort>,
@@ -145,8 +145,8 @@ pub struct PatchbayGraph {
     pub checked_form_id: CheckedFormId,
     pub expanded_form_id: ExpandedFormId,
     pub form_name: String,
-    pub front_inputs: Vec<PatchbayFacePort>,
-    pub front_outputs: Vec<PatchbayFacePort>,
+    pub front_inputs: Vec<PatchbayFrontPort>,
+    pub front_outputs: Vec<PatchbayFrontPort>,
     pub compositions: Vec<PatchbayComposition>,
     pub gears: Vec<PatchbayGear>,
     pub cords: Vec<PatchbayCord>,

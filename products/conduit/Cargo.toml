@@ -15,6 +15,7 @@ conduit-host-fabrication = { path = "../../fabrication/host" }
 conduit-kernel = { path = "../../architecture/kernel" }
 conduit-language = { path = "../../semantics/language" }
 conduit-data = { path = "../../semantics/data" }
+conduit-finance = { path = "../../semantics/finance" }
 conduit-net = { path = "../../semantics/net", features = ["form-catalog"] }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
@@ -36,6 +37,7 @@ getrandom = "0.3"
 sha2 = "0.10"
 
 [dev-dependencies]
+rcgen = "0.14"
 
 [lib]
 path = "src/lib.rs"

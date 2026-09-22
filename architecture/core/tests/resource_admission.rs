@@ -19,6 +19,7 @@ fn host() -> HostAdvertisement {
         boot_id: BootId::from("boot/compute-fixture/1"),
         offer_generation: OfferGeneration(7),
         profile: HostProfileId::from("conduit.host/compute-fixture@1"),
+        bases: vec![],
         resources: vec![compute_resource_offer(
             "pool/compute",
             CLASS,

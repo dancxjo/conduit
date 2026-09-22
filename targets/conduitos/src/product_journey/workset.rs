@@ -129,7 +129,7 @@ impl ProductJourney {
             }
         } else {
             // A born or awaiting-plan Body still has exact resident meaning.
-            // Reviewing it here grants no execution; an active Play always
+            // Reviewing it here grants no execution; an active play always
             // uses the already prepared identities above.
             let form = native_workset::checked(self.forms[index].ok_or(JourneyError::WrongTarget)?)
                 .map_err(JourneyError::Workset)?;

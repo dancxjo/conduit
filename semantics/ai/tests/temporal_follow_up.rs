@@ -26,7 +26,7 @@ fn model_follow_up_timing_is_proposal_info_not_effect_authority() {
     let effect = ModelEffectProposal {
         proposal_id: "proposal/follow-up-effect".into(),
         plan_id: PlanId::from("plan/current"),
-        operation_kind: KindId::from("process/run-bounded"),
+        back_kind: KindId::from("process/run-bounded"),
         canonical_arguments: vec![1],
         rationale: "follow up after the bounded delay".into(),
         evidence: vec![SignId::from("sign/source/0")],

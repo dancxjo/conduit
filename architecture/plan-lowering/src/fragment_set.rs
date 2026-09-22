@@ -1,6 +1,6 @@
-//! Pre-Play numeric composition of exact local Form partitions.
+//! Pre-Play numeric composition of exact local form partitions.
 //! Original Plan/fragment identities remain on each partition. This creates
-//! neither an authored Form nor a synthetic Plan and performs no scheduling.
+//! neither an authored form nor a synthetic Plan and performs no scheduling.
 use crate::lowering::{
     lower_plan_fragment_for_profile, KernelStorageProfile, LoweredPlanFragment, LoweringError,
 };
@@ -260,8 +260,8 @@ fn reindex(
             endpoint(&mut target.sink, nodes)?;
         }
     }
-    for operation in &mut part.host_operations {
-        operation.node.0 = add("node-index", operation.node.0, nodes)?;
+    for call in &mut part.host_calls {
+        call.node.0 = add("node-index", call.node.0, nodes)?;
     }
     for resource in &mut part.resources {
         resource.node.0 = add("node-index", resource.node.0, nodes)?;
@@ -283,7 +283,7 @@ fn reindex(
     for (cord, _) in &mut part.identity.connections {
         cord.0 = add("cord-index", cord.0, cords)?;
     }
-    for (node, _, _) in &mut part.identity.host_operations {
+    for (node, _, _) in &mut part.identity.host_calls {
         node.0 = add("node-index", node.0, nodes)?;
     }
     for (node, _, _) in &mut part.identity.resources {

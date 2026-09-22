@@ -18,6 +18,7 @@ fn advertisement(index: usize) -> HostAdvertisement {
         boot_id: BootId::from(format!("boot/pressure/{index}")),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("profile/admission-pressure"),
+        bases: vec![],
         resources: Vec::new(),
         capabilities: Vec::new(),
         planner_capabilities: Vec::new(),

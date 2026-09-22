@@ -52,7 +52,7 @@ fn main() -> Result<(), String> {
                 .parts
                 .iter()
                 .find(|part| part.current.is_some())
-                .ok_or("Crèche House evidence has no current first Host")?
+                .ok_or("Crèche House evidence has no current first host")?
                 .part_id
                 .clone();
             (
@@ -164,7 +164,7 @@ fn main() -> Result<(), String> {
         .ok_or("first spawn invitation was unexpectedly refused")?;
     admit_spawn(&listener, &mut membership, &mut manager, true, 3)?;
     if plan.plan_id != stable_plan_id {
-        return Err("joining a third Part mutated the active Plan".into());
+        return Err("joining a third Part mutated the active plan".into());
     }
     let replacement = if let Some(exact) = physical.plan() {
         conduit_r1_network_conformance::exact_r1_control_plan(
@@ -400,7 +400,7 @@ fn admit_ambient(
         })
         .map_err(debug("send admission"))?;
     if credential.body_id != body.body_id {
-        return Err("ambient credential escaped the active Body".into());
+        return Err("ambient credential escaped the active body".into());
     }
     Ok(AdmittedBrowser {
         socket,

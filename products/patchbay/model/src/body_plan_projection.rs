@@ -1,4 +1,4 @@
-//! Renderer-neutral Patchbay projection of one exact Body-wide Plan.
+//! Renderer-neutral Patchbay projection of one exact body-wide Plan.
 //!
 //! This is a read-only view over `BodyPlan`; it neither selects placements nor
 //! keeps a second mutable copy of planning truth.

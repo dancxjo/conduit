@@ -2,7 +2,7 @@
 //!
 //! The implementation deliberately delegates to the one bounded session and
 //! one installed-browser registry also used by the Tour. Applications are
-//! envelopes around this Host-owned machinery; they do not define another
+//! envelopes around this host-owned machinery; they do not define another
 //! Kind catalog, planner, scheduler, or Play universe.
 
 use super::abi;

@@ -2,6 +2,7 @@
 
 pub const LOCAL_RESCUE_POLICY: &str = "conduitos/local-physical-rescue@1";
 pub const LOCAL_REBOOT_OPERATION: &str = "conduitos.machine/reboot@1";
+pub const DEDICATED_REBOOT_ROUTE: &str = "conduitos/dedicated-boot-reboot@1";
 pub const DELETE_USAGE: u8 = 0x4c;
 const LEFT_CONTROL: u8 = 1 << 0;
 const LEFT_ALT: u8 = 1 << 2;
@@ -44,6 +45,7 @@ pub enum RescueDecision {
     RequestAccepted {
         policy: &'static str,
         operation: &'static str,
+        route: &'static str,
     },
     RebootBaseUnavailable {
         policy: &'static str,
@@ -84,6 +86,7 @@ impl LocalRescueMatcher {
             RescueDecision::RequestAccepted {
                 policy: LOCAL_RESCUE_POLICY,
                 operation: LOCAL_REBOOT_OPERATION,
+                route: DEDICATED_REBOOT_ROUTE,
             }
         } else {
             RescueDecision::RebootBaseUnavailable {
@@ -128,6 +131,7 @@ mod tests {
                 RescueDecision::RequestAccepted {
                     policy: LOCAL_RESCUE_POLICY,
                     operation: LOCAL_REBOOT_OPERATION,
+                    route: DEDICATED_REBOOT_ROUTE,
                 }
             );
         }
@@ -201,5 +205,23 @@ mod tests {
                 policy: LOCAL_RESCUE_POLICY,
             }
         );
+    }
+
+    #[test]
+    fn accepted_chord_names_the_dedicated_boot_route_not_body_emergency_control() {
+        let mut matcher = LocalRescueMatcher::new();
+        let decision = matcher.observe(
+            INTERACTIVE,
+            local(DELETE_USAGE, true, LEFT_CONTROL | LEFT_ALT),
+        );
+        assert_eq!(
+            decision,
+            RescueDecision::RequestAccepted {
+                policy: LOCAL_RESCUE_POLICY,
+                operation: LOCAL_REBOOT_OPERATION,
+                route: DEDICATED_REBOOT_ROUTE,
+            }
+        );
+        assert_ne!(LOCAL_RESCUE_POLICY, conduit_body::EMERGENCY_CONTROL_POLICY,);
     }
 }

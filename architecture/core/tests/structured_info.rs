@@ -1,8 +1,9 @@
 use conduit_core::{
-    validate_canonical_structured_value, KindId, RuntimeStructuredInfo, StartupStructuredValue,
-    StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
-    StructuredInfoValue, StructuredVariantCase, MAXIMUM_STRUCTURED_COLLECTION_ITEMS,
-    MAXIMUM_STRUCTURED_INFO_DEPTH, MAXIMUM_STRUCTURED_LEAF_BYTES,
+    encode_count, validate_canonical_structured_value, KindId, RuntimeStructuredInfo, Scalar,
+    StartupStructuredValue, StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal,
+    StructuredInfoType, StructuredInfoValue, StructuredVariantCase,
+    MAXIMUM_STRUCTURED_COLLECTION_ITEMS, MAXIMUM_STRUCTURED_INFO_DEPTH,
+    MAXIMUM_STRUCTURED_LEAF_BYTES,
 };
 
 fn leaf_type(kind: &str) -> StructuredInfoType {
@@ -16,7 +17,7 @@ fn leaf(kind: &str, bytes: &[u8]) -> StructuredInfoValue {
 #[test]
 fn record_field_order_is_canonically_irrelevant_and_digest_stable() {
     let pitch = StructuredFieldType::new("pitch", leaf_type("sound/pitch@1")).unwrap();
-    let velocity = StructuredFieldType::new("velocity", leaf_type("value/scalar@1")).unwrap();
+    let velocity = StructuredFieldType::new("velocity", leaf_type("value/scalar")).unwrap();
     let first = StructuredInfoType::record(
         KindId::from("music/note-event@1"),
         vec![pitch.clone(), velocity.clone()],
@@ -39,7 +40,11 @@ fn record_field_order_is_canonically_irrelevant_and_digest_stable() {
     let first_value = StructuredInfoValue::record(
         first.clone(),
         vec![
-            StructuredFieldValue::new("velocity", leaf("value/scalar@1", &[80])).unwrap(),
+            StructuredFieldValue::new(
+                "velocity",
+                leaf("value/scalar", &Scalar::from_raw_microunits(80).encode()),
+            )
+            .unwrap(),
             StructuredFieldValue::new("pitch", leaf("sound/pitch@1", &[60])).unwrap(),
         ],
     )
@@ -48,7 +53,11 @@ fn record_field_order_is_canonically_irrelevant_and_digest_stable() {
         second,
         vec![
             StructuredFieldValue::new("pitch", leaf("sound/pitch@1", &[60])).unwrap(),
-            StructuredFieldValue::new("velocity", leaf("value/scalar@1", &[80])).unwrap(),
+            StructuredFieldValue::new(
+                "velocity",
+                leaf("value/scalar", &Scalar::from_raw_microunits(80).encode()),
+            )
+            .unwrap(),
         ],
     )
     .unwrap();
@@ -62,8 +71,8 @@ fn record_field_order_is_canonically_irrelevant_and_digest_stable() {
 #[test]
 fn nominal_schemas_prevent_protocol_and_portable_records_from_accidental_aliasing() {
     let fields = vec![
-        StructuredFieldType::new("pitch", leaf_type("value/count@1")).unwrap(),
-        StructuredFieldType::new("velocity", leaf_type("value/count@1")).unwrap(),
+        StructuredFieldType::new("pitch", leaf_type("value/count")).unwrap(),
+        StructuredFieldType::new("velocity", leaf_type("value/count")).unwrap(),
     ];
     let midi = StructuredInfoType::record(KindId::from("midi/note-on@1"), fields.clone()).unwrap();
     let portable = StructuredInfoType::record(KindId::from("music/note-on@1"), fields).unwrap();
@@ -148,14 +157,14 @@ fn nested_finite_instrument_and_feedback_shapes_share_one_substrate() {
 fn borrowed_node_validation_checks_nested_shape_without_reconstruction() {
     let item_type = StructuredInfoType::variant(
         KindId::from("test/item@1"),
-        vec![StructuredVariantCase::new("some", leaf_type("value/text@1")).unwrap()],
+        vec![StructuredVariantCase::new("some", leaf_type("value/text")).unwrap()],
     )
     .unwrap();
     let collection_type = StructuredInfoType::collection(item_type.clone(), Some(1)).unwrap();
     let value = StructuredInfoValue::collection(
         collection_type.clone(),
         vec![
-            StructuredInfoValue::variant(item_type, "some", leaf("value/text@1", b"bounded"))
+            StructuredInfoValue::variant(item_type, "some", leaf("value/text", b"bounded"))
                 .unwrap(),
         ],
     )
@@ -176,20 +185,54 @@ fn borrowed_node_validation_checks_nested_shape_without_reconstruction() {
 }
 
 #[test]
+fn bounded_sequence_preserves_element_type_and_canonical_actual_length() {
+    let element = leaf_type("value/count");
+    let sequence_type = StructuredInfoType::sequence(element.clone(), 4).unwrap();
+    let values = vec![
+        leaf("value/count", &encode_count(1)),
+        leaf("value/count", &encode_count(2)),
+    ];
+    let sequence = StructuredInfoValue::sequence(sequence_type.clone(), values).unwrap();
+    let canonical = sequence.canonical_bytes().unwrap();
+    assert_eq!(
+        StructuredInfoValue::from_canonical_bytes(&canonical),
+        Ok(sequence)
+    );
+    assert!(validate_canonical_structured_value(&canonical).is_ok());
+    assert_eq!(
+        StructuredInfoValue::sequence(
+            sequence_type.clone(),
+            (0..5)
+                .map(|value| leaf("value/count", &encode_count(value)))
+                .collect(),
+        ),
+        Err(StructuredInfoRefusal::WrongCollectionLength)
+    );
+    assert_eq!(
+        StructuredInfoValue::sequence(sequence_type, vec![leaf("value/text", b"wrong element")],),
+        Err(StructuredInfoRefusal::WrongType)
+    );
+}
+
+#[test]
 fn validated_llm_extraction_uses_the_same_nominal_record_model() {
     let extraction_type = StructuredInfoType::record(
         KindId::from("education/lesson-extraction@1"),
         vec![
-            StructuredFieldType::new("confidence", leaf_type("value/scalar@1")).unwrap(),
-            StructuredFieldType::new("topic", leaf_type("value/text@1")).unwrap(),
+            StructuredFieldType::new("confidence", leaf_type("value/scalar")).unwrap(),
+            StructuredFieldType::new("topic", leaf_type("value/text")).unwrap(),
         ],
     )
     .unwrap();
     let extraction = StructuredInfoValue::record(
         extraction_type.clone(),
         vec![
-            StructuredFieldValue::new("topic", leaf("value/text@1", b"rhythm")).unwrap(),
-            StructuredFieldValue::new("confidence", leaf("value/scalar@1", &[75])).unwrap(),
+            StructuredFieldValue::new("topic", leaf("value/text", b"rhythm")).unwrap(),
+            StructuredFieldValue::new(
+                "confidence",
+                leaf("value/scalar", &Scalar::from_raw_microunits(75).encode()),
+            )
+            .unwrap(),
         ],
     )
     .unwrap();
@@ -201,12 +244,12 @@ fn validated_llm_extraction_uses_the_same_nominal_record_model() {
 #[test]
 fn bounds_and_dynamic_shapes_fail_closed() {
     assert_eq!(
-        StructuredInfoType::collection(leaf_type("value/count@1"), None),
+        StructuredInfoType::collection(leaf_type("value/count"), None),
         Err(StructuredInfoRefusal::UnboundedCollection)
     );
     assert_eq!(
         StructuredInfoType::collection(
-            leaf_type("value/count@1"),
+            leaf_type("value/count"),
             Some((MAXIMUM_STRUCTURED_COLLECTION_ITEMS + 1) as u16),
         ),
         Err(StructuredInfoRefusal::CollectionTooLarge)
@@ -219,7 +262,7 @@ fn bounds_and_dynamic_shapes_fail_closed() {
         Err(StructuredInfoRefusal::LeafTooLarge)
     );
 
-    let mut nested = leaf_type("value/count@1");
+    let mut nested = leaf_type("value/count");
     for _ in 1..MAXIMUM_STRUCTURED_INFO_DEPTH {
         nested = StructuredInfoType::collection(nested, Some(1)).unwrap();
     }
@@ -231,21 +274,24 @@ fn bounds_and_dynamic_shapes_fail_closed() {
 
 #[test]
 fn exact_collection_lengths_and_record_members_are_checked() {
-    let pair = StructuredInfoType::collection(leaf_type("value/count@1"), Some(2)).unwrap();
+    let pair = StructuredInfoType::collection(leaf_type("value/count"), Some(2)).unwrap();
     assert_eq!(
-        StructuredInfoValue::collection(pair, vec![leaf("value/count@1", &[1])]),
+        StructuredInfoValue::collection(pair, vec![leaf("value/count", &encode_count(1))]),
         Err(StructuredInfoRefusal::WrongCollectionLength)
     );
 
     let record = StructuredInfoType::record(
         KindId::from("test/point@1"),
-        vec![StructuredFieldType::new("x", leaf_type("value/scalar@1")).unwrap()],
+        vec![StructuredFieldType::new("x", leaf_type("value/scalar")).unwrap()],
     )
     .unwrap();
     assert_eq!(
         StructuredInfoValue::record(
             record,
-            vec![StructuredFieldValue::new("y", leaf("value/scalar@1", &[0])).unwrap()],
+            vec![
+                StructuredFieldValue::new("y", leaf("value/scalar", &Scalar::ZERO.encode()),)
+                    .unwrap()
+            ],
         ),
         Err(StructuredInfoRefusal::WrongRecordFields)
     );
@@ -253,7 +299,7 @@ fn exact_collection_lengths_and_record_members_are_checked() {
 
 #[test]
 fn startup_and_runtime_contexts_remain_distinct_types() {
-    let value = leaf("value/count@1", &[7]);
+    let value = leaf("value/count", &encode_count(7));
     let startup = StartupStructuredValue::new(value.clone());
     let runtime = RuntimeStructuredInfo::new(value);
 

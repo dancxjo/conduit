@@ -9,7 +9,7 @@ use crate::prelude::*;
 use crate::syntax::{Argument, BackStatement, CordStage, FormSyntax, Invocation, SyntaxDocument};
 use crate::syntax_identity::{canonical_cord, canonical_gear, checked_identity};
 use alloc::collections::{BTreeMap, BTreeSet};
-use conduit_core::{CheckedFace, SourceDocumentId};
+use conduit_core::{CheckedFront, SourceDocumentId};
 
 mod resolution;
 mod shared_pool;
@@ -89,7 +89,7 @@ fn check_form(
     form: &FormSyntax,
     catalog: &StartupCatalog,
     form_signatures: &BTreeMap<String, KindSignature>,
-    form_fronts: &BTreeMap<String, CheckedFace>,
+    form_fronts: &BTreeMap<String, CheckedFront>,
 ) -> Result<CheckedCanonicalForm, SyntaxCheckDiagnostic> {
     let signature = form_signatures
         .get(&form.name.text)
@@ -106,7 +106,7 @@ fn check_form(
             || parameter_names.contains(&port.name.text)
         {
             return Err(
-                SyntaxCheckError::AmbiguousFaceName(port.name.text.clone()).diagnostic(port.span)
+                SyntaxCheckError::AmbiguousFrontName(port.name.text.clone()).diagnostic(port.span)
             );
         }
     }
@@ -138,7 +138,7 @@ fn check_form(
             }
             BackStatement::NamedGear(gear) => {
                 if front_names.contains(&gear.name.text) || pool_names.contains(&gear.name.text) {
-                    return Err(SyntaxCheckError::AmbiguousFaceName(gear.name.text.clone())
+                    return Err(SyntaxCheckError::AmbiguousFrontName(gear.name.text.clone())
                         .diagnostic(gear.span));
                 }
                 if !named_gears.insert(gear.name.text.clone()) {
@@ -377,7 +377,13 @@ fn check_invocation(
     Ok(CheckedCanonicalGear {
         name,
         kind: signature.kind.clone(),
-        startup_parameters: signature.startup_parameters.clone(),
+        startup_parameters: catalog
+            .canonical_startup_parameters(signature)
+            .map_err(|_| SyntaxCheckDiagnostic {
+                code: "CND-FRM-053",
+                span: invocation.span,
+                message: "startup parameter profile exceeds canonical bounds".into(),
+            })?,
         startup_bindings,
         source_span: invocation.span,
     })

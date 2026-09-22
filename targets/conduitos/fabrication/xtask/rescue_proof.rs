@@ -2,7 +2,9 @@
 
 use std::{
     fs,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use serde::{Deserialize, Serialize};
@@ -23,6 +25,8 @@ struct RescueRequestSign {
     proof_class: String,
     old_boot_id: String,
     authority: String,
+    authority_scope: String,
+    route: String,
     policy: String,
     operation: String,
     request_id: String,
@@ -41,6 +45,8 @@ struct RescueProofRecord {
     boot_id_changed: bool,
     request_id: String,
     authority: String,
+    authority_scope: String,
+    route: String,
     policy: String,
     operation: String,
     request_count: usize,
@@ -64,6 +70,50 @@ const DETERMINISTIC_NEGATIVE_CASES: &[&str] = &[
     "stale-old-boot-identity-is-not-completion",
 ];
 
+struct RescueQmpRoot {
+    path: PathBuf,
+}
+
+impl RescueQmpRoot {
+    fn new() -> Result<Self, ConduitosError> {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|error| {
+                ConduitosError::refusal("rescue-qmp-clock-invalid", error.to_string())
+            })?
+            .as_nanos();
+        let path =
+            std::env::temp_dir().join(format!("conduit-rescue-{}-{nonce}", std::process::id()));
+        let longest = path.join("control-alt-backspace.sock");
+        if longest.as_os_str().len() >= 108 {
+            return Err(ConduitosError::refusal(
+                "rescue-qmp-path-too-long",
+                format!(
+                    "QMP socket path exceeds the UNIX bound: {}",
+                    longest.display()
+                ),
+            ));
+        }
+        fs::create_dir(&path).map_err(|error| {
+            ConduitosError::refusal(
+                "rescue-qmp-root-unavailable",
+                format!("{}: {error}", path.display()),
+            )
+        })?;
+        Ok(Self { path })
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl Drop for RescueQmpRoot {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.path);
+    }
+}
+
 pub fn execute(prepared_image: bool, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(ConduitosError::refusal(
@@ -72,9 +122,10 @@ pub fn execute(prepared_image: bool, opts: &GlobalOpts) -> Result<(), ConduitosE
         ));
     }
     let paths = Paths::new(ConduitosArch::X86_64)?;
+    let qmp_root = RescueQmpRoot::new()?;
     prepared_proof_image::ensure(prepared_image, opts)?;
     run_deterministic_negatives(&paths)?;
-    let monitor_socket = paths.target.join("rescue-monitor.sock");
+    let monitor_socket = qmp_root.path().join("rescue-monitor.sock");
     let serial_path = paths.target.join("rescue-serial.log");
     let _ = fs::remove_file(&monitor_socket);
     let _ = fs::remove_file(&serial_path);
@@ -159,7 +210,7 @@ pub fn execute(prepared_image: bool, opts: &GlobalOpts) -> Result<(), ConduitosE
         ),
     ]
     .into_iter()
-    .map(|(case, name)| prove_near_miss(&paths, case, name))
+    .map(|(case, name)| prove_near_miss(&paths, qmp_root.path(), case, name))
     .collect::<Result<_, _>>()?;
     fs::write(
         &paths.rescue_proof,
@@ -221,6 +272,8 @@ fn validate(
         || request.status != "accepted"
         || request.proof_class != "freestanding-emulator"
         || request.authority != "local-physical-input"
+        || request.authority_scope != "boot"
+        || request.route != conduitos::local_rescue::DEDICATED_REBOOT_ROUTE
         || request.policy != conduitos::local_rescue::LOCAL_RESCUE_POLICY
         || request.operation != conduitos::local_rescue::LOCAL_REBOOT_OPERATION
         || request.old_boot_id != xhci[0].boot_id
@@ -247,6 +300,8 @@ fn validate(
         boot_id_changed: true,
         request_id: request.request_id.clone(),
         authority: request.authority.clone(),
+        authority_scope: request.authority_scope.clone(),
+        route: request.route.clone(),
         policy: request.policy.clone(),
         operation: request.operation.clone(),
         request_count: requests.len(),
@@ -285,10 +340,11 @@ fn run_deterministic_negatives(paths: &Paths) -> Result<(), ConduitosError> {
 
 fn prove_near_miss(
     paths: &Paths,
+    qmp_root: &Path,
     case: hid_qmp::RescueNearMiss,
     name: &str,
 ) -> Result<String, ConduitosError> {
-    let monitor_socket = paths.target.join(format!("rescue-negative-{name}.sock"));
+    let monitor_socket = qmp_root.join(format!("{name}.sock"));
     let serial_path = paths.target.join(format!("rescue-negative-{name}.log"));
     let _ = fs::remove_file(&monitor_socket);
     let _ = fs::remove_file(&serial_path);
@@ -372,13 +428,13 @@ mod tests {
     fn correlation_requires_one_request_between_distinct_boots() {
         let mut serial = xhci("b1");
         serial.push_str("CONDUIT_BOOT_STAGE local-rescue-ready\n");
-        serial.push_str("CONDUIT_RESCUE_SIGN {\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"b1\",\"authority\":\"local-physical-input\",\"policy\":\"conduitos/local-physical-rescue@1\",\"operation\":\"conduitos.machine/reboot@1\",\"request_id\":\"local-rescue/b1/1\",\"ordinary_keyboard_plan\":false}\n");
+        serial.push_str("CONDUIT_RESCUE_SIGN {\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"b1\",\"authority\":\"local-physical-input\",\"authority_scope\":\"boot\",\"route\":\"conduitos/dedicated-boot-reboot@1\",\"policy\":\"conduitos/local-physical-rescue@1\",\"operation\":\"conduitos.machine/reboot@1\",\"request_id\":\"local-rescue/b1/1\",\"ordinary_keyboard_plan\":false}\n");
         serial.push_str(&xhci("b2"));
         assert!(validate(&serial, 7, true, "head".into()).is_ok());
         assert!(validate(&serial, 7, false, "head".into()).is_err());
         assert!(validate(&serial.replace("b2", "b1"), 7, true, "head".into()).is_err());
         let stale = format!(
-            "{serial}CONDUIT_RESCUE_SIGN {{\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"b1\",\"authority\":\"local-physical-input\",\"policy\":\"conduitos/local-physical-rescue@1\",\"operation\":\"conduitos.machine/reboot@1\",\"request_id\":\"local-rescue/b1/2\",\"ordinary_keyboard_plan\":false}}\n"
+            "{serial}CONDUIT_RESCUE_SIGN {{\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"b1\",\"authority\":\"local-physical-input\",\"authority_scope\":\"boot\",\"route\":\"conduitos/dedicated-boot-reboot@1\",\"policy\":\"conduitos/local-physical-rescue@1\",\"operation\":\"conduitos.machine/reboot@1\",\"request_id\":\"local-rescue/b1/2\",\"ordinary_keyboard_plan\":false}}\n"
         );
         assert!(validate(&stale, 7, true, "head".into()).is_err());
     }

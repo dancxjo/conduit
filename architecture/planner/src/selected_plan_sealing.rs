@@ -22,7 +22,7 @@ pub fn seal_exact_plan_with_selected_realizations(
             })
             .ok_or_else(|| {
                 PlannerError::InvalidHardRealizationRequirement(
-                    "selected realization does not belong to the exact Plan".into(),
+                    "selected realization does not belong to the exact plan".into(),
                 )
             })?;
         for resource in &placement.resources {

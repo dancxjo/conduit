@@ -57,7 +57,7 @@ The fixed source is source → compositor → display, with a second compositor 
 encoder cord. All cords carry exact bounded ResourceRef info. The ordinary
 checker and planner produce two different exact plans for the same checked and
 expanded form. Input/output resource generations, finite compositor scratch,
-optional consumer materializations, authority and host operations are admitted
+optional consumer materializations, authority and Host Calls are admitted
 before the production kernel executes either plan.
 
 In the copy plan, each consumer materializes the published output at its admitted

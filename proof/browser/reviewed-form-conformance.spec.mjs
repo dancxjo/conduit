@@ -12,12 +12,12 @@ const cases = [
     text: "plot 1 samples · 0 omitted",
   }],
 ];
-const selectedCases = new Set(JSON.parse(process.env.CONDUIT_FORM_CASES_JSON ?? "null") ?? cases.map(([slug]) => `reviewed Form ${slug} runs browser-safe`));
+const selectedCases = new Set(JSON.parse(process.env.CONDUIT_FORM_CASES_JSON ?? "null") ?? cases.map(([slug]) => `reviewed form ${slug} runs browser-safe`));
 
 for (const [slug, expected] of cases) {
-  const caseName = `reviewed Form ${slug} runs browser-safe`;
+  const caseName = `reviewed form ${slug} runs browser-safe`;
   test(caseName, async ({ page }) => {
-    test.skip(!selectedCases.has(caseName), "not selected by the admitted Form batch");
+    test.skip(!selectedCases.has(caseName), "not selected by the admitted form batch");
     try {
       const source = await readFile(`forms/${slug}/main.conduit`, "utf8");
       await page.goto("/");

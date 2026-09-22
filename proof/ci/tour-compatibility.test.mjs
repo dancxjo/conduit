@@ -11,7 +11,7 @@ import {
   compactPatchbaySnapshot,
 } from "../../products/tour/browser/tour-compact-patchbay.mjs";
 
-test("published Book routes retire into the Body while retaining query and fragment", async (t) => {
+test("published Book routes retire into the body while retaining query and fragment", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "conduit-tour-compat-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   await stageLegacyTourRoutes(root);
@@ -63,7 +63,7 @@ test("legacy migration refuses malformed and over-capacity state without rewriti
   }
 });
 
-test("compact Tour Patchbay is an inspection-only checked Form projection", () => {
+test("compact Tour Patchbay is an inspection-only checked form projection", () => {
   const projection = {
     sequence: 7,
     source_proposal_id: "proposal/7",

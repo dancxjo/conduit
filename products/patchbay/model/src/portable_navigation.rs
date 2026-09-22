@@ -26,7 +26,7 @@ impl PatchbayNavigationProjection {
                     && property.value == conduit_presentation::PresentationPropertyValue::Flag(true)
             })
             .map(|property| property.subject.clone())
-            .ok_or_else(|| "zero-Body Presentation has no exact entrance Host".to_owned())?;
+            .ok_or_else(|| "zero-body Presentation has no exact entrance Host".to_owned())?;
         let program_root = selected_form
             .then(|| {
                 presentation.properties.iter().find_map(|property| {
@@ -291,7 +291,7 @@ fn subject_in_place(
         return place == PresentationPlace::Program && aspect == PresentationAspect::Signs;
     }
     let domain = match role {
-        // A Form can be a library entry at the Entrance or the opened Program.
+        // A form can be a library entry at the Entrance or the opened Program.
         // Its exact place is established below from the opened property rather
         // than from a privileged presentation role.
         PresentationRole::Form if has_body => Some(PresentationPlace::Program),

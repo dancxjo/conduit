@@ -1,8 +1,8 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{BaseImplementationId, ConfigurationValue, PortDirection, PortTemporal};
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
 use conduit_time::{
@@ -74,7 +74,7 @@ fn checked_calendar_request_prepares_then_emits_three_inert_candidates() {
         planned.configuration[0].value,
         ConfigurationValue::Structured(_)
     ));
-    assert!(planned.host_operations.is_empty());
+    assert!(planned.host_calls.is_empty());
     assert!(planned.resources.is_empty());
     assert!(planned.authority.is_empty());
 
@@ -440,15 +440,15 @@ fn catalogs() -> (
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: sink_offer.kind_id.clone(),
             kind_contract_revision: sink_offer.kind_contract_revision.clone(),
             inputs: sink_offer.inputs.clone(),
             outputs: vec![],
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "value".into(),
                 default_value: ConfigurationValue::Text(String::new()),
-                validation: ConfigurationRule::TextBytes {
+                rule: KindConfigurationRule::TextBytes {
                     maximum: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
                 },
             }],

@@ -2,7 +2,7 @@
 //!
 //! This implementation receives canonical events from the native input adapter;
 //! it never opens or polls a device. Its two reservations are delivery slots,
-//! not duplicate claims on the physical controller/device/interfront/endpoint.
+//! not duplicate claims on the physical controller/device/interface/endpoint.
 use alloc::{format, vec};
 use conduit_core::{HostAdvertisement, resource_offer, resource_requirement};
 
@@ -28,7 +28,7 @@ pub(super) fn install(
             execution_profile: "conduitos/foreground-keyboard-delivery@1",
             artifact: "conduitos/body-keyboard-delivery@1",
         },
-        vec![conduit_core::HostOperationRequirement {
+        vec![conduit_core::HostCallRequirement {
             contract_id: OPERATION.into(),
             target_kind: Some(conduit_human::KEY_EVENT_INFO_ID.into()),
             maximum_in_flight: 1,
@@ -49,12 +49,13 @@ pub(super) fn install(
     offer.implementation.artifact_id = format!("conduitos-build/{build}").into();
     offer.limits.max_active_instances = 2;
     offer.resource_requirements.sort();
-    // The native Body has only the initialized delivery implementation. The
-    // separate direct-device proof entrance retains its own physical offer.
-    host.capabilities
-        .retain(|offer| offer.kind_id.as_str() != conduit_semantic_catalog::KEYBOARD_KIND);
-    host.capabilities.push(offer);
-    host.resources.push(resource_offer(
+    let replaced_capabilities = host
+        .capabilities
+        .iter()
+        .filter(|candidate| candidate.kind_id.as_str() == conduit_semantic_catalog::KEYBOARD_KIND)
+        .map(|candidate| candidate.capability_id.clone())
+        .collect::<alloc::vec::Vec<_>>();
+    let delivery_resource = resource_offer(
         &format!(
             "conduitos-keyboard-deliveries-{}-{}",
             host.boot_id.as_str(),
@@ -62,7 +63,33 @@ pub(super) fn install(
         ),
         RESOURCE,
         2,
-    ));
+    );
+    let owners = host
+        .bases
+        .iter_mut()
+        .filter(|base| {
+            base.capability_ids
+                .iter()
+                .any(|id| replaced_capabilities.contains(id))
+        })
+        .collect::<alloc::vec::Vec<_>>();
+    if replaced_capabilities.len() != 1 || owners.len() != 1 {
+        return Err(WorksetRefusal::Host);
+    }
+    let owner = owners.into_iter().next().ok_or(WorksetRefusal::Host)?;
+    owner
+        .capability_ids
+        .retain(|id| !replaced_capabilities.contains(id));
+    owner.capability_ids.push(offer.capability_id.clone());
+    owner
+        .resource_pool_ids
+        .push(delivery_resource.pool_id.clone());
+    // The native Body has only the initialized delivery implementation. The
+    // separate direct-device proof entrance retains its own physical offer.
+    host.capabilities
+        .retain(|offer| offer.kind_id.as_str() != conduit_semantic_catalog::KEYBOARD_KIND);
+    host.capabilities.push(offer);
+    host.resources.push(delivery_resource);
     host.resources.sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
     Ok(keyboard.realization)
 }

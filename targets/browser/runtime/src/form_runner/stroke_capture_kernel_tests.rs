@@ -6,7 +6,7 @@ use conduit_core::{
     Quantity, QuantityUnit,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
     KindSignature,
 };
 use conduit_planner::{PlacementChoice, PlacementChoices, PlanningOptions};
@@ -26,12 +26,12 @@ fn fragment() -> PlanFragment {
         })
         .unwrap();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
     browser.capabilities.push(sink);
@@ -48,7 +48,7 @@ fn fragment() -> PlanFragment {
     source_offer.outputs = source_offer.inputs.clone();
     source_offer.outputs[0].direction = PortDirection::Output;
     source_offer.inputs.clear();
-    source_offer.host_operations.clear();
+    source_offer.host_calls.clear();
     source_offer.startup_parameters.clear();
     source_offer.implementation.implementation_id = "fixture/point-flow@1".into();
     source_offer.implementation.artifact_id = "fixture/point-flow@1".into();
@@ -59,12 +59,12 @@ fn fragment() -> PlanFragment {
         })
         .unwrap();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: source_offer.kind_id.clone(),
             kind_contract_revision: source_offer.kind_contract_revision.clone(),
             inputs: Vec::new(),
             outputs: source_offer.outputs.clone(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
     let mut source_host = browser.clone();
@@ -223,7 +223,7 @@ fn planned_browser_capture_retains_four_ordered_points_without_new_allocations()
         scheduler
             .signs()
             .events()
-            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted)
+            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostCallCompleted)
             .count(),
         6
     );

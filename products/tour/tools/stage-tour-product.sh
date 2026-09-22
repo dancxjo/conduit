@@ -27,7 +27,7 @@ cp targets/browser/host/assets/application-syntax-presentation.mjs "$destination
 cp targets/browser/host/assets/browser-host-bootstrap.mjs "$destination/browser-host-bootstrap.mjs"
 cp targets/browser/host/assets/browser-host-membership.mjs "$destination/browser-host-membership.mjs"
 cp targets/browser/host/assets/browser-host-identity.mjs "$destination/browser-host-identity.mjs"
-cp targets/browser/host/assets/browser-host-operations.mjs "$destination/browser-host-operations.mjs"
+cp targets/browser/host/assets/browser-host-calls.mjs "$destination/browser-host-calls.mjs"
 cp targets/browser/host/assets/browser-application-loader.mjs "$destination/browser-application-loader.mjs"
 cp targets/browser/host/assets/browser-application-storage.mjs "$destination/browser-application-storage.mjs"
 cp targets/browser/host/assets/application-presentation.mjs "$destination/application-presentation.mjs"
@@ -73,7 +73,7 @@ printf '%s\n' "$legacy_page_routes" | while IFS= read -r route; do
 done
 
 # Gallery URLs are real staged entrances so both the gallery and each exact
-# reviewed Form survive a direct load or browser reload.
+# reviewed form survive a direct load or browser reload.
 gallery_routes='gallery
 gallery/firefly-choir
 gallery/morse-network
@@ -91,7 +91,7 @@ done
 node targets/browser/tools/build-browser-application-package.mjs \
     products/tour/browser/tour.application.template.json "$destination" tour.application.json
 
-# Includes the shared admitted Host-effect dispatcher used by Tour and Body.
+# Includes the shared admitted host-effect dispatcher used by Tour and Body.
 test -f "$destination/browser-form-effects.mjs"
 test "$(find "$destination" -type f | wc -l)" -eq 62
 test -z "$(find "$destination" -type f \( -name 'creche*.mjs' -o -name 'creche*.css' -o -path '*/artifacts/*' -o -path '*/targets/*' \) -print -quit)"

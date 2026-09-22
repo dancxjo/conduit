@@ -1,8 +1,8 @@
 use conduit_core::PortTemporal;
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FaceStartupParameter, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, ImplementationOffer, KindContractRevision, OfferGeneration, PROTOCOL_VERSION,
+    ExecutionProfileId, FrontStartupParameter, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, ImplementationOffer, KindIdentity, OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_core::{StructuredInfoValue, StructuredInfoValueShape};
 use conduit_form::{
@@ -319,7 +319,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     (startup, profile)
 }
 
-fn host(selector_definitions: Vec<conduit_form::KindDefinition>) -> HostAdvertisement {
+fn host(selector_definitions: Vec<conduit_form::KindProjection>) -> HostAdvertisement {
     let mut capabilities = navigation_kind_contracts()
         .into_iter()
         .map(|(kind, inputs, outputs)| {
@@ -327,7 +327,7 @@ fn host(selector_definitions: Vec<conduit_form::KindDefinition>) -> HostAdvertis
                 kind,
                 inputs,
                 outputs,
-                KindContractRevision::from(NAVIGATION_REVISION),
+                KindIdentity::from(NAVIGATION_REVISION),
                 vec![],
             )
         })
@@ -341,9 +341,9 @@ fn host(selector_definitions: Vec<conduit_form::KindDefinition>) -> HostAdvertis
             definition
                 .configuration
                 .into_iter()
-                .map(|field| FaceStartupParameter {
+                .map(|field| FrontStartupParameter {
                     name: field.key,
-                    value_type: "Text".into(),
+                    value_type: conduit_core::kind_id("value/text"),
                     has_default: false,
                 })
                 .collect(),
@@ -355,6 +355,7 @@ fn host(selector_definitions: Vec<conduit_form::KindDefinition>) -> HostAdvertis
         boot_id: BootId::from("boot/navigation-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/navigation-proof@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities,
@@ -365,8 +366,8 @@ fn offer(
     kind: conduit_core::KindId,
     inputs: Vec<conduit_core::PortDescriptor>,
     outputs: Vec<conduit_core::PortDescriptor>,
-    revision: KindContractRevision,
-    startup_parameters: Vec<FaceStartupParameter>,
+    revision: KindIdentity,
+    startup_parameters: Vec<FrontStartupParameter>,
 ) -> CapabilityOffer {
     CapabilityOffer {
         startup_parameters,
@@ -381,7 +382,7 @@ fn offer(
         },
         inputs,
         outputs,
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: CapabilityLimits {

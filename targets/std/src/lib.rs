@@ -10,6 +10,7 @@ use std::io::Write;
 use std::thread;
 use std::time::{Duration, Instant};
 
+pub mod acoustic_emergency;
 #[cfg(all(target_os = "linux", feature = "bluetooth-bluez"))]
 pub mod bluetooth_gatt;
 pub mod body_coordination;
@@ -31,6 +32,8 @@ pub mod distributed_toggle;
 pub mod recorded_house_proof;
 #[cfg(feature = "local-model-proof")]
 mod recorded_house_receipt;
+pub mod relay_client;
+pub mod remote_emergency;
 pub mod text_lab_live;
 pub mod text_lab_split;
 #[cfg(feature = "local-model-proof")]
@@ -92,7 +95,14 @@ pub mod hosted_wav_artifact;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
+mod vision_ocr;
+mod vision_tracker;
+
 pub use installed_std::{InstalledRemoteFragment, RemoteHostWork, RemoteValueTransfer};
+pub use vision_ocr::{
+    encode_graymap, visit_tesseract_tsv, OcrCandidate, OcrProviderRefusal, TesseractOcrProvider,
+    MAXIMUM_OCR_ITEMS,
+};
 mod remote_host_fragment;
 pub use remote_host_fragment::AdmittedRemoteFragment;
 #[cfg(test)]
@@ -104,6 +114,8 @@ pub mod isolated_base;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub mod isolated_copy_base;
 pub mod microphone_whisper_proof;
+#[cfg(feature = "native-webrtc")]
+pub mod native_webrtc;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub use isolated_copy_base::provider_main as isolated_copy_provider_main;
 #[cfg(all(target_os = "linux", feature = "isolated-http-base"))]
@@ -113,6 +125,8 @@ pub use isolated_http_base::provider_main as isolated_http_provider_main;
 pub mod kernel_multivalue;
 mod kernel_preparation;
 mod kernel_signal;
+mod local_model_observation;
+mod local_model_pool_member;
 #[cfg(feature = "local-model-proof")]
 pub mod local_model_proof;
 #[cfg(feature = "local-model-proof")]
@@ -130,12 +144,15 @@ pub mod pico_control_source;
 pub mod pico_spawn;
 pub mod pico_usb_source;
 pub mod pico_wifi_bootstrap;
+pub mod pool_member_sessions;
+pub use local_model_pool_member::AdmittedLocalModelPoolMember;
 pub mod pool_webchat;
 pub mod r1_control;
 pub mod r1_control_input;
 pub mod reaction_diffusion;
 pub mod remote_cord_sessions;
 pub mod ros2_base;
+pub use conduit_plan_lowering::shared_pool_runtime;
 pub use reaction_diffusion::*;
 pub mod secure_websocket;
 pub mod sound_recovery;
@@ -327,7 +344,7 @@ pub trait TimerAdapter {
         None
     }
 
-    /// Returns the admitted Host/Boot-scoped monotonic microsecond reading.
+    /// Returns the admitted host/Boot-scoped monotonic microsecond reading.
     fn monotonic_now_micros(&mut self) -> Option<u64> {
         None
     }
@@ -439,6 +456,7 @@ pub struct StdHost {
     speech_synthesis: Option<hosted_speech::PiperSpeechAdapter>,
     speech_recognition: Option<hosted_speech_recognition::WhisperSpeechAdapter>,
     microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
+    base_registry: conduit_core::BaseRegistry,
     vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
     calendar: Option<Box<dyn hosted_calendar::HostedCalendarAdapter>>,
     body_conversation_context: Option<BodyConversationContextSource>,
@@ -446,6 +464,17 @@ pub struct StdHost {
     kernel_resources: kernel_preparation::KernelResourceLedger,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
+}
+
+fn empty_base_registry() -> conduit_core::BaseRegistry {
+    conduit_core::BaseRegistry::new(conduit_core::BaseRegistryLimits {
+        maximum_bases: 16,
+        maximum_capabilities_per_base: 16,
+        maximum_resources_per_base: 16,
+        maximum_advertised_capabilities: 256,
+        maximum_advertised_resources: 256,
+    })
+    .expect("std Base registry bounds are fixed and valid")
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -529,7 +558,7 @@ impl StdHost {
         if fragment.host_id != self.advertisement.host_id
             || fragment.boot_id != self.advertisement.boot_id
         {
-            return Err("Plan fragment is stale for this Host boot".to_string());
+            return Err("Plan fragment is stale for this host boot".to_string());
         }
         let play_sequence = self.next_kernel_play_sequence;
         self.next_kernel_play_sequence = play_sequence
@@ -572,6 +601,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -589,12 +619,41 @@ impl StdHost {
     ) -> Result<Self, String> {
         let mut advertisement =
             composition::build_advertisement(config, composition, None, None, None, false);
-        advertisement
-            .resources
-            .push(hosted_vision::FiniteHostedVisionBase::resource_offer());
+        let mut base_registry = empty_base_registry();
+        let mut vision_capabilities = vec![
+            hosted_vision::FiniteHostedVisionBase::motion_offer(),
+            hosted_vision::FiniteHostedVisionBase::objects_offer(),
+            hosted_vision::FiniteHostedVisionBase::experience_offer(),
+        ];
+        if let Some(ocr_offer) = vision.ocr_offer() {
+            vision_capabilities.push(ocr_offer);
+        }
+        if let Some(describe_offer) = vision.describe_offer() {
+            vision_capabilities.push(describe_offer);
+        }
+        base_registry
+            .register(conduit_core::BaseProviderEntry {
+                base_id: conduit_core::HostBaseId::from("std/base/finite-vision"),
+                provider_instance_id: conduit_core::BaseInstanceId::from(
+                    vision.provider_instance_id(),
+                ),
+                provider_generation: advertisement.offer_generation.0,
+                implementation_id: conduit_core::BaseImplementationId::from(
+                    conduit_std_offers::LOCAL_VISION_IMPLEMENTATION,
+                ),
+                mechanism_family: conduit_core::HostBaseKindId::from("std.base/finite-vision@1"),
+                enforcement_class: conduit_core::BaseEnforcementClass::Cooperative,
+                lifecycle: conduit_core::BaseLifecycle::Ready,
+                capabilities: vision_capabilities,
+                resources: vec![hosted_vision::FiniteHostedVisionBase::resource_offer()],
+            })
+            .map_err(|error| format!("finite vision Base registration: {error:?}"))?;
+        base_registry
+            .project_ready_into(&mut advertisement)
+            .map_err(|error| format!("finite vision Base advertisement: {error:?}"))?;
         advertisement
             .capabilities
-            .push(hosted_vision::FiniteHostedVisionBase::motion_offer());
+            .push(conduit_std_offers::local_vision_offers()[4].clone());
         advertisement.resources.sort();
         normalize_capability_offers(&mut advertisement.capabilities)?;
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
@@ -609,6 +668,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry,
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -647,6 +707,14 @@ impl StdHost {
                 .capability_offers()
                 .map_err(|error| format!("local-model capabilities: {error:?}"))?,
         );
+        if offer
+            .supported_profiles
+            .contains(&conduit_ai::LocalModelKindProfile::Generate)
+        {
+            advertisement
+                .capabilities
+                .push(hosted_local_model::generate_text_capability_offer(offer)?);
+        }
         advertisement
             .capabilities
             .push(conduit_std_offers::house_prompt_std_offer());
@@ -686,6 +754,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -727,6 +796,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: Some(adapter),
             calendar: None,
             body_conversation_context: None,
@@ -768,6 +838,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: Some(adapter),
             body_conversation_context: None,
@@ -839,6 +910,7 @@ impl StdHost {
             speech_synthesis: Some(adapter),
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -894,6 +966,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: Some(adapter),
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -950,6 +1023,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: Some(adapter),
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -1115,6 +1189,7 @@ impl StdHost {
             speech_synthesis: Some(adapter),
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -1126,7 +1201,7 @@ impl StdHost {
     }
 
     /// Executes against one platform-extended advertisement that was already
-    /// published for this exact Host/Boot. Rebuilding from only the generic
+    /// published for this exact host/Boot. Rebuilding from only the generic
     /// composition here would discard admitted platform implementations.
     pub fn from_advertisement(advertisement: HostAdvertisement) -> Result<Self, String> {
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
@@ -1141,6 +1216,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -1191,6 +1267,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -1236,6 +1313,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -1270,6 +1348,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -1317,6 +1396,7 @@ impl StdHost {
             speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
+            base_registry: empty_base_registry(),
             vector_search: None,
             calendar: None,
             body_conversation_context: None,
@@ -1367,7 +1447,7 @@ impl StdHost {
 
     /// Constructs the explicit grant shape for a caller that has independently
     /// authorized this exact selected playback capability. Merely constructing
-    /// or discovering a Host never calls this method.
+    /// or discovering a host never calls this method.
     pub fn playback_authority_grant(
         &self,
         grant_id: &str,
@@ -1379,7 +1459,7 @@ impl StdHost {
         if playback.boot_id != self.advertisement.boot_id
             || playback.offer_generation != self.advertisement.offer_generation
         {
-            return Err("selected playback observation is stale for this Host".into());
+            return Err("selected playback observation is stale for this host".into());
         }
         let capability = self
             .advertisement
@@ -1397,7 +1477,7 @@ impl StdHost {
         Ok(conduit_core::AuthorityGrant {
             grant_id: conduit_core::AuthorityGrantId::from(grant_id),
             contract_id: requirement.contract_id.clone(),
-            host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+            host_call_contract_id: requirement.host_call_contract_id.clone(),
             subject_kind: requirement.subject_kind.clone(),
             host_id: self.advertisement.host_id.clone(),
             boot_id: self.advertisement.boot_id.clone(),
@@ -1416,7 +1496,7 @@ impl StdHost {
         if artifact.boot_id != self.advertisement.boot_id
             || artifact.offer_generation != self.advertisement.offer_generation
         {
-            return Err("selected WAV artifact destination is stale for this Host".into());
+            return Err("selected WAV artifact destination is stale for this host".into());
         }
         let capability = self
             .advertisement
@@ -1434,7 +1514,7 @@ impl StdHost {
         Ok(conduit_core::AuthorityGrant {
             grant_id: conduit_core::AuthorityGrantId::from(grant_id),
             contract_id: requirement.contract_id.clone(),
-            host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+            host_call_contract_id: requirement.host_call_contract_id.clone(),
             subject_kind: requirement.subject_kind.clone(),
             host_id: self.advertisement.host_id.clone(),
             boot_id: self.advertisement.boot_id.clone(),
@@ -1455,7 +1535,7 @@ impl StdHost {
         if selected.boot_id() != &self.advertisement.boot_id
             || selected.offer_generation() != self.advertisement.offer_generation
         {
-            return Err("selected MIDI output observation is stale for this Host".into());
+            return Err("selected MIDI output observation is stale for this host".into());
         }
         let capability = self
             .advertisement
@@ -1476,7 +1556,7 @@ impl StdHost {
             .map(|(index, requirement)| conduit_core::AuthorityGrant {
                 grant_id: conduit_core::AuthorityGrantId::from(format!("{grant_prefix}-{index}")),
                 contract_id: requirement.contract_id.clone(),
-                host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+                host_call_contract_id: requirement.host_call_contract_id.clone(),
                 subject_kind: requirement.subject_kind.clone(),
                 host_id: self.advertisement.host_id.clone(),
                 boot_id: self.advertisement.boot_id.clone(),
@@ -1704,7 +1784,7 @@ mod tests {
         assert_eq!(lowered.nodes.len(), 2);
         assert_eq!(lowered.cords.len(), 1);
         assert_eq!(lowered.routes.len(), 1);
-        assert_eq!(lowered.host_operations.len(), 2);
+        assert_eq!(lowered.host_calls.len(), 2);
         assert_eq!(lowered.resources.len(), 2);
         assert_eq!(lowered.cord_value_slots, 4);
         assert_eq!(lowered.cord_value_bytes, 64);
@@ -1740,15 +1820,13 @@ mod tests {
                 Some(port.port)
             );
         }
-        for (node, operation, contract) in &lowered.identity.host_operations {
+        for (node, operation, contract) in &lowered.identity.host_calls {
             assert_eq!(
-                lowered.identity.host_operation_contract(*node, *operation),
+                lowered.identity.host_call_contract(*node, *operation),
                 Some(contract)
             );
             assert_eq!(
-                lowered
-                    .identity
-                    .host_operation_for_contract(*node, contract),
+                lowered.identity.host_call_for_contract(*node, contract),
                 Some(*operation)
             );
         }
@@ -1764,7 +1842,7 @@ mod tests {
             .any(|port| port.direction == PortDirection::Output));
         assert_eq!(lowered.signs.len(), fragment.expected_sign.len());
         assert!(lowered
-            .host_operations
+            .host_calls
             .iter()
             .any(|operation| operation.binding.maximum_output_bytes == 0));
         assert_eq!(
@@ -1785,15 +1863,11 @@ mod tests {
             expanded_form_id: fragment.expanded_form_id.clone(),
         };
         let mut concurrent = fragment.clone();
-        concurrent.placements[0].host_operations[0].maximum_in_flight = 2;
+        concurrent.placements[0].host_calls[0].maximum_in_flight = 2;
         let concurrent = seal_plan(form_identity.clone(), vec![concurrent]);
         assert!(matches!(
             conduit_plan_lowering::lowering::lower_plan_fragment(&concurrent.fragments[0]),
-            Err(
-                conduit_plan_lowering::lowering::LoweringError::UnsupportedHostOperationConcurrency(
-                    _
-                )
-            )
+            Err(conduit_plan_lowering::lowering::LoweringError::UnsupportedHostCallConcurrency(_))
         ));
 
         let mut fan_in = fragment.clone();
@@ -1988,7 +2062,7 @@ mod tests {
                 let request = kernel
                     .identity
                     .request(presentation.node, presentation.request)
-                    .expect("presentation request reverses to its host-operation contract");
+                    .expect("presentation request reverses to its Host Call contract");
                 assert!(kernel
                     .identity
                     .request_for_contract(presentation.node, &request.contract_id)

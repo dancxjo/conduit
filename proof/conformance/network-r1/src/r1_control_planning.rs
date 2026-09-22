@@ -31,6 +31,7 @@ pub fn r1_control_source_advertisement() -> HostAdvertisement {
         boot_id: BootId::from(crate::R1_STD_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-r1-three-peer-control"),
+        bases: vec![],
         resources: vec![conduit_core::resource_offer(
             "r1/std-deliberate-inputs",
             conduit_core::INPUT_RESOURCE_CLASS,
@@ -220,12 +221,12 @@ mod tests {
             .find(|capability| capability.kind_id.as_str() == conduit_signal::LEVEL_INPUT_KIND)
             .unwrap();
         assert_eq!(input.limits.max_active_instances, 3);
-        assert_eq!(input.host_operations.len(), 1);
+        assert_eq!(input.host_calls.len(), 1);
         assert_eq!(
-            input.host_operations[0].contract_id.as_str(),
-            conduit_signal::AWAIT_LEVEL_HOST_OPERATION_CONTRACT
+            input.host_calls[0].contract_id.as_str(),
+            conduit_signal::AWAIT_LEVEL_HOST_CALL_CONTRACT
         );
-        assert_eq!(input.host_operations[0].maximum_output_bytes, 1);
+        assert_eq!(input.host_calls[0].maximum_output_bytes, 1);
     }
 
     #[test]

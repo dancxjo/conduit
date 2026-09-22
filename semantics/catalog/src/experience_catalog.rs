@@ -6,10 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
     StructuredFieldType, StructuredInfoType, StructuredVariantCase,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 pub const EXPERIENCE_RELATE_KIND: &str = "experience/relate-current";
 pub const EXPERIENCE_RELATE_REVISION: &str = "conduit.experience/relate-current@1";
@@ -22,15 +22,15 @@ pub const EXPERIENCE_SOURCE_STATUS_TYPE: &str = "ExperienceSourceStatus";
 pub const CURRENT_EXPERIENCE_TYPE: &str = "CurrentExperience";
 
 fn text() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/text@1")).expect("reviewed text")
+    StructuredInfoType::leaf(kind_id("value/text")).expect("reviewed text")
 }
 
 fn count() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/count@1")).expect("reviewed count")
+    StructuredInfoType::leaf(kind_id("value/count")).expect("reviewed count")
 }
 
 fn unit() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/unit@1")).expect("reviewed unit")
+    StructuredInfoType::leaf(kind_id("value/unit")).expect("reviewed unit")
 }
 
 fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {
@@ -142,9 +142,9 @@ pub fn install_experience_catalogs(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(EXPERIENCE_RELATE_KIND),
-            kind_contract_revision: KindContractRevision::from(EXPERIENCE_RELATE_REVISION),
+            kind_contract_revision: KindIdentity::from(EXPERIENCE_RELATE_REVISION),
             inputs: vec![
                 flow_port("body", &experience_body_input_type()),
                 flow_port("human", &experience_human_input_type()),

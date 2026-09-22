@@ -49,7 +49,7 @@ fn canonical_form_consumes_gamepad_button_pointer_touch_and_rotary_info() {
     .unwrap();
     for placement in &plan.fragments[0].placements {
         assert_eq!(
-            placement.host_operations[0].contract_id.as_str(),
+            placement.host_calls[0].contract_id.as_str(),
             "proof/generalized-input@1"
         );
         assert!(placement.resources.is_empty());
@@ -123,8 +123,8 @@ fn simultaneous_controls_and_pressure_evidence_are_fixed_and_inspectable() {
     assert_eq!(variant_tag(&contacts[1]), "unused");
 
     let pointer_pressure = record_field(&fixture.pointer, "pressure");
-    assert_eq!(leaf_text(record_field(pointer_pressure, "coalesced")), "2");
-    assert_eq!(leaf_text(record_field(pointer_pressure, "dropped")), "1");
+    assert_eq!(leaf_count(record_field(pointer_pressure, "coalesced")), 2);
+    assert_eq!(leaf_count(record_field(pointer_pressure, "dropped")), 1);
     assert_eq!(
         variant_tag(record_field(pointer_pressure, "policy")),
         "coalesce_latest_state"
@@ -173,6 +173,7 @@ fn host() -> HostAdvertisement {
         boot_id: BootId::from("boot/generalized-input-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/generalized-input-proof@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: proof_offers(),
@@ -196,7 +197,7 @@ fn proof_offers() -> Vec<conduit_core::CapabilityOffer> {
         shorthand: None,
         capability_id: conduit_core::CapabilityId::from(format!("proof/{kind}@1")),
         kind_id: conduit_core::kind_id(kind),
-        kind_contract_revision: conduit_core::KindContractRevision::from(
+        kind_contract_revision: conduit_core::KindIdentity::from(
             conduit_semantic_catalog::GENERALIZED_INPUT_REVISION,
         ),
         implementation: conduit_core::ImplementationOffer {
@@ -208,8 +209,8 @@ fn proof_offers() -> Vec<conduit_core::CapabilityOffer> {
         },
         inputs: vec![],
         outputs,
-        host_operations: vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from("proof/generalized-input@1"),
+        host_calls: vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from("proof/generalized-input@1"),
             target_kind: Some(conduit_core::kind_id(kind)),
             maximum_in_flight: 1,
             maximum_input_bytes: 0,
@@ -256,4 +257,11 @@ fn leaf_text(value: &StructuredInfoValue) -> &str {
         panic!("expected leaf")
     };
     core::str::from_utf8(bytes).unwrap()
+}
+
+fn leaf_count(value: &StructuredInfoValue) -> u64 {
+    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+        panic!("expected leaf")
+    };
+    conduit_core::decode_count(bytes).unwrap()
 }

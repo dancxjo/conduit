@@ -5,10 +5,10 @@ use conduit_audio::{
     AUDIO_PCM_INFO_ID, MAXIMUM_PCM_CLIP_BYTES,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_form::{KindSignature, ProfileCatalog, StartupCatalog};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{string::String, vec, vec::Vec};
@@ -35,10 +35,30 @@ pub const MAXIMUM_RECOGNITION_AUDIO_BYTES: usize = 32_768;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SpeechRecognitionContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
+}
+
+impl SpeechRecognitionContract {
+    pub fn into_semantic_capability_contract(self) -> Kind {
+        let shorthand = match (self.inputs.as_slice(), self.outputs.as_slice()) {
+            ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
+            _ => None,
+        };
+        Kind {
+            startup_parameters: Vec::new(),
+            shorthand,
+            kind_id: self.kind_id,
+            kind_contract_revision: self.kind_contract_revision,
+            inputs: self.inputs,
+            outputs: self.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
+            limits: self.limits,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -111,7 +131,7 @@ pub struct RecordedSpeechRecognizer {
 pub fn speech_recognition_contract() -> SpeechRecognitionContract {
     SpeechRecognitionContract {
         kind_id: kind_id(SPEECH_RECOGNIZE_KIND),
-        kind_contract_revision: KindContractRevision::from(SPEECH_RECOGNIZE_REVISION),
+        kind_contract_revision: KindIdentity::from(SPEECH_RECOGNIZE_REVISION),
         inputs: vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Input)],
         outputs: vec![port(
             "result",
@@ -129,7 +149,7 @@ pub fn speech_recognition_contract() -> SpeechRecognitionContract {
 pub fn speech_clip_recognition_contract() -> SpeechRecognitionContract {
     SpeechRecognitionContract {
         kind_id: kind_id(SPEECH_RECOGNIZE_CLIP_KIND),
-        kind_contract_revision: KindContractRevision::from(SPEECH_RECOGNIZE_CLIP_REVISION),
+        kind_contract_revision: KindIdentity::from(SPEECH_RECOGNIZE_CLIP_REVISION),
         inputs: vec![port("clip", AUDIO_PCM_CLIP_INFO_ID, PortDirection::Input)],
         outputs: vec![port(
             "result",
@@ -147,7 +167,7 @@ pub fn speech_clip_recognition_contract() -> SpeechRecognitionContract {
 pub fn speech_recognition_to_text_contract() -> SpeechRecognitionContract {
     SpeechRecognitionContract {
         kind_id: kind_id(SPEECH_RECOGNITION_TO_TEXT_KIND),
-        kind_contract_revision: KindContractRevision::from(SPEECH_RECOGNITION_TO_TEXT_REVISION),
+        kind_contract_revision: KindIdentity::from(SPEECH_RECOGNITION_TO_TEXT_REVISION),
         inputs: vec![port(
             "result",
             SPEECH_RECOGNITION_RESULT_KIND,
@@ -170,6 +190,8 @@ pub fn install_speech_recognition_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
+    startup.insert_value_kind_alias("PcmFrames", kind_id(conduit_audio::AUDIO_PCM_INFO_ID))?;
+    startup.insert_value_kind_alias("ChatMessage", kind_id(crate::CHAT_MESSAGE_VALUE_KIND))?;
     for contract in [
         speech_recognition_contract(),
         speech_clip_recognition_contract(),
@@ -183,13 +205,7 @@ pub fn install_speech_recognition_catalog(
             startup_parameters: vec![],
         })?;
         profile
-            .insert(KindDefinition {
-                kind_id: contract.kind_id,
-                kind_contract_revision: contract.kind_contract_revision,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: vec![],
-            })
+            .insert_kind(contract.into_semantic_capability_contract())
             .map_err(|error| error.to_string())?;
     }
     crate::install_speech_recognition_adapters(startup, profile)?;

@@ -2,61 +2,46 @@
 
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision, PortDescriptor, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 extern crate alloc;
 
 pub const GENERALIZED_INPUT_PROFILE: &str = "std/generalized-input-deterministic@1";
 pub const GENERALIZED_INPUT_ARTIFACT: &str = "conduit-std-host/generalized-input@1";
-pub const GENERALIZED_INPUT_HOST_OPERATION: &str = "conduit.host/generalized-input@1";
+pub const GENERALIZED_INPUT_HOST_CALL: &str = "conduit.host/generalized-input@1";
 
 pub fn generalized_input_std_offers() -> Vec<CapabilityOffer> {
     vec![
-        offer(
-            conduit_semantic_catalog::DETERMINISTIC_GAMEPAD_KIND,
-            conduit_semantic_catalog::deterministic_gamepad_outputs(),
-        ),
-        offer(
-            conduit_semantic_catalog::DETERMINISTIC_POINTER_TOUCH_KIND,
-            conduit_semantic_catalog::deterministic_pointer_touch_outputs(),
-        ),
+        offer(conduit_semantic_catalog::deterministic_gamepad_semantic_contract()),
+        offer(conduit_semantic_catalog::deterministic_pointer_touch_semantic_contract()),
     ]
 }
 
-fn offer(kind: &str, outputs: Vec<PortDescriptor>) -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id: CapabilityId::from(format!("std/{kind}@1")),
-        kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::GENERALIZED_INPUT_REVISION,
-        ),
-        implementation: ImplementationOffer {
+fn offer(contract: Kind) -> CapabilityOffer {
+    let identity = format!("std/{}@1", contract.kind_id.as_str());
+    let target_kind = contract.kind_id.clone();
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from(identity.clone()),
             execution_profile_id: ExecutionProfileId::from(GENERALIZED_INPUT_PROFILE),
-            implementation_id: ImplementationId::from(format!("std/{kind}@1")),
+            implementation_id: ImplementationId::from(identity),
             artifact_id: ArtifactId::from(GENERALIZED_INPUT_ARTIFACT),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(GENERALIZED_INPUT_HOST_CALL),
+                target_kind: Some(target_kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: 0,
+                maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: vec![],
-        outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(GENERALIZED_INPUT_HOST_OPERATION),
-            target_kind: Some(kind_id(kind)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: 0,
-            maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 4,
-            max_queue_items: 8,
-            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 8) as u32,
-        },
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]
@@ -76,8 +61,8 @@ mod tests {
             conduit_semantic_catalog::deterministic_pointer_touch_outputs()
         );
         for offer in offers {
-            assert_eq!(offer.host_operations.len(), 1);
-            assert_eq!(offer.host_operations[0].maximum_in_flight, 1);
+            assert_eq!(offer.host_calls.len(), 1);
+            assert_eq!(offer.host_calls[0].maximum_in_flight, 1);
             assert_eq!(offer.limits.max_queue_items, 8);
             assert!(offer.authority_requirements.is_empty());
         }

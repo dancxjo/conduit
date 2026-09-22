@@ -1,18 +1,17 @@
 //! Exact portable keyboard text, chord, and typed fan-out contracts.
 
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
     TEXT_PRESENTATION_VALUE_KIND,
 };
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
-use alloc::vec::Vec;
 #[cfg(feature = "form-catalog")]
-use conduit_core::KindContractRevision;
+use conduit_core::KindIdentity;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
     PortTemporal,
 };
 use conduit_human::{
@@ -61,9 +60,9 @@ pub fn key_event_tee_contract() -> StandardKindContract {
                 PortTemporal::Flow { closes: false },
             ),
         ],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: limits(KEY_EVENT_ENCODED_LEN as u32),
-        terminal_behavior: TerminalBehavior::CoupledAtomicFanoutAndMirrorsInputTerminal,
+        terminal_behavior: KindTerminalBehavior::CoupledAtomicFanoutAndMirrorsInputTerminal,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -88,15 +87,15 @@ pub fn keymap_contract() -> StandardKindContract {
             PortDirection::Output,
             PortTemporal::Flow { closes: false },
         )],
-        configuration: vec![StandardConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "layout".to_string(),
             default_value: ConfigurationValue::Text(CONDUIT_INTL_LAYOUT.to_string()),
-            rule: StandardConfigurationRule::TextOneOf {
+            rule: KindConfigurationRule::TextOneOf {
                 values: vec![CONDUIT_INTL_LAYOUT.to_string()],
             },
         }],
         limits: limits(4),
-        terminal_behavior: TerminalBehavior::MirrorsInputTerminal,
+        terminal_behavior: KindTerminalBehavior::MirrorsInputTerminal,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -122,19 +121,47 @@ pub fn chords_contract() -> StandardKindContract {
             PortDirection::Output,
             PortTemporal::Flow { closes: false },
         )],
-        configuration: vec![StandardConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "map".to_string(),
             default_value: ConfigurationValue::Text(CORE_CHORD_MAP.to_string()),
-            rule: StandardConfigurationRule::TextOneOf {
+            rule: KindConfigurationRule::TextOneOf {
                 values: vec![CORE_CHORD_MAP.to_string()],
             },
         }],
         limits: limits(CHORD_ENCODED_LEN as u32),
-        terminal_behavior: TerminalBehavior::MirrorsInputTerminal,
+        terminal_behavior: KindTerminalBehavior::MirrorsInputTerminal,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "chords: input/chords".to_string(),
+    }
+}
+
+pub fn key_event_tee_semantic_contract() -> Kind {
+    semantic_contract(key_event_tee_contract(), KEY_EVENT_TEE_REVISION)
+}
+
+pub fn keymap_semantic_contract() -> Kind {
+    semantic_contract(keymap_contract(), KEYMAP_REVISION)
+}
+
+pub fn chords_semantic_contract() -> Kind {
+    semantic_contract(chords_contract(), CHORDS_REVISION)
+}
+
+fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
+    Kind {
+        startup_parameters: super::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: revision.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
+        limits: contract.limits,
     }
 }
 
@@ -166,7 +193,7 @@ pub fn install_input_semantic_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
     for (contract, revision) in [
@@ -193,12 +220,12 @@ pub fn install_input_semantic_catalogs(
         let configuration = contract
             .configuration
             .iter()
-            .map(|field| ConfigurationField {
+            .map(|field| KindConfigurationField {
                 key: field.key.clone(),
                 default_value: field.default_value.clone(),
-                validation: match &field.rule {
-                    StandardConfigurationRule::TextOneOf { values } => {
-                        ConfigurationRule::TextOneOf {
+                rule: match &field.rule {
+                    KindConfigurationRule::TextOneOf { values } => {
+                        KindConfigurationRule::TextOneOf {
                             values: values.clone(),
                         }
                     }
@@ -207,9 +234,9 @@ pub fn install_input_semantic_catalogs(
             })
             .collect();
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
-                kind_contract_revision: KindContractRevision::from(revision),
+                kind_contract_revision: KindIdentity::from(revision),
                 inputs: contract.inputs,
                 outputs: contract.outputs,
                 configuration,
@@ -249,5 +276,17 @@ mod tests {
         assert!(key_event_tee_contract().configuration.is_empty());
         assert_eq!(keymap_contract().configuration.len(), 1);
         assert_eq!(chords_contract().configuration.len(), 1);
+        for (contract, revision, startup_count) in [
+            (key_event_tee_semantic_contract(), KEY_EVENT_TEE_REVISION, 0),
+            (keymap_semantic_contract(), KEYMAP_REVISION, 1),
+            (chords_semantic_contract(), CHORDS_REVISION, 1),
+        ] {
+            assert_eq!(contract.kind_contract_revision.as_str(), revision);
+            assert_eq!(contract.startup_parameters.len(), startup_count);
+            assert!(contract
+                .startup_parameters
+                .iter()
+                .all(|parameter| parameter.has_default));
+        }
     }
 }

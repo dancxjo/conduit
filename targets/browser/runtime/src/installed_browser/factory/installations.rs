@@ -8,6 +8,8 @@ pub(super) static INSTALLATIONS: &[&BrowserInstallation] = &[
     &crate::installed_browser::application::EVENT,
     &crate::installed_browser::application::STATE,
     &crate::installed_browser::application::PRESENTATION,
+    &crate::installed_browser::tutorial_presenter::REQUEST,
+    &crate::installed_browser::tutorial_presenter::MANIFESTATION,
     &super::super::startup_chime::INSTALLATION,
     &super::super::pitch_tone::INSTALLATION,
     &crate::installed_browser::body_startup::WAKE,

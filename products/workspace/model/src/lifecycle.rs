@@ -9,7 +9,7 @@ use conduit_body::{
 use conduit_core::{AuthorityGrantId, BootId, HostAdvertisement, HostId, SignId, bind_sign};
 use serde::{Deserialize, Serialize};
 
-/// An exact current proposal and its optional admitted Play, never a scheduler.
+/// An exact current proposal and its optional admitted play, never a scheduler.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WorkspaceRealization {
     pub wake: Wake,
@@ -45,7 +45,7 @@ pub enum WorkspaceBodyError {
 }
 
 impl WorkspaceBody {
-    /// A Crèche handoff or retained Body may be opened for inspection. Only a
+    /// A Crèche handoff or retained body may be opened for inspection. Only a
     /// Lulled Body can subsequently mutate; Fulfilled remains terminal.
     /// An Awake snapshot alone never proves its previous Play has ended.
     pub fn open(evidence: BodyBiographyEvidence) -> Result<Self, WorkspaceBodyError> {
@@ -65,7 +65,7 @@ impl WorkspaceBody {
         })
     }
 
-    /// Open a freshly admitted Body snapshot for the exact receiving Host.
+    /// Open a freshly admitted body snapshot for the exact receiving Host.
     /// Unlike reload continuity, the current Boot must already be present.
     pub fn open_admitted(
         evidence: BodyBiographyEvidence,
@@ -92,7 +92,7 @@ impl WorkspaceBody {
         &self.pending_archives
     }
 
-    /// A Host calls this only after the archive segments and the newer active
+    /// A host calls this only after the archive segments and the newer active
     /// evidence committed in one durable transaction.
     pub fn acknowledge_archives(
         &mut self,
@@ -123,7 +123,7 @@ impl WorkspaceBody {
             .map_err(WorkspaceBodyError::Admission)
     }
 
-    /// Complete one canonical single-use invitation at the Body authority.
+    /// Complete one canonical single-use invitation at the body authority.
     /// Admission and authenticated presence are separate membership events;
     /// neither grants Form or effect authority.
     pub fn admit_invited_host(
@@ -172,7 +172,7 @@ impl WorkspaceBody {
     }
 
     /// Record an observed carrier loss without revoking the admitted Part.
-    /// The exact Host/Boot ceases to be current, so its offers can no longer
+    /// The exact host/Boot ceases to be current, so its offers can no longer
     /// participate in planning; a future authenticated observation may attach
     /// the Part again under fresh truth.
     pub fn observe_host_lost(
@@ -223,7 +223,7 @@ impl WorkspaceBody {
     }
 
     /// Foreground is presentation focus within the current workset. Selecting a
-    /// surface changes neither its Body lifecycle nor the exact admitted Play.
+    /// surface changes neither its body lifecycle nor the exact admitted play.
     pub fn select_form(&mut self, form: &ResidentForm) -> Result<(), WorkspaceBodyError> {
         if !self.evidence.body.workset.forms().contains(form) {
             return Err(WorkspaceBodyError::UninstalledForm);
@@ -232,8 +232,8 @@ impl WorkspaceBody {
         Ok(())
     }
 
-    /// Seal the complete workset before publishing a Wake. Planning refusal
-    /// therefore preserves the prior Body exactly. The Host still acquires and
+    /// Seal the complete workset before publishing a wake. Planning refusal
+    /// therefore preserves the prior Body exactly. The host still acquires and
     /// admits resources before starting the returned proposal.
     pub fn propose(
         &mut self,
@@ -252,7 +252,7 @@ impl WorkspaceBody {
             }
         }
         // Reserve the whole Wake boundary up front: Woke now and the eventual
-        // retained Lull. A proposal must not publish a Wake that cannot close.
+        // retained lull. A proposal must not publish a wake that cannot close.
         self.make_lifecycle_room(2, 1)?;
         let sequence = self.next_sequence()?;
         let (body, wake) = self
@@ -274,7 +274,7 @@ impl WorkspaceBody {
         Ok(self.realization.as_ref().expect("published realization"))
     }
 
-    /// Accept only the exact lifecycle returned by an admitted Host start.
+    /// Accept only the exact lifecycle returned by an admitted host start.
     pub fn started(
         &mut self,
         host: &HostId,
@@ -318,7 +318,7 @@ impl WorkspaceBody {
         Ok(())
     }
 
-    /// The caller first obtains the exact terminal receipt from its Host.
+    /// The caller first obtains the exact terminal receipt from its host.
     /// Refusal before start supplies no Play. No cancellation or retry is invented.
     pub fn lull(
         &mut self,
@@ -356,7 +356,7 @@ impl WorkspaceBody {
         Ok(())
     }
 
-    /// Retain a pre-Play refusal as part of the exact Wake biography. The
+    /// Retain a pre-play refusal as part of the exact wake biography. The
     /// caller supplies typed facts from the layer that made the decision.
     pub fn fail(
         &mut self,
@@ -466,8 +466,8 @@ impl WorkspaceBody {
         Ok(())
     }
 
-    /// Add checked meaning while Lulled. Current Play replacement is a separate
-    /// Host-orchestrated lifecycle; this cannot mutate an admitted Plan.
+    /// Add checked meaning while Lulled. Current play replacement is a separate
+    /// Host-orchestrated lifecycle; this cannot mutate an admitted plan.
     pub fn admit_form(
         &mut self,
         expected_revision: u64,
@@ -499,8 +499,8 @@ impl WorkspaceBody {
         Ok(())
     }
 
-    /// Remove checked meaning only after the Host has retired its actual Play.
-    /// The Body and membership survive even when the last Form is removed.
+    /// Remove checked meaning only after the host has retired its actual Play.
+    /// The body and membership survive even when the last Form is removed.
     pub fn remove_form(
         &mut self,
         expected_revision: u64,

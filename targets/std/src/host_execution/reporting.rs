@@ -62,10 +62,10 @@ fn terminal_for(
         }
     });
     let terminal = terminals.next().ok_or_else(|| {
-        "execution report has no terminal Sign for its exact Plan/Play/Host/Boot".to_string()
+        "execution report has no terminal Sign for its exact plan/Play/Host/Boot".to_string()
     })?;
     if terminals.next().is_some() {
-        return Err("execution report has multiple terminal Signs for one Play".into());
+        return Err("execution report has multiple terminal Signs for one play".into());
     }
     Ok(terminal)
 }

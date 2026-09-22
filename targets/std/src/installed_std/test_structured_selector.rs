@@ -1,13 +1,14 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationEntry,
-    ConfigurationValue, ExecutionProfileId, ImplementationId, ImplementationOffer,
-    KindContractRevision, KindId, PlannedGear, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType, StructuredInfoValue,
+    ConfigurationValue, ExecutionProfileId, ImplementationId, ImplementationOffer, KindId,
+    KindIdentity, PlannedGear, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
+    StructuredInfoValue,
 };
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, HostedValueStore, OperationAction,
-    OperationInput, PortId, RequestId, ValueRef, ValueStorage,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, HostCallDisposition, HostCallId, HostedValueStore, PortId, RequestId,
+    ValueRef, ValueStorage,
 };
 
 pub(crate) const SOURCE_KIND: &str = "conduit-test/structured-source";
@@ -15,118 +16,128 @@ pub(crate) const SINK_KIND: &str = "conduit-test/structured-sink";
 const SOURCE_IMPLEMENTATION: &str = "conduit-test/structured-source@1";
 const SINK_IMPLEMENTATION: &str = "conduit-test/structured-sink@1";
 
-pub(super) static SOURCE_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static SOURCE_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget,
     prepare: prepare_source,
 };
-pub(super) static SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: SINK_IMPLEMENTATION,
     budget,
     prepare: prepare_sink,
 };
 
-pub(super) struct SourceOperation {
+pub(super) struct SourceBack {
     pub(super) values: Vec<ValueRef>,
     pub(super) waits: Vec<ValueRef>,
     next: usize,
     pending: Option<RequestId>,
 }
 
-impl SourceOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        if self.waits.is_empty() {
-            self.emit_or_complete()
-        } else {
-            self.request_wait()
-        }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        if self.next >= self.values.len() {
-            OperationAction::Complete
-        } else {
-            self.request_wait()
-        }
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+impl<const PORTS: usize> StepBack<PORTS> for SourceBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
             {
-                self.pending = None;
-                self.emit_or_complete()
+                return structured_fixture_fail(154);
             }
-            _ => InstalledOperation::fail(154),
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(value) = self.values.get(self.next).copied() else {
+                return structured_fixture_fail(154);
+            };
+            io.consume_host_completion()
+                .expect("observed structured fixture wait");
+            io.send(PortId(0), value)
+                .expect("ready structured fixture output");
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
         }
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-
-    fn emit_or_complete(&self) -> OperationAction {
-        self.values
-            .get(self.next)
-            .copied()
-            .map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                port: PortId(0),
-                value,
-            })
-    }
-
-    fn request_wait(&mut self) -> OperationAction {
-        let request = RequestId(u32::try_from(self.next).expect("bounded fixture request"));
-        let Some(value) = self.waits.get(self.next).copied() else {
-            return InstalledOperation::fail(155);
+        let Some(value) = self.values.get(self.next).copied() else {
+            return StepOutcome::Complete;
         };
-        self.pending = Some(request);
-        OperationAction::RequestHostOperation {
-            request,
-            operation: HostOperationId(0),
-            input: BoundedValueRef::new(value, 8).expect("fixture wait is exactly eight bytes"),
+        if self.pending.is_none() && !self.waits.is_empty() {
+            let Some(wait) = self.waits.get(self.next).copied() else {
+                return structured_fixture_fail(155);
+            };
+            let request = RequestId(u32::try_from(self.next).unwrap_or(u32::MAX));
+            io.request_host_call(
+                request,
+                HostCallId(0),
+                BoundedValueRef::new(wait, 8).expect("fixture wait is exactly eight bytes"),
+            )
+            .expect("structured fixture wait Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
         }
+        if self.pending.is_some() {
+            return StepOutcome::Await;
+        }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), value)
+            .expect("ready structured fixture output");
+        self.next += 1;
+        StepOutcome::Progress
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
     }
 }
 
-pub(super) struct SinkOperation {
+impl SourceBack {}
+
+pub(super) struct SinkBack {
     expected: Vec<Vec<Vec<u8>>>,
     received: usize,
 }
 
-impl SinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume_value(&mut self, port: PortId, canonical: &[u8]) -> OperationAction {
-        if port != PortId(0)
-            || !self.expected.get(self.received).is_some_and(|choices| {
-                choices
-                    .iter()
-                    .any(|expected| expected.as_slice() == canonical)
-            })
-        {
-            return InstalledOperation::fail(150);
-        }
-        self.received += 1;
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Closed { port: PortId(0) } if self.received == self.expected.len() => {
-                OperationAction::Complete
+impl<const PORTS: usize> StepBack<PORTS> for SinkBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if io.input(PortId(0)).is_some() {
+            let valid = input_bytes.input(PortId(0)).is_some_and(|canonical| {
+                self.expected.get(self.received).is_some_and(|choices| {
+                    choices
+                        .iter()
+                        .any(|expected| expected.as_slice() == canonical)
+                })
+            });
+            if !valid {
+                return structured_fixture_fail(150);
             }
-            _ => InstalledOperation::fail(151),
+            io.consume(PortId(0))
+                .expect("present structured fixture input");
+            self.received += 1;
+            return StepOutcome::Progress;
         }
+        if io.input_closed(PortId(0)) && self.received == self.expected.len() {
+            io.consume_closed(PortId(0))
+                .expect("observed structured fixture closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 }
+
+const fn structured_fixture_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    })
+}
+
+impl SinkBack {}
 
 pub(crate) fn offer(value_type: &StructuredInfoType, direction: PortDirection) -> CapabilityOffer {
     offer_named(value_type, direction, SOURCE_KIND, SINK_KIND)
@@ -147,15 +158,15 @@ pub(crate) fn offer_named(
         temporal: PortTemporal::Flow { closes: true },
     };
     CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
+        startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "value".into(),
-            value_type: "Text".into(),
+            value_type: conduit_core::kind_id("value/text"),
             has_default: true,
         }],
         shorthand: None,
         capability_id: CapabilityId::from(if source { source_kind } else { sink_kind }),
         kind_id: KindId::from(if source { source_kind } else { sink_kind }),
-        kind_contract_revision: KindContractRevision::from(if source {
+        kind_contract_revision: KindIdentity::from(if source {
             "conduit-test/structured-source@1"
         } else {
             "conduit-test/structured-sink@1"
@@ -175,7 +186,7 @@ pub(crate) fn offer_named(
             vec![port.clone()]
         },
         outputs: if source { vec![port] } else { Vec::new() },
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -208,11 +219,11 @@ pub(crate) fn raw_configuration(value: &[u8]) -> Vec<ConfigurationEntry> {
     }]
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     let configured = configured_values(placement)?;
     let count = u16::try_from(configured.len()).map_err(|_| "too many structured fixtures")?;
     let maximum = configured.iter().map(Vec::len).max().unwrap_or_default() as u32;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: count.saturating_add(1),
         value_bytes: configured
             .iter()
@@ -228,7 +239,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_source(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     let stored = configured_values(placement)?
         .iter()
         .map(|value| {
@@ -248,7 +259,7 @@ fn prepare_source(
     } else {
         Vec::new()
     };
-    Ok(InstalledOperation::TestStructuredSource(SourceOperation {
+    Ok(InstalledBack::TestStructuredSource(SourceBack {
         values: stored,
         waits,
         next: 0,
@@ -259,7 +270,7 @@ fn prepare_source(
 fn prepare_sink(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     let expected = if let [ConfigurationEntry {
         key,
         value: ConfigurationValue::Text(encoded),
@@ -283,7 +294,7 @@ fn prepare_sink(
         StructuredInfoValue::from_canonical_bytes(value)
             .map_err(|error| format!("structured fixture refusal: {error:?}"))?;
     }
-    Ok(InstalledOperation::TestStructuredSink(SinkOperation {
+    Ok(InstalledBack::TestStructuredSink(SinkBack {
         expected,
         received: 0,
     }))

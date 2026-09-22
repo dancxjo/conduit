@@ -55,7 +55,7 @@ fn reminder_delivery_is_bounded_and_requires_ordinary_planned_authority() {
         .unwrap();
     assert_eq!(offer.limits.max_active_instances, 4);
     assert_eq!(offer.limits.max_queue_items, 4);
-    assert_eq!(offer.host_operations[0].maximum_in_flight, 1);
+    assert_eq!(offer.host_calls[0].maximum_in_flight, 1);
     let grant = authority_grant(
         "grant/reminder-delivery",
         &offer.authority_requirements[0],
@@ -91,7 +91,7 @@ fn reminder_delivery_is_bounded_and_requires_ordinary_planned_authority() {
         REMINDER_DELIVERY_AUTHORITY
     );
     assert_eq!(
-        delivery.authority[0].host_operation_contract_id.as_str(),
+        delivery.authority[0].host_call_contract_id.as_str(),
         common::REMINDER_PROOF_DELIVER_OPERATION
     );
 }
@@ -103,6 +103,7 @@ fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
         boot_id: BootId::from("boot/reminder-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/reminder-proof@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities,

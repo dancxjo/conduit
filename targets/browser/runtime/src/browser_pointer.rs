@@ -1,20 +1,20 @@
 //! A real browser pointer event entering one ordinary planned kernel Play.
 
 use conduit_core::{
-    bind_active_play, bind_sign, kind_id, port_id, resource_offer, ArtifactId,
+    bind_active_play, bind_sign, kind_id, resource_offer, ArtifactId, Back, BackOfferBuilder,
     BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    DeliveryContract, ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, ImplementationOffer,
-    KindContractRevision, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES, PRESENTATION_RESOURCE_CLASS,
-    PROTOCOL_VERSION,
+    DeliveryContract, ExecutionProfileId, HostAdvertisement, HostCallContractId,
+    HostCallRequirement, HostId, HostProfileId, ImplementationId, OfferGeneration,
+    ResourceRequirement, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
-use conduit_kernel::scheduler::{FixedScheduler, OperationDriver, SchedulerStatus};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_kernel::scheduler::{
+    FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
+};
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedValueStore, Operation,
-    OperationAction, OperationInput, PortId, RequestId, ValueStorage,
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, HostCallDisposition,
+    HostCallId, HostCallOutcome, HostedValueStore, PortId, RequestId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_planner::{plan_expanded_canonical_with_options, PlanningOptions};
@@ -45,7 +45,7 @@ const SIGNS: usize = 32;
 const HOST_BINDINGS: usize = NODES * NODES;
 
 type PointerScheduler = FixedScheduler<
-    OperationDriver<PointerOperation, PORTS>,
+    PointerBack,
     HostedValueStore,
     FixedSignLog<SIGNS>,
     NODES,
@@ -58,7 +58,7 @@ type PointerScheduler = FixedScheduler<
     NODES,
 >;
 
-enum PointerOperation {
+enum PointerBack {
     Source {
         empty: conduit_kernel::ValueRef,
         pending: bool,
@@ -72,113 +72,108 @@ enum PointerOperation {
     },
 }
 
-impl Operation for PointerOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepBack<PORTS> for PointerBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
         match self {
             Self::Source {
                 empty,
                 pending,
-                maximum_output_bytes: _maximum_output_bytes,
+                emitted,
+                maximum_output_bytes,
                 ..
-            } if !*pending => {
+            } => {
+                if *emitted {
+                    return StepOutcome::Complete;
+                }
+                if *pending {
+                    let Some((RequestId(0), outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    if outcome.disposition != HostCallDisposition::Completed
+                        || outcome.failure.is_some()
+                    {
+                        return fail(1);
+                    }
+                    let Some(output) = outcome.output else {
+                        return fail(1);
+                    };
+                    if output.admitted_bytes != *maximum_output_bytes {
+                        return fail(2);
+                    }
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    if io.consume_host_completion().is_err()
+                        || io.send(PortId(0), output.value).is_err()
+                    {
+                        return fail(3);
+                    }
+                    *pending = false;
+                    *emitted = true;
+                    return StepOutcome::Complete;
+                }
+                let input = BoundedValueRef::new(*empty, 0)
+                    .expect("empty browser pointer request is exactly bounded");
+                if io
+                    .request_host_call(RequestId(0), HostCallId(0), input)
+                    .is_err()
+                {
+                    return fail(3);
+                }
                 *pending = true;
-                OperationAction::RequestHostOperation {
-                    request: RequestId(0),
-                    operation: HostOperationId(0),
-                    input: BoundedValueRef::new(*empty, 0)
-                        .expect("empty browser pointer request is exactly bounded"),
-                }
+                StepOutcome::Progress
             }
-            Self::Source { .. } | Self::Sink { .. } => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match (self, input) {
-            (
-                Self::Source {
-                    pending,
-                    emitted,
-                    maximum_output_bytes,
-                    ..
-                },
-                OperationInput::HostOperationCompleted {
-                    request: RequestId(0),
-                    outcome,
-                },
-            ) if *pending
-                && outcome.disposition == HostOperationDisposition::Completed
-                && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return fail(1);
-                };
-                if output.admitted_bytes != *maximum_output_bytes {
-                    return fail(2);
+            Self::Sink {
+                pending,
+                complete,
+                maximum_input_bytes,
+            } => {
+                if *pending {
+                    let Some((RequestId(0), outcome)) = io.host_completion() else {
+                        return StepOutcome::Await;
+                    };
+                    if outcome.disposition != HostCallDisposition::Completed
+                        || outcome.output.is_some()
+                        || outcome.failure.is_some()
+                        || io.consume_host_completion().is_err()
+                    {
+                        return fail(3);
+                    }
+                    *pending = false;
+                    *complete = true;
+                    return StepOutcome::Progress;
                 }
-                *pending = false;
-                *emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
+                if let Some(value) = io.input(PortId(0)) {
+                    let input = BoundedValueRef::new(value, *maximum_input_bytes)
+                        .expect("pointer presentation input is admitted");
+                    if io.consume(PortId(0)).is_err()
+                        || io
+                            .request_host_call(RequestId(0), HostCallId(0), input)
+                            .is_err()
+                    {
+                        return fail(3);
+                    }
+                    *pending = true;
+                    return StepOutcome::Progress;
                 }
-            }
-            (
-                Self::Sink {
-                    pending,
-                    maximum_input_bytes,
-                    ..
-                },
-                OperationInput::Value {
-                    port: PortId(0),
-                    value,
-                },
-            ) if !*pending => {
-                *pending = true;
-                OperationAction::RequestHostOperation {
-                    request: RequestId(0),
-                    operation: HostOperationId(0),
-                    input: BoundedValueRef::new(value, *maximum_input_bytes)
-                        .expect("pointer presentation input is admitted"),
+                if io.input_closed(PortId(0)) && *complete {
+                    if io.consume_closed(PortId(0)).is_err() {
+                        return fail(3);
+                    }
+                    return StepOutcome::Complete;
                 }
+                StepOutcome::Await
             }
-            (
-                Self::Sink {
-                    pending, complete, ..
-                },
-                OperationInput::HostOperationCompleted {
-                    request: RequestId(0),
-                    outcome,
-                },
-            ) if *pending
-                && outcome.disposition == HostOperationDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                *pending = false;
-                *complete = true;
-                OperationAction::Await
-            }
-            (
-                Self::Sink {
-                    pending, complete, ..
-                },
-                OperationInput::Closed { port: PortId(0) },
-            ) if !*pending && *complete => OperationAction::Complete,
-            _ => fail(3),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source { emitted: true, .. } => OperationAction::Complete,
-            _ => OperationAction::Await,
         }
     }
 }
 
-fn fail(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+fn fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
         detail,
     })
@@ -241,11 +236,11 @@ pub fn execute_browser_pointer(
                     .store_host_value(&canonical)
                     .map_err(|error| format!("store browser pointer value: {error:?}"))?;
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: Some(
                                 BoundedValueRef::new(
                                     output,
@@ -266,11 +261,11 @@ pub fn execute_browser_pointer(
                     return Err("browser pointer was presented more than once".into());
                 }
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: None,
                             failure: None,
                         },
@@ -330,10 +325,10 @@ pub fn execute_browser_pointer(
     })
 }
 
-/// The portable delivery semantics this Host implementation realizes.
+/// The portable delivery semantics this host implementation realizes.
 ///
 /// Looking this up by exact Info identity keeps the browser adapter from
-/// inventing a Host-private latest-value convention.
+/// inventing a host-private latest-value convention.
 pub fn browser_pointer_delivery_contract() -> Result<DeliveryContract, String> {
     reviewed_delivery_contract(&kind_id(POINTER_EVENT_INFO_ID))
         .ok_or_else(|| format!("no reviewed delivery contract for {POINTER_EVENT_INFO_ID}"))
@@ -354,12 +349,12 @@ fn catalogs(value: &StructuredInfoValue) -> Result<(StartupCatalog, ProfileCatal
         value.value_type(),
     );
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: presenter.kind_id,
             kind_contract_revision: presenter.kind_contract_revision,
             inputs: presenter.inputs,
             outputs: presenter.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| error.to_string())?;
     Ok((startup, profile))
@@ -367,46 +362,14 @@ fn catalogs(value: &StructuredInfoValue) -> Result<(StartupCatalog, ProfileCatal
 
 pub(crate) fn advertisement() -> HostAdvertisement {
     let value_type = pointer_event_type();
-    let value_kind = value_type
-        .profile()
-        .expect("pointer profile")
-        .value_kind()
-        .clone();
-    let source = CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("browser-pointer-source@1"),
-        kind_id: kind_id(POINTER_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::GENERALIZED_INPUT_REVISION,
-        ),
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(PROFILE),
-            implementation_id: ImplementationId::from("browser/dom-pointer-source@1"),
-            artifact_id: ArtifactId::from(ARTIFACT),
-        },
-        inputs: Vec::new(),
-        outputs: vec![PortDescriptor {
-            port_id: port_id("pointer"),
-            value_kind: value_kind.clone(),
-            direction: PortDirection::Output,
-            temporal: PortTemporal::Flow { closes: false },
-        }],
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(SOURCE_OPERATION),
-            target_kind: Some(kind_id(POINTER_SOURCE_KIND)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: 0,
-            maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        },
-    };
+    let source = pointer_source_offer(
+        "browser-pointer-source@1",
+        PROFILE,
+        "browser/dom-pointer-source@1",
+        ARTIFACT,
+        MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        Vec::new(),
+    );
     let presenter = crate::structured_offers::structured_presentation_offer(
         POINTER_EVENT_TYPE,
         &value_type,
@@ -423,6 +386,7 @@ pub(crate) fn advertisement() -> HostAdvertisement {
         boot_id: BootId::from("browser-pointer-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(PROFILE),
+        bases: vec![],
         resources: vec![resource_offer(
             "browser-pointer-presentation-slot",
             PRESENTATION_RESOURCE_CLASS,
@@ -431,6 +395,41 @@ pub(crate) fn advertisement() -> HostAdvertisement {
         planner_capabilities: Vec::new(),
         capabilities: vec![source, presenter],
     }
+}
+
+pub(crate) fn pointer_source_offer(
+    capability: &str,
+    profile: &str,
+    implementation: &str,
+    artifact: &str,
+    maximum_output_bytes: u32,
+    resource_requirements: Vec<ResourceRequirement>,
+) -> CapabilityOffer {
+    BackOfferBuilder::new(
+        conduit_semantic_catalog::pointer_source_semantic_contract(),
+        Back {
+            capability_id: CapabilityId::from(capability),
+            execution_profile_id: ExecutionProfileId::from(profile),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from(artifact),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(SOURCE_OPERATION),
+                target_kind: Some(kind_id(POINTER_SOURCE_KIND)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: 0,
+                maximum_output_bytes,
+            }],
+            resource_requirements,
+            authority_requirements: Vec::new(),
+        },
+    )
+    .narrow_capacity(CapabilityLimits {
+        max_active_instances: 1,
+        max_queue_items: 1,
+        max_queue_bytes: maximum_output_bytes,
+    })
+    .expect("pointer realization only narrows the semantic byte bound")
+    .build()
 }
 
 fn scheduler(
@@ -458,8 +457,8 @@ fn scheduler(
             .map_err(debug)?;
     }
     routes.seal().map_err(debug)?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(debug)?;
@@ -472,25 +471,25 @@ fn scheduler(
     )
     .map_err(debug)?;
     let empty = values.store(&[]).map_err(debug)?;
-    let mut drivers = Vec::with_capacity(NODES);
+    let mut backs = Vec::with_capacity(NODES);
     for placement in &fragment.placements {
-        let operation = match placement.kind_id.as_str() {
-            POINTER_SOURCE_KIND => PointerOperation::Source {
+        let back = match placement.kind_id.as_str() {
+            POINTER_SOURCE_KIND => PointerBack::Source {
                 empty,
                 pending: false,
                 emitted: false,
-                maximum_output_bytes: placement.host_operations[0].maximum_output_bytes,
+                maximum_output_bytes: placement.host_calls[0].maximum_output_bytes,
             },
-            STRUCTURED_PRESENTATION_KIND => PointerOperation::Sink {
+            STRUCTURED_PRESENTATION_KIND => PointerBack::Sink {
                 pending: false,
                 complete: false,
-                maximum_input_bytes: placement.host_operations[0].maximum_input_bytes,
+                maximum_input_bytes: placement.host_calls[0].maximum_input_bytes,
             },
             _ => return Err("unsupported browser pointer placement".into()),
         };
-        drivers.push(OperationDriver::new(operation).map_err(debug)?);
+        backs.push(back);
     }
-    let drivers = drivers.try_into().map_err(|_| "pointer drivers")?;
+    let backs = backs.try_into().map_err(|_| "pointer Backs")?;
     let required_sign_bytes = usize::from(lowered.sign_items)
         .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>())
         .and_then(|bytes| u32::try_from(bytes).ok())
@@ -499,10 +498,8 @@ fn scheduler(
         return Err("browser pointer Plan underadmits physical Signs".into());
     }
     let signs = FixedSignLog::<SIGNS>::new(lowered.sign_bytes).map_err(debug)?;
-    PointerScheduler::new_with_host_operations(
-        nodes, cords, routes, bindings, drivers, values, signs,
-    )
-    .map_err(debug)
+    PointerScheduler::new_with_host_calls(nodes, cords, routes, bindings, backs, values, signs)
+        .map_err(debug)
 }
 
 fn debug(value: impl core::fmt::Debug) -> String {

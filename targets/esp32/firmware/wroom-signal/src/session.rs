@@ -1,4 +1,4 @@
-//! Exact Plan-scoped Conduit session above the ESP32 GATT mechanism.
+//! Exact plan-scoped Conduit session above the ESP32 GATT mechanism.
 
 use conduit_bluetooth::{
     BleGattProfile, BleReassembler, MAXIMUM_BLE_FRAME_BYTES, MAXIMUM_BLE_GATT_PACKET_BYTES,

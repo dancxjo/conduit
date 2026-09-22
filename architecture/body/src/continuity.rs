@@ -1,4 +1,4 @@
-//! Continuous Form execution over finitely admitted Play work.
+//! Continuous Form execution over finitely admitted play work.
 //!
 //! Continuous execution is a lifetime property, not an unbounded allocation
 //! or a hidden restart loop.  The contract below is deliberately small: a
@@ -13,11 +13,11 @@ use serde::{Deserialize, Serialize};
 /// interaction episodes.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ContinuousDisposition {
-    /// The Form has completed its semantic work and will not continue.
+    /// The form has completed its semantic work and will not continue.
     SemanticCompletion,
-    /// The Form remains live but currently has no admitted work to perform.
+    /// The form remains live but currently has no admitted work to perform.
     Quiescent,
-    /// The Body deliberately ended the current Wake while retaining the Form.
+    /// The body deliberately ended the current wake while retaining the form.
     Lull,
     /// An explicit cancellation ended the current work.
     Cancelled,
@@ -27,20 +27,20 @@ pub enum ContinuousDisposition {
     CapacityExhausted,
     /// The current work failed for a non-capacity reason.
     Failed,
-    /// Current Host, Boot, resource, or Line truth was lost.
+    /// Current host, Boot, resource, or Line truth was lost.
     HostBootResourceOrLineLost,
     /// The immutable realization is no longer current and must be replaced.
     PlanRetired,
-    /// The same Form and retained state continued under a replacement Plan.
+    /// The same form and retained state continued under a replacement Plan.
     Replanned,
-    /// One finite transition was accepted and the Form remains live.
+    /// One finite transition was accepted and the form remains live.
     Continued,
 }
 
-/// Finite storage and operation admission for one active Play.
+/// Finite storage and operation admission for one active play.
 ///
 /// These limits apply to the instantaneous workset.  They do not limit the
-/// number of future transitions over the Form's lifetime.
+/// number of future transitions over the form's lifetime.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ContinuousResourceAdmission {
     pub retained_value_bytes: u16,
@@ -111,7 +111,7 @@ impl ContinuousSpecimen {
         })
     }
 
-    /// Accept one finite transition without allocating or renewing a Play.
+    /// Accept one finite transition without allocating or renewing a play.
     pub fn accept(&mut self, delta: u16) -> Result<ContinuousDisposition, ContinuousError> {
         if !matches!(
             self.disposition,

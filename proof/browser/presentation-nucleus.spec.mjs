@@ -156,7 +156,7 @@ test("semantic product and same-site links retain exact bounded destinations wit
       revision: 1,
       actions: [],
       nodes: [{
-        parent: null, component: "link", key: "handoff", text: "Add to new Body",
+        parent: null, component: "link", key: "handoff", text: "Add to new body",
         value: "/conduit/creche/?form=memory_lantern", valueCapacity: 2_048, action: null,
       }],
     }), handoff);

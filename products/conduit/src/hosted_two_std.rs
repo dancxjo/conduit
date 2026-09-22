@@ -23,7 +23,7 @@ const SOURCE_HOST: &str = "tour/std-source";
 const SINK_HOST: &str = "tour/std-sink";
 const SOURCE_BOOT: &str = "tour/std-source/boot-1";
 const SINK_BOOT: &str = "tour/std-sink/boot-1";
-// SessionBinding currently seals the first Play of each exact fragment.
+// SessionBinding currently seals the first play of each exact fragment.
 const PLAY_SEQUENCE: u64 = 0;
 
 pub struct HostedTwoHostExecution {

@@ -50,7 +50,7 @@ export const STD_EXISTING_COMPUTER_CONTRIBUTIONS = Object.freeze(PROFILES.map((t
   carriers: Object.freeze({
     deployment: Object.freeze([]),
     installation: Object.freeze([
-      Object.freeze({ id: "conduit-carrier/browser-release-download@1", label: "Download Body-bound native ZIP" }),
+      Object.freeze({ id: "conduit-carrier/browser-release-download@1", label: "Download body-bound native ZIP" }),
     ]),
     attachment: Object.freeze([
       Object.freeze({ id: "conduit-carrier/rendezvous-code@1", label: "One-use rendezvous code" }),

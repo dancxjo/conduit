@@ -112,7 +112,7 @@ export function decodeEffect(bytes) {
     requestNode: frame.u16(),
     requestId: frame.u32(),
     operationId: frame.u16(),
-    hostOperationContractId: frame.text(),
+    hostCallContractId: frame.text(),
     placementId: frame.text(),
   };
   let effect;
@@ -172,7 +172,7 @@ function encodeCompletion(effect, completion) {
   view.setUint32(2, completion.requestId, true);
   view.setUint16(6, completion.operationId, true);
   frame.write(numeric);
-  frame.text(completion.hostOperationContractId);
+  frame.text(completion.hostCallContractId);
   frame.text(completion.placementId);
   if (effect.kind === EFFECT_DISTRIBUTED_PRESENT) {
     frame.text(completion.sourceFragmentId);
@@ -208,7 +208,7 @@ function commonCompletion(effect, success = true) {
     requestNode: effect.requestNode,
     requestId: effect.requestId,
     operationId: effect.operationId,
-    hostOperationContractId: effect.hostOperationContractId,
+    hostCallContractId: effect.hostCallContractId,
     placementId: effect.placementId,
     success,
   };

@@ -4,8 +4,8 @@ use crate::{IndependentWatchdogObservation, LocalHazard, OiMode, SafetyObservati
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId,
     AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FaceStartupParameter, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision,
+    ExecutionProfileId, FrontStartupParameter, HostAdvertisement, HostCallContractId,
+    HostCallRequirement, HostId, ImplementationId, ImplementationOffer, KindIdentity,
     OfferGeneration, PROTOCOL_VERSION, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
 
@@ -103,17 +103,18 @@ pub fn live_create_drive_advertisement(
         boot_id: observation.boot_id.clone(),
         offer_generation: observation.offer_generation,
         profile: conduit_core::HostProfileId::from(profile),
+        bases: vec![],
         resources,
         capabilities: vec![CapabilityOffer {
-            startup_parameters: vec![FaceStartupParameter {
+            startup_parameters: vec![FrontStartupParameter {
                 name: "ttl-ms".into(),
-                value_type: "Count".into(),
+                value_type: conduit_core::kind_id("value/count"),
                 has_default: true,
             }],
             shorthand: None,
             capability_id: CapabilityId::from(CREATE_DRIVE_CAPABILITY),
             kind_id: contract.kind_id,
-            kind_contract_revision: KindContractRevision::from(
+            kind_contract_revision: KindIdentity::from(
                 conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_REVISION,
             ),
             implementation: ImplementationOffer {
@@ -123,8 +124,8 @@ pub fn live_create_drive_advertisement(
             },
             inputs: contract.inputs,
             outputs: contract.outputs,
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(CREATE_DRIVE_OPERATION),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(CREATE_DRIVE_OPERATION),
                 target_kind: Some(kind_id(SCALAR_INFO_ID)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: (2 * SCALAR_ENCODED_LEN) as u32,
@@ -133,7 +134,7 @@ pub fn live_create_drive_advertisement(
             resource_requirements: requirements,
             authority_requirements: vec![AuthorityRequirement {
                 contract_id: AuthorityContractId::from(authority_contract),
-                host_operation_contract_id: HostOperationContractId::from(CREATE_DRIVE_OPERATION),
+                host_call_contract_id: HostCallContractId::from(CREATE_DRIVE_OPERATION),
                 subject_kind: kind_id(SCALAR_INFO_ID),
             }],
             limits: CapabilityLimits {

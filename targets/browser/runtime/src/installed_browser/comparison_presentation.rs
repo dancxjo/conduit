@@ -2,7 +2,7 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{CapabilityOffer, PlannedGear, StructuredInfoValue, StructuredInfoValueShape};
 
 pub(crate) const IMPLEMENTATION: &str = "browser/presentation-pattern-comparisons@1";
@@ -23,7 +23,7 @@ pub(super) fn offer() -> CapabilityOffer {
             artifact: "conduit-browser-runtime/pattern-comparison-presentation@1",
         },
     );
-    offer.host_operations[0].maximum_input_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
+    offer.host_calls[0].maximum_input_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
     offer.limits.max_queue_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
     offer
 }
@@ -37,21 +37,21 @@ pub(super) fn install_catalogs(
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: offer.kind_id,
             kind_contract_revision: offer.kind_contract_revision,
             inputs: offer.inputs,
             outputs: offer.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| error.to_string())
 }
 fn prepare(
     placement: &PlannedGear,
     _: &mut conduit_kernel::HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
-    Ok(BrowserOperation::presentation(
+    Ok(BrowserBack::presentation(
         super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
         1,
     ))
@@ -70,11 +70,18 @@ pub(crate) fn text(input: &[u8]) -> Result<String, String> {
         let StructuredInfoValueShape::Leaf(bytes) = field.value().shape() else {
             return Err("comparison field must be a leaf".into());
         };
-        rendered.push(format!(
-            "{}: {}",
-            field.name(),
-            core::str::from_utf8(bytes).map_err(|_| "comparison field is not UTF-8")?
-        ));
+        let text = match field.name() {
+            "matched" => conduit_core::InfoBool::decode(bytes)
+                .map(|value| if value.get() { "true" } else { "false" }.to_string())
+                .map_err(|_| "comparison bool is not canonical")?,
+            "score_millionths" | "tolerance_millionths" => conduit_core::decode_count(bytes)
+                .map(|value| value.to_string())
+                .map_err(|_| "comparison count is not canonical")?,
+            _ => core::str::from_utf8(bytes)
+                .map(str::to_string)
+                .map_err(|_| "comparison field is not UTF-8")?,
+        };
+        rendered.push(format!("{}: {text}", field.name()));
     }
     Ok(rendered.join(" · "))
 }

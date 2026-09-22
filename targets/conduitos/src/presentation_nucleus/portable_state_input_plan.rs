@@ -3,9 +3,9 @@
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection,
-    PortTemporal, kind_id, port_id,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindIdentity,
+    OfferGeneration, PROTOCOL_VERSION, Plan, PortDescriptor, PortDirection, PortTemporal, kind_id,
+    port_id,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog, parse};
 use conduit_human::KeyEvent;
@@ -52,12 +52,12 @@ pub fn prepare_portable_state_input(
     let fixtures = fixture_offers();
     for offer in &fixtures {
         catalog
-            .insert(conduit_form::KindDefinition {
+            .insert(conduit_form::KindProjection {
                 kind_id: offer.kind_id.clone(),
                 kind_contract_revision: offer.kind_contract_revision.clone(),
                 inputs: offer.inputs.clone(),
                 outputs: offer.outputs.clone(),
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .map_err(|_| PortableStateInputError::Catalog)?;
     }
@@ -112,6 +112,7 @@ fn advertisement(host: &str, boot: &str, fixtures: Vec<CapabilityOffer>) -> Host
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(crate::functional_offers::PORTABLE_STATE_INPUT_PROFILE),
+        bases: vec![],
         resources: Vec::new(),
         planner_capabilities: Vec::new(),
         capabilities,
@@ -196,8 +197,8 @@ fn sink_offer(
             temporal,
         )],
         Vec::new(),
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from(CAPTURE_OPERATION),
+        vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from(CAPTURE_OPERATION),
             target_kind: Some(kind_id(kind)),
             maximum_in_flight: 1,
             maximum_input_bytes: maximum_bytes,
@@ -212,7 +213,7 @@ fn fixture_offer(
     revision: &str,
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
-    host_operations: Vec<conduit_core::HostOperationRequirement>,
+    host_calls: Vec<conduit_core::HostCallRequirement>,
     maximum_bytes: u32,
 ) -> CapabilityOffer {
     CapabilityOffer {
@@ -220,7 +221,7 @@ fn fixture_offer(
         shorthand: None,
         capability_id: CapabilityId::from(format!("{}-capability@1", kind.replace('/', "-"))),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
                 crate::functional_offers::PORTABLE_STATE_INPUT_PROFILE,
@@ -230,7 +231,7 @@ fn fixture_offer(
         },
         inputs,
         outputs,
-        host_operations,
+        host_calls,
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {

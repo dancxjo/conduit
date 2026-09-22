@@ -6,8 +6,8 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, KindId, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 
 use crate::{
@@ -28,10 +28,26 @@ pub const MAXIMUM_MODEL_TEXT_BYTES: u32 = 256;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ModelTextContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
+}
+
+impl ModelTextContract {
+    pub fn into_semantic_capability_contract(self) -> Kind {
+        Kind {
+            startup_parameters: Vec::new(),
+            shorthand: None,
+            kind_id: self.kind_id,
+            kind_contract_revision: self.kind_contract_revision,
+            inputs: self.inputs,
+            outputs: self.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
+            limits: self.limits,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -65,7 +81,7 @@ pub fn model_result_flow_to_text_contract() -> ModelTextContract {
 pub fn generated_chunk_to_text_contract() -> ModelTextContract {
     ModelTextContract {
         kind_id: kind_id(GENERATED_CHUNK_TO_TEXT_KIND),
-        kind_contract_revision: KindContractRevision::from(GENERATED_CHUNK_TO_TEXT_REVISION),
+        kind_contract_revision: KindIdentity::from(GENERATED_CHUNK_TO_TEXT_REVISION),
         inputs: vec![port_with_temporal(
             "chunk",
             GENERATED_TEXT_CHUNK_VALUE_KIND,
@@ -105,7 +121,7 @@ pub fn project_generated_chunk_text(chunk: &GeneratedTextChunk) -> Result<&str, 
 fn model_text_contract(kind: &str, revision: &str, temporal: PortTemporal) -> ModelTextContract {
     ModelTextContract {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         inputs: vec![port_with_temporal(
             "result",
             GENERATED_RESULT_VALUE_KIND,
@@ -158,7 +174,7 @@ pub fn install_model_text_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
 
     for contract in [
         model_result_to_text_contract(),
@@ -170,7 +186,7 @@ pub fn install_model_text_catalog(
             startup_parameters: vec![],
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: contract.kind_id,
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,

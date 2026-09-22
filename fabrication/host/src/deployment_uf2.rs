@@ -1,4 +1,4 @@
-//! Installed RP2040 UF2 mass-storage carrier for an exact Body-bound spore.
+//! Installed RP2040 UF2 mass-storage carrier for an exact body-bound spore.
 
 use crate::{
     BodyBoundArtifactIdentity, CarrierTerminal, DeploymentCarrierDescriptor, DeploymentCarrierKind,
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn exact_spore_flashes_only_to_the_confirmed_rp2040_volume() {
-        let bytes = b"exact reviewed Body-bound UF2";
+        let bytes = b"exact reviewed body-bound UF2";
         let (descriptor, artifact) = fixture(bytes);
         let root = root("exact");
         let volume = root.join("RPI-RP2");
@@ -227,7 +227,7 @@ mod tests {
 
     #[test]
     fn wrong_volume_authority_and_relabeling_refuse_before_write() {
-        let bytes = b"exact reviewed Body-bound UF2";
+        let bytes = b"exact reviewed body-bound UF2";
         let (descriptor, artifact) = fixture(bytes);
         let root = root("refusal");
         let volume = root.join("volume");

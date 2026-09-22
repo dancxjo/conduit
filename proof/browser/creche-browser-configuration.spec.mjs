@@ -139,7 +139,7 @@ test("browser outfitting is catalog-driven, editable, and handed to checked fabr
     browser_configuration_source: expect.stringContaining("browser/indexeddb@1"),
   });
 
-  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await runner.getByRole("button", { name: "Realize selected host" }).click();
   await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("BrowserBundleLoaded");
   const realized = JSON.parse(await runner.locator("details code").textContent()).realization;
   expect(realized).toMatchObject({
@@ -235,7 +235,7 @@ async function fabricateBrowserHost(page, { preset, add = [] }) {
   await runner.getByRole("button", { name: "Review Host" }).click();
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   let evidence = JSON.parse(await runner.locator("details code").textContent());
-  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await runner.getByRole("button", { name: "Realize selected host" }).click();
   await expect(runner.locator('[data-application-key="physical-stage-realize"] dd')).toHaveText("BrowserBundleLoaded");
   evidence = JSON.parse(await runner.locator("details code").textContent());
   return evidence;
@@ -298,7 +298,7 @@ async function retainCapstoneReport(evidence) {
   await mkdir(root, { recursive: true });
   const has = (profile, id) => profile.implementations.some((item) => item.id === id) ? "yes" : "no";
   const serial = evidence.rich.inspection.find(({ implementation_id }) => implementation_id === "browser/webserial@1");
-  const markdown = `# Browser two-profile fabrication capstone\n\nExact evidence: \`browser-two-profile-capstone.json\`\n\n| capability | viewer | rich host |\n|---|---:|---:|\n| presentation | ${has(evidence.viewer, "browser/dom-presentation@1")} | ${has(evidence.rich, "browser/dom-presentation@1")} |\n| pointer | ${has(evidence.viewer, "browser/pointer-events@1")} | active Plan/Play |\n| storage | ${has(evidence.viewer, "browser/indexeddb@1")} | active Plan/Play |\n| WebSerial | ${has(evidence.viewer, "browser/webserial@1")} | selected / ${serial?.refusal ?? "current"} |\n| WebSocket | ${has(evidence.viewer, "browser/websocket@1")} | unavailable, then offered without IMAGE mutation |\n`;
+  const markdown = `# Browser two-profile fabrication capstone\n\nExact evidence: \`browser-two-profile-capstone.json\`\n\n| capability | viewer | rich host |\n|---|---:|---:|\n| presentation | ${has(evidence.viewer, "browser/dom-presentation@1")} | ${has(evidence.rich, "browser/dom-presentation@1")} |\n| pointer | ${has(evidence.viewer, "browser/pointer-events@1")} | active plan/Play |\n| storage | ${has(evidence.viewer, "browser/indexeddb@1")} | active plan/Play |\n| WebSerial | ${has(evidence.viewer, "browser/webserial@1")} | selected / ${serial?.refusal ?? "current"} |\n| WebSocket | ${has(evidence.viewer, "browser/websocket@1")} | unavailable, then offered without IMAGE mutation |\n`;
   await writeFile(new URL("browser-two-profile-capstone.json", root), `${JSON.stringify(evidence, null, 2)}\n`);
   await writeFile(new URL("browser-two-profile-capstone.md", root), markdown);
 }

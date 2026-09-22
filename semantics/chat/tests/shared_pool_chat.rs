@@ -6,6 +6,26 @@ use conduit_form::{
 const SOURCE: &str = include_str!("../../../forms/pool-webchat/main.conduit");
 
 #[test]
+fn shared_pool_offers_keep_exact_bounded_semantics() {
+    let offers = conduit_chat::pool_chat_capabilities();
+    assert_eq!(offers.len(), 4);
+    assert_eq!(
+        offers[0].limits.max_active_instances,
+        conduit_chat::POOL_WEBCHAT_MAXIMUM_PEERS
+    );
+    for offer in &offers[1..] {
+        assert_eq!(offer.limits.max_active_instances, 1);
+        assert_eq!(offer.limits.max_queue_items, 32);
+        assert_eq!(offer.limits.max_queue_bytes, 8_192);
+    }
+    assert!(offers.iter().all(|offer| {
+        offer.host_calls.is_empty()
+            && offer.resource_requirements.is_empty()
+            && offer.authority_requirements.is_empty()
+    }));
+}
+
+#[test]
 fn native_pool_chat_has_explicit_fan_merge_and_no_authored_line() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();

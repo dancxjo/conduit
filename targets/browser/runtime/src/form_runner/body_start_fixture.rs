@@ -1,4 +1,4 @@
-//! Checked Forms and ordinary retained Body lifecycle for browser execution tests.
+//! Checked forms and ordinary retained body lifecycle for browser execution tests.
 use super::super::*;
 
 pub(in crate::form_runner) fn request() -> BodyStartRequest {

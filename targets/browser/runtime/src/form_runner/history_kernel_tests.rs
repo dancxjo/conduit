@@ -6,7 +6,7 @@ use conduit_core::{
     ResourceVersionIdentity, StructuredInfoType, TemporalInstant, TemporalScale,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindDefinition,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
     KindSignature,
 };
 use conduit_planner::{PlacementChoice, PlacementChoices, PlanningOptions};
@@ -24,12 +24,12 @@ fn fragment() -> PlanFragment {
         })
         .unwrap();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
     browser.capabilities.push(sink);
@@ -46,7 +46,7 @@ fn fragment() -> PlanFragment {
     source_offer.outputs = source_offer.inputs.clone();
     source_offer.outputs[0].direction = PortDirection::Output;
     source_offer.inputs.clear();
-    source_offer.host_operations.clear();
+    source_offer.host_calls.clear();
     source_offer.startup_parameters.clear();
     source_offer.implementation.implementation_id = "fixture/history-command@1".into();
     source_offer.implementation.artifact_id = "fixture/history-command@1".into();
@@ -57,12 +57,12 @@ fn fragment() -> PlanFragment {
         })
         .unwrap();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: source_offer.kind_id.clone(),
             kind_contract_revision: source_offer.kind_contract_revision.clone(),
             inputs: Vec::new(),
             outputs: source_offer.outputs.clone(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .unwrap();
     let mut source_host = browser.clone();
@@ -169,7 +169,7 @@ fn append_command() -> Vec<u8> {
             origin: conduit_time::HistoricalEntryOrigin::OperatorAuthored,
             value: BoundedResourceRef {
                 identity: ResourceSemanticIdentity::from_digest([1; 32]),
-                content_profile: conduit_core::kind_id("value/text@1"),
+                content_profile: conduit_core::kind_id("value/text"),
                 access_class: ResourceClassId::from("conduit.resource/history-value@1"),
                 extent: ResourceExtent {
                     bytes: 4,
@@ -245,7 +245,7 @@ fn planned_browser_history_projects_replay_through_the_production_kernel() {
         scheduler
             .signs()
             .events()
-            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostOperationCompleted)
+            .filter(|event| event.kind == conduit_kernel::KernelEventKind::HostCallCompleted)
             .count(),
         3
     );

@@ -62,7 +62,7 @@ Crèche respects the same live owner and returns an arrived body to its forms.
 The portable `conduit-workspace-model` holds the ordinary body biography and its
 exact current proposal, admitted play, and foreground form identity. It does not
 execute work. Browser realization uses the existing planner, resource admission,
-single kernel slot, and admitted host-operation dispatcher.
+single kernel slot, and admitted Host Call dispatcher.
 
 The host saves the accepted startup lifecycle before dispatching any platform
 effects. A failed save cancels the actual play, preserves its terminal receipt,

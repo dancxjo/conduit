@@ -1,70 +1,73 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    OperationAction, OperationInput, PortId, RequestId,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
-pub(super) static TICK_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TICK_PRESENTATION_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::TICK_PRESENTATION_IMPLEMENTATION,
     budget,
     prepare,
 };
 
-pub(super) struct TickPresentationOperation {
+pub(super) struct TickPresentationBack {
     pending: Option<RequestId>,
     next: u32,
 }
 
-impl TickPresentationOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => {
-                let request = RequestId(self.next);
-                self.pending = Some(request);
-                let Ok(input) = BoundedValueRef::new(value, conduit_time::TICK_ENCODED_LEN) else {
-                    return InstalledOperation::fail(9);
-                };
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(0),
-                    input,
-                }
-            }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+impl<const PORTS: usize> StepBack<PORTS> for TickPresentationBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
             {
-                self.pending = None;
-                let Some(next) = self.next.checked_add(1) else {
-                    return OperationAction::Fail(Failure {
-                        code: FailureCode::IdentityCapacityExhausted,
-                        detail: 9,
-                    });
-                };
-                self.next = next;
-                OperationAction::Await
+                return StepOutcome::Fail(tick_failure(FailureCode::InvalidLifecycle));
             }
-            OperationInput::Closed { port: PortId(0) } if self.pending.is_none() => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(9),
+            let Some(next) = self.next.checked_add(1) else {
+                return StepOutcome::Fail(tick_failure(FailureCode::IdentityCapacityExhausted));
+            };
+            io.consume_host_completion()
+                .expect("observed Tick Presentation completion");
+            self.pending = None;
+            self.next = next;
+            return StepOutcome::Progress;
         }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending.is_some() {
+                return StepOutcome::Fail(tick_failure(FailureCode::InvalidLifecycle));
+            }
+            let Ok(input) = BoundedValueRef::new(value, conduit_time::TICK_ENCODED_LEN) else {
+                return StepOutcome::Fail(tick_failure(FailureCode::InvalidLifecycle));
+            };
+            let request = RequestId(self.next);
+            io.consume(PortId(0))
+                .expect("present Tick Presentation input");
+            io.request_host_call(request, HostCallId(0), input)
+                .expect("single Tick Presentation Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() {
+            io.consume_closed(PortId(0))
+                .expect("observed Tick Presentation closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 
-    pub(super) fn cancel(&mut self) {
+    fn cancel(&mut self) {
         self.pending = None;
     }
 }
+
+fn tick_failure(code: FailureCode) -> Failure {
+    Failure { code, detail: 9 }
+}
+
+impl TickPresentationBack {}
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
     if placement.kind_id.as_str() != conduit_semantic_catalog::TICK_PRESENTATION_KIND
@@ -89,9 +92,9 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     Ok(())
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 1,
@@ -103,12 +106,10 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
-    Ok(InstalledOperation::TickPresentation(
-        TickPresentationOperation {
-            pending: None,
-            next: 0,
-        },
-    ))
+    Ok(InstalledBack::TickPresentation(TickPresentationBack {
+        pending: None,
+        next: 0,
+    }))
 }

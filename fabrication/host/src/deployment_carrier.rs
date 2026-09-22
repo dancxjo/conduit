@@ -1,4 +1,4 @@
-//! Product contract for carrying an already-built Body-bound artifact.
+//! Product contract for carrying an already-built body-bound artifact.
 //!
 //! Carrier realization is distinct from fabrication and from later Boot, join,
 //! or membership observation. Target catalogs declare these descriptors; an

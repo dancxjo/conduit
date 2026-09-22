@@ -1,18 +1,7 @@
 use super::*;
 
-type SinkScheduler = FixedScheduler<
-    OperationDriver<RenderOperation, PORTS>,
-    HostedValueStore,
-    HostedSignLog,
-    1,
-    1,
-    PORTS,
-    1,
-    PORTS,
-    1,
-    1,
-    1,
->;
+type SinkScheduler =
+    FixedScheduler<RenderBack, HostedValueStore, HostedSignLog, 1, 1, PORTS, 1, PORTS, 1, 1, 1>;
 
 pub(super) struct Sink {
     scheduler: SinkScheduler,
@@ -32,26 +21,23 @@ impl Sink {
     ) -> Result<Self, CrossHostRendererError> {
         let (lowered, binding, endpoint, cord) =
             lowered_remote(fragment, RemoteCordDirection::Ingress)?;
-        if lowered.host_operations.len() != 1 {
+        if lowered.host_calls.len() != 1 {
             return Err(CrossHostRendererError::Plan(
-                "renderer sink omitted its exact host operation".into(),
+                "renderer sink omitted its exact Host Call".into(),
             ));
         }
         let mut routes = FixedRoutes::<PORTS, 1>::new(PORTS as u16);
         routes
             .seal()
             .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?;
-        let mut host_bindings = FixedHostOperationBindings::<1>::new(1);
+        let mut host_bindings = FixedHostCallBindings::<1>::new(1);
         host_bindings
-            .install(
-                lowered.host_operations[0].node,
-                lowered.host_operations[0].binding,
-            )
+            .install(lowered.host_calls[0].node, lowered.host_calls[0].binding)
             .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?;
         host_bindings
             .seal()
             .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?;
-        let scheduler = SinkScheduler::new_with_host_operations(
+        let scheduler = SinkScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()
@@ -66,8 +52,7 @@ impl Sink {
                 .map_err(|_| CrossHostRendererError::Kernel("renderer Cord table width".into()))?,
             routes,
             host_bindings,
-            [OperationDriver::new(RenderOperation { pending: None })
-                .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?],
+            [RenderBack { pending: None }],
             HostedValueStore::new(1, MAX_RENDERER_VALUE_BYTES, MAX_RENDERER_VALUE_BYTES)
                 .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?,
             sign_log()?,
@@ -168,16 +153,17 @@ impl Sink {
         self.scheduler
             .step()
             .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?;
-        let request = self.scheduler.next_host_request().ok_or_else(|| {
-            CrossHostRendererError::Kernel("renderer host operation missing".into())
-        })?;
+        let request = self
+            .scheduler
+            .next_host_request()
+            .ok_or_else(|| CrossHostRendererError::Kernel("renderer Host Call missing".into()))?;
         self.prepare_renderer(request, &payload, &identity)?;
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },
@@ -260,7 +246,7 @@ impl Sink {
 
     fn prepare_renderer(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         payload: &[u8],
         identity: &RendererAdapterIdentity,
     ) -> Result<(), CrossHostRendererError> {
@@ -270,14 +256,14 @@ impl Sink {
             .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?;
         if planned != payload {
             return Err(CrossHostRendererError::Kernel(
-                "renderer host operation input drifted from admitted Info".into(),
+                "renderer Host Call input drifted from admitted Info".into(),
             ));
         }
         let presentation = decode_presentation(planned)?;
         let renderer_fragment = fragment_for(&self.renderer_plan, &identity.host_id)?;
         if renderer_fragment.boot_id != identity.boot_id {
             return Err(CrossHostRendererError::Plan(
-                "renderer adapter identity disagrees with its planned Host/Boot".into(),
+                "renderer adapter identity disagrees with its planned host/Boot".into(),
             ));
         }
         self.execution = Some(

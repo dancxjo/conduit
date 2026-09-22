@@ -1,16 +1,15 @@
 //! Browser realization of the reusable bounded ordered framed-record queue.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, PlannedGear, StructuredInfoValue,
-    StructuredInfoValueShape,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
+    StructuredInfoValue, StructuredInfoValueShape,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-ordered-record-queue@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-ordered-record-queue@1";
 const IMPLEMENTATION: &str = "browser/ordered-record-queue@1";
 const MAXIMUM: u32 = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
 
@@ -22,54 +21,33 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 };
 
 fn offer() -> CapabilityOffer {
-    let definition = conduit_net::ordered_record_queue_kind_definition();
-    CapabilityOffer {
-        startup_parameters: vec![
-            conduit_core::FaceStartupParameter {
-                name: "maximum-items".into(),
-                value_type: "Count".into(),
-                has_default: true,
-            },
-            conduit_core::FaceStartupParameter {
-                name: "maximum-frame-bytes".into(),
-                value_type: "Count".into(),
-                has_default: true,
-            },
-        ],
-        shorthand: None,
-        capability_id: CapabilityId::from(IMPLEMENTATION),
-        kind_id: definition.kind_id.clone(),
-        kind_contract_revision: KindContractRevision::from(
-            conduit_net::ORDERED_RECORD_QUEUE_CONTRACT_REVISION,
-        ),
-        implementation: ImplementationOffer {
+    let contract = conduit_net::ordered_record_queue_semantic_contract();
+    let target_kind = contract.kind_id.clone();
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from("browser/ordered-record-queue@1"),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-net/ordered-record-queue@1"),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
+                target_kind: Some(target_kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: MAXIMUM,
+                maximum_output_bytes: MAXIMUM,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: definition.inputs,
-        outputs: definition.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(HOST_OPERATION),
-            target_kind: Some(definition.kind_id),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAXIMUM,
-            maximum_output_bytes: MAXIMUM,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: conduit_net::MAXIMUM_ORDERED_RECORD_QUEUE_ITEMS as u16,
-            max_queue_bytes: MAXIMUM,
-        },
-    }
+    )
+    .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     validate_placement(placement, &offer())?;
     let (maximum_items, _) = limits(placement).map_err(|_| "invalid ordered queue limits")?;
-    Ok(BrowserOperation::unary(MAXIMUM, maximum_items as u32))
+    Ok(BrowserBack::unary(MAXIMUM, maximum_items as u32))
 }
 
 pub(crate) fn execute(placement: &PlannedGear, input: &[u8]) -> Result<Vec<u8>, Failure> {
@@ -149,11 +127,12 @@ mod tests {
             capability_id: offer.capability_id,
             implementation_id: offer.implementation.implementation_id,
             artifact_id: offer.implementation.artifact_id,
+            base: None,
             realization_characteristics: Vec::new(),
             limits: offer.limits,
             inputs: offer.inputs,
             outputs: offer.outputs,
-            host_operations: offer.host_operations,
+            host_calls: offer.host_calls,
             resources: Vec::new(),
             authority: Vec::new(),
             pool_references: Vec::new(),

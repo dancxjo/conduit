@@ -2,7 +2,18 @@ use super::*;
 use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Mutex, MutexGuard,
+};
+
+static MICROPHONE_PROCESS: Mutex<()> = Mutex::new(());
+
+fn microphone_process() -> MutexGuard<'static, ()> {
+    MICROPHONE_PROCESS
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
 
 fn fixture(script: &str, suffix: &str) -> (PathBuf, PathBuf) {
     static NEXT: AtomicUsize = AtomicUsize::new(0);
@@ -21,6 +32,17 @@ fn fixture(script: &str, suffix: &str) -> (PathBuf, PathBuf) {
 
 fn listing() -> &'static str {
     "**** List of CAPTURE Hardware Devices ****\ncard 1: DSP [SOF DSP], device 7: DMIC16kHz [DMIC16kHz]\n"
+}
+
+fn parsed_fixture(script: &str, suffix: &str) -> (PathBuf, AlsaMicrophoneDiscovery) {
+    let (root, executable) = fixture(script, suffix);
+    let executable = executable.canonicalize().unwrap();
+    let discovery = AlsaMicrophoneDiscovery {
+        executable_sha256: digest_file(&executable).unwrap(),
+        executable,
+        observations: parse_arecord_list(listing(), Path::new("/missing")).unwrap(),
+    };
+    (root, discovery)
 }
 
 #[test]
@@ -48,6 +70,7 @@ fn malformed_rows_and_invalid_limits_fail_closed() {
         }),
         Err(MicrophoneFailure::InvalidLimits)
     );
+    let _process = microphone_process();
     let (root, executable) = fixture(
         "#!/bin/sh\nif [ \"$1\" = -l ]; then exit 0; fi\n",
         "no-endpoint",
@@ -76,6 +99,7 @@ fn malformed_rows_and_invalid_limits_fail_closed() {
 
 #[test]
 fn exact_discovery_selection_and_bounded_capture_produce_a_receipt() {
+    let _process = microphone_process();
     let script = format!(
         "#!/bin/sh\nif [ \"$1\" = -l ]; then printf '{}'; exit 0; fi\ndd if=/dev/zero bs=32 count=1 2>/dev/null\nprintf diagnostic >&2\n",
         listing().replace('\n', "\\n")
@@ -108,6 +132,7 @@ fn exact_discovery_selection_and_bounded_capture_produce_a_receipt() {
 
 #[test]
 fn stale_selection_and_oversized_capture_are_distinct() {
+    let _process = microphone_process();
     let script = format!(
         "#!/bin/sh\nif [ \"$1\" = -l ]; then printf '{}'; exit 0; fi\ndd if=/dev/zero bs={} count=1 2>/dev/null\n",
         listing().replace('\n', "\\n"),
@@ -147,6 +172,7 @@ fn stale_selection_and_oversized_capture_are_distinct() {
 
 #[test]
 fn discovery_overflow_fails_closed() {
+    let _process = microphone_process();
     let oversized = format!(
         "#!/bin/sh\nif [ \"$1\" = -l ]; then dd if=/dev/zero bs={} count=1 2>/dev/null; exit 0; fi\n",
         MAXIMUM_DISCOVERY_BYTES + 1
@@ -161,12 +187,8 @@ fn discovery_overflow_fails_closed() {
 
 #[test]
 fn short_capture_fails_closed() {
-    let short = format!(
-        "#!/bin/sh\nif [ \"$1\" = -l ]; then printf '{}'; exit 0; fi\nprintf '\\000\\000'\n",
-        listing().replace('\n', "\\n"),
-    );
-    let (short_root, short_executable) = fixture(&short, "short-capture");
-    let discovery = AlsaMicrophoneDiscovery::inspect(&short_executable).unwrap();
+    let short = "#!/bin/sh\nprintf '\\000\\000'\n";
+    let (short_root, discovery) = parsed_fixture(short, "short-capture");
     let selected = discovery.observations[0].clone();
     let mut adapter = discovery
         .initialize(
@@ -178,7 +200,18 @@ fn short_capture_fails_closed() {
         )
         .unwrap();
     assert_eq!(
-        adapter.capture(|| false),
+        adapter.finish_capture(
+            true,
+            BoundedRead {
+                bytes: vec![0; 2],
+                overflowed: false,
+            },
+            BoundedRead {
+                bytes: vec![],
+                overflowed: false,
+            },
+            raw_bytes_for_duration(1),
+        ),
         Err(MicrophoneFailure::ShortCapture)
     );
     assert!(adapter.take_receipt().is_none());
@@ -187,6 +220,7 @@ fn short_capture_fails_closed() {
 
 #[test]
 fn cancellation_kills_and_reaps_the_provider() {
+    let _process = microphone_process();
     let script = format!(
         "#!/bin/sh\nif [ \"$1\" = -l ]; then printf '{}'; exit 0; fi\nwhile :; do :; done\n",
         listing().replace('\n', "\\n")
@@ -210,6 +244,7 @@ fn cancellation_kills_and_reaps_the_provider() {
 
 #[test]
 fn authorized_microphone_clip_runs_through_whisper_in_one_plan_play() {
+    let _process = microphone_process();
     let microphone_script = format!(
         "#!/bin/sh\nif [ \"$1\" = -l ]; then printf '{}'; exit 0; fi\ndd if=/dev/zero bs=320 count=1 2>/dev/null\n",
         listing().replace('\n', "\\n")
@@ -264,6 +299,20 @@ fn authorized_microphone_clip_runs_through_whisper_in_one_plan_play() {
         microphone,
     )
     .unwrap();
+    assert_eq!(host.advertisement().offer_generation, OfferGeneration(2));
+    let microphone_base = host
+        .advertisement()
+        .bases
+        .iter()
+        .find(|base| {
+            base.implementation_id.as_str() == conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION
+        })
+        .unwrap();
+    assert_eq!(microphone_base.provider_generation, 2);
+    assert_eq!(
+        microphone_base.enforcement_class,
+        conduit_core::BaseEnforcementClass::Cooperative
+    );
     host.attach_whisper_clip_recognizer(whisper).unwrap();
 
     let mut profiles = crate::installed_std::test_catalog();
@@ -338,6 +387,22 @@ fn authorized_microphone_clip_runs_through_whisper_in_one_plan_play() {
         &connection_limits,
     )
     .unwrap();
+    let planned_microphone = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| {
+            placement.implementation_id.as_str()
+                == conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION
+        })
+        .unwrap();
+    assert_eq!(
+        planned_microphone
+            .base
+            .as_ref()
+            .unwrap()
+            .provider_generation,
+        2
+    );
     let report = host
         .run_fragment_to(
             plan.fragments.into_iter().next().unwrap(),

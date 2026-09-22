@@ -1,9 +1,9 @@
 //! Portable manifestation of one finite Morse indicator pattern.
 
-use super::{StandardKindContract, TerminalBehavior};
+use super::{KindTerminalBehavior, StandardKindContract};
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,
 };
 
@@ -20,18 +20,35 @@ pub fn indicator_presentation_contract() -> StandardKindContract {
                 .to_string(),
         inputs: indicator_presentation_inputs(),
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: MAXIMUM_PENDING_INDICATOR_PATTERNS,
             max_queue_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32
                 * u32::from(MAXIMUM_PENDING_INDICATOR_PATTERNS),
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
         example: "light: presentation/indicator".to_string(),
+    }
+}
+
+pub fn indicator_presentation_semantic_contract() -> Kind {
+    let contract = indicator_presentation_contract();
+    Kind {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: KindIdentity::from(INDICATOR_PRESENTATION_CONTRACT_REVISION),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
+        limits: contract.limits,
     }
 }
 
@@ -49,20 +66,18 @@ pub fn install_indicator_presentation_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
     startup.insert(KindSignature {
         kind: INDICATOR_PRESENTATION_KIND.into(),
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(INDICATOR_PRESENTATION_KIND),
-            kind_contract_revision: KindContractRevision::from(
-                INDICATOR_PRESENTATION_CONTRACT_REVISION,
-            ),
+            kind_contract_revision: KindIdentity::from(INDICATOR_PRESENTATION_CONTRACT_REVISION),
             inputs: indicator_presentation_inputs(),
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| error.to_string())
 }

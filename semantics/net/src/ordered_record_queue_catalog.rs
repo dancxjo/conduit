@@ -1,12 +1,12 @@
-//! Ordinary Form contract for bounded ordered-record queueing.
+//! Ordinary form contract for bounded ordered-record queueing.
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
     StartupCatalog, StartupParameterSignature,
 };
 
@@ -38,35 +38,65 @@ pub fn install_ordered_record_queue_catalog(
         ],
     })?;
     profile
-        .insert(ordered_record_queue_kind_definition())
+        .insert(ordered_record_queue_kind_projection())
         .map_err(|error| error.to_string())
 }
 
-pub fn ordered_record_queue_kind_definition() -> KindDefinition {
+pub fn ordered_record_queue_kind_projection() -> KindProjection {
     let frame = framed_typed_record_type();
-    KindDefinition {
+    KindProjection {
         kind_id: kind_id(ORDERED_RECORD_QUEUE_KIND),
-        kind_contract_revision: KindContractRevision::from(ORDERED_RECORD_QUEUE_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(ORDERED_RECORD_QUEUE_CONTRACT_REVISION),
         inputs: vec![port("frame", &frame, PortDirection::Input)],
         outputs: vec![port("queued", &frame, PortDirection::Output)],
         configuration: vec![
-            ConfigurationField {
+            KindConfigurationField {
                 key: "maximum-items".to_string(),
                 default_value: ConfigurationValue::U64(4),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: MAXIMUM_ORDERED_RECORD_QUEUE_ITEMS as u64,
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "maximum-frame-bytes".to_string(),
                 default_value: ConfigurationValue::U64(MAXIMUM_TYPED_RECORD_FRAME_BYTES as u64),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: TYPED_RECORD_FRAME_HEADER_BYTES as u64,
                     maximum: MAXIMUM_TYPED_RECORD_FRAME_BYTES as u64,
                 },
             },
         ],
+    }
+}
+
+pub fn ordered_record_queue_semantic_contract() -> Kind {
+    let definition = ordered_record_queue_kind_projection();
+    Kind {
+        startup_parameters: vec![
+            FrontStartupParameter {
+                name: "maximum-items".into(),
+                value_type: kind_id("value/count"),
+                has_default: true,
+            },
+            FrontStartupParameter {
+                name: "maximum-frame-bytes".into(),
+                value_type: kind_id("value/count"),
+                has_default: true,
+            },
+        ],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: MAXIMUM_ORDERED_RECORD_QUEUE_ITEMS as u16,
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
     }
 }
 
@@ -80,5 +110,28 @@ fn port(
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Value,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn semantic_contract_owns_startup_front_and_finite_capacity() {
+        let contract = ordered_record_queue_semantic_contract();
+        assert_eq!(contract.startup_parameters.len(), 2);
+        assert_eq!(
+            contract.inputs,
+            ordered_record_queue_kind_projection().inputs
+        );
+        assert_eq!(
+            contract.limits.max_queue_items,
+            MAXIMUM_ORDERED_RECORD_QUEUE_ITEMS as u16
+        );
+        assert_eq!(
+            contract.limits.max_queue_bytes,
+            MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
+        );
     }
 }

@@ -1,14 +1,13 @@
 use super::{ObligationBasis, ObligationRefusal, VALUE_BYTES};
 use conduit_core::{
     kind_id, port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, FaceStartupParameter, HostAdvertisement, HostId,
-    HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
-    KindContractRevision, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
-    PROTOCOL_VERSION,
+    CapabilityOffer, ExecutionProfileId, FrontStartupParameter, HostAdvertisement,
+    HostCallContractId, HostCallRequirement, HostId, HostProfileId, ImplementationId, KindIdentity,
+    OfferGeneration, PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
 use std::collections::BTreeMap;
@@ -18,7 +17,7 @@ pub(super) const EXECUTE_KIND: &str = "repository/execute-proof-catalog";
 const VALUE_KIND: &str = "repository/validation-obligation@1";
 const CONTRACT_REVISION: &str = "conduit.repository/proof-catalog-obligation@1";
 const EXECUTION_PROFILE: &str = "conduit.repository/kernel-hosted@1";
-const HOST_OPERATION: &str = "conduit.repository/execute-proof-catalog@1";
+const HOST_CALL: &str = "conduit.repository/execute-proof-catalog@1";
 const QUEUE_SLOTS: usize = 2;
 const FIELDS: &[&str] = &[
     "commit",
@@ -102,25 +101,25 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
         .map_err(|error| error.to_string())?;
     let mut profiles = ProfileCatalog::new();
     profiles
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
             inputs: vec![],
             outputs: vec![port(PortDirection::Output)],
             configuration: FIELDS
                 .iter()
-                .map(|name| ConfigurationField {
+                .map(|name| KindConfigurationField {
                     key: (*name).into(),
                     default_value: conduit_core::ConfigurationValue::Text(String::new()),
-                    validation: ConfigurationRule::TextBytes { maximum: 256 },
+                    rule: KindConfigurationRule::TextBytes { maximum: 256 },
                 })
                 .collect(),
         })
         .map_err(|error| error.to_string())?;
     profiles
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(EXECUTE_KIND),
-            kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
             inputs: vec![port(PortDirection::Input)],
             outputs: vec![],
             configuration: vec![],
@@ -145,6 +144,7 @@ fn advertisement() -> HostAdvertisement {
         boot_id: BootId::from("repository-validation-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("repository-validation"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: vec![source_offer(), execute_offer()],
@@ -155,20 +155,20 @@ fn source_offer() -> CapabilityOffer {
     CapabilityOffer {
         capability_id: CapabilityId::from("repository-proof-obligation"),
         kind_id: kind_id(SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         implementation: implementation("repository/proof-obligation-source@1"),
         inputs: vec![],
         outputs: vec![port(PortDirection::Output)],
         startup_parameters: FIELDS
             .iter()
-            .map(|name| FaceStartupParameter {
+            .map(|name| FrontStartupParameter {
                 name: (*name).into(),
-                value_type: "Text".into(),
+                value_type: conduit_core::kind_id("value/text"),
                 has_default: false,
             })
             .collect(),
         shorthand: None,
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: limits(),
@@ -179,14 +179,14 @@ fn execute_offer() -> CapabilityOffer {
     CapabilityOffer {
         capability_id: CapabilityId::from("repository-execute-proof-catalog"),
         kind_id: kind_id(EXECUTE_KIND),
-        kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         implementation: implementation("repository/execute-proof-catalog@1"),
         inputs: vec![port(PortDirection::Input)],
         outputs: vec![],
         startup_parameters: vec![],
         shorthand: None,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(HOST_OPERATION),
+        host_calls: vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(HOST_CALL),
             target_kind: Some(kind_id("repository/proof-catalog")),
             maximum_in_flight: 1,
             maximum_input_bytes: VALUE_BYTES,

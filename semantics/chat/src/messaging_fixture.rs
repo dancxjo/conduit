@@ -128,7 +128,7 @@ fn record(
 
 fn text(value: &str) -> StructuredInfoValue {
     StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/text@1")).unwrap(),
+        StructuredInfoType::leaf(kind_id("value/text")).unwrap(),
         value.as_bytes().to_vec(),
     )
     .expect("bounded messaging fixture text")
@@ -136,7 +136,7 @@ fn text(value: &str) -> StructuredInfoValue {
 
 fn unit() -> Result<StructuredInfoValue, MessagingInfoRefusal> {
     Ok(StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/unit@1"))?,
+        StructuredInfoType::leaf(kind_id("value/unit"))?,
         Vec::new(),
     )?)
 }

@@ -20,7 +20,7 @@ mod artifacts;
 use artifacts::{failure_names, print_failure_tails, retain_bounded_outputs, BatchTempRoot};
 
 const SCHEMA: &str = "conduit.conduitos.prove-many/v1";
-const MAXIMUM_PROOFS: usize = 8;
+const MAXIMUM_PROOFS: usize = 9;
 const PROGRESS_INTERVAL: Duration = Duration::from_secs(5 * 60);
 const PREPARED_FILES: &[&str] = &[
     "conduitos",
@@ -56,6 +56,7 @@ enum X86Proof {
     FrontDoor,
     ProductJourney,
     Rescue,
+    EmergencyHalt,
 }
 
 impl X86Proof {
@@ -69,6 +70,7 @@ impl X86Proof {
             Self::FrontDoor => "front-door",
             Self::ProductJourney => "product-journey",
             Self::Rescue => "rescue",
+            Self::EmergencyHalt => "emergency-halt",
         }
     }
 
@@ -84,7 +86,10 @@ impl X86Proof {
     /// local QEMU environment; the other propositions remain safe to overlap
     /// within the declared bound.
     fn requires_exclusive_environment(self) -> bool {
-        matches!(self, Self::Hid | Self::ProductJourney | Self::Rescue)
+        matches!(
+            self,
+            Self::Hid | Self::ProductJourney | Self::Rescue | Self::EmergencyHalt
+        )
     }
 
     fn arguments(self, evidence_root: &Path) -> Vec<String> {
@@ -108,6 +113,7 @@ impl X86Proof {
             Self::Rescue => {
                 arguments.extend(["rescue-proof", "--prepared-image"].map(str::to_owned));
             }
+            Self::EmergencyHalt => arguments.push("emergency-halt-proof".to_owned()),
         }
         arguments.push("--locked".to_owned());
         arguments

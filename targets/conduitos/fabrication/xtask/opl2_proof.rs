@@ -99,7 +99,7 @@ fn validate(sign: &Value) -> Result<(), ConduitosError> {
     } else {
         Err(ConduitosError::refusal(
             "invalid-opl2-proof",
-            "OPL2 Sign did not preserve exact Plan/Base/voice/work/terminal proof",
+            "OPL2 Sign did not preserve exact plan/Base/voice/work/terminal proof",
         ))
     }
 }

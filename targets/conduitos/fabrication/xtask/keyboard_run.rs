@@ -48,7 +48,7 @@ pub(super) fn validate(
                 && capability.outputs.len() == 1
                 && capability.outputs[0].port_id.as_str() == "key"
                 && capability.outputs[0].value_kind.as_str() == "input/key-event@1"
-                && capability.host_operations.len() == 1
+                && capability.host_calls.len() == 1
                 && capability.authority_requirements.is_empty()
                 && capability.resource_requirements.len() == 8
         })
@@ -66,7 +66,7 @@ pub(super) fn validate(
         || keyboard.artifact_build != boot.build_id
         || keyboard.controller_base_id != xhci.base_id
         || keyboard.device_instance_id != usb.device_instance_id
-        || keyboard.interfront_id != hid.interfront_id
+        || keyboard.interface_id != hid.interface_id
         || keyboard.endpoint_id != hid.endpoint_id
         || !exact_id(&keyboard.plan_id)
         || !exact_id(&keyboard.active_play_id)

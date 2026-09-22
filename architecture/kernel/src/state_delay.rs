@@ -1,6 +1,6 @@
 //! Allocation-independent explicit state/delay transition primitive.
 
-pub mod operation;
+pub mod back;
 pub mod transfer;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -39,7 +39,7 @@ pub enum StateError {
 }
 
 /// One admitted state cell. `BYTES` is the fixed-storage ceiling; hosted use
-/// selects the same machine with a larger pre-Play constant.
+/// selects the same machine with a larger pre-play constant.
 pub struct StateDelay<const BYTES: usize> {
     state: u16,
     maximum_bytes: usize,

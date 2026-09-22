@@ -55,11 +55,26 @@ impl<'de> Deserialize<'de> for StructuredConfigurationValue {
 pub enum ConfigurationValue {
     Bool(bool),
     U64(u64),
-    /// Signed fixed-point scalar microunits, matching `value/scalar@1`.
+    /// Signed fixed-point scalar microunits, matching `value/scalar`.
     I64(i64),
     Text(String),
+    /// Exact dimensional startup value; the unit remains part of configuration truth.
+    Quantity(crate::Quantity),
     /// Exact finite structured semantic value used by an immutable Gear configuration.
     Structured(StructuredConfigurationValue),
+}
+
+impl ConfigurationValue {
+    pub fn semantic_kind(&self) -> KindId {
+        crate::kind_id(match self {
+            Self::Bool(_) => crate::BOOL_INFO_ID,
+            Self::U64(_) => crate::COUNT_INFO_ID,
+            Self::I64(_) => crate::SCALAR_INFO_ID,
+            Self::Text(_) => crate::TEXT_INFO_ID,
+            Self::Quantity(_) => crate::QUANTITY_INFO_ID,
+            Self::Structured(value) => value.profile().as_str(),
+        })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -68,16 +83,91 @@ pub struct ConfigurationEntry {
     pub value: ConfigurationValue,
 }
 
+/// One immutable startup field owned by a semantic [`crate::Kind`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct KindConfigurationField {
+    pub key: String,
+    pub default_value: ConfigurationValue,
+    pub rule: KindConfigurationRule,
+}
+
+/// Finite validation law for one Kind configuration field.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum KindConfigurationRule {
+    Any,
+    U64Range {
+        minimum: u64,
+        maximum: u64,
+    },
+    I64Range {
+        minimum: i64,
+        maximum: i64,
+    },
+    DurationMillis {
+        minimum: u64,
+        maximum: u64,
+    },
+    QuantityRange {
+        minimum: i64,
+        maximum: i64,
+        canonical_unit: crate::QuantityUnit,
+    },
+    TextBytes {
+        maximum: u32,
+    },
+    TextOneOf {
+        values: Vec<String>,
+    },
+    Structured {
+        profile: KindId,
+    },
+}
+
+/// A machine-readable semantic law owned by a Kind.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum KindSemanticLaw {
+    Terminal(KindTerminalBehavior),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum KindTerminalBehavior {
+    EmitsOnce,
+    EmitsOnceWhenScopeIsEligible,
+    CompletesAfterConfiguredCount,
+    CompletesAfterFixedCount { count: u64 },
+    CompletesWhenInputsClose,
+    MirrorsInputTerminal,
+    RetainsLatestUntilReleased,
+    EmitsCurrentAndCompletesWhenInputCloses,
+    CoupledAtomicFanoutAndMirrorsInputTerminal,
+    CurrentBooleanGateDefaultsClosedAndCompletesWhenInputsClose,
+    CurrentScalarSelectorCompletesWhenInputsClose,
+    EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
+    TrailingDebounceFlushesPendingValueThenCompletesWhenInputCloses,
+    InactivityStateCancelsDeadlineAndCompletesWhenInputCloses,
+    DelaysEachValueInOrderAndDrainsOnInputClosure,
+    LeadingThrottleDropsValuesDuringIntervalAndCompletesWhenInputCloses,
+    SimulatedCurrentObservationEmitsOnce,
+    HostInputEndsOrFailsSource,
+    HostObservationEndsOrFailsSource,
+    EmitsInitialAndTogglesUntilInputCloses,
+    EmitsOneField,
+    EvolvesAfterTicksAndCompletesWhenTickCloses,
+    PresentsEachFieldAndCompletesWhenInputCloses,
+    CompletesAfterDockedRefusedOrDeadline,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{kind_id, StructuredInfoType, StructuredInfoValue};
+    use crate::{encode_count, kind_id, StructuredInfoType, StructuredInfoValue};
     use alloc::vec;
 
     #[test]
     fn structured_configuration_requires_matching_profile_and_canonical_value() {
-        let value_type = StructuredInfoType::leaf(kind_id("value/count@1")).unwrap();
-        let value = StructuredInfoValue::leaf(value_type.clone(), b"7".to_vec()).unwrap();
+        let value_type = StructuredInfoType::leaf(kind_id("value/count")).unwrap();
+        let value =
+            StructuredInfoValue::leaf(value_type.clone(), encode_count(7).to_vec()).unwrap();
         let canonical = value.canonical_bytes().unwrap();
         let profile = value_type.profile().unwrap().value_kind().clone();
 

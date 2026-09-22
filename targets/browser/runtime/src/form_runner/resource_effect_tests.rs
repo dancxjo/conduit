@@ -2,7 +2,7 @@
 use super::*;
 use crate::installed_browser::test_json;
 use conduit_core::*;
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 use std::collections::BTreeMap;
 
 fn prepare(
@@ -29,7 +29,7 @@ fn prepare(
     let authority = AuthorityGrant {
         grant_id: "snapshot-proof-grant".into(),
         contract_id: crate::resource_snapshot::AUTHORITY_CONTRACT.into(),
-        host_operation_contract_id: offer.host_operations[0].contract_id.clone(),
+        host_call_contract_id: offer.host_calls[0].contract_id.clone(),
         subject_kind: offer.kind_id.clone(),
         host_id: host.host_id.clone(),
         boot_id: host.boot_id.clone(),
@@ -56,12 +56,12 @@ fn prepare(
             startup_parameters: Vec::new(),
         })?;
         profile
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: fixture.kind_id.clone(),
                 kind_contract_revision: fixture.kind_contract_revision.clone(),
                 inputs: fixture.inputs.clone(),
                 outputs: fixture.outputs.clone(),
-                configuration: Vec::new(),
+                configuration: Default::default(),
             })
             .unwrap();
         host.capabilities.push(fixture);
@@ -126,7 +126,7 @@ fn browser_todo_resource_requests_publish_then_restore_only_after_storage_acknow
     assert_eq!(effect.effect_kind, "resource-publish");
     let key = effect.key.to_string();
     let record = effect.record.unwrap().to_vec();
-    assert_eq!(writer.pending_host_operation_count(), 1);
+    assert_eq!(writer.pending_host_call_count(), 1);
     resource_effect::complete(&mut writer, &pending, Ok(None)).unwrap();
     assert!(resource_effect::complete(&mut writer, &pending, Ok(None)).is_err());
     let DriveStatus::Effect(output) = drive(&mut writer, &fragment).unwrap() else {
@@ -175,7 +175,7 @@ fn browser_resource_missing_authority_and_failed_storage_never_become_success() 
         &mut scheduler,
         &pending,
         Err(conduit_kernel::Failure {
-            code: conduit_kernel::FailureCode::HostOperationFailed,
+            code: conduit_kernel::FailureCode::HostCallFailed,
             detail: 211,
         }),
     )
@@ -184,7 +184,7 @@ fn browser_resource_missing_authority_and_failed_storage_never_become_success() 
     assert_eq!(
         scheduler.failure,
         Some(conduit_kernel::Failure {
-            code: conduit_kernel::FailureCode::HostOperationFailed,
+            code: conduit_kernel::FailureCode::HostCallFailed,
             detail: 211,
         })
     );

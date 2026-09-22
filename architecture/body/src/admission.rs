@@ -472,7 +472,7 @@ fn verify_signature(
 /// Build the exact transcript signed by an ambient Host admission proof.
 ///
 /// This string-slice entrance lets constrained Hosts sign the canonical
-/// challenge without allocating the Body-owned identity wrappers. It grants
+/// challenge without allocating the body-owned identity wrappers. It grants
 /// no admission authority and performs no state transition.
 pub fn ambient_admission_transcript(
     domain: &str,

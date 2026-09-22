@@ -9,7 +9,7 @@ use conduit_core::{
 use conduit_form::{parse, ProfileCatalog};
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
 use conduit_presentation::{
-    presenter_stage_kind_definition, presenter_stage_offer, renderer_kind_definition,
+    presenter_stage_kind_projection, presenter_stage_offer, renderer_kind_projection,
     PresenterTopologyAdmission, MAX_RENDERER_VALUE_BYTES,
 };
 use std::collections::BTreeMap;
@@ -19,8 +19,8 @@ const SOURCE: &str = "form spoken-front {\n normalize: presentation/presenter-st
 #[test]
 fn ordinary_plan_cords_seal_a_typed_two_stage_presenter_chain() {
     let mut catalog = ProfileCatalog::new();
-    catalog.insert(presenter_stage_kind_definition()).unwrap();
-    catalog.insert(renderer_kind_definition()).unwrap();
+    catalog.insert(presenter_stage_kind_projection()).unwrap();
+    catalog.insert(renderer_kind_projection()).unwrap();
     let form = parse(SOURCE, &catalog).unwrap();
     let mut host = common::host(
         "speech-host",
@@ -93,7 +93,7 @@ fn ordinary_plan_cords_seal_a_typed_two_stage_presenter_chain() {
 #[test]
 fn two_renderer_placements_are_two_independently_admitted_chains() {
     let mut catalog = ProfileCatalog::new();
-    catalog.insert(renderer_kind_definition()).unwrap();
+    catalog.insert(renderer_kind_projection()).unwrap();
     let form = parse(
         "form front {\n graphical: presentation/renderer\n speech: presentation/renderer\n}\n",
         &catalog,

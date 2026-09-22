@@ -1,4 +1,4 @@
-//! Bounded current Host/Line truth for one front-door Body session.
+//! Bounded current host/Line truth for one front-door Body session.
 
 use conduit_body::{BodyMembership, CandidateInventory, CandidateState};
 use conduit_core::{HostAdvertisement, LineAvailability, LineId, LineOffer, SignId};

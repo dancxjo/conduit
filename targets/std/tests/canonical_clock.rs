@@ -1,4 +1,7 @@
-use conduit_core::{ObservationKind, TerminalDisposition};
+use conduit_core::{
+    ConfigurationValue, ObservationKind, Quantity, QuantityUnit, TerminalDisposition,
+    QUANTITY_INFO_ID,
+};
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
@@ -68,6 +71,21 @@ fn duration_spellings_have_one_semantic_identity_and_execute_until_explicit_stop
     assert_eq!(positional.expanded_form_id, named.expanded_form_id);
     assert_eq!(named.expanded_form_id, local.expanded_form_id);
     assert_eq!(positional.gears.len(), 2);
+    let every = positional
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == "time/every")
+        .unwrap();
+    assert_eq!(
+        every.checked_front().startup_parameters()[0]
+            .value_type
+            .as_str(),
+        QUANTITY_INFO_ID
+    );
+    assert_eq!(
+        every.configuration[0].value,
+        ConfigurationValue::Quantity(Quantity::new(1, QuantityUnit::Second))
+    );
 
     let mut host = StdHost::new();
     let plan = host.plan_expanded_local(&positional).unwrap();
@@ -121,8 +139,7 @@ fn duration_and_selected_wait_contract_fail_before_tick_presentation() {
         .iter_mut()
         .find(|placement| placement.kind_id.as_str() == "time/every")
         .unwrap();
-    every.host_operations[0].contract_id =
-        conduit_core::HostOperationContractId::from("wrong/wait@1");
+    every.host_calls[0].contract_id = conduit_core::HostCallContractId::from("wrong/wait@1");
     let mut output = Vec::with_capacity(256);
     let mut timer = RecordingTimer::default();
     assert!(host

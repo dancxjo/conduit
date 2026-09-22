@@ -1,4 +1,4 @@
-//! Native adapter for the bounded uncompressed Body-bound ZIP emitted by Crèche.
+//! Native adapter for the bounded uncompressed body-bound ZIP emitted by Crèche.
 
 use conduit_host_fabrication::{
     BodyBoundArtifactIdentity, NativeInstallOutcome, NativeInstallRefusal, NativePackageInstaller,
@@ -230,7 +230,7 @@ fn validate_provision(
         || spore.source_identity.is_empty()
     {
         return Err(
-            "native package provision lost its exact Body, spore, or IMAGE identity".into(),
+            "native package provision lost its exact body, spore, or IMAGE identity".into(),
         );
     }
     Ok(())

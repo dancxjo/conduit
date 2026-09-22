@@ -28,7 +28,7 @@ function readOutput(api) {
 }
 
 function refuseUnavailableExecutionLine(proposal, fragment) {
-  const error = new Error("Body proposal selected an admitted Host without a current execution Line");
+  const error = new Error("Body proposal selected an admitted host without a current execution Line");
   error.code = "ExecutionLineUnavailable";
   error.refusal = Object.freeze({
     schema: "conduit.body/wake-refusal@1",
@@ -50,13 +50,13 @@ function refuseUnavailableExecutionLine(proposal, fragment) {
   throw error;
 }
 
-/** Acquire this page Host's local resources before coordinator start admission.
+/** Acquire this page host's local resources before coordinator start admission.
  * The exact proposal is still only a proposal. No WASM Play is started here.
  * One owner per WASM instance prevents duplicate page-side resource ownership.
  */
 const owners = new WeakSet();
 export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot, foregroundForm,
-  externallyManagedPlanIds = [] }) {
+  presentationRootFor, onApplicationEvent, onTutorialPresenterRequest, externallyManagedPlanIds = [] }) {
   const proposal = structuredClone(suppliedProposal);
   const external = new Set(externallyManagedPlanIds);
   if (owners.has(api)) throw new Error("browser Body resources already acquired");
@@ -75,6 +75,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   if (machinery.schema !== "conduit.browser/selected-human-machinery@1" || !Array.isArray(machinery.implementations) || machinery.implementations.length > 64 ||
       !Number.isSafeInteger(maximumPlacements) || maximumPlacements < 1) throw new Error("invalid browser machinery");
   const placements = [];
+  const placementForms = new Map();
   const matchedExternal = new Set();
   for (const form of proposal.plan.forms) {
     if (external.has(form.plan.plan_id)) {
@@ -90,7 +91,11 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     if (fragment.host_id !== hostId || fragment.boot_id !== bootId || fragment.offer_generation !== 1) {
       refuseUnavailableExecutionLine({ ...proposal, authority_host_id: hostId, authority_boot_id: bootId }, fragment);
     }
-    placements.push(...fragment.placements);
+    for (const placement of fragment.placements) {
+      if (placementForms.has(placement.placement_id)) throw new Error("duplicate browser Body placement identity");
+      placementForms.set(placement.placement_id, form.form?.checked_form_id ?? form.plan.checked_form_id);
+      placements.push(placement);
+    }
     if (placements.length > maximumPlacements) throw new Error("browser Body placement bound exceeded");
   }
   if (matchedExternal.size !== external.size) throw new Error("external Body Form is absent from the proposal");
@@ -130,13 +135,13 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       const waiter = channel.waiter;
       channel.waiter = null;
       waiter.resolve(event.encoded);
-      return;
-    }
-    if (channel.queue.length >= 8 || channel.bytes + event.encoded.length > 131072) {
+    } else if (channel.queue.length >= 8 || channel.bytes + event.encoded.length > 131072) {
       throw new Error("browser application event queue pressure");
+    } else {
+      channel.queue.push(event.encoded);
+      channel.bytes += event.encoded.length;
     }
-    channel.queue.push(event.encoded);
-    channel.bytes += event.encoded.length;
+    onApplicationEvent?.(Object.freeze({ checkedFormId, event }));
   };
   const nextApplicationEvent = (checkedFormId, signal) => {
     const channel = applicationChannel(checkedFormId);
@@ -203,7 +208,15 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       const output = outputRoot.ownerDocument.createElement("output");
       output.dataset.placementId = placement.placement_id;
       output.setAttribute("aria-label", placement.gear_id);
-      outputRoot.append(output);
+      const selectedRoot = presentationRootFor?.(Object.freeze({
+        checkedFormId: placementForms.get(placement.placement_id),
+        placementId: placement.placement_id,
+        gearId: placement.gear_id,
+      })) ?? outputRoot;
+      if (!selectedRoot?.isConnected || selectedRoot.ownerDocument !== outputRoot.ownerDocument) {
+        throw new Error("browser presentation root is unavailable");
+      }
+      selectedRoot.append(output);
       elements.push(output);
       slots.set(placement.placement_id, output);
       presentationTimers.set(placement.placement_id, { pending: null, cancel: null });
@@ -219,7 +232,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   };
   const observations = () => {
     assertCurrent();
-    if (startAccepted) throw new Error("browser Body resources are reserved by its Play");
+    if (startAccepted) throw new Error("browser Body resources are reserved by its play");
     return [...demand.keys()].map(class_id => ({
       host_id: hostId, boot_id: bootId, offer_generation: 1,
       pool_id: pools.get(class_id), class_id, health: "Ready",
@@ -294,6 +307,10 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     if (effect.effect_kind === "application-event") {
       return nextApplicationEvent(effect.checked_form_id, signal);
     }
+    if (effect.effect_kind === "tutorial-presenter-request") {
+      if (typeof onTutorialPresenterRequest !== "function") throw new Error("tutorial Presenter request owner is unavailable");
+      return onTutorialPresenterRequest(effect);
+    }
     if (effect.effect_kind === "manifestation") {
       const output = slots.get(effect.placement_id);
       if (!output) throw new Error("browser presentation slot not acquired");
@@ -326,7 +343,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     evidence() {
       if (terminal) return terminal.kernel_signs ?? null;
       if (!started || closed) return null;
-      if (api.conduit_browser_form_signs() < 0) throw new Error("active Body observation is unavailable");
+      if (api.conduit_browser_form_signs() < 0) throw new Error("active body observation is unavailable");
       return readOutput(api);
     },
     start(playSequence) {

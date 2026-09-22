@@ -260,7 +260,7 @@ fn input_host_construction_offers_exact_resource_and_independent_authority() {
         conduit_std_offers::MIDI_INPUT_AUTHORITY_CONTRACT
     );
     assert_eq!(
-        grant.host_operation_contract_id.as_str(),
+        grant.host_call_contract_id.as_str(),
         conduit_std_offers::MUSIC_INPUT_MIDI_OPERATION
     );
     assert_eq!(grant.host_id.as_str(), "host-input");

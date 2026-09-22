@@ -1,9 +1,9 @@
 use alloc::{collections::BTreeMap, format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, Plan,
-    PortDescriptor, PortDirection, PortTemporal, kind_id, port_id, resource_offer,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindIdentity,
+    OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, Plan, PortDescriptor,
+    PortDirection, PortTemporal, kind_id, port_id, resource_offer,
 };
 use conduit_form::{
     CanonicalBackCatalog, ProfileCatalog, StartupCatalog, check_syntax_document,
@@ -100,6 +100,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("conduitos/two-lane-cooperative@1"),
+        bases: vec![],
         resources: vec![resource_offer(
             &format!("{host}/display"),
             PRESENTATION_RESOURCE_CLASS,
@@ -116,7 +117,7 @@ fn text_source_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-fixture-text-source@1"),
         kind_id: kind_id(TEXT_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from("conduitos/fixture-text-source@1"),
+        kind_contract_revision: KindIdentity::from("conduitos/fixture-text-source@1"),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(super::CONDUITOS_PRESENTATION_PROFILE),
             implementation_id: ImplementationId::from("conduitos.fixture/text-source@1"),
@@ -129,7 +130,7 @@ fn text_source_offer() -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -164,12 +165,12 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), PreparationError> {
         })
         .map_err(|_| PreparationError::Catalog)?;
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: kind_id(TEXT_SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from("conduitos/fixture-text-source@1"),
+            kind_contract_revision: KindIdentity::from("conduitos/fixture-text-source@1"),
             inputs: Vec::new(),
             outputs: text_source_offer().outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|_| PreparationError::Catalog)?;
     Ok((startup, profile))
@@ -218,7 +219,7 @@ mod tests {
             manifestation.execution_profile_id.as_str(),
             crate::presentation_nucleus::CONDUITOS_PRESENTATION_PROFILE
         );
-        assert_eq!(manifestation.host_operations.len(), 1);
+        assert_eq!(manifestation.host_calls.len(), 1);
         assert_eq!(manifestation.resources.len(), 1);
     }
 

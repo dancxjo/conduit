@@ -1,4 +1,4 @@
-//! Host-owned loading of explicitly admitted canonical Form sources.
+//! host-owned loading of explicitly admitted canonical Form sources.
 
 use conduit_core::SignId;
 use patchbay_model::{FormCandidate, MAX_FORM_SOURCE_BYTES, MAX_FRONT_DOOR_FORMS};

@@ -54,7 +54,7 @@ fn unrelated_arithmetic_lesson_is_one_ordinary_plannable_form() {
     assert_eq!(plan.fragments[0].placements.len(), 2);
     for placement in &plan.fragments[0].placements {
         assert_eq!(
-            placement.host_operations[0].contract_id.as_str(),
+            placement.host_calls[0].contract_id.as_str(),
             DOMAIN_PROOF_OPERATION
         );
         assert!(placement.resources.is_empty());
@@ -177,10 +177,10 @@ fn lesson_state_and_hints_are_bounded_without_retained_learner_history() {
         .find(|field| field.name() == "hints")
         .unwrap()
         .value_type();
-    let StructuredInfoTypeShape::Collection { length, .. } = hints.shape() else {
-        panic!("hints must be a collection")
+    let StructuredInfoTypeShape::Sequence { capacity, .. } = hints.shape() else {
+        panic!("hints must be a bounded sequence")
     };
-    assert_eq!(length, MAXIMUM_EDUCATION_HINTS);
+    assert_eq!(capacity, MAXIMUM_EDUCATION_HINTS);
 
     let progress = education_progress_type();
     let rendered = format!("{progress:?}").to_ascii_lowercase();
@@ -216,7 +216,7 @@ fn timing_value(classification: &str, delta_micros: i64) -> StructuredInfoValue 
     record(
         timing_feedback_type(),
         vec![
-            ("beat", leaf("value/count@1", b"3")),
+            ("beat", leaf("value/count", &conduit_core::encode_count(3))),
             (
                 "classification",
                 leaf("music/timing-classification@1", classification.as_bytes()),
@@ -228,9 +228,18 @@ fn timing_value(classification: &str, delta_micros: i64) -> StructuredInfoValue 
                     delta_micros.to_string().as_bytes(),
                 ),
             ),
-            ("expected_time_micros", leaf("value/count@1", b"3000000")),
-            ("observed", leaf("value/boolean@1", b"true")),
-            ("observed_time_micros", leaf("value/count@1", b"3045000")),
+            (
+                "expected_time_micros",
+                leaf("value/count", &conduit_core::encode_count(3_000_000)),
+            ),
+            (
+                "observed",
+                leaf("value/bool", &conduit_core::InfoBool::TRUE.encode()),
+            ),
+            (
+                "observed_time_micros",
+                leaf("value/count", &conduit_core::encode_count(3_045_000)),
+            ),
             (
                 "recovery_state",
                 leaf("music/recovery-state@1", b"improving"),
@@ -246,6 +255,7 @@ fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
         boot_id: BootId::from("boot/education-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/education-proof@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities,

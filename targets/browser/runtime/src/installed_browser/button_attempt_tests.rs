@@ -1,6 +1,5 @@
 use super::*;
 use conduit_form::{check_syntax_document, expand_canonical_form, parse_syntax_document};
-use conduit_kernel::{Operation, OperationAction, OperationInput, PortId, ValueStorage};
 use std::collections::BTreeMap;
 fn placements() -> Vec<conduit_core::PlannedGear> {
     let (startup, profile) = crate::installed_browser::catalogs().unwrap();
@@ -35,27 +34,32 @@ fn placements() -> Vec<conduit_core::PlannedGear> {
 
 #[test]
 fn planned_attempt_preserves_browser_bounds_and_requires_timer_admission() {
+    let offer = offer();
+    let semantic = conduit_semantic_catalog::timed_button_attempt_semantic_contract();
+    assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+    assert_eq!(offer.shorthand, semantic.shorthand);
+    assert_eq!(offer.kind_id, semantic.kind_id);
+    assert_eq!(
+        offer.kind_contract_revision,
+        semantic.kind_contract_revision
+    );
+    assert_eq!(offer.inputs, semantic.inputs);
+    assert_eq!(offer.outputs, semantic.outputs);
+    assert_eq!(offer.limits, semantic.limits);
     let placements = placements();
     let placement = placements
         .iter()
         .find(|p| p.implementation_id.as_str() == TIMED_BUTTON_ATTEMPT_BROWSER_IMPLEMENTATION)
         .unwrap();
     let mut store = conduit_kernel::HostedValueStore::new(32, 4096, 32768).unwrap();
-    let mut operation = prepare(placement, &mut store).unwrap();
-    let bytes = conduit_semantic_catalog::button_transition_value("button/primary", true, 0)
-        .unwrap()
-        .canonical_bytes()
+    let _back = prepare(placement, &mut store).unwrap();
+    assert_eq!(placement.host_calls.len(), 2);
+    let observation = placement
+        .host_calls
+        .iter()
+        .find(|binding| binding.contract_id.as_str() == TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_CALL)
         .unwrap();
-    let value = store.store(&bytes).unwrap();
-    let OperationAction::RequestHostOperation { input, .. } =
-        operation.resume(OperationInput::Value {
-            port: PortId(0),
-            value,
-        })
-    else {
-        panic!("attempt must request observation");
-    };
-    assert_eq!(input.admitted_bytes, 4096);
+    assert_eq!(observation.maximum_input_bytes, 4096);
     let mut missing = placement.clone();
     missing.resources.clear();
     assert!(prepare(&missing, &mut store).is_err());

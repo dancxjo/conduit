@@ -1,14 +1,14 @@
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 #[cfg(feature = "form-catalog")]
-use conduit_core::KindContractRevision;
+use conduit_core::KindIdentity;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
     PortTemporal, BOOL_INFO_ID,
 };
 
@@ -46,21 +46,38 @@ pub fn state_toggle_contract() -> StandardKindContract {
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
         }],
-        configuration: vec![StandardConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: "initial".to_string(),
             default_value: ConfigurationValue::Bool(false),
-            rule: StandardConfigurationRule::Any,
+            rule: KindConfigurationRule::Any,
         }],
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: STATE_TOGGLE_QUEUE_ITEMS,
             max_queue_bytes: 64,
         },
-        terminal_behavior: TerminalBehavior::EmitsInitialAndTogglesUntilInputCloses,
+        terminal_behavior: KindTerminalBehavior::EmitsInitialAndTogglesUntilInputCloses,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "toggle: state/toggle(false)".to_string(),
+    }
+}
+
+pub fn state_toggle_semantic_contract() -> Kind {
+    let contract = state_toggle_contract();
+    Kind {
+        startup_parameters: super::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: STATE_TOGGLE_CONTRACT_REVISION.into(),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
+        limits: contract.limits,
     }
 }
 
@@ -69,7 +86,9 @@ pub fn install_state_toggle_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, KindSignature};
+    use conduit_form::{
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    };
     let contract = state_toggle_contract();
     startup.insert(KindSignature {
         kind: contract.kind_id.as_str().to_string(),
@@ -80,15 +99,15 @@ pub fn install_state_toggle_catalogs(
         }],
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
-            kind_contract_revision: KindContractRevision::from(STATE_TOGGLE_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(STATE_TOGGLE_CONTRACT_REVISION),
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "initial".to_string(),
                 default_value: ConfigurationValue::Bool(false),
-                validation: ConfigurationRule::Any,
+                rule: KindConfigurationRule::Any,
             }],
         })
         .map_err(|error| error.to_string())
@@ -115,5 +134,9 @@ mod tests {
             contract.configuration[0].default_value,
             ConfigurationValue::Bool(false)
         );
+        let semantics = state_toggle_semantic_contract();
+        assert_eq!(semantics.startup_parameters.len(), 1);
+        assert_eq!(semantics.startup_parameters[0].name, "initial");
+        assert!(semantics.startup_parameters[0].has_default);
     }
 }

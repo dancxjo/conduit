@@ -7,8 +7,8 @@ use conduit_kernel::debug_observation::{
     DEBUG_CONTROL_SCHEMA_VERSION, DEBUG_OBSERVATION_SCHEMA_VERSION, MAX_DEBUG_VALUE_PREVIEW_BYTES,
 };
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, StepInputBytes, StepIo,
-    StepOperation, StepOutcome,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, StepBack, StepInputBytes,
+    StepIo, StepOutcome,
 };
 use conduit_kernel::{
     CordId, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent, NodeId, PortId, RouteRange,
@@ -24,7 +24,7 @@ enum Driver {
     Fault,
 }
 
-impl StepOperation<PORTS> for Driver {
+impl StepBack<PORTS> for Driver {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -124,11 +124,11 @@ fn production_scheduler_emits_exact_bounded_start_value_and_completion_observati
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
         ],
         [CordSpec::local(
@@ -372,11 +372,11 @@ fn attach_detach_and_fault_observation_do_not_change_execution_result() {
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             },
         ],
         [CordSpec::local(
@@ -398,7 +398,7 @@ fn attach_detach_and_fault_observation_do_not_change_execution_result() {
     .unwrap();
     assert_eq!(
         scheduler.step(),
-        Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
+        Err(SchedulerError::BackFailed(conduit_kernel::Failure {
             code: conduit_kernel::FailureCode::InvalidInput,
             detail: 17
         }))
@@ -435,11 +435,11 @@ fn attach_detach_and_fault_observation_do_not_change_execution_result() {
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             },
         ],
         [CordSpec::local(
@@ -461,7 +461,7 @@ fn attach_detach_and_fault_observation_do_not_change_execution_result() {
     .unwrap();
     assert_eq!(
         without_observer.step(),
-        Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
+        Err(SchedulerError::BackFailed(conduit_kernel::Failure {
             code: conduit_kernel::FailureCode::InvalidInput,
             detail: 17
         }))
@@ -529,11 +529,11 @@ fn exact_gear_breakpoint_suspends_real_execution_and_resume_is_one_shot() {
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
         ],
         [CordSpec::local(
@@ -615,11 +615,11 @@ fn stale_and_distributed_breakpoints_refuse_before_execution_control() {
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 1,
+                maximum_step_fuel: 1,
             },
         ],
         [CordSpec::local(

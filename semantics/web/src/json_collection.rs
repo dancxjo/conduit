@@ -1,7 +1,7 @@
 //! One bounded, pure collection transition over canonical JSON meaning.
 //!
 //! The request has exactly `collection` (an array) and `command` (an object).
-//! Array order is stable. Commands neither name a Host nor perform storage.
+//! Array order is stable. Commands neither name a host nor perform storage.
 
 use crate::{JsonRefusal, JsonValue};
 use alloc::{string::String, vec::Vec};
@@ -136,7 +136,7 @@ fn index(command: &[(String, JsonValue)], length: usize) -> Result<usize, JsonCo
     Ok(index)
 }
 
-/// Encoded entry point used by the ordinary admitted Host operation.
+/// Encoded entry point used by the ordinary admitted Host Call.
 pub fn json_collection_step_bytes(input: &[u8]) -> Result<Vec<u8>, JsonCollectionRefusal> {
     let request = JsonValue::decode_info(input).map_err(JsonCollectionRefusal::InvalidValue)?;
     json_collection_step(&request)?

@@ -3,8 +3,8 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, FaceStartupParameter, HostOperationContractId,
-    HostOperationRequirement, ImplementationId, ImplementationOffer, KindContractRevision, KindId,
+    CapabilityOffer, ExecutionProfileId, FrontStartupParameter, HostCallContractId,
+    HostCallRequirement, ImplementationId, ImplementationOffer, KindId, KindIdentity,
     PortDescriptor, PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
@@ -27,7 +27,7 @@ pub const MAXIMUM_VECTOR_SEARCH_PROCESS_IDENTITY_BYTES: usize = 256;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VectorSearchContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub maximum_input_bytes: u32,
@@ -61,7 +61,7 @@ pub struct VectorSearchValue<T> {
 pub fn vector_search_contract() -> VectorSearchContract {
     VectorSearchContract {
         kind_id: kind_id(VECTOR_SEARCH_KIND),
-        kind_contract_revision: KindContractRevision::from(VECTOR_SEARCH_REVISION),
+        kind_contract_revision: KindIdentity::from(VECTOR_SEARCH_REVISION),
         inputs: vec![port(
             "query",
             SIMILARITY_QUERY_VALUE_KIND,
@@ -84,7 +84,7 @@ pub fn vector_search_contract() -> VectorSearchContract {
     }
 }
 
-pub fn vector_search_startup_parameters() -> Vec<FaceStartupParameter> {
+pub fn vector_search_startup_parameters() -> Vec<FrontStartupParameter> {
     [
         "maximum-input-bytes",
         "maximum-output-bytes",
@@ -92,9 +92,9 @@ pub fn vector_search_startup_parameters() -> Vec<FaceStartupParameter> {
         "maximum-results",
     ]
     .into_iter()
-    .map(|name| FaceStartupParameter {
+    .map(|name| FrontStartupParameter {
         name: name.into(),
-        value_type: "Count".into(),
+        value_type: conduit_core::kind_id("value/count"),
         has_default: true,
     })
     .collect()
@@ -120,7 +120,7 @@ pub fn exact_vector_search_offer(
             implementation_id: ImplementationId::from(EXACT_VECTOR_SEARCH_IMPLEMENTATION),
             artifact_id: ArtifactId::from(EXACT_VECTOR_SEARCH_ARTIFACT),
         },
-        host_operations: vec![vector_search_operation(&contract)],
+        host_calls: vec![vector_search_back(&contract)],
         resource_requirements: vec![resource_requirement(
             VECTOR_SEARCH_RESOURCE_CLASS,
             contract.maximum_query_work_units,
@@ -130,9 +130,9 @@ pub fn exact_vector_search_offer(
     })
 }
 
-pub fn vector_search_operation(contract: &VectorSearchContract) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(VECTOR_SEARCH_OPERATION),
+pub fn vector_search_back(contract: &VectorSearchContract) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(VECTOR_SEARCH_OPERATION),
         target_kind: Some(contract.kind_id.clone()),
         maximum_in_flight: contract.limits.max_active_instances,
         maximum_input_bytes: contract.maximum_input_bytes,
@@ -168,7 +168,7 @@ pub fn install_vector_search_catalog(
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
+        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
 
@@ -200,17 +200,17 @@ pub fn install_vector_search_catalog(
             .collect(),
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
             configuration: parameters
                 .into_iter()
-                .map(|(key, maximum)| ConfigurationField {
+                .map(|(key, maximum)| KindConfigurationField {
                     key: key.to_string(),
                     default_value: conduit_core::ConfigurationValue::U64(maximum),
-                    validation: ConfigurationRule::U64Range {
+                    rule: KindConfigurationRule::U64Range {
                         minimum: 1,
                         maximum,
                     },

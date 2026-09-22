@@ -20,6 +20,6 @@ fn source_fragment_has_one_local_and_two_remote_atomic_fanout_branches() {
         .remote_endpoints
         .iter()
         .all(|remote| remote.direction == RemoteCordDirection::Egress));
-    assert_eq!(lowered.host_operations.len(), 2);
+    assert_eq!(lowered.host_calls.len(), 2);
     assert_eq!(lowered.cord_value_slots, 3);
 }

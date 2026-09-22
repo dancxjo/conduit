@@ -38,7 +38,7 @@ pub struct NetworkAttachment {
     pub attachment_id: NetworkAttachmentId,
     pub host_id: HostId,
     pub boot_id: BootId,
-    pub interfront_pool_id: ResourcePoolId,
+    pub resource_pool_id: ResourcePoolId,
     pub generation: u64,
 }
 
@@ -54,7 +54,7 @@ pub struct NetworkAttachmentInfo<'a> {
     pub attachment_id: &'a str,
     pub host_id: &'a str,
     pub boot_id: &'a str,
-    pub interfront_pool_id: &'a str,
+    pub resource_pool_id: &'a str,
     pub generation: u64,
 }
 
@@ -81,7 +81,7 @@ pub fn encode_network_attachment(
         attachment.attachment_id.as_bytes(),
         attachment.host_id.as_bytes(),
         attachment.boot_id.as_bytes(),
-        attachment.interfront_pool_id.as_bytes(),
+        attachment.resource_pool_id.as_bytes(),
     ];
     if attachment.generation == 0
         || fields
@@ -157,7 +157,7 @@ pub fn decode_network_attachment(
         attachment_id: fields[0],
         host_id: fields[1],
         boot_id: fields[2],
-        interfront_pool_id: fields[3],
+        resource_pool_id: fields[3],
         generation,
     })
 }

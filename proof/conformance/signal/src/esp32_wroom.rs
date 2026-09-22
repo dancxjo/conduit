@@ -14,8 +14,8 @@ use conduit_core::{
 
 use crate::{
     pulse_contract_revision, pulse_execution_profile, pulse_front_startup_parameters,
-    pulse_host_operation_requirements, pulse_kind, pulse_outputs, pulse_resource_requirements,
-    show_contract_revision, show_execution_profile, show_host_operation_requirements, show_inputs,
+    pulse_host_call_requirements, pulse_kind, pulse_outputs, pulse_resource_requirements,
+    show_contract_revision, show_execution_profile, show_host_call_requirements, show_inputs,
     show_kind, show_resource_requirements, signal_resource_offers,
     DISTRIBUTED_MAXIMUM_BUFFERED_BYTES, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
 };
@@ -37,6 +37,7 @@ pub fn esp32_wroom_build_fixture_advertisement() -> HostAdvertisement {
         boot_id: BootId::from(ESP32_WROOM_BUILD_FIXTURE_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("esp32-wroom32-signal-kernel"),
+        bases: vec![],
         resources: signal_resource_offers(
             ESP32_WROOM_BUILD_FIXTURE_TIMER_POOL_ID,
             ESP32_WROOM_BUILD_FIXTURE_PRESENTATION_POOL_ID,
@@ -59,7 +60,7 @@ pub fn esp32_wroom_build_fixture_advertisement() -> HostAdvertisement {
                 },
                 inputs: vec![],
                 outputs: pulse_outputs(),
-                host_operations: pulse_host_operation_requirements(),
+                host_calls: pulse_host_call_requirements(),
                 resource_requirements: pulse_resource_requirements(),
                 authority_requirements: vec![],
                 limits: CapabilityLimits {
@@ -83,7 +84,7 @@ pub fn esp32_wroom_build_fixture_advertisement() -> HostAdvertisement {
                 },
                 inputs: show_inputs(),
                 outputs: vec![],
-                host_operations: show_host_operation_requirements(),
+                host_calls: show_host_call_requirements(),
                 resource_requirements: show_resource_requirements(),
                 authority_requirements: vec![],
                 limits: CapabilityLimits {

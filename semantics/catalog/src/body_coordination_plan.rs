@@ -9,10 +9,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, present_host_operation_requirement, process_owned_line_offer_with_limits,
-    resource_offer, resource_requirement, BaseImplementationId, BootId, CapabilityOffer,
-    HostAdvertisement, HostId, HostProfileId, LineId, LineOffer, LineScope, LineSecurity,
-    LinkLimits, OfferGeneration, Plan, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    kind_id, present_host_call_requirement, process_owned_line_offer_with_limits, resource_offer,
+    resource_requirement, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId,
+    HostProfileId, LineId, LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration, Plan,
+    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -76,7 +76,7 @@ pub fn exact_body_coordination_line_loss(
         Some(unavailable_line),
     )
     .err()
-    .ok_or("unavailable selected coordination Line still produced a Plan")?;
+    .ok_or("unavailable selected coordination Line still produced a plan")?;
     Ok(BodyCoordinationLineLoss {
         plan_id: accepted.plan.plan_id,
         unavailable_line_id: LineId::from(unavailable_line),
@@ -215,6 +215,7 @@ fn coordination_host(id: &str, boot_id: BootId) -> HostAdvertisement {
         boot_id,
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("body-coordination/fixture@1"),
+        bases: vec![],
         resources: vec![resource_offer(
             "body-coordination/presentation",
             PRESENTATION_RESOURCE_CLASS,
@@ -256,7 +257,7 @@ fn text_presentation_fixture_offer() -> CapabilityOffer {
             implementation: "body-coordination/text-presentation@1",
             artifact: "body-coordination/fixture@1",
         },
-        vec![present_host_operation_requirement(
+        vec![present_host_call_requirement(
             kind_id("presentation/body-coordination-text"),
             conduit_text::MAX_TEXT_BYTES,
         )],

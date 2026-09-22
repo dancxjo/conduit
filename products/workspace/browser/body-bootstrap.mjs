@@ -21,9 +21,9 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
       <div data-application-slot="birth-next"></div>
       <details class="birth-details"><summary>Body details and evidence</summary>
       <div class="body-chain" aria-label="Forms to Body lifecycle">
-        <article><span>initial active Forms</span><code class="initial-forms">not born</code></article>
+        <article><span>initial active forms</span><code class="initial-forms">not born</code></article>
         <b aria-hidden="true">BIRTH →</b>
-        <article><span>durable Body</span><strong class="body-state">not born</strong><code class="body-id"></code></article>
+        <article><span>durable body</span><strong class="body-state">not born</strong><code class="body-id"></code></article>
       </div>
       <div class="body-evidence" data-application-slot="birth-evidence"></div>
       </details>
@@ -39,7 +39,7 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
     initialForms: [...initialSelection.selected],
     inventorySource: source,
     review: null,
-    status: selectionNotice ?? "Browse the reviewed Forms, compose a bounded workload, then review it before birth.",
+    status: selectionNotice ?? "Browse the reviewed forms, compose a bounded workload, then review it before birth.",
     outcome: initialSelection.refusals.length === 0 ? "status" : "warning-status",
     terminal: false,
     selectionNotice,
@@ -87,7 +87,7 @@ export function initialFormSelectionNotice(initialSelection) {
     notices.push(`${initialSelection.refusals.length} stale or over-capacity restored Form selection(s) were refused.`);
   }
   if (initialSelection.acceptedHandoff) {
-    notices.push(`${initialSelection.acceptedHandoff.title} was revalidated and preselected from Gallery. Add more ordinary Forms or review this workload; no Body has been born.`);
+    notices.push(`${initialSelection.acceptedHandoff.title} was revalidated and preselected from Gallery. Add more ordinary forms or review this workload; no Body has been born.`);
   }
   return notices.length === 0 ? null : notices.join(" ");
 }
@@ -162,12 +162,12 @@ function presentBirthControls(runner, state, controls) {
       { parent: 0, component: "form-field", action: null, key: "form-source-field", text: "" },
       { parent: 1, component: "field-label", action: null, key: "form-source-label", text: "Selected Conduit Form source" },
       { parent: 1, component: "textarea", action: null, key: listingId, text: "Selected Conduit Form source", value: selectedCanonicalSource(state.initialForms), valueCapacity: 65_536 },
-      { parent: 1, component: "field-help", action: null, key: "form-source-help", text: "The exact source of the selected Forms." },
+      { parent: 1, component: "field-help", action: null, key: "form-source-help", text: "The exact source of the selected forms." },
       { parent: 0, component: "definition-table", action: null, key: "combined-requirements", text: "Combined requirements" },
       { parent: 5, component: "definition", action: null, key: "required-kinds", text: "Checked kinds", value: combinedKinds(state), valueCapacity: 4096 },
       { parent: 5, component: "definition", action: null, key: "review-basis", text: "Review basis", value: state.review
-        ? "Reviewed against current Host OFFER(s); no permission or resource acquired; no Body Plan or Play created."
-        : "Selection not reviewed; Birth will review it before creating the Body.", valueCapacity: 4096 },
+        ? "Reviewed against current host OFFER(s); no permission or resource acquired; no Body Plan or Play created."
+        : "Selection not reviewed; Birth will review it before creating the body.", valueCapacity: 4096 },
       { parent: 0, component: "button", action: 0, key: "review", text: "Review workload" },
     ],
   }, { onEvent() { presentation.nextEvent("birth-source"); onReview(); } });
@@ -230,7 +230,7 @@ function birth(runner, host, state, sequence, onBodyChanged, presentationOptions
   const formsBytes = encoder.encode(encodedFormSelection(state.initialForms));
   const total = hostBytes.length + bootBytes.length + nameBytes.length + formsBytes.length + sourceBytes.length;
   if (total > api.conduit_creche_input_capacity()) {
-    state.status = "The Form selection and exact Host identities exceed the admitted BIRTH input bound.";
+    state.status = "The form selection and exact host identities exceed the admitted BIRTH input bound.";
     state.outcome = "failure-status";
     presentBirthControls(runner, state, presentationOptions);
     return;
@@ -266,7 +266,7 @@ function birth(runner, host, state, sequence, onBodyChanged, presentationOptions
 function readCurrent(api) {
   const code = api.conduit_creche_current();
   if (code === 1) return null;
-  if (code < 0) throw new Error(`current Body projection refused (${code})`);
+  if (code < 0) throw new Error(`current body projection refused (${code})`);
   return readOutput(api);
 }
 
@@ -301,7 +301,7 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
   runner.querySelector(".body-state").textContent = receipt.state;
   state.status = retained
     ? "Same LULLED Body retained — Crèche presentation controls did not recreate it."
-    : `Born — ${receipt.initial_forms.length} checked Form(s) now have one LULLED Body; no Wake, Plan, or Play exists.`;
+    : `Born — ${receipt.initial_forms.length} checked form(s) now have one LULLED Body; no Wake, Plan, or Play exists.`;
   state.outcome = "success-status";
   if (!retained) presentationOptions.onSelection(null);
   presentBirthControls(runner, state, presentationOptions);
@@ -313,11 +313,11 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
       { parent: 0, component: "heading", action: null, key: "born-heading", text: `${receipt.friendly_name} is born` },
       { parent: 0, component: "paragraph", action: null, key: "born-forms", text: state.initialForms.length
         ? `${state.initialForms.length} Form${state.initialForms.length === 1 ? "" : "s"} included.`
-        : "Your Body is ready for Forms whenever you are." },
+        : "Your body is ready for Forms whenever you are." },
       ...state.initialForms.map((form, index) => ({ parent: 0, component: "paragraph", action: null, key: `born-form-${index}`, text: form.title })),
       { parent: 0, component: "paragraph", action: null, key: "born-state", text: receipt.here_part_id
-        ? "This Body has a Host. Continue to its Host options." : "Give it a Host to continue." },
-      { parent: 0, component: "button", action: 0, key: "born-continue", text: "Continue on this Host" },
+        ? "This body has a host. Continue to its host options." : "Give it a host to continue." },
+      { parent: 0, component: "button", action: 0, key: "born-continue", text: "Continue on this host" },
     ],
   }, { onEvent() {
     presentationOptions.presentation.nextEvent("birth-next");
@@ -334,13 +334,13 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
     ["BIRTH Sign", receipt.birth_sign_id],
     ["Body", receipt.body_id],
     ["Here Part", receipt.here_part_id ?? "none yet"],
-    ["Current Host", receipt.host_id ?? "none yet"],
+    ["Current host", receipt.host_id ?? "none yet"],
     ["Current Boot", receipt.boot_id ?? "none yet"],
     ["Membership revision", String(receipt.membership_revision)],
     ["Workload revision", String(receipt.workload_revision)],
     ["Wake", receipt.wake_id ?? "none"],
     ["Plan", receipt.plan_id ?? "none"],
-    ["Active Play", receipt.active_play_id ?? "none"],
+    ["Active play", receipt.active_play_id ?? "none"],
   ];
   const rawEvidence = JSON.stringify({
     body: receipt.raw_body,
@@ -353,7 +353,7 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
     actions: [],
     nodes: [
       { parent: null, component: "successful-evidence", action: null, key: "body-evidence", text: "Body and membership evidence" },
-      { parent: 0, component: "definition-table", action: null, key: "body-identities", text: "Exact Body identities" },
+      { parent: 0, component: "definition-table", action: null, key: "body-identities", text: "Exact body identities" },
       ...identities.map(([label, value]) => ({ parent: 1, component: "definition", action: null, key: identityKey(label), text: label, value, valueCapacity: 65_536 })),
       { parent: 0, component: "disclosure", action: null, key: "body-raw", text: "Raw Body and membership evidence" },
       { parent: identities.length + 2, component: "code-block", action: null, key: "body-raw-json", text: "json", value: rawEvidence, valueCapacity: 65_536 },
@@ -370,14 +370,14 @@ export function createFirstHostRunner({ host, presentationFor, nextSequence, onB
   const presentation = presentationFor(runner);
   const state = {
     revision: 0,
-    status: "The Body is still LULLED with no admitted Host.",
+    status: "The body is still LULLED with no admitted host.",
     outcome: "status",
     terminal: false,
   };
   const current = readCurrent(host.runtime);
   if (!current) {
     state.terminal = true;
-    state.status = "Birth the Body on page zero first.";
+    state.status = "Birth the body on page zero first.";
     presentFirstHostControls(runner, presentation, state, () => {});
     return runner;
   }
@@ -413,8 +413,8 @@ function presentFirstHostControls(runner, presentation, state, onAttach) {
     nodes: [
       { parent: null, component: "stack", action: null, key: "first-host", text: "" },
       { parent: 0, component: "paragraph", action: null, key: "availability", text: "This browser is available, but availability is not membership." },
-      { parent: 0, component: "action-group", action: null, key: "host-actions", text: "First Host actions" },
-      { parent: 2, component: "button", action: state.terminal ? null : 0, key: "attach-host", text: "Give this Body its first Host" },
+      { parent: 0, component: "action-group", action: null, key: "host-actions", text: "First host actions" },
+      { parent: 2, component: "button", action: state.terminal ? null : 0, key: "attach-host", text: "Give this body its first host" },
       { parent: 0, component: state.outcome, action: null, key: "host-status", text: state.status },
     ],
   }, { onEvent() {
@@ -434,7 +434,7 @@ function renderAttachedHost(runner, presentation, receipt, state) {
     actions: [],
     nodes: [
       { parent: null, component: "successful-evidence", action: null, key: "host-evidence", text: "Current browser Host membership" },
-      { parent: 0, component: "definition-table", action: null, key: "host-identities", text: "Exact Host identities" },
+      { parent: 0, component: "definition-table", action: null, key: "host-identities", text: "Exact host identities" },
       ...values.map(([label, value]) => ({ parent: 1, component: "definition", action: null, key: identityKey(label), text: label, value, valueCapacity: 256 })),
     ],
   });

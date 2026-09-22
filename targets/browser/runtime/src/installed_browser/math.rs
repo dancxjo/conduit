@@ -1,10 +1,10 @@
 //! Browser installations for exact bounded scalar transforms.
 
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    kind_id, ConfigurationValue, HostOperationContractId, HostOperationRequirement, PlannedGear,
-    Scalar, SCALAR_ENCODED_LEN,
+    kind_id, ConfigurationValue, HostCallContractId, HostCallRequirement, PlannedGear, Scalar,
+    SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -69,8 +69,8 @@ fn offer(
             implementation,
             artifact: ARTIFACT,
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(implementation),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(implementation),
             target_kind: Some(kind_id(implementation)),
             maximum_in_flight: 1,
             maximum_input_bytes: SCALAR_ENCODED_LEN as u32,
@@ -81,15 +81,12 @@ fn offer(
     )
 }
 
-fn prepare(
-    placement: &PlannedGear,
-    _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let offer = installed_offer(placement.implementation_id.as_str())
         .ok_or_else(|| "unknown math installation".to_string())?;
     validate_placement(placement, &offer)?;
     transform(placement, Scalar::ZERO)?;
-    Ok(BrowserOperation::unary(SCALAR_ENCODED_LEN as u32, 1))
+    Ok(BrowserBack::unary(SCALAR_ENCODED_LEN as u32, 1))
 }
 
 fn installed_offer(implementation: &str) -> Option<conduit_core::CapabilityOffer> {

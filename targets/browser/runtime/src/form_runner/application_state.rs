@@ -1,4 +1,4 @@
-//! Retained shared application models prepared from exact Body Plan truth.
+//! Retained shared application models prepared from exact body Plan truth.
 
 use conduit_body::BodyPlan;
 use conduit_core::{ActivePlayId, PlannedGear};
@@ -99,7 +99,7 @@ fn complete_recursive_comparison(
         || recursive.realization != "recursive"
         || recursive.realization_backs.is_empty()
     {
-        return Err("resident Tour realizations did not preserve the same Form behavior".into());
+        return Err("resident Tour realizations did not preserve the same form behavior".into());
     }
     if !matches!(
         recursive_session.advance()?,
@@ -284,6 +284,7 @@ fn run_resident_stage(
 }
 
 pub(super) enum PreparedApplication {
+    Tutorial(conduit_presentation::ApplicationView),
     Tour(Box<TourApplicationPort>),
     #[cfg(feature = "creche-surface")]
     Patchbay(patchbay_application::PatchbayApplicationPort),
@@ -294,6 +295,7 @@ impl PreparedApplication {
         placement: &PlannedGear,
         plan: &BodyPlan,
         active_play_id: &ActivePlayId,
+        body_evidence: Option<&conduit_body::BodyBiographyEvidence>,
         source: &str,
         foreground_checked_form_id: &str,
     ) -> Result<Option<Self>, String> {
@@ -304,7 +306,22 @@ impl PreparedApplication {
         }
         let application = crate::installed_browser::application::application_id(placement)?;
         match application {
-            "tutorial" | "tour" => Ok(Some(Self::Tour(Box::new(TourApplicationPort::canonical())))),
+            "tutorial" => {
+                let evidence = body_evidence
+                    .ok_or("resident Tutorial requires exact body biography evidence")?;
+                let revision = u32::try_from(evidence.last_sequence())
+                    .map_err(|_| "resident Tutorial presentation revision exhausted")?;
+                let view = conduit_workspace_model::tutorial::presentation_from_evidence(
+                    evidence,
+                    revision,
+                    conduit_workspace_model::tutorial::TutorialPlayback::Playing,
+                )
+                .map_err(|error| format!("prepare resident Tutorial view: {error:?}"))?
+                .lower()
+                .map_err(|error| format!("lower resident Tutorial view: {error:?}"))?;
+                Ok(Some(Self::Tutorial(view)))
+            }
+            "tour" => Ok(Some(Self::Tour(Box::new(TourApplicationPort::canonical())))),
             "patchbay" => {
                 #[cfg(not(feature = "creche-surface"))]
                 return Err("resident Patchbay preparation requires the Crèche surface".into());
@@ -345,6 +362,14 @@ impl PreparedApplication {
     pub(super) fn execute(&mut self, input: &[u8]) -> Result<Vec<u8>, String> {
         let input = if input == [0] { &[][..] } else { input };
         match self {
+            Self::Tutorial(view) => {
+                if !input.is_empty() {
+                    conduit_presentation::ApplicationEvent::decode(input, view)
+                        .map_err(|error| format!("resident Tutorial event: {error:?}"))?;
+                }
+                view.encode()
+                    .map_err(|error| format!("encode resident Tutorial view: {error:?}"))
+            }
             Self::Tour(port) => {
                 let output = port
                     .apply(input)

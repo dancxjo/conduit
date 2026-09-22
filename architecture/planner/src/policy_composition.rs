@@ -105,7 +105,7 @@ struct ComposedPolicy {
 }
 
 /// Composes explicit finite policy layers and selects through the ordinary R2
-/// evaluator. Layers never mutate an active Plan or become runtime state.
+/// evaluator. Layers never mutate an active plan or become runtime state.
 #[allow(clippy::too_many_arguments)]
 pub fn select_realization_with_scoped_policy(
     gear: &CheckedGear,

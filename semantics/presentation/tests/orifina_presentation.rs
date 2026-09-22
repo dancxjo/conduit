@@ -25,7 +25,7 @@ fn purpose(state: PurposeObligationState, revision: u64) -> PurposeState {
     PurposeState {
         purpose_id: "purpose/orifina-tutorial@1".into(),
         revision,
-        summary: "Teach the life and rightful completion of this Body".into(),
+        summary: "Teach the life and rightful completion of this body".into(),
         completion_policy: PurposeCompletionPolicy::ExplicitFulfillmentReadiness,
         obligations: vec![
             PurposeObligation {
@@ -44,7 +44,7 @@ fn purpose(state: PurposeObligationState, revision: u64) -> PurposeState {
             },
             PurposeObligation {
                 obligation_id: "span-host".into(),
-                summary: "Span another Host".into(),
+                summary: "Span another host".into(),
                 state,
             },
         ],
@@ -134,7 +134,7 @@ fn policy_experiment_changes_only_manifestation_not_authoritative_state() {
         .presentation
         .text
         .iter()
-        .any(|item| item.text == "Still to do: Span another Host."));
+        .any(|item| item.text == "Still to do: Span another host."));
     assert!(surface
         .presentation
         .text
@@ -194,7 +194,7 @@ fn policy_experiment_changes_only_manifestation_not_authoritative_state() {
             &neutral,
             "manifestation/neutral",
             "provider/a",
-            "The Host obligation requires repair.",
+            "The host obligation requires repair.",
         ),
         manifestation(
             &deliberately_bad,

@@ -4,10 +4,11 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, TIMER_RESOURCE_CLASS,
-    kind_id, monotonic_timer_host_operation_requirement, monotonic_timer_resource_requirement,
-    port_id, resource_requirement, wait_host_operation_requirement,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId,
+    TIMER_RESOURCE_CLASS, kind_id, monotonic_timer_host_call_requirement,
+    monotonic_timer_resource_requirement, port_id, resource_requirement,
+    wait_host_call_requirement,
 };
 
 pub const FUNCTIONAL_KERNEL_PROFILE: &str = "conduitos/functional-kernel@1";
@@ -24,22 +25,22 @@ pub const STATE_SELECT_SCALAR_IMPLEMENTATION: &str = "conduitos/kernel-state-sel
 pub const PORTABLE_STATE_INPUT_PROFILE: &str = "conduitos/portable-state-input-fixed@1";
 pub const PORTABLE_STATE_INPUT_ARTIFACT: &str = "conduitos/portable-state-input@1";
 pub const ROBOTICS_PROFILE: &str = "conduitos/robotics-prewake-fixed@1";
-pub const KEYMAP_HOST_OPERATION: &str = "conduit.host/input-keymap@1";
+pub const KEYMAP_HOST_CALL: &str = "conduit.host/input-keymap@1";
 pub const KEYMAP_HOST_TARGET: &str = "input/keymap-text-fragment";
-pub const CHORDS_HOST_OPERATION: &str = "conduit.host/input-chords@1";
+pub const CHORDS_HOST_CALL: &str = "conduit.host/input-chords@1";
 pub const CHORDS_HOST_TARGET: &str = "input/chord-fragment";
-pub const TEXT_PROFILE: &str = "conduitos/bounded-host-operations@1";
-pub const TEXT_ARTIFACT: &str = "conduitos/bounded-host-operations@1";
-pub const TEXT_UPPER_HOST_OPERATION: &str = "conduit.host/text-upper@1";
-pub const TEXT_UPPER_HOST_OPERATION_TARGET: &str = "text/uppercase-utf8";
-pub const TEXT_JOIN_HOST_OPERATION: &str = "conduit.host/text-join@1";
-pub const TEXT_JOIN_HOST_OPERATION_TARGET: &str = "text/prefix-concat-utf8";
-pub const TEXT_MORSE_HOST_OPERATION: &str = "conduit.host/text-to-morse@1";
-pub const TEXT_MORSE_HOST_OPERATION_TARGET: &str = "text/morse-pattern";
-pub const INDICATOR_PRESENTATION_HOST_OPERATION: &str = "conduit.host/present-indicator@1";
-pub const INDICATOR_PRESENTATION_HOST_OPERATION_TARGET: &str = "presentation/serial-indicator";
-pub const JSON_ENCODE_HOST_OPERATION: &str = "conduit.host/json-encode@1";
-pub const JSON_DECODE_HOST_OPERATION: &str = "conduit.host/json-decode@1";
+pub const TEXT_PROFILE: &str = "conduitos/bounded-host-calls@1";
+pub const TEXT_ARTIFACT: &str = "conduitos/bounded-host-calls@1";
+pub const TEXT_UPPER_HOST_CALL: &str = "conduit.host/text-upper@1";
+pub const TEXT_UPPER_HOST_CALL_TARGET: &str = "text/uppercase-utf8";
+pub const TEXT_JOIN_HOST_CALL: &str = "conduit.host/text-join@1";
+pub const TEXT_JOIN_HOST_CALL_TARGET: &str = "text/prefix-concat-utf8";
+pub const TEXT_MORSE_HOST_CALL: &str = "conduit.host/text-to-morse@1";
+pub const TEXT_MORSE_HOST_CALL_TARGET: &str = "text/morse-pattern";
+pub const INDICATOR_PRESENTATION_HOST_CALL: &str = "conduit.host/present-indicator@1";
+pub const INDICATOR_PRESENTATION_HOST_CALL_TARGET: &str = "presentation/serial-indicator";
+pub const JSON_ENCODE_HOST_CALL: &str = "conduit.host/json-encode@1";
+pub const JSON_DECODE_HOST_CALL: &str = "conduit.host/json-decode@1";
 
 pub fn logic_compare_scalar_offer() -> CapabilityOffer {
     with_operation(
@@ -167,8 +168,8 @@ pub fn flow_gate_scalar_offer() -> CapabilityOffer {
         conduit_semantic_catalog::FLOW_GATE_SCALAR_CONTRACT_REVISION,
         "conduitos-flow-gate-scalar-v1",
         "conduitos/kernel-flow-gate-scalar@1",
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from("conduit.host/decode-bool@1"),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from("conduit.host/decode-bool@1"),
             target_kind: Some(kind_id("value/decode-bool")),
             maximum_in_flight: 1,
             maximum_input_bytes: 1,
@@ -212,11 +213,6 @@ pub fn text_literal_offer() -> CapabilityOffer {
         conduit_text::text_literal_semantics(),
         "conduitos-text-literal-v1",
         "conduitos/kernel-text-literal@1",
-        vec![FaceStartupParameter {
-            name: "value".into(),
-            value_type: "Text".into(),
-            has_default: false,
-        }],
         None,
     )
 }
@@ -226,8 +222,7 @@ pub fn text_upper_offer() -> CapabilityOffer {
         conduit_text::text_upper_semantics(),
         "conduitos-text-upper-v1",
         "conduitos/kernel-text-upper@1",
-        Vec::new(),
-        Some((TEXT_UPPER_HOST_OPERATION, TEXT_UPPER_HOST_OPERATION_TARGET)),
+        Some((TEXT_UPPER_HOST_CALL, TEXT_UPPER_HOST_CALL_TARGET)),
     )
 }
 
@@ -236,45 +231,30 @@ pub fn text_join_offer() -> CapabilityOffer {
         conduit_text::text_join_semantics(),
         "conduitos-text-join-v1",
         "conduitos/kernel-text-join@1",
-        vec![FaceStartupParameter {
-            name: "prefix".into(),
-            value_type: "Text".into(),
-            has_default: false,
-        }],
-        Some((TEXT_JOIN_HOST_OPERATION, TEXT_JOIN_HOST_OPERATION_TARGET)),
+        Some((TEXT_JOIN_HOST_CALL, TEXT_JOIN_HOST_CALL_TARGET)),
     )
 }
 
 pub fn text_morse_offer() -> CapabilityOffer {
-    let contract = conduit_text::text_morse_semantics();
-    CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
-            name: conduit_text::MORSE_UNIT_MILLIS_KEY.into(),
-            value_type: "Count".into(),
-            has_default: true,
-        }],
-        shorthand: Some((port_id("text"), port_id("pattern"))),
-        capability_id: CapabilityId::from("conduitos-text-morse-v1"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: conduit_core::ImplementationOffer {
+    BackOfferBuilder::new(
+        conduit_text::text_morse_semantics().into_semantic_contract(),
+        Back {
+            capability_id: CapabilityId::from("conduitos-text-morse-v1"),
             execution_profile_id: ExecutionProfileId::from(TEXT_PROFILE),
             implementation_id: ImplementationId::from(crate::offer::TEXT_MORSE_IMPLEMENTATION),
             artifact_id: ArtifactId::from(TEXT_ARTIFACT),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(TEXT_MORSE_HOST_CALL),
+                target_kind: Some(kind_id(TEXT_MORSE_HOST_CALL_TARGET)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_text::MAXIMUM_MORSE_INPUT_BYTES as u32,
+                maximum_output_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(TEXT_MORSE_HOST_OPERATION),
-            target_kind: Some(kind_id(TEXT_MORSE_HOST_OPERATION_TARGET)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_text::MAXIMUM_MORSE_INPUT_BYTES as u32,
-            maximum_output_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 pub fn indicator_presentation_offer() -> CapabilityOffer {
@@ -287,9 +267,9 @@ pub fn indicator_presentation_offer() -> CapabilityOffer {
             implementation: crate::offer::INDICATOR_PRESENTATION_IMPLEMENTATION,
             artifact: TEXT_ARTIFACT,
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(INDICATOR_PRESENTATION_HOST_OPERATION),
-            target_kind: Some(kind_id(INDICATOR_PRESENTATION_HOST_OPERATION_TARGET)),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(INDICATOR_PRESENTATION_HOST_CALL),
+            target_kind: Some(kind_id(INDICATOR_PRESENTATION_HOST_CALL_TARGET)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
             maximum_output_bytes: 0,
@@ -327,54 +307,46 @@ pub fn morse_composition_offers() -> Vec<CapabilityOffer> {
     ]
     .into_iter()
     .map(|(contract, implementation)| {
-        let input = contract.inputs[0].clone();
-        let output = contract.outputs[0].clone();
-        let mut offer = CapabilityOffer {
-            startup_parameters: contract
-                .configuration
-                .iter()
-                .map(|(name, _)| FaceStartupParameter {
-                    name: (*name).into(),
-                    value_type: "Count".into(),
-                    has_default: true,
-                })
-                .collect(),
-            shorthand: Some((input.port_id.clone(), output.port_id.clone())),
-            capability_id: CapabilityId::from(implementation),
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            implementation: conduit_core::ImplementationOffer {
+        let maximum_bytes = contract.limits.max_queue_bytes;
+        let semantic = contract.into_semantic_contract();
+        let limits = CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: semantic.limits.max_queue_items,
+            max_queue_bytes: semantic.limits.max_queue_bytes,
+        };
+        BackOfferBuilder::new(
+            semantic,
+            Back {
+                capability_id: CapabilityId::from(implementation),
                 execution_profile_id: ExecutionProfileId::from(TEXT_PROFILE),
                 implementation_id: ImplementationId::from(implementation),
                 artifact_id: ArtifactId::from(TEXT_ARTIFACT),
+                host_calls: vec![HostCallRequirement {
+                    contract_id: HostCallContractId::from(implementation),
+                    target_kind: Some(kind_id(implementation)),
+                    maximum_in_flight: 1,
+                    maximum_input_bytes: maximum_bytes,
+                    maximum_output_bytes: maximum_bytes,
+                }],
+                resource_requirements: Vec::new(),
+                authority_requirements: Vec::new(),
             },
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            host_operations: vec![HostOperationRequirement {
-                contract_id: HostOperationContractId::from(implementation),
-                target_kind: Some(kind_id(implementation)),
-                maximum_in_flight: 1,
-                maximum_input_bytes: contract.limits.max_queue_bytes,
-                maximum_output_bytes: contract.limits.max_queue_bytes,
-            }],
-            resource_requirements: Vec::new(),
-            authority_requirements: Vec::new(),
-            limits: contract.limits,
-        };
-        offer.limits.max_active_instances = 1;
-        offer
+        )
+        .narrow_capacity(limits)
+        .expect("ConduitOS Morse composition capacity narrows portable semantics")
+        .build()
     })
     .collect()
 }
 
 pub fn keymap_offer() -> CapabilityOffer {
-    realize_input_host_operation_contract(
+    realize_input_host_call_contract(
         conduit_semantic_catalog::keymap_contract(),
         conduit_semantic_catalog::KEYMAP_REVISION,
         "conduitos-input-keymap-v1",
         "conduitos/kernel-input-keymap@1",
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(KEYMAP_HOST_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(KEYMAP_HOST_CALL),
             target_kind: Some(kind_id(KEYMAP_HOST_TARGET)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
@@ -384,13 +356,13 @@ pub fn keymap_offer() -> CapabilityOffer {
 }
 
 pub fn chords_offer() -> CapabilityOffer {
-    realize_input_host_operation_contract(
+    realize_input_host_call_contract(
         conduit_semantic_catalog::chords_contract(),
         conduit_semantic_catalog::CHORDS_REVISION,
         "conduitos-input-chords-v1",
         "conduitos/kernel-input-chords@1",
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(CHORDS_HOST_OPERATION),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(CHORDS_HOST_CALL),
             target_kind: Some(kind_id(CHORDS_HOST_TARGET)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
@@ -407,10 +379,10 @@ pub fn time_every_offer() -> CapabilityOffer {
         "conduitos/monotonic-timer-fixed@1",
         "conduitos/kernel-time-every@1",
         "conduitos/time-every@1",
-        vec![wait_host_operation_requirement()],
+        vec![wait_host_call_requirement()],
         vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
     );
-    offer.startup_parameters[0].value_type = "Duration".into();
+    offer.startup_parameters[0].value_type = conduit_core::kind_id(conduit_core::QUANTITY_INFO_ID);
     offer.startup_parameters[0].has_default = false;
     offer
 }
@@ -423,7 +395,7 @@ pub fn tick_offer() -> CapabilityOffer {
         "conduitos/monotonic-timer-fixed@1",
         "conduitos/kernel-time-tick@1",
         "conduitos/time-tick@1",
-        vec![wait_host_operation_requirement()],
+        vec![wait_host_call_requirement()],
         vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
     )
 }
@@ -436,7 +408,7 @@ pub fn audio_render_demand_offer() -> CapabilityOffer {
         "conduitos/monotonic-audio-render-fixed@1",
         "conduitos/kernel-audio-render-demand@1",
         "conduitos/audio-render-demand@1",
-        vec![monotonic_timer_host_operation_requirement()],
+        vec![monotonic_timer_host_call_requirement()],
         vec![monotonic_timer_resource_requirement()],
     )
 }
@@ -484,10 +456,8 @@ pub fn music_synth_offer() -> CapabilityOffer {
             implementation: "conduitos/kernel-music-synth-fixed-q16@1",
             artifact: "conduitos/music-synth-fixed-q16@1",
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(
-                "conduit.host/music-synth-render-fixed-q16@1",
-            ),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from("conduit.host/music-synth-render-fixed-q16@1"),
             target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_audio::NOTE_EVENT_ENCODED_LEN
@@ -506,7 +476,7 @@ pub fn json_encode_offer() -> CapabilityOffer {
         conduit_web::JSON_ENCODE_REVISION,
         "conduitos-json-encode-v1",
         "conduitos/kernel-json-encode@1",
-        JSON_ENCODE_HOST_OPERATION,
+        JSON_ENCODE_HOST_CALL,
     )
 }
 
@@ -516,7 +486,7 @@ pub fn json_decode_offer() -> CapabilityOffer {
         conduit_web::JSON_DECODE_REVISION,
         "conduitos-json-decode-v1",
         "conduitos/kernel-json-decode@1",
-        JSON_DECODE_HOST_OPERATION,
+        JSON_DECODE_HOST_CALL,
     )
 }
 
@@ -537,8 +507,8 @@ fn json_offer(
             implementation,
             artifact: "conduit-core/bounded-json@1",
         },
-        vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(operation),
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(operation),
             target_kind: Some(target_kind),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
@@ -621,7 +591,7 @@ fn realize_state_input_contract(
     revision: &str,
     capability: &str,
     implementation: &str,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
 ) -> CapabilityOffer {
     conduit_semantic_catalog::realization_offer(
         contract,
@@ -632,18 +602,18 @@ fn realize_state_input_contract(
             implementation,
             artifact: PORTABLE_STATE_INPUT_ARTIFACT,
         },
-        host_operations,
+        host_calls,
         Vec::new(),
         Vec::new(),
     )
 }
 
-fn realize_input_host_operation_contract(
+fn realize_input_host_call_contract(
     contract: conduit_semantic_catalog::StandardKindContract,
     revision: &str,
     capability: &str,
     implementation: &str,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
 ) -> CapabilityOffer {
     conduit_semantic_catalog::realization_offer(
         contract,
@@ -654,7 +624,7 @@ fn realize_input_host_operation_contract(
             implementation,
             artifact: TEXT_ARTIFACT,
         },
-        host_operations,
+        host_calls,
         Vec::new(),
         Vec::new(),
     )
@@ -664,12 +634,11 @@ fn text_offer(
     contract: conduit_text::TextKindContract,
     capability: &str,
     implementation: &str,
-    startup_parameters: Vec<FaceStartupParameter>,
-    host_operation: Option<(&str, &str)>,
+    host_call: Option<(&str, &str)>,
 ) -> CapabilityOffer {
-    let host_operations = host_operation
-        .map(|(contract, target)| HostOperationRequirement {
-            contract_id: HostOperationContractId::from(contract),
+    let host_calls = host_call
+        .map(|(contract, target)| HostCallRequirement {
+            contract_id: HostCallContractId::from(contract),
             target_kind: Some(kind_id(target)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
@@ -677,26 +646,19 @@ fn text_offer(
         })
         .into_iter()
         .collect();
-    let shorthand = (!contract.inputs.is_empty() && !contract.outputs.is_empty())
-        .then(|| (port_id("text"), port_id("text")));
-    CapabilityOffer {
-        startup_parameters,
-        shorthand,
-        capability_id: CapabilityId::from(capability),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: conduit_core::ImplementationOffer {
+    BackOfferBuilder::new(
+        contract.into_semantic_contract(),
+        Back {
+            capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(TEXT_PROFILE),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(TEXT_ARTIFACT),
+            host_calls,
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations,
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 fn timing_offer(
@@ -704,18 +666,16 @@ fn timing_offer(
     revision: &str,
     implementation: &str,
 ) -> CapabilityOffer {
-    let mut offer = timing_contract(
+    timing_contract(
         contract,
         revision,
         implementation,
         "conduitos/monotonic-timing-fixed@1",
         implementation,
         "conduitos/timing-nucleus@1",
-        vec![monotonic_timer_host_operation_requirement()],
+        vec![monotonic_timer_host_call_requirement()],
         vec![monotonic_timer_resource_requirement()],
-    );
-    offer.startup_parameters[0].value_type = "Duration".into();
-    offer
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -726,7 +686,7 @@ fn timing_contract(
     profile: &str,
     implementation: &str,
     artifact: &str,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
     resources: Vec<conduit_core::ResourceRequirement>,
 ) -> CapabilityOffer {
     conduit_semantic_catalog::realization_offer(
@@ -738,7 +698,7 @@ fn timing_contract(
             implementation,
             artifact,
         },
-        host_operations,
+        host_calls,
         resources,
         Vec::new(),
     )
@@ -770,7 +730,7 @@ fn realize_flow_contract(
     revision: &str,
     capability: &str,
     implementation: &str,
-    host_operations: Vec<HostOperationRequirement>,
+    host_calls: Vec<HostCallRequirement>,
 ) -> CapabilityOffer {
     conduit_semantic_catalog::realization_offer(
         contract,
@@ -781,7 +741,7 @@ fn realize_flow_contract(
             implementation,
             artifact: FLOW_STATE_ARTIFACT,
         },
-        host_operations,
+        host_calls,
         Vec::new(),
         Vec::new(),
     )
@@ -794,8 +754,8 @@ fn with_operation(
     input: u32,
     output: u32,
 ) -> CapabilityOffer {
-    offer.host_operations = vec![HostOperationRequirement {
-        contract_id: HostOperationContractId::from(contract),
+    offer.host_calls = vec![HostCallRequirement {
+        contract_id: HostCallContractId::from(contract),
         target_kind: Some(kind_id(target)),
         maximum_in_flight: 1,
         maximum_input_bytes: input,

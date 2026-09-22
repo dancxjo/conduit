@@ -38,7 +38,7 @@ fn host(
         behavior,
     );
     StdHost::new_with_playback(config, StdHostComposition::reference(), selection)
-        .expect("selection is scoped to the exact Host generation")
+        .expect("selection is scoped to the exact host generation")
 }
 
 fn form() -> conduit_form::CheckedForm {
@@ -109,7 +109,7 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
         )
         .expect_err("active provider loss remains terminal and machine-readable");
     assert!(
-        loss.contains("OperationFailed(Failure { code: HostOperationFailed, detail: 75 })"),
+        loss.contains("BackFailed(Failure { code: HostCallFailed, detail: 75 })"),
         "{loss}"
     );
     let interrupted = musical_state.provider_lost().unwrap();
@@ -163,7 +163,7 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
         plan: plan_b,
     } = outcome
     else {
-        panic!("changed boot and exact endpoint must replace the Plan");
+        panic!("changed boot and exact endpoint must replace the plan");
     };
 
     assert_eq!(plan_a, immutable_plan_a);
@@ -301,7 +301,7 @@ fn replacement_refuses_old_or_absent_authority_and_loss_during_drain() {
         )
         .expect_err("provider disappearance during drain remains device loss");
     assert!(
-        error.contains("OperationFailed(Failure { code: HostOperationFailed, detail: 75 })"),
+        error.contains("BackFailed(Failure { code: HostCallFailed, detail: 75 })"),
         "{error}"
     );
 }

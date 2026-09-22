@@ -1,8 +1,8 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId, ValueRef, ValueStorage,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_presentation::{
     GraphicsScene, PresentationComposition, MAX_GRAPHICS_SCENE_BYTES,
@@ -11,7 +11,7 @@ use conduit_presentation::{
 
 macro_rules! factory {
     ($name:ident, $implementation:ident) => {
-        pub(super) static $name: InstalledFactory = InstalledFactory {
+        pub(super) static $name: BackFactory = BackFactory {
             implementation_id: conduit_std_offers::$implementation,
             budget,
             prepare,
@@ -30,163 +30,176 @@ factory!(
 factory!(GRAPHICS_RECT_FACTORY, GRAPHICS_RECT_IMPLEMENTATION);
 factory!(GRAPHICS_TEXT_FACTORY, GRAPHICS_TEXT_IMPLEMENTATION);
 factory!(GRAPHICS_ICON_FACTORY, GRAPHICS_ICON_IMPLEMENTATION);
-pub(super) static GRAPHICS_PRESENTATION_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static GRAPHICS_PRESENTATION_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::GRAPHICS_PRESENTATION_IMPLEMENTATION,
     budget: graphics_presentation_budget,
     prepare: prepare_graphics_presentation,
 };
 #[cfg(test)]
-pub(super) static TEST_PRESENTATION_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_PRESENTATION_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: "conduit-test/presentation-sink-implementation@1",
     budget: sink_budget,
     prepare: prepare_sink,
 };
 #[cfg(test)]
-pub(super) static TEST_GRAPHICS_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_GRAPHICS_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: "conduit-test/graphics-sink-implementation@1",
     budget: sink_budget,
     prepare: prepare_sink,
 };
 
-pub(super) struct PresentationCompositionOperation {
+pub(super) struct PresentationCompositionBack {
     source: Option<ValueRef>,
     pending: bool,
     emitted: bool,
 }
 
-pub(super) struct GraphicsPresentationOperation {
+pub(super) struct GraphicsPresentationBack {
     pending: bool,
     presented: bool,
 }
 
-impl GraphicsPresentationOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending && !self.presented => {
-                self.pending = true;
-                OperationAction::RequestHostOperation {
-                    request: RequestId(0),
-                    operation: HostOperationId(0),
-                    input: match BoundedValueRef::new(value, MAX_GRAPHICS_SCENE_BYTES as u32) {
-                        Ok(value) => value,
-                        Err(_) => return InstalledOperation::fail(48),
-                    },
-                }
+impl<const PORTS: usize> StepBack<PORTS> for GraphicsPresentationBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if request != RequestId(0) || !self.pending {
+                return StepOutcome::Fail(step_failure(48));
             }
-            OperationInput::HostOperationCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                self.pending = false;
-                self.presented = true;
-                OperationAction::Await
+            io.consume_host_completion()
+                .expect("observed graphics Presentation completion");
+            self.pending = false;
+            if let Some(failure) = outcome.failure {
+                return StepOutcome::Fail(failure);
             }
-            OperationInput::Closed { port: PortId(0) } if !self.pending => {
-                OperationAction::Complete
+            if outcome.disposition != HostCallDisposition::Completed || outcome.output.is_some() {
+                return StepOutcome::Fail(step_failure(48));
             }
-            _ => InstalledOperation::fail(48),
+            self.presented = true;
+            return StepOutcome::Progress;
         }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending || self.presented {
+                return StepOutcome::Fail(step_failure(48));
+            }
+            let Ok(input) = BoundedValueRef::new(value, MAX_GRAPHICS_SCENE_BYTES as u32) else {
+                return StepOutcome::Fail(step_failure(48));
+            };
+            io.consume(PortId(0))
+                .expect("present graphics Presentation input");
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("graphics Presentation Host Call");
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && !self.pending {
+            io.consume_closed(PortId(0))
+                .expect("observed graphics Presentation closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 
-    pub(super) fn cancel(&mut self) {
+    fn cancel(&mut self) {
         self.pending = false;
     }
 }
 
-#[cfg(test)]
-pub(super) struct PresentationSinkOperation;
+impl GraphicsPresentationBack {}
 
 #[cfg(test)]
-impl PresentationSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0), ..
-            } => OperationAction::Await,
-            OperationInput::Closed { port: PortId(0) } => OperationAction::Complete,
-            _ => InstalledOperation::fail(47),
+pub(super) struct PresentationSinkBack;
+
+#[cfg(test)]
+impl<const PORTS: usize> StepBack<PORTS> for PresentationSinkBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if io.input(PortId(0)).is_some() {
+            io.consume(PortId(0))
+                .expect("present test Presentation input");
+            StepOutcome::Progress
+        } else if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0))
+                .expect("observed test Presentation closure");
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Await
         }
     }
 }
 
-impl PresentationCompositionOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        match self.source {
-            Some(value) => OperationAction::Emit {
-                port: PortId(0),
-                value,
-            },
-            None => OperationAction::Await,
-        }
-    }
+#[cfg(test)]
+impl PresentationSinkBack {}
 
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending && !self.emitted => {
-                self.pending = true;
-                OperationAction::RequestHostOperation {
-                    request: RequestId(0),
-                    operation: HostOperationId(0),
-                    input: match BoundedValueRef::new(
-                        value,
-                        MAX_PRESENTATION_COMPOSITION_BYTES as u32,
-                    ) {
-                        Ok(value) => value,
-                        Err(_) => return InstalledOperation::fail(44),
-                    },
-                }
-            }
-            OperationInput::HostOperationCompleted {
-                request: RequestId(0),
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
-                && outcome.failure.is_none() =>
-            {
-                let Some(output) = outcome.output else {
-                    return InstalledOperation::fail(45);
-                };
-                self.pending = false;
-                self.emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: output.value,
-                }
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.pending => {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(46),
-        }
-    }
+impl PresentationCompositionBack {}
 
-    pub(super) fn advance(&mut self) -> OperationAction {
-        if self.source.is_some() && !self.emitted {
+impl<const PORTS: usize> StepBack<PORTS> for PresentationCompositionBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(value) = self.source {
+            if self.emitted {
+                return StepOutcome::Complete;
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.send(PortId(0), value)
+                .expect("ready Presentation composition source output");
             self.emitted = true;
+            return StepOutcome::Progress;
         }
-        OperationAction::Complete
+        if let Some((request, outcome)) = io.host_completion() {
+            if request != RequestId(0)
+                || !self.pending
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.failure.is_some()
+            {
+                return StepOutcome::Fail(step_failure(46));
+            }
+            let Some(output) = outcome.output else {
+                return StepOutcome::Fail(step_failure(45));
+            };
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume_host_completion()
+                .expect("observed Presentation composition completion");
+            io.send(PortId(0), output.value)
+                .expect("ready Presentation composition output");
+            self.pending = false;
+            self.emitted = true;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if self.pending || self.emitted {
+                return StepOutcome::Fail(step_failure(46));
+            }
+            let Ok(input) = BoundedValueRef::new(value, MAX_PRESENTATION_COMPOSITION_BYTES as u32)
+            else {
+                return StepOutcome::Fail(step_failure(44));
+            };
+            io.consume(PortId(0))
+                .expect("present Presentation composition input");
+            io.request_host_call(RequestId(0), HostCallId(0), input)
+                .expect("Presentation composition Host Call");
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && !self.pending {
+            io.consume_closed(PortId(0))
+                .expect("observed Presentation composition closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 
-    pub(super) fn cancel(&mut self) {
+    fn cancel(&mut self) {
         self.pending = false;
         self.emitted = true;
+    }
+}
+
+const fn step_failure(detail: u16) -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
     }
 }
 
@@ -223,9 +236,9 @@ pub(super) fn transform_graphics_bytes(
     Ok((scene.encode(), scene.encoded_len()))
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 1,
         value_bytes: MAX_PRESENTATION_COMPOSITION_BYTES.max(MAX_GRAPHICS_SCENE_BYTES) as u32,
         host_requests: usize::from(
@@ -240,7 +253,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
     let source = if placement.kind_id.as_str() == conduit_semantic_catalog::PRESENTATION_ICON_KIND {
         let value = conduit_semantic_catalog::execute_presentation_source(placement)?;
@@ -253,8 +266,8 @@ fn prepare(
     } else {
         None
     };
-    Ok(InstalledOperation::PresentationComposition(
-        PresentationCompositionOperation {
+    Ok(InstalledBack::PresentationComposition(
+        PresentationCompositionBack {
             source,
             pending: false,
             emitted: false,
@@ -272,7 +285,7 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || !placement.resources.is_empty()
         || !placement.authority.is_empty()
         || !placement.pool_references.is_empty()
@@ -285,9 +298,9 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     Ok(())
 }
 
-fn graphics_presentation_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn graphics_presentation_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate_graphics_presentation(placement)?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 1,
@@ -299,10 +312,10 @@ fn graphics_presentation_budget(placement: &PlannedGear) -> Result<OperationBudg
 fn prepare_graphics_presentation(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate_graphics_presentation(placement)?;
-    Ok(InstalledOperation::GraphicsPresentation(
-        GraphicsPresentationOperation {
+    Ok(InstalledBack::GraphicsPresentation(
+        GraphicsPresentationBack {
             pending: false,
             presented: false,
         },
@@ -318,7 +331,7 @@ fn validate_graphics_presentation(placement: &PlannedGear) -> Result<(), String>
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || placement.resources.len() != 1
         || placement.resources[0].class_id.as_str() != conduit_core::PRESENTATION_RESOURCE_CLASS
         || placement.resources[0].units != 1
@@ -334,14 +347,14 @@ fn validate_graphics_presentation(placement: &PlannedGear) -> Result<(), String>
 }
 
 #[cfg(test)]
-fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn sink_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     if !matches!(
         placement.kind_id.as_str(),
         "conduit-test/presentation-sink" | "conduit-test/graphics-sink"
     ) {
         return Err("wrong presentation sink Kind".into());
     }
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
         host_requests: 0,
@@ -354,9 +367,7 @@ fn sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_sink(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     sink_budget(placement)?;
-    Ok(InstalledOperation::TestPresentationSink(
-        PresentationSinkOperation,
-    ))
+    Ok(InstalledBack::TestPresentationSink(PresentationSinkBack))
 }

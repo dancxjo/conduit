@@ -37,7 +37,7 @@ test("canonical Secret Knock runs its stored template and nested recognizer", as
       slug: "secret-knock",
       status: "passed",
       plan_id: identities.Plan,
-      play_id: identities["Active Play"],
+      play_id: identities["Active play"],
     })}`);
   } finally {
     await page.mouse.up();

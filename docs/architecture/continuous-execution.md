@@ -2,7 +2,7 @@
 
 Continuous execution is a semantic/lifecycle property of a form. It means
 that the form may remain active for an externally unbounded lifetime while its
-graph, retained state, instantaneous queues, host operations, signs, and every
+graph, retained state, instantaneous queues, Host Calls, signs, and every
 concrete plan/play remain finite and admitted before play start. It is not a
 special infinite mode, a timer-owned scheduler, or a loop that silently starts
 fresh plays.
@@ -34,14 +34,14 @@ completion or a new source program.
 ## Finite admission and continuation
 
 Each active play admits a fixed resource envelope before it starts: retained
-value bytes, instantaneous queue slots, host-operation slots, route and line
+value bytes, instantaneous queue slots, Host Call slots, route and line
 capacity, cancellation/terminal bookkeeping, and mandatory sign storage. A
 continuous form may perform arbitrarily many transitions over time, but each
 transition uses only that admitted finite workset. No transition counter is a
 semantic limit, and no restart is used to renew a resource or timer budget.
 An admitted queue, slot pool, or hardware ring is ordinarily a simultaneous
 occupancy bound: after an occupant is consumed or retired, that storage is
-reusable in the same Play. It becomes a lifetime-transition bound only when
+reusable in the same play. It becomes a lifetime-transition bound only when
 that cardinality is explicit authored meaning rather than an implementation
 counter that happens to reach the storage capacity.
 

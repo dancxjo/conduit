@@ -1,4 +1,4 @@
-//! Exact local Body preparation using the installed browser session and kernel.
+//! Exact local body preparation using the installed browser session and kernel.
 use super::*;
 use conduit_body::{BodyPlan, BodyPlayIdentity, Wake};
 use conduit_core::{
@@ -24,7 +24,7 @@ pub(super) struct BodyStartRequest {
     /// Supplied by the trusted page Host adapter, not inferred from offers.
     pub observations: Vec<ResourceObservation>,
     /// Exact retained history before this start. Required for lifecycle sources;
-    /// the Host must durably record the returned start before dispatching effects.
+    /// the host must durably record the returned start before dispatching effects.
     #[serde(default)]
     pub body_evidence: Option<conduit_body::BodyBiographyEvidence>,
     pub source: String,
@@ -106,7 +106,7 @@ pub(super) fn prepare(
         }
         let fragment = &part.plan.fragments[0];
         if fragment.host_id != request.local_host_id || fragment.boot_id != request.local_boot_id {
-            return Err("local Body Form differs from this browser Host and Boot".into());
+            return Err("local body Form differs from this browser Host and Boot".into());
         }
         fragments.push(fragment.clone());
     }
@@ -272,13 +272,13 @@ pub(super) fn prepare(
         .body_plan_ready(&request.plan, sign(0))
         .and_then(|wake| wake.body_play_started(&request.plan, &play, sign(1)))
         .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
-    let startup = startup::prepare(
+    let started_evidence = startup::project_started_evidence(
         request.body_evidence.as_ref(),
         &request.wake,
         &request.plan,
-        &play,
         &wake_at_start,
     )?;
+    let startup = startup::prepare(started_evidence.as_ref(), &request.plan, &play)?;
     let scheduler = engine::preparation::prepare_body_scheduler(
         &fragments
             .iter()
@@ -288,6 +288,7 @@ pub(super) fn prepare(
         Some(engine::preparation::ApplicationPreparation {
             plan: &request.plan,
             active_play_id: &play.active_play_id,
+            body_evidence: started_evidence.as_ref(),
             source: &request.source,
             foreground_checked_form_id: &request.foreground_checked_form_id,
         }),

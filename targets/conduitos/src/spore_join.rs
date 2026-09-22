@@ -92,7 +92,7 @@ pub fn encode(
         nonce: claim.nonce,
         signature: &signature,
         // ConduitOS has no admitted civil-time source at this early stage.
-        // The Body owns the authoritative expiry check during admission.
+        // The body owns the authoritative expiry check during admission.
         expiry_checked_by_body: true,
         membership_claimed: false,
     };

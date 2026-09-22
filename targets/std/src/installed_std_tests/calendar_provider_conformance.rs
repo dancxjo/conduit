@@ -6,8 +6,8 @@ use conduit_core::{
     PortDirection, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
 use std::collections::BTreeMap;
@@ -230,15 +230,15 @@ fn catalogs(
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),
             outputs: vec![],
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "value".into(),
                 default_value: ConfigurationValue::Text(String::new()),
-                validation: ConfigurationRule::TextBytes {
+                rule: KindConfigurationRule::TextBytes {
                     maximum: conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES * 2,
                 },
             }],
@@ -249,7 +249,7 @@ fn catalogs(
 
 fn result_value(value_type: StructuredInfoType, json: &[u8]) -> Vec<u8> {
     let leaf = StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(kind_id("value/text@1")).unwrap(),
+        StructuredInfoType::leaf(kind_id("value/text")).unwrap(),
         json.to_vec(),
     )
     .unwrap();

@@ -1,0 +1,107 @@
+//! Installed bounded normalized-pattern comparison.
+
+use super::back::{BackBudget, BackFactory, InstalledBack};
+use conduit_core::{ConfigurationValue, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
+
+pub(super) static FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::COMPARE_PATTERN_STD_IMPLEMENTATION,
+    budget,
+    prepare,
+};
+
+pub(super) use conduit_semantic_catalog::PatternComparisonBack;
+
+pub(super) struct PatternComparisonHost(conduit_semantic_catalog::BoundedPatternComparisonCodec);
+
+impl PatternComparisonHost {
+    pub(super) fn from_placement(placement: &PlannedGear) -> Result<Self, String> {
+        conduit_semantic_catalog::BoundedPatternComparisonCodec::new(validate(placement)?).map(Self)
+    }
+
+    pub(super) fn execute(
+        &mut self,
+        contract: &str,
+        input: &[u8],
+    ) -> Result<Option<&[u8]>, conduit_semantic_catalog::PatternComparisonRefusal> {
+        use conduit_semantic_catalog::PatternComparisonInput;
+        let port = match contract {
+            conduit_std_offers::COMPARE_PATTERN_CANDIDATE_OPERATION => {
+                PatternComparisonInput::Candidate
+            }
+            conduit_std_offers::COMPARE_PATTERN_TEMPLATE_OPERATION => {
+                PatternComparisonInput::Template
+            }
+            _ => return Err(conduit_semantic_catalog::PatternComparisonRefusal::Malformed),
+        };
+        self.0.execute(port, input)
+    }
+}
+
+pub(super) fn refusal_detail(refusal: &conduit_semantic_catalog::PatternComparisonRefusal) -> u16 {
+    use conduit_semantic_catalog::PatternComparisonRefusal::*;
+    match refusal {
+        Malformed => 1,
+        UnsupportedMetric => 2,
+        ToleranceOutOfRange => 3,
+        AlgorithmMismatch => 4,
+        LengthMismatch => 5,
+    }
+}
+
+fn validate(placement: &PlannedGear) -> Result<u64, String> {
+    let offer = conduit_std_offers::compare_pattern_std_offer();
+    if placement.kind_id != offer.kind_id
+        || placement.kind_contract_revision != offer.kind_contract_revision
+        || placement.execution_profile_id != offer.implementation.execution_profile_id
+        || placement.implementation_id != offer.implementation.implementation_id
+        || placement.artifact_id != offer.implementation.artifact_id
+        || placement.inputs != offer.inputs
+        || placement.outputs != offer.outputs
+        || placement.host_calls != offer.host_calls
+        || placement.limits != offer.limits
+    {
+        return Err("planned pattern comparison differs from installed realization".into());
+    }
+    let metric = placement
+        .configuration
+        .iter()
+        .find_map(|entry| match (&*entry.key, &entry.value) {
+            ("metric", ConfigurationValue::Text(value)) => Some(value.as_str()),
+            _ => None,
+        })
+        .ok_or("comparison metric is absent")?;
+    if metric != conduit_semantic_catalog::MAXIMUM_ABSOLUTE_METRIC {
+        return Err("comparison metric is unsupported".into());
+    }
+    let tolerance = placement
+        .configuration
+        .iter()
+        .find_map(|entry| match (&*entry.key, &entry.value) {
+            ("tolerance-millionths", ConfigurationValue::U64(value)) => Some(*value),
+            _ => None,
+        })
+        .ok_or("comparison tolerance is absent")?;
+    if tolerance > conduit_semantic_catalog::NORMALIZED_SCALE {
+        return Err("comparison tolerance is outside reviewed bounds".into());
+    }
+    Ok(tolerance)
+}
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate(placement)?;
+    Ok(BackBudget {
+        value_items: 3,
+        value_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 3) as u32,
+        host_requests: 2,
+        sign_items: 24,
+        maximum_value_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+    })
+}
+fn prepare(
+    placement: &PlannedGear,
+    _values: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    budget(placement)?;
+    Ok(InstalledBack::PatternComparison(
+        PatternComparisonBack::new(MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32),
+    ))
+}

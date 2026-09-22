@@ -3,8 +3,8 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FaceStartupParameter, ImplementationId, ImplementationOffer,
-    KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
+    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer, KindId,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const HYBRID_RETRIEVAL_KIND: &str = "retrieval/hybrid-fuse";
@@ -21,7 +21,7 @@ pub const MAXIMUM_HYBRID_PROCESS_IDENTITY_BYTES: usize = 256;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HybridRetrievalContract {
     pub kind_id: KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub maximum_candidates_per_stage: u16,
@@ -39,7 +39,7 @@ pub enum HybridRetrievalOfferInvalidity {
 pub fn hybrid_retrieval_contract() -> HybridRetrievalContract {
     HybridRetrievalContract {
         kind_id: kind_id(HYBRID_RETRIEVAL_KIND),
-        kind_contract_revision: KindContractRevision::from(HYBRID_RETRIEVAL_REVISION),
+        kind_contract_revision: KindIdentity::from(HYBRID_RETRIEVAL_REVISION),
         inputs: ["vector", "lexical", "metadata", "temporal"]
             .into_iter()
             .map(|name| {
@@ -66,7 +66,7 @@ pub fn hybrid_retrieval_contract() -> HybridRetrievalContract {
     }
 }
 
-pub fn hybrid_retrieval_startup_parameters() -> Vec<FaceStartupParameter> {
+pub fn hybrid_retrieval_startup_parameters() -> Vec<FrontStartupParameter> {
     [
         ("policy", "Text"),
         ("strategy", "Text"),
@@ -77,9 +77,13 @@ pub fn hybrid_retrieval_startup_parameters() -> Vec<FaceStartupParameter> {
         ("maximum-work-units", "Count"),
     ]
     .into_iter()
-    .map(|(name, value_type)| FaceStartupParameter {
+    .map(|(name, value_type)| FrontStartupParameter {
         name: name.into(),
-        value_type: value_type.into(),
+        value_type: kind_id(match value_type {
+            "Text" => "value/text",
+            "Count" => "value/count",
+            exact => exact,
+        }),
         has_default: true,
     })
     .collect()
@@ -110,7 +114,7 @@ pub fn deterministic_hybrid_retrieval_offer(
             implementation_id: ImplementationId::from(DETERMINISTIC_HYBRID_IMPLEMENTATION),
             artifact_id: ArtifactId::from(DETERMINISTIC_HYBRID_ARTIFACT),
         },
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: contract.limits,
@@ -132,7 +136,7 @@ pub fn install_hybrid_retrieval_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{KindDefinition, KindSignature};
+    use conduit_form::{KindProjection, KindSignature};
 
     let contract = hybrid_retrieval_contract();
     startup.insert(KindSignature {
@@ -154,7 +158,7 @@ pub fn install_hybrid_retrieval_catalog(
         ],
     })?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
@@ -215,21 +219,21 @@ fn count_parameter(name: &str, default: u32) -> conduit_form::StartupParameterSi
 }
 
 #[cfg(feature = "form-catalog")]
-fn text_choice(key: &str, default: &str, values: &[&str]) -> conduit_form::ConfigurationField {
-    conduit_form::ConfigurationField {
+fn text_choice(key: &str, default: &str, values: &[&str]) -> conduit_form::KindConfigurationField {
+    conduit_form::KindConfigurationField {
         key: key.into(),
         default_value: conduit_core::ConfigurationValue::Text(default.into()),
-        validation: conduit_form::ConfigurationRule::TextOneOf {
+        rule: conduit_form::KindConfigurationRule::TextOneOf {
             values: values.iter().map(|value| (*value).into()).collect(),
         },
     }
 }
 
 #[cfg(feature = "form-catalog")]
-fn count_field(key: &str, minimum: u64, maximum: u64) -> conduit_form::ConfigurationField {
-    conduit_form::ConfigurationField {
+fn count_field(key: &str, minimum: u64, maximum: u64) -> conduit_form::KindConfigurationField {
+    conduit_form::KindConfigurationField {
         key: key.into(),
         default_value: conduit_core::ConfigurationValue::U64(maximum),
-        validation: conduit_form::ConfigurationRule::U64Range { minimum, maximum },
+        rule: conduit_form::KindConfigurationRule::U64Range { minimum, maximum },
     }
 }

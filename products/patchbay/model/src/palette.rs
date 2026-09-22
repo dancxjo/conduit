@@ -1,7 +1,7 @@
 //! Authoritative, bounded discovery projection for reusable semantic Kinds.
 
 use conduit_core::{CapabilityLimits, ConfigurationValue, KindId, PortDescriptor};
-pub use conduit_semantic_catalog::{PaletteCategory, PaletteIconKey, StandardConfigurationRule};
+pub use conduit_semantic_catalog::{KindConfigurationRule, PaletteCategory, PaletteIconKey};
 
 pub const MAX_PALETTE_ENTRIES: usize = 74;
 pub const MAX_PALETTE_QUERY_BYTES: usize = 96;
@@ -10,7 +10,7 @@ pub const MAX_PALETTE_QUERY_BYTES: usize = 96;
 pub struct PaletteConfigurationSummary {
     pub key: String,
     pub default_value: ConfigurationValue,
-    pub rule: StandardConfigurationRule,
+    pub rule: KindConfigurationRule,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -166,7 +166,7 @@ mod tests {
         let join = palette.find(&KindId::from("text/join")).unwrap();
         assert!(matches!(
             join.configuration[0].rule,
-            StandardConfigurationRule::TextBytes { .. }
+            KindConfigurationRule::TextBytes { .. }
         ));
         assert_eq!(join.limits, conduit_text::text_join_semantics().limits);
     }

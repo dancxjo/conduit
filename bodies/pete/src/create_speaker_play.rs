@@ -2,12 +2,11 @@
 
 use conduit_kernel::{
     scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, HostOperationRequest, NodeSpec, OperationDriver,
-        SchedulerStatus,
+        CordCapacity, CordSpec, FixedScheduler, HostCallRequest, NodeSpec, SchedulerStatus,
+        StepBack, StepInputBytes, StepIo, StepOutcome,
     },
-    BoundedValueRef, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog,
-    FixedValueStore, HostOperationBinding, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, KernelEvent, NodeId, Operation, OperationAction, OperationInput, PortId,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, KernelEvent, NodeId, PortId,
     RequestId, RouteRange, RouteTarget, SignSink, ValueRef, ValueStorage,
 };
 
@@ -18,7 +17,7 @@ use crate::{
 
 const SOURCE_NODE: NodeId = NodeId(0);
 const SPEAKER_NODE: NodeId = NodeId(1);
-const OPERATION: HostOperationId = HostOperationId(0);
+const OPERATION: HostCallId = HostCallId(0);
 const PORTS: usize = 1;
 const SIGNS: usize = 64;
 
@@ -27,81 +26,13 @@ struct Source {
     value: Option<ValueRef>,
 }
 
-impl Operation for Source {
-    fn start(&mut self) -> OperationAction {
-        self.value
-            .map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                port: PortId(0),
-                value,
-            })
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        self.value = None;
-        OperationAction::Complete
-    }
-
-    fn resume(&mut self, _: OperationInput) -> OperationAction {
-        invalid(1)
-    }
-
-    fn cancel(&mut self) {
-        self.value = None;
-    }
-}
-
 #[derive(Clone, Copy)]
 struct SpeakerOperation {
     pending: bool,
 }
 
-impl Operation for SpeakerOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if !self.pending => {
-                self.pending = true;
-                let Ok(input) = BoundedValueRef::new(value, MAXIMUM_ADMITTED_SERIAL_BYTES as u32)
-                else {
-                    return invalid(2);
-                };
-                OperationAction::RequestHostOperation {
-                    request: RequestId(1),
-                    operation: OPERATION,
-                    input,
-                }
-            }
-            OperationInput::HostOperationCompleted {
-                request: RequestId(1),
-                outcome,
-            } if self.pending
-                && outcome.disposition == HostOperationDisposition::Completed
-                && outcome.output.is_none()
-                && outcome.failure.is_none() =>
-            {
-                self.pending = false;
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(0) } if !self.pending => {
-                OperationAction::Complete
-            }
-            _ => invalid(3),
-        }
-    }
-
-    fn cancel(&mut self) {
-        self.pending = false;
-    }
-}
-
-const fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(conduit_kernel::Failure {
+const fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
         code: conduit_kernel::FailureCode::InvalidLifecycle,
         detail,
     })
@@ -113,38 +44,70 @@ enum DriverOperation {
     Speaker(SpeakerOperation),
 }
 
-impl Operation for DriverOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepBack<PORTS> for DriverOperation {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
-            Self::Source(value) => value.start(),
-            Self::Speaker(value) => value.start(),
-        }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match self {
-            Self::Source(value) => value.resume(input),
-            Self::Speaker(value) => value.resume(input),
-        }
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source(value) => value.advance(),
-            Self::Speaker(value) => value.advance(),
+            Self::Source(source) => {
+                let Some(value) = source.value else {
+                    return StepOutcome::Complete;
+                };
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                io.send(PortId(0), value).expect("ready speaker Cord");
+                source.value = None;
+                StepOutcome::Complete
+            }
+            Self::Speaker(operation) => {
+                if let Some((request, outcome)) = io.host_completion() {
+                    if request != RequestId(1)
+                        || !operation.pending
+                        || outcome.disposition != HostCallDisposition::Completed
+                        || outcome.output.is_some()
+                        || outcome.failure.is_some()
+                    {
+                        return invalid(3);
+                    }
+                    io.consume_host_completion()
+                        .expect("observed speaker Host Call completion");
+                    operation.pending = false;
+                    return StepOutcome::Progress;
+                }
+                if operation.pending {
+                    return StepOutcome::Await;
+                }
+                if let Some(value) = io.input(PortId(0)) {
+                    let Ok(input) =
+                        BoundedValueRef::new(value, MAXIMUM_ADMITTED_SERIAL_BYTES as u32)
+                    else {
+                        return invalid(2);
+                    };
+                    io.consume(PortId(0)).expect("present speaker command");
+                    io.request_host_call(RequestId(1), OPERATION, input)
+                        .expect("planned speaker Host Call");
+                    operation.pending = true;
+                    return StepOutcome::Progress;
+                }
+                if io.input_closed(PortId(0)) {
+                    io.consume_closed(PortId(0))
+                        .expect("observed speaker input closure");
+                    return StepOutcome::Complete;
+                }
+                StepOutcome::Await
+            }
         }
     }
 
     fn cancel(&mut self) {
         match self {
-            Self::Source(value) => value.cancel(),
-            Self::Speaker(value) => value.cancel(),
+            Self::Source(value) => value.value = None,
+            Self::Speaker(value) => value.pending = false,
         }
     }
 }
 
 type Scheduler = FixedScheduler<
-    OperationDriver<DriverOperation, PORTS>,
+    DriverOperation,
     FixedValueStore<2, MAXIMUM_ADMITTED_SERIAL_BYTES>,
     FixedSignLog<SIGNS>,
     2,
@@ -159,7 +122,7 @@ type Scheduler = FixedScheduler<
 
 pub struct PreparedSpeakerExecution {
     scheduler: Scheduler,
-    pending_request: Option<HostOperationRequest>,
+    pending_request: Option<HostCallRequest>,
     dispatched: bool,
     song_number: u8,
     define_bytes: u16,
@@ -237,29 +200,29 @@ pub fn prepare_speaker_execution(
         )
         .map_err(|_| "route admission failed")?;
     routes.seal().map_err(|_| "route seal failed")?;
-    let mut bindings = FixedHostOperationBindings::<2>::new(1);
+    let mut bindings = FixedHostCallBindings::<2>::new(1);
     bindings
         .install(
             SPEAKER_NODE,
-            HostOperationBinding {
-                operation: OPERATION,
+            HostCallBinding {
+                call: OPERATION,
                 maximum_input_bytes: MAXIMUM_ADMITTED_SERIAL_BYTES as u32,
                 maximum_output_bytes: 0,
             },
         )
-        .map_err(|_| "host operation admission failed")?;
-    bindings.seal().map_err(|_| "host operation seal failed")?;
+        .map_err(|_| "Host Call admission failed")?;
+    bindings.seal().map_err(|_| "Host Call seal failed")?;
     let signs = FixedSignLog::new((SIGNS * core::mem::size_of::<KernelEvent>()) as u32)
         .map_err(|_| "sign admission failed")?;
-    let scheduler = FixedScheduler::new_with_host_operations(
+    let scheduler = FixedScheduler::new_with_host_calls(
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
         ],
         [CordSpec::local(
@@ -276,12 +239,8 @@ pub fn prepare_speaker_execution(
         routes,
         bindings,
         [
-            OperationDriver::new(DriverOperation::Source(Source { value: Some(value) }))
-                .map_err(|_| "source preparation failed")?,
-            OperationDriver::new(DriverOperation::Speaker(SpeakerOperation {
-                pending: false,
-            }))
-            .map_err(|_| "speaker preparation failed")?,
+            DriverOperation::Source(Source { value: Some(value) }),
+            DriverOperation::Speaker(SpeakerOperation { pending: false }),
         ],
         values,
         signs,
@@ -435,8 +394,8 @@ fn validate_plan(plan: &conduit_core::Plan) -> Result<(), &'static str> {
         .find(|placement| placement.capability_id.as_str() == SPEAKER_CAPABILITY)
         .ok_or("Plan has no Create speaker placement")?;
     if placement.implementation_id.as_str() != SPEAKER_IMPLEMENTATION
-        || placement.host_operations.len() != 1
-        || placement.host_operations[0].contract_id.as_str() != SPEAKER_OPERATION
+        || placement.host_calls.len() != 1
+        || placement.host_calls[0].contract_id.as_str() != SPEAKER_OPERATION
         || placement.authority.len() != 1
     {
         return Err("Plan does not seal the exact Create speaker contract");
@@ -444,12 +403,12 @@ fn validate_plan(plan: &conduit_core::Plan) -> Result<(), &'static str> {
     Ok(())
 }
 
-fn complete_request(execution: &mut PreparedSpeakerExecution, request: HostOperationRequest) {
-    let _ = execution.scheduler.complete_host_operation(
+fn complete_request(execution: &mut PreparedSpeakerExecution, request: HostCallRequest) {
+    let _ = execution.scheduler.complete_host_call(
         request.node,
         request.request,
-        HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output: None,
             failure: None,
         },
@@ -458,19 +417,19 @@ fn complete_request(execution: &mut PreparedSpeakerExecution, request: HostOpera
 
 fn fail_request(
     execution: &mut PreparedSpeakerExecution,
-    request: HostOperationRequest,
+    request: HostCallRequest,
     failure: SerialFailure,
     define_bytes: u16,
     play_bytes: u16,
 ) -> SpeakerPlayReport {
-    let _ = execution.scheduler.complete_host_operation(
+    let _ = execution.scheduler.complete_host_call(
         request.node,
         request.request,
-        HostOperationOutcome {
-            disposition: HostOperationDisposition::Failed,
+        HostCallOutcome {
+            disposition: HostCallDisposition::Failed,
             output: None,
             failure: Some(conduit_kernel::Failure {
-                code: conduit_kernel::FailureCode::HostOperationFailed,
+                code: conduit_kernel::FailureCode::HostCallFailed,
                 detail: failure as u16,
             }),
         },

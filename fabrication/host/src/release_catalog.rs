@@ -164,7 +164,7 @@ impl ReleaseCatalog {
 }
 
 /// Verify and cache one selected immutable artifact from an offline mirror.
-/// No unselected entry or Body-specific value is read or copied.
+/// No unselected entry or body-specific value is read or copied.
 pub fn acquire_local_release_artifact(
     mirror_root: &Path,
     descriptor: &ReleaseArtifactDescriptor,

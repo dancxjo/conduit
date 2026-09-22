@@ -61,7 +61,7 @@ impl Esp32FamilyTarget {
             os: None,
             host_core: "host-core/conduitos@1".into(),
             presenter: None,
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             toolchain_identity: facts.toolchain_identity.into(),
             builder_adapter: facts.builder_adapter.into(),
             strategy: conduit_host_fabrication::FabricationStrategy::DeterministicSpecializedBuild,

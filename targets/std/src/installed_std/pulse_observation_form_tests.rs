@@ -1,4 +1,4 @@
-//! Independent metronome specimen through checked Form, planner, installation,
+//! Independent metronome specimen through checked form, planner, installation,
 //! and production kernel. The recording timer proves requested waits, not wall time.
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
@@ -20,7 +20,7 @@ fn reusable_pulse_form_plans_and_executes_outside_choir() {
         })
         .unwrap();
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),

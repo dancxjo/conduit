@@ -3,15 +3,15 @@
 //! This module defines platform-neutral meaning, exact capability advertisements,
 //! and the profile-catalog extension used by the production kernel hosts. It does
 //! not provide a timer-backed compatibility implementation: deliberate input must
-//! be fulfilled through an admitted host-operation boundary.
+//! be fulfilled through an admitted Host Call boundary.
 
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    await_trigger_host_operation_requirement, kind_id, port_id, resource_requirement,
-    ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostOperationRequirement,
-    KindContractRevision, KindId, PortDescriptor, PortDirection, ResourceRequirement, ValuePayload,
+    await_trigger_host_call_requirement, kind_id, port_id, resource_requirement,
+    ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostCallRequirement, KindId,
+    KindIdentity, PortDescriptor, PortDirection, ResourceRequirement, ValuePayload,
     INPUT_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
@@ -26,18 +26,18 @@ pub use conduit_semantic_catalog::{
     STATE_TOGGLE_CONTRACT_REVISION as TOGGLE_CONTRACT_REVISION, STATE_TOGGLE_KIND as TOGGLE_KIND,
 };
 
-pub fn trigger_front_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
-    vec![conduit_core::FaceStartupParameter {
+pub fn trigger_front_startup_parameters() -> Vec<conduit_core::FrontStartupParameter> {
+    vec![conduit_core::FrontStartupParameter {
         name: "count".to_string(),
-        value_type: "Count".to_string(),
+        value_type: conduit_core::kind_id("value/count"),
         has_default: true,
     }]
 }
 
-pub fn toggle_front_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
-    vec![conduit_core::FaceStartupParameter {
+pub fn toggle_front_startup_parameters() -> Vec<conduit_core::FrontStartupParameter> {
+    vec![conduit_core::FrontStartupParameter {
         name: "initial".to_string(),
-        value_type: "Boolean".to_string(),
+        value_type: conduit_core::kind_id("value/bool"),
         has_default: true,
     }]
 }
@@ -73,23 +73,23 @@ pub fn trigger_value_kind() -> KindId {
     kind_id(TRIGGER_VALUE_KIND)
 }
 
-pub fn trigger_contract_revision() -> KindContractRevision {
-    KindContractRevision::from(TRIGGER_CONTRACT_REVISION)
+pub fn trigger_contract_revision() -> KindIdentity {
+    KindIdentity::from(TRIGGER_CONTRACT_REVISION)
 }
 
-pub fn toggle_contract_revision() -> KindContractRevision {
-    KindContractRevision::from(TOGGLE_CONTRACT_REVISION)
+pub fn toggle_contract_revision() -> KindIdentity {
+    KindIdentity::from(TOGGLE_CONTRACT_REVISION)
 }
 
 pub fn trigger_execution_profile() -> ExecutionProfileId {
     ExecutionProfileId::from(TRIGGER_EXECUTION_PROFILE)
 }
 
-pub fn trigger_host_operation_requirements() -> Vec<HostOperationRequirement> {
-    vec![await_trigger_host_operation_requirement()]
+pub fn trigger_host_call_requirements() -> Vec<HostCallRequirement> {
+    vec![await_trigger_host_call_requirement()]
 }
 
-pub fn toggle_host_operation_requirements() -> Vec<HostOperationRequirement> {
+pub fn toggle_host_call_requirements() -> Vec<HostCallRequirement> {
     Vec::new()
 }
 
@@ -199,18 +199,18 @@ pub fn decode_trigger_bytes(encoded: &[u8]) -> Result<Trigger, crate::SignalProf
 
 #[cfg(feature = "host-profile")]
 pub(crate) fn extend_profile_catalog(catalog: &mut conduit_form::ProfileCatalog) {
-    use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition};
+    use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection};
 
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: trigger_kind(),
             kind_contract_revision: trigger_contract_revision(),
             inputs: Vec::new(),
             outputs: trigger_outputs(),
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "count".to_string(),
                 default_value: ConfigurationValue::U64(16),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 0,
                     maximum: MAX_SIGNAL_COUNT,
                 },
@@ -220,15 +220,15 @@ pub(crate) fn extend_profile_catalog(catalog: &mut conduit_form::ProfileCatalog)
     conduit_semantic_catalog::install_bool_presentation_catalog(catalog)
         .expect("toggle presentation kind is unique");
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: toggle_kind(),
             kind_contract_revision: toggle_contract_revision(),
             inputs: toggle_inputs(),
             outputs: toggle_outputs(),
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "initial".to_string(),
                 default_value: ConfigurationValue::Bool(false),
-                validation: ConfigurationRule::Any,
+                rule: KindConfigurationRule::Any,
             }],
         })
         .expect("signal profile kinds are unique");

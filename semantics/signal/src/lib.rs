@@ -23,10 +23,10 @@ use alloc::vec::Vec;
 pub use canonical::{primary_signal_startup_catalog, signal_startup_catalog};
 #[cfg(feature = "host-profile")]
 use conduit_core::{
-    kind_id, port_id, present_host_operation_requirement, resource_offer, resource_requirement,
-    wait_host_operation_requirement, ConfigurationEntry, ConfigurationValue, ExecutionProfileId,
-    HostOperationRequirement, KindContractRevision, KindId, PortDescriptor, PortDirection,
-    ResourceOffer, ResourceRequirement, ValuePayload, PRESENTATION_RESOURCE_CLASS,
+    kind_id, port_id, present_host_call_requirement, resource_offer, resource_requirement,
+    wait_host_call_requirement, CapabilityLimits, ConfigurationEntry, ConfigurationValue,
+    ExecutionProfileId, HostCallRequirement, Kind, KindId, KindIdentity, PortDescriptor,
+    PortDirection, ResourceOffer, ResourceRequirement, ValuePayload, PRESENTATION_RESOURCE_CLASS,
     TIMER_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
@@ -37,21 +37,21 @@ pub const SHOW_KIND: &str = "presentation/show";
 pub const SIGNAL_PORT: &str = "signal";
 
 #[cfg(feature = "host-profile")]
-pub fn pulse_front_startup_parameters() -> Vec<conduit_core::FaceStartupParameter> {
+pub fn pulse_front_startup_parameters() -> Vec<conduit_core::FrontStartupParameter> {
     vec![
-        conduit_core::FaceStartupParameter {
+        conduit_core::FrontStartupParameter {
             name: "count".to_string(),
-            value_type: "Count".to_string(),
+            value_type: conduit_core::kind_id("value/count"),
             has_default: true,
         },
-        conduit_core::FaceStartupParameter {
+        conduit_core::FrontStartupParameter {
             name: "period-ms".to_string(),
-            value_type: "Count".to_string(),
+            value_type: conduit_core::kind_id("value/count"),
             has_default: true,
         },
-        conduit_core::FaceStartupParameter {
+        conduit_core::FrontStartupParameter {
             name: "initial".to_string(),
-            value_type: "Boolean".to_string(),
+            value_type: conduit_core::kind_id("value/bool"),
             has_default: true,
         },
     ]
@@ -120,13 +120,13 @@ pub fn signal_value_kind() -> KindId {
 }
 
 #[cfg(feature = "host-profile")]
-pub fn pulse_contract_revision() -> KindContractRevision {
-    KindContractRevision::from(PULSE_CONTRACT_REVISION)
+pub fn pulse_contract_revision() -> KindIdentity {
+    KindIdentity::from(PULSE_CONTRACT_REVISION)
 }
 
 #[cfg(feature = "host-profile")]
-pub fn show_contract_revision() -> KindContractRevision {
-    KindContractRevision::from(SHOW_CONTRACT_REVISION)
+pub fn show_contract_revision() -> KindIdentity {
+    KindIdentity::from(SHOW_CONTRACT_REVISION)
 }
 
 #[cfg(feature = "host-profile")]
@@ -140,13 +140,13 @@ pub fn show_execution_profile() -> ExecutionProfileId {
 }
 
 #[cfg(feature = "host-profile")]
-pub fn pulse_host_operation_requirements() -> Vec<HostOperationRequirement> {
-    vec![wait_host_operation_requirement()]
+pub fn pulse_host_call_requirements() -> Vec<HostCallRequirement> {
+    vec![wait_host_call_requirement()]
 }
 
 #[cfg(feature = "host-profile")]
-pub fn show_host_operation_requirements() -> Vec<HostOperationRequirement> {
-    vec![present_host_operation_requirement(
+pub fn show_host_call_requirements() -> Vec<HostCallRequirement> {
+    vec![present_host_call_requirement(
         kind_id(SIGNAL_PRESENTATION_KIND),
         SIGNAL_ENCODED_LEN,
     )]
@@ -198,6 +198,46 @@ pub fn show_inputs() -> Vec<PortDescriptor> {
         direction: PortDirection::Input,
         temporal: conduit_core::PortTemporal::Value,
     }]
+}
+
+/// Exact portable pulse contract. Realizations must not restate these fields.
+#[cfg(feature = "host-profile")]
+pub fn pulse_semantic_contract() -> Kind {
+    Kind {
+        startup_parameters: pulse_front_startup_parameters(),
+        shorthand: None,
+        kind_id: pulse_kind(),
+        kind_contract_revision: pulse_contract_revision(),
+        inputs: Vec::new(),
+        outputs: pulse_outputs(),
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 16,
+            max_queue_items: 4,
+            max_queue_bytes: 64,
+        },
+    }
+}
+
+/// Exact portable show contract. Presentation mechanics remain Host facts.
+#[cfg(feature = "host-profile")]
+pub fn show_semantic_contract() -> Kind {
+    Kind {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: show_kind(),
+        kind_contract_revision: show_contract_revision(),
+        inputs: show_inputs(),
+        outputs: Vec::new(),
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 16,
+            max_queue_items: 4,
+            max_queue_bytes: 64,
+        },
+    }
 }
 
 #[cfg(feature = "host-profile")]

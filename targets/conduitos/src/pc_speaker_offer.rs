@@ -4,13 +4,13 @@ use alloc::{format, vec, vec::Vec};
 use conduit_audio::TONE_INTENT_ENCODED_LEN;
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostAdvertisement, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, resource_offer,
+    HostAdvertisement, HostCallContractId, HostCallRequirement, ImplementationId,
+    ImplementationOffer, KindIdentity, resource_offer,
 };
 
 pub const PC_SPEAKER_IMPLEMENTATION: &str = "conduitos/pc-speaker-tone@1";
 pub const PC_SPEAKER_EXECUTION_PROFILE: &str = "conduitos/pc-speaker-pit2-monophonic@1";
-pub const PC_SPEAKER_HOST_OPERATION: &str = "conduitos.host/pc-speaker-tone@1";
+pub const PC_SPEAKER_HOST_CALL: &str = "conduitos.host/pc-speaker-tone@1";
 pub const PC_SPEAKER_BASE_RESOURCE: &str = "conduitos.resource/pc-speaker-base@1";
 pub const PC_SPEAKER_EVENT_RESOURCE: &str = "conduitos.resource/pc-speaker-event-slot@1";
 pub const PC_SPEAKER_OPERATION_RESOURCE: &str = "conduitos.resource/pc-speaker-operation-slot@1";
@@ -141,7 +141,7 @@ pub(crate) fn append_to_advertisement(
         shorthand: None,
         capability_id: CapabilityId::from(PC_SPEAKER_CAPABILITY),
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
+        kind_contract_revision: KindIdentity::from(
             conduit_semantic_catalog::SOUND_TONE_PLAY_REVISION,
         ),
         inputs: contract.inputs,
@@ -151,8 +151,8 @@ pub(crate) fn append_to_advertisement(
             implementation_id: ImplementationId::from(PC_SPEAKER_IMPLEMENTATION),
             artifact_id: ArtifactId::from(format!("conduitos-build/{build_id}")),
         },
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(PC_SPEAKER_HOST_OPERATION),
+        host_calls: vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(PC_SPEAKER_HOST_CALL),
             target_kind: Some(conduit_core::kind_id(conduit_audio::SOUND_TONE_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: TONE_INTENT_ENCODED_LEN as u32,

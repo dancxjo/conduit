@@ -1,4 +1,4 @@
-//! Machine-readable inventory derived from the browser Host's planning offers.
+//! Machine-readable inventory derived from the browser host's planning offers.
 
 use serde::Serialize;
 
@@ -29,10 +29,10 @@ pub(crate) fn inventory() -> InventoryDocument {
         .into_iter()
         .map(|offer| InventoryEntry {
             family: family(offer.kind_id.as_str()),
-            classification: if offer.host_operations.is_empty() {
+            classification: if offer.host_calls.is_empty() {
                 "pure-kernel-or-local"
             } else {
-                "bounded-browser-host-operation"
+                "bounded-browser-host-call"
             },
             implementation_id: Some(offer.implementation.implementation_id.as_str().into()),
             artifact_id: Some(offer.implementation.artifact_id.as_str().into()),
@@ -177,7 +177,7 @@ mod tests {
         assert_eq!(inventory.limits.maximum_value_bytes, 4_096);
         assert_eq!(inventory.limits.total_value_bytes, 512 * 1_024);
         assert!(advertisement.capabilities.iter().all(|offer| {
-            offer.host_operations.len() <= usize::from(inventory.limits.host_operations_per_gear)
+            offer.host_calls.len() <= usize::from(inventory.limits.host_calls_per_gear)
         }));
     }
 }

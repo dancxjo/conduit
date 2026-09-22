@@ -474,7 +474,7 @@ fn append_play(
         "play-state",
         &format!("{:?}", play.terminal),
     );
-    text(content, subject, "pressure", "not exposed by this Play");
+    text(content, subject, "pressure", "not exposed by this play");
     for (index, sign) in play
         .signs
         .iter()
@@ -523,6 +523,9 @@ fn control_value(value: &conduit_core::ConfigurationValue) -> String {
             value.profile().as_str(),
             value.canonical_value().len()
         ),
+        conduit_core::ConfigurationValue::Quantity(value) => {
+            format!("{}{}", value.value(), value.unit().form_suffix())
+        }
     }
 }
 

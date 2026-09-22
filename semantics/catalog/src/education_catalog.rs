@@ -6,10 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, Kind, KindId, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 use crate::{
     education_assessment_type, education_lesson_feedback_type, education_progress_type,
@@ -83,6 +83,27 @@ pub fn education_kind_contracts() -> Vec<EducationKindContract> {
     ]
 }
 
+pub fn education_semantic_contracts() -> Vec<Kind> {
+    education_kind_contracts()
+        .into_iter()
+        .map(|(kind_id, inputs, outputs)| Kind {
+            startup_parameters: vec![],
+            shorthand: None,
+            kind_id,
+            kind_contract_revision: KindIdentity::from(EDUCATION_REVISION),
+            inputs,
+            outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
+            limits: CapabilityLimits {
+                max_active_instances: 4,
+                max_queue_items: 4,
+                max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
+            },
+        })
+        .collect()
+}
+
 pub fn install_education_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
@@ -112,9 +133,9 @@ fn insert_kind(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(EDUCATION_REVISION),
+            kind_contract_revision: KindIdentity::from(EDUCATION_REVISION),
             inputs,
             outputs,
             configuration: vec![],

@@ -1,6 +1,6 @@
 //! Deterministic reference provider and filter for the finite tabular contract.
 
-use alloc::{string::ToString, vec, vec::Vec};
+use alloc::{vec, vec::Vec};
 use conduit_core::{
     BoundedResourceRef, InfoBool, StructuredFieldValue, StructuredInfoType,
     StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape,
@@ -256,8 +256,11 @@ fn text_value(value: &str) -> StructuredInfoValue {
 }
 
 fn count_value(value: u64) -> StructuredInfoValue {
-    StructuredInfoValue::leaf(tabular_count_type(), value.to_string().into_bytes())
-        .expect("bounded provider count")
+    StructuredInfoValue::leaf(
+        tabular_count_type(),
+        conduit_core::encode_count(value).to_vec(),
+    )
+    .expect("bounded provider count")
 }
 
 fn bool_value(value: bool) -> StructuredInfoValue {

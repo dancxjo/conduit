@@ -24,6 +24,7 @@ fn browser() -> HostAdvertisement {
         boot_id: BootId::from("browser-chat-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser"),
+        bases: vec![],
         resources: vec![family.resource],
         planner_capabilities: vec![PlannerCapabilityOffer {
             profile_id: PlannerProfileId::from(conduit_planner::FULL_PLANNER_PROFILE),
@@ -131,7 +132,7 @@ impl Write for ReadyWriter {
 }
 
 #[test]
-fn planned_listener_executes_through_kernel_host_operations_for_two_clients() {
+fn planned_listener_executes_through_kernel_host_calls_for_two_clients() {
     let port = TcpListener::bind(("127.0.0.1", 0))
         .unwrap()
         .local_addr()

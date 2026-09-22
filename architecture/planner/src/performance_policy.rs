@@ -160,7 +160,7 @@ fn validate(
         }
         let unique_hosts = candidate.selected_hosts.iter().collect::<BTreeSet<_>>();
         if unique_hosts.len() != candidate.selected_hosts.len() {
-            return invalid("one performance candidate may not count a Host twice");
+            return invalid("one performance candidate may not count a host twice");
         }
     }
     Ok(())

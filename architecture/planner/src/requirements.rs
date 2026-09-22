@@ -3,7 +3,7 @@ use crate::{plan, PlacementChoices, PlannerError, PlannerPredicate};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     AuthorityContractId, BaseImplementationId, CharacteristicId, CharacteristicQuantity, GearId,
-    HostAdvertisement, HostOperationContractId, Plan, ResourceClassId,
+    HostAdvertisement, HostCallContractId, Plan, ResourceClassId,
 };
 use conduit_form::CheckedForm;
 
@@ -22,7 +22,7 @@ pub struct HardRealizationRequirements {
     /// A zero ceiling forbids use of that resource class.
     pub maximum_resource_units: BTreeMap<ResourceClassId, u32>,
     /// `None` permits any declared gear; `Some` is an exact allowlist.
-    pub permitted_host_operations: Option<BTreeSet<HostOperationContractId>>,
+    pub permitted_host_calls: Option<BTreeSet<HostCallContractId>>,
     /// `None` permits any declared authority; `Some` is an exact allowlist.
     pub permitted_authority_contracts: Option<BTreeSet<AuthorityContractId>>,
     pub minimum_characteristic_counts: BTreeMap<CharacteristicId, CharacteristicQuantity>,
@@ -130,8 +130,8 @@ pub(crate) fn validate_hard_requirements(
                 PlannerError::UnknownCapability(choice.capability_id.as_str().to_string())
             })?;
 
-        if offer.checked_front() != gear.checked_front() {
-            return Err(PlannerError::IncompatibleCheckedFace(format!(
+        if !gear.accepts_realization(offer) {
+            return Err(PlannerError::IncompatibleCheckedFront(format!(
                 "gear '{}' front differs from capability '{}' front",
                 gear.gear_id.as_str(),
                 offer.capability_id.as_str()
@@ -174,8 +174,8 @@ pub(crate) fn validate_requirement_identities(
         .maximum_resource_units
         .keys()
         .any(|identity| identity.as_str().is_empty());
-    let empty_host_operation = requirement
-        .permitted_host_operations
+    let empty_host_call = requirement
+        .permitted_host_calls
         .iter()
         .flatten()
         .any(|identity| identity.as_str().is_empty());
@@ -191,7 +191,7 @@ pub(crate) fn validate_requirement_identities(
         .chain(requirement.required_characteristic_flags.keys())
         .chain(requirement.required_characteristic_labels.keys())
         .any(|identity| identity.as_str().is_empty());
-    if empty_resource || empty_host_operation || empty_authority || empty_characteristic {
+    if empty_resource || empty_host_call || empty_authority || empty_characteristic {
         return Err(PlannerError::InvalidHardRealizationRequirement(
             "requirement identities must be non-empty".to_string(),
         ));
@@ -218,16 +218,16 @@ pub(crate) fn hard_requirement_failure(
         return Some("resource-unit ceiling");
     }
     if requirement
-        .permitted_host_operations
+        .permitted_host_calls
         .as_ref()
         .is_some_and(|permitted| {
             offer
-                .host_operations
+                .host_calls
                 .iter()
                 .any(|required| !permitted.contains(&required.contract_id))
         })
     {
-        return Some("host-operation allowlist");
+        return Some("host-call allowlist");
     }
     if requirement
         .permitted_authority_contracts

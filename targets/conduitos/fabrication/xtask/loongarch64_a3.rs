@@ -61,7 +61,7 @@ pub(super) struct KernelSign {
     idle_entries: u32,
     serial_presentations: u32,
     clock_monotonic: bool,
-    pending_host_operations: u32,
+    pending_host_calls: u32,
     overlap_witness: bool,
     timer_pending_during_text_progress: bool,
     physical_parallelism: bool,
@@ -369,7 +369,7 @@ pub(super) fn validate(
         || kernel.idle_entries == 0
         || kernel.serial_presentations != 2
         || !kernel.clock_monotonic
-        || kernel.pending_host_operations != 0
+        || kernel.pending_host_calls != 0
         || !kernel.overlap_witness
         || !kernel.timer_pending_during_text_progress
         || kernel.physical_parallelism
@@ -382,7 +382,7 @@ pub(super) fn validate(
     {
         return Err(refusal(
             "stale-or-invalid-loongarch64-a3-sign",
-            "ordinary Form/Plan/Play proof violates the exact A3 contract",
+            "ordinary form/Plan/Play proof violates the exact A3 contract",
         ));
     }
     Ok(())

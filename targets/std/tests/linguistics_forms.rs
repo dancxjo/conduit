@@ -13,7 +13,7 @@ use conduit_language::{
     ANNOTATE_FOUR_KIND, LINGUISTIC_DEPENDENCY_COUNT, LINGUISTIC_FEATURE_SLOTS,
     LINGUISTIC_TOKEN_COUNT, MAXIMUM_LINGUISTIC_TEXT_BYTES, TOKENIZE_FOUR_KIND,
 };
-use conduit_std_host::hosted_linguistics::{linguistics_std_offers, LINGUISTICS_HOST_OPERATION};
+use conduit_std_host::hosted_linguistics::{linguistics_std_offers, LINGUISTICS_HOST_CALL};
 
 const SOURCE: &str = include_str!("../../../forms/linguistic-annotations/main.conduit");
 
@@ -80,8 +80,8 @@ fn canonical_form_tokenizes_and_projects_annotations_without_json() {
         .find(|placement| placement.kind_id.as_str() == ANNOTATE_FOUR_KIND)
         .unwrap();
     assert_eq!(
-        annotation.host_operations[0].contract_id.as_str(),
-        LINGUISTICS_HOST_OPERATION
+        annotation.host_calls[0].contract_id.as_str(),
+        LINGUISTICS_HOST_CALL
     );
 }
 
@@ -179,6 +179,7 @@ fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
         boot_id: BootId::from("boot/linguistics-proof"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/linguistics-proof@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities,
@@ -223,11 +224,18 @@ fn provenance_tag(value: &StructuredInfoValue) -> &str {
 
 fn span_bounds(value: &StructuredInfoValue) -> (u64, u64) {
     (
-        leaf_text(record_field(value, "start")).parse().unwrap(),
-        leaf_text(record_field(value, "end")).parse().unwrap(),
+        leaf_count(record_field(value, "start")),
+        leaf_count(record_field(value, "end")),
     )
 }
 
 fn token_ordinal(value: &StructuredInfoValue) -> u64 {
-    leaf_text(record_field(value, "ordinal")).parse().unwrap()
+    leaf_count(record_field(value, "ordinal"))
+}
+
+fn leaf_count(value: &StructuredInfoValue) -> u64 {
+    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+        panic!("expected leaf")
+    };
+    conduit_core::decode_count(bytes).unwrap()
 }

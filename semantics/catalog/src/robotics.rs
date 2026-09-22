@@ -1,11 +1,12 @@
 use super::{
-    StandardConfigurationField, StandardConfigurationRule, StandardKindContract, TerminalBehavior,
+    KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationEntry, ConfigurationValue, InfoBool,
-    PortDescriptor, PortDirection, PortTemporal, Scalar, BOOL_INFO_ID, SCALAR_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationEntry, ConfigurationValue, InfoBool, Kind,
+    PortDescriptor, PortDirection, PortTemporal, Quantity, QuantityUnit, Scalar, BOOL_INFO_ID,
+    SCALAR_INFO_ID,
 };
 use conduit_robotics::{
     BatteryObservation, OdometryObservation, OrientationObservation, RangeObservation,
@@ -82,7 +83,12 @@ pub fn robotics_simulation_values(
         .encode()
         .to_vec()),
         ROBOTICS_OBSERVE_RANGE_KIND => one(RangeObservation::new(
-            u32_value(entries, "distance-mm", 1_000)?,
+            quantity_u32(
+                entries,
+                "distance",
+                Quantity::new(1_000, QuantityUnit::Millimeter),
+                QuantityUnit::Millimeter,
+            )?,
             u32_value(entries, "age-ms", 0)?,
         )
         .map_err(|_| "invalid range observation")?
@@ -172,10 +178,16 @@ pub fn robotics_observe_range_contract() -> StandardKindContract {
         vec![current_output("range", ROBOTICS_RANGE_INFO_ID)],
         vec![
             availability_field(),
-            u64_field("distance-mm", 1_000, 0, u64::from(MAXIMUM_RANGE_MM)),
+            quantity_field(
+                "distance",
+                Quantity::new(1_000, QuantityUnit::Millimeter),
+                0,
+                i64::from(MAXIMUM_RANGE_MM),
+                QuantityUnit::Millimeter,
+            ),
             u64_field("age-ms", 0, 0, u64::from(MAXIMUM_OBSERVATION_AGE_MS)),
         ],
-        "range: robotics/observe-range(distance-mm = 500)",
+        "range: robotics/observe-range(distance = 500mm)",
     )
 }
 
@@ -275,7 +287,7 @@ pub fn robotics_drive_differential_contract() -> StandardKindContract {
             ROBOTICS_MAXIMUM_MOTION_TTL_MS,
         )],
         limits: limits(),
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -283,7 +295,6 @@ pub fn robotics_drive_differential_contract() -> StandardKindContract {
     }
 }
 
-#[cfg(any(feature = "form-catalog", test))]
 pub(crate) fn robotics_contracts_with_revisions() -> Vec<(StandardKindContract, &'static str)> {
     vec![
         (
@@ -317,12 +328,31 @@ pub(crate) fn robotics_contracts_with_revisions() -> Vec<(StandardKindContract, 
     ]
 }
 
+pub fn robotics_semantic_contract(kind: &str) -> Option<Kind> {
+    robotics_contracts_with_revisions()
+        .into_iter()
+        .find(|(contract, _)| contract.kind_id.as_str() == kind)
+        .map(|(contract, revision)| Kind {
+            startup_parameters: super::startup_front(&contract.configuration),
+            shorthand: None,
+            kind_id: contract.kind_id,
+            kind_contract_revision: revision.into(),
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            configuration: contract.configuration,
+            semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+                contract.terminal_behavior
+            )],
+            limits: contract.limits,
+        })
+}
+
 fn source_contract(
     kind: &str,
     name: &str,
     summary: &str,
     outputs: Vec<PortDescriptor>,
-    configuration: Vec<StandardConfigurationField>,
+    configuration: Vec<KindConfigurationField>,
     example: &str,
 ) -> StandardKindContract {
     StandardKindContract {
@@ -333,7 +363,7 @@ fn source_contract(
         outputs,
         configuration,
         limits: limits(),
-        terminal_behavior: TerminalBehavior::SimulatedCurrentObservationEmitsOnce,
+        terminal_behavior: KindTerminalBehavior::SimulatedCurrentObservationEmitsOnce,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
@@ -410,12 +440,30 @@ fn u32_value(entries: &[ConfigurationEntry], key: &str, default: u32) -> Result<
         .map_err(|_| "robotics unsigned configuration exceeds u32")
 }
 
+fn quantity_u32(
+    entries: &[ConfigurationEntry],
+    key: &str,
+    default: Quantity,
+    canonical_unit: QuantityUnit,
+) -> Result<u32, &'static str> {
+    let value = entries
+        .iter()
+        .find_map(|entry| match (&*entry.key, &entry.value) {
+            (found, ConfigurationValue::Quantity(value)) if found == key => Some(*value),
+            _ => None,
+        })
+        .unwrap_or(default)
+        .convert(canonical_unit)
+        .map_err(|_| "robotics quantity configuration is incompatible or inexact")?;
+    u32::try_from(value.value()).map_err(|_| "robotics quantity configuration exceeds u32")
+}
+
 fn u16_value(entries: &[ConfigurationEntry], key: &str, default: u16) -> Result<u16, &'static str> {
     u16::try_from(u64_value(entries, key, u64::from(default))?)
         .map_err(|_| "robotics unsigned configuration exceeds u16")
 }
 
-fn availability_field() -> StandardConfigurationField {
+fn availability_field() -> KindConfigurationField {
     text_field(
         ROBOTICS_AVAILABILITY_KEY,
         ROBOTICS_AVAILABILITY_FRESH,
@@ -427,38 +475,57 @@ fn availability_field() -> StandardConfigurationField {
     )
 }
 
-fn text_field(key: &str, default: &str, values: &[&str]) -> StandardConfigurationField {
-    StandardConfigurationField {
+fn text_field(key: &str, default: &str, values: &[&str]) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::Text(default.to_string()),
-        rule: StandardConfigurationRule::TextOneOf {
+        rule: KindConfigurationRule::TextOneOf {
             values: values.iter().map(|value| (*value).to_string()).collect(),
         },
     }
 }
 
-fn u64_field(key: &str, default: u64, minimum: u64, maximum: u64) -> StandardConfigurationField {
-    StandardConfigurationField {
+fn u64_field(key: &str, default: u64, minimum: u64, maximum: u64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::U64(default),
-        rule: StandardConfigurationRule::U64Range { minimum, maximum },
+        rule: KindConfigurationRule::U64Range { minimum, maximum },
     }
 }
 
-fn i64_field(key: &str, default: i64, minimum: i64, maximum: i64) -> StandardConfigurationField {
-    StandardConfigurationField {
+fn i64_field(key: &str, default: i64, minimum: i64, maximum: i64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
         default_value: ConfigurationValue::I64(default),
-        rule: StandardConfigurationRule::I64Range { minimum, maximum },
+        rule: KindConfigurationRule::I64Range { minimum, maximum },
     }
 }
 
-pub(crate) fn configuration_type(field: &StandardConfigurationField) -> &'static str {
+fn quantity_field(
+    key: &str,
+    default: Quantity,
+    minimum: i64,
+    maximum: i64,
+    canonical_unit: QuantityUnit,
+) -> KindConfigurationField {
+    KindConfigurationField {
+        key: key.to_string(),
+        default_value: ConfigurationValue::Quantity(default),
+        rule: KindConfigurationRule::QuantityRange {
+            minimum,
+            maximum,
+            canonical_unit,
+        },
+    }
+}
+
+pub(crate) fn configuration_type(field: &KindConfigurationField) -> &'static str {
     match &field.default_value {
         ConfigurationValue::Text(_) => "Text",
         ConfigurationValue::U64(_) => "Count",
         ConfigurationValue::I64(_) => "Scalar",
-        _ => unreachable!("robotics configuration is finite text/integer"),
+        ConfigurationValue::Quantity(_) => "Quantity",
+        _ => unreachable!("robotics configuration is finite text/integer/quantity"),
     }
 }
 

@@ -1,18 +1,15 @@
 //! Allocation-independent installation of the lowered ordinary text Plan.
 
-use crate::text_kernel_operations::{
-    LiteralOperation, LiteralState, PlannedOperation, PresentationOperation, UpperOperation,
+use crate::text_kernel_backs::{
+    LiteralBack, LiteralState, PlannedBack, PresentationBack, UpperBack,
 };
 use conduit_core::{ConfigurationValue, PlanFragment};
 #[cfg(test)]
 use conduit_kernel::RequestId;
 use conduit_kernel::{
-    BoundedValueRef, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, KernelEvent, NodeId, SignSink, ValueRef,
-    ValueStorage,
-    scheduler::{
-        FixedScheduler, HostOperationRequest, OperationDriver, SchedulerError, SchedulerStatus,
-    },
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+    scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
@@ -28,7 +25,7 @@ const VALUE_SLOTS: usize = 6;
 const VALUE_BYTES: usize = (conduit_text::MAX_TEXT_BYTES as usize) * 3;
 const SIGN_CAPACITY: usize = 64;
 
-type Driver = OperationDriver<PlannedOperation, PORTS>;
+type Driver = PlannedBack;
 type Scheduler = FixedScheduler<
     Driver,
     FixedValueStore<VALUE_SLOTS, VALUE_BYTES>,
@@ -99,24 +96,23 @@ impl TextPlannedKernel {
             )?;
         }
         routes.seal()?;
-        let mut bindings = FixedHostOperationBindings::<HOST_BINDING_SLOTS>::new(MAX_NODES as u16);
-        for operation in &lowered.host_operations {
+        let mut bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(MAX_NODES as u16);
+        for operation in &lowered.host_calls {
             bindings.install(operation.node, operation.binding)?;
         }
         bindings.seal()?;
-        let literal_driver = OperationDriver::new(PlannedOperation::Literal(LiteralOperation {
+        let literal_driver = PlannedBack::Literal(LiteralBack {
             text,
             state: LiteralState::Emitting,
-        }))?;
-        let presentation_driver =
-            OperationDriver::new(PlannedOperation::Presentation(PresentationOperation {
-                pending: false,
-                complete: false,
-            }))?;
-        let upper_driver = OperationDriver::new(PlannedOperation::Upper(UpperOperation {
+        });
+        let presentation_driver = PlannedBack::Presentation(PresentationBack {
+            pending: false,
+            complete: false,
+        });
+        let upper_driver = PlannedBack::Upper(UpperBack {
             pending: false,
             emitted: false,
-        }))?;
+        });
         let mut drivers = [None, None, None];
         drivers[literal_index] = Some(literal_driver);
         drivers[upper_index] = Some(upper_driver);
@@ -127,7 +123,7 @@ impl TextPlannedKernel {
         let minimum_sign_bytes = (SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32;
         let signs = FixedSignLog::<SIGN_CAPACITY>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;
         Ok(Self {
-            scheduler: FixedScheduler::new_with_host_operations(
+            scheduler: FixedScheduler::new_with_host_calls(
                 nodes,
                 cords,
                 routes,
@@ -145,7 +141,7 @@ impl TextPlannedKernel {
         self.scheduler.step()
     }
 
-    pub fn next_host_request(&mut self) -> Option<HostOperationRequest> {
+    pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
         self.scheduler.next_host_request()
     }
 
@@ -155,18 +151,16 @@ impl TextPlannedKernel {
 
     pub fn complete_presentation(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
     ) -> Result<(), SchedulerError> {
-        if request.node != self.presentation_node
-            || request.operation != conduit_kernel::HostOperationId(0)
-        {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+        if request.node != self.presentation_node || request.call != conduit_kernel::HostCallId(0) {
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
@@ -175,49 +169,48 @@ impl TextPlannedKernel {
 
     pub fn complete_upper(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         output: &[u8],
     ) -> Result<(), SchedulerError> {
         if !self.is_upper_request(&request) {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
         let value = self.scheduler.store_host_value(output)?;
         let output = BoundedValueRef::new(value, conduit_text::MAX_TEXT_BYTES)
-            .map_err(|_| SchedulerError::InvalidHostOperationAccess)?;
-        self.scheduler.complete_host_operation(
+            .map_err(|_| SchedulerError::InvalidHostCallAccess)?;
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(output),
                 failure: None,
             },
         )
     }
     #[cfg(test)]
-    fn fail_presentation(&mut self, request: HostOperationRequest) -> Result<(), SchedulerError> {
+    fn fail_presentation(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
         if !self.is_presentation_request(&request) {
-            return Err(SchedulerError::InvalidHostOperationAccess);
+            return Err(SchedulerError::InvalidHostCallAccess);
         }
-        self.scheduler.complete_host_operation(
+        self.scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Failed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
                 output: None,
                 failure: Some(conduit_kernel::Failure {
-                    code: conduit_kernel::FailureCode::HostOperationFailed,
+                    code: conduit_kernel::FailureCode::HostCallFailed,
                     detail: 1,
                 }),
             },
         )
     }
-    pub fn is_presentation_request(&self, request: &HostOperationRequest) -> bool {
-        request.node == self.presentation_node
-            && request.operation == conduit_kernel::HostOperationId(0)
+    pub fn is_presentation_request(&self, request: &HostCallRequest) -> bool {
+        request.node == self.presentation_node && request.call == conduit_kernel::HostCallId(0)
     }
-    pub fn is_upper_request(&self, request: &HostOperationRequest) -> bool {
-        request.node == self.upper_node && request.operation == conduit_kernel::HostOperationId(0)
+    pub fn is_upper_request(&self, request: &HostCallRequest) -> bool {
+        request.node == self.upper_node && request.call == conduit_kernel::HostCallId(0)
     }
 
     pub fn cancel(&mut self) -> Result<(), SchedulerError> {
@@ -229,8 +222,8 @@ impl TextPlannedKernel {
     pub fn sign_count(&self) -> u16 {
         self.scheduler.signs().len()
     }
-    pub fn pending_host_operations(&self) -> usize {
-        self.scheduler.pending_host_operation_count()
+    pub fn pending_host_calls(&self) -> usize {
+        self.scheduler.pending_host_call_count()
     }
 }
 
@@ -276,7 +269,7 @@ fn validate_shape(
         || lowered.nodes.len() != MAX_NODES
         || lowered.cords.len() != MAX_CORDS
         || lowered.routes.len() != 2
-        || lowered.host_operations.len() != 2
+        || lowered.host_calls.len() != 2
         || lowered.cord_value_slots != 2
         || lowered.cord_value_bytes != conduit_text::MAX_TEXT_BYTES * 2
         || !lowered.remote_endpoints.is_empty()
@@ -303,17 +296,17 @@ fn validate_shape(
     if literal.implementation_id.as_str() != crate::offer::TEXT_LITERAL_IMPLEMENTATION
         || upper.implementation_id.as_str() != crate::offer::TEXT_UPPER_IMPLEMENTATION
         || presentation.implementation_id.as_str() != crate::offer::TEXT_PRESENTATION_IMPLEMENTATION
-        || upper.host_operations.len() != 1
-        || upper.host_operations[0].contract_id.as_str()
-            != crate::functional_offers::TEXT_UPPER_HOST_OPERATION
-        || upper.host_operations[0]
+        || upper.host_calls.len() != 1
+        || upper.host_calls[0].contract_id.as_str()
+            != crate::functional_offers::TEXT_UPPER_HOST_CALL
+        || upper.host_calls[0]
             .target_kind
             .as_ref()
             .map(|kind| kind.as_str())
-            != Some(crate::functional_offers::TEXT_UPPER_HOST_OPERATION_TARGET)
-        || upper.host_operations[0].maximum_in_flight != 1
-        || upper.host_operations[0].maximum_input_bytes != conduit_text::MAX_TEXT_BYTES
-        || upper.host_operations[0].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
+            != Some(crate::functional_offers::TEXT_UPPER_HOST_CALL_TARGET)
+        || upper.host_calls[0].maximum_in_flight != 1
+        || upper.host_calls[0].maximum_input_bytes != conduit_text::MAX_TEXT_BYTES
+        || upper.host_calls[0].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
         || configured_text(&literal.configuration, "value")? != expected_literal
         || configured_u64(&presentation.configuration, "maximum-values")?
             != conduit_semantic_catalog::MAX_TEXT_VALUES
@@ -363,10 +356,10 @@ mod tests {
     fn malformed_presentation_completion_is_rejected() {
         let mut kernel = kernel();
         assert_eq!(
-            kernel.complete_presentation(HostOperationRequest {
+            kernel.complete_presentation(HostCallRequest {
                 node: NodeId(99),
                 request: RequestId(99),
-                operation: conduit_kernel::HostOperationId(0),
+                call: conduit_kernel::HostCallId(0),
                 input: BoundedValueRef::new(
                     ValueRef {
                         slot: 0,
@@ -377,7 +370,7 @@ mod tests {
                 )
                 .unwrap(),
             }),
-            Err(SchedulerError::InvalidHostOperationAccess)
+            Err(SchedulerError::InvalidHostCallAccess)
         );
     }
 
@@ -404,7 +397,7 @@ mod tests {
             .iter_mut()
             .find(|placement| placement.kind_id.as_str() == conduit_text::TEXT_UPPER_KIND)
             .unwrap();
-        upper.host_operations[0].target_kind = Some(conduit_core::KindId::from("wrong/transform"));
+        upper.host_calls[0].target_kind = Some(conduit_core::KindId::from("wrong/transform"));
         assert!(conduit_plan_lowering::lowering::lower_plan_fragment(&fragment).is_err());
     }
 
@@ -434,8 +427,8 @@ mod tests {
                 outcome => {
                     assert_eq!(
                         outcome,
-                        Err(SchedulerError::OperationFailed(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                        Err(SchedulerError::BackFailed(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostCallFailed,
                             detail: 23
                         }))
                     );

@@ -1,7 +1,8 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::*;
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 use conduit_semantic_catalog::state_value::*;
 
@@ -13,7 +14,7 @@ fn fixture(
     StructuredInfoValue,
 ) {
     let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
-    let next = StructuredInfoValue::leaf(ty.clone(), b"false".to_vec()).unwrap();
+    let next = StructuredInfoValue::leaf(ty.clone(), InfoBool::FALSE.encode().to_vec()).unwrap();
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     startup.insert_structured_type("Cell", ty.clone()).unwrap();
@@ -22,7 +23,7 @@ fn fixture(
     // installed adapter are production paths; this is not physical input proof.
     let mut source = installed_std::test_structured_selector::offer(&ty, PortDirection::Output);
     source.startup_parameters[0].name = "values".into();
-    source.host_operations = vec![wait_host_operation_requirement()];
+    source.host_calls = vec![wait_host_call_requirement()];
     source.resource_requirements = vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)];
     let mut entry = installed_std::test_structured_selector::configuration(&next)
         .pop()
@@ -45,19 +46,19 @@ fn fixture(
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: source.kind_id.clone(),
             kind_contract_revision: source.kind_contract_revision.clone(),
             inputs: source.inputs.clone(),
             outputs: source.outputs.clone(),
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: entry.key,
                 default_value: entry.value,
-                validation: ConfigurationRule::TextBytes { maximum: 256 },
+                rule: KindConfigurationRule::TextBytes { maximum: 256 },
             }],
         })
         .unwrap();
-    let initial = StructuredInfoValue::leaf(ty.clone(), b"true".to_vec()).unwrap();
+    let initial = StructuredInfoValue::leaf(ty.clone(), InfoBool::TRUE.encode().to_vec()).unwrap();
     let encode = |value: &StructuredInfoValue| {
         let entry = installed_std::test_structured_selector::configuration(value)
             .pop()
@@ -96,15 +97,15 @@ fn fixture(
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),
             outputs: vec![],
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: expectation_key.into(),
                 default_value: ConfigurationValue::Text(expected),
-                validation: ConfigurationRule::TextBytes { maximum: 256 },
+                rule: KindConfigurationRule::TextBytes { maximum: 256 },
             }],
         })
         .unwrap();
@@ -174,7 +175,7 @@ fn run(
             &crate::RunControl::default(),
         )
     };
-    // The Host releases old realization reservations before yielding State.
+    // The host releases old realization reservations before yielding State.
     let reservation = execution_host
         .kernel_resources
         .prepare_and_reserve_with_continuity(advertisement, fragment, continuity)

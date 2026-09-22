@@ -9,8 +9,9 @@ import { readWorkspaceHandoff, consumeWorkspaceHandoff } from "./workspace-hando
 import { acquireBrowserBodyContinuity } from "../../../targets/browser/host/assets/browser-body-continuity.mjs";
 import { createBodyInvitationReceiver, openWorkspaceMembership, readBodyInvitation, readSharedBodyInvitation } from "./workspace-membership.mjs";
 import { prepareWorkspaceVoicePlay } from "./workspace-voice-play.mjs";
+import { prepareWorkspaceTutorialPresenterPlay } from "./workspace-tutorial-presenter-play.mjs";
 import { createMemoryReleaseCache, openReleaseCatalog } from "../../creche/browser/creche-release-catalog.mjs";
-import { browserHostOperationLimits, createBrowserHostOperations } from "../../../targets/browser/host/assets/browser-host-operations.mjs";
+import { browserHostCallLimits, createBrowserHostCalls } from "../../../targets/browser/host/assets/browser-host-calls.mjs";
 
 export async function startApplication(application) {
   const root = document.querySelector('.workspace-shell');
@@ -26,6 +27,8 @@ export async function startApplication(application) {
   const lullButton = root.querySelector('[data-lull-body]');
   const fulfillButton = root.querySelector('[data-fulfill-body]');
   const tutorial = root.querySelector('[data-body-tutorial]');
+  const tutorialCore = tutorial.querySelector('[data-body-tutorial-core]');
+  const tutorialResident = tutorial.querySelector('[data-body-tutorial-resident]');
   const tutorialPresentation = application.presentationFor(tutorial);
   let tutorialRevision = 0;
   const fail = error => {
@@ -48,16 +51,16 @@ export async function startApplication(application) {
         return catalog.resolve(profile, signal);
       },
     });
-    const operations = createBrowserHostOperations({ hostId: host.hostId, bootId: host.bootId,
+    const calls = createBrowserHostCalls({ hostId: host.hostId, bootId: host.bootId,
       applicationId: application.manifest.applicationId, applicationGeneration: 1, authorityGeneration: 1 });
     let artifactSequence = 0;
-    const hostOperations = Object.freeze({
+    const hostCalls = Object.freeze({
       handoffArtifact(artifact) {
         artifactSequence += 1;
-        return operations.handoffArtifact({
-          contract: browserHostOperationLimits.contract,
+        return calls.handoffArtifact({
+          contract: browserHostCallLimits.contract,
           kind: 'artifact-handoff',
-          operationId: `workspace/artifact-${artifactSequence}`,
+          callId: `workspace/artifact-${artifactSequence}`,
           hostId: host.hostId,
           bootId: host.bootId,
           applicationId: application.manifest.applicationId,
@@ -77,6 +80,8 @@ export async function startApplication(application) {
     const inventory = readReviewedFormInventory(host.runtime, source);
     const catalogSource = application.text('reviewed-form-catalog');
     const catalog = readWorkspaceCatalog(catalogSource);
+    const tutorialForm = catalog.forms.find(form => form.entry === 'tour');
+    if (!tutorialForm) throw new Error('The reviewed resident Tutorial Form is absent');
     let handoff = null, handoffFailure = null;
     try { handoff = readWorkspaceHandoff(globalThis.location, inventory); }
     catch (error) { handoffFailure = error; }
@@ -85,7 +90,8 @@ export async function startApplication(application) {
     if (retainedSelection === null) {
       const scratch = inventory.forms.find(form => form.name === 'memory_lantern');
       const chime = typeof window.AudioContext === 'function' ? inventory.forms.find(form => form.name === 'startup_chime') : null;
-      selection = { selected: [scratch, chime].filter(Boolean), refusals: [] };
+      const residentTutorial = inventory.forms.find(form => form.name === 'tour');
+      selection = { selected: [scratch, residentTutorial, chime].filter(Boolean), refusals: [] };
     }
     const restored = invitation ? null : await session.restore();
     if (handoff && !session.current()) {
@@ -95,22 +101,34 @@ export async function startApplication(application) {
     }
     let saving = Promise.resolve();
     let selected = session.foreground()?.checked_form_id;
-    let playback = { state: 'Lulled', detail: 'Its Forms can wake here.' };
+    let playback = { state: 'Lulled', detail: 'Its forms can wake here.' };
     let play = null;
     let library = null, membership = null, editing = false;
+    const tutorialInstalled = () => session.current()?.initial_forms.some(form => form.checked_form_id === tutorialForm.checked_form_id) ?? false;
+    const handleTutorialEvent = (event, resident = false) => {
+      if ((!resident && event.revision !== tutorialRevision) || event.kind !== 1 || event.value.length !== 0) {
+        fail(new Error('This tutorial action is stale'));
+      } else if (event.action === 'body.wake') play?.wake(true).catch(fail);
+      else if (event.action === 'body.inspect-lifecycle') inspect('lifecycle');
+      else if (event.action === 'body.open-library') { surface.hidden = true; inspection.hidden = true; library?.show(); }
+      else if (event.action === 'body.invite-host') membership?.show();
+      else if (event.action === 'body.use-current') { surface.hidden = false; inspection.hidden = true; library?.hide(); if (!input.disabled) input.focus(); }
+      else fail(new Error('Unknown tutorial action'));
+    };
     const renderTutorial = () => {
-      if (!session.current()) return;
+      if (!session.current() || !tutorialInstalled()) {
+        tutorial.hidden = true;
+        return;
+      }
+      tutorial.hidden = false;
+      const resident = ['Playing', 'Idle', 'Completed', 'Failed'].includes(playback.state);
+      tutorialCore.hidden = resident;
+      tutorialResident.hidden = !resident;
+      if (resident) return;
       const revision = ++tutorialRevision;
       tutorialPresentation.present('body-tutorial', session.tutorialView(revision, playback.state), { onEvent(event) {
         tutorialPresentation.nextEvent('body-tutorial');
-        if (event.revision !== tutorialRevision || event.kind !== 1 || event.value.length !== 0) {
-          fail(new Error('This tutorial action is stale'));
-        } else if (event.action === 'body.wake') play?.wake(true).catch(fail);
-        else if (event.action === 'body.inspect-lifecycle') inspect('lifecycle');
-        else if (event.action === 'body.open-library') { surface.hidden = true; inspection.hidden = true; library?.show(); }
-        else if (event.action === 'body.invite-host') membership?.show();
-        else if (event.action === 'body.use-current') { surface.hidden = false; inspection.hidden = true; library?.hide(); if (!input.disabled) input.focus(); }
-        else fail(new Error('Unknown tutorial action'));
+        handleTutorialEvent(event);
       } });
     };
     const bodyChanged = () => {
@@ -125,8 +143,10 @@ export async function startApplication(application) {
           await session.selectForm({ source_document_id: handoff.source_document_id, checked_form_id: handoff.checked_form_id });
         }
         const foreground = catalog.forms.find(form => form.checked_form_id === session.foreground()?.checked_form_id);
-        if (foreground?.required_kinds.includes('sound/startup-chime')) {
-          const visible = resident.find(form => catalog.forms.some(candidate => candidate.checked_form_id === form.checked_form_id && candidate.required_kinds.some(kind => kind.startsWith('presentation/'))));
+        if (foreground?.required_kinds.includes('sound/startup-chime') || foreground?.checked_form_id === tutorialForm.checked_form_id) {
+          const visible = resident.find(form => catalog.forms.some(candidate => candidate.checked_form_id === form.checked_form_id
+            && candidate.checked_form_id !== tutorialForm.checked_form_id
+            && candidate.required_kinds.some(kind => kind.startsWith('presentation/'))));
           if (visible) await session.selectForm(visible);
         }
         selected = session.foreground()?.checked_form_id;
@@ -140,16 +160,16 @@ export async function startApplication(application) {
       const form = catalog.forms.find(form => form.checked_form_id === selected);
       const evidence = session.evidence();
       const heading = inspection.querySelector('h2');
-      heading.textContent = kind === 'form' ? (form?.title ?? 'This Form') : kind === 'flow' ? 'Inside this Form' : `${body.friendly_name} · ${playback.state}`;
+      heading.textContent = kind === 'form' ? (form?.title ?? 'This form') : kind === 'flow' ? 'Inside this form' : `${body.friendly_name} · ${playback.state}`;
       details.replaceChildren();
       const text = document.createElement('p'); text.className = 'inspection-explanation';
-      text.textContent = kind === 'lifecycle' ? playback.detail : kind === 'flow' ? 'The checked source describes this Form’s meaning. Its exact realization appears below when admitted.' : 'An installed Form in this Body. Opening its surface keeps the current Play.';
+      text.textContent = kind === 'lifecycle' ? playback.detail : kind === 'flow' ? 'The checked source describes this form’s meaning. Its exact realization appears below when admitted.' : 'An installed form in this body. Opening its surface keeps the current play.';
       details.append(text);
       const pre = document.createElement('pre');
       pre.textContent = kind === 'lifecycle' ? JSON.stringify({ body: evidence?.evidence, realization: evidence?.realization, active_observation: play?.evidence(), terminal: playback.terminal, refusal: playback.refusal }, null, 2)
         : kind === 'flow' && evidence?.realization ? JSON.stringify(evidence.realization.plan.forms.find(item => item.form.checked_form_id === selected), null, 2) : (form?.source ?? 'Source unavailable');
       const disclosure = document.createElement('details'), summary = document.createElement('summary');
-      summary.textContent = kind === 'lifecycle' ? 'Exact lifecycle evidence' : kind === 'flow' && evidence?.realization ? 'Exact Plan' : 'Checked source';
+      summary.textContent = kind === 'lifecycle' ? 'Exact lifecycle evidence' : kind === 'flow' && evidence?.realization ? 'Exact plan' : 'Checked source';
       disclosure.append(summary, pre); details.append(disclosure);
       surface.hidden = true; inspection.hidden = false;
       for (const button of strip.querySelectorAll('button')) button.setAttribute('aria-expanded', String(button.dataset.inspect === kind));
@@ -165,7 +185,7 @@ export async function startApplication(application) {
       const partition = session.evidence()?.realization?.plan.forms.find(item => item.form.checked_form_id === selected);
       root.querySelector('#surface-title').textContent = form?.title ?? 'No Forms installed';
       root.querySelector('[data-surface-invitation]').textContent = configureWorkspaceInput(input, form, partition);
-      root.querySelector('.current-form').textContent = form?.title ?? 'Your Forms';
+      root.querySelector('.current-form').textContent = form?.title ?? 'Your forms';
       root.querySelector('[data-flow-label]').textContent = session.evidence()?.foreground_flow ?? 'Not yet planned';
       for (const button of activities.querySelectorAll('[data-checked-form-id]')) button.setAttribute('aria-pressed', String(button.dataset.checkedFormId === selected));
       const visible = new Set(partition?.plan.fragments.flatMap(fragment => fragment.placements.map(placement => placement.placement_id)) ?? []);
@@ -174,7 +194,6 @@ export async function startApplication(application) {
     };
     function render() {
       const body = session.current();
-      tutorial.hidden = !body;
       renderTutorial();
       membership?.render();
       const arriving = !body || (!body.here_part_id && body.state !== 'FULFILLED');
@@ -190,7 +209,7 @@ export async function startApplication(application) {
         return;
       }
       if (arriving && !joining) {
-        document.title = 'Birth your Body · Conduit';
+        document.title = 'Birth your body · Conduit';
         const slot = nursery.querySelector('[data-creche-content]');
         if (body) {
           slot.replaceChildren(createFirstHostRunner({ host, presentationFor: application.presentationFor, nextSequence: session.nextMembershipSequence, onBodyChanged: bodyChanged }));
@@ -226,12 +245,15 @@ export async function startApplication(application) {
         lullButton.hidden = true;
       }
       if (!body.initial_forms.length) {
-        root.querySelector('#surface-guidance').textContent = 'This Body can remain lulled.';
+        root.querySelector('#surface-guidance').textContent = 'This body can remain lulled.';
         wakeButton.hidden = true;
         lullButton.hidden = true;
       }
       notice.textContent = `${body.initial_forms.length} Form${body.initial_forms.length === 1 ? '' : 's'} in ${body.friendly_name}.`;
-      if (!body.initial_forms.some(form => form.checked_form_id === selected)) selected = body.initial_forms[0]?.checked_form_id;
+      if (!body.initial_forms.some(form => form.checked_form_id === selected) || selected === tutorialForm.checked_form_id) {
+        selected = body.initial_forms.find(form => form.checked_form_id !== tutorialForm.checked_form_id)?.checked_form_id
+          ?? body.initial_forms[0]?.checked_form_id;
+      }
       activities.replaceChildren(...body.initial_forms.map(form => {
         const button = document.createElement('button'); button.type = 'button';
         button.textContent = catalog.forms.find(item => item.checked_form_id === form.checked_form_id)?.title ?? form.name;
@@ -254,14 +276,32 @@ export async function startApplication(application) {
       });
       if (body.state !== 'FULFILLED') activities.append(browse);
       if (!play) play = openWorkspacePlay({ host, session, source, planningLines: () => membership?.planningLines() ?? [], foregroundForm: () => selected, inputTarget: input, outputRoot: root.querySelector('[data-form-output]'),
+        presentationRootFor: ({ checkedFormId }) => checkedFormId === tutorialForm.checked_form_id ? tutorialResident : null,
+        onApplicationEvent: ({ checkedFormId, event }) => {
+          if (checkedFormId === tutorialForm.checked_form_id) handleTutorialEvent(event, true);
+        },
+        onTutorialPresenterRequest: effect => session.tutorialPresenterRequest(
+          `tutorial-presenter/${effect.active_play_id}/${effect.request_sequence}`,
+          ++tutorialRevision,
+          playback.state,
+        ),
         async prepareExternal(proposal) {
           const distributed = proposal.plan.forms.filter(form => form.plan.fragments.length > 1);
           if (!distributed.length) return null;
-          if (distributed.length !== 1) throw new Error('This Body Plan exceeds the one external Form bound');
+          if (distributed.length !== 1) throw new Error('This body Plan exceeds the one external Form bound');
           const plan = distributed[0].plan;
           const peer = plan.fragments.find(fragment => fragment.host_id !== host.hostId || fragment.boot_id !== host.bootId);
           const joined = peer && membership?.executionLine(peer.host_id, peer.boot_id);
-          if (!joined) throw new Error('The planned Voice Host Line is no longer current');
+          if (!joined) throw new Error('The planned remote Host Line is no longer current');
+          const presenter = plan.fragments.some(fragment => fragment.placements.some(placement =>
+            placement.kind_id === 'llm/present'));
+          if (presenter) {
+            const tutorialPresenter = await prepareWorkspaceTutorialPresenterPlay({ api: host.runtime,
+              localAdvertisement: host.membership.advertisement(), joined, plan, outputRoot: tutorialResident,
+              request: identity => session.tutorialPresenterRequest(identity, ++tutorialRevision, playback.state) });
+            return Object.freeze({ planId: plan.plan_id, identity: tutorialPresenter.identity,
+              run: () => tutorialPresenter.run(), close: () => tutorialPresenter.close() });
+          }
           await joined.line.installBodyContext(session.conversationContext());
           const voice = await prepareWorkspaceVoicePlay({ api: host.runtime,
             localAdvertisement: host.membership.advertisement(), joined, plan,
@@ -292,7 +332,7 @@ export async function startApplication(application) {
       showSelected();
     }
     const useForm = async (form, expectedRevision) => {
-      if (editing) throw new Error('A Body transition is already in progress');
+      if (editing) throw new Error('A body transition is already in progress');
       editing = true;
       try {
         const identity = { source_document_id: form.source_document_id, checked_form_id: form.checked_form_id };
@@ -307,7 +347,7 @@ export async function startApplication(application) {
       } finally { editing = false; }
     };
     const removeForm = async (form, expectedRevision) => {
-      if (editing) throw new Error('A Body transition is already in progress');
+      if (editing) throw new Error('A body transition is already in progress');
       editing = true;
       try {
         await play.changeWorkset('Remove', { source_document_id: form.source_document_id, checked_form_id: form.checked_form_id }, expectedRevision);
@@ -322,9 +362,9 @@ export async function startApplication(application) {
       onClose() { library.hide(); render(); root.querySelector('[data-open-library]')?.focus(); },
     });
     globalThis.__conduitWorkspace = Object.freeze({ host, current: session.current, evidence: session.evidence, state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
-    membership = openWorkspaceMembership({ root, session, host, hostOperations, invitation, presentationFor: application.presentationFor,
+    membership = openWorkspaceMembership({ root, session, host, hostCalls, invitation, presentationFor: application.presentationFor,
       invitationLabel: () => catalog.forms.find(form => form.checked_form_id === selected)?.name === 'firefly-choir'
-        ? 'Invite another phone' : 'Invite another Host',
+        ? 'Invite another phone' : 'Invite another host',
       async beforeAdmission() {
         if (['Playing', 'Idle', 'Completed', 'Failed'].includes(playback.state)) await play?.lull();
       },
@@ -334,7 +374,7 @@ export async function startApplication(application) {
     wakeButton.addEventListener('click', () => play?.wake(true).catch(fail));
     lullButton.addEventListener('click', () => play?.lull().catch(fail));
     fulfillButton.addEventListener('click', () => {
-      if (!globalThis.confirm('Finish this Body permanently? Its biography remains available, but it cannot wake or change again.')) return;
+      if (!globalThis.confirm('Finish this body permanently? Its biography remains available, but it cannot wake or change again.')) return;
       play?.fulfill().then(render).catch(fail);
     });
     if (session.current()?.here_part_id && session.current().state !== 'FULFILLED') await session.arrive();

@@ -1,4 +1,4 @@
-// Installed provisioning contributions. This catalog does not admit a Host.
+// Installed provisioning contributions. This catalog does not admit a host.
 import { createPhysicalHostTargetCatalog } from "./creche-target-catalog.mjs";
 import { AVR_PRO_MICRO_CRECHE_TARGET_CONTRIBUTION } from "../../../targets/avr/deployment/browser/creche-adapter.mjs";
 import { RP2040_CRECHE_TARGET_CONTRIBUTION } from "../../../targets/rp2040/deployment/browser/creche-adapter.mjs";

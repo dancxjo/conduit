@@ -25,7 +25,7 @@ const GALLERY_SCHEMA: &str = "conduit.visual-evidence-gallery/v1";
 const RETAINED_COMMITS: usize = 32;
 const SCENARIOS: &[(&str, &str)] = &[
     ("overview", "Overview"),
-    ("selected-gear", "Selected Gear"),
+    ("selected-gear", "Selected gear"),
     ("plan-lens", "Plan lens"),
     ("play-lens", "Play lens"),
     ("signs-lens", "Signs lens"),
@@ -384,7 +384,7 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
                 .join("one-form-two-fronts/index.html")
                 .is_file()
             {
-                format!(" · <a href=\"commits/{commit}/one-form-two-fronts/\">One Form, Two Fronts</a>")
+                format!(" · <a href=\"commits/{commit}/one-form-two-fronts/\">One form, Two Fronts</a>")
             } else {
                 String::new()
             };
@@ -428,7 +428,7 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
         .join("current/one-form-two-fronts/index.html")
         .is_file()
     {
-        "\n<p><a href=\"current/one-form-two-fronts/\">Current One Form, Two Fronts journey</a></p>"
+        "\n<p><a href=\"current/one-form-two-fronts/\">Current One form, Two Fronts journey</a></p>"
     } else {
         ""
     };
@@ -461,7 +461,7 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
         ""
     };
     let conduitos_card = if has_conduitos {
-        "<article class=\"journey-card\"><p class=\"eyebrow\">QEMU · x86_64 · freestanding</p><h2>A computer is born</h2><p>A ConduitOS Body wakes, discovers its Host, and reaches recognizable work in one validated console run.</p><p class=\"card-boundary\">Boundary: exact QEMU machine profile; not physical hardware.</p><p><a class=\"primary\" href=\"current/conduitos/x86_64/\">Follow the evidence</a></p></article>"
+        "<article class=\"journey-card\"><p class=\"eyebrow\">QEMU · x86_64 · freestanding</p><h2>A computer is born</h2><p>A ConduitOS Body wakes, discovers its host, and reaches recognizable work in one validated console run.</p><p class=\"card-boundary\">Boundary: exact QEMU machine profile; not physical hardware.</p><p><a class=\"primary\" href=\"current/conduitos/x86_64/\">Follow the evidence</a></p></article>"
     } else {
         "<!-- conduit-conduitos-journey-card@1 -->"
     };
@@ -515,7 +515,7 @@ fn write_scenario_page(
         ("Viewport", optional(&provenance.viewport)),
         ("SHA-256", output.sha256.as_str()),
         ("Plan", optional(&provenance.plan_id)),
-        ("Active Play", optional(&provenance.active_play_id)),
+        ("Active play", optional(&provenance.active_play_id)),
         ("Presentation", optional(&provenance.presentation_id)),
         (
             "Presentation revision",

@@ -3,7 +3,7 @@ use conduit_core::*;
 #[test]
 fn prepared_shape_validation_refuses_wrong_type_truncation_trailing_data_and_capacity() {
     let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
-    let value = StructuredInfoValue::leaf(ty.clone(), b"true".to_vec())
+    let value = StructuredInfoValue::leaf(ty.clone(), InfoBool::TRUE.encode().to_vec())
         .unwrap()
         .canonical_bytes()
         .unwrap();
@@ -43,7 +43,7 @@ fn prepared_validation_walks_exact_record_members() {
         ty.clone(),
         vec![StructuredFieldValue::new(
             "on",
-            StructuredInfoValue::leaf(leaf, b"false".to_vec()).unwrap(),
+            StructuredInfoValue::leaf(leaf, InfoBool::FALSE.encode().to_vec()).unwrap(),
         )
         .unwrap()],
     )
@@ -62,6 +62,30 @@ fn prepared_validation_walks_exact_record_members() {
 }
 
 #[test]
+fn prepared_validation_accepts_actual_sequence_length_up_to_capacity() {
+    let leaf = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
+    let ty = StructuredInfoType::sequence(leaf.clone(), 3).unwrap();
+    for length in 0..=3 {
+        let value = StructuredInfoValue::sequence(
+            ty.clone(),
+            (0..length)
+                .map(|_| {
+                    StructuredInfoValue::leaf(leaf.clone(), InfoBool::TRUE.encode().to_vec())
+                        .unwrap()
+                })
+                .collect(),
+        )
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+        PreparedStructuredValueValidator::new(&ty, 256)
+            .unwrap()
+            .validate(&value)
+            .unwrap();
+    }
+}
+
+#[test]
 fn prepared_validation_accepts_nested_collection_and_selected_variant_only() {
     let leaf = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
     let collection = StructuredInfoType::collection(leaf.clone(), Some(2)).unwrap();
@@ -70,7 +94,7 @@ fn prepared_validation_accepts_nested_collection_and_selected_variant_only() {
         vec![StructuredVariantCase::new("items", collection.clone()).unwrap()],
     )
     .unwrap();
-    let element = StructuredInfoValue::leaf(leaf, b"true".to_vec()).unwrap();
+    let element = StructuredInfoValue::leaf(leaf, InfoBool::TRUE.encode().to_vec()).unwrap();
     let items =
         StructuredInfoValue::collection(collection, vec![element.clone(), element]).unwrap();
     let value = StructuredInfoValue::variant(ty.clone(), "items", items)

@@ -12,14 +12,14 @@ use conduit_create_oi::{
     CreateUartProvider,
 };
 use crate::assigned_receiver::ValidatedContactPlan;
+use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepBack, StepOutcome};
 use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, NodeId, Operation, OperationAction, OperationInput, PortId, RequestId,
-    SingleSourceExecutor, SingleSourceSignLog, SingleSourceValues, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostCallOutcome, NodeId,
+    PortId, RequestId, SingleSourceExecutor, SingleSourceSignLog, SingleSourceValues, ValueRef,
 };
 
 const CONTACT_PORT: PortId = PortId(0);
-const HOST_OPERATION: HostOperationId = HostOperationId(0);
+const HOST_CALL: HostCallId = HostCallId(0);
 const REQUEST: RequestId = RequestId(1);
 const VALUE_BYTES: usize = 1;
 
@@ -58,63 +58,62 @@ struct ContactSource {
     emitted: bool,
 }
 
-impl Operation for ContactSource {
+impl StepBack<1> for ContactSource {
     #[inline(never)]
-    fn start(&mut self) -> OperationAction {
-        self.pending = true;
+    fn step(
+        &mut self,
+        io: &mut StepIo<1>,
+        _input_bytes: &StepInputBytes<'_, 1>,
+    ) -> StepOutcome {
+        if self.pending {
+            let Some((request, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            if request != REQUEST {
+                return invalid(3);
+            }
+            match outcome.disposition {
+                HostCallDisposition::Completed if outcome.failure.is_none() => {
+                    let Some(output) = outcome.output else {
+                        return invalid(1);
+                    };
+                    if !io.output_ready(CONTACT_PORT) {
+                        return StepOutcome::Await;
+                    }
+                    if io.consume_host_completion().is_err()
+                        || io.send(CONTACT_PORT, output.value).is_err()
+                    {
+                        return invalid(3);
+                    }
+                    self.pending = false;
+                    self.emitted = true;
+                    return StepOutcome::Complete;
+                }
+                HostCallDisposition::Failed => {
+                    if io.consume_host_completion().is_err() {
+                        return invalid(3);
+                    }
+                    self.pending = false;
+                    return StepOutcome::Fail(outcome.failure.unwrap_or(Failure {
+                        code: FailureCode::HostCallFailed,
+                        detail: 2,
+                    }));
+                }
+                _ => return invalid(3),
+            }
+        }
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
         let input = match BoundedValueRef::new(self.empty, 0) {
             Ok(input) => input,
             Err(_) => return invalid(0),
         };
-        OperationAction::RequestHostOperation {
-            request: REQUEST,
-            operation: HOST_OPERATION,
-            input,
+        if io.request_host_call(REQUEST, HOST_CALL, input).is_err() {
+            return invalid(0);
         }
-    }
-
-    #[inline(never)]
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostOperationCompleted { request, outcome }
-                if request == REQUEST
-                    && self.pending
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = false;
-                match outcome.output {
-                    Some(output) => {
-                        self.emitted = true;
-                        OperationAction::Emit {
-                            port: CONTACT_PORT,
-                            value: output.value,
-                        }
-                    }
-                    None => invalid(1),
-                }
-            }
-            OperationInput::HostOperationCompleted { outcome, .. }
-                if self.pending && outcome.disposition == HostOperationDisposition::Failed =>
-            {
-                self.pending = false;
-                OperationAction::Fail(outcome.failure.unwrap_or(Failure {
-                    code: FailureCode::HostOperationFailed,
-                    detail: 2,
-                }))
-            }
-            _ => invalid(3),
-        }
-    }
-
-    #[inline(never)]
-    fn advance(&mut self) -> OperationAction {
-        if self.emitted {
-            self.emitted = false;
-            OperationAction::Complete
-        } else {
-            invalid(4)
-        }
+        self.pending = true;
+        StepOutcome::Progress
     }
 
     fn cancel(&mut self) {
@@ -123,13 +122,12 @@ impl Operation for ContactSource {
     }
 }
 
-const fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
+const fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::InvalidLifecycle,
         detail,
     })
 }
-
 pub fn execute_contact<'a, P: CreateUartProvider>(
     plan: ValidatedContactPlan,
     activation: AssignedActivation,
@@ -189,14 +187,14 @@ fn execute<P: CreateUartProvider>(
         source,
         signs,
         NodeId(0),
-        HOST_OPERATION,
+        HOST_CALL,
         0,
         plan.maximum_output_bytes,
-        plan.maximum_step_work,
+        plan.maximum_step_fuel,
     )
     .map_err(|_| ExecutionRefusal::Kernel)?;
     let request = kernel.start().map_err(|_| ExecutionRefusal::Kernel)?;
-    if request.request != REQUEST || request.operation != HOST_OPERATION {
+    if request.request != REQUEST || request.call != HOST_CALL {
         return Err(ExecutionRefusal::Kernel);
     }
     let observed = transition_oi_mode(provider, CreateOiModeRequest::Full, deadline_tick)
@@ -217,8 +215,8 @@ fn execute<P: CreateUartProvider>(
     let completed = kernel
         .complete(
             REQUEST,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(stored, plan.maximum_output_bytes)
                         .map_err(|_| ExecutionRefusal::Kernel)?,

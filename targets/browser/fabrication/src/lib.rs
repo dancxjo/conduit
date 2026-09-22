@@ -21,7 +21,7 @@ pub struct BrowserCapabilityIntentDescriptor {
 pub const BROWSER_CAPABILITY_INTENTS: &[BrowserCapabilityIntentDescriptor] = &[
     capability_intent(
         "host-contribution/graphical-presentation",
-        "Display this Body",
+        "Display this body",
         "browser/contribution-graphical-presentation@1",
         &["browser/dom", "presentation/graphical"],
     ),
@@ -115,7 +115,7 @@ fn package_catalog() -> PackageCatalogContribution {
             PresenterMetadata {
                 targets: vec!["browser/wasm32/page".into()],
                 prerequisites: vec![
-                    PrerequisiteNode::HostOperation("conduit.host/present@1".into()),
+                    PrerequisiteNode::HostCall("conduit.host/present@1".into()),
                     PrerequisiteNode::Resource("presentation/surface".into()),
                     PrerequisiteNode::Base("browser/dom".into()),
                 ],
@@ -140,7 +140,7 @@ impl HostFabricationPackage for BrowserFabricationPackage {
                 os: None,
                 host_core: "host-core/std@1".into(),
                 presenter: None,
-                host_operations: Vec::new(),
+                host_calls: Vec::new(),
                 toolchain_identity: "conduit.browser/reviewed-distribution@1".into(),
                 builder_adapter: "conduit-host-browser/bind-prebuilt@1".into(),
                 strategy: conduit_host_fabrication::FabricationStrategy::BindReviewedSuperset,
@@ -397,7 +397,7 @@ mod tests {
             assert!(realization
                 .runtime_artifact_id
                 .starts_with("conduit-browser-runtime/"));
-            assert!(realization.host_operation.contains("browser"));
+            assert!(realization.host_call.contains("browser"));
             assert_eq!(realization.maximum_in_flight, 1);
             assert!((1..=8).contains(&realization.maximum_queue_items));
             assert!(realization.maximum_queue_bytes > 0);

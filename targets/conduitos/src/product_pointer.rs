@@ -33,20 +33,20 @@ pub fn realization(
         device.slot,
         device.attachment_epoch,
     );
-    let interface = device.interfaces[..usize::from(device.interfront_count)]
+    let interface = device.interfaces[..usize::from(device.interface_count)]
         .iter()
         .find(|interface| {
-            interface.number == ready.interfront_number && interface.alternate_setting == 0
+            interface.number == ready.interface_number && interface.alternate_setting == 0
         })
-        .ok_or("pointer-interfront-identity-absent")?;
-    let interfront_id =
+        .ok_or("pointer-interface-identity-absent")?;
+    let interface_id =
         identity::derive_usb_interface(&device_id, interface.number, interface.alternate_setting);
-    let endpoint_id = identity::derive_usb_endpoint(&interfront_id, ready.endpoint_address);
+    let endpoint_id = identity::derive_usb_endpoint(&interface_id, ready.endpoint_address);
     Ok(PointerRealization {
         mechanism: crate::pointer_offer::PointerMechanism::UsbHid,
         controller_id,
         device_id,
-        interfront_id,
+        interface_id,
         endpoint_id,
         report_buffers: u16::from(ready.report_buffers),
         event_slots: crate::pointer_offer::POINTER_EVENT_SLOTS,

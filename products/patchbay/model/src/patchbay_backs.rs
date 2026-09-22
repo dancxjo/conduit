@@ -24,12 +24,12 @@ pub enum BackInspection {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GearFacePresentation {
+pub struct GearFrontPresentation {
     pub subject_identity: String,
     pub accessibility_name: String,
     pub kind_id: KindId,
     pub port_subjects: Vec<String>,
-    /// Existing authoritative descriptors from the checked Kind contract.
+    /// Existing authoritative descriptors from the checked kind contract.
     /// Their variants are value intents, never widget types.
     pub controls: Vec<FaceControl>,
 }
@@ -64,7 +64,7 @@ pub struct CordPresentation {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PatchbaySubjectPresentation {
-    GearFace(GearFacePresentation),
+    GearFront(GearFrontPresentation),
     Port(PortPresentation),
     Cord(CordPresentation),
 }
@@ -99,13 +99,13 @@ impl From<conduit_presentation::CompositionError> for PatchbayBackError {
 
 pub fn gear_front_presentation(
     gear: &PatchbayGear,
-) -> Result<GearFacePresentation, PatchbayBackError> {
+) -> Result<GearFrontPresentation, PatchbayBackError> {
     if gear.identity.is_empty() {
         return Err(PatchbayBackError::EmptySubject);
     }
     let accessibility_name = format!("{} Gear, {}", gear.gear_id.as_str(), gear.kind_id.as_str());
     validate_text(&accessibility_name)?;
-    Ok(GearFacePresentation {
+    Ok(GearFrontPresentation {
         subject_identity: gear.identity.clone(),
         accessibility_name,
         kind_id: gear.kind_id.clone(),
@@ -185,7 +185,7 @@ pub fn realize_recursive(
     inspection: BackInspection,
 ) -> Result<PatchbayRealization, PatchbayBackError> {
     let graphics = match &subject {
-        PatchbaySubjectPresentation::GearFace(front) => gear_graphics(front)?,
+        PatchbaySubjectPresentation::GearFront(front) => gear_graphics(front)?,
         PatchbaySubjectPresentation::Port(port) => {
             label_graphics(&port.accessibility_name, GraphicsPaintRole::Foreground)?
         }
@@ -202,7 +202,7 @@ pub fn realize_recursive(
 
 pub fn normalized_subject(realization: &PatchbayRealization) -> (&str, &str) {
     match &realization.subject {
-        PatchbaySubjectPresentation::GearFace(value) => {
+        PatchbaySubjectPresentation::GearFront(value) => {
             (&value.subject_identity, &value.accessibility_name)
         }
         PatchbaySubjectPresentation::Port(value) => {
@@ -214,7 +214,7 @@ pub fn normalized_subject(realization: &PatchbayRealization) -> (&str, &str) {
     }
 }
 
-fn gear_graphics(front: &GearFacePresentation) -> Result<GraphicsScene, PatchbayBackError> {
+fn gear_graphics(front: &GearFrontPresentation) -> Result<GraphicsScene, PatchbayBackError> {
     let icon = conduit_semantic_catalog::palette_metadata(&front.kind_id)
         .map(|metadata| metadata.icon)
         .unwrap_or(PresentationIconKey::GenericGear);
@@ -299,7 +299,7 @@ mod tests {
             gear_id: GearId::from("demo"),
             descriptor: PortDescriptor {
                 port_id: port_id("value"),
-                value_kind: kind_id("value/text@1"),
+                value_kind: kind_id("value/text"),
                 direction,
                 temporal: PortTemporal::Value,
             },
@@ -314,7 +314,7 @@ mod tests {
             identity: "gear/demo".into(),
             gear_id: GearId::from("demo"),
             kind_id: kind_id("presentation/text"),
-            kind_contract_revision: conduit_core::KindContractRevision::from(
+            kind_contract_revision: conduit_core::KindIdentity::from(
                 "conduit.std/presentation-text@1",
             ),
             source_form: "demo".into(),
@@ -331,14 +331,14 @@ mod tests {
             }],
         };
         let subject =
-            PatchbaySubjectPresentation::GearFace(gear_front_presentation(&gear).unwrap());
+            PatchbaySubjectPresentation::GearFront(gear_front_presentation(&gear).unwrap());
         let direct = realize_direct(subject.clone(), BackInspection::Hidden);
         let recursive = realize_recursive(subject, BackInspection::Explicit).unwrap();
         assert_eq!(normalized_subject(&direct), normalized_subject(&recursive));
         assert!(!direct.back_inspected);
         assert!(recursive.back_inspected);
         assert!(recursive.graphics.unwrap().commands().len() >= 4);
-        let PatchbaySubjectPresentation::GearFace(front) = &direct.subject else {
+        let PatchbaySubjectPresentation::GearFront(front) = &direct.subject else {
             panic!("Gear Front subject");
         };
         assert_eq!(front.controls[0].key, "enabled");
@@ -359,7 +359,7 @@ mod tests {
             identity: "cord/0".into(),
             source_port: source.identity,
             sink_port: sink.identity,
-            value_kind: kind_id("value/text@1"),
+            value_kind: kind_id("value/text"),
             temporal: PortTemporal::Value,
         };
         let view = cord_presentation(

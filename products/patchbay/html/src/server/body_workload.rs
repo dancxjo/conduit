@@ -1,4 +1,4 @@
-//! Exact, bounded active-Form changes for an attached ordinary Body.
+//! Exact, bounded active-Form changes for an attached ordinary body.
 
 use super::{PatchbayHtmlServer, ServerError};
 use conduit_core::SignId;

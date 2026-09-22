@@ -14,14 +14,14 @@ use edit_form::{
 use conduit_core::ConfigurationValue;
 use conduit_core::{
     kind_id, port_id, ActivePlayId, ArtifactId, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, CheckedFormId, ExecutionProfileId, ExpandedFormId, FaceStartupParameter,
-    HostAdvertisement, HostOperationContractId, HostOperationRequirement, HostProfileId,
-    ImplementationId, KindContractRevision, OfferGeneration, PlanId, PortDescriptor, PortDirection,
-    PortTemporal, SourceDocumentId, PROTOCOL_VERSION,
+    CapabilityOffer, CheckedFormId, ExecutionProfileId, ExpandedFormId, FrontStartupParameter,
+    HostAdvertisement, HostCallContractId, HostCallRequirement, HostProfileId, ImplementationId,
+    KindIdentity, OfferGeneration, PlanId, PortDescriptor, PortDirection, PortTemporal,
+    SourceDocumentId, PROTOCOL_VERSION,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
 pub use patchbay_control::PatchbayAction;
@@ -36,7 +36,7 @@ const INVOKE_KIND: &str = "interaction/invoke";
 const EDIT_KIND: &str = "interaction/edit";
 const APPLY_KIND: &str = "interaction/apply";
 const REQUEST_VALUE_KIND: &str = "interaction/request@1";
-const APPLY_HOST_OPERATION: &str = "conduit.patchbay/apply-interaction@1";
+const APPLY_HOST_CALL: &str = "conduit.patchbay/apply-interaction@1";
 const CONTRACT_REVISION: &str = "conduit.patchbay/interaction@1";
 const EXECUTION_PROFILE: &str = "conduit.patchbay/kernel-hosted@1";
 
@@ -210,6 +210,7 @@ impl PatchbayInteraction {
             boot_id: self.boot_id.clone(),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("patchbay-interaction"),
+            bases: vec![],
             resources: vec![],
             planner_capabilities: vec![],
             capabilities: vec![select_offer(), invoke_offer(), edit_offer(), apply_offer()],
@@ -336,7 +337,7 @@ fn signature(kind: &str, fields: &[&str]) -> KindSignature {
     }
 }
 
-fn source_definition(kind: &str) -> KindDefinition {
+fn source_definition(kind: &str) -> KindProjection {
     let fields: &[&str] = if kind == SELECT_KIND {
         &["request", "basis", "subject"]
     } else {
@@ -349,17 +350,17 @@ fn source_definition(kind: &str) -> KindDefinition {
             "target",
         ]
     };
-    KindDefinition {
+    KindProjection {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         inputs: vec![],
         outputs: vec![request_port(PortDirection::Output)],
         configuration: fields
             .iter()
-            .map(|key| ConfigurationField {
+            .map(|key| KindConfigurationField {
                 key: (*key).into(),
                 default_value: ConfigurationValue::Text(String::new()),
-                validation: ConfigurationRule::TextBytes {
+                rule: KindConfigurationRule::TextBytes {
                     maximum: MAX_INTERACTION_ID_BYTES as u32,
                 },
             })
@@ -367,10 +368,10 @@ fn source_definition(kind: &str) -> KindDefinition {
     }
 }
 
-fn apply_definition() -> KindDefinition {
-    KindDefinition {
+fn apply_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(APPLY_KIND),
-        kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         inputs: vec![request_port(PortDirection::Input)],
         outputs: vec![],
         configuration: vec![],
@@ -420,16 +421,16 @@ fn source_offer(
     CapabilityOffer {
         startup_parameters: fields
             .iter()
-            .map(|name| FaceStartupParameter {
+            .map(|name| FrontStartupParameter {
                 name: (*name).into(),
-                value_type: "Text".into(),
+                value_type: conduit_core::kind_id("value/text"),
                 has_default: false,
             })
             .collect(),
         shorthand: None,
         capability_id: CapabilityId::from(capability),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(implementation),
@@ -437,7 +438,7 @@ fn source_offer(
         },
         inputs: vec![],
         outputs: vec![request_port(PortDirection::Output)],
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: interaction_limits(),
@@ -450,7 +451,7 @@ fn apply_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("patchbay-apply"),
         kind_id: kind_id(APPLY_KIND),
-        kind_contract_revision: KindContractRevision::from(CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(CONTRACT_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(EXECUTION_PROFILE),
             implementation_id: ImplementationId::from("patchbay/apply@1"),
@@ -458,8 +459,8 @@ fn apply_offer() -> CapabilityOffer {
         },
         inputs: vec![request_port(PortDirection::Input)],
         outputs: vec![],
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(APPLY_HOST_OPERATION),
+        host_calls: vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(APPLY_HOST_CALL),
             target_kind: Some(kind_id("interaction/patchbay-state")),
             maximum_in_flight: 1,
             maximum_input_bytes: MAX_INTERACTION_VALUE_BYTES,

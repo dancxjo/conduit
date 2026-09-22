@@ -56,7 +56,7 @@ pub fn select_realization_with_characteristics_and_signs(
     let front_candidates = hosts
         .iter()
         .flat_map(|host| host.capabilities.iter().map(move |offer| (host, offer)))
-        .filter(|(_, offer)| offer.checked_front() == gear.checked_front())
+        .filter(|(_, offer)| gear.accepts_realization(offer))
         .collect::<Vec<_>>();
     if front_candidates.is_empty() {
         return Err(PlannerError::UnknownCapability(
@@ -197,7 +197,7 @@ fn base_rejection(dimension: &'static str) -> RealizationRejection {
         "queue item bound" => RealizationRejection::QueueItemBound,
         "queue byte bound" => RealizationRejection::QueueByteBound,
         "resource-unit ceiling" => RealizationRejection::ResourceUnitCeiling,
-        "host-operation allowlist" => RealizationRejection::HostOperationAllowlist,
+        "host-call allowlist" => RealizationRejection::HostCallAllowlist,
         "authority-contract allowlist" => RealizationRejection::AuthorityContractAllowlist,
         _ => unreachable!("hard requirement failures have a closed vocabulary"),
     }
@@ -241,7 +241,7 @@ pub struct SelectedRealizationPlanning<'a> {
 }
 
 /// Selects against fresh resource observations and exact realization facts,
-/// then seals independently supplied authority grants into the ordinary Plan.
+/// then seals independently supplied authority grants into the ordinary plan.
 pub fn plan_selected_realizations_with_characteristics_and_authority(
     form: &CheckedForm,
     options: SelectedRealizationPlanning<'_>,

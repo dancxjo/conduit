@@ -1,4 +1,4 @@
-//! Browser renderer delivery for the truthful zero-Body public entrance.
+//! Browser renderer delivery for the truthful zero-body public entrance.
 
 use super::{PatchbayHtmlServer, ServerError, MAX_BROWSER_WASM_BYTES};
 use patchbay_model::FormCandidate;
@@ -14,9 +14,9 @@ impl PatchbayHtmlServer {
     ) -> Result<Self, ServerError> {
         let mut server = Self::bind_front_door_with_forms_ephemeral(forms)?;
         server.browser_wasm = Some(read_browser_runtime()?);
-        // A browser renderer is not silently admitted into a Body. The
+        // A browser renderer is not silently admitted into a body. The
         // admission endpoint remains absent until an explicit JOIN or BIRTH
-        // transition establishes one exact current Body.
+        // transition establishes one exact current body.
         server.body_admission = None;
         Ok(server)
     }

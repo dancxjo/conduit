@@ -6,18 +6,18 @@ use conduit_core::{
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document,
-    structured_selector_definition, CheckedCordStage, KindDefinition, KindSignature,
+    structured_selector_definition, CheckedCordStage, KindProjection, KindSignature,
     ProfileCatalog, StartupCatalog,
 };
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 
 fn checked_and_definitions() -> (
     conduit_form::CheckedSyntaxDocument,
-    KindDefinition,
-    KindDefinition,
-    KindDefinition,
+    KindProjection,
+    KindProjection,
+    KindProjection,
 ) {
-    let text = StructuredInfoType::leaf(KindId::from("value/text@1")).unwrap();
+    let text = StructuredInfoType::leaf(KindId::from("value/text")).unwrap();
     let feedback = StructuredInfoType::record(
         KindId::from("product/feedback@1"),
         vec![StructuredFieldType::new("status", text.clone()).unwrap()],
@@ -60,7 +60,7 @@ fn checked_and_definitions() -> (
     )
 }
 
-fn primitive(kind: &str, direction: PortDirection, value_kind: KindId) -> KindDefinition {
+fn primitive(kind: &str, direction: PortDirection, value_kind: KindId) -> KindProjection {
     let port = PortDescriptor {
         port_id: port_id(match direction {
             PortDirection::Input => "input",
@@ -70,9 +70,9 @@ fn primitive(kind: &str, direction: PortDirection, value_kind: KindId) -> KindDe
         direction,
         temporal: PortTemporal::Value,
     };
-    KindDefinition {
+    KindProjection {
         kind_id: KindId::from(kind),
-        kind_contract_revision: conduit_core::KindContractRevision::from(format!("{kind}@1")),
+        kind_contract_revision: conduit_core::KindIdentity::from(format!("{kind}@1")),
         inputs: (direction == PortDirection::Input)
             .then_some(port.clone())
             .into_iter()
@@ -85,15 +85,15 @@ fn primitive(kind: &str, direction: PortDirection, value_kind: KindId) -> KindDe
     }
 }
 
-fn offer(definition: &KindDefinition) -> CapabilityOffer {
+fn offer(definition: &KindProjection) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
     CapabilityOffer {
         startup_parameters: definition
             .configuration
             .iter()
-            .map(|field| conduit_core::FaceStartupParameter {
+            .map(|field| conduit_core::FrontStartupParameter {
                 name: field.key.clone(),
-                value_type: "Text".into(),
+                value_type: conduit_core::kind_id("value/text"),
                 has_default: false,
             })
             .collect(),
@@ -108,7 +108,7 @@ fn offer(definition: &KindDefinition) -> CapabilityOffer {
         },
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: CapabilityLimits {
@@ -119,13 +119,14 @@ fn offer(definition: &KindDefinition) -> CapabilityOffer {
     }
 }
 
-fn host(definitions: &[KindDefinition]) -> HostAdvertisement {
+fn host(definitions: &[KindProjection]) -> HostAdvertisement {
     HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("std-host"),
         boot_id: BootId::from("std-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test/host"),
+        bases: vec![],
         resources: vec![],
         capabilities: definitions.iter().map(offer).collect(),
         planner_capabilities: vec![],

@@ -13,7 +13,7 @@ pub const MAXIMUM_HOUSE_CONTEXT_IDENTITY_BYTES: usize = 256;
 pub enum HouseContextProvenanceClass {
     /// An exact Sign identity accompanies the value; the model output does not inherit it.
     ObservedSign,
-    /// Current body/profile configuration explicitly wired into this Form.
+    /// Current body/profile configuration explicitly wired into this form.
     DeclaredConfiguration,
     /// A prior model result, retained as model-derived rather than evidence.
     ModelDerivedHistory,

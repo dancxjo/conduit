@@ -45,7 +45,7 @@ const declaration = Object.freeze({
   boot_mechanism: ORANGE_PI_5_PROFILE.bootMechanism,
   image_format: "mbr-rk3588-fat32-sd-image",
   carrier: "removable-microsd-card",
-  browser_role: "download Body-bound ConduitOS SD image spore only",
+  browser_role: "download body-bound ConduitOS SD image spore only",
   local_helper: "explicit removable-media writer with raw block authority",
   browser_raw_block_authority: false,
   physical_flash_boot_uart_human_gated: true,
@@ -61,7 +61,7 @@ export const ORANGE_PI_CRECHE_TARGET_CONTRIBUTION = Object.freeze({
   ]),
   carriers: Object.freeze({
     deployment: Object.freeze([
-      Object.freeze({ id: "conduit-carrier/removable-sd-download@1", label: "Download Body-bound IMG for explicit local SD writer" }),
+      Object.freeze({ id: "conduit-carrier/removable-sd-download@1", label: "Download body-bound IMG for explicit local SD writer" }),
     ]),
     installation: Object.freeze([]), attachment: Object.freeze([]), observation: Object.freeze([]),
   }),
@@ -77,7 +77,7 @@ export function createOrangePiAdapter({ host, imageWriter } = {}) {
     note.className = "target-option-note";
     note.textContent = mode === "fabricate-new"
       ? "Conduit downloads the exact reviewed Orange Pi 5 ConduitOS image and binds it into a spore. A separate local writer must hold explicit raw block-device authority; this browser does not."
-      : "This exact bare-metal substrate is fabricated as a new Host; no existing operating-system installation is used.";
+      : "This exact bare-metal substrate is fabricated as a new host; no existing operating-system installation is used.";
     return note;
   }
 

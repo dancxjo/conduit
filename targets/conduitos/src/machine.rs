@@ -7,6 +7,36 @@ use conduit_audio::ToneIntent;
 use conduit_kernel::{BoundedValueRef, NodeId, RequestId};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EmergencyMachineAction {
+    Halt,
+    Reset,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EmergencyMachineAvailability {
+    Available,
+    Unavailable,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EmergencyMachineProfile {
+    pub halt: EmergencyMachineAvailability,
+    pub reset: EmergencyMachineAvailability,
+}
+
+impl EmergencyMachineProfile {
+    pub const fn supports(self, action: EmergencyMachineAction) -> bool {
+        matches!(
+            match action {
+                EmergencyMachineAction::Halt => self.halt,
+                EmergencyMachineAction::Reset => self.reset,
+            },
+            EmergencyMachineAvailability::Available
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BaseKind {
     Clock,
     Timer,
@@ -364,5 +394,30 @@ mod tests {
         assert_eq!(timers.arm(interest(2)), Err(BaseError::SlotFull));
         timers.set_failed(true);
         assert_eq!(timers.arm(interest(3)), Err(BaseError::Unavailable));
+    }
+
+    #[test]
+    fn emergency_machine_availability_never_implies_another_action() {
+        let halt_only = EmergencyMachineProfile {
+            halt: EmergencyMachineAvailability::Available,
+            reset: EmergencyMachineAvailability::Unavailable,
+        };
+        assert!(halt_only.supports(EmergencyMachineAction::Halt));
+        assert!(!halt_only.supports(EmergencyMachineAction::Reset));
+
+        let unavailable = EmergencyMachineProfile {
+            halt: EmergencyMachineAvailability::Unavailable,
+            reset: EmergencyMachineAvailability::Unavailable,
+        };
+        assert!(!unavailable.supports(EmergencyMachineAction::Halt));
+        assert!(!unavailable.supports(EmergencyMachineAction::Reset));
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    #[test]
+    fn current_x86_64_profile_advertises_only_its_exact_callbacks() {
+        let profile = crate::arch::emergency_machine_profile();
+        assert!(profile.supports(EmergencyMachineAction::Halt));
+        assert!(profile.supports(EmergencyMachineAction::Reset));
     }
 }

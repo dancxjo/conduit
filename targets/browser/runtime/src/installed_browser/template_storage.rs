@@ -1,18 +1,18 @@
 //! Browser realization of the shared finite named-pattern template store.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityOffer, ConfigurationValue, ExecutionProfileId,
-    FaceStartupParameter, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, PlannedGear, ResourceRequirement, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
+    ResourceRequirement, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
-    Failure, FailureCode, HostedValueStore, Operation, OperationAction, OperationInput, PortId,
-    ValueRef, ValueStorage,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    Failure, FailureCode, HostedValueStore, PortId, ValueRef, ValueStorage,
 };
 
-pub(crate) const HOST_OPERATION: &str = "conduit.host/browser-named-pattern-storage@1";
+pub(crate) const HOST_CALL: &str = "conduit.host/browser-named-pattern-storage@1";
 pub(crate) const IMPLEMENTATION: &str = "browser/kernel-named-pattern-storage@1";
 pub(crate) const RESOURCE_CLASS: &str = "conduit.resource/named-pattern-storage-slot@1";
 const INITIALIZER_IMPLEMENTATION: &str = "browser/kernel-named-pattern-template-initializer@1";
@@ -51,70 +51,42 @@ impl PreparedTemplateStore {
 }
 
 fn offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::named_pattern_template_storage_definition();
-    CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
-            name: "maximum-commands".into(),
-            value_type: "Count".into(),
-            has_default: true,
-        }],
-        shorthand: None,
-        capability_id: CapabilityId::from(IMPLEMENTATION),
-        kind_id: contract.kind_id.clone(),
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: ImplementationOffer {
+    let contract = conduit_semantic_catalog::named_pattern_template_storage_semantic_contract();
+    let target_kind = contract.kind_id.clone();
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(
                 "browser/named-pattern-storage-kernel-hosted@1",
             ),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-browser-runtime/named-pattern-storage@1"),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
+                target_kind: Some(target_kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+                maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            }],
+            resource_requirements: vec![ResourceRequirement {
+                content: None,
+                class_id: conduit_core::ResourceClassId::from(RESOURCE_CLASS),
+                units: 1,
+                protected_role: None,
+                compute: None,
+            }],
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(HOST_OPERATION),
-            target_kind: Some(contract.kind_id),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-            maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        }],
-        resource_requirements: vec![ResourceRequirement {
-            content: None,
-            class_id: conduit_core::ResourceClassId::from(RESOURCE_CLASS),
-            units: 1,
-            protected_role: None,
-            compute: None,
-        }],
-        authority_requirements: Vec::new(),
-        limits: conduit_core::CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: conduit_semantic_catalog::MAXIMUM_TEMPLATE_STORAGE_COMMANDS as u16,
-            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
-                * (conduit_semantic_catalog::MAXIMUM_TEMPLATE_STORAGE_COMMANDS as u32 + 1),
-        },
-    }
+    )
+    .build()
 }
 
 fn initializer_offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::named_pattern_template_initializer_definition();
-    CapabilityOffer {
-        startup_parameters: vec![
-            FaceStartupParameter {
-                name: "name".into(),
-                value_type: "Text".into(),
-                has_default: true,
-            },
-            FaceStartupParameter {
-                name: "normalized-values".into(),
-                value_type: "Text".into(),
-                has_default: true,
-            },
-        ],
-        shorthand: None,
-        capability_id: CapabilityId::from(INITIALIZER_IMPLEMENTATION),
-        kind_id: contract.kind_id.clone(),
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: ImplementationOffer {
+    BackOfferBuilder::new(
+        conduit_semantic_catalog::named_pattern_template_initializer_semantic_contract(),
+        Back {
+            capability_id: CapabilityId::from(INITIALIZER_IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(
                 "browser/named-pattern-template-initializer@1",
             ),
@@ -122,18 +94,12 @@ fn initializer_offer() -> CapabilityOffer {
             artifact_id: ArtifactId::from(
                 "conduit-browser-runtime/named-pattern-template-initializer@1",
             ),
+            host_calls: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: conduit_core::CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 2,
-            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
-        },
-    }
+    )
+    .build()
 }
 
 fn validate(placement: &PlannedGear) -> Result<u64, String> {
@@ -158,10 +124,10 @@ fn validate(placement: &PlannedGear) -> Result<u64, String> {
     Ok(maximum)
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let maximum = validate(placement)?;
-    Ok(BrowserOperation::installed(
-        conduit_semantic_catalog::TemplateStorageOperation::new(
+    Ok(BrowserBack::installed_step(
+        conduit_semantic_catalog::TemplateStorageBack::new(
             maximum,
             MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         ),
@@ -171,7 +137,7 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserO
 fn prepare_initializer(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &initializer_offer())?;
     let configured = |key| {
         placement
@@ -203,37 +169,29 @@ fn prepare_initializer(
                 .map_err(|error| format!("template command: {error:?}"))?,
         )
         .map_err(|error| format!("store template command: {error:?}"))?;
-    Ok(BrowserOperation::installed(TemplateInitializerOperation {
+    Ok(BrowserBack::installed_step(TemplateInitializerBack {
         command: stored,
         emitted: false,
     }))
 }
 
-struct TemplateInitializerOperation {
+struct TemplateInitializerBack {
     command: ValueRef,
     emitted: bool,
 }
 
-impl Operation for TemplateInitializerOperation {
-    fn start(&mut self) -> OperationAction {
-        self.emitted = true;
-        OperationAction::Emit {
-            port: PortId(0),
-            value: self.command,
+impl<const PORTS: usize> StepBack<PORTS> for TemplateInitializerBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
         }
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        let _ = input;
-        OperationAction::Fail(Failure {
-            code: FailureCode::InvalidLifecycle,
-            detail: 265,
-        })
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        debug_assert!(self.emitted);
-        OperationAction::Complete
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), self.command)
+            .expect("ready template initializer output");
+        self.emitted = true;
+        StepOutcome::Progress
     }
 }
 

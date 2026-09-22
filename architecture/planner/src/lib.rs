@@ -5,7 +5,7 @@
 The ordinary v1 path is intentionally small:
 
 1. `default_placements` derives functionally valid placement choices from a
-   checked Form and current Host advertisements.
+   checked form and current host advertisements.
 2. `plan` (or `plan_with_options`) validates exact capabilities, resources,
    authority, Lines, queue bounds, and startup order, then seals one immutable
    `Plan`.
@@ -235,17 +235,22 @@ pub fn default_placements(
     default_placements_unvalidated(&form.gears, hosts)
 }
 
+/// Plans semantic work under an explicit closed-world set of Cord mechanisms.
+///
+/// `allowed_line_bases` governs only local Cord and remote Line realization.
+/// Capability/resource Base providers are selected exclusively from each
+/// current `HostAdvertisement::bases` entry and do not belong in this list.
 pub fn plan(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[BaseImplementationId],
+    allowed_line_bases: &[BaseImplementationId],
 ) -> Result<Plan, PlannerError> {
     plan_with_connection_limits(
         form,
         hosts,
         placements,
-        bases,
+        allowed_line_bases,
         DEFAULT_CONNECTION_ITEM_CAPACITY,
         DEFAULT_CONNECTION_BYTE_CAPACITY,
     )
@@ -255,14 +260,14 @@ pub fn plan_with_authority_grants(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[BaseImplementationId],
+    allowed_line_bases: &[BaseImplementationId],
     authority_grants: &[AuthorityGrant],
 ) -> Result<Plan, PlannerError> {
     plan_with_options(
         form,
         hosts,
         placements,
-        bases,
+        allowed_line_bases,
         PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
@@ -279,12 +284,12 @@ pub fn plan_with_line_offers(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[BaseImplementationId],
+    allowed_line_bases: &[BaseImplementationId],
     connection_item_capacity: u16,
     connection_byte_capacity: u32,
     line_offers: &[LineOffer],
 ) -> Result<Plan, PlannerError> {
-    let mut offered_bases = bases.to_vec();
+    let mut offered_bases = allowed_line_bases.to_vec();
     for offer in line_offers {
         if !offered_bases.contains(&offer.binding.base) {
             offered_bases.push(offer.binding.base.clone());
@@ -311,7 +316,7 @@ pub fn plan_with_connection_limits(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[BaseImplementationId],
+    allowed_line_bases: &[BaseImplementationId],
     connection_item_capacity: u16,
     connection_byte_capacity: u32,
 ) -> Result<Plan, PlannerError> {
@@ -319,7 +324,7 @@ pub fn plan_with_connection_limits(
         form,
         hosts,
         placements,
-        bases,
+        allowed_line_bases,
         &BTreeMap::new(),
         connection_item_capacity,
         connection_byte_capacity,
@@ -330,7 +335,7 @@ pub fn plan_with_connection_limits_and_base_overrides(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[BaseImplementationId],
+    allowed_line_bases: &[BaseImplementationId],
     connection_bases: &BTreeMap<(GearId, GearId), BaseImplementationId>,
     connection_item_capacity: u16,
     connection_byte_capacity: u32,
@@ -339,7 +344,7 @@ pub fn plan_with_connection_limits_and_base_overrides(
         form,
         hosts,
         placements,
-        bases,
+        allowed_line_bases,
         PlanningOptions {
             connection_bases,
             line_candidates: &BTreeMap::new(),
@@ -356,12 +361,12 @@ pub fn plan_with_options(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[BaseImplementationId],
+    allowed_line_bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
 ) -> Result<Plan, PlannerError> {
     form.validate_identities()
         .map_err(|error| PlannerError::InvalidFormIdentity(error.to_string()))?;
-    plan_validated_form(form, hosts, placements, bases, options)
+    plan_validated_form(form, hosts, placements, allowed_line_bases, options)
 }
 
 pub(crate) fn plan_validated_form(
@@ -389,6 +394,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
     options: PlanningOptions<'_>,
     connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
 ) -> Result<Plan, PlannerError> {
+    let line_policy = contract::LineMechanismPolicy::new(bases);
     let PlanningOptions {
         connection_bases,
         line_candidates,
@@ -415,7 +421,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             .any(|connection| connection_endpoints(connection) == *endpoints)
         {
             return Err(PlannerError::InvalidConnectionBudget(
-                "per-connection capacity names a Cord absent from the checked Form".to_string(),
+                "per-connection capacity names a Cord absent from the checked form".to_string(),
             ));
         }
     }
@@ -481,12 +487,13 @@ pub(crate) fn plan_validated_form_with_connection_limits(
                 protected_handles: &mut consumed_protected_handles,
             },
         )?;
+        let base = selected_base_provider(host, capability, &resource_bindings)?;
 
         let mut authority_bindings = Vec::with_capacity(capability.authority_requirements.len());
         for requirement in &capability.authority_requirements {
             let mut matches = authority_grants.iter().filter(|grant| {
                 grant.contract_id == requirement.contract_id
-                    && grant.host_operation_contract_id == requirement.host_operation_contract_id
+                    && grant.host_call_contract_id == requirement.host_call_contract_id
                     && grant.subject_kind == requirement.subject_kind
                     && grant.host_id == host.host_id
                     && grant.boot_id == host.boot_id
@@ -512,7 +519,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             authority_bindings.push(AuthorityBinding {
                 grant_id: grant.grant_id.clone(),
                 contract_id: grant.contract_id.clone(),
-                host_operation_contract_id: grant.host_operation_contract_id.clone(),
+                host_call_contract_id: grant.host_call_contract_id.clone(),
                 subject_kind: grant.subject_kind.clone(),
                 host_id: grant.host_id.clone(),
                 boot_id: grant.boot_id.clone(),
@@ -542,11 +549,12 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             capability_id: capability.capability_id.clone(),
             implementation_id: capability.implementation.implementation_id.clone(),
             artifact_id: capability.implementation.artifact_id.clone(),
+            base,
             realization_characteristics: Vec::new(),
             limits: capability.limits.clone(),
             inputs: capability.inputs.clone(),
             outputs: capability.outputs.clone(),
-            host_operations: capability.host_operations.clone(),
+            host_calls: capability.host_calls.clone(),
             resources: resource_bindings,
             authority: authority_bindings,
             pool_references: gear.pool_references.clone(),
@@ -596,7 +604,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
         let (selected_line, admitted_lines) = select_line(LineSelection {
             source: source_plan,
             sink: sink_plan,
-            bases,
+            policy: line_policy,
             requested: connection_bases
                 .get(&(
                     connection.source_gear_id.clone(),
@@ -786,14 +794,30 @@ fn validate_operation_capability(
     gear: &CheckedGear,
     capability: &conduit_core::CapabilityOffer,
 ) -> Result<(), PlannerError> {
+    if capability.kind_id != gear.kind_id {
+        return Err(PlannerError::WrongSemanticKind(format!(
+            "gear '{}' Kind differs from capability '{}' Kind",
+            gear.gear_id.as_str(),
+            capability.capability_id.as_str()
+        )));
+    }
     if capability.checked_front() != gear.checked_front() {
-        return Err(PlannerError::IncompatibleCheckedFace(format!(
+        return Err(PlannerError::IncompatibleCheckedFront(format!(
             "gear '{}' front differs from capability '{}' front",
             gear.gear_id.as_str(),
             capability.capability_id.as_str()
         )));
     }
-    if capability.host_operations.iter().any(|requirement| {
+    if gear.kind_contract_revision.as_str() != conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT
+        && capability.kind_contract_revision != gear.kind_contract_revision
+    {
+        return Err(PlannerError::WrongKindContractRevision(format!(
+            "gear '{}' semantic contract differs from capability '{}'",
+            gear.gear_id.as_str(),
+            capability.capability_id.as_str()
+        )));
+    }
+    if capability.host_calls.iter().any(|requirement| {
         requirement.contract_id.as_str().is_empty()
             || requirement
                 .target_kind
@@ -801,11 +825,11 @@ fn validate_operation_capability(
                 .is_some_and(|target| target.as_str().is_empty())
             || requirement.maximum_in_flight == 0
     }) || capability
-        .host_operations
+        .host_calls
         .windows(2)
         .any(|pair| pair[0] >= pair[1])
     {
-        return Err(PlannerError::InvalidHostOperationRequirement(format!(
+        return Err(PlannerError::InvalidHostCallRequirement(format!(
             "capability '{}' requirements must have non-empty identities, unique canonical ordering, and nonzero in-flight bounds",
             capability.capability_id.as_str()
         )));
@@ -833,11 +857,11 @@ fn validate_operation_capability(
     }
     if capability.authority_requirements.iter().any(|requirement| {
         requirement.contract_id.as_str().is_empty()
-            || requirement.host_operation_contract_id.as_str().is_empty()
+            || requirement.host_call_contract_id.as_str().is_empty()
             || requirement.subject_kind.as_str().is_empty()
-            || !capability.host_operations.iter().any(|host_operation| {
-                host_operation.contract_id == requirement.host_operation_contract_id
-                    && host_operation.target_kind.as_ref() == Some(&requirement.subject_kind)
+            || !capability.host_calls.iter().any(|host_call| {
+                host_call.contract_id == requirement.host_call_contract_id
+                    && host_call.target_kind.as_ref() == Some(&requirement.subject_kind)
             })
     }) || capability
         .authority_requirements
@@ -845,7 +869,7 @@ fn validate_operation_capability(
         .any(|pair| pair[0] >= pair[1])
     {
         return Err(PlannerError::InvalidAuthorityContract(format!(
-            "capability '{}' authority requirements must bind a declared targeted host operation with non-empty identities and unique canonical ordering",
+            "capability '{}' authority requirements must bind a declared targeted Host Call with non-empty identities and unique canonical ordering",
             capability.capability_id.as_str()
         )));
     }
@@ -856,7 +880,7 @@ fn validate_authority_grants(grants: &[AuthorityGrant]) -> Result<(), PlannerErr
     if grants.iter().any(|grant| {
         grant.grant_id.as_str().is_empty()
             || grant.contract_id.as_str().is_empty()
-            || grant.host_operation_contract_id.as_str().is_empty()
+            || grant.host_call_contract_id.as_str().is_empty()
             || grant.subject_kind.as_str().is_empty()
             || grant.host_id.as_str().is_empty()
             || grant.boot_id.as_str().is_empty()
@@ -897,7 +921,54 @@ fn validate_host_resources(host: &HostAdvertisement) -> Result<(), PlannerError>
             host.host_id.as_str()
         )));
     }
+    for base in &host.bases {
+        if base.lifecycle != conduit_core::BaseLifecycle::Ready
+            || base.base_id.as_str().is_empty()
+            || base.provider_instance_id.as_str().is_empty()
+            || base.provider_generation == 0
+            || base.implementation_id.as_str().is_empty()
+            || base.mechanism_family.as_str().is_empty()
+            || base.capability_ids.is_empty() && base.resource_pool_ids.is_empty()
+            || base.capability_ids.iter().any(|id| {
+                !host
+                    .capabilities
+                    .iter()
+                    .any(|offer| offer.capability_id == *id)
+            })
+            || base
+                .resource_pool_ids
+                .iter()
+                .any(|id| !host.resources.iter().any(|offer| offer.pool_id == *id))
+        {
+            return Err(PlannerError::InvalidResourceContract(format!(
+                "host '{}' has invalid current Base provenance",
+                host.host_id.as_str()
+            )));
+        }
+    }
     Ok(())
+}
+
+fn selected_base_provider(
+    host: &HostAdvertisement,
+    capability: &conduit_core::CapabilityOffer,
+    _resources: &[conduit_core::ResourceBinding],
+) -> Result<Option<conduit_core::BaseProviderBinding>, PlannerError> {
+    let mut owners = host
+        .bases
+        .iter()
+        .filter(|base| base.capability_ids.contains(&capability.capability_id));
+    let Some(owner) = owners.next() else {
+        return Ok(None);
+    };
+    if owners.next().is_some() {
+        return Err(PlannerError::InvalidResourceContract(format!(
+            "capability '{}' has ambiguous Base provenance on host '{}'",
+            capability.capability_id.as_str(),
+            host.host_id.as_str()
+        )));
+    }
+    Ok(Some(owner.binding()))
 }
 
 fn find_capability<'a>(
@@ -919,7 +990,7 @@ fn find_capability<'a>(
 struct LineSelection<'a> {
     source: &'a PlannedGear,
     sink: &'a PlannedGear,
-    bases: &'a [BaseImplementationId],
+    policy: contract::LineMechanismPolicy<'a>,
     requested: Option<BaseImplementationId>,
     requested_candidates: Option<&'a Vec<LineId>>,
     line_offers: &'a [LineOffer],
@@ -933,7 +1004,7 @@ fn select_line(
     let LineSelection {
         source,
         sink,
-        bases,
+        policy,
         requested,
         requested_candidates,
         line_offers,
@@ -941,8 +1012,9 @@ fn select_line(
         connection_byte_capacity,
     } = selection;
     if source.host_id == sink.host_id {
-        if requested.is_some_and(|base| base != BaseImplementationId::from("conduit.base/local@1"))
-            || !bases.contains(&BaseImplementationId::from("conduit.base/local@1"))
+        if requested.is_some_and(|base| {
+            base != BaseImplementationId::from(conduit_core::LOCAL_BASE_IMPLEMENTATION_ID)
+        }) || !policy.permits_local()
         {
             return Err(PlannerError::UnavailableBaseImplementationId(format!(
                 "local base unavailable for '{}' > '{}'",
@@ -958,7 +1030,11 @@ fn select_line(
         return Ok((None, Vec::new()));
     }
 
-    if requested == Some(BaseImplementationId::from("conduit.base/local@1")) {
+    if requested
+        == Some(BaseImplementationId::from(
+            conduit_core::LOCAL_BASE_IMPLEMENTATION_ID,
+        ))
+    {
         return Err(PlannerError::UnavailableBaseImplementationId(format!(
             "local base cannot connect '{}' > '{}'",
             source.gear_id.as_str(),
@@ -973,7 +1049,7 @@ fn select_line(
             && requested
                 .as_ref()
                 .is_none_or(|base| &offer.binding.base == base)
-            && bases.contains(&offer.binding.base)
+            && policy.permits_remote(&offer.binding.base)
     };
     let exact = line_offers
         .iter()

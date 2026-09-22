@@ -138,7 +138,7 @@ test("a living button stream handles three ordinary browser presses until explic
   }
 });
 
-test("button input progresses alongside a pending timer and the Play can be cancelled", async ({ page }) => {
+test("button input progresses alongside a pending timer and the play can be cancelled", async ({ page }) => {
   await openTourStep(page, entrance, 0);
   const runner = page.locator('[data-application-component="tour-laboratory"]');
   await runner.locator("textarea").fill(`form concurrent {
@@ -187,7 +187,7 @@ test("a released timed attempt reports bounded failure and leaves the runner reu
     await page.mouse.down();
     await expect(status).toContainText("Waiting for planned tick");
     await page.mouse.up();
-    await expect(status).toContainText("StepWorkExceeded", { timeout: 3000 });
+    await expect(status).toContainText("HostCallFailed", { timeout: 3000 });
     await expect(runner.getByRole("button", { name: "Run", exact: true })).toBeEnabled();
     await runner.locator("textarea").fill(FORM);
     await runner.getByRole("button", { name: "Run", exact: true }).click();

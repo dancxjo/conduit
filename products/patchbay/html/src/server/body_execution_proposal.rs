@@ -1,5 +1,5 @@
-//! Read-only transfer of an exact unstarted Body proposal to a Host consumer.
-//! Transfer does not acquire resources, admit execution, or create a Play.
+//! Read-only transfer of an exact unstarted Body proposal to a host consumer.
+//! Transfer does not acquire resources, admit execution, or create a play.
 use super::{PatchbayHtmlServer, ServerError};
 use conduit_body::{BodyPlan, Wake, WakeLifecycle};
 use serde::Serialize;

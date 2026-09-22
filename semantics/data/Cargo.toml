@@ -6,3 +6,6 @@ edition = "2021"
 [dependencies]
 conduit-core = { path = "../../architecture/core" }
 conduit-form = { path = "../../architecture/form" }
+
+[dev-dependencies]
+conduit-little-seismograph-fixture = { path = "../../forms/little-seismograph/fixture" }

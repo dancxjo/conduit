@@ -33,6 +33,7 @@ fn ambient_page_admits_returns_and_projects_final_session_loss_offline() {
         boot_id: identity.boot_id().clone(),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser/host"),
+        bases: vec![],
         resources: Vec::new(),
         capabilities: Vec::new(),
         planner_capabilities: Vec::new(),

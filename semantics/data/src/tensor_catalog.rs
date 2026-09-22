@@ -1,13 +1,11 @@
-//! Ordinary Form-facing tensor port contracts.
+//! Ordinary form-facing tensor port contracts.
 
 use alloc::{
     string::{String, ToString},
     vec,
 };
-use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-};
-use conduit_form::{KindDefinition, KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_core::{kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal};
+use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::TENSOR_INFO_ID;
 
@@ -28,18 +26,18 @@ pub fn install_tensor_catalogs(
             .map_err(|error| error.to_string())?;
     }
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(TENSOR_FIXTURE_KIND),
-            kind_contract_revision: KindContractRevision::from(TENSOR_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(TENSOR_CONTRACT_REVISION),
             inputs: vec![],
             outputs: vec![port("tensor", PortDirection::Output)],
             configuration: vec![],
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(TENSOR_IDENTITY_KIND),
-            kind_contract_revision: KindContractRevision::from(TENSOR_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(TENSOR_CONTRACT_REVISION),
             inputs: vec![port("tensor", PortDirection::Input)],
             outputs: vec![port("tensor", PortDirection::Output)],
             configuration: vec![],

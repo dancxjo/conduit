@@ -1,8 +1,8 @@
 //! Bounded installed realization of generated-text speech commitment.
 
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostCallContractId, HostCallRequirement, ImplementationId, Kind,
 };
 
 pub const SPEECH_COMMIT_STD_PROFILE: &str = "std/speech-commit@1";
@@ -14,35 +14,40 @@ pub const SPEECH_COMMIT_CLOSE_OPERATION: &str = "conduit.host/speech-commit-clos
 
 pub fn speech_commit_std_offer() -> CapabilityOffer {
     let contract = conduit_tongues::speech_commit_contract();
-    let control = |contract_id| HostOperationRequirement {
-        contract_id: HostOperationContractId::from(contract_id),
+    let control = |contract_id| HostCallRequirement {
+        contract_id: HostCallContractId::from(contract_id),
         target_kind: Some(kind_id(conduit_tongues::SPEECH_COMMIT_KIND)),
         maximum_in_flight: 1,
         maximum_input_bytes: conduit_tongues::MAXIMUM_PENDING_SPEECH_BYTES as u32,
         maximum_output_bytes: conduit_tongues::MAXIMUM_ENCODED_SPEAKABLE_SEGMENT_BYTES as u32,
     };
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("std-speech-commit-v1"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        implementation: ImplementationOffer {
+    BackOfferBuilder::new(
+        Kind {
+            startup_parameters: Vec::new(),
+            shorthand: None,
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
+            limits: contract.limits,
+        },
+        Back {
+            capability_id: CapabilityId::from("std-speech-commit-v1"),
             execution_profile_id: ExecutionProfileId::from(SPEECH_COMMIT_STD_PROFILE),
             implementation_id: ImplementationId::from(SPEECH_COMMIT_STD_IMPLEMENTATION),
             artifact_id: ArtifactId::from(SPEECH_COMMIT_STD_ARTIFACT),
+            host_calls: vec![
+                control(SPEECH_COMMIT_PUSH_OPERATION),
+                control(SPEECH_COMMIT_NEXT_OPERATION),
+                control(SPEECH_COMMIT_CLOSE_OPERATION),
+            ],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![
-            control(SPEECH_COMMIT_PUSH_OPERATION),
-            control(SPEECH_COMMIT_NEXT_OPERATION),
-            control(SPEECH_COMMIT_CLOSE_OPERATION),
-        ],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+    )
+    .build()
 }
 
 #[cfg(test)]
@@ -57,6 +62,6 @@ mod tests {
         assert_eq!(offer.inputs, contract.inputs);
         assert_eq!(offer.outputs, contract.outputs);
         assert_eq!(offer.limits, contract.limits);
-        assert_eq!(offer.host_operations.len(), 3);
+        assert_eq!(offer.host_calls.len(), 3);
     }
 }

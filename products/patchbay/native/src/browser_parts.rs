@@ -1,4 +1,4 @@
-//! Native coordination for one Body-directed browser Part spawn.
+//! Native coordination for one body-directed browser Part spawn.
 
 use conduit_body::{
     AdmissionManager, AdmissionSigns, BodyId, BodyMembership, SpawnAdmissionProof,

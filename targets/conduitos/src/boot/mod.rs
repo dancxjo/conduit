@@ -22,7 +22,7 @@ pub use limine::{executable_physical_address, framebuffer_display, normalize_boo
 pub use multiboot1::{firmware_from_multiboot1, spore_module_from_multiboot1};
 
 /// Whether the normalized Boot carries no artifact other than the reviewed
-/// Body-bound spore module.
+/// body-bound spore module.
 pub fn has_only_optional_spore_artifact(record: &BootRecord) -> bool {
     #[cfg(any(
         target_arch = "x86_64",

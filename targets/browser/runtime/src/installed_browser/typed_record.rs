@@ -1,11 +1,11 @@
 //! Browser realizations of the shared, transport-neutral typed-record codecs.
 
 use super::factory::{validate_placement, BrowserInstallation};
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision, PlannedGear, StructuredInfoValue, StructuredInfoValueShape,
+    ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear, StructuredInfoValue,
+    StructuredInfoValueShape,
 };
 use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
@@ -51,62 +51,37 @@ fn record_to_text_offer() -> CapabilityOffer {
 }
 
 fn offer(index: usize) -> CapabilityOffer {
-    let (kind, revision) = match index {
-        0 => (
-            conduit_net::TEXT_TO_TYPED_RECORD_KIND,
-            conduit_net::TEXT_RECORD_CONTRACT_REVISION,
-        ),
-        1 => (
-            conduit_net::TYPED_RECORD_FRAME_KIND,
-            conduit_net::TYPED_RECORD_CONTRACT_REVISION,
-        ),
-        2 => (
-            conduit_net::TYPED_RECORD_DEFRAME_KIND,
-            conduit_net::TYPED_RECORD_CONTRACT_REVISION,
-        ),
-        _ => (
-            conduit_net::TYPED_RECORD_TO_TEXT_KIND,
-            conduit_net::TEXT_RECORD_CONTRACT_REVISION,
-        ),
+    let kind = match index {
+        0 => conduit_net::TEXT_TO_TYPED_RECORD_KIND,
+        1 => conduit_net::TYPED_RECORD_FRAME_KIND,
+        2 => conduit_net::TYPED_RECORD_DEFRAME_KIND,
+        _ => conduit_net::TYPED_RECORD_TO_TEXT_KIND,
     };
-    let mut startup = conduit_form::StartupCatalog::new();
-    let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_net::install_typed_record_catalogs(&mut startup, &mut profile)
-        .expect("typed-record catalog is exact");
-    let definition = profile
-        .get(&conduit_core::kind_id(kind))
-        .expect("typed-record codec definition exists");
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from(IMPLEMENTATIONS[index]),
-        kind_id: definition.kind_id.clone(),
-        kind_contract_revision: KindContractRevision::from(revision),
-        implementation: ImplementationOffer {
+    let contract = conduit_net::typed_record_semantic_contract(kind)
+        .expect("typed-record codec semantic contract exists");
+    let target_kind = contract.kind_id.clone();
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from(IMPLEMENTATIONS[index]),
             execution_profile_id: ExecutionProfileId::from("browser/typed-record-codec@1"),
             implementation_id: ImplementationId::from(IMPLEMENTATIONS[index]),
             artifact_id: ArtifactId::from("conduit-browser-runtime/typed-record-codecs@1"),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(OPERATIONS[index]),
+                target_kind: Some(target_kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: MAXIMUM,
+                maximum_output_bytes: MAXIMUM,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        inputs: definition.inputs.clone(),
-        outputs: definition.outputs.clone(),
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(OPERATIONS[index]),
-            target_kind: Some(definition.kind_id.clone()),
-            maximum_in_flight: 1,
-            maximum_input_bytes: MAXIMUM,
-            maximum_output_bytes: MAXIMUM,
-        }],
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 4,
-            max_queue_bytes: MAXIMUM * 4,
-        },
-    }
+    )
+    .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserOperation, String> {
+fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let index = IMPLEMENTATIONS
         .iter()
         .position(|id| *id == placement.implementation_id.as_str())
@@ -115,7 +90,7 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserO
     if !placement.configuration.is_empty() {
         return Err("unexpected typed-record codec configuration".into());
     }
-    Ok(BrowserOperation::unary(MAXIMUM, 4))
+    Ok(BrowserBack::unary(MAXIMUM, 4))
 }
 
 pub(crate) fn execute(contract: &str, input: &[u8]) -> Result<Vec<u8>, Failure> {

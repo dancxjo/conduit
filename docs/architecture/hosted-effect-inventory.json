@@ -9,7 +9,7 @@
       "implementation_owner": "conduit-std-host/copy_task",
       "source_paths": ["targets/std/src/copy_task/base.rs"],
       "external_mechanism": "std filesystem open/read/write/sync/link/rename/remove",
-      "contracts": ["protected source and destination resources", "file read/write Host operations", "boot-scoped authority grants"],
+      "contracts": ["protected source and destination resources", "file read/write Host Calls", "boot-scoped authority grants"],
       "boundary": "legacy Host process",
       "enforcement_class": "cooperative",
       "ambient_privileges": ["Host-process filesystem authority"],
@@ -23,7 +23,7 @@
       "implementation_owner": "conduit-std-host hosted HTTP/service families",
       "source_paths": ["targets/std/src/hosted_http/mod.rs", "targets/std/src/hosted_calendar/https_transport.rs", "targets/std/src/hosted_messaging/github_transport.rs"],
       "external_mechanism": "ureq outbound sockets and TLS",
-      "contracts": ["HTTP client Host operation", "endpoint resource", "service authority"],
+      "contracts": ["HTTP client Host Call", "endpoint resource", "service authority"],
       "boundary": "legacy Host process",
       "enforcement_class": "cooperative",
       "ambient_privileges": ["Host outbound network", "provider credentials when explicitly supplied"],
@@ -187,7 +187,7 @@
     }
   ],
   "excluded_paths": [
-    {"prefix": "targets/std/src/bin/", "reason": "repository probes and demo servers are internal proof/development entrances, not installed Host capability implementations"},
+    {"prefix": "targets/std/src/bin/", "reason": "repository probes and demo servers are internal proof/development entrances, not installed host capability implementations"},
     {"suffix": "/tests.rs", "reason": "test-only fixtures"},
     {"suffix": "_tests.rs", "reason": "test-only fixtures"},
     {"path": "targets/std/src/hosted_audio/fake.rs", "reason": "test fake"},

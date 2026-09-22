@@ -7,13 +7,13 @@ use super::{
 };
 use conduit_core::{bind_active_play, bind_presentation, bind_sign, BootId, HostId, PlanFragment};
 use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, RemoteIngressOutcome, SchedulerStatus,
+    FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus, StepBack,
+    StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordId, Failure, FailureCode, FixedHostOperationBindings, FixedRoutes,
-    HostOperationDisposition, HostOperationId, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, KernelEventKind, Operation, OperationAction, OperationInput, PortId,
-    RemoteEndpointId, RequestId, SignError, SignQuery, ValueStorage,
+    BoundedValueRef, CordId, Failure, FailureCode, FixedHostCallBindings, FixedRoutes,
+    HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog, HostedValueStore,
+    KernelEventKind, PortId, RemoteEndpointId, RequestId, SignError, SignQuery, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
@@ -44,19 +44,8 @@ const ERROR_CAPACITY: i32 = -108;
 const ROUTE_SLOTS: usize = 1;
 const SIGN_ITEMS: u16 = 256;
 
-type SinkScheduler = FixedScheduler<
-    OperationDriver<ShowOperation, PORTS>,
-    HostedValueStore,
-    HostedSignLog,
-    1,
-    1,
-    PORTS,
-    1,
-    ROUTE_SLOTS,
-    1,
-    1,
-    1,
->;
+type SinkScheduler =
+    FixedScheduler<ShowBack, HostedValueStore, HostedSignLog, 1, 1, PORTS, 1, ROUTE_SLOTS, 1, 1, 1>;
 
 thread_local! {
     static DISTRIBUTED: RefCell<Option<DistributedSink>> = const { RefCell::new(None) };
@@ -73,60 +62,64 @@ struct CapacitySeal {
     projections: usize,
 }
 
-struct ShowOperation {
+struct ShowBack {
     next: usize,
     pending: Option<RequestId>,
 }
 
-impl ShowOperation {
-    fn fail(detail: u16) -> OperationAction {
-        OperationAction::Fail(Failure {
+impl ShowBack {
+    fn fail(detail: u16) -> StepOutcome {
+        StepOutcome::Fail(Failure {
             code: FailureCode::InvalidLifecycle,
             detail,
         })
     }
 }
 
-impl Operation for ShowOperation {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if self.pending.is_none() => {
-                let Ok(sequence) = u32::try_from(self.next) else {
-                    return Self::fail(1);
-                };
-                let request = RequestId(0x8000_0000 | sequence);
-                self.pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(0),
-                    input: BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
-                        .expect("remote Signal was admitted at its exact byte bound"),
-                }
-            }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+impl StepBack<PORTS> for ShowBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        _input_bytes: &StepInputBytes<'_, PORTS>,
+    ) -> StepOutcome {
+        if let Some(expected) = self.pending {
+            let Some((request, outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            if request != expected
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+                || io.consume_host_completion().is_err()
             {
-                self.pending = None;
-                self.next += 1;
-                OperationAction::Await
+                return Self::fail(2);
             }
-            OperationInput::Closed { port: PortId(0) }
-                if self.pending.is_none() && self.next == MAXIMUM_RECEIPTS =>
-            {
-                OperationAction::Complete
-            }
-            _ => Self::fail(2),
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
         }
+        if let Some(value) = io.input(PortId(0)) {
+            let Ok(sequence) = u32::try_from(self.next) else {
+                return Self::fail(1);
+            };
+            let request = RequestId(0x8000_0000 | sequence);
+            let input = BoundedValueRef::new(value, SIGNAL_ENCODED_LEN)
+                .expect("remote Signal was admitted at its exact byte bound");
+            if io.consume(PortId(0)).is_err()
+                || io.request_host_call(request, HostCallId(0), input).is_err()
+            {
+                return Self::fail(2);
+            }
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.next == MAXIMUM_RECEIPTS {
+            if io.consume_closed(PortId(0)).is_err() {
+                return Self::fail(2);
+            }
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
     }
 }
 
@@ -143,7 +136,7 @@ struct DistributedSink {
     output_kind: i32,
     expected_completion: [u8; FRAME_CAPACITY],
     expected_completion_len: usize,
-    current: Option<(HostOperationRequest, usize)>,
+    current: Option<(HostCallRequest, usize)>,
     pending_delivery: Option<u64>,
     pending_pressure: Option<u64>,
     pending_failure_terminal: Option<SessionTerminalDisposition>,
@@ -184,7 +177,7 @@ impl DistributedSink {
             || lowered.cords.len() != 1
             || lowered.remote_endpoints.len() != 1
             || lowered.remote_endpoints[0].direction != RemoteCordDirection::Ingress
-            || lowered.host_operations.len() != 1
+            || lowered.host_calls.len() != 1
             || fragment.placements[0].kind_id.as_str() != SHOW_KIND
         {
             return Err(ERROR_PREPARE);
@@ -204,12 +197,9 @@ impl DistributedSink {
         .map_err(|_| ERROR_SESSION)?;
         let mut routes = FixedRoutes::<ROUTE_SLOTS, 1>::new(PORTS as u16);
         routes.seal().map_err(|_| ERROR_PREPARE)?;
-        let mut host_bindings = FixedHostOperationBindings::<1>::new(1);
+        let mut host_bindings = FixedHostCallBindings::<1>::new(1);
         host_bindings
-            .install(
-                lowered.host_operations[0].node,
-                lowered.host_operations[0].binding,
-            )
+            .install(lowered.host_calls[0].node, lowered.host_calls[0].binding)
             .map_err(|_| ERROR_PREPARE)?;
         host_bindings.seal().map_err(|_| ERROR_PREPARE)?;
         let values = HostedValueStore::new(1, SIGNAL_ENCODED_LEN, SIGNAL_ENCODED_LEN)
@@ -227,12 +217,11 @@ impl DistributedSink {
             remote_sign_bytes,
         )
         .map_err(|_| ERROR_PREPARE)?;
-        let driver = OperationDriver::new(ShowOperation {
+        let back = ShowBack {
             next: 0,
             pending: None,
-        })
-        .map_err(|_| ERROR_PREPARE)?;
-        let scheduler = SinkScheduler::new_with_host_operations(
+        };
+        let scheduler = SinkScheduler::new_with_host_calls(
             lowered
                 .node_specs
                 .clone()
@@ -247,7 +236,7 @@ impl DistributedSink {
                 .map_err(|_| ERROR_PREPARE)?,
             routes,
             host_bindings,
-            [driver],
+            [back],
             values,
             sign,
         )
@@ -271,7 +260,7 @@ impl DistributedSink {
         for index in 0..MAXIMUM_RECEIPTS {
             let request = RequestId(0x8000_0000 | index as u32);
             identity
-                .bind_request(&lowered.identity, show_node, request, HostOperationId(0))
+                .bind_request(&lowered.identity, show_node, request, HostCallId(0))
                 .map_err(|_| ERROR_PREPARE)?;
             let signal = conduit_signal::Signal {
                 sequence: index as u64,
@@ -527,7 +516,7 @@ impl DistributedSink {
                         || !self
                             .scheduler
                             .signs()
-                            .contains_kind(KernelEventKind::OperationCompleted)
+                            .contains_kind(KernelEventKind::BackCompleted)
                         || self.capacity_seal() != self.seal
                         || self.pressure_retries != 1
                     {
@@ -552,7 +541,7 @@ impl DistributedSink {
         }
     }
 
-    fn prepare_presentation(&mut self, request: HostOperationRequest) -> Result<(), i32> {
+    fn prepare_presentation(&mut self, request: HostCallRequest) -> Result<(), i32> {
         let projection = self
             .projections
             .get(self.receipts)
@@ -569,7 +558,7 @@ impl DistributedSink {
         let signal = decode_signal_bytes(input).map_err(|_| ERROR_PRESENTATION)?;
         if projection.node != request.node
             || projection.signal != signal
-            || request_identity.operation != request.operation
+            || request_identity.call != request.call
         {
             return Err(ERROR_PRESENTATION);
         }
@@ -620,14 +609,14 @@ impl DistributedSink {
         };
         if !success || projection != self.receipts {
             self.scheduler
-                .complete_host_operation(
+                .complete_host_call(
                     request.node,
                     request.request,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Failed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Failed,
                         output: None,
                         failure: Some(Failure {
-                            code: FailureCode::HostOperationFailed,
+                            code: FailureCode::HostCallFailed,
                             detail: 1,
                         }),
                     },
@@ -636,11 +625,11 @@ impl DistributedSink {
             return self.fail_session(32, ERROR_PRESENTATION);
         }
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output: None,
                     failure: None,
                 },

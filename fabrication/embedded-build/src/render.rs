@@ -65,7 +65,7 @@ impl GeneratedEmbeddedPlan {
         render_cords(&mut output, self);
         render_remote_endpoints(&mut output, self);
         render_routes(&mut output, self);
-        render_host_operations(&mut output, self);
+        render_host_calls(&mut output, self);
         render_resources(&mut output, self);
         render_sign(&mut output, self);
         render_startup(&mut output, self);
@@ -135,7 +135,7 @@ impl GeneratedEmbeddedPlan {
         render_cords(&mut output, self);
         render_remote_endpoints(&mut output, self);
         render_routes(&mut output, self);
-        render_host_operations(&mut output, self);
+        render_host_calls(&mut output, self);
         render_resources(&mut output, self);
         render_sign(&mut output, self);
         render_startup(&mut output, self);
@@ -224,8 +224,8 @@ fn render_nodes(output: &mut String, plan: &GeneratedEmbeddedPlan) {
         }
         writeln!(
             output,
-            "], maximum_step_work: {} }},",
-            node.maximum_step_work
+            "], maximum_step_fuel: {} }},",
+            node.maximum_step_fuel
         )
         .expect("String writes cannot fail");
     }
@@ -327,19 +327,19 @@ fn render_routes(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     output.push_str("];\n");
 }
 
-fn render_host_operations(output: &mut String, plan: &GeneratedEmbeddedPlan) {
+fn render_host_calls(output: &mut String, plan: &GeneratedEmbeddedPlan) {
     writeln!(
         output,
-        "pub const GENERATED_HOST_OPERATIONS: [(conduit_kernel::NodeId, conduit_kernel::HostOperationBinding); {}] = [",
-        plan.host_operations.len()
+        "pub const GENERATED_HOST_CALLS: [(conduit_kernel::NodeId, conduit_kernel::HostCallBinding); {}] = [",
+        plan.host_calls.len()
     )
     .expect("String writes cannot fail");
-    for operation in &plan.host_operations {
+    for operation in &plan.host_calls {
         writeln!(
             output,
-            "    (conduit_kernel::NodeId({}), conduit_kernel::HostOperationBinding {{ operation: conduit_kernel::HostOperationId({}), maximum_input_bytes: {}, maximum_output_bytes: {} }}),",
+            "    (conduit_kernel::NodeId({}), conduit_kernel::HostCallBinding {{ call: conduit_kernel::HostCallId({}), maximum_input_bytes: {}, maximum_output_bytes: {} }}),",
             operation.node,
-            operation.operation,
+            operation.call,
             operation.maximum_input_bytes,
             operation.maximum_output_bytes
         )
@@ -349,11 +349,11 @@ fn render_host_operations(output: &mut String, plan: &GeneratedEmbeddedPlan) {
 
     writeln!(
         output,
-        "pub const GENERATED_HOST_OPERATION_IDENTITIES: [(&str, Option<&str>, u16); {}] = [",
-        plan.host_operations.len()
+        "pub const GENERATED_HOST_CALL_IDENTITIES: [(&str, Option<&str>, u16); {}] = [",
+        plan.host_calls.len()
     )
     .expect("String writes cannot fail");
-    for operation in &plan.host_operations {
+    for operation in &plan.host_calls {
         let target = operation
             .target_kind
             .as_deref()

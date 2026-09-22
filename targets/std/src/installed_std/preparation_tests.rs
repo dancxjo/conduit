@@ -1,4 +1,4 @@
-//! Real installed-operation preparation; this is not Body-wide execution proof.
+//! Real installed-operation preparation; this is not body-wide execution proof.
 use super::*;
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
@@ -57,17 +57,14 @@ fn real_partition_operations_use_global_slots_and_original_placement_identity() 
         )
         .unwrap();
         let offset = index * 2;
+        assert!(matches!(&drivers[offset], InstalledBack::Tick(_)));
         assert!(matches!(
-            drivers[offset].operation(),
-            InstalledOperation::Tick(_)
-        ));
-        assert!(matches!(
-            drivers[offset + 1].operation(),
-            InstalledOperation::TickPresentation(_)
+            &drivers[offset + 1],
+            InstalledBack::TickPresentation(_)
         ));
         for (slot, driver) in drivers.iter().enumerate() {
             if slot < offset || slot >= offset + 2 {
-                assert!(matches!(driver.operation(), InstalledOperation::Inactive));
+                assert!(matches!(driver, InstalledBack::Inactive));
             }
         }
     }
@@ -77,7 +74,7 @@ fn real_partition_operations_use_global_slots_and_original_placement_identity() 
 fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_installation() {
     use crate::installed_std::kernel_preparation::KernelTables;
     use conduit_kernel::scheduler::SchedulerStatus;
-    use conduit_kernel::{HostOperationDisposition, HostOperationOutcome, HostedSignLog};
+    use conduit_kernel::{HostCallDisposition, HostCallOutcome, HostedSignLog};
 
     let plans = plans();
     let snapshot = plans.clone();
@@ -85,8 +82,7 @@ fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_ins
     let lowered =
         lower_local_fragment_set(&fragments, FIXED_KERNEL_STORAGE_PROFILE, bounds()).unwrap();
     let mut values = HostedValueStore::new(32, 64, 2048).unwrap();
-    let mut drivers =
-        core::array::from_fn(|_| OperationDriver::new(InstalledOperation::inactive()).unwrap());
+    let mut drivers = core::array::from_fn(|_| InstalledBack::inactive());
     for (fragment, partition) in fragments.iter().zip(&lowered.partitions) {
         assert!(partition.states.is_empty());
         for node in &partition.nodes {
@@ -94,7 +90,7 @@ fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_ins
             // per-Form Plays or forge a constituent ActivePlayIdentity.
             let operation =
                 prepare_ordinary_operation(fragment, &node.placement_id, &mut values).unwrap();
-            drivers[usize::from(node.node.0)] = OperationDriver::new(operation).unwrap();
+            drivers[usize::from(node.node.0)] = operation;
         }
     }
     let partitions: Vec<_> = lowered.partitions.iter().collect();
@@ -114,7 +110,7 @@ fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_ins
     let mut output = Vec::with_capacity(256);
     let mut waits = [0; 2];
     let mut drained = false;
-    // Deterministic Host-operation completions, not wall-clock or OS proof.
+    // Deterministic Host Call completions, not wall-clock or OS proof.
     // All operation state machines and scheduling are the installed production path.
     for _ in 0..256 {
         while let Some(request) = kernel.next_host_request() {
@@ -129,12 +125,11 @@ fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_ins
                 })
                 .unwrap();
             let operation = lowered.partitions[partition]
-                .host_operations
+                .host_calls
                 .iter()
-                .find(|op| op.node == request.node && op.operation == request.operation)
+                .find(|op| op.node == request.node && op.call == request.call)
                 .unwrap();
-            if operation.contract_id == conduit_core::wait_host_operation_requirement().contract_id
-            {
+            if operation.contract_id == conduit_core::wait_host_call_requirement().contract_id {
                 waits[partition] += 1;
             } else {
                 assert_eq!(
@@ -155,11 +150,11 @@ fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_ins
                 .unwrap());
             }
             kernel
-                .complete_host_operation(
+                .complete_host_call(
                     request.node,
                     request.request,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: None,
                         failure: None,
                     },
@@ -196,8 +191,8 @@ fn wrong_partition_and_out_of_range_nodes_refuse_before_value_preparation() {
     let mut values = HostedValueStore::new(32, 64, 2048).unwrap();
     let result = prepare_operations(&plans[1].fragments[0], &lowered, &mut values, &play, None);
     assert!(matches!(result, Err(reason) if reason.contains("exact partition")));
-    // A Body-wide Play or any unrelated Play cannot be relabeled as this
-    // constituent Plan merely by copying its Plan/Host/Boot fields.
+    // A body-wide Play or any unrelated Play cannot be relabeled as this
+    // constituent Plan merely by copying its plan/Host/Boot fields.
     let mut relabeled = play.clone();
     relabeled.active_play_id = conduit_core::bind_active_play(
         &plans[1].plan_id,

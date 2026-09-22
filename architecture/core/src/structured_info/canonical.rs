@@ -15,6 +15,10 @@ pub(super) fn type_extent(value: &StructuredInfoType) -> (usize, usize) {
             let (depth, nodes) = type_extent(element);
             (depth + 1, nodes + 1)
         }
+        StructuredInfoTypeNode::Sequence { element, .. } => {
+            let (depth, nodes) = type_extent(element);
+            (depth + 1, nodes + 1)
+        }
         StructuredInfoTypeNode::Record { fields, .. } => {
             aggregate_type_extent(fields.iter().map(|field| &field.value_type))
         }
@@ -65,6 +69,11 @@ pub(super) fn encode_type(value: &StructuredInfoType, out: &mut Vec<u8>) {
         StructuredInfoTypeNode::Collection { element, length } => {
             out.push(1);
             out.extend_from_slice(&length.to_le_bytes());
+            encode_type(element, out);
+        }
+        StructuredInfoTypeNode::Sequence { element, capacity } => {
+            out.push(4);
+            out.extend_from_slice(&capacity.to_le_bytes());
             encode_type(element, out);
         }
         StructuredInfoTypeNode::Record { schema, fields } => {
@@ -174,6 +183,13 @@ fn decode_type_node(
             }
             StructuredInfoType::variant(schema, cases)
         }
+        4 => {
+            let capacity = cursor.u16()?;
+            StructuredInfoType::sequence(
+                decode_type_node(cursor, depth + 1, remaining_nodes)?,
+                capacity,
+            )
+        }
         _ => Err(StructuredInfoRefusal::MalformedCanonicalEncoding),
     }
 }
@@ -201,11 +217,21 @@ fn validate_value_node(
     cursor: &mut Cursor<'_>,
 ) -> Result<(), StructuredInfoRefusal> {
     match (expected.shape(), cursor.byte()?) {
-        (super::StructuredInfoTypeShape::Leaf(_), 0) => {
-            cursor.bytes()?;
+        (super::StructuredInfoTypeShape::Leaf(kind), 0) => {
+            crate::validate_primitive_info(kind.as_str(), cursor.bytes()?)
+                .map_err(StructuredInfoRefusal::InvalidPrimitiveLeaf)?;
         }
         (super::StructuredInfoTypeShape::Collection { element, length }, 1) => {
             if cursor.length()? != usize::from(length) {
+                return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
+            }
+            for _ in 0..length {
+                validate_value_node(element, cursor)?;
+            }
+        }
+        (super::StructuredInfoTypeShape::Sequence { element, capacity }, 1) => {
+            let length = cursor.length()?;
+            if length > usize::from(capacity) {
                 return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
             }
             for _ in 0..length {
@@ -253,6 +279,17 @@ fn decode_value_node(
                 values.push(decode_value_node(element, cursor)?);
             }
             StructuredInfoValue::collection(expected.clone(), values)
+        }
+        (super::StructuredInfoTypeShape::Sequence { element, capacity }, 1) => {
+            let length = cursor.length()?;
+            if length > usize::from(capacity) {
+                return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
+            }
+            let mut values = Vec::with_capacity(length);
+            for _ in 0..length {
+                values.push(decode_value_node(element, cursor)?);
+            }
+            StructuredInfoValue::sequence(expected.clone(), values)
         }
         (super::StructuredInfoTypeShape::Record { fields, .. }, 2) => {
             if cursor.length()? != fields.len() {

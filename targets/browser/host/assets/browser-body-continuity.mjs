@@ -1,12 +1,12 @@
-// Cooperative local Host ownership. A new Boot may reconcile the prior local
+// Cooperative local host ownership. A new Boot may reconcile the prior local
 // Boot only after acquiring this lock; another live page is not an offline Host.
 export async function acquireBrowserBodyContinuity() {
-  if (!globalThis.navigator?.locks?.request) throw new Error('This Host cannot acquire durable Body ownership');
+  if (!globalThis.navigator?.locks?.request) throw new Error('This host cannot acquire durable body ownership');
   let release;
   const closed = new Promise(resolve => { release = resolve; });
   await new Promise((resolve, reject) => {
     navigator.locks.request('conduit.application/creche-host-state@1/body-session', { ifAvailable: true }, async lock => {
-      if (!lock) { reject(new Error('This Body is open in another window. Return there or close it before opening here.')); return; }
+      if (!lock) { reject(new Error('This body is open in another window. Return there or close it before opening here.')); return; }
       resolve();
       await closed;
     }).catch(reject);

@@ -160,11 +160,11 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await page.locator("#toggle-palette").click();
     await expect(page.getByRole("heading",{name:/Parts/})).toBeVisible();
     const truthExplanation=page.locator("#parts-truth-explanation");
-    await expect(truthExplanation).toContainText("AVAILABLE means this admitted Part has fresh current Host/Boot presence");
+    await expect(truthExplanation).toContainText("AVAILABLE means this admitted Part has fresh current host/Boot presence");
     await expect(truthExplanation).toContainText("LINE READY means this exact Line is currently usable");
     await expect(truthExplanation).toContainText("LINE UNAVAILABLE means this exact Line cannot carry traffic");
     await expect(truthExplanation).toContainText("IN PLAN means the immutable Plan selected this exact Part/Host/Boot realization");
-    await expect(truthExplanation).toContainText("PLAYING means an active Play bound to the current Plan includes this Part");
+    await expect(truthExplanation).toContainText("PLAYING means an active play bound to the current plan includes this Part");
     await expect(page.locator('#part-rows [data-application-component="artifact"]')).toHaveCount(3);
     await expect(page.locator("#part-rows")).toContainText("HERE · AVAILABLE");
     await expect(page.locator("#part-rows")).toContainText("ATTACHED · AVAILABLE");
@@ -173,7 +173,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#part-rows")).toContainText("PLAYING");
     await expect(page.locator('#candidate-rows [data-application-component="artifact"]')).toHaveCount(1);
     await expect(page.locator("#candidate-rows")).toContainText("Browser · tab 3");
-    await expect(page.locator("#parts-possibilities")).toContainText("current Plan remains unchanged");
+    await expect(page.locator("#parts-possibilities")).toContainText("current plan remains unchanged");
     const partPlan=snapshot.presentation.basis.plan_id;
     const candidateInspect=page.locator("#candidate-rows").getByRole("button",{name:"Inspect"});
     await candidateInspect.focus();await candidateInspect.press("Enter");
@@ -194,8 +194,8 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     expect(snapshot.entrance.selected_subject).toMatch(/^part\//);
     await page.locator("#body-summary").click();
     await page.locator("#deep-inspection > summary").click();
-    await expect(page.getByRole("heading",{name:"Exact Plan"})).toBeVisible();
-    await expect(page.getByRole("heading",{name:"Active Play and Signs"})).toBeVisible();
+    await expect(page.getByRole("heading",{name:"Exact plan"})).toBeVisible();
+    await expect(page.getByRole("heading",{name:"Active play and Signs"})).toBeVisible();
     await expect(page.locator('#route-cards [data-application-component="artifact"]').first()).toContainText("Route");
     await expect(page.locator('#diagnostics [data-application-component="code-block"]')).toHaveCount(0);
     await expect(page.locator('#realizations [data-application-component="disclosure"]').first()).toBeVisible();
@@ -629,7 +629,7 @@ test("Flow scene reconciliation is finite and identity-exact", async ({page}) =>
       first.viewport={x:31,y:-27,zoom:1.4};
       const duplicate=scene.reconcileFlowScene(scene.projectFlowScene(canonical),first);
       const added=structuredClone(canonical);
-      added.presentation.subjects.push({identity:"subject/new",role:"Gear",label:"New",accessibility_name:"New Gear"});
+      added.presentation.subjects.push({identity:"subject/new",role:"Gear",label:"New",accessibility_name:"New gear"});
       const withNew=scene.reconcileFlowScene(scene.projectFlowScene(added),duplicate);
       const withNewAgain=scene.reconcileFlowScene(scene.projectFlowScene(added),duplicate);
       const removed=structuredClone(added);

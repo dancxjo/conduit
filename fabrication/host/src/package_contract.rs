@@ -7,7 +7,7 @@ use crate::{HostBounds, HostProfile, SporeOutputKind};
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PrerequisiteNode {
     Implementation(String),
-    HostOperation(String),
+    HostCall(String),
     Resource(String),
     Base(String),
     Driver(String),
@@ -43,7 +43,7 @@ pub const FABRICATION_PACKAGE_CONTRACT: &str = "conduit.host/fabrication-package
 /// The reviewed ordinary route from a checked PROFILE to target machinery.
 ///
 /// This is package/catalog truth, not a claim that a builder is available or
-/// that the resulting artifact has booted, joined a Body, or advertised an
+/// that the resulting artifact has booted, joined a body, or advertised an
 /// offer. A target declares one strategy instead of making callers infer it
 /// from adapter names or artifact shapes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -107,7 +107,7 @@ pub struct TargetDescriptor {
     pub os: Option<String>,
     pub host_core: String,
     pub presenter: Option<TargetPresenter>,
-    pub host_operations: Vec<String>,
+    pub host_calls: Vec<String>,
     pub toolchain_identity: String,
     pub builder_adapter: String,
     pub strategy: FabricationStrategy,

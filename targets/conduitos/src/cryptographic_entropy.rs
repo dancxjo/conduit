@@ -48,7 +48,7 @@ impl EntropyRefusal {
     }
 }
 
-/// Target-owned primitive beneath the admitted Host Base.
+/// Target-owned primitive beneath the admitted host Base.
 ///
 /// Implementations must either fill the entire buffer from their reviewed
 /// cryptographic source or return an error. They must never substitute boot

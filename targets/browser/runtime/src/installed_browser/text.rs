@@ -3,10 +3,10 @@
 use super::factory::{
     validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
 };
-use super::BrowserOperation;
+use super::BrowserBack;
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, FaceStartupParameter, HostOperationContractId, HostOperationRequirement,
+    ExecutionProfileId, FrontStartupParameter, HostCallContractId, HostCallRequirement,
     ImplementationId, PlannedGear, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
@@ -55,9 +55,9 @@ fn literal_offer() -> CapabilityOffer {
         "browser/text-literal@1",
         "browser/kernel-text-literal@1",
         LITERAL_IMPLEMENTATION,
-        vec![FaceStartupParameter {
+        vec![FrontStartupParameter {
             name: "value".into(),
-            value_type: "Text".into(),
+            value_type: conduit_core::kind_id("value/text"),
             has_default: false,
         }],
         None,
@@ -74,7 +74,7 @@ fn upper_offer() -> CapabilityOffer {
         Vec::new(),
         Some((port_id("text"), port_id("text"))),
     );
-    offer.host_operations.push(operation(
+    offer.host_calls.push(operation(
         UPPER_OPERATION,
         "text/uppercase-utf8",
         conduit_text::MAX_TEXT_BYTES,
@@ -90,14 +90,14 @@ fn join_offer() -> CapabilityOffer {
         "browser/text-join@1",
         "browser/kernel-text-join@1",
         JOIN_IMPLEMENTATION,
-        vec![FaceStartupParameter {
+        vec![FrontStartupParameter {
             name: "prefix".into(),
-            value_type: "Text".into(),
+            value_type: conduit_core::kind_id("value/text"),
             has_default: false,
         }],
         Some((port_id("text"), port_id("text"))),
     );
-    offer.host_operations.push(operation(
+    offer.host_calls.push(operation(
         JOIN_OPERATION,
         "text/prefix-concat-utf8",
         conduit_text::MAX_TEXT_BYTES,
@@ -109,15 +109,15 @@ fn join_offer() -> CapabilityOffer {
 fn presentation_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::text_presentation_contract();
     let mut offer = CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: "maximum-values".into(),
-            value_type: "Count".into(),
+            value_type: conduit_core::kind_id("value/count"),
             has_default: true,
         }],
         shorthand: None,
         capability_id: CapabilityId::from("browser/text-presentation@1"),
         kind_id: contract.kind_id,
-        kind_contract_revision: conduit_core::KindContractRevision::from(
+        kind_contract_revision: conduit_core::KindIdentity::from(
             conduit_semantic_catalog::TEXT_PRESENTATION_CONTRACT_REVISION,
         ),
         implementation: conduit_core::ImplementationOffer {
@@ -127,7 +127,7 @@ fn presentation_offer() -> CapabilityOffer {
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
-        host_operations: vec![operation(
+        host_calls: vec![operation(
             PRESENT_OPERATION,
             "presentation/browser-text",
             conduit_text::MAX_TEXT_BYTES,
@@ -149,7 +149,7 @@ fn offer(
     capability: &str,
     profile: &str,
     implementation: &str,
-    startup_parameters: Vec<FaceStartupParameter>,
+    startup_parameters: Vec<FrontStartupParameter>,
     shorthand: Option<(conduit_core::PortId, conduit_core::PortId)>,
 ) -> CapabilityOffer {
     let mut offer = CapabilityOffer {
@@ -165,7 +165,7 @@ fn offer(
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: contract.limits,
@@ -179,9 +179,9 @@ fn operation(
     target: &str,
     maximum_input_bytes: u32,
     maximum_output_bytes: u32,
-) -> HostOperationRequirement {
-    HostOperationRequirement {
-        contract_id: HostOperationContractId::from(contract),
+) -> HostCallRequirement {
+    HostCallRequirement {
+        contract_id: HostCallContractId::from(contract),
         target_kind: Some(kind_id(target)),
         maximum_in_flight: 1,
         maximum_input_bytes,
@@ -192,25 +192,25 @@ fn operation(
 fn prepare_literal(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &literal_offer())?;
     let value = text_configuration(placement, "value")?;
     let stored = values.store(value.as_bytes()).map_err(debug_error)?;
-    Ok(BrowserOperation::source(stored))
+    Ok(BrowserBack::source(stored))
 }
 
 fn prepare_unary(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     let offer = match placement.implementation_id.as_str() {
         UPPER_IMPLEMENTATION => upper_offer(),
         JOIN_IMPLEMENTATION => join_offer(),
         _ => return Err("unknown text transform installation".into()),
     };
     validate_placement(placement, &offer)?;
-    Ok(BrowserOperation::unary(
-        placement.host_operations[0].maximum_input_bytes,
+    Ok(BrowserBack::unary(
+        placement.host_calls[0].maximum_input_bytes,
         1,
     ))
 }
@@ -218,10 +218,10 @@ fn prepare_unary(
 fn prepare_presentation(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
-) -> Result<BrowserOperation, String> {
+) -> Result<BrowserBack, String> {
     validate_placement(placement, &presentation_offer())?;
-    Ok(BrowserOperation::presentation(
-        placement.host_operations[0].maximum_input_bytes,
+    Ok(BrowserBack::presentation(
+        placement.host_calls[0].maximum_input_bytes,
         maximum_values(placement)?,
     ))
 }

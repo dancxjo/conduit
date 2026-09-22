@@ -1,10 +1,10 @@
 use conduit_kernel::scheduler::{
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, SchedulerStatus,
-    StepInputBytes, StepIo, StepOperation, StepOutcome,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, SchedulerStatus, StepBack,
+    StepInputBytes, StepIo, StepOutcome,
 };
 use conduit_kernel::{
-    CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationBinding, HostOperationId, KernelEvent, NodeId, PortId, ProtocolError, RouteRange,
+    CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    HostCallBinding, HostCallId, KernelEvent, NodeId, PortId, ProtocolError, RouteRange,
     RouteTarget, ValueRef, ValueStorage,
 };
 
@@ -56,7 +56,7 @@ impl Driver {
     }
 }
 
-impl StepOperation<PORTS> for Driver {
+impl StepBack<PORTS> for Driver {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -116,14 +116,14 @@ impl StepOperation<PORTS> for Driver {
 fn node(input: Option<CordId>) -> NodeSpec<PORTS> {
     NodeSpec {
         input_cords: [input, None],
-        maximum_step_work: 4,
+        maximum_step_fuel: 4,
     }
 }
 
 fn inactive_node() -> NodeSpec<PORTS> {
     NodeSpec {
         input_cords: [Some(CordId(u16::MAX)), None],
-        maximum_step_work: 0,
+        maximum_step_fuel: 0,
     }
 }
 
@@ -350,12 +350,12 @@ fn sealed_tables_cannot_reference_inactive_nodes_or_cords() {
     ));
 
     let (store, source_values) = values();
-    let mut bindings = FixedHostOperationBindings::<4>::new(1);
+    let mut bindings = FixedHostCallBindings::<4>::new(1);
     bindings
         .install(
             NodeId(2),
-            HostOperationBinding {
-                operation: HostOperationId(0),
+            HostCallBinding {
+                call: HostCallId(0),
                 maximum_input_bytes: 1,
                 maximum_output_bytes: 0,
             },
@@ -374,7 +374,7 @@ fn sealed_tables_cannot_reference_inactive_nodes_or_cords() {
         ROUTE_TARGETS,
         4,
         2,
-    >::new_with_active_counts_and_host_operations(
+    >::new_with_active_counts_and_host_calls(
         2,
         1,
         [
@@ -400,8 +400,6 @@ fn sealed_tables_cannot_reference_inactive_nodes_or_cords() {
     );
     assert!(matches!(
         invalid_binding,
-        Err(SchedulerError::Routing(
-            ProtocolError::HostOperationTableInvalid
-        ))
+        Err(SchedulerError::Routing(ProtocolError::HostCallTableInvalid))
     ));
 }

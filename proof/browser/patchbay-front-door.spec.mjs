@@ -281,12 +281,12 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     expect(awakened.presentation.basis.wake_id).toBeTruthy();
     expect(awakened.presentation.basis.plan_id).toBeNull();
 
-    await page.getByRole("button", { name: "Plan current Form" }).click();
+    await page.getByRole("button", { name: "Plan current form" }).click();
     await expect(page.locator("#front-door-feedback")).toContainText("Plan Succeeded");
     const planned = await (await fetch(`${url}/api/snapshot`)).json();
     expect(planned.presentation.basis.plan_id).toBeTruthy();
     expect(planned.presentation.basis.active_play_id).toBeNull();
-    await page.getByRole("button", { name: "Play current Plan" }).click();
+    await page.getByRole("button", { name: "Play current plan" }).click();
     await expect(page.locator("#front-door-feedback")).toContainText("Play Succeeded");
     const playing = await (await fetch(`${url}/api/snapshot`)).json();
     expect(playing.presentation.basis.active_play_id).toBeTruthy();

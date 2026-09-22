@@ -1,5 +1,5 @@
-//! Actual canonical sources through Crèche BIRTH and ordinary Body workload changes.
-//! These tests do not claim browser interaction or a Body-wide executed Play.
+//! Actual canonical sources through Crèche BIRTH and ordinary body workload changes.
+//! These tests do not claim browser interaction or a body-wide executed Play.
 use super::{initial_forms, session};
 
 const BUTTON: &str = include_str!("../../../../../forms/button-across-room/main.conduit");

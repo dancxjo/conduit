@@ -115,7 +115,7 @@ pub(super) fn project_with_presentation(
 
     // The visible graph is authored meaning. A recursive realization may have a
     // different expanded identity and Back evidence, but it cannot replace the
-    // checked Gear/Port/Cord front shown beside the source.
+    // checked gear/Port/Cord front shown beside the source.
     let visible =
         match conduit_form::expand_canonical_form_for_authoring(&checked, &entry, &catalog) {
             Ok(visible) => visible.expanded,
@@ -228,7 +228,7 @@ fn project_incompatible_cord(
         .forms
         .iter()
         .find(|form| form.name == entry)
-        .ok_or_else(|| "compact Tour Patchbay checked Form disappeared".to_owned())?;
+        .ok_or_else(|| "compact Tour Patchbay checked form disappeared".to_owned())?;
     let prefix = format!("{entry}/");
     let mut gears = Vec::new();
     for gear in &form.gears {
@@ -293,7 +293,7 @@ fn project_incompatible_cord(
                     code: error.code,
                     message: error.message.clone(),
                     fix: format!(
-                        "Replace '{sink_name}' with a Gear whose input is {} ({}) or change '{source_name}' to emit {} ({}).",
+                        "Replace '{sink_name}' with a gear whose input is {} ({}) or change '{source_name}' to emit {} ({}).",
                         output.info_kind, output.temporal, input.info_kind, input.temporal
                     ),
                     subjects: vec![
@@ -462,7 +462,7 @@ mod tests {
         assert_eq!(invalid.cords.len(), 1);
         assert!(invalid.cords[0].invalid);
         assert_eq!(invalid.diagnostics[0].code, "CND-FRM-045");
-        assert!(invalid.diagnostics[0].fix.contains("value/text@1"));
+        assert!(invalid.diagnostics[0].fix.contains("value/text"));
         assert!(invalid.diagnostics[0]
             .subjects
             .contains(&"wrong/light.receiving:pattern".to_owned()));

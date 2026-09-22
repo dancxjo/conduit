@@ -181,7 +181,7 @@ pub(super) fn run_source<R: BufRead, W: Write>(
         || !src
             .scheduler
             .signs()
-            .contains_kind(KernelEventKind::OperationCompleted)
+            .contains_kind(KernelEventKind::BackCompleted)
         || src.capacity_seal() != src.seal
     {
         return Err("distributed toggle source terminal invariants failed".to_string());

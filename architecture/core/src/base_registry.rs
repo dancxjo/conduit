@@ -4,8 +4,9 @@
 //! authority and performs no planning or effects.
 
 use crate::{
-    BaseImplementationId, BaseInstanceId, BootId, CapabilityOffer, HostAdvertisement, HostBaseId,
-    HostBaseKindId, HostId, HostProfileId, OfferGeneration, ResourceOffer, PROTOCOL_VERSION,
+    BaseImplementationId, BaseInstanceId, BootId, CapabilityId, CapabilityOffer, HostAdvertisement,
+    HostBaseId, HostBaseKindId, HostId, HostProfileId, OfferGeneration, ResourceOffer,
+    ResourcePoolId, PROTOCOL_VERSION,
 };
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
@@ -41,6 +42,48 @@ pub struct BaseProviderEntry {
     pub lifecycle: BaseLifecycle,
     pub capabilities: Vec<CapabilityOffer>,
     pub resources: Vec<ResourceOffer>,
+}
+
+/// Current non-authorizing provenance for one advertised Base provider.
+///
+/// Capability and resource identities reference the ordinary offers in the
+/// containing Host advertisement. They do not affect semantic Front matching
+/// and possession is still issued and checked independently.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BaseProviderAdvertisement {
+    pub base_id: HostBaseId,
+    pub provider_instance_id: BaseInstanceId,
+    pub provider_generation: u64,
+    pub implementation_id: BaseImplementationId,
+    pub mechanism_family: HostBaseKindId,
+    pub enforcement_class: BaseEnforcementClass,
+    pub lifecycle: BaseLifecycle,
+    pub capability_ids: Vec<CapabilityId>,
+    pub resource_pool_ids: Vec<ResourcePoolId>,
+}
+
+/// Exact Base provider selected into immutable Plan truth.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BaseProviderBinding {
+    pub base_id: HostBaseId,
+    pub provider_instance_id: BaseInstanceId,
+    pub provider_generation: u64,
+    pub implementation_id: BaseImplementationId,
+    pub mechanism_family: HostBaseKindId,
+    pub enforcement_class: BaseEnforcementClass,
+}
+
+impl BaseProviderAdvertisement {
+    pub fn binding(&self) -> BaseProviderBinding {
+        BaseProviderBinding {
+            base_id: self.base_id.clone(),
+            provider_instance_id: self.provider_instance_id.clone(),
+            provider_generation: self.provider_generation,
+            implementation_id: self.implementation_id.clone(),
+            mechanism_family: self.mechanism_family.clone(),
+            enforcement_class: self.enforcement_class,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -180,6 +223,7 @@ impl BaseRegistry {
         &self,
         capabilities: &mut Vec<CapabilityOffer>,
         resources: &mut Vec<ResourceOffer>,
+        bases: &mut Vec<BaseProviderAdvertisement>,
     ) -> Result<(), BaseRegistryRefusal> {
         for entry in self
             .entries
@@ -195,8 +239,42 @@ impl BaseRegistry {
             }
             capabilities.extend(entry.capabilities.iter().cloned());
             resources.extend(entry.resources.iter().cloned());
+            bases.push(BaseProviderAdvertisement {
+                base_id: entry.base_id.clone(),
+                provider_instance_id: entry.provider_instance_id.clone(),
+                provider_generation: entry.provider_generation,
+                implementation_id: entry.implementation_id.clone(),
+                mechanism_family: entry.mechanism_family.clone(),
+                enforcement_class: entry.enforcement_class,
+                lifecycle: entry.lifecycle,
+                capability_ids: entry
+                    .capabilities
+                    .iter()
+                    .map(|offer| offer.capability_id.clone())
+                    .collect(),
+                resource_pool_ids: entry
+                    .resources
+                    .iter()
+                    .map(|offer| offer.pool_id.clone())
+                    .collect(),
+            });
         }
         Ok(())
+    }
+
+    /// Projects current ready entries into one host advertisement.
+    ///
+    /// The ordinary offers and their provider ownership are emitted together;
+    /// callers cannot accidentally flatten away Base provenance.
+    pub fn project_ready_into(
+        &self,
+        advertisement: &mut HostAdvertisement,
+    ) -> Result<(), BaseRegistryRefusal> {
+        self.append_ready_offers(
+            &mut advertisement.capabilities,
+            &mut advertisement.resources,
+            &mut advertisement.bases,
+        )
     }
 }
 
@@ -277,8 +355,9 @@ impl ThinHostSupervisor {
     pub fn advertisement(&self) -> Result<HostAdvertisement, BaseRegistryRefusal> {
         let mut capabilities = self.pure_capabilities.clone();
         let mut resources = Vec::new();
+        let mut bases = Vec::new();
         self.registry
-            .append_ready_offers(&mut capabilities, &mut resources)?;
+            .append_ready_offers(&mut capabilities, &mut resources, &mut bases)?;
         Ok(HostAdvertisement {
             protocol_version: PROTOCOL_VERSION,
             host_id: self.host_id.clone(),
@@ -289,6 +368,7 @@ impl ThinHostSupervisor {
                     .saturating_add(self.registry.revision),
             ),
             profile: self.profile.clone(),
+            bases,
             resources,
             capabilities,
             planner_capabilities: Vec::new(),

@@ -50,7 +50,7 @@ pub(super) fn configure(
         return Err("configuring local Voice providers requires --authorize-local-voice".into());
     }
     if !state_dir.join("installation.json").is_file() {
-        return Err("durable Host must be installed before configuring Voice providers".into());
+        return Err("durable host must be installed before configuring Voice providers".into());
     }
     let config = DurableVoiceProviderConfig {
         schema: SCHEMA.into(),
@@ -72,10 +72,10 @@ pub(super) fn configure(
     drop(initialize(&config)?);
     super::write_json_atomic(&state_dir.join(FILE), &config)?;
     println!(
-        "configured truthful local Voice providers for durable Host state {}",
+        "configured truthful local Voice providers for durable host state {}",
         state_dir.display()
     );
-    println!("restart the durable Host service to publish the new provider offers");
+    println!("restart the durable host service to publish the new provider offers");
     Ok(())
 }
 

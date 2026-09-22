@@ -1,12 +1,12 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_audio::{Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId};
 use conduit_core::{
-    BaseImplementationId, KindContractRevision, KindId, PortDirection, StructuredFieldValue,
+    BaseImplementationId, KindId, KindIdentity, PortDirection, StructuredFieldValue,
     StructuredInfoType, StructuredInfoValue,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
 use std::collections::BTreeMap;
@@ -110,7 +110,7 @@ fn portable_lesson_executes_with_generic_structured_sources() {
         .iter()
         .find(|placement| placement.kind_id == compare_offer.kind_id)
         .unwrap();
-    assert_eq!(compare.host_operations.len(), 3);
+    assert_eq!(compare.host_calls.len(), 3);
 
     let mut output = Vec::with_capacity(2_048);
     let mut timer = RecordingTimer { waits: Vec::new() };
@@ -162,17 +162,17 @@ fn install_fixture(
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: KindId::from(kind),
-            kind_contract_revision: KindContractRevision::from(
+            kind_contract_revision: KindIdentity::from(
                 offer.kind_contract_revision.as_str().to_string(),
             ),
             inputs: offer.inputs.clone(),
             outputs: offer.outputs.clone(),
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: entry.key,
                 default_value: entry.value,
-                validation: ConfigurationRule::TextBytes {
+                rule: KindConfigurationRule::TextBytes {
                     maximum: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
                 },
             }],
@@ -204,17 +204,17 @@ fn install_raw_fixture(
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: KindId::from(kind),
-            kind_contract_revision: KindContractRevision::from(
+            kind_contract_revision: KindIdentity::from(
                 offer.kind_contract_revision.as_str().to_string(),
             ),
             inputs: Vec::new(),
             outputs: offer.outputs.clone(),
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: entry.key,
                 default_value: entry.value,
-                validation: ConfigurationRule::TextBytes { maximum: 512 },
+                rule: KindConfigurationRule::TextBytes { maximum: 512 },
             }],
         })
         .unwrap();
@@ -235,7 +235,7 @@ fn note(time: u64) -> Vec<u8> {
 }
 
 fn record(value_type: StructuredInfoType, values: [(&str, u64); 2]) -> StructuredInfoValue {
-    let count = StructuredInfoType::leaf(KindId::from("value/count@1")).unwrap();
+    let count = StructuredInfoType::leaf(KindId::from("value/count")).unwrap();
     StructuredInfoValue::record(
         value_type,
         values
@@ -243,8 +243,11 @@ fn record(value_type: StructuredInfoType, values: [(&str, u64); 2]) -> Structure
             .map(|(name, value)| {
                 StructuredFieldValue::new(
                     name,
-                    StructuredInfoValue::leaf(count.clone(), value.to_string().into_bytes())
-                        .unwrap(),
+                    StructuredInfoValue::leaf(
+                        count.clone(),
+                        conduit_core::encode_count(value).to_vec(),
+                    )
+                    .unwrap(),
                 )
                 .unwrap()
             })

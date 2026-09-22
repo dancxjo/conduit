@@ -4,7 +4,7 @@
 //! acquisition nonce[16], device boot[16], build digest[32], request LE u64,
 //! Play correlation[16]. HELLO=1 has only a nonzero nonce; READY=2 fills boot
 //! and build. SET=3 must match all acquired identities; ACK=4 echoes SET.
-//! At most eight SETs, one Play, request IDs 0..7. No retry or resynchronization.
+//! At most eight SETs, one play, request IDs 0..7. No retry or resynchronization.
 
 pub const BYTES: usize = 96;
 pub type Frame = [u8; BYTES];

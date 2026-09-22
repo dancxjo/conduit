@@ -1,4 +1,4 @@
-//! Browser-owned offer, factory, and host-operation installation catalog.
+//! Browser-owned offer, factory, and Host Call installation catalog.
 
 mod installations;
 
@@ -22,7 +22,7 @@ pub(crate) struct BrowserHostResult {
     pub manifestation: Option<BrowserManifestation>,
 }
 
-pub(crate) type BrowserHostOperation =
+pub(crate) type BrowserHostCall =
     fn(&conduit_core::PlannedGear, &[u8]) -> Result<BrowserHostResult, String>;
 
 pub(crate) struct BrowserInstallation {
@@ -31,8 +31,8 @@ pub(crate) struct BrowserInstallation {
     pub prepare: fn(
         &conduit_core::PlannedGear,
         &mut conduit_kernel::HostedValueStore,
-    ) -> Result<super::BrowserOperation, String>,
-    pub perform: Option<BrowserHostOperation>,
+    ) -> Result<super::BrowserBack, String>,
+    pub perform: Option<BrowserHostCall>,
 }
 
 pub(crate) const AUDIO_FABRICATION_ID: &str = "browser/audio-cue@1";
@@ -43,7 +43,7 @@ pub(crate) const POINTER_FABRICATION_ID: &str = "browser/pointer-events@1";
 /// The finite human-facing machinery admitted into one browser IMAGE.
 ///
 /// This is deliberately expressed in fabrication identities. The Web API
-/// surface is merely how the Host realizes these selections after Boot.
+/// surface is merely how the host realizes these selections after Boot.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct BrowserMachinery {
     presentation: bool,
@@ -138,7 +138,7 @@ pub(crate) fn selected_human_machinery() -> Vec<&'static str> {
     .selected_fabrication_ids()
 }
 
-/// Exact installed capabilities supported by the local Form/Body executor.
+/// Exact installed capabilities supported by the local form/Body executor.
 /// Membership may additionally advertise implementations for other entrances.
 pub(crate) fn execution_capability_ids() -> Vec<conduit_core::CapabilityId> {
     let machinery = BrowserMachinery::from_selected(&selected_human_machinery())
@@ -310,6 +310,7 @@ pub(crate) fn advertisement_for_machinery(
         boot_id,
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser/installed-local@1"),
+        bases: vec![],
         resources,
         planner_capabilities: vec![PlannerCapabilityOffer {
             profile_id: PlannerProfileId::from(BROWSER_PLANNER_PROFILE),
@@ -349,7 +350,7 @@ pub(super) fn validate_placement(
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
     {
         return Err("planned browser Gear does not match its installed capability".into());
     }
@@ -434,8 +435,8 @@ mod profile_tests {
                     binding.maximum_queue_items
                 );
                 assert_eq!(pointer.limits.max_queue_bytes, binding.maximum_queue_bytes);
-                assert!(pointer.host_operations.iter().any(|operation| {
-                    operation.contract_id.as_str() == binding.host_operation
+                assert!(pointer.host_calls.iter().any(|operation| {
+                    operation.contract_id.as_str() == binding.host_call
                         && operation.maximum_in_flight == binding.maximum_in_flight
                 }));
                 continue;
@@ -464,13 +465,13 @@ mod profile_tests {
                 binding.runtime_implementation_id
             );
             assert!(
-                offer.host_operations.iter().any(|operation| {
-                    operation.contract_id.as_str() == binding.host_operation
+                offer.host_calls.iter().any(|operation| {
+                    operation.contract_id.as_str() == binding.host_call
                         && operation.maximum_in_flight == binding.maximum_in_flight
                 }),
                 "fabrication operation binding drifted for {}: expected {}",
                 binding.runtime_implementation_id,
-                binding.host_operation
+                binding.host_call
             );
         }
     }

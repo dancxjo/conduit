@@ -10,7 +10,7 @@ use conduit_core::{BaseImplementationId, GearId, HostAdvertisement, Plan, Resour
 use conduit_form::CheckedForm;
 
 /// Selects exact realizations for a whole checked form, sharing current finite
-/// observed capacity across gears, then constructs the ordinary Plan.
+/// observed capacity across gears, then constructs the ordinary plan.
 pub fn plan_selected_realizations(
     form: &CheckedForm,
     hosts: &[HostAdvertisement],
@@ -113,7 +113,7 @@ pub(crate) fn consume_selected_capacity(
                     "selected realization lost observed capacity".to_string(),
                 )
             })?;
-        // Candidate selection reserves only the admitted minimum. The Plan
+        // Candidate selection reserves only the admitted minimum. The plan
         // builder distributes capacity toward preferences after all selected
         // gears' minima are known.
         observation.unreserved_units -= requirement.units;

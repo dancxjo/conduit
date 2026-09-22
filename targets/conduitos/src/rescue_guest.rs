@@ -17,11 +17,15 @@ pub fn observe(
     match matcher.observe(policy, transition) {
         local_rescue::RescueDecision::NoRequest => {}
         local_rescue::RescueDecision::RebootBaseUnavailable { .. } => refuse(),
-        local_rescue::RescueDecision::RequestAccepted { policy, operation } => {
+        local_rescue::RescueDecision::RequestAccepted {
+            policy,
+            operation,
+            route,
+        } => {
             let boot_id = identity::hex(&identities.boot);
             let receipt = format!(
-                "CONDUIT_RESCUE_SIGN {{\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"{}\",\"authority\":\"local-physical-input\",\"policy\":\"{}\",\"operation\":\"{}\",\"request_id\":\"local-rescue/{}/1\",\"ordinary_keyboard_plan\":{}}}\n",
-                boot_id, policy, operation, boot_id, ordinary_keyboard_plan,
+                "CONDUIT_RESCUE_SIGN {{\"schema\":\"conduit.conduitos.local-rescue-request/v1\",\"status\":\"accepted\",\"proof_class\":\"freestanding-emulator\",\"old_boot_id\":\"{}\",\"authority\":\"local-physical-input\",\"authority_scope\":\"boot\",\"route\":\"{}\",\"policy\":\"{}\",\"operation\":\"{}\",\"request_id\":\"local-rescue/{}/1\",\"ordinary_keyboard_plan\":{}}}\n",
+                boot_id, route, policy, operation, boot_id, ordinary_keyboard_plan,
             );
             arch::early_write(receipt.as_bytes());
             arch::early_write(b"CONDUIT_BOOT_STAGE local-rescue-reset-requested\n");

@@ -14,7 +14,7 @@ export class BrowserInputRefusal extends Error {
 }
 
 /**
- * Host-owned, finite adaptation of DOM input facts to portable Conduit values.
+ * host-owned, finite adaptation of DOM input facts to portable Conduit values.
  * The caller supplies the current admitted Boot truth; Forms never see DOM
  * objects, selectors, key codes, focus state, or browser lifecycle facts.
  */
@@ -56,7 +56,7 @@ export function openBrowserHumanInput({
     const usage = browserKeyboardUsage(event.code);
     if (usage === null) return;
     // A document-wide adapter must leave ordinary browser controls operable
-    // while no admitted Form is waiting for a key. This also prevents a skip
+    // while no admitted form is waiting for a key. This also prevents a skip
     // link or layout button from becoming stale queued Form input.
     if (keyboardWaiters.length === 0 && target.nodeType === 9 &&
         typeof event.target?.closest === "function" &&

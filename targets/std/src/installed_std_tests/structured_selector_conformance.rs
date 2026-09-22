@@ -1,20 +1,20 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{
-    BaseImplementationId, KindContractRevision, KindId, PortDirection, PortTemporal,
-    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    BaseImplementationId, KindId, KindIdentity, PortDirection, PortTemporal, StructuredFieldType,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document,
-    structured_selector_definition, ConfigurationField, ConfigurationRule, KindDefinition,
+    structured_selector_definition, KindConfigurationField, KindConfigurationRule, KindProjection,
     KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
 use std::collections::BTreeMap;
 
 #[test]
 fn music_and_llm_records_execute_the_same_planned_selector_infrastructure() {
-    let count = StructuredInfoType::leaf(KindId::from("value/count@1")).unwrap();
-    let text = StructuredInfoType::leaf(KindId::from("value/text@1")).unwrap();
-    let scalar = StructuredInfoType::leaf(KindId::from("value/scalar@1")).unwrap();
+    let count = StructuredInfoType::leaf(KindId::from("value/count")).unwrap();
+    let text = StructuredInfoType::leaf(KindId::from("value/text")).unwrap();
+    let scalar = StructuredInfoType::leaf(KindId::from("value/scalar")).unwrap();
 
     let midi = StructuredInfoType::record(
         KindId::from("music/midi-note@1"),
@@ -210,21 +210,21 @@ fn execute_case(
 fn fixture_definition(
     offer: &conduit_core::CapabilityOffer,
     value: &StructuredInfoValue,
-) -> KindDefinition {
+) -> KindProjection {
     let entry = installed_std::test_structured_selector::configuration(value)
         .pop()
         .unwrap();
-    KindDefinition {
+    KindProjection {
         kind_id: offer.kind_id.clone(),
-        kind_contract_revision: KindContractRevision::from(
+        kind_contract_revision: KindIdentity::from(
             offer.kind_contract_revision.as_str().to_string(),
         ),
         inputs: offer.inputs.clone(),
         outputs: offer.outputs.clone(),
-        configuration: vec![ConfigurationField {
+        configuration: vec![KindConfigurationField {
             key: entry.key,
             default_value: entry.value,
-            validation: ConfigurationRule::TextBytes {
+            rule: KindConfigurationRule::TextBytes {
                 maximum: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
             },
         }],

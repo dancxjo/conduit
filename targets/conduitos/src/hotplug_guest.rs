@@ -2,7 +2,7 @@
 
 use alloc::format;
 
-use conduit_kernel::scheduler::{HostOperationRequest, SchedulerError, SchedulerStatus};
+use conduit_kernel::scheduler::{HostCallRequest, SchedulerError, SchedulerStatus};
 
 use crate::{
     arch::{self, HidError, HidKeyboardSession, UsbDevice, XhciReady},
@@ -89,7 +89,7 @@ fn prove(inputs: &mut HotplugProofInputs<'_>) -> Result<(), &'static str> {
     }
     x.fail_keyboard_device_removed(pending)
         .map_err(|_| "device-loss-not-delivered")?;
-    let failed = (0..64).any(|_| matches!(x.step(), Err(SchedulerError::OperationFailed(_))));
+    let failed = (0..64).any(|_| matches!(x.step(), Err(SchedulerError::BackFailed(_))));
     if !failed || p1.plan != immutable_p1 {
         return Err("d1-play-not-terminal-or-plan-mutated");
     }
@@ -187,9 +187,7 @@ fn prove(inputs: &mut HotplugProofInputs<'_>) -> Result<(), &'static str> {
     Ok(())
 }
 
-fn drive_to_keyboard(
-    kernel: &mut KeyboardTextKernel,
-) -> Result<HostOperationRequest, &'static str> {
+fn drive_to_keyboard(kernel: &mut KeyboardTextKernel) -> Result<HostCallRequest, &'static str> {
     for _ in 0..128 {
         while let Some(request) = kernel.next_host_request() {
             match kernel
@@ -258,14 +256,14 @@ fn realization(
         device.attachment_epoch,
     );
     let interface = device.interfaces[0];
-    let interfront_id =
+    let interface_id =
         identity::derive_usb_interface(&device_id, interface.number, interface.alternate_setting);
-    let endpoint_id = identity::derive_usb_endpoint(&interfront_id, device.endpoints[0].address);
+    let endpoint_id = identity::derive_usb_endpoint(&interface_id, device.endpoints[0].address);
     KeyboardRealization {
         mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
         controller_id,
         device_id,
-        interfront_id,
+        interface_id,
         endpoint_id,
         report_buffers,
         transition_slots,

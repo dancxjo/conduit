@@ -5,6 +5,7 @@ fn browser_offers_preserve_semantic_fronts_but_own_realization_identity() {
     let offers = offers();
     assert_eq!(offers.len(), 13);
     for offer in offers {
+        let kind = offer.kind_id.as_str();
         let canonical = offers::canonical_offer(offer.kind_id.as_str()).unwrap();
         assert_eq!(
             offer.kind_contract_revision,
@@ -12,7 +13,7 @@ fn browser_offers_preserve_semantic_fronts_but_own_realization_identity() {
         );
         assert_eq!(offer.inputs, canonical.inputs);
         assert_eq!(offer.outputs, canonical.outputs);
-        assert_eq!(offer.host_operations, canonical.host_operations);
+        assert_eq!(offer.host_calls, canonical.host_calls);
         assert_eq!(offer.limits, canonical.limits);
         assert_eq!(
             offer.implementation.execution_profile_id.as_str(),
@@ -21,6 +22,14 @@ fn browser_offers_preserve_semantic_fronts_but_own_realization_identity() {
         assert_eq!(
             offer.implementation.artifact_id.as_str(),
             BROWSER_PRESENTATION_ARTIFACT
+        );
+        assert_eq!(
+            offer.capability_id.as_str(),
+            format!("browser/{kind}-capability@1")
+        );
+        assert_eq!(
+            offer.implementation.implementation_id.as_str(),
+            format!("browser/{kind}-implementation@1")
         );
     }
     let browser_upper = browser_text_upper_offer();
@@ -31,10 +40,7 @@ fn browser_offers_preserve_semantic_fronts_but_own_realization_identity() {
     );
     assert_eq!(browser_upper.inputs, canonical_upper.inputs);
     assert_eq!(browser_upper.outputs, canonical_upper.outputs);
-    assert_eq!(
-        browser_upper.host_operations,
-        canonical_upper.host_operations
-    );
+    assert_eq!(browser_upper.host_calls, canonical_upper.host_calls);
     assert_eq!(browser_upper.limits, canonical_upper.limits);
     assert_eq!(
         browser_upper.implementation.execution_profile_id.as_str(),

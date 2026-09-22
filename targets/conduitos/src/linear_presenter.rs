@@ -3,7 +3,7 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
-    HostId, HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
+    HostCallContractId, HostCallRequirement, HostId, HostProfileId, ImplementationId,
     OfferGeneration, PROTOCOL_VERSION, Plan, SignId, bind_active_play, kind_id, resource_offer,
     resource_requirement,
 };
@@ -12,7 +12,7 @@ use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
     LinearPresentation, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationLifecycle,
     Presentation, PresentationRole, RendererRealizationOffer, render_linear_presentation,
-    renderer_kind_definition, renderer_offer,
+    renderer_kind_projection, renderer_offer,
 };
 
 pub const IMPLEMENTATION: &str = "presenter/linear-serial@1";
@@ -82,7 +82,7 @@ impl LinearPresenter {
     ) -> Result<Self, LinearPresenterError> {
         let mut catalog = ProfileCatalog::new();
         catalog
-            .insert(renderer_kind_definition())
+            .insert(renderer_kind_projection())
             .map_err(|_| LinearPresenterError::Catalog)?;
         let form = parse(FORM, &catalog).map_err(|_| LinearPresenterError::Catalog)?;
         let implementation_id = ImplementationId::from(implementation);
@@ -92,14 +92,15 @@ impl LinearPresenter {
             boot_id: boot_id.clone(),
             offer_generation: generation,
             profile: HostProfileId::from(profile_id),
+            bases: vec![],
             resources: vec![resource_offer(RESOURCE_ID, RESOURCE_CLASS, 1)],
             capabilities: vec![renderer_offer(RendererRealizationOffer {
                 capability_id: CapabilityId::from(capability),
                 execution_profile_id: ExecutionProfileId::from("conduitos/linear-product@1"),
                 implementation_id: implementation_id.clone(),
                 artifact_id: ArtifactId::from(image_id),
-                host_operation: HostOperationRequirement {
-                    contract_id: HostOperationContractId::from("conduit.host/present@1"),
+                host_call: HostCallRequirement {
+                    contract_id: HostCallContractId::from("conduit.host/present@1"),
                     target_kind: Some(kind_id("presentation/base/linear-serial@1")),
                     maximum_in_flight: 1,
                     maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,

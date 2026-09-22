@@ -12,18 +12,20 @@ use conduit_form::{
     ProfileCatalog, StartupCatalog,
 };
 use conduit_kernel::{
-    scheduler::{CordCapacity, CordSpec, FixedScheduler, NodeSpec, OperationDriver},
-    BoundedValueRef, CordEndpoint, CordId, Failure, FailureCode, FixedHostOperationBindings,
-    FixedRoutes, HostOperationBinding, HostOperationDisposition, HostOperationId,
-    HostOperationOutcome, HostedSignLog, HostedValueStore, KernelEvent, KernelEventKind, NodeId,
-    Operation, OperationAction, OperationInput, PortId, RequestId, RouteRange, RouteTarget,
-    SignQuery, ValueRef, ValueStorage,
+    scheduler::{
+        CordCapacity, CordSpec, FixedScheduler, NodeSpec, StepBack, StepInputBytes, StepIo,
+        StepOutcome,
+    },
+    BoundedValueRef, CordEndpoint, CordId, Failure, FailureCode, FixedHostCallBindings,
+    FixedRoutes, HostCallBinding, HostCallDisposition, HostCallId, HostCallOutcome, HostedSignLog,
+    HostedValueStore, KernelEvent, KernelEventKind, NodeId, PortId, RequestId, RouteRange,
+    RouteTarget, SignQuery, ValueRef, ValueStorage,
 };
 use conduit_std_host::{evolve_reaction_diffusion_hosted, reaction_diffusion_std_offer};
 
 const SOURCE_NODE: NodeId = NodeId(0);
 const EVOLVE_NODE: NodeId = NodeId(1);
-const OPERATION: HostOperationId = HostOperationId(0);
+const OPERATION: HostCallId = HostCallId(0);
 const REQUEST: RequestId = RequestId(1);
 const MAX_INPUT_BYTES: u32 =
     4 + REACTION_DIFFUSION_MAXIMUM_STATE_BYTES + REACTION_DIFFUSION_REQUEST_BYTES;
@@ -42,93 +44,71 @@ enum TestOperation {
     },
 }
 
-impl Operation for TestOperation {
-    fn start(&mut self) -> OperationAction {
+impl StepBack<1> for TestOperation {
+    fn step(&mut self, io: &mut StepIo<1>, bytes: &StepInputBytes<'_, 1>) -> StepOutcome {
         match self {
             Self::Source { value, emitted } => {
-                *emitted = true;
-                OperationAction::Emit {
-                    port: PortId(0),
-                    value: *value,
+                if *emitted {
+                    return StepOutcome::Complete;
                 }
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                io.send(PortId(0), *value).unwrap();
+                *emitted = true;
+                StepOutcome::Complete
             }
-            Self::Evolve { .. } => OperationAction::Await,
-        }
-    }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        invalid(1)
-    }
-
-    fn resume_value(&mut self, port: PortId, value: ValueRef, bytes: &[u8]) -> OperationAction {
-        let Self::Evolve { pending, .. } = self else {
-            return invalid(2);
-        };
-        if port != PortId(0) || *pending || decode_input(bytes).is_err() {
-            return invalid(3);
-        }
-        *pending = true;
-        OperationAction::RequestHostOperation {
-            request: REQUEST,
-            operation: OPERATION,
-            input: BoundedValueRef::new(value, MAX_INPUT_BYTES).unwrap(),
-        }
-    }
-
-    fn resume_host_operation(
-        &mut self,
-        request: RequestId,
-        outcome: HostOperationOutcome,
-        canonical: Option<&[u8]>,
-    ) -> OperationAction {
-        let Self::Evolve {
-            pending,
-            generation,
-        } = self
-        else {
-            return invalid(4);
-        };
-        if request != REQUEST
-            || !*pending
-            || outcome.disposition != HostOperationDisposition::Completed
-        {
-            return invalid(5);
-        }
-        let (Some(_), Some(bytes)) = (outcome.output, canonical) else {
-            return invalid(6);
-        };
-        let Ok(state) = ReactionDiffusionFieldState::decode(bytes) else {
-            return invalid(7);
-        };
-        *pending = false;
-        *generation = Some(state.generation);
-        OperationAction::Complete
-    }
-
-    fn advance(&mut self) -> OperationAction {
-        match self {
-            Self::Source { emitted, .. } if *emitted => {
-                *emitted = false;
-                OperationAction::Complete
+            Self::Evolve {
+                pending,
+                generation,
+            } => {
+                if let Some((request, outcome)) = io.host_completion() {
+                    if request != REQUEST
+                        || !*pending
+                        || outcome.disposition != HostCallDisposition::Completed
+                        || outcome.failure.is_some()
+                    {
+                        return invalid(5);
+                    }
+                    let (Some(_), Some(canonical)) = (outcome.output, bytes.host_output()) else {
+                        return invalid(6);
+                    };
+                    let Ok(state) = ReactionDiffusionFieldState::decode(canonical) else {
+                        return invalid(7);
+                    };
+                    io.consume_host_completion().unwrap();
+                    *pending = false;
+                    *generation = Some(state.generation);
+                    return StepOutcome::Complete;
+                }
+                if *pending {
+                    return StepOutcome::Await;
+                }
+                let Some(value) = io.input(PortId(0)) else {
+                    return StepOutcome::Await;
+                };
+                let Some(canonical) = bytes.input(PortId(0)) else {
+                    return invalid(3);
+                };
+                if decode_input(canonical).is_err() {
+                    return invalid(3);
+                }
+                io.consume(PortId(0)).unwrap();
+                io.request_host_call(
+                    REQUEST,
+                    OPERATION,
+                    BoundedValueRef::new(value, MAX_INPUT_BYTES).unwrap(),
+                )
+                .unwrap();
+                *pending = true;
+                StepOutcome::Progress
             }
-            _ => OperationAction::Await,
         }
     }
 }
 
-type Scheduler = FixedScheduler<
-    OperationDriver<TestOperation, 1>,
-    HostedValueStore,
-    HostedSignLog,
-    2,
-    1,
-    1,
-    1,
-    1,
-    1,
-    2,
-    1,
->;
+type Scheduler =
+    FixedScheduler<TestOperation, HostedValueStore, HostedSignLog, 2, 1, 1, 1, 1, 1, 2, 1>;
 
 #[test]
 fn canonical_example_executes_the_hosted_reference_through_the_production_kernel() {
@@ -141,11 +121,11 @@ fn canonical_example_executes_the_hosted_reference_through_the_production_kernel
     let encoded = output.encode().unwrap();
     let output_ref = scheduler.store_host_value(&encoded).unwrap();
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(output_ref, REACTION_DIFFUSION_MAXIMUM_STATE_BYTES)
                         .unwrap(),
@@ -156,16 +136,16 @@ fn canonical_example_executes_the_hosted_reference_through_the_production_kernel
         .unwrap();
     scheduler.run(16).unwrap();
 
-    let TestOperation::Evolve { generation, .. } = scheduler.drivers()[1].operation() else {
+    let TestOperation::Evolve { generation, .. } = &scheduler.drivers()[1] else {
         panic!("evolution operation identity changed");
     };
     assert_eq!(*generation, Some(3));
     assert!(scheduler
         .signs()
-        .contains_kind(KernelEventKind::HostOperationCompleted));
+        .contains_kind(KernelEventKind::HostCallCompleted));
     assert!(scheduler
         .signs()
-        .contains_kind(KernelEventKind::OperationCompleted));
+        .contains_kind(KernelEventKind::BackCompleted));
 }
 
 fn assert_canonical_example_checks_and_plans() {
@@ -181,6 +161,7 @@ fn assert_canonical_example_checks_and_plans() {
         boot_id: BootId::from("boot/reaction-diffusion-kernel"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("std/reaction-diffusion-kernel@1"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: vec![reaction_diffusion_std_offer()],
@@ -202,22 +183,22 @@ fn assert_canonical_example_checks_and_plans() {
 }
 
 #[test]
-fn cancellation_prevents_the_admitted_host_operation_from_becoming_evolution() {
+fn cancellation_prevents_the_admitted_host_call_from_becoming_evolution() {
     let mut scheduler = scheduler();
     let request = next_request(&mut scheduler);
     scheduler.cancel().unwrap();
-    assert_eq!(scheduler.pending_host_operation_count(), 0);
+    assert_eq!(scheduler.pending_host_call_count(), 0);
     assert_eq!(
-        scheduler.complete_host_operation(
+        scheduler.complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },
         ),
-        Err(conduit_kernel::scheduler::SchedulerError::HostOperationCompletionRejected)
+        Err(conduit_kernel::scheduler::SchedulerError::HostCallCompletionRejected)
     );
     assert_eq!(
         scheduler.run(16),
@@ -248,12 +229,12 @@ fn scheduler() -> Scheduler {
         )
         .unwrap();
     routes.seal().unwrap();
-    let mut bindings = FixedHostOperationBindings::<2>::new(1);
+    let mut bindings = FixedHostCallBindings::<2>::new(1);
     bindings
         .install(
             EVOLVE_NODE,
-            HostOperationBinding {
-                operation: OPERATION,
+            HostCallBinding {
+                call: OPERATION,
                 maximum_input_bytes: MAX_INPUT_BYTES,
                 maximum_output_bytes: REACTION_DIFFUSION_MAXIMUM_STATE_BYTES,
             },
@@ -261,15 +242,15 @@ fn scheduler() -> Scheduler {
         .unwrap();
     bindings.seal().unwrap();
     let signs = HostedSignLog::new(32, (32 * core::mem::size_of::<KernelEvent>()) as u32).unwrap();
-    FixedScheduler::new_with_host_operations(
+    FixedScheduler::new_with_host_calls(
         [
             NodeSpec {
                 input_cords: [None],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_work: 2,
+                maximum_step_fuel: 2,
             },
         ],
         [CordSpec::local(
@@ -286,16 +267,14 @@ fn scheduler() -> Scheduler {
         routes,
         bindings,
         [
-            OperationDriver::new(TestOperation::Source {
+            TestOperation::Source {
                 value: input_ref,
                 emitted: false,
-            })
-            .unwrap(),
-            OperationDriver::new(TestOperation::Evolve {
+            },
+            TestOperation::Evolve {
                 pending: false,
                 generation: None,
-            })
-            .unwrap(),
+            },
         ],
         values,
         signs,
@@ -303,14 +282,14 @@ fn scheduler() -> Scheduler {
     .unwrap()
 }
 
-fn next_request(scheduler: &mut Scheduler) -> conduit_kernel::scheduler::HostOperationRequest {
+fn next_request(scheduler: &mut Scheduler) -> conduit_kernel::scheduler::HostCallRequest {
     for _ in 0..8 {
         if let Some(request) = scheduler.next_host_request() {
             return request;
         }
         scheduler.step().unwrap();
     }
-    panic!("reaction-diffusion host operation was not dispatched")
+    panic!("reaction-diffusion Host Call was not dispatched")
 }
 
 fn encode_input() -> Vec<u8> {
@@ -351,8 +330,8 @@ fn decode_input(
     Ok((state, request))
 }
 
-fn invalid(detail: u16) -> OperationAction {
-    OperationAction::Fail(Failure {
+fn invalid(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
         code: FailureCode::InvalidInput,
         detail,
     })

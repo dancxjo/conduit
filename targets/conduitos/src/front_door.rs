@@ -1,4 +1,4 @@
-//! Bounded zero-Body Patchbay state for an ordinary ConduitOS boot.
+//! Bounded zero-body Patchbay state for an ordinary ConduitOS boot.
 
 use alloc::{format, string::String, vec};
 use conduit_core::{BootId, CheckedFormId, HostId, OfferGeneration, SourceDocumentId};

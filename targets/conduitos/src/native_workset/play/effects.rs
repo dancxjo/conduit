@@ -1,14 +1,12 @@
 //! Exact typed Host completions; retained editing uses portable semantics.
 use super::*;
 use conduit_human::KeymapDisposition;
-use conduit_kernel::{
-    BoundedValueRef, Failure, FailureCode, HostOperationDisposition, HostOperationOutcome,
-};
+use conduit_kernel::{BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallOutcome};
 
 impl NativeWorksetPlay {
     pub(super) fn apply(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         binding: Binding,
     ) -> Result<(), PlayRefusal> {
         let form = usize::from(binding.form);
@@ -108,7 +106,7 @@ impl NativeWorksetPlay {
     }
     pub(super) fn output(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         bytes: Option<&[u8]>,
     ) -> Result<(), PlayRefusal> {
         if self.cancelled {
@@ -120,18 +118,18 @@ impl NativeWorksetPlay {
                     .scheduler
                     .store_host_value(bytes)
                     .map_err(PlayRefusal::Scheduler)?;
-                // Empty text is still a value on the Flow. Its admitted output
+                // Empty text is still a value on the flow. Its admitted output
                 // envelope stays nonzero, as required by the kernel boundary.
                 BoundedValueRef::new(value, (bytes.len() as u32).max(1))
                     .map_err(|_| PlayRefusal::Kernel)
             })
             .transpose()?;
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Completed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
                     output,
                     failure: None,
                 },
@@ -140,7 +138,7 @@ impl NativeWorksetPlay {
     }
     fn failed(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         code: FailureCode,
         detail: u16,
     ) -> Result<(), PlayRefusal> {
@@ -150,16 +148,16 @@ impl NativeWorksetPlay {
 
     fn complete_failure(
         &mut self,
-        request: HostOperationRequest,
+        request: HostCallRequest,
         code: FailureCode,
         detail: u16,
     ) -> Result<(), PlayRefusal> {
         self.scheduler
-            .complete_host_operation(
+            .complete_host_call(
                 request.node,
                 request.request,
-                HostOperationOutcome {
-                    disposition: HostOperationDisposition::Failed,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Failed,
                     output: None,
                     failure: Some(Failure { code, detail }),
                 },
@@ -169,7 +167,7 @@ impl NativeWorksetPlay {
 
     pub fn input_lost(&mut self) -> Result<(), PlayRefusal> {
         for request in self.pending.into_iter().flatten() {
-            self.complete_failure(request, FailureCode::HostOperationFailed, 81)?;
+            self.complete_failure(request, FailureCode::HostCallFailed, 81)?;
         }
         self.cancel()
     }

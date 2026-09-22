@@ -55,15 +55,15 @@ pub(crate) fn bounded(value_type: StructuredInfoType, length: u16) -> Structured
 }
 
 fn unit_type() -> StructuredInfoType {
-    leaf("value/unit@1")
+    leaf("value/unit")
 }
 
 fn text_type() -> StructuredInfoType {
-    leaf("value/text@1")
+    leaf("value/text")
 }
 
 fn count_type() -> StructuredInfoType {
-    leaf("value/count@1")
+    leaf("value/count")
 }
 
 pub fn offset_basis_type() -> StructuredInfoType {

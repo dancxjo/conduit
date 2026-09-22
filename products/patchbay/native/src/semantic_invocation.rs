@@ -28,7 +28,7 @@ impl PatchbayApplication {
         let graph = self
             .graphical_form
             .as_ref()
-            .ok_or("current checked Form projection is absent")?;
+            .ok_or("current checked form projection is absent")?;
         let target = graph.expanded_form_id.as_str().to_owned();
         let flow = self.lifecycle_flow();
         let actions = ACTIONS
@@ -91,7 +91,7 @@ impl PatchbayApplication {
                 label: self
                     .form_editor
                     .as_ref()
-                    .map_or_else(|| "Current Form".into(), |editor| editor.view().open_form),
+                    .map_or_else(|| "Current form".into(), |editor| editor.view().open_form),
                 accessibility_name: "Current checked and expanded Form".into(),
             }],
             vec![],

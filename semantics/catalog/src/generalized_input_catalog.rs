@@ -6,10 +6,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_form::{KindDefinition, KindSignature};
+use conduit_form::{KindProjection, KindSignature};
 
 use crate::{
     gamepad_state_type, generalized_input_registered_types, input_button_transition_type,
@@ -30,16 +30,7 @@ pub fn install_generalized_input_catalogs(
             .insert_structured_type(name, value_type)
             .map_err(|error| error.to_string())?;
     }
-    insert_kind(
-        startup,
-        profile,
-        POINTER_SOURCE_KIND,
-        vec![source_port(
-            "pointer",
-            &pointer_event_type(),
-            PortDirection::Output,
-        )],
-    )?;
+    insert_semantic_kind(startup, profile, pointer_source_semantic_contract())?;
     insert_kind(
         startup,
         profile,
@@ -73,24 +64,83 @@ pub fn deterministic_pointer_touch_outputs() -> Vec<PortDescriptor> {
     ]
 }
 
+pub fn deterministic_gamepad_semantic_contract() -> Kind {
+    semantic_contract(DETERMINISTIC_GAMEPAD_KIND, deterministic_gamepad_outputs())
+}
+
+pub fn deterministic_pointer_touch_semantic_contract() -> Kind {
+    semantic_contract(
+        DETERMINISTIC_POINTER_TOUCH_KIND,
+        deterministic_pointer_touch_outputs(),
+    )
+}
+
+pub fn pointer_source_semantic_contract() -> Kind {
+    Kind {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id(POINTER_SOURCE_KIND),
+        kind_contract_revision: KindIdentity::from(GENERALIZED_INPUT_REVISION),
+        inputs: vec![],
+        outputs: vec![source_port(
+            "pointer",
+            &pointer_event_type(),
+            PortDirection::Output,
+        )],
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        },
+    }
+}
+
+fn semantic_contract(kind: &str, outputs: Vec<PortDescriptor>) -> Kind {
+    Kind {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id(kind),
+        kind_contract_revision: KindIdentity::from(GENERALIZED_INPUT_REVISION),
+        inputs: vec![],
+        outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 4,
+            max_queue_items: 8,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 8) as u32,
+        },
+    }
+}
+
 fn insert_kind(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
     kind: &str,
     outputs: Vec<PortDescriptor>,
 ) -> Result<(), String> {
+    insert_semantic_kind(startup, profile, semantic_contract(kind, outputs))
+}
+
+fn insert_semantic_kind(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+    contract: Kind,
+) -> Result<(), String> {
     startup
         .insert(KindSignature {
-            kind: kind.into(),
+            kind: contract.kind_id.as_str().into(),
             startup_parameters: vec![],
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(KindDefinition {
-            kind_id: kind_id(kind),
-            kind_contract_revision: KindContractRevision::from(GENERALIZED_INPUT_REVISION),
-            inputs: vec![],
-            outputs,
+        .insert(KindProjection {
+            kind_id: contract.kind_id,
+            kind_contract_revision: contract.kind_contract_revision,
+            inputs: contract.inputs,
+            outputs: contract.outputs,
             configuration: vec![],
         })
         .map_err(|error| error.to_string())

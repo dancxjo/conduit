@@ -8,12 +8,12 @@ use alloc::{
 };
 use conduit_core::{
     kind_id, port_id, protected_resource_requirement, resource_requirement, ArtifactId,
-    AuthorityContractId, AuthorityRequirement, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
+    AuthorityContractId, AuthorityRequirement, Back, BackOfferBuilder, CapabilityId,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostCallContractId, HostCallRequirement,
+    ImplementationId, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{
-    check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindDefinition,
+    check_syntax_document, parse_syntax_document, CanonicalBackCatalog, KindProjection,
     KindSignature, ProfileCatalog, StartupCatalog,
 };
 use conduit_web::{
@@ -28,11 +28,11 @@ pub const PROVIDER_ENVELOPE_KIND: &str = "provider/openai-compatible-http-envelo
 pub const PROVIDER_RESPONSE_KIND: &str = "provider/openai-compatible-http-response";
 pub const PROVIDER_RESULT_KIND: &str = "provider/openai-compatible-result";
 pub const PROVIDER_HTTP_IMPLEMENTATION: &str = "provider/openai-compatible-http-client@1";
-pub const PROVIDER_HTTP_OPERATION: &str = "conduit.host/http-client-exchange@1";
+pub const PROVIDER_HTTP_OPERATION: &str = "conduit.host/http-client-exchange";
 pub const PROVIDER_ENDPOINT_AUTHORITY: &str = "conduit.authority/provider-endpoint@1";
 pub const PROVIDER_CREDENTIAL_CLASS: &str = "conduit.resource/protected-provider-credential@1";
 pub const PROVIDER_CREDENTIAL_ROLE: &str = "provider-credential";
-pub const PROVIDER_HTTP_RESOURCE: &str = "conduit.resource/network/http-client@1";
+pub const PROVIDER_HTTP_RESOURCE: &str = "conduit.resource/network/http-client";
 pub const MAXIMUM_PROVIDER_PROMPT_BYTES: usize = 1_024;
 pub const MAXIMUM_PROVIDER_OUTPUT_BYTES: usize = 1_024;
 
@@ -166,7 +166,7 @@ pub fn install_provider_catalogs(
             startup_parameters: Vec::new(),
         })?;
         profile
-            .insert(definition)
+            .insert_kind(provider_adapter_semantic_contract(definition))
             .map_err(|error| error.to_string())?;
     }
     Ok(())
@@ -178,7 +178,7 @@ pub fn install_provider_back(
     backs: &mut CanonicalBackCatalog,
 ) -> Result<(), String> {
     let source = format!(
-        "form {GENERATE_TEXT_KIND} (\n prompt: {TEXT_VALUE_KIND} > text: {TEXT_VALUE_KIND}\n) {{\n request: {PROVIDER_REQUEST_KIND}\n encode: {}\n envelope: {PROVIDER_ENVELOPE_KIND}\n http: {}\n response: {PROVIDER_RESPONSE_KIND}\n decode: {}\n result: {PROVIDER_RESULT_KIND}\n prompt > request.prompt\n request.value > encode.value\n encode.value > envelope.json\n envelope.request > http.request\n http.response > response.response\n response.json > decode.value\n decode.value > result.value\n result.text > text\n}}\n",
+        "form {GENERATE_TEXT_KIND} (\n maximum-input-bytes: Count = 4096\n maximum-context-tokens: Count = 4096\n maximum-output-tokens: Count = 512\n temperature-milli: Count = 0\n prompt: {TEXT_VALUE_KIND} > text: {TEXT_VALUE_KIND}\n) {{\n request: {PROVIDER_REQUEST_KIND}\n encode: {}\n envelope: {PROVIDER_ENVELOPE_KIND}\n http: {}\n response: {PROVIDER_RESPONSE_KIND}\n decode: {}\n result: {PROVIDER_RESULT_KIND}\n prompt > request.prompt\n request.value > encode.value\n encode.value > envelope.json\n envelope.request > http.request\n http.response > response.response\n response.json > decode.value\n decode.value > result.value\n result.text > text\n}}\n",
         conduit_web::JSON_ENCODE_KIND,
         conduit_web::HTTP_CLIENT_KIND,
         conduit_web::JSON_DECODE_KIND,
@@ -186,7 +186,7 @@ pub fn install_provider_back(
     let checked = check_syntax_document(&parse_syntax_document(&source), startup)
         .map_err(|error| format!("provider Back check: {} {}", error.code, error.message))?;
     let high = profile
-        .get(&kind_id(GENERATE_TEXT_KIND))
+        .canonical_kind(&kind_id(GENERATE_TEXT_KIND))
         .ok_or_else(|| "portable generate-text definition missing".to_string())?;
     backs
         .insert(high, &checked, GENERATE_TEXT_KIND)
@@ -201,47 +201,48 @@ pub fn provider_offers() -> Vec<CapabilityOffer> {
 }
 
 pub fn provider_http_offer() -> CapabilityOffer {
-    let contract = conduit_web::http_client_semantics();
-    let operation = HostOperationRequirement {
-        contract_id: HostOperationContractId::from(PROVIDER_HTTP_OPERATION),
+    let contract = conduit_web::http_client_semantics().into_semantic_contract();
+    let operation = HostCallRequirement {
+        contract_id: HostCallContractId::from(PROVIDER_HTTP_OPERATION),
         target_kind: Some(kind_id(conduit_web::HTTP_CLIENT_KIND)),
         maximum_in_flight: 1,
         maximum_input_bytes: conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
         maximum_output_bytes: conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
     };
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("provider-http-client-v1"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from("provider-http-client-v1"),
             execution_profile_id: ExecutionProfileId::from("provider/http-hosted@1"),
             implementation_id: ImplementationId::from(PROVIDER_HTTP_IMPLEMENTATION),
             artifact_id: ArtifactId::from("conduit-ai/provider-http-adapter@1"),
+            host_calls: vec![operation.clone()],
+            resource_requirements: vec![
+                resource_requirement(PROVIDER_HTTP_RESOURCE, 1),
+                protected_resource_requirement(
+                    PROVIDER_CREDENTIAL_ROLE,
+                    PROVIDER_CREDENTIAL_CLASS,
+                    1,
+                ),
+            ],
+            authority_requirements: vec![AuthorityRequirement {
+                contract_id: AuthorityContractId::from(PROVIDER_ENDPOINT_AUTHORITY),
+                host_call_contract_id: operation.contract_id,
+                subject_kind: kind_id(conduit_web::HTTP_CLIENT_KIND),
+            }],
         },
-        host_operations: vec![operation.clone()],
-        resource_requirements: vec![
-            resource_requirement(PROVIDER_HTTP_RESOURCE, 1),
-            protected_resource_requirement(PROVIDER_CREDENTIAL_ROLE, PROVIDER_CREDENTIAL_CLASS, 1),
-        ],
-        authority_requirements: vec![AuthorityRequirement {
-            contract_id: AuthorityContractId::from(PROVIDER_ENDPOINT_AUTHORITY),
-            host_operation_contract_id: operation.contract_id,
-            subject_kind: kind_id(conduit_web::HTTP_CLIENT_KIND),
-        }],
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES
-                + conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
-        },
-    }
+    )
+    .narrow_capacity(CapabilityLimits {
+        max_active_instances: 1,
+        max_queue_items: 1,
+        max_queue_bytes: conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES
+            + conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
+    })
+    .expect("provider HTTP capacity narrows portable HTTP semantics")
+    .build()
 }
 
-fn provider_definitions() -> Vec<KindDefinition> {
+fn provider_definitions() -> Vec<KindProjection> {
     vec![
         definition(
             PROVIDER_REQUEST_KIND,
@@ -299,10 +300,10 @@ fn definition(
     output_name: &str,
     output_value: &str,
     output_temporal: PortTemporal,
-) -> KindDefinition {
-    KindDefinition {
+) -> KindProjection {
+    KindProjection {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: vec![port(
             input_name,
             input_value,
@@ -315,7 +316,7 @@ fn definition(
             PortDirection::Output,
             output_temporal,
         )],
-        configuration: Vec::new(),
+        configuration: Default::default(),
     }
 }
 
@@ -333,24 +334,33 @@ fn port(
     }
 }
 
-fn adapter_offer(definition: KindDefinition) -> CapabilityOffer {
+fn adapter_offer(definition: KindProjection) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
-    CapabilityOffer {
+    BackOfferBuilder::new(
+        provider_adapter_semantic_contract(definition),
+        Back {
+            capability_id: CapabilityId::from(format!("provider-{slug}")),
+            execution_profile_id: ExecutionProfileId::from("provider/bounded-protocol@1"),
+            implementation_id: ImplementationId::from(format!("provider/{slug}@1")),
+            artifact_id: ArtifactId::from("conduit-ai/provider-protocol@1"),
+            host_calls: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
+        },
+    )
+    .build()
+}
+
+fn provider_adapter_semantic_contract(definition: KindProjection) -> Kind {
+    Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
-        capability_id: CapabilityId::from(format!("provider-{slug}")),
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        implementation: ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from("provider/bounded-protocol@1"),
-            implementation_id: ImplementationId::from(format!("provider/{slug}@1")),
-            artifact_id: ArtifactId::from("conduit-ai/provider-protocol@1"),
-        },
-        host_operations: Vec::new(),
-        resource_requirements: Vec::new(),
-        authority_requirements: Vec::new(),
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,

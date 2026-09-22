@@ -1,4 +1,4 @@
-//! Body-owned preparation and admission for the Tour's physical Pico Host.
+//! body-owned preparation and admission for the Tour's physical Pico Host.
 
 use conduit_body::{
     AdmissionSigns, BodyBiographyEvidence, BodyLifecycleEvent, SpawnAdmissionProof,
@@ -245,7 +245,7 @@ fn prepare_selected_for_target_with_browser_configuration(
 ) -> Result<PreparedSpore, String> {
     session::with_session(|session| {
         if session.pending_spore.is_some() {
-            return Err("this Body already owns one pending physical spore".into());
+            return Err("this body already owns one pending physical spore".into());
         }
         let secret = SpawnInvitationSecret::from_csprng_bytes(entropy)
             .map_err(|error| format!("create spore invitation secret: {error:?}"))?;

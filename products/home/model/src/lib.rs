@@ -205,12 +205,12 @@ impl HomeModel {
             HomeView::Forms => node(
                 "forms",
                 PresentationMechanism::Panel {
-                    title: "Installed Forms".into(),
+                    title: "Installed forms".into(),
                 },
                 vec![node(
                     "form-list",
                     PresentationMechanism::ActionGroup {
-                        label: "Installed Forms".into(),
+                        label: "Installed forms".into(),
                     },
                     installed_forms
                         .iter()
@@ -397,7 +397,7 @@ impl HomeModel {
             ("forms", "") => self.view = HomeView::Forms,
             ("body", "") => self.view = HomeView::Body,
             ("hosts", "") => {
-                self.output = "Host inspection is unavailable on this Home front; open Patchbay for current Host truth.".into();
+                self.output = "Host inspection is unavailable on this Home front; open Patchbay for current host truth.".into();
             }
             ("lines", "") => {
                 self.output = "Line inspection is unavailable on this Home front; open Patchbay for current Line truth.".into();
@@ -408,12 +408,12 @@ impl HomeModel {
             ("open", "body") => self.view = HomeView::Body,
             ("open", "prompt") => self.view = HomeView::Prompt,
             ("open", "creche") => return HomeAction::OpenCreche,
-            ("run", "") => self.output = "run needs an installed Form name.".into(),
+            ("run", "") => self.output = "run needs an installed form name.".into(),
             ("run", requested) => {
                 if let Some(index) = resolve_form(requested, installed_forms) {
                     return HomeAction::RunForm(index);
                 }
-                self.output = format!("No installed Form named {requested}.");
+                self.output = format!("No installed form named {requested}.");
             }
             ("inspect", "") => self.output = "inspect needs a visible subject.".into(),
             ("inspect", "body") => {

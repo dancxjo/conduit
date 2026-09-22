@@ -1,14 +1,14 @@
 //! Portable Boolean presentation meaning.
 
-use super::{StandardKindContract, TerminalBehavior};
+use super::{KindTerminalBehavior, StandardKindContract};
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, BOOL_INFO_ID,
+    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    BOOL_INFO_ID,
 };
 
 pub const BOOL_PRESENTATION_KIND: &str = "presentation/bool";
@@ -26,13 +26,13 @@ pub fn bool_presentation_contract() -> StandardKindContract {
             temporal: PortTemporal::Current,
         }],
         outputs: Vec::new(),
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
             max_queue_bytes: 8,
         },
-        terminal_behavior: TerminalBehavior::CompletesWhenInputsClose,
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
@@ -44,15 +44,15 @@ pub fn bool_presentation_contract() -> StandardKindContract {
 pub fn install_bool_presentation_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{ConfigurationField, KindDefinition};
+    use conduit_form::{KindConfigurationField, KindProjection};
     let contract = bool_presentation_contract();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: contract.kind_id,
-            kind_contract_revision: KindContractRevision::from(BOOL_PRESENTATION_CONTRACT_REVISION),
+            kind_contract_revision: KindIdentity::from(BOOL_PRESENTATION_CONTRACT_REVISION),
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: Vec::<ConfigurationField>::new(),
+            configuration: Vec::<KindConfigurationField>::new(),
         })
         .map_err(|error| error.to_string())
 }

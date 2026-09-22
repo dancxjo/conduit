@@ -15,6 +15,39 @@ fn sample() -> NormalizedPointerSample {
 }
 
 #[test]
+fn pointer_realizations_preserve_the_owner_front_and_only_narrow_capacity() {
+    let contract = conduit_semantic_catalog::pointer_source_semantic_contract();
+    let offer = pointer_source_offer(
+        "fixture-pointer",
+        "fixture-profile",
+        "fixture-implementation",
+        "fixture-artifact",
+        4_096,
+        Vec::new(),
+    );
+    assert_eq!(offer.startup_parameters, contract.startup_parameters);
+    assert_eq!(offer.shorthand, contract.shorthand);
+    assert_eq!(offer.kind_id, contract.kind_id);
+    assert_eq!(
+        offer.kind_contract_revision,
+        contract.kind_contract_revision
+    );
+    assert_eq!(offer.inputs, contract.inputs);
+    assert_eq!(offer.outputs, contract.outputs);
+    assert_eq!(
+        offer.limits.max_active_instances,
+        contract.limits.max_active_instances
+    );
+    assert_eq!(
+        offer.limits.max_queue_items,
+        contract.limits.max_queue_items
+    );
+    assert_eq!(offer.limits.max_queue_bytes, 4_096);
+    assert!(offer.limits.max_queue_bytes <= contract.limits.max_queue_bytes);
+    assert_eq!(offer.host_calls[0].maximum_output_bytes, 4_096);
+}
+
+#[test]
 fn pointer_crosses_checked_plan_and_kernel_with_exact_identities() {
     let delivery = browser_pointer_delivery_contract().unwrap();
     assert_eq!(

@@ -32,21 +32,21 @@ pub(super) fn resolve_front_control_key(
         None if matches!(key, Key::Character(character) if character.eq_ignore_ascii_case("j"))
             || matches!(key, Key::Named(NamedKey::Enter)) =>
         {
-            return Err("select a Gear before using its Front controls".into())
+            return Err("select a gear before using its front controls".into())
         }
         None => return Ok(FaceControlKey::NotHandled),
     };
     if matches!(key, Key::Character(character) if character.eq_ignore_ascii_case("j")) {
         let count = front_action_count(graph, selected);
         if count == 0 {
-            return Err("select a Gear with an actionable Front control".into());
+            return Err("select a gear with an actionable Front control".into());
         }
         *focus = focus.saturating_add(1) % count;
         return Ok(FaceControlKey::FocusChanged);
     }
     if matches!(key, Key::Named(NamedKey::Enter)) {
         let action = focused_front_action(graph, selected, *focus)
-            .ok_or("select a Gear with an actionable Front control")?;
+            .ok_or("select a gear with an actionable Front control")?;
         return Ok(FaceControlKey::Action(action));
     }
     Ok(FaceControlKey::NotHandled)

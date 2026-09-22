@@ -13,7 +13,7 @@
       "role": "application-module",
       "kind": "module",
       "path": "workspace.mjs",
-      "maximum_bytes": 24576,
+      "maximum_bytes": 26624,
       "dependencies": [
         {
           "role": "browser-host-bootstrap",
@@ -44,6 +44,10 @@
           "specifier": "./workspace-voice-play.mjs"
         },
         {
+          "role": "workspace-tutorial-presenter-play",
+          "specifier": "./workspace-tutorial-presenter-play.mjs"
+        },
+        {
           "role": "browser-body-continuity",
           "specifier": "../../../targets/browser/host/assets/browser-body-continuity.mjs"
         },
@@ -64,8 +68,8 @@
           "specifier": "../../creche/browser/creche-release-catalog.mjs"
         },
         {
-          "role": "browser-host-operations",
-          "specifier": "../../../targets/browser/host/assets/browser-host-operations.mjs"
+          "role": "browser-host-calls",
+          "specifier": "../../../targets/browser/host/assets/browser-host-calls.mjs"
         }
       ]
     },
@@ -222,8 +226,13 @@
       "kind": "module",
       "path": "creche-rendezvous.mjs",
       "maximum_bytes": 32768,
-      "dependencies": []
+      "dependencies": [
+        { "role": "rendezvous-cbor", "specifier": "./rendezvous-cbor.mjs" },
+        { "role": "rendezvous-candidate-schedule", "specifier": "./rendezvous-candidate-schedule.mjs" }
+      ]
     },
+    { "role": "rendezvous-candidate-schedule", "kind": "module", "path": "rendezvous-candidate-schedule.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "rendezvous-cbor", "kind": "module", "path": "rendezvous-cbor.mjs", "maximum_bytes": 12288, "dependencies": [] },
     {
       "role": "creche-physical",
       "kind": "module",
@@ -352,6 +361,18 @@
         {
           "role": "browser-remote-voice",
           "specifier": "../../../targets/browser/host/assets/browser-remote-voice.mjs"
+        }
+      ]
+    },
+    {
+      "role": "workspace-tutorial-presenter-play",
+      "kind": "module",
+      "path": "workspace-tutorial-presenter-play.mjs",
+      "maximum_bytes": 12288,
+      "dependencies": [
+        {
+          "role": "browser-remote-fragment",
+          "specifier": "../../../targets/browser/host/assets/browser-remote-fragment.mjs"
         }
       ]
     },
@@ -496,15 +517,15 @@
       "maximum_bytes": 4096,
       "dependencies": [
         {
-          "role": "browser-host-operations",
-          "specifier": "../../../targets/browser/host/assets/browser-host-operations.mjs"
+          "role": "browser-host-calls",
+          "specifier": "../../../targets/browser/host/assets/browser-host-calls.mjs"
         }
       ]
     },
     {
-      "role": "browser-host-operations",
+      "role": "browser-host-calls",
       "kind": "module",
-      "path": "browser-host-operations.mjs",
+      "path": "browser-host-calls.mjs",
       "maximum_bytes": 24576,
       "dependencies": []
     },

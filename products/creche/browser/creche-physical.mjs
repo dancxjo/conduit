@@ -9,7 +9,7 @@ const decoder = new TextDecoder();
 
 export function createPhysicalHostRunner({
   host,
-  hostOperations,
+  hostCalls,
   presentationFor,
   targetCatalog,
   onBodyChanged,
@@ -55,7 +55,7 @@ export function createPhysicalHostRunner({
     observation: null,
     admission: null,
     download: null,
-    hostOperations,
+    hostCalls,
     adapterContext,
     intentions: PHYSICAL_HOST_INTENTIONS,
     selectionDisabled: false,
@@ -189,7 +189,7 @@ function renderDownload(runner, state, download) {
   state.download = download;
   presentPhysicalArtifact(state, download, async (artifact) => {
     try {
-      const outcome = await state.hostOperations.handoffArtifact(artifact);
+      const outcome = await state.hostCalls.handoffArtifact(artifact);
       if (!["completed", "handoff-offered"].includes(outcome.disposition)) {
         status(runner, state, `Artifact handoff refused: ${outcome.disposition}`, true);
       }
@@ -307,7 +307,7 @@ function cancelActive(runner, state, terminal) {
   presentPhysicalActions(state);
   if (terminal) {
     state.cancellations += 1;
-    fail(runner, state, active.operation, workflowFailure(state, active.operation, "Cancelled", "operator cancelled the active physical Host operation"));
+    fail(runner, state, active.operation, workflowFailure(state, active.operation, "Cancelled", "operator cancelled the active physical Host Call"));
   }
 }
 
@@ -325,7 +325,7 @@ function targetFailure(state, operation, error) {
   const evidence = workflowFailure(
     state,
     operation,
-    boundedText(error?.code, 64) ? error.code : "OperationFailed",
+    boundedText(error?.code, 64) ? error.code : "BackFailed",
     error instanceof Error ? error.message : String(error),
   );
   return error?.evidence ? Object.freeze({ ...evidence, target_evidence: error.evidence }) : evidence;
@@ -595,7 +595,7 @@ function minimalObservationEvidence(observation) {
 function admitObservation(api, join) {
   const encoded = encoder.encode(JSON.stringify(join));
   if (encoded.length === 0 || encoded.length > api.conduit_creche_input_capacity()) {
-    throw new RangeError("join observation exceeds the admitted Body input bound");
+    throw new RangeError("join observation exceeds the admitted body input bound");
   }
   new Uint8Array(api.memory.buffer, api.conduit_creche_input_ptr(), encoded.length).set(encoded);
   const code = api.conduit_creche_admit_physical_spore(encoded.length);

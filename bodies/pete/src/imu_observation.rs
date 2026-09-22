@@ -3,11 +3,10 @@
 use std::collections::BTreeMap;
 
 use conduit_core::{
-    resource_offer, resource_requirement, ArtifactId, BaseImplementationId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, FaceStartupParameter, HostAdvertisement,
-    HostId, HostOperationContractId, HostOperationRequirement, ImplementationId,
-    ImplementationOffer, KindContractRevision, OfferGeneration, ResourceHealth,
-    ResourceObservation, SignId, PROTOCOL_VERSION,
+    resource_offer, resource_requirement, ArtifactId, Back, BackOfferBuilder, BaseImplementationId,
+    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement,
+    HostCallContractId, HostCallRequirement, HostId, ImplementationId, OfferGeneration,
+    ResourceHealth, ResourceObservation, SignId, PROTOCOL_VERSION,
 };
 use conduit_mpu6050::{
     DerivationFailure, DerivedImuObservation, GravityCalibration, ImuDeriver, ImuThresholds,
@@ -170,6 +169,7 @@ pub fn live_mpu6050_advertisement(
         boot_id: evidence.boot_id.clone(),
         offer_generation: evidence.offer_generation,
         profile: conduit_core::HostProfileId::from(MPU6050_PROFILE),
+        bases: vec![],
         resources,
         capabilities: vec![mpu6050_offer()],
         planner_capabilities: Vec::new(),
@@ -227,11 +227,10 @@ pub fn validate_mpu6050_plan(
     if placement.host_id != evidence.host_id
         || placement.boot_id != evidence.boot_id
         || placement.offer_generation != evidence.offer_generation
-        || placement.host_operations.len() != 1
-        || placement.host_operations[0].contract_id.as_str() != MPU6050_OPERATION
-        || placement.host_operations[0].maximum_input_bytes != 0
-        || placement.host_operations[0].maximum_output_bytes
-            != ROBOTICS_ORIENTATION_ENCODED_LEN as u32
+        || placement.host_calls.len() != 1
+        || placement.host_calls[0].contract_id.as_str() != MPU6050_OPERATION
+        || placement.host_calls[0].maximum_input_bytes != 0
+        || placement.host_calls[0].maximum_output_bytes != ROBOTICS_ORIENTATION_ENCODED_LEN as u32
         || placement.resources.len() != 3
     {
         return Err("Plan does not seal the exact MPU-6050 realization");
@@ -256,56 +255,40 @@ pub fn validate_mpu6050_plan(
 }
 
 fn mpu6050_offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::robotics_observe_imu_contract();
-    CapabilityOffer {
-        startup_parameters: contract
-            .configuration
-            .iter()
-            .map(|field| FaceStartupParameter {
-                name: field.key.clone(),
-                value_type: match field.default_value {
-                    conduit_core::ConfigurationValue::Text(_) => "Text",
-                    conduit_core::ConfigurationValue::I64(_) => "Scalar",
-                    _ => unreachable!("IMU configuration is finite text/scalar"),
-                }
-                .into(),
-                has_default: true,
-            })
-            .collect(),
-        shorthand: None,
-        capability_id: CapabilityId::from(MPU6050_CAPABILITY),
-        kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
-            conduit_semantic_catalog::ROBOTICS_OBSERVE_IMU_REVISION,
-        ),
-        implementation: ImplementationOffer {
+    BackOfferBuilder::new(
+        conduit_semantic_catalog::robotics_semantic_contract(
+            conduit_semantic_catalog::ROBOTICS_OBSERVE_IMU_KIND,
+        )
+        .expect("IMU observation is a registered robotics contract"),
+        Back {
+            capability_id: CapabilityId::from(MPU6050_CAPABILITY),
             execution_profile_id: ExecutionProfileId::from(MPU6050_PROFILE),
             implementation_id: ImplementationId::from(MPU6050_IMPLEMENTATION),
             artifact_id: ArtifactId::from(MPU6050_ARTIFACT),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(MPU6050_OPERATION),
+                target_kind: Some(conduit_core::kind_id(
+                    conduit_robotics::ROBOTICS_ORIENTATION_INFO_ID,
+                )),
+                maximum_in_flight: 1,
+                maximum_input_bytes: 0,
+                maximum_output_bytes: ROBOTICS_ORIENTATION_ENCODED_LEN as u32,
+            }],
+            resource_requirements: vec![
+                resource_requirement(I2C_BASE_RESOURCE, 1),
+                resource_requirement(MPU6050_ATTACHMENT_RESOURCE, 1),
+                resource_requirement(MPU6050_SESSION_RESOURCE, 1),
+            ],
+            authority_requirements: Vec::new(),
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(MPU6050_OPERATION),
-            target_kind: Some(conduit_core::kind_id(
-                conduit_robotics::ROBOTICS_ORIENTATION_INFO_ID,
-            )),
-            maximum_in_flight: 1,
-            maximum_input_bytes: 0,
-            maximum_output_bytes: ROBOTICS_ORIENTATION_ENCODED_LEN as u32,
-        }],
-        resource_requirements: vec![
-            resource_requirement(I2C_BASE_RESOURCE, 1),
-            resource_requirement(MPU6050_ATTACHMENT_RESOURCE, 1),
-            resource_requirement(MPU6050_SESSION_RESOURCE, 1),
-        ],
-        authority_requirements: Vec::new(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: ROBOTICS_ORIENTATION_ENCODED_LEN as u32,
-        },
-    }
+    )
+    .narrow_capacity(CapabilityLimits {
+        max_active_instances: 1,
+        max_queue_items: 1,
+        max_queue_bytes: ROBOTICS_ORIENTATION_ENCODED_LEN as u32,
+    })
+    .expect("MPU-6050 capacity narrows portable IMU semantics")
+    .build()
 }
 
 fn validate_evidence(evidence: &Mpu6050Evidence, now_tick: u64) -> Result<(), Mpu6050OfferRefusal> {

@@ -11,7 +11,7 @@ pub(super) fn expand_literal(
     environment: &BTreeMap<String, CanonicalStartupValue>,
     path: &[String],
     stack: &mut Vec<String>,
-    realization_backs: &mut Vec<conduit_core::RealizationBack>,
+    realization_backs: &mut Vec<conduit_core::FormBack>,
     depth: usize,
     gears: &mut Vec<CheckedGear>,
     connections: &mut Vec<CheckedConnection>,
@@ -33,10 +33,10 @@ pub(super) fn expand_literal(
     let gear = CheckedCanonicalGear {
         name: None,
         kind: "text/literal".to_string(),
-        startup_parameters: vec![crate::StartupParameterSignature {
+        startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "value".to_string(),
-            value_type: "Text".to_string(),
-            default: None,
+            value_type: conduit_core::kind_id("value/text"),
+            has_default: false,
         }],
         startup_bindings: vec![crate::CheckedStartupBinding {
             name: "value".to_string(),

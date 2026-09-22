@@ -1,7 +1,5 @@
-use conduit_core::{
-    kind_id, port_id, KindContractRevision, PortDescriptor, PortDirection, PortTemporal,
-};
-use conduit_form::{KindDefinition, ProfileCatalog};
+use conduit_core::{kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal};
+use conduit_form::{KindProjection, ProfileCatalog};
 use serde::Serialize;
 
 use super::super::CatalogError;
@@ -120,10 +118,10 @@ fn catalog() -> Result<ProfileCatalog, CatalogError> {
     Ok(catalog)
 }
 
-fn source(kind: &str, port: &str, info: &str) -> KindDefinition {
-    KindDefinition {
+fn source(kind: &str, port: &str, info: &str) -> KindProjection {
+    KindProjection {
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(format!("{kind}@1")),
+        kind_contract_revision: KindIdentity::from(format!("{kind}@1")),
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
             port_id: port_id(port),
@@ -131,7 +129,7 @@ fn source(kind: &str, port: &str, info: &str) -> KindDefinition {
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
         }],
-        configuration: Vec::new(),
+        configuration: Default::default(),
     }
 }
 

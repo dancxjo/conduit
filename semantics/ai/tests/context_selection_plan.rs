@@ -42,6 +42,7 @@ fn plan(source: &str) -> conduit_core::Plan {
         boot_id: BootId::from("boot/r3/1"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("host/r3@1"),
+        bases: vec![],
         resources: vec![],
         capabilities: vec![
             deterministic_rerank_offer("pid-rerank").unwrap(),
@@ -90,7 +91,7 @@ fn portable_fronts_are_typed_bounded_and_require_no_authority() {
     ] {
         assert_eq!(offer.limits.max_active_instances, 1);
         assert_eq!(offer.limits.max_queue_items, 1);
-        assert!(offer.host_operations.is_empty());
+        assert!(offer.host_calls.is_empty());
         assert!(offer.resource_requirements.is_empty());
         assert!(offer.authority_requirements.is_empty());
     }

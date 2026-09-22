@@ -36,6 +36,7 @@ fn host(name: &str, capability: CapabilityOffer, capacity_units: u32) -> HostAdv
         boot_id: BootId::from(format!("boot/{name}/1")),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from(format!("host/{name}@1")),
+        bases: vec![],
         resources: vec![resource_offer(
             &format!("pool/{name}/vector-index"),
             VECTOR_SEARCH_RESOURCE_CLASS,
@@ -101,7 +102,7 @@ fn one_authored_vector_search_plans_to_materially_distinct_exact_and_hnsw_backen
     assert_eq!(exact.configuration, approximate.configuration);
     assert_eq!(exact.inputs, approximate.inputs);
     assert_eq!(exact.outputs, approximate.outputs);
-    assert_eq!(exact.host_operations, approximate.host_operations);
+    assert_eq!(exact.host_calls, approximate.host_calls);
     assert_eq!(
         exact.resources[0].class_id,
         approximate.resources[0].class_id
@@ -142,7 +143,7 @@ fn one_authored_vector_search_plans_to_materially_distinct_exact_and_hnsw_backen
         .as_str()
         .contains("ef-search-16"));
     assert_eq!(
-        approximate.host_operations[0].contract_id.as_str(),
+        approximate.host_calls[0].contract_id.as_str(),
         VECTOR_SEARCH_OPERATION
     );
 

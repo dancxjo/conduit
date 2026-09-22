@@ -50,7 +50,7 @@ to the canon; changing an invariant requires an explicit architecture issue.
    port-specific; fan-out is explicit and atomic under pressure.
 6. All runtime storage and mandatory work are finite and admitted before play.
    Hosted profiles may allocate during preparation; play must not hide growth.
-7. Platform effects cross the generic admitted host-operation boundary.
+7. Platform effects cross the generic admitted Host Call boundary.
    Adapters do not become schedulers, planners, policy engines, or runtime truth.
 8. Availability, reachability, membership, trust, and authority remain distinct.
    Seeing an external subject is not permission to use it.
@@ -62,6 +62,14 @@ to the canon; changing an invariant requires an explicit architecture issue.
     behavior remain distinct and machine-readable, including in presentation.
 12. Compilation, simulation, browser execution, firmware execution, live
     transport, physical/HIL evidence, and human enactment prove different things.
+
+Canonical implementation vocabulary uses one noun at each altitude: a gear
+invokes a kind through its front; a host offers a back; a plan selects exact
+backs; a play advances in bounded steps; and a step may cross the host boundary
+with a host call. Host backs and Form backs share eligibility laws but retain
+their distinct realization and provenance facts. Reserve capability vocabulary
+for actual possession/authority, especially Base capabilities, rather than as a
+generic synonym for an implementation.
 
 ## Use the supported entrances
 

@@ -1,12 +1,15 @@
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use super::contract::{MAX_TEXT_BYTES, TEXT_PRESENTATION_VALUE_KIND};
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ConfigurationValue, ExecutionProfileId, ImplementationId, KindContractRevision, PlannedGear,
+    ConfigurationValue, ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear,
     PortDescriptor, PortDirection,
 };
-use conduit_form::{ConfigurationField, ConfigurationRule, KindDefinition, ProfileCatalog};
-use conduit_kernel::{OperationAction, PortId, ValueRef, ValueStorage};
+use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog};
+use conduit_kernel::{
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    PortId, ValueRef, ValueStorage,
+};
 
 pub(super) const TEST_TEXT_SOURCE_KIND: &str = "conduit-test/text-source";
 const TEST_TEXT_SOURCE_REVISION: &str = "conduit-test/text-source@1";
@@ -14,40 +17,44 @@ const TEST_TEXT_SOURCE_PROFILE: &str = "conduit-test/text-source-kernel@1";
 pub(super) const TEST_TEXT_SOURCE_IMPLEMENTATION: &str = "conduit-test/text-source-kernel@1";
 const TEST_TEXT_SOURCE_ARTIFACT: &str = "conduit-std-host/test-text-source@1";
 
-pub(super) static TEST_TEXT_SOURCE_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_TEXT_SOURCE_FACTORY: BackFactory = BackFactory {
     implementation_id: TEST_TEXT_SOURCE_IMPLEMENTATION,
     budget,
     prepare,
 };
 
-pub(super) struct TestTextSourceOperation {
+pub(super) struct TestTextSourceBack {
     pub(super) values: Vec<ValueRef>,
     pub(super) next: usize,
 }
 
-impl TestTextSourceOperation {
-    pub(super) fn emit_or_complete(&self) -> OperationAction {
-        self.values
-            .get(self.next)
-            .copied()
-            .map_or(OperationAction::Complete, |value| OperationAction::Emit {
-                port: PortId(0),
-                value,
-            })
+impl<const PORTS: usize> StepBack<PORTS> for TestTextSourceBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        let Some(value) = self.values.get(self.next).copied() else {
+            return StepOutcome::Complete;
+        };
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), value).expect("ready test text output");
+        self.next += 1;
+        StepOutcome::Progress
     }
 }
 
+impl TestTextSourceBack {}
+
 pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
+        startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "invalid".into(),
-            value_type: "Boolean".into(),
+            value_type: conduit_core::kind_id("value/bool"),
             has_default: true,
         }],
         shorthand: None,
         capability_id: CapabilityId::from("test-text-source"),
         kind_id: kind_id(TEST_TEXT_SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(TEST_TEXT_SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(TEST_TEXT_SOURCE_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(TEST_TEXT_SOURCE_PROFILE),
             implementation_id: ImplementationId::from(TEST_TEXT_SOURCE_IMPLEMENTATION),
@@ -55,7 +62,7 @@ pub(super) fn offer() -> CapabilityOffer {
         },
         inputs: Vec::new(),
         outputs: outputs(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -68,15 +75,15 @@ pub(super) fn offer() -> CapabilityOffer {
 
 pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(TEST_TEXT_SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from(TEST_TEXT_SOURCE_REVISION),
+            kind_contract_revision: KindIdentity::from(TEST_TEXT_SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: outputs(),
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "invalid".into(),
                 default_value: ConfigurationValue::Bool(false),
-                validation: ConfigurationRule::Any,
+                rule: KindConfigurationRule::Any,
             }],
         })
         .expect("test text source kind is unique");
@@ -102,6 +109,7 @@ fn invalid(placement: &PlannedGear) -> Result<bool, String> {
             ConfigurationValue::U64(_) => None,
             ConfigurationValue::Text(_) => None,
             ConfigurationValue::Structured(_) => None,
+            ConfigurationValue::Quantity(_) => None,
         })
         .ok_or_else(|| "test text source requires boolean invalid configuration".to_string())
 }
@@ -120,10 +128,10 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     invalid(placement).map(|_| ())
 }
 
-fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement)?;
     let (value_items, value_bytes) = if invalid(placement)? { (1, 1) } else { (1, 5) };
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items,
         value_bytes,
         host_requests: 0,
@@ -135,7 +143,7 @@ fn budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement)?;
     let payloads: &[&[u8]] = if invalid(placement)? {
         &[&[0xff]]
@@ -150,7 +158,8 @@ fn prepare(
                 .map_err(|error| format!("store test text: {error:?}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(InstalledOperation::TestTextSource(
-        TestTextSourceOperation { values, next: 0 },
-    ))
+    Ok(InstalledBack::TestTextSource(TestTextSourceBack {
+        values,
+        next: 0,
+    }))
 }

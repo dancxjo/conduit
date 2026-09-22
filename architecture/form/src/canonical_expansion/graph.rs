@@ -2,7 +2,7 @@ use super::*;
 
 pub(super) fn checked_front_ports<'a>(
     form: &'a CheckedCanonicalForm,
-    runtime_front: &'a conduit_core::CheckedFace,
+    runtime_front: &'a conduit_core::CheckedFront,
 ) -> BTreeMap<&'a str, (&'a crate::RuntimePort, &'a conduit_core::PortDescriptor)> {
     let descriptors = runtime_front
         .inputs()
@@ -28,7 +28,7 @@ pub(super) fn inline_key(gear: &CheckedCanonicalGear) -> String {
 pub(super) fn configuration(
     gear: &CheckedCanonicalGear,
     environment: &BTreeMap<String, CanonicalStartupValue>,
-    definition: &crate::KindDefinition,
+    definition: &crate::KindProjection,
 ) -> Result<Vec<conduit_core::ConfigurationEntry>, CanonicalExpansionDiagnostic> {
     for binding in &gear.startup_bindings {
         if definition
@@ -70,31 +70,41 @@ pub(super) fn configuration(
                 })
                 .and_then(|binding| substitute(&binding.value, environment))
                 .and_then(|value| {
-                    parse_configuration_value(&field.key, value, &field.validation)
+                    parse_configuration_value(&field.key, value, &field.rule)
                 })?;
-            let accepted = match (&field.validation, &value) {
-                (ConfigurationRule::Any, ConfigurationValue::Structured(_)) => false,
-                (ConfigurationRule::Any, _) => true,
+            let accepted = match (&field.rule, &value) {
+                (KindConfigurationRule::Any, ConfigurationValue::Structured(_)) => false,
+                (KindConfigurationRule::Any, _) => true,
                 (
-                    ConfigurationRule::U64Range { minimum, maximum },
+                    KindConfigurationRule::U64Range { minimum, maximum },
                     ConfigurationValue::U64(value),
                 ) => (*minimum..=*maximum).contains(value),
                 (
-                    ConfigurationRule::I64Range { minimum, maximum },
+                    KindConfigurationRule::I64Range { minimum, maximum },
                     ConfigurationValue::I64(value),
                 ) => (*minimum..=*maximum).contains(value),
                 (
-                    ConfigurationRule::DurationMillis { minimum, maximum },
+                    KindConfigurationRule::DurationMillis { minimum, maximum },
                     ConfigurationValue::U64(value),
                 ) => (*minimum..=*maximum).contains(value),
-                (ConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
+                (
+                    KindConfigurationRule::QuantityRange {
+                        minimum,
+                        maximum,
+                        canonical_unit,
+                    },
+                    ConfigurationValue::Quantity(value),
+                ) => value
+                    .convert(*canonical_unit)
+                    .is_ok_and(|value| (*minimum..=*maximum).contains(&value.value())),
+                (KindConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
                     value.len() <= *maximum as usize
                 }
-                (ConfigurationRule::TextOneOf { values }, ConfigurationValue::Text(value)) => {
+                (KindConfigurationRule::TextOneOf { values }, ConfigurationValue::Text(value)) => {
                     values.contains(value)
                 }
                 (
-                    ConfigurationRule::Structured { profile },
+                    KindConfigurationRule::Structured { profile },
                     ConfigurationValue::Structured(value),
                 ) => value.profile() == profile,
                 _ => false,
@@ -141,9 +151,9 @@ pub(super) fn pool_references(
 fn parse_configuration_value(
     name: &str,
     value: CanonicalStartupValue,
-    validation: &ConfigurationRule,
+    rule: &KindConfigurationRule,
 ) -> Result<ConfigurationValue, CanonicalExpansionDiagnostic> {
-    if let ConfigurationRule::Structured { profile } = validation {
+    if let KindConfigurationRule::Structured { profile } = rule {
         let CanonicalStartupValue::Structured(value) = value else {
             return Err(CanonicalExpansionDiagnostic::new(
                 "CND-FRM-039",
@@ -190,7 +200,16 @@ fn parse_configuration_value(
             format!("startup value '{name}' remains unresolved"),
         ));
     };
-    if matches!(validation, ConfigurationRule::DurationMillis { .. }) {
+    if matches!(rule, KindConfigurationRule::QuantityRange { .. }) {
+        conduit_core::Quantity::parse_form_literal(&literal)
+            .map(ConfigurationValue::Quantity)
+            .map_err(|_| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-041",
+                    format!("primitive startup quantity '{name}' is invalid"),
+                )
+            })
+    } else if matches!(rule, KindConfigurationRule::DurationMillis { .. }) {
         parse_duration_millis(&literal)
             .map(ConfigurationValue::U64)
             .ok_or_else(|| {
@@ -199,7 +218,7 @@ fn parse_configuration_value(
                     format!("primitive startup duration '{name}' is invalid or overflows"),
                 )
             })
-    } else if matches!(validation, ConfigurationRule::I64Range { .. }) {
+    } else if matches!(rule, KindConfigurationRule::I64Range { .. }) {
         parse_scalar_configuration(&literal)
             .map(ConfigurationValue::I64)
             .ok_or_else(|| {

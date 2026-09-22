@@ -1,4 +1,4 @@
-//! Supported proof-only entrance for one supplied PCM clip through ordinary Plan/Play.
+//! Supported proof-only entrance for one supplied PCM clip through ordinary plan/Play.
 
 use crate::{
     hosted_speech_recognition::WhisperSpeechAdapter, StdHost, StdHostComposition, StdHostConfig,

@@ -96,7 +96,7 @@ impl PatchbayApplication {
             | GuiAction::EnvironmentRemove(_)
             | GuiAction::EnvironmentSave
             | GuiAction::EnvironmentLink(_) => {
-                return Err("environment action is unavailable in the Form workspace".into())
+                return Err("environment action is unavailable in the form workspace".into())
             }
             GuiAction::PrewakeToggleWorkspace
             | GuiAction::PrewakeToggleHold
@@ -548,7 +548,7 @@ impl PatchbayApplication {
             {
                 let subject = self
                     .selected_graphical_subject()
-                    .ok_or("select a Gear before duplicating it")?;
+                    .ok_or("select a gear before duplicating it")?;
                 self.handle_gui_action(GuiAction::DuplicateGear(subject))?;
                 synchronize_linear_selection = false;
             }
@@ -559,7 +559,7 @@ impl PatchbayApplication {
             {
                 let subject = self
                     .selected_graphical_subject()
-                    .ok_or("select a Gear before grouping it")?;
+                    .ok_or("select a gear before grouping it")?;
                 let graph = self
                     .graphical_form
                     .as_ref()
@@ -572,7 +572,7 @@ impl PatchbayApplication {
             Key::Named(NamedKey::Delete) if !self.linear_view => {
                 let subject = self
                     .selected_graphical_subject()
-                    .ok_or("select a Gear or Cord before removing it")?;
+                    .ok_or("select a gear or Cord before removing it")?;
                 let action = match self
                     .graphical_form
                     .as_ref()
@@ -585,7 +585,7 @@ impl PatchbayApplication {
                     Some(patchbay_model::PatchbaySubjectKind::Cord) => {
                         GuiAction::RemoveCord(subject)
                     }
-                    _ => return Err("select a Gear or Cord before removing it".into()),
+                    _ => return Err("select a gear or Cord before removing it".into()),
                 };
                 self.handle_gui_action(action)?;
                 synchronize_linear_selection = false;
@@ -665,7 +665,7 @@ impl PatchbayApplication {
             }
             Key::Character(_) | Key::Named(NamedKey::Backspace) => {
                 self.publish_refusal(
-                    "Source is read-only; use semantic controls to author the Form",
+                    "Source is read-only; use semantic controls to author the form",
                 );
                 synchronize_linear_selection = false;
             }

@@ -1,14 +1,14 @@
 use conduit_core::{
-    port_id, KindContractRevision, KindId, PortDescriptor, PortDirection, PortTemporal,
+    port_id, KindId, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
     StructuredFieldType, StructuredInfoType,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
 };
 
 fn event_type(extra_field: bool) -> StructuredInfoType {
-    let count = StructuredInfoType::leaf(KindId::from("value/count@1")).unwrap();
+    let count = StructuredInfoType::leaf(KindId::from("value/count")).unwrap();
     let mut fields = vec![StructuredFieldType::new("pitch", count.clone()).unwrap()];
     if extra_field {
         fields.push(StructuredFieldType::new("velocity", count).unwrap());
@@ -70,7 +70,7 @@ fn ordinary_unregistered_port_kinds_keep_the_existing_exact_vocabulary() {
     let front = checked.forms[0].checked_front();
     let outputs = front.outputs();
     assert_eq!(outputs[0].value_kind.as_str(), "domain/custom@2");
-    assert_eq!(outputs[1].value_kind.as_str(), "value/text@1");
+    assert_eq!(outputs[1].value_kind.as_str(), "value/text");
 }
 
 #[test]
@@ -90,9 +90,9 @@ fn canonical_expansion_checks_the_resolved_profile_not_the_alias() {
     let source = "form source (\n event: MusicEvent >\n) {\n primitive: music/source\n primitive > event\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
 
-    let definition = |value_kind| KindDefinition {
+    let definition = |value_kind| KindProjection {
         kind_id: KindId::from("music/source"),
-        kind_contract_revision: KindContractRevision::from("music/source@1"),
+        kind_contract_revision: KindIdentity::from("music/source@1"),
         inputs: vec![],
         outputs: vec![PortDescriptor {
             port_id: port_id("event"),

@@ -20,7 +20,7 @@ pub struct EvidenceArgs {
 #[derive(Subcommand, Debug)]
 enum EvidenceCommand {
     /// Publish the bounded Home index after every front supplies exact evidence.
-    HomeCrossFace(HomeCrossFaceArgs),
+    HomeCrossFront(HomeCrossFrontArgs),
     /// Verify three independently born Bodies against one semantic Journey contract.
     ThreeBodyJourney(ThreeBodyJourneyArgs),
     /// Write the canonical exact-commit contract for the three-Body Journey.
@@ -38,7 +38,7 @@ enum EvidenceCommand {
 }
 
 #[derive(Args, Debug)]
-struct HomeCrossFaceArgs {
+struct HomeCrossFrontArgs {
     /// One conduit.evidence/home-front@1 receipt; exactly six distinct fronts are required.
     #[arg(long = "receipt", required = true)]
     receipts: Vec<PathBuf>,
@@ -65,7 +65,7 @@ struct ThreeBodyJourneyArgs {
     #[arg(long = "track", required = true)]
     tracks: Vec<PathBuf>,
 
-    /// New file that will receive the verified cross-Body index.
+    /// New file that will receive the verified cross-body index.
     #[arg(long, default_value = "target/journeys/three-bodies/index.json")]
     output: PathBuf,
 }
@@ -124,7 +124,7 @@ struct EvidenceGalleryArgs {
     #[arg(long)]
     hears_speaks_evidence_root: Option<PathBuf>,
 
-    /// Optional complete One Form, Two Fronts evidence for the same commit.
+    /// Optional complete One form, Two Fronts evidence for the same commit.
     #[arg(long)]
     two_fronts_evidence_root: Option<PathBuf>,
 
@@ -172,7 +172,7 @@ enum EvidenceResultArg {
 
 pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
-        EvidenceCommand::HomeCrossFace(args) => home_cross_front::run(args.receipts, args.output),
+        EvidenceCommand::HomeCrossFront(args) => home_cross_front::run(args.receipts, args.output),
         EvidenceCommand::ThreeBodyJourney(args) => {
             three_body_journey::run(args.commit, args.contract, args.tracks, args.output)
         }

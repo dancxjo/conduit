@@ -10,9 +10,43 @@ This document exists so that good ideas do not have to become immediate code mer
 
 The archive, the August reboot, and the current implementation are parts of one history. Code may be replaced while an idea survives; an idea may be retained while its first implementation is retired.
 
+## Writing the vocabulary
+
+Ontology terms are common nouns unless they are independently proper names.
+Write “a body has a face,” “a host offers an implementation,” and “a form is
+realized by a plan and play.” Preserve capitalization for actual names such as
+Conduit, ConduitOS, Patchbay, Tour, and Crèche, and for literal code identifiers
+such as `BodyId`, `CheckedFront`, and `Form`.
+
 ## The center
 
 > **forms describe meaning. hosts offer implementations. plans make realization exact.**
+
+The canonical execution vocabulary keeps one noun at each altitude:
+
+```text
+a gear invokes a kind through its front
+a host offers a back for that kind
+a plan chooses exact backs
+a play advances the plan in bounded steps
+a step may cross into host machinery with a host call
+```
+
+A `Kind` is the exact semantic contract: `KindId`, `KindIdentity`, callable
+Front, finite configuration contract, limits, and machine-readable semantic
+laws. An identity is not merely a human version label. `KindProjection` is the
+strictly smaller checker view used while checking authored Forms; it cannot be
+offered by a Host and is not a second Kind identity.
+
+A `Back` is realization truth, not another semantic contract. Host backs carry
+implementation, artifact, resource, authority, and host-boundary requirements.
+Form backs carry the exact source and checked form selected during expansion.
+They share the law “same Kind and same Front,” but remain distinct
+representations because their provenance and admission facts differ.
+
+“Capability” is reserved for possession/authority where that security meaning
+is real, such as `BaseCapability`. A Host advertisement may still serialize a
+capability offer for compatibility, but the offered realization is a Back.
 
 Conduit is a portable execution substrate for finite, typed flows of work.
 
@@ -64,8 +98,9 @@ CORD   typed semantic connection between compatible ports on gears
 INFO   shaped, typed data carried through cords
 RESOURCE bounded addressable content with explicit lifecycle and sharing obligations
 SIGNAL one particular info semantic or mechanism where explicitly named
-FRONT   stable visible semantic contract of a kind or form, including ports
-BACK   form that implements a front in Conduit terms
+FRONT   stable callable shape of a kind or form, including startup parameters and ports
+BACK    one Host- or Form-backed realization of a kind
+FACE   the body's semantic presentation surface, distinct from a callable front
 
 IMPL   platform-specific realization of a kind
 HOST   running software environment that makes truthful finite offers
@@ -137,9 +172,22 @@ An implementation must not possess materially more effect authority than the
 exact admitted realization it executes. General-purpose computation and
 continuous lifetime grant no filesystem, network, device, subprocess,
 credential, or other effect authority. Every concrete play remains finitely
-admitted, including its memory, queues, operations, resources, and mandatory
-work. resource containment is distinct from proving that every future step
-will fit or that a computation will terminate.
+admitted, including its memory, queues, Host Calls, resources, and mandatory
+work. A plan assigns every Back a finite fuel grant for each Step. Kernel-visible
+actions consume that grant automatically; cooperative private computation must
+consume it explicitly and may preserve an explicit continuation only by yielding
+after exhausting the grant. The scheduler regains control between Steps, so a
+long-running Play is a fair sequence of finite Steps rather than one short-lived
+computation.
+
+The cooperative contract is not hostile-code containment. A Back which may
+ignore fuel is eligible only behind a Host mechanism that can forcibly regain
+control, such as instruction fuel in the confined Wasm profile, a terminated
+browser Worker, an OS isolation boundary, a kernel timer/preemption boundary, or
+an enforceable MCU task/watchdog boundary. A target that has no such mechanism
+must reject that trust class rather than label elapsed wall time or native
+in-process goodwill as preemption. Resource containment is distinct from proving
+that every future Step will fit or that a computation will terminate.
 
 A grant identity describes authority; a serializable identity does not itself
 constitute unforgeable possession. The trusted enforcement boundary must
@@ -253,6 +301,22 @@ Every executable input and output has a port identity, direction, and value kind
 
 Fan-out is an explicit planned property. One emission is admitted atomically to the required branches or waits under pressure. The kernel never interprets an unqualified `emit` as broadcast to whatever happens to be connected.
 
+Authored and runtime numeric meaning uses four distinct layers. `Count` is a
+nonnegative cardinality, index, or finite whole-number count. `Scalar` is a
+dimensionless signed fixed-point value. `Quantity` is an exact integer paired
+with a reviewed physical or dimensional unit; startup configuration retains
+that value and unit through checking, planning, and realization. A domain Info
+record supplies the surrounding context—such as frame, source, freshness, or
+provenance—and may contain or expose Quantities without collapsing into one.
+Targets refuse incompatible or inexact conversion rather than reconstructing a
+unit from a parameter name.
+
+`CharacteristicUnit` is narrower realization-selection vocabulary for finite
+offer characteristics and preserves the ownership and stability law of those
+offers. Count-like domains such as tokens, frames, items, and identifiers may
+remain there. It is not a second author-facing physical-unit catalog and must
+not grow new physical dimensions that belong to `QuantityUnit`.
+
 ### Bounded before play start
 
 Before a play starts, the host knows and admits the finite shape needed for execution:
@@ -261,14 +325,14 @@ Before a play starts, the host knows and admits the finite shape needed for exec
 - values and bytes;
 - cords and routes;
 - queue items and buffered bytes;
-- timers and host-operation concurrency;
+- timers and Host Call concurrency;
 - resource reservations;
 - mandatory sign storage;
 - cancellation and terminal bookkeeping.
 
 Hosted profiles may use heap-backed storage before play start. Constrained profiles may use fixed arenas. Neither may conceal unbounded growth, discovery, retry, string lookup, graph scanning, or queue creation in an admitted hot path.
 
-### Generic host operations
+### Generic Host Calls
 
 Operations request exact admitted host work such as waiting, presenting a value, reading a resource, writing a resource, or later invoking a device action.
 
@@ -479,7 +543,7 @@ These ideas are current, load-bearing direction and have executable implementati
 - source, checked, expanded, plan, play, sign, and presentation identity separation;
 - typed named ports and explicit fan-out;
 - bounded port-aware `conduit-kernel` execution;
-- generic host operations;
+- generic Host Calls;
 - exact resource, authority, and observed-link planning contracts;
 - lossless source retention and located diagnostics;
 - inline nested forms and named composite fronts;

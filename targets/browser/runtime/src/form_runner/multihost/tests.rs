@@ -161,7 +161,7 @@ fn firefly_stale_peer_input_refuses_without_admission() {
     stale.sequence = 1;
     assert_eq!(
         follower.ingest(*stale).unwrap_err(),
-        "multi-Host Line frame does not match the exact planned identity"
+        "multi-host Line frame does not match the exact planned identity"
     );
 }
 
@@ -180,7 +180,7 @@ fn firefly_line_pressure_keeps_one_pulse_in_flight() {
     ));
     assert_eq!(
         sender.ingest(*accepted_frame).unwrap_err(),
-        "multi-Host Line frame arrived in the wrong exact lifecycle phase"
+        "multi-host Line frame arrived in the wrong exact lifecycle phase"
     );
 }
 
@@ -284,10 +284,10 @@ fn exact_plan_admission_refuses_a_stale_sink_boot_before_play() {
     let exact = super::plan::prepare("browser/a", "boot/a", "browser/b", "boot/b", SOURCE).unwrap();
     let error = super::plan::accept(exact.plan, "browser/b", "boot/stale")
         .err()
-        .expect("the exact Plan must not move to a stale Boot");
+        .expect("the exact plan must not move to a stale Boot");
     assert_eq!(
         error,
-        "received multi-Host Plan does not name this exact sink Host and Boot"
+        "received multi-host Plan does not name this exact sink Host and Boot"
     );
 }
 
@@ -301,7 +301,7 @@ fn wrong_boot_frame_refuses_before_remote_admission_and_cancel_is_distinct() {
     value.sink_boot_id.push_str("/stale");
     assert_eq!(
         sink.ingest(*value).unwrap_err(),
-        "multi-Host Line frame does not match the exact planned identity"
+        "multi-host Line frame does not match the exact planned identity"
     );
     match source.cancel().unwrap() {
         Output::Receipt { receipt, .. } => {

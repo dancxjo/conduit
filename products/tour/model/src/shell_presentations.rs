@@ -119,7 +119,7 @@ impl TourWorkspaceState {
         .map_err(|_| "tour-workspace-presentation-refused")
     }
 
-    /// Auxiliary inspection meaning for the selected Gear. Its relationship
+    /// Auxiliary inspection meaning for the selected gear. Its relationship
     /// to the workspace lives in Presentation rather than compositor state.
     pub fn inspector_presentation(&self) -> Result<Option<Presentation>, &'static str> {
         let Some(gear) = self.selected_patchbay_subject.as_deref() else {

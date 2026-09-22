@@ -1,12 +1,12 @@
 use conduit_core::{
     kind_id, port_id, ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ConfigurationValue, ExecutionProfileId, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, KindContractRevision, OfferGeneration, PortDescriptor,
-    PortDirection, PROTOCOL_VERSION,
+    HostProfileId, ImplementationId, KindIdentity, OfferGeneration, PortDescriptor, PortDirection,
+    PROTOCOL_VERSION,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationField,
-    ConfigurationRule, KindDefinition, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
 use conduit_planner::{
@@ -55,24 +55,24 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
 
     let mut profile = ProfileCatalog::new();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("text/source"),
-            kind_contract_revision: KindContractRevision::from("text/source@1"),
+            kind_contract_revision: KindIdentity::from("text/source@1"),
             inputs: vec![],
             outputs: vec![port("text", PortDirection::Output)],
             configuration: vec![],
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("text/join"),
-            kind_contract_revision: KindContractRevision::from("text/join@1"),
+            kind_contract_revision: KindIdentity::from("text/join@1"),
             inputs: vec![port("text", PortDirection::Input)],
             outputs: vec![port("text", PortDirection::Output)],
-            configuration: vec![ConfigurationField {
+            configuration: vec![KindConfigurationField {
                 key: "prefix".into(),
                 default_value: ConfigurationValue::U64(1),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: 8,
                 },
@@ -80,9 +80,9 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
         })
         .unwrap();
     profile
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("presentation/text"),
-            kind_contract_revision: KindContractRevision::from("presentation/text@1"),
+            kind_contract_revision: KindIdentity::from("presentation/text@1"),
             inputs: vec![port("text", PortDirection::Input)],
             outputs: vec![],
             configuration: vec![],
@@ -113,22 +113,22 @@ form welcome {
     expand_canonical_form(&checked, "welcome", &profile).expect("reusable form expands")
 }
 
-fn offer(definition: &KindDefinition) -> CapabilityOffer {
+fn offer(definition: &KindProjection) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
     CapabilityOffer {
         startup_parameters: definition
             .configuration
             .iter()
-            .map(|field| conduit_core::FaceStartupParameter {
+            .map(|field| conduit_core::FrontStartupParameter {
                 name: field.key.clone(),
-                value_type: match field.default_value {
-                    ConfigurationValue::Bool(_) => "Boolean",
-                    ConfigurationValue::I64(_) => "Scalar",
-                    ConfigurationValue::U64(_) => "Count",
-                    ConfigurationValue::Text(_) => "Text",
+                value_type: kind_id(match field.default_value {
+                    ConfigurationValue::Bool(_) => "value/bool",
+                    ConfigurationValue::I64(_) => "value/scalar",
+                    ConfigurationValue::U64(_) => "value/count",
+                    ConfigurationValue::Text(_) => "value/text",
                     ConfigurationValue::Structured(ref value) => value.profile().as_str(),
-                }
-                .into(),
+                    ConfigurationValue::Quantity(_) => conduit_core::QUANTITY_INFO_ID,
+                }),
                 has_default: true,
             })
             .collect(),
@@ -143,7 +143,7 @@ fn offer(definition: &KindDefinition) -> CapabilityOffer {
         },
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
-        host_operations: vec![],
+        host_calls: vec![],
         resource_requirements: vec![],
         authority_requirements: vec![],
         limits: CapabilityLimits {
@@ -162,6 +162,7 @@ fn host() -> HostAdvertisement {
         boot_id: BootId::from("std-boot"),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test/host"),
+        bases: vec![],
         resources: vec![],
         capabilities: ["text/source", "text/join", "presentation/text"]
             .into_iter()
@@ -172,7 +173,7 @@ fn host() -> HostAdvertisement {
 }
 
 #[test]
-fn nested_form_terminates_only_in_exact_planned_host_operation_leaves() {
+fn nested_form_terminates_only_in_exact_planned_host_call_leaves() {
     let expanded = expanded();
     assert_eq!(
         expanded
@@ -266,7 +267,73 @@ fn explicit_form_completion_reaches_the_exact_plan() {
 }
 
 #[test]
-fn equal_front_with_different_name_and_revision_is_compatible() {
+fn default_queues_fit_selected_offers_but_explicit_excess_still_refuses() {
+    let expanded = expanded();
+    let mut host = host();
+    for offer in &mut host.capabilities {
+        offer.limits.max_queue_items = 1;
+        offer.limits.max_queue_bytes = 32;
+    }
+    let hosts = [host];
+    let placements = default_expanded_placements(&expanded, &hosts).unwrap();
+    let bases = [BaseImplementationId::from("conduit.base/local@1")];
+    let plan = plan_expanded_canonical(&expanded, &hosts, &placements, &bases).unwrap();
+    for cord in plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.connections)
+    {
+        assert_eq!(cord.item_capacity, 1);
+        assert_eq!(cord.byte_capacity, 32);
+    }
+    let empty = BTreeMap::new();
+    let lines = BTreeMap::new();
+    let result = conduit_planner::plan_expanded_canonical_with_options(
+        &expanded,
+        &hosts,
+        &placements,
+        &bases,
+        conduit_planner::PlanningOptions {
+            connection_bases: &empty,
+            line_candidates: &lines,
+            connection_item_capacity: 4,
+            connection_byte_capacity: 64,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    );
+    assert!(matches!(
+        result,
+        Err(PlannerError::QueueRequirementAboveHostLimit(_))
+    ));
+}
+
+#[test]
+fn default_queues_refuse_zero_capacity_as_insufficient_host_limits() {
+    let expanded = expanded();
+    for (items, bytes) in [(0, 64), (4, 0)] {
+        let mut host = host();
+        let placements = default_expanded_placements(&expanded, &[host.clone()]).unwrap();
+        for offer in &mut host.capabilities {
+            offer.limits.max_queue_items = items;
+            offer.limits.max_queue_bytes = bytes;
+        }
+        let result = plan_expanded_canonical(
+            &expanded,
+            &[host],
+            &placements,
+            &[BaseImplementationId::from("conduit.base/local@1")],
+        );
+        assert!(matches!(
+            result,
+            Err(PlannerError::QueueRequirementAboveHostLimit(_))
+        ));
+    }
+}
+
+#[test]
+fn equal_front_and_identity_cannot_substitute_a_different_kind() {
     let expanded = expanded();
     let mut wrong_kind = host();
     let join = wrong_kind
@@ -275,19 +342,10 @@ fn equal_front_with_different_name_and_revision_is_compatible() {
         .find(|capability| capability.kind_id.as_str() == "text/join")
         .unwrap();
     join.kind_id = kind_id("text/coincident-shape");
-    let placements = default_expanded_placements(&expanded, std::slice::from_ref(&wrong_kind))
-        .expect("different nominal gear with the same front is compatible");
-    let plan = plan_expanded_canonical(
-        &expanded,
-        std::slice::from_ref(&wrong_kind),
-        &placements,
-        &[BaseImplementationId::from("conduit.base/local@1")],
-    )
-    .unwrap();
-    assert!(plan.fragments[0].placements.iter().any(|placement| {
-        placement.kind_id.as_str() == "text/coincident-shape"
-            && placement.implementation_id.as_str() == "std/text-join"
-    }));
+    assert!(matches!(
+        default_expanded_placements(&expanded, std::slice::from_ref(&wrong_kind)),
+        Err(PlannerError::UnknownCapability(kind)) if kind == "text/join"
+    ));
 
     let mut wrong_revision = host();
     wrong_revision
@@ -295,9 +353,8 @@ fn equal_front_with_different_name_and_revision_is_compatible() {
         .iter_mut()
         .find(|capability| capability.kind_id.as_str() == "text/join")
         .unwrap()
-        .kind_contract_revision = KindContractRevision::from("text/join@2");
-    default_expanded_placements(&expanded, &[wrong_revision])
-        .expect("front-preserving revision is compatible");
+        .kind_contract_revision = KindIdentity::from("text/join@2");
+    assert!(default_expanded_placements(&expanded, &[wrong_revision]).is_err());
 }
 
 #[test]

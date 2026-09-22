@@ -7,9 +7,9 @@ use crate::{
     PlanFragment,
 };
 
-/// One exact Host-offered execution optimization over ordinary semantic
+/// One exact host-offered execution optimization over ordinary semantic
 /// placements and Cords. The referenced placements and connections remain in
-/// the Plan and retain the kernel's typed pressure, cancellation, and Sign
+/// the plan and retain the kernel's typed pressure, cancellation, and Sign
 /// semantics; this record permits an implementation to realize them as one
 /// local execution unit without creating a second semantic graph.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

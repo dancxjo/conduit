@@ -113,7 +113,7 @@ test("exact x86_64 product IMAGE obtains and binds as a downloadable spore witho
   expect(nativeIso.contentDigest).toBe(evidence.binding.spore_artifact.content_digest);
   expect(evidence).toMatchObject({ realization: null, observation: null, admission: null });
   expect(authority).toEqual([]);
-  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await runner.getByRole("button", { name: "Realize selected host" }).click();
   await expect(runner.locator("details code")).toContainText('"terminal": "UnavailableWriter"');
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence).toMatchObject({ realization: null, observation: null, admission: null });
@@ -133,7 +133,7 @@ test("catalog exposes every reviewed ConduitOS product Host and keeps carriers e
 });
 
 for (const target of PROMOTED) {
-  test(`${target.architecture} product IMAGE is selectable and Body-bound with exact target truth`, async ({ page }) => {
+  test(`${target.architecture} product IMAGE is selectable and body-bound with exact target truth`, async ({ page }) => {
     const release = await installRelease(page, target.manifest);
     const runner = await birthBody(page);
     await runner.locator('[data-application-key="physical-target"]').selectOption(target.id);

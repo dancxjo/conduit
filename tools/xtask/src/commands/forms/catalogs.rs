@@ -1,4 +1,4 @@
-//! Catalog assembly for checking the reviewed portable Form inventory.
+//! Catalog assembly for checking the reviewed portable form inventory.
 
 pub(super) fn catalogs(
 ) -> Result<(conduit_form::StartupCatalog, conduit_form::ProfileCatalog), String> {
@@ -52,13 +52,16 @@ pub(super) fn catalogs(
     conduit_semantic_catalog::install_purpose_catalogs(&mut startup, &mut profile)?;
     conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
     conduit_data::install_tabular_catalogs(&mut startup, &mut profile)?;
-    conduit_data::install_finance_catalogs(&mut startup, &mut profile)?;
+    conduit_finance::install_finance_catalogs(&mut startup, &mut profile)?;
     conduit_data::install_measurement_window_catalog(&mut startup, &mut profile)?;
     conduit_data::install_measurement_summary_catalog(&mut startup, &mut profile)?;
     conduit_data::install_measurement_threshold_catalog(&mut startup, &mut profile)?;
     conduit_data::install_measurement_plot_catalog(&mut startup, &mut profile)?;
     conduit_data::install_measurement_observation_catalog(&mut startup, &mut profile)?;
-    conduit_data::install_little_seismograph_fixture_catalog(&mut startup, &mut profile)?;
+    conduit_little_seismograph_fixture::install_little_seismograph_fixture_catalog(
+        &mut startup,
+        &mut profile,
+    )?;
     conduit_data::install_measurement_plot_form_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_job_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_application_network_catalogs(&mut startup, &mut profile)?;
@@ -92,12 +95,12 @@ pub(super) fn catalogs(
         &conduit_semantic_catalog::pattern_comparison_type(),
     );
     profile
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: comparison_presentation.kind_id,
             kind_contract_revision: comparison_presentation.kind_contract_revision,
             inputs: comparison_presentation.inputs,
             outputs: comparison_presentation.outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|error| error.to_string())?;
     conduit_alife::install_lenia_catalogs(&mut startup, &mut profile)?;
@@ -112,6 +115,10 @@ pub(super) fn catalogs(
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_model_text_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_generate_text_catalog(&mut startup, &mut profile)?;
+    conduit_workspace_model::tutorial_presenter::install_tutorial_presenter_catalog(
+        &mut startup,
+        &mut profile,
+    )?;
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_form_catalog(&mut startup, &mut profile)?;
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile)?;

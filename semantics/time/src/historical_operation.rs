@@ -20,7 +20,7 @@ pub enum HistoricalOperationRefusal {
 }
 
 /// Owns one already-admitted semantic history. Commands and snapshots cross
-/// the exact value contracts named by the checked Form; storage realization
+/// the exact value contracts named by the checked form; storage realization
 /// and scheduling remain outside this operation.
 pub struct BoundedHistoricalOperation {
     timeline: BoundedHistoricalTimeline,

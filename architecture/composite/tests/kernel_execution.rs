@@ -5,13 +5,13 @@ use conduit_composite::{
 use conduit_core::{
     kind_id, process_owned_line_offer, ArtifactId, BaseImplementationId, BootId, CapabilityId,
     CapabilityLimits, CapabilityOffer, FailureReason, GearId, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, KindContractRevision, OfferGeneration, PlannedGear,
-    PortDescriptor, PortDirection, ValuePayload, PROTOCOL_VERSION,
+    HostProfileId, ImplementationId, KindIdentity, OfferGeneration, PlannedGear, PortDescriptor,
+    PortDirection, ValuePayload, PROTOCOL_VERSION,
 };
-use conduit_form::{parse, KindDefinition, ProfileCatalog};
-use conduit_kernel::{
-    HostedValueStore, Operation, OperationAction, OperationInput, PortId as KernelPortId,
-};
+use conduit_form::{parse, KindProjection, ProfileCatalog};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
+use conduit_kernel::{HostedValueStore, PortId as KernelPortId};
+use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use std::collections::BTreeMap;
 
@@ -31,9 +31,9 @@ fn descriptor(name: &str, direction: PortDirection) -> PortDescriptor {
 fn catalog() -> ProfileCatalog {
     let mut catalog = ProfileCatalog::new();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(ECHO_KIND),
-            kind_contract_revision: KindContractRevision::from("test/kernel-composite-echo@1"),
+            kind_contract_revision: KindIdentity::from("test/kernel-composite-echo@1"),
             inputs: vec![descriptor("in", PortDirection::Input)],
             outputs: vec![descriptor("out", PortDirection::Output)],
             configuration: vec![],
@@ -49,6 +49,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("test/kernel-composite"),
+        bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
@@ -56,7 +57,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
             shorthand: None,
             capability_id: CapabilityId::from("echo"),
             kind_id: kind_id(ECHO_KIND),
-            kind_contract_revision: KindContractRevision::from("test/kernel-composite-echo@1"),
+            kind_contract_revision: KindIdentity::from("test/kernel-composite-echo@1"),
             implementation: conduit_core::ImplementationOffer {
                 execution_profile_id: "test/kernel-composite@1".into(),
                 implementation_id: IMPLEMENTATION.into(),
@@ -64,7 +65,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
             },
             inputs: vec![descriptor("in", PortDirection::Input)],
             outputs: vec![descriptor("out", PortDirection::Output)],
-            host_operations: vec![],
+            host_calls: vec![],
             resource_requirements: vec![],
             authority_requirements: vec![],
             limits: CapabilityLimits {
@@ -164,7 +165,7 @@ impl KernelOperationFactory for EchoFactory {
         &self,
         _placement: &PlannedGear,
         _values: &mut HostedValueStore,
-    ) -> Result<Box<dyn Operation + Send>, String> {
+    ) -> Result<Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String> {
         if self.fail {
             Ok(Box::new(Fail))
         } else {
@@ -177,32 +178,46 @@ struct Echo;
 
 struct Fail;
 
-impl Operation for Fail {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Fail(conduit_kernel::Failure {
+impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for Fail {
+    fn step(
+        &mut self,
+        _io: &mut StepIo<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+        _input_bytes: &StepInputBytes<'_, { FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+    ) -> StepOutcome {
+        StepOutcome::Fail(conduit_kernel::Failure {
             code: conduit_kernel::FailureCode::InvalidLifecycle,
             detail: 17,
         })
     }
-
-    fn resume(&mut self, _input: OperationInput) -> OperationAction {
-        OperationAction::Await
-    }
 }
 
-impl Operation for Echo {
-    fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value { value, .. } => OperationAction::Emit {
-                port: KernelPortId(0),
-                value,
-            },
-            OperationInput::Closed { .. } => OperationAction::Complete,
-            _ => OperationAction::Await,
+impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for Echo {
+    fn step(
+        &mut self,
+        io: &mut StepIo<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+        _input_bytes: &StepInputBytes<'_, { FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+    ) -> StepOutcome {
+        if let Some(value) = io.input(KernelPortId(0)) {
+            if !io.output_ready(KernelPortId(0)) {
+                return StepOutcome::Await;
+            }
+            if io.consume(KernelPortId(0)).is_err() || io.send(KernelPortId(0), value).is_err() {
+                return StepOutcome::Fail(conduit_kernel::Failure {
+                    code: conduit_kernel::FailureCode::InvalidLifecycle,
+                    detail: 18,
+                });
+            }
+            StepOutcome::Progress
+        } else if io.input_closed(KernelPortId(0)) {
+            if io.consume_closed(KernelPortId(0)).is_err() {
+                return StepOutcome::Fail(conduit_kernel::Failure {
+                    code: conduit_kernel::FailureCode::InvalidLifecycle,
+                    detail: 19,
+                });
+            }
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Await
         }
     }
 }

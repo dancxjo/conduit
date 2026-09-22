@@ -6,12 +6,12 @@ use super::test_logic;
 use super::test_midi_source;
 use super::test_scalar_flow;
 use super::test_text_source;
-use super::tick_operations::{TEST_OBSERVER_IMPLEMENTATION, TEST_OBSERVER_KIND};
+use super::tick_backs::{TEST_OBSERVER_IMPLEMENTATION, TEST_OBSERVER_KIND};
 use conduit_core::{
-    kind_id, present_host_operation_requirement, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, KindContractRevision, PortDescriptor, PortDirection,
+    kind_id, present_host_call_requirement, ArtifactId, CapabilityId, CapabilityLimits,
+    CapabilityOffer, ExecutionProfileId, KindIdentity, PortDescriptor, PortDirection,
 };
-use conduit_form::KindDefinition;
+use conduit_form::KindProjection;
 
 const TEST_OBSERVER_REVISION: &str = "conduit-test/tick-observer@1";
 const TEST_OBSERVER_PROFILE: &str = "conduit-test/tick-observer-kernel@1";
@@ -23,7 +23,7 @@ pub(crate) fn test_observer_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-tick-observer"),
         kind_id: kind_id(TEST_OBSERVER_KIND),
-        kind_contract_revision: KindContractRevision::from(TEST_OBSERVER_REVISION),
+        kind_contract_revision: KindIdentity::from(TEST_OBSERVER_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(TEST_OBSERVER_PROFILE),
             implementation_id: conduit_core::ImplementationId::from(TEST_OBSERVER_IMPLEMENTATION),
@@ -36,7 +36,7 @@ pub(crate) fn test_observer_offer() -> CapabilityOffer {
             temporal: conduit_core::PortTemporal::Flow { closes: true },
         }],
         outputs: Vec::new(),
-        host_operations: vec![present_host_operation_requirement(
+        host_calls: vec![present_host_call_requirement(
             kind_id("conduit-test/tick-observation"),
             TICK_ENCODED_LEN,
         )],
@@ -56,12 +56,12 @@ pub(crate) fn test_observer_offer() -> CapabilityOffer {
 pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
     let mut catalog = contract::test_tick_catalog();
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id(TEST_OBSERVER_KIND),
-            kind_contract_revision: KindContractRevision::from(TEST_OBSERVER_REVISION),
+            kind_contract_revision: KindIdentity::from(TEST_OBSERVER_REVISION),
             inputs: test_observer_offer().inputs,
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .expect("test observer kind is distinct from typed tick");
     test_text_source::install_catalog(&mut catalog);
@@ -106,27 +106,27 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut catalog)
         .expect("sound catalogs are exact and unique");
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("conduit-test/presentation-sink"),
-            kind_contract_revision: KindContractRevision::from("conduit-test/presentation-sink@1"),
+            kind_contract_revision: KindIdentity::from("conduit-test/presentation-sink@1"),
             inputs: test_presentation_sink_offer().inputs,
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .expect("presentation sink is unique");
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("conduit-test/graphics-sink"),
-            kind_contract_revision: KindContractRevision::from("conduit-test/graphics-sink@1"),
+            kind_contract_revision: KindIdentity::from("conduit-test/graphics-sink@1"),
             inputs: test_graphics_sink_offer().inputs,
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .expect("graphics sink is unique");
     catalog
-        .insert(KindDefinition {
+        .insert(KindProjection {
             kind_id: kind_id("conduit-test/layout-sink"),
-            kind_contract_revision: KindContractRevision::from("conduit-test/layout-sink@1"),
+            kind_contract_revision: KindIdentity::from("conduit-test/layout-sink@1"),
             inputs: vec![PortDescriptor {
                 port_id: conduit_core::port_id("in"),
                 value_kind: kind_id(conduit_presentation::LAYOUT_FRAME_KIND),
@@ -134,7 +134,7 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
                 temporal: conduit_core::PortTemporal::Value,
             }],
             outputs: Vec::new(),
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .expect("layout sink is unique");
     conduit_semantic_catalog::install_robotics_catalogs(&mut startup, &mut catalog)
@@ -148,7 +148,7 @@ pub(crate) fn test_layout_sink_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-layout-sink"),
         kind_id: kind_id("conduit-test/layout-sink"),
-        kind_contract_revision: KindContractRevision::from("conduit-test/layout-sink@1"),
+        kind_contract_revision: KindIdentity::from("conduit-test/layout-sink@1"),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from("conduit-test/layout-sink-kernel@1"),
             implementation_id: conduit_core::ImplementationId::from(
@@ -163,7 +163,7 @@ pub(crate) fn test_layout_sink_offer() -> CapabilityOffer {
             temporal: conduit_core::PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -180,7 +180,7 @@ pub(crate) fn test_presentation_sink_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-presentation-sink"),
         kind_id: kind_id("conduit-test/presentation-sink"),
-        kind_contract_revision: KindContractRevision::from("conduit-test/presentation-sink@1"),
+        kind_contract_revision: KindIdentity::from("conduit-test/presentation-sink@1"),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
                 "conduit-test/presentation-sink-kernel@1",
@@ -197,7 +197,7 @@ pub(crate) fn test_presentation_sink_offer() -> CapabilityOffer {
             temporal: conduit_core::PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -214,7 +214,7 @@ pub(crate) fn test_graphics_sink_offer() -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from("test-graphics-sink"),
         kind_id: kind_id("conduit-test/graphics-sink"),
-        kind_contract_revision: KindContractRevision::from("conduit-test/graphics-sink@1"),
+        kind_contract_revision: KindIdentity::from("conduit-test/graphics-sink@1"),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from("conduit-test/graphics-sink-kernel@1"),
             implementation_id: conduit_core::ImplementationId::from(
@@ -229,7 +229,7 @@ pub(crate) fn test_graphics_sink_offer() -> CapabilityOffer {
             temporal: conduit_core::PortTemporal::Value,
         }],
         outputs: Vec::new(),
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {

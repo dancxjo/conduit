@@ -8,7 +8,7 @@ use conduit_form::{
 };
 
 fn structured_catalog() -> StartupCatalog {
-    let count = StructuredInfoType::leaf(KindId::from("value/count@1")).unwrap();
+    let count = StructuredInfoType::leaf(KindId::from("value/count")).unwrap();
     let pitches = StructuredInfoType::collection(count.clone(), Some(3)).unwrap();
     let note = StructuredInfoType::record(
         KindId::from("music/note-on@1"),
@@ -81,6 +81,25 @@ fn quantity_catalog() -> StartupCatalog {
     catalog
 }
 
+fn sequence_catalog() -> StartupCatalog {
+    let count = StructuredInfoType::leaf(KindId::from("value/count")).unwrap();
+    let mut catalog = StartupCatalog::new();
+    catalog
+        .insert_structured_type("Counts", StructuredInfoType::sequence(count, 4).unwrap())
+        .unwrap();
+    catalog
+        .insert(KindSignature {
+            kind: "test/consume-counts".into(),
+            startup_parameters: vec![StartupParameterSignature {
+                name: "counts".into(),
+                value_type: "Counts".into(),
+                default: None,
+            }],
+        })
+        .unwrap();
+    catalog
+}
+
 fn check(source: &str) -> conduit_form::CheckedSyntaxDocument {
     let parsed = parse_syntax_document(source);
     check_syntax_document(&parsed, &structured_catalog()).expect("structured Form checks")
@@ -98,6 +117,23 @@ fn collection_record_and_variant_literals_become_one_concrete_f0_value() {
     };
 
     assert!(value.try_concrete().is_some());
+}
+
+#[test]
+fn bounded_sequence_literals_keep_actual_length_in_checked_values() {
+    for source in [
+        "form counts {\n sink: test/consume-counts([])\n}\n",
+        "form counts {\n sink: test/consume-counts([1, 2, 3])\n}\n",
+    ] {
+        let parsed = parse_syntax_document(source);
+        let checked = check_syntax_document(&parsed, &sequence_catalog()).unwrap();
+        let CanonicalStartupValue::Structured(value) =
+            &checked.forms[0].gears[0].startup_bindings[0].value
+        else {
+            panic!("sequence literal must become one checked structured value");
+        };
+        assert!(value.try_concrete().is_some());
+    }
 }
 
 #[test]
@@ -203,15 +239,15 @@ fn collection_length_leaf_type_and_runtime_port_fail_distinctly() {
     let cases = [
         (
             "note_on({ pitches: [60, 62], velocity: 96 })",
-            "exact type requires 3",
+            "requires exactly 3",
         ),
         (
             "note_on({ pitches: [60, \"wrong\", 64], velocity: 96 })",
-            "incompatible with exact leaf kind 'value/count@1'",
+            "incompatible with exact leaf kind 'value/count'",
         ),
         (
             "note_on({ pitches: [60, 62, 64], velocity: 18446744073709551616 })",
-            "incompatible with exact leaf kind 'value/count@1'",
+            "incompatible with exact leaf kind 'value/count'",
         ),
     ];
     for (expression, message) in cases {

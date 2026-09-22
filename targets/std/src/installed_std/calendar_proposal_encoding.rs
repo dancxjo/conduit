@@ -34,7 +34,7 @@ pub(crate) fn encode(proposal: &MeetingProposal) -> Result<Vec<u8>, String> {
             ),
             (
                 "identity",
-                conduit_semantic_catalog::leaf_value("value/text@1", &proposal.identity)?,
+                conduit_semantic_catalog::leaf_value("value/text", &proposal.identity)?,
             ),
             ("reference_at", instant(&proposal.reference_at)?),
             (
@@ -63,7 +63,7 @@ pub(crate) fn encode(proposal: &MeetingProposal) -> Result<Vec<u8>, String> {
                                             (
                                                 "participant_identity",
                                                 conduit_semantic_catalog::leaf_value(
-                                                    "value/text@1",
+                                                    "value/text",
                                                     &conflict.participant_identity,
                                                 )?,
                                             ),
@@ -84,7 +84,7 @@ pub(crate) fn encode(proposal: &MeetingProposal) -> Result<Vec<u8>, String> {
                                     (
                                         "candidate_identity",
                                         conduit_semantic_catalog::leaf_value(
-                                            "value/text@1",
+                                            "value/text",
                                             &rejected.candidate_identity,
                                         )?,
                                     ),
@@ -117,12 +117,12 @@ fn proposed_slot(value: &conduit_time::ProposedMeetingSlot) -> Result<Structured
         vec![
             (
                 "candidate_identity",
-                conduit_semantic_catalog::leaf_value("value/text@1", &value.candidate_identity)?,
+                conduit_semantic_catalog::leaf_value("value/text", &value.candidate_identity)?,
             ),
             ("interval", window(&value.interval)?),
             (
                 "rationale",
-                conduit_semantic_catalog::leaf_value("value/text@1", &value.rationale)?,
+                conduit_semantic_catalog::leaf_value("value/text", &value.rationale)?,
             ),
             (
                 "tentative_participants",
@@ -153,29 +153,20 @@ fn instant(value: &TemporalInstant) -> Result<StructuredInfoValue, String> {
         vec![
             (
                 "basis",
-                conduit_semantic_catalog::leaf_value("value/text@1", &value.clock_basis)?,
+                conduit_semantic_catalog::leaf_value("value/text", &value.clock_basis)?,
             ),
             (
                 "resolution_ticks",
-                conduit_semantic_catalog::leaf_value(
-                    "value/count@1",
-                    &value.resolution_ticks.to_string(),
-                )?,
+                conduit_semantic_catalog::count_value(value.resolution_ticks)?,
             ),
             (
                 "scale",
                 conduit_semantic_catalog::leaf_value("time/scale@1", scale_name(value.scale))?,
             ),
-            (
-                "ticks",
-                conduit_semantic_catalog::leaf_value("value/count@1", &value.ticks.to_string())?,
-            ),
+            ("ticks", conduit_semantic_catalog::count_value(value.ticks)?),
             (
                 "uncertainty_ticks",
-                conduit_semantic_catalog::leaf_value(
-                    "value/count@1",
-                    &value.uncertainty_ticks.to_string(),
-                )?,
+                conduit_semantic_catalog::count_value(value.uncertainty_ticks)?,
             ),
         ],
     )
@@ -193,7 +184,7 @@ fn string_slots(
         tag,
         values
             .iter()
-            .map(|value| conduit_semantic_catalog::leaf_value("value/text@1", value))
+            .map(|value| conduit_semantic_catalog::leaf_value("value/text", value))
             .collect::<Result<Vec<_>, _>>()?,
     )
 }
@@ -223,7 +214,7 @@ fn value_slots(
             StructuredInfoValue::variant(
                 element.clone(),
                 "unused",
-                conduit_semantic_catalog::leaf_value("value/unit@1", "")?,
+                conduit_semantic_catalog::leaf_value("value/unit", "")?,
             )
             .map_err(|error| format!("calendar unused slot refusal: {error:?}"))?,
         );

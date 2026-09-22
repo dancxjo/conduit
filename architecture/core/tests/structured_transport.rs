@@ -1,7 +1,7 @@
 use conduit_core::{
-    decode_structured_transport, encode_structured_transport, KindId, StructuredFieldType,
-    StructuredFieldValue, StructuredInfoTransportRefusal, StructuredInfoType, StructuredInfoValue,
-    StructuredVariantCase, MAXIMUM_STRUCTURED_TRANSPORT_BYTES,
+    decode_structured_transport, encode_count, encode_structured_transport, KindId,
+    StructuredFieldType, StructuredFieldValue, StructuredInfoTransportRefusal, StructuredInfoType,
+    StructuredInfoValue, StructuredVariantCase, MAXIMUM_STRUCTURED_TRANSPORT_BYTES,
 };
 
 fn leaf_type(kind: &str) -> StructuredInfoType {
@@ -16,8 +16,8 @@ fn music_type() -> StructuredInfoType {
     let note = StructuredInfoType::record(
         KindId::from("music/note@1"),
         vec![
-            StructuredFieldType::new("pitch", leaf_type("value/count@1")).unwrap(),
-            StructuredFieldType::new("velocity", leaf_type("value/count@1")).unwrap(),
+            StructuredFieldType::new("pitch", leaf_type("value/count")).unwrap(),
+            StructuredFieldType::new("velocity", leaf_type("value/count")).unwrap(),
         ],
     )
     .unwrap();
@@ -38,8 +38,8 @@ fn music_value() -> StructuredInfoValue {
     let note = StructuredInfoValue::record(
         note_type,
         vec![
-            StructuredFieldValue::new("velocity", leaf("value/count@1", &[96])).unwrap(),
-            StructuredFieldValue::new("pitch", leaf("value/count@1", &[60])).unwrap(),
+            StructuredFieldValue::new("velocity", leaf("value/count", &encode_count(96))).unwrap(),
+            StructuredFieldValue::new("pitch", leaf("value/count", &encode_count(60))).unwrap(),
         ],
     )
     .unwrap();
@@ -50,8 +50,8 @@ fn llm_type() -> StructuredInfoType {
     StructuredInfoType::record(
         KindId::from("llm/extraction@1"),
         vec![
-            StructuredFieldType::new("confidence", leaf_type("value/count@1")).unwrap(),
-            StructuredFieldType::new("text", leaf_type("value/text@1")).unwrap(),
+            StructuredFieldType::new("confidence", leaf_type("value/count")).unwrap(),
+            StructuredFieldType::new("text", leaf_type("value/text")).unwrap(),
         ],
     )
     .unwrap()
@@ -61,11 +61,32 @@ fn llm_value() -> StructuredInfoValue {
     StructuredInfoValue::record(
         llm_type(),
         vec![
-            StructuredFieldValue::new("text", leaf("value/text@1", b"bounded answer")).unwrap(),
-            StructuredFieldValue::new("confidence", leaf("value/count@1", &[91])).unwrap(),
+            StructuredFieldValue::new("text", leaf("value/text", b"bounded answer")).unwrap(),
+            StructuredFieldValue::new("confidence", leaf("value/count", &encode_count(91)))
+                .unwrap(),
         ],
     )
     .unwrap()
+}
+
+#[test]
+fn bounded_sequence_round_trips_through_transport_with_actual_length() {
+    let element = leaf_type("value/count");
+    let ty = StructuredInfoType::sequence(element, 5).unwrap();
+    let value = StructuredInfoValue::sequence(
+        ty.clone(),
+        vec![
+            leaf("value/count", &encode_count(7)),
+            leaf("value/count", &encode_count(8)),
+        ],
+    )
+    .unwrap();
+    let encoded =
+        encode_structured_transport(&value, MAXIMUM_STRUCTURED_TRANSPORT_BYTES as u32).unwrap();
+    assert_eq!(
+        decode_structured_transport(&ty, &encoded, MAXIMUM_STRUCTURED_TRANSPORT_BYTES as u32,),
+        Ok(value)
+    );
 }
 
 #[test]
@@ -94,8 +115,8 @@ fn semantic_profile_is_shape_derived_and_not_authored_alias_text() {
     let reordered = StructuredInfoType::record(
         KindId::from("llm/extraction@1"),
         vec![
-            StructuredFieldType::new("text", leaf_type("value/text@1")).unwrap(),
-            StructuredFieldType::new("confidence", leaf_type("value/count@1")).unwrap(),
+            StructuredFieldType::new("text", leaf_type("value/text")).unwrap(),
+            StructuredFieldType::new("confidence", leaf_type("value/count")).unwrap(),
         ],
     )
     .unwrap();

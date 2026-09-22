@@ -13,9 +13,9 @@ export function registerFireflyMultiHostTests(openStep) {
     await runner.getByRole("button", { name: "Run across two Hosts" }).click();
 
     const status = runner.locator('[data-application-key="play-status"]');
-    await expect(status).toContainText("4 delivered cross-Host values");
+    await expect(status).toContainText("4 delivered cross-host values");
     await runner.getByRole("button", { name: "Stop", exact: true }).click();
-    await expect(status).toContainText(/cancelled after \d+ delivered cross-Host values/);
+    await expect(status).toContainText(/cancelled after \d+ delivered cross-host values/);
     const delivered = Number((await status.textContent()).match(/after (\d+) delivered/)?.[1]);
     expect(delivered).toBeGreaterThanOrEqual(4);
     await expect(runner.locator(".morse")).toContainText("period 262 ms");
@@ -35,7 +35,7 @@ export function registerFireflyMultiHostTests(openStep) {
     await expect(plan).toContainText("1 item / 4096 bytes");
 
     const run = runner.locator(".run-identities");
-    await expect(run).toContainText("Active Play");
+    await expect(run).toContainText("Active play");
     await expect(run).toContainText("Presentation");
     await expect(run).toContainText("Terminal source receipt");
     await expect(run).toContainText("Terminal sink receipt");

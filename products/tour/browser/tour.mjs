@@ -391,7 +391,7 @@ function selectLaboratoryStage(stage, stages, reveal = false) {
     ? createMultiHostRunner(stage.source, stage.showPlan, stage.identity)
     : createRunner(stage.source, stage.recursive, {
       faceBack: stage.faceBack,
-      runLabel: stage.faceBack ? "Run this Form" : "Run",
+      runLabel: stage.faceBack ? "Run this form" : "Run",
       sourceKey: stage.identity,
       outputProfile: stage.outputProfile,
       reviewedStage: stage.checkedFormId ? stage : null,
@@ -408,11 +408,11 @@ function retireActiveLaboratory() {
   laboratory.dataset.retirementDisposition = "cancelled";
 }
 
-function createCrecheCallToAction(label = "Birth a Body") {
+function createCrecheCallToAction(label = "Birth a body") {
   const callout = document.createElement("aside");
   callout.className = "creche-handoff";
   const explanation = document.createElement("p");
-  explanation.textContent = "Name a Body in the Crèche, choose its Forms, and arrive with them already listening.";
+  explanation.textContent = "Name a body in the Crèche, choose its forms, and arrive with them already listening.";
   const link = document.createElement("a");
   const configuredUrl = document.querySelector('meta[name="conduit-creche-url"]')?.content.trim();
   if (!configuredUrl) throw new Error("Tour has no configured Crèche entrance");
@@ -457,7 +457,7 @@ function createRunner(source, recursive = false, presentation = {}) {
       <output class="morse" aria-label="Planned result">ready</output>
       <div data-application-slot="${statusSlot}"></div>
       <details class="exact-evidence"><summary>Inspect exact evidence</summary>
-        <h3>Checked Form</h3><div class="exact-projection" data-application-slot="${exactSlot}"></div>
+        <h3>Checked form</h3><div class="exact-projection" data-application-slot="${exactSlot}"></div>
         <h3>Latest run</h3><div class="run-identities" data-application-slot="${runSlot}"></div><div class="expansion"></div>
       </details>
     </div>`;
@@ -501,7 +501,7 @@ function createRunner(source, recursive = false, presentation = {}) {
     const patchbay = runner.querySelector(".compact-patchbay");
     if (patchbay.dataset.sourceDocumentId !== presentation.reviewedStage.sourceDocumentId
       || patchbay.dataset.checkedFormId !== presentation.reviewedStage.checkedFormId) {
-      throw new Error("Gallery source does not project its exact reviewed Form identity");
+      throw new Error("Gallery source does not project its exact reviewed form identity");
     }
     runner.dataset.reviewedCheckedFormId = presentation.reviewedStage.checkedFormId;
   }
@@ -533,10 +533,10 @@ function createMultiHostRunner(source, showPlan, sourceKey) {
     </div>
     <div class="runner-divider runner-divider-vertical"><input class="pane-divider-control pane-divider-control-vertical tour-source-width" type="range" min="40" max="75" step="1" value="60" aria-label="Source width" aria-valuetext="60 percent"></div>
     <div class="result multi-host-result">
-      <p class="proof-boundary" data-application-component="proof-boundary"><strong>Browser-runtime proof.</strong> Two ephemeral browser Hosts use one planned in-memory Line. No durable Body membership, trust, authority, rejoin, or household is claimed.</p>
+      <p class="proof-boundary" data-application-component="proof-boundary"><strong>Browser-runtime proof.</strong> Two ephemeral browser Hosts use one planned in-memory Line. No durable body membership, trust, authority, rejoin, or household is claimed.</p>
       <div class="host-map" aria-label="Two independent browser Hosts">
         <article class="host-card host-a"><span>Host A · source</span><strong>waiting</strong><code class="host-id"></code><code class="boot-id"></code></article>
-        <div class="planned-line" aria-label="One planned cross-Host Cord"><span>typed Cord</span><b>→</b><small>1 item · finite bytes</small></div>
+        <div class="planned-line" aria-label="One planned cross-host Cord"><span>typed Cord</span><b>→</b><small>1 item · finite bytes</small></div>
         <article class="host-card host-b"><span>Host B · presentation</span><strong>waiting</strong><code class="host-id"></code><code class="boot-id"></code></article>
       </div>
       <h2>Planned result on Host B</h2>
@@ -545,9 +545,9 @@ function createMultiHostRunner(source, showPlan, sourceKey) {
       <output class="morse" aria-label="Planned result">ready</output>
       <div data-application-slot="${statusSlot}"></div>
       <details class="exact-evidence plan-view-details"><summary>Inspect exact evidence</summary>
-        <h3>Checked Form</h3><div class="exact-projection" data-application-slot="${exactSlot}"></div>
+        <h3>Checked form</h3><div class="exact-projection" data-application-slot="${exactSlot}"></div>
         <h3>Latest run</h3><div class="run-identities" data-application-slot="${runSlot}"></div><div class="expansion"></div>
-        <h3>Exact Plan for this Play</h3><div class="plan-view" data-application-slot="${planSlot}"></div>
+        <h3>Exact plan for this play</h3><div class="plan-view" data-application-slot="${planSlot}"></div>
       </details>
     </div>`;
   runner.querySelector(".plan-view-details").dataset.includesPlan = String(showPlan);
@@ -575,7 +575,7 @@ function createMultiHostRunner(source, showPlan, sourceKey) {
     }),
   );
   runner.playStatus = createTourRunnerStatus(
-    runnerPresentation, statusSlot, "Run the Form to start two independent browser Hosts.",
+    runnerPresentation, statusSlot, "Run the form to start two independent browser Hosts.",
   );
   runner.evidence = createTourEvidenceTables(runnerPresentation, exactSlot, runSlot);
   runner.planEvidence = createTourPlanPresentation(runnerPresentation, planSlot);
@@ -586,12 +586,12 @@ function createMultiHostRunner(source, showPlan, sourceKey) {
 
 function compactPatchbayFrame() {
   return `<figure class="compact-patchbay" aria-label="Patchbay" data-truth-source="${COMPACT_PATCHBAY_CONTRACT.truthSource}" data-operation-mode="${COMPACT_PATCHBAY_CONTRACT.operationMode}" data-operation-vocabulary="${COMPACT_PATCHBAY_CONTRACT.operationVocabulary}" data-supported-operations="${COMPACT_PATCHBAY_CONTRACT.supportedOperations.join(" ")}">
-    <figcaption><span>Checked Form projection · inspection only</span><strong>Checking source…</strong></figcaption>
+    <figcaption><span>Checked form projection · inspection only</span><strong>Checking source…</strong></figcaption>
     <div class="tour-flow-root" aria-label="Real Patchbay canvas"></div>
     <ol class="compact-patchbay-text" aria-label="Ordered textual equivalent" hidden></ol>
-    <section class="gear-back-expansion" hidden aria-label="Reviewed Form Back topology">
-      <header><strong>Inside this Gear</strong><button type="button" class="close-gear-back">Return to Front</button></header>
-      <div class="tour-flow-root gear-back-flow" aria-label="Reviewed Form Back Patchbay topology"></div>
+    <section class="gear-back-expansion" hidden aria-label="Reviewed form Back topology">
+      <header><strong>Inside this gear</strong><button type="button" class="close-gear-back">Return to Front</button></header>
+      <div class="tour-flow-root gear-back-flow" aria-label="Reviewed form Back Patchbay topology"></div>
     </section>
   </figure>`;
 }
@@ -762,7 +762,7 @@ class BrowserMemoryLine {
   transfer(frame, targetApi) {
     if (this.pending !== null) throw new Error("browser-memory Line pressure: one item is already in flight");
     if (!Array.isArray(frame.payload) || frame.payload.length > this.maximumPayloadBytes) {
-      throw new Error("browser-memory Line payload exceeds its exact Plan bound");
+      throw new Error("browser-memory Line payload exceeds its exact plan bound");
     }
     const encoded = encoder.encode(JSON.stringify(frame));
     if (encoded.length > this.maximumFrameBytes || encoded.length > targetApi.conduit_tour_multi_input_capacity()) {
@@ -842,14 +842,14 @@ async function runMultiHostListing(runner, source) {
         const api = host.runtime;
         const play = encoder.encode(sourceProgress.timer.active_play_id);
         if (play.length > api.conduit_tour_multi_input_capacity()) {
-          throw new Error("multi-Host timer Play identity exceeds its admitted completion bound");
+          throw new Error("multi-host timer Play identity exceeds its admitted completion bound");
         }
         new Uint8Array(api.memory.buffer, api.conduit_tour_multi_input_ptr(), play.length).set(play);
         const code = api.conduit_tour_multi_complete_timer(
           play.length,
           sourceProgress.timer.request_sequence,
         );
-        if (code < 0) throw new Error(`multi-Host timer completion refused (${code})`);
+        if (code < 0) throw new Error(`multi-host timer completion refused (${code})`);
         sourceProgress = readMultiOutput(api);
         continue;
       }
@@ -857,8 +857,8 @@ async function runMultiHostListing(runner, source) {
         const api = host.runtime;
         let bytes;
         const deliverySuffix = deliveredCount === 0 ? "" : deliveredCount === 1
-          ? " One delivered cross-Host value; the same Play remains active."
-          : ` ${deliveredCount} delivered cross-Host values; the same Play remains active.`;
+          ? " One delivered cross-host value; the same play remains active."
+          : ` ${deliveredCount} delivered cross-host values; the same play remains active.`;
         if (sourceProgress.input.effect_kind === "key-event") {
           runner.playStatus.ordinary(`Waiting for one admitted keyboard transition on Host A…${deliverySuffix}`);
           const event = await humanInput.nextKeyboard();
@@ -873,7 +873,7 @@ async function runMultiHostListing(runner, source) {
           if (encodedCode < 0) throw new Error(`button transition encoding refused (${encodedCode})`);
           bytes = new Uint8Array(api.memory.buffer, api.conduit_browser_form_output_ptr(), api.conduit_browser_form_output_len()).slice();
         } else {
-          throw new Error(`unsupported multi-Host input effect ${sourceProgress.input.effect_kind}`);
+          throw new Error(`unsupported multi-host input effect ${sourceProgress.input.effect_kind}`);
         }
         const play = encoder.encode(sourceProgress.input.active_play_id);
         if (bytes.length > sourceProgress.input.maximum_output_bytes || play.length + bytes.length > api.conduit_tour_multi_input_capacity()) {
@@ -883,7 +883,7 @@ async function runMultiHostListing(runner, source) {
         completion.set(play);
         completion.set(bytes, play.length);
         const code = api.conduit_tour_multi_complete_input(play.length, sourceProgress.input.request_sequence, bytes.length);
-        if (code < 0) throw new Error(`multi-Host input completion refused (${code})`);
+        if (code < 0) throw new Error(`multi-host input completion refused (${code})`);
         sourceProgress = readMultiOutput(api);
         continue;
       }
@@ -914,8 +914,8 @@ async function runMultiHostListing(runner, source) {
       sourceProgress = line.transfer(delivered.frame, host.runtime);
       deliveredCount += 1;
       runner.playStatus.ordinary(deliveredCount === 1
-        ? "Running — one delivered cross-Host value; the same Play is still listening."
-        : `Running — ${deliveredCount} delivered cross-Host values; the same Play is still listening.`);
+        ? "Running — one delivered cross-host value; the same play is still listening."
+        : `Running — ${deliveredCount} delivered cross-host values; the same play is still listening.`);
     }
     if (sourceProgress.frame?.phase !== "close") throw new Error("source did not close its planned Cord");
     const terminal = line.transfer(sourceProgress.frame, peer.runtime);
@@ -927,8 +927,8 @@ async function runMultiHostListing(runner, source) {
     renderHostCard(runner, "b", peer, "completed");
     const count = sourceReceipt.receipt.transferred_values;
     runner.playStatus.success(count === 1
-      ? "Completed — one immutable Plan, two independent Plays, one delivered cross-Host value."
-      : `Completed — one immutable Plan, two independent Plays, ${count} delivered cross-Host values.`);
+      ? "Completed — one immutable Plan, two independent Plays, one delivered cross-host value."
+      : `Completed — one immutable Plan, two independent Plays, ${count} delivered cross-host values.`);
     appendRunEvidence(runner, [
       ["Terminal source receipt", sourceReceipt.receipt.terminal_sign_id],
       ["Terminal sink receipt", terminal.receipt.terminal_sign_id],
@@ -945,13 +945,13 @@ async function runMultiHostListing(runner, source) {
 
 function admitMultiSource(api, sourceBytes, sequence) {
   if (sourceBytes.length > api.conduit_tour_multi_input_capacity()) {
-    throw new Error("The listing exceeds the admitted multi-Host input bound.");
+    throw new Error("The listing exceeds the admitted multi-host input bound.");
   }
   new Uint8Array(api.memory.buffer, api.conduit_tour_multi_input_ptr(), sourceBytes.length).set(sourceBytes);
   const code = api.conduit_tour_multi_admit_source_interaction(sourceBytes.length, BigInt(sequence));
   if (code < 0) {
     const refusal = api.conduit_tour_multi_output_len() > 0 ? readMultiOutput(api) : null;
-    throw new Error(refusal?.message ?? `multi-Host source interaction refused (${code})`);
+    throw new Error(refusal?.message ?? `multi-host source interaction refused (${code})`);
   }
 }
 
@@ -960,7 +960,7 @@ function startMultiSource(api, sourceHost, sinkHost, sourceBytes, sequence) {
     .map((value) => encoder.encode(value));
   const total = fields.reduce((sum, field) => sum + field.length, sourceBytes.length);
   if (total > api.conduit_tour_multi_input_capacity()) {
-    throw new Error("multi-Host start frame exceeds its admitted input bound");
+    throw new Error("multi-host start frame exceeds its admitted input bound");
   }
   const input = new Uint8Array(api.memory.buffer, api.conduit_tour_multi_input_ptr(), total);
   let offset = 0;
@@ -980,8 +980,8 @@ function startMultiSource(api, sourceHost, sinkHost, sourceBytes, sequence) {
   if (code < 0) {
     const refusal = api.conduit_tour_multi_output_len() > 0 ? readMultiOutput(api) : null;
     throw new Error(refusal?.message
-      ? `The Form was refused before multi-Host Play · ${refusal.category}: ${refusal.message}`
-      : `multi-Host Play start refused (${code})`);
+      ? `The form was refused before multi-host Play · ${refusal.category}: ${refusal.message}`
+      : `multi-host Play start refused (${code})`);
   }
   return readMultiOutput(api);
 }
@@ -991,7 +991,7 @@ function startMultiSink(api, sinkHost, plan, sequence) {
     .map((value) => encoder.encode(value));
   const total = fields.reduce((sum, field) => sum + field.length, 0);
   if (total > api.conduit_tour_multi_input_capacity()) {
-    throw new Error("exact multi-Host Plan exceeds its admitted sink input bound");
+    throw new Error("exact multi-host Plan exceeds its admitted sink input bound");
   }
   const input = new Uint8Array(api.memory.buffer, api.conduit_tour_multi_input_ptr(), total);
   let offset = 0;
@@ -1008,8 +1008,8 @@ function startMultiSink(api, sinkHost, plan, sequence) {
   if (code < 0) {
     const refusal = api.conduit_tour_multi_output_len() > 0 ? readMultiOutput(api) : null;
     throw new Error(refusal?.message
-      ? `Host B refused the exact Plan before Play · ${refusal.message}`
-      : `multi-Host sink Plan admission refused (${code})`);
+      ? `Host B refused the exact plan before Play · ${refusal.message}`
+      : `multi-host sink Plan admission refused (${code})`);
   }
   return readMultiOutput(api);
 }
@@ -1098,8 +1098,8 @@ async function runListing(runner, source, recursive) {
   if (code < 0) {
     const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
     runner.playStatus.failure(refusal?.message
-      ? `The Form was refused before Play · ${refusal.category}: ${refusal.message}`
-      : `The Form was refused before Play (${code}).`);
+      ? `The form was refused before Play · ${refusal.category}: ${refusal.message}`
+      : `The form was refused before Play (${code}).`);
     api.conduit_tour_application_apply(8);
     return;
   }
@@ -1128,18 +1128,18 @@ async function runListing(runner, source, recursive) {
           ? `Waiting for planned tick · ${timer.duration_millis} ms${button ? " and button transition" : ""}`
           : pointer ? "Click a horizontal position on the controller to choose a pitch."
             : button ? "Waiting for one admitted button transition…"
-            : `Waiting for ${pending.length} admitted Host effect(s)…`);
+            : `Waiting for ${pending.length} admitted host effect(s)…`);
       },
     });
     if (current !== generation) return;
     if (progress.disposition === "quiescent_awaiting_input") {
       setLifecycleDisposition(runner, "quiescent_awaiting_input");
       runner.playStatus.ordinary(progress.timer_completions > 0
-        ? `Quiescent — same Play remains attached after ${progress.timer_completions} planned ticks and ${progress.manifestation_completions} presentations.`
-        : `Quiescent — same Play remains attached after ${progress.manifestation_completions} planned manifestations.`);
+        ? `Quiescent — same play remains attached after ${progress.timer_completions} planned ticks and ${progress.manifestation_completions} presentations.`
+        : `Quiescent — same play remains attached after ${progress.manifestation_completions} planned manifestations.`);
       appendRunEvidence(runner, [
         ["Lifecycle", "QuiescentAwaitingInput"],
-        ["Active Play", progress.active_play_id],
+        ["Active play", progress.active_play_id],
         ["Timer completions", String(progress.timer_completions)],
         ["Manifestation completions", String(progress.manifestation_completions)],
       ]);
@@ -1221,7 +1221,7 @@ function stopListing(runner) {
       ["Terminal source receipt", multiReceipts.source.receipt.terminal_sign_id],
       ["Terminal sink receipt", multiReceipts.sink.receipt.terminal_sign_id],
     ]);
-    runner.playStatus.ordinary(`Stopped. The Plays were cancelled after ${count} delivered cross-Host value${count === 1 ? "" : "s"}.`);
+    runner.playStatus.ordinary(`Stopped. The plays were cancelled after ${count} delivered cross-host value${count === 1 ? "" : "s"}.`);
   } else if (receipt?.disposition === "cancelled") {
     appendRunEvidence(runner, [
       ["Lifecycle", "Cancelled"],
@@ -1229,9 +1229,9 @@ function stopListing(runner) {
       ["Timer completions", String(receipt.timer_completions)],
       ["Manifestation completions", String(receipt.manifestation_completions)],
     ]);
-    runner.playStatus.ordinary(`Stopped. The Play was cancelled at ${receipt.terminal_sign_id}.`);
+    runner.playStatus.ordinary(`Stopped. The play was cancelled at ${receipt.terminal_sign_id}.`);
   } else {
-    runner.playStatus.ordinary("Stopped. The Play was cancelled.");
+    runner.playStatus.ordinary("Stopped. The play was cancelled.");
   }
 }
 

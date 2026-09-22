@@ -103,7 +103,7 @@ test("Orange Pi 5 becomes an exact bare-metal ConduitOS SD spore", async ({ page
     mbrMagic: [0x55, 0xaa], bytes: release.artifact.bytes + 4096,
     provision: { image_bytes: release.artifact.bytes, spore: { spore_id: evidence.binding.spore_id, body_id: evidence.binding.body_id } },
   });
-  await runner.getByRole("button", { name: "Realize selected Host" }).click();
+  await runner.getByRole("button", { name: "Realize selected host" }).click();
   await expect(runner.locator("details code")).toContainText('"terminal": "AbsentWriter"');
 });
 

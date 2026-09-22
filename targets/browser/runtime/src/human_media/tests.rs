@@ -33,7 +33,7 @@ fn offer() -> MediaAcquisitionOffer {
         boot_id: BootId::from("boot/one"),
         offer_generation: OfferGeneration(1),
         kind: HumanMediaKind::Camera,
-        operation_contract: conduit_core::HostOperationContractId::from("acquire"),
+        operation_contract: conduit_core::HostCallContractId::from("acquire"),
         request_authority_contract: AuthorityContractId::from("request"),
         known_permission: KnownPermissionState::Prompt,
         maximum_in_flight: 1,
@@ -53,7 +53,7 @@ fn authority() -> MediaAcquisitionAuthority {
 
 fn request() -> MediaAcquisitionRequest {
     MediaAcquisitionRequest {
-        operation_id: HostOperationId::from("acquire/one"),
+        operation_id: HostCallId::from("acquire/one"),
         constraints: constraints(),
         flow_bounds: bounds(),
     }
@@ -88,7 +88,7 @@ fn playing() -> BrowserMediaSession {
     session.start_acquisition().unwrap();
     session
         .complete_acquisition(
-            &HostOperationId::from("acquire/one"),
+            &HostCallId::from("acquire/one"),
             128,
             MediaAcquisitionResult::Acquired(resource()),
         )
@@ -200,7 +200,7 @@ fn authority_correlation_bounds_and_late_loss_are_distinct() {
     session.start_acquisition().unwrap();
     assert_eq!(
         session.complete_acquisition(
-            &HostOperationId::from("wrong"),
+            &HostCallId::from("wrong"),
             64,
             MediaAcquisitionResult::Denied
         ),
@@ -237,7 +237,7 @@ fn every_acquisition_terminal_remains_distinct() {
             .unwrap();
         session.start_acquisition().unwrap();
         session
-            .complete_acquisition(&HostOperationId::from("acquire/one"), 32, result)
+            .complete_acquisition(&HostCallId::from("acquire/one"), 32, result)
             .unwrap();
         terminals.push(session.phase().clone());
     }

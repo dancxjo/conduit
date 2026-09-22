@@ -57,7 +57,7 @@ fn invalid_replacement_preserves_the_original_play_and_pending_effect() {
 
     for (admitted, proposed, expected) in [
         ("one", "two", ERROR_INTERACTION),
-        ("not a Form", "not a Form", ERROR_PREPARE),
+        ("not a form", "not a form", ERROR_PREPARE),
     ] {
         INPUT.with(|input| {
             input.borrow_mut()[..admitted.len()].copy_from_slice(admitted.as_bytes())

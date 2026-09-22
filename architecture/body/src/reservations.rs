@@ -1,7 +1,7 @@
-//! Finite cumulative reservations against one exact Body resource envelope.
+//! Finite cumulative reservations against one exact body resource envelope.
 //!
-//! This ledger owns Body-quota accounting only. It does not prepare a Host,
-//! start a Play, or replace the Host adapter's concrete resource reservation.
+//! This ledger owns Body-quota accounting only. It does not prepare a host,
+//! start a play, or replace the host adapter's concrete resource reservation.
 
 use alloc::vec::Vec;
 use conduit_core::{
@@ -13,7 +13,7 @@ use crate::{
     BodyPlan, BodyResourceEnvelope, BodyResourceEnvelopeError, BodyResourceEnvelopeId, ResidentForm,
 };
 
-/// Maximum number of exact Plans concurrently retained by one envelope ledger.
+/// Maximum number of exact plans concurrently retained by one envelope ledger.
 pub const MAX_BODY_RESOURCE_RESERVATIONS: usize = 64;
 pub const MAX_BODY_RESOURCE_BINDINGS: usize = 256;
 
@@ -97,7 +97,7 @@ impl BodyResourceReservationLedger {
             .fold(0u32, |total, reserved| total.saturating_add(reserved.units))
     }
 
-    /// Atomically admits one Plan's Body quota reservations.
+    /// Atomically admits one plan's Body quota reservations.
     ///
     /// `requests` retains each original requirement beside its exact selected
     /// binding. Current observations remain external mutable truth; this
@@ -188,10 +188,10 @@ impl BodyResourceReservationLedger {
         Ok(())
     }
 
-    /// Atomically admits the combined resource demand of every Form partition
-    /// in one sealed Body-wide Plan. Every Plan Form occurs exactly once,
+    /// Atomically admits the combined resource demand of every form partition
+    /// in one sealed body-wide Plan. Every plan Form occurs exactly once,
     /// including Forms with no requests, before demand is flattened and keyed
-    /// by the Body Plan identity.
+    /// by the body Plan identity.
     pub fn reserve_body_plan(
         &mut self,
         plan: &BodyPlan,

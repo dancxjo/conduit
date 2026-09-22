@@ -6,12 +6,14 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindContractRevision, PortDescriptor, PortDirection,
-    PortTemporal, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
-    StructuredInfoValue, StructuredInfoValueShape,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredFieldType,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    ConfigurationField, ConfigurationRule, KindDefinition, KindSignature, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
+    StartupParameterSignature,
 };
 
 pub const PATTERN_COMPARISON_TYPE: &str = "PatternComparison";
@@ -33,19 +35,19 @@ pub fn pattern_comparison_type() -> StructuredInfoType {
     StructuredInfoType::record(
         kind_id("sequence/pattern-comparison@1"),
         vec![
-            field_type("matched", "value/boolean@1"),
+            field_type("matched", "value/bool"),
             field_type("metric", "sequence/comparison-metric@1"),
-            field_type("score_millionths", "value/count@1"),
-            field_type("tolerance_millionths", "value/count@1"),
+            field_type("score_millionths", "value/count"),
+            field_type("tolerance_millionths", "value/count"),
         ],
     )
     .unwrap()
 }
 
-pub fn compare_normalized_pattern_definition() -> KindDefinition {
-    KindDefinition {
+pub fn compare_normalized_pattern_definition() -> KindProjection {
+    KindProjection {
         kind_id: kind_id(COMPARE_PATTERN_KIND),
-        kind_contract_revision: KindContractRevision::from(COMPARE_PATTERN_REVISION),
+        kind_contract_revision: KindIdentity::from(COMPARE_PATTERN_REVISION),
         inputs: vec![
             value_port("candidate", PortDirection::Input),
             value_port("template", PortDirection::Input),
@@ -61,22 +63,52 @@ pub fn compare_normalized_pattern_definition() -> KindDefinition {
             temporal: PortTemporal::Value,
         }],
         configuration: vec![
-            ConfigurationField {
+            KindConfigurationField {
                 key: "metric".into(),
                 default_value: ConfigurationValue::Text(MAXIMUM_ABSOLUTE_METRIC.into()),
-                validation: ConfigurationRule::TextOneOf {
+                rule: KindConfigurationRule::TextOneOf {
                     values: vec![MAXIMUM_ABSOLUTE_METRIC.into()],
                 },
             },
-            ConfigurationField {
+            KindConfigurationField {
                 key: "tolerance-millionths".into(),
                 default_value: ConfigurationValue::U64(DEFAULT_PATTERN_TOLERANCE),
-                validation: ConfigurationRule::U64Range {
+                rule: KindConfigurationRule::U64Range {
                     minimum: 0,
                     maximum: crate::NORMALIZED_SCALE,
                 },
             },
         ],
+    }
+}
+
+pub fn compare_normalized_pattern_semantic_contract() -> Kind {
+    let definition = compare_normalized_pattern_definition();
+    Kind {
+        startup_parameters: vec![
+            FrontStartupParameter {
+                name: "metric".into(),
+                value_type: kind_id("value/text"),
+                has_default: true,
+            },
+            FrontStartupParameter {
+                name: "tolerance-millionths".into(),
+                value_type: kind_id("value/count"),
+                has_default: true,
+            },
+        ],
+        shorthand: None,
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 2,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 3) as u32,
+        },
     }
 }
 
@@ -179,17 +211,27 @@ fn comparison_value(
     StructuredInfoValue::record(
         pattern_comparison_type(),
         vec![
-            value_field(
+            primitive_field(
                 "matched",
-                "value/boolean@1",
-                if matched { "true" } else { "false" },
+                conduit_core::BOOL_INFO_ID,
+                if matched {
+                    conduit_core::InfoBool::TRUE
+                } else {
+                    conduit_core::InfoBool::FALSE
+                }
+                .encode()
+                .to_vec(),
             )?,
             value_field("metric", "sequence/comparison-metric@1", metric)?,
-            value_field("score_millionths", "value/count@1", &score.to_string())?,
-            value_field(
+            primitive_field(
+                "score_millionths",
+                conduit_core::COUNT_INFO_ID,
+                conduit_core::encode_count(score).to_vec(),
+            )?,
+            primitive_field(
                 "tolerance_millionths",
-                "value/count@1",
-                &tolerance.to_string(),
+                conduit_core::COUNT_INFO_ID,
+                conduit_core::encode_count(tolerance).to_vec(),
             )?,
         ],
     )
@@ -225,6 +267,19 @@ fn value_field(
             value.as_bytes().to_vec(),
         )
         .map_err(|_| PatternComparisonRefusal::Malformed)?,
+    )
+    .map_err(|_| PatternComparisonRefusal::Malformed)
+}
+
+fn primitive_field(
+    name: &str,
+    kind: &str,
+    value: Vec<u8>,
+) -> Result<StructuredFieldValue, PatternComparisonRefusal> {
+    StructuredFieldValue::new(
+        name,
+        StructuredInfoValue::leaf(StructuredInfoType::leaf(kind_id(kind)).unwrap(), value)
+            .map_err(|_| PatternComparisonRefusal::Malformed)?,
     )
     .map_err(|_| PatternComparisonRefusal::Malformed)
 }
@@ -282,6 +337,20 @@ mod tests {
         assert_eq!(
             compare_normalized_patterns(&one, &two, MAXIMUM_ABSOLUTE_METRIC, 0),
             Err(PatternComparisonRefusal::LengthMismatch)
+        );
+    }
+
+    #[test]
+    fn semantic_contract_owns_comparison_startup_and_capacity() {
+        let contract = compare_normalized_pattern_semantic_contract();
+        let definition = compare_normalized_pattern_definition();
+        assert_eq!(contract.startup_parameters.len(), 2);
+        assert_eq!(contract.inputs, definition.inputs);
+        assert_eq!(contract.outputs, definition.outputs);
+        assert_eq!(contract.limits.max_queue_items, 2);
+        assert_eq!(
+            contract.limits.max_queue_bytes,
+            (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 3) as u32
         );
     }
 }

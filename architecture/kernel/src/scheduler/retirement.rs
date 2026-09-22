@@ -1,5 +1,5 @@
 //! Ownership handoff after scheduler execution is terminal and drained.
-use super::{FixedScheduler, SchedulerError, StepOperation};
+use super::{FixedScheduler, SchedulerError, StepBack};
 use crate::{KernelEventKind, NodeId, SignSink, ValueStorage};
 
 /// Retains the original drivers, storage and evidence without cloning State.
@@ -41,7 +41,7 @@ impl<
         PENDING_REQUESTS,
     >
 where
-    D: StepOperation<PORTS>,
+    D: StepBack<PORTS>,
     S: ValueStorage,
     E: SignSink,
 {
@@ -62,7 +62,7 @@ where
             }
         }
         self.values.clear();
-        self.pending_host_operations.fill(None);
+        self.pending_host_calls.fill(None);
         self.queue_slots.fill(None);
         for cord in &mut self.cords[..self.active_cords] {
             cord.head = 0;
@@ -87,7 +87,7 @@ where
     )]
     pub fn try_retire(self) -> Result<RetiredExecution<D, S, E, NODES>, Self> {
         if (!self.cancelled && !self.completed[..self.active_nodes].iter().all(|done| *done))
-            || self.pending_host_operations.iter().any(Option::is_some)
+            || self.pending_host_calls.iter().any(Option::is_some)
             || self.queue_slots.iter().any(Option::is_some)
             || self.cords[..self.active_cords]
                 .iter()

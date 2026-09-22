@@ -46,7 +46,7 @@ impl DebuggerExecutionIdentity {
 pub struct DebuggerSubjectBinding {
     pub runtime_subject: DebugSubject,
     pub visible_subject: String,
-    /// Present only when the admitted Plan authoritatively realizes this
+    /// Present only when the admitted plan authoritatively realizes this
     /// subject through a visible Line.
     pub line_subject: Option<String>,
     pub host: u16,

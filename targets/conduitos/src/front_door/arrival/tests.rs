@@ -96,9 +96,9 @@ fn selection_and_availability_are_visible_and_refuse_empty_or_unavailable_birth(
     for _ in 0..4 {
         press(&mut door, 43);
     }
-    press(&mut door, 44); // remove the first Form
+    press(&mut door, 44); // remove the first form
     press(&mut door, 43);
-    press(&mut door, 44); // remove the second Form
+    press(&mut door, 44); // remove the second form
     press(&mut door, 43);
     press(&mut door, 44); // remove Tour
     press(&mut door, 43);
@@ -201,7 +201,7 @@ fn shared_search_filters_visible_controls_without_losing_included_forms() {
             .all(|action| !action.starts_with("creche.form."))
     );
     let ArrivalInput::Birth(selection) = press(&mut door, 60) else {
-        panic!("selected Forms survive filtering")
+        panic!("selected forms survive filtering")
     };
     assert_eq!(selection.workset.len(), 4);
 }
@@ -252,7 +252,7 @@ fn native_form_availability_is_reviewed_independently() {
     )
     .unwrap();
     let ArrivalInput::Birth(selection) = press(&mut door, 60) else {
-        panic!("the available Form can be included")
+        panic!("the available form can be included")
     };
     assert_eq!(
         selection.workset.forms(),

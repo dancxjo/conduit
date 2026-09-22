@@ -28,7 +28,7 @@ form live-conversation (
 
 # An ordinary complete spoken turn. The reusable live-conversation Front above
 # remains the refined explicit-PCM pipeline; acquisition and playback are
-# separate portable meanings selected by the Plan.
+# separate portable meanings selected by the plan.
 form spoken-live-conversation {
     microphone: audio/capture-push-to-talk
     conversation: live-conversation

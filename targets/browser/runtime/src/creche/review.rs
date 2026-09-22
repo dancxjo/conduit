@@ -80,7 +80,7 @@ pub(super) fn review(
         let backs = crate::installed_browser::backs(&startup, &profile)?;
         let expanded =
             conduit_form::expand_canonical_form_with_backs(checked, &form.name, &profile, &backs)
-                .map_err(|error| format!("expand reviewed Form {:?}: {error:?}", form.name))?;
+                .map_err(|error| format!("expand reviewed form {:?}: {error:?}", form.name))?;
         required_kinds.extend(
             expanded
                 .gears
@@ -150,7 +150,7 @@ fn accumulate_requirements(
         let host = hosts
             .iter()
             .find(|host| host.host_id == placement.host_id)
-            .ok_or_else(|| "planned Host vanished during combined review".to_string())?;
+            .ok_or_else(|| "planned host vanished during combined review".to_string())?;
         let capability = host
             .capabilities
             .iter()

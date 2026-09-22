@@ -1,10 +1,10 @@
 //! Exact planned realization contracts for the hosted Google adapter.
 
 use conduit_core::{
-    kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId, AuthorityGrant,
-    AuthorityGrantId, AuthorityRequirement, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, HostId, HostOperationContractId, HostOperationRequirement,
-    ImplementationId, ImplementationOffer, ResourceOffer,
+    resource_offer, resource_requirement, ArtifactId, AuthorityContractId, AuthorityGrant,
+    AuthorityGrantId, AuthorityRequirement, Back, BackOfferBuilder, BootId, CapabilityId,
+    CapabilityOffer, ExecutionProfileId, HostCallContractId, HostCallRequirement, HostId,
+    ImplementationId, ResourceOffer,
 };
 
 pub const GOOGLE_CALENDAR_RESOURCE_CLASS: &str = "conduit.resource/calendar/google-account@1";
@@ -99,6 +99,7 @@ impl CalendarHostedOperation {
 pub fn google_calendar_offers() -> Vec<CapabilityOffer> {
     conduit_semantic_catalog::calendar_provider_contracts()
         .into_iter()
+        .zip(conduit_semantic_catalog::calendar_provider_semantic_contracts())
         .zip([
             CalendarHostedOperation::Read,
             CalendarHostedOperation::FreeBusy,
@@ -107,7 +108,9 @@ pub fn google_calendar_offers() -> Vec<CapabilityOffer> {
             CalendarHostedOperation::Cancel,
             CalendarHostedOperation::Invite,
         ])
-        .map(|(contract, operation)| offer(contract, operation))
+        .map(|((contract, semantic_contract), operation)| {
+            offer(contract, semantic_contract, operation)
+        })
         .collect()
 }
 
@@ -133,7 +136,7 @@ pub fn google_calendar_authority_grant(
     Ok(AuthorityGrant {
         grant_id: AuthorityGrantId::from(grant_id),
         contract_id: requirement.contract_id.clone(),
-        host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+        host_call_contract_id: requirement.host_call_contract_id.clone(),
         subject_kind: requirement.subject_kind.clone(),
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),
@@ -143,6 +146,7 @@ pub fn google_calendar_authority_grant(
 
 fn offer(
     contract: conduit_semantic_catalog::CalendarProviderKindContract,
+    semantic_contract: conduit_core::Kind,
     operation: CalendarHostedOperation,
 ) -> CapabilityOffer {
     let request = conduit_semantic_catalog::calendar_request_type(&contract);
@@ -151,8 +155,8 @@ fn offer(
         .expect("reviewed calendar request profile")
         .value_kind()
         .clone();
-    let host_operation = HostOperationRequirement {
-        contract_id: HostOperationContractId::from(operation.contract()),
+    let host_call = HostCallRequirement {
+        contract_id: HostCallContractId::from(operation.contract()),
         target_kind: Some(subject_kind.clone()),
         maximum_in_flight: 1,
         maximum_input_bytes: if contract.input_type.is_some() {
@@ -164,85 +168,69 @@ fn offer(
     };
     let mut authority_requirements = vec![authority(
         operation.authority(),
-        &host_operation,
+        &host_call,
         subject_kind.clone(),
     )];
     if operation == CalendarHostedOperation::Invite {
         authority_requirements.insert(
             0,
-            authority(
-                UPDATE_CANCEL_AUTHORITY,
-                &host_operation,
-                subject_kind.clone(),
-            ),
+            authority(UPDATE_CANCEL_AUTHORITY, &host_call, subject_kind.clone()),
         );
     }
-    let inputs = match (contract.input_type, contract.input_port) {
-        (Some(value_type), Some(port)) => vec![port_descriptor(
-            port,
-            &value_type(),
-            conduit_core::PortDirection::Input,
-        )],
-        (None, None) => Vec::new(),
-        _ => unreachable!("reviewed calendar contract input shape"),
-    };
-    CapabilityOffer {
-        startup_parameters: vec![conduit_core::FaceStartupParameter {
-            name: "request".into(),
-            value_type: contract.request_type_name.into(),
-            has_default: false,
-        }],
-        shorthand: None,
-        capability_id: CapabilityId::from(format!("google-{}", contract.kind.replace('/', "-"))),
-        kind_id: kind_id(contract.kind),
-        kind_contract_revision: conduit_core::KindContractRevision::from(contract.revision),
-        inputs,
-        outputs: vec![port_descriptor(
-            contract.output_port,
-            &(contract.output_type)(),
-            conduit_core::PortDirection::Output,
-        )],
-        implementation: ImplementationOffer {
+    BackOfferBuilder::new(
+        semantic_contract,
+        Back {
+            capability_id: CapabilityId::from(format!(
+                "google-{}",
+                contract.kind.replace('/', "-")
+            )),
             execution_profile_id: ExecutionProfileId::from(PROFILE),
             implementation_id: ImplementationId::from(operation.implementation()),
             artifact_id: ArtifactId::from(ARTIFACT),
+            host_calls: vec![host_call],
+            resource_requirements: vec![resource_requirement(GOOGLE_CALENDAR_RESOURCE_CLASS, 1)],
+            authority_requirements,
         },
-        host_operations: vec![host_operation],
-        resource_requirements: vec![resource_requirement(GOOGLE_CALENDAR_RESOURCE_CLASS, 1)],
-        authority_requirements,
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES,
-        },
-    }
+    )
+    .build()
 }
 
 fn authority(
     contract: &str,
-    operation: &HostOperationRequirement,
+    operation: &HostCallRequirement,
     subject_kind: conduit_core::KindId,
 ) -> AuthorityRequirement {
     AuthorityRequirement {
         contract_id: AuthorityContractId::from(contract),
-        host_operation_contract_id: operation.contract_id.clone(),
+        host_call_contract_id: operation.contract_id.clone(),
         subject_kind,
     }
 }
 
-fn port_descriptor(
-    name: &str,
-    value_type: &conduit_core::StructuredInfoType,
-    direction: conduit_core::PortDirection,
-) -> conduit_core::PortDescriptor {
-    conduit_core::PortDescriptor {
-        port_id: conduit_core::port_id(name),
-        value_kind: value_type
-            .profile()
-            .expect("reviewed calendar Info profile")
-            .value_kind()
-            .clone(),
-        direction,
-        temporal: conduit_core::PortTemporal::Value,
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn google_realizations_preserve_every_owner_issued_calendar_front() {
+        let contracts = conduit_semantic_catalog::calendar_provider_semantic_contracts();
+        let offers = google_calendar_offers();
+        assert_eq!(offers.len(), 6);
+        assert_eq!(offers.len(), contracts.len());
+        for (offer, contract) in offers.into_iter().zip(contracts) {
+            assert_eq!(offer.startup_parameters, contract.startup_parameters);
+            assert_eq!(offer.shorthand, contract.shorthand);
+            assert_eq!(offer.kind_id, contract.kind_id);
+            assert_eq!(
+                offer.kind_contract_revision,
+                contract.kind_contract_revision
+            );
+            assert_eq!(offer.inputs, contract.inputs);
+            assert_eq!(offer.outputs, contract.outputs);
+            assert_eq!(offer.limits, contract.limits);
+            assert_eq!(offer.host_calls.len(), 1);
+            assert_eq!(offer.resource_requirements.len(), 1);
+            assert!(!offer.authority_requirements.is_empty());
+        }
     }
 }

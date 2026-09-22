@@ -16,14 +16,44 @@ impl crate::StdHost {
             return Err("std Host already has an initialized microphone".into());
         }
         let mut advertisement = self.advertisement.clone();
-        advertisement.resources.push(conduit_core::resource_offer(
+        let next_generation = advertisement
+            .offer_generation
+            .0
+            .checked_add(1)
+            .ok_or("std Host offer generation exhausted")?;
+        let resource = conduit_core::resource_offer(
             adapter.resource_pool_id().as_str(),
             conduit_std_offers::MICROPHONE_CAPTURE_RESOURCE_CLASS,
             1,
-        ));
-        advertisement
-            .capabilities
-            .push(conduit_std_offers::microphone_clip_offer());
+        );
+        let capability = conduit_std_offers::microphone_clip_offer();
+        let observation = adapter.observation();
+        let mut registry = self.base_registry.clone();
+        registry
+            .register(conduit_core::BaseProviderEntry {
+                base_id: conduit_core::HostBaseId::from(observation.base_identity.clone()),
+                provider_instance_id: conduit_core::BaseInstanceId::from(format!(
+                    "std/alsa/{}/card-{}/device-{}/{}",
+                    observation.base_identity,
+                    observation.card_id,
+                    observation.device,
+                    adapter.executable_sha256()
+                )),
+                provider_generation: next_generation,
+                implementation_id: conduit_core::BaseImplementationId::from(
+                    conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION,
+                ),
+                mechanism_family: conduit_core::HostBaseKindId::from("std.base/alsa-microphone@1"),
+                enforcement_class: conduit_core::BaseEnforcementClass::Cooperative,
+                lifecycle: conduit_core::BaseLifecycle::Ready,
+                capabilities: vec![capability],
+                resources: vec![resource],
+            })
+            .map_err(|error| format!("std microphone Base registration: {error:?}"))?;
+        registry
+            .project_ready_into(&mut advertisement)
+            .map_err(|error| format!("std microphone Base advertisement: {error:?}"))?;
+        advertisement.offer_generation = conduit_core::OfferGeneration(next_generation);
         advertisement.resources.sort();
         advertisement.capabilities.sort_by(|left, right| {
             left.capability_id
@@ -34,6 +64,7 @@ impl crate::StdHost {
             crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         self.advertisement = advertisement;
         self.microphone = Some(adapter);
+        self.base_registry = registry;
         self.kernel_resources = kernel_resources;
         Ok(())
     }
@@ -99,7 +130,7 @@ impl crate::StdHost {
         Ok(conduit_core::AuthorityGrant {
             grant_id: conduit_core::AuthorityGrantId::from(grant_id),
             contract_id: requirement.contract_id.clone(),
-            host_operation_contract_id: requirement.host_operation_contract_id.clone(),
+            host_call_contract_id: requirement.host_call_contract_id.clone(),
             subject_kind: requirement.subject_kind.clone(),
             host_id: self.advertisement.host_id.clone(),
             boot_id: self.advertisement.boot_id.clone(),

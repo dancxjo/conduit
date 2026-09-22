@@ -1,10 +1,9 @@
 //! Browser realization of the shared finite timed-attempt operation.
 
 use conduit_core::{
-    monotonic_timer_host_operation_requirement, monotonic_timer_resource_requirement, ArtifactId,
-    CapabilityId, CapabilityOffer, ExecutionProfileId, FaceStartupParameter,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    TIMER_RESOURCE_CLASS,
+    monotonic_timer_host_call_requirement, monotonic_timer_resource_requirement, ArtifactId, Back,
+    BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostCallContractId,
+    HostCallRequirement, ImplementationId, TIMER_RESOURCE_CLASS,
 };
 
 pub const TIMED_BUTTON_ATTEMPT_BROWSER_PROFILE: &str =
@@ -13,72 +12,45 @@ pub const TIMED_BUTTON_ATTEMPT_BROWSER_IMPLEMENTATION: &str =
     "browser/kernel-pressed-button-attempt@1";
 pub const TIMED_BUTTON_ATTEMPT_BROWSER_ARTIFACT: &str =
     "conduit-browser-runtime/pressed-button-attempt@1";
-pub const TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_OPERATION: &str =
+pub const TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_CALL: &str =
     "conduit.host/observe-pressed-button-instant@1";
 
 pub fn offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::timed_button_attempt_definition();
-    let mut deadline = monotonic_timer_host_operation_requirement();
+    let contract = conduit_semantic_catalog::timed_button_attempt_semantic_contract();
+    let mut deadline = monotonic_timer_host_call_requirement();
     deadline.target_kind = Some(contract.kind_id.clone());
-    CapabilityOffer {
-        startup_parameters: vec![
-            FaceStartupParameter {
-                name: "maximum-transitions".into(),
-                value_type: "Count".into(),
-                has_default: true,
-            },
-            FaceStartupParameter {
-                name: "maximum-presses".into(),
-                value_type: "Count".into(),
-                has_default: true,
-            },
-            FaceStartupParameter {
-                name: "timeout-ms".into(),
-                value_type: "Duration".into(),
-                has_default: true,
-            },
-        ],
-        shorthand: None,
-        capability_id: CapabilityId::from("pressed-button-attempt"),
-        kind_id: contract.kind_id.clone(),
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        implementation: ImplementationOffer {
+    let target_kind = contract.kind_id.clone();
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from("pressed-button-attempt"),
             execution_profile_id: ExecutionProfileId::from(TIMED_BUTTON_ATTEMPT_BROWSER_PROFILE),
             implementation_id: ImplementationId::from(TIMED_BUTTON_ATTEMPT_BROWSER_IMPLEMENTATION),
             artifact_id: ArtifactId::from(TIMED_BUTTON_ATTEMPT_BROWSER_ARTIFACT),
+            host_calls: vec![
+                deadline,
+                HostCallRequirement {
+                    contract_id: HostCallContractId::from(TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_CALL),
+                    target_kind: Some(target_kind),
+                    maximum_in_flight: 1,
+                    maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                    maximum_output_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                },
+            ],
+            resource_requirements: vec![
+                monotonic_timer_resource_requirement(),
+                conduit_core::resource_requirement(TIMER_RESOURCE_CLASS, 1),
+            ],
+            authority_requirements: Vec::new(),
         },
-        host_operations: vec![
-            deadline,
-            HostOperationRequirement {
-                contract_id: HostOperationContractId::from(
-                    TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_OPERATION,
-                ),
-                target_kind: Some(contract.kind_id),
-                maximum_in_flight: 1,
-                maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-                maximum_output_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
-            },
-        ],
-        resource_requirements: vec![
-            monotonic_timer_resource_requirement(),
-            conduit_core::resource_requirement(TIMER_RESOURCE_CLASS, 1),
-        ],
-        authority_requirements: Vec::new(),
-        limits: conduit_core::CapabilityLimits {
-            max_active_instances: 8,
-            max_queue_items: conduit_semantic_catalog::MAXIMUM_TIMED_EVENTS as u16,
-            max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32
-                * (conduit_semantic_catalog::MAXIMUM_TIMED_EVENTS as u32 + 1),
-        },
-    }
+    )
+    .build()
 }
 
 pub(super) fn prepare(
     placement: &conduit_core::PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<super::BrowserOperation, String> {
+) -> Result<super::BrowserBack, String> {
     use conduit_kernel::ValueStorage;
     let installed = offer();
     super::factory::validate_placement(placement, &installed)?;
@@ -125,8 +97,8 @@ pub(super) fn prepare(
                 .map_err(|error| format!("admit timed attempt duration: {error:?}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(super::BrowserOperation::installed(
-        conduit_time::TimedButtonAttemptOperation::from_prepared_durations(
+    Ok(super::BrowserBack::installed_step(
+        conduit_time::TimedButtonAttemptBack::from_prepared_durations(
             durations,
             transitions,
             super::MAXIMUM_BROWSER_VALUE_BYTES as u32,

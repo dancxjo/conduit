@@ -5,7 +5,7 @@ use conduit_core::{BootId, HostId, bind_sign};
 use crate::{WorkspaceBody, WorkspaceBodyError};
 
 impl WorkspaceBody {
-    /// Restore one local Body after the Host has acquired exclusive continuity
+    /// Restore one local body after the host has acquired exclusive continuity
     /// ownership and observed that the old Boot is gone. This is a trusted Host
     /// report, not a grant or proof of hostile-code confinement. A missing Play
     /// is recorded as failed; its saved identity is never made current again.

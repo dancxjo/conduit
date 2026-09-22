@@ -15,7 +15,7 @@ test.afterAll(async () => { if (root) await rm(root, { recursive: true }); });
 test.beforeEach(async () => { entrance = await startStaticProduct(root, "/conduit/"); });
 test.afterEach(() => entrance?.child.kill());
 
-test("Crèche respects the live Body owner and returns a retained Body to its Forms", async ({ page, context }) => {
+test("Crèche respects the live Body owner and returns a retained body to its forms", async ({ page, context }) => {
   await page.goto(new URL("workspace/", entrance.url).href);
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await page.getByRole("button", { name: "wake body", exact: true }).click();
@@ -24,12 +24,10 @@ test("Crèche respects the live Body owner and returns a retained Body to its Fo
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   const creche = await context.newPage();
   await creche.goto(new URL("creche/", entrance.url).href);
-  await expect(creche.locator("#workspace")).toContainText("This Body is open in another window");
-  await expect(creche.getByRole("button", { name: "Birth Body", exact: true })).toHaveCount(0);
+  await expect.poll(() => new URL(creche.url()).pathname).toBe(new URL("workspace/", entrance.url).pathname);
   await page.close();
   await creche.reload();
-  await expect(creche.getByRole("heading", { name: "Return to your Body", exact: true })).toBeVisible();
-  await creche.getByRole("link", { name: "Open your Body", exact: true }).click();
+  await expect.poll(() => new URL(creche.url()).pathname).toBe(new URL("workspace/", entrance.url).pathname);
   await expect(creche.locator("[data-play-state]")).toHaveText("Playing");
   const returned = await creche.evaluate(() => globalThis.__conduitWorkspace.current());
   expect(returned.body_id).toBe(first.body_id);
@@ -41,7 +39,7 @@ test("Crèche respects the live Body owner and returns a retained Body to its Fo
 });
 
 
-test('the actual Gallery Use link returns to the same Body with the selected Form listening', async ({ page }) => {
+test('the actual Gallery Use link returns to the same body with the selected form listening', async ({ page }) => {
   await page.goto(new URL('workspace/', entrance.url).href);
   await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
   await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
@@ -53,12 +51,15 @@ test('the actual Gallery Use link returns to the same Body with the selected For
   await page.getByRole('button', { name: 'form Gallery', exact: true }).click();
   const entry = page.locator('[data-application-key="gallery-cards"] > [data-application-component="panel"]')
     .filter({ has: page.getByRole('heading', { name: 'Desk Telegraph', exact: true }) });
-  await entry.getByRole('link', { name: 'Use in your Body', exact: true }).click();
+  await entry.getByRole('link', { name: 'Use in your body', exact: true }).click();
   await expect(page.locator('#surface-title')).toHaveText('Desk Telegraph');
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   const arrived = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   expect(arrived.body_id).toBe(original.body_id);
-  expect(arrived.initial_forms).toHaveLength(2);
+  expect(arrived.initial_forms).toHaveLength(original.initial_forms.length + 1);
+  for (const retained of original.initial_forms) {
+    expect(arrived.initial_forms).toContainEqual(retained);
+  }
   expect(new URL(page.url()).pathname).toBe(new URL('workspace/', entrance.url).pathname);
   expect(new URL(page.url()).search).toBe('');
   await page.keyboard.type('home'); await page.keyboard.press('Enter');

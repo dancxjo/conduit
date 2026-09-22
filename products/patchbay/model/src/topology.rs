@@ -143,9 +143,23 @@ fn render_bases(
         push_line(
             lines,
             format!(
-                "  BASE {} kind={} host={} boot={} state={:?} capacity={}",
+                "  BASE {} kind={} implementation={} provider={} generation={} enforcement={} lifecycle={} host={} boot={} state={:?} capacity={}",
                 base.base_id.as_str(),
                 base.kind_id.as_str(),
+                base.implementation_id
+                    .as_ref()
+                    .map(|value| value.as_str())
+                    .unwrap_or("unreported"),
+                base.provider_instance_id.as_str(),
+                base.provider_generation,
+                base.enforcement_class
+                    .map(|value| format!("{value:?}"))
+                    .as_deref()
+                    .unwrap_or("unreported"),
+                base.lifecycle
+                    .map(|value| format!("{value:?}"))
+                    .as_deref()
+                    .unwrap_or("unreported"),
                 base.host_id.as_str(),
                 base.boot_id.as_str(),
                 base.state,
@@ -207,7 +221,7 @@ fn render_plans_and_plays(
         push_line(
             lines,
             format!(
-                "    PLACEMENT {} plan={} host={} boot={} capability={} kind={} contract={} profile={} implementation={} artifact={} host-operations={:?} resources={:?}",
+                "    PLACEMENT {} plan={} host={} boot={} capability={} kind={} contract={} profile={} implementation={} artifact={} Host Calls={:?} resources={:?}",
                 placement.placement_id.as_str(),
                 placement.plan_id.as_str(),
                 placement.host_id.as_str(),
@@ -218,7 +232,7 @@ fn render_plans_and_plays(
                 placement.execution_profile_id.as_str(),
                 placement.implementation_id.as_str(),
                 placement.artifact_id.as_str(),
-                placement.host_operations,
+                placement.host_calls,
                 placement.resources
             ),
         )?;

@@ -2,16 +2,14 @@ use alloc::{collections::BTreeMap, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, InfoBool,
-    KindContractRevision, OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, Plan,
+    KindIdentity, OfferGeneration, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, Plan,
     PortDescriptor, PortDirection, PortTemporal, kind_id, port_id, resource_offer,
 };
 use conduit_form::{ProfileCatalog, parse};
-use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{CordSpec, FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
-    FixedHostOperationBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostOperationDisposition, HostOperationOutcome, ValueStorage,
+    FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, HostCallDisposition,
+    HostCallOutcome, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
 use conduit_planner::{PlanningOptions, default_placements, plan_with_options};
@@ -19,7 +17,7 @@ use conduit_presentation::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, LayoutRect, MAX_GRAPHICS_SCENE_BYTES,
 };
 
-use super::operation::PresentationOperation;
+use super::back::PresentationBack;
 use crate::display::{DisplayError, DisplayReceipt, PixelTarget, render_scene};
 
 const SOURCE_KIND: &str = "conduitos/fixture-bool-source";
@@ -37,7 +35,7 @@ const VALUE_BYTES: usize = VALUES * MAX_VALUE_BYTES;
 const SIGNS: usize = 32;
 
 type Scheduler = FixedScheduler<
-    OperationDriver<PresentationOperation, PORTS>,
+    PresentationBack,
     FixedValueStore<VALUES, MAX_VALUE_BYTES>,
     FixedSignLog<SIGNS>,
     NODES,
@@ -85,12 +83,12 @@ pub fn prepare_bool(
     conduit_semantic_catalog::install_bool_presentation_catalog(&mut catalog)
         .map_err(|_| BoolPresentationError::Catalog)?;
     catalog
-        .insert(conduit_form::KindDefinition {
+        .insert(conduit_form::KindProjection {
             kind_id: kind_id(SOURCE_KIND),
-            kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+            kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
             inputs: Vec::new(),
             outputs: source_offer(value).outputs,
-            configuration: Vec::new(),
+            configuration: Default::default(),
         })
         .map_err(|_| BoolPresentationError::Catalog)?;
     let form = parse(FORM, &catalog).map_err(|_| BoolPresentationError::Form)?;
@@ -190,6 +188,7 @@ fn advertisement(host: &str, boot: &str, value: InfoBool) -> HostAdvertisement {
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("conduitos/two-lane-cooperative@1"),
+        bases: vec![],
         resources: vec![resource_offer(
             &alloc::format!("{host}/display"),
             PRESENTATION_RESOURCE_CLASS,
@@ -210,7 +209,7 @@ fn source_offer(value: InfoBool) -> CapabilityOffer {
             "conduitos-fixture-bool-false@1"
         }),
         kind_id: kind_id(SOURCE_KIND),
-        kind_contract_revision: KindContractRevision::from(SOURCE_REVISION),
+        kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(super::CONDUITOS_PRESENTATION_PROFILE),
             implementation_id: ImplementationId::from(SOURCE_IMPLEMENTATION),
@@ -223,7 +222,7 @@ fn source_offer(value: InfoBool) -> CapabilityOffer {
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
         }],
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -270,8 +269,8 @@ fn scheduler(
             .map_err(|_| BoolPresentationError::Kernel)?;
     }
     routes.seal().map_err(|_| BoolPresentationError::Kernel)?;
-    let mut bindings = FixedHostOperationBindings::<HOST_BINDINGS>::new(NODES as u16);
-    for operation in &lowered.host_operations {
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+    for operation in &lowered.host_calls {
         bindings
             .install(operation.node, operation.binding)
             .map_err(|_| BoolPresentationError::Kernel)?;
@@ -284,7 +283,7 @@ fn scheduler(
         .iter()
         .map(|placement| {
             let operation = if placement.kind_id.as_str() == SOURCE_KIND {
-                PresentationOperation::Source {
+                PresentationBack::Source {
                     value: values
                         .store(&value.encode())
                         .map_err(|_| BoolPresentationError::Value)?,
@@ -292,7 +291,7 @@ fn scheduler(
                 }
             } else if placement.kind_id.as_str() == conduit_semantic_catalog::BOOL_PRESENTATION_KIND
             {
-                PresentationOperation::Sink {
+                PresentationBack::Sink {
                     maximum_input_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
                     pending: false,
                     complete: false,
@@ -300,7 +299,7 @@ fn scheduler(
             } else {
                 return Err(BoolPresentationError::Shape);
             };
-            OperationDriver::new(operation).map_err(|_| BoolPresentationError::Kernel)
+            Ok(operation)
         })
         .collect::<Result<Vec<_>, _>>()?
         .try_into()
@@ -311,7 +310,7 @@ fn scheduler(
             .max((SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
     )
     .map_err(|_| BoolPresentationError::Kernel)?;
-    FixedScheduler::new_with_host_operations(nodes, cords, routes, bindings, drivers, values, signs)
+    FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
         .map_err(|_| BoolPresentationError::Kernel)
 }
 
@@ -342,14 +341,14 @@ fn render(
 
 fn complete(
     scheduler: &mut Scheduler,
-    request: HostOperationRequest,
+    request: HostCallRequest,
 ) -> Result<(), BoolPresentationError> {
     scheduler
-        .complete_host_operation(
+        .complete_host_call(
             request.node,
             request.request,
-            HostOperationOutcome {
-                disposition: HostOperationDisposition::Completed,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,
             },

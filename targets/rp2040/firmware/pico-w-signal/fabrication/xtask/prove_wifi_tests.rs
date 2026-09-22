@@ -29,7 +29,7 @@ fn identity() -> FirmwareIdentity {
             offer_generation: 1,
             nodes: 1,
             cords: 1,
-            host_operations: 1,
+            host_calls: 1,
             cord_value_slots: 1,
             cord_value_bytes: conduit_net::MAXIMUM_JOIN_INPUT_BYTES,
             sign_items: 16,
@@ -63,7 +63,7 @@ fn attachment_sign_requires_exact_runtime_and_generated_identities() {
         "boot_id": "runtime-boot",
         "active_play_id": "runtime-play",
         "attachment_id": "attachment",
-        "interfront_pool_id": conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
+        "resource_pool_id": conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
         "generation": 1,
         "sign_id": "attachment-sign"
     });
@@ -87,7 +87,7 @@ fn failure_sign_exposes_only_the_bounded_code() {
         "host_id": "host",
         "boot_id": "runtime-boot",
         "active_play_id": "runtime-play",
-        "interfront_pool_id": conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
+        "resource_pool_id": conduit_r1_network_conformance::R1_WIFI_STATION_POOL_ID,
         "sign_id": "attachment-sign",
         "error_code": "network-join-failed"
     });

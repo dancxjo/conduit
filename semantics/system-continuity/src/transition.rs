@@ -166,6 +166,7 @@ impl ObservedReplacement {
                     .iter()
                     .filter(|offer| {
                         offer.checked_front() == assignment.checked_front
+                            && offer.kind_contract_revision == assignment.semantic_contract
                             && status_is_available(&self.report.capabilities, &offer.capability_id)
                     })
                     .map(|offer| CompatibleReplacement {

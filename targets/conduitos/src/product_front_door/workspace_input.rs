@@ -55,7 +55,7 @@ impl PendingInput {
     }
 }
 
-/// Tab changes foreground membership without replacing the admitted Play.
+/// Tab changes foreground membership without replacing the admitted play.
 /// Release is consumed too, so it cannot become an unmatched Form input.
 pub(super) fn select(
     event: KeyEvent,

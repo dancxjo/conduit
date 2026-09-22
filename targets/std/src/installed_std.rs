@@ -1,65 +1,65 @@
-mod address_detect_operation;
+mod address_detect_back;
+mod alife_backs;
 mod alife_host;
-mod alife_operations;
-mod audio_play_operation;
-mod body_chat_prompt_operation;
-mod body_conversation_context_operation;
+mod audio_play_back;
+mod back;
+mod back_capacity;
+mod back_kind;
+mod back_step;
+mod body_chat_prompt_back;
+mod body_conversation_context_back;
 pub(crate) mod body_kernel;
 mod bool_presentation;
+mod calendar_proposal_back;
 mod calendar_proposal_codec;
 pub(super) mod calendar_proposal_encoding;
-mod calendar_proposal_operation;
+mod calendar_provider_back;
 mod calendar_provider_host;
-mod calendar_provider_operation;
 mod catalog;
 pub(super) mod contract;
-mod count_operations;
+mod count_backs;
 mod deadline_host;
 mod external_websocket;
 mod external_websocket_host;
 mod facade;
 mod factory;
-mod final_normalized_pattern_operation;
-mod flow_gate_operation;
+mod final_normalized_pattern_back;
+mod flow_gate_back;
+mod flow_pressure_backs;
 #[cfg(test)]
 mod flow_pressure_form_tests;
-mod flow_pressure_operations;
-mod flow_state_operations;
+mod flow_state_backs;
 mod generate_text;
-mod generated_speech_commit_operation;
-mod house_prompt_operation;
+mod generated_speech_commit_back;
+mod house_prompt_back;
 mod http;
 mod http_host;
-mod image_text_operation;
-mod image_text_record_operation;
+mod image_text_back;
+mod image_text_record_back;
 mod indicator_host;
-mod input_semantic_operations;
-mod instrument_map_operation;
-mod json_operations;
-mod json_summary_operation;
+mod input_semantic_backs;
+mod instrument_map_back;
+mod json_backs;
+mod json_summary_back;
 mod kernel_preparation;
+mod keyboard_input_back;
 mod keyboard_input_host;
-mod keyboard_input_operation;
-mod layout_operations;
-mod local_model_operation;
-mod local_vision_operation;
-mod logic_operations;
+mod layout_backs;
+mod local_model_back;
+mod local_vision_back;
+mod logic_backs;
+mod math_backs;
 mod math_host;
-mod math_operations;
-mod microphone_clip_operation;
-mod midi_input_operation;
-mod midi_output_operation;
+mod microphone_clip_back;
+mod midi_input_back;
+mod midi_output_back;
 mod model_host;
-mod model_text_operation;
-mod morse_operations;
-mod navigation_operations;
-mod operation;
-mod operation_cancellation;
-mod operation_capacity;
-mod operation_kind;
-mod pacing_operations;
-mod pattern_comparison_operation;
-mod pcm_profile_conversion_operation;
+mod model_text_back;
+mod morse_backs;
+mod navigation_backs;
+mod pacing_backs;
+mod pattern_comparison_back;
+mod pcm_profile_conversion_back;
 mod preparation;
 pub(super) use preparation::{
     lower_fragment_with_continuity, state_storage_profile, validate_retained_inputs,
@@ -71,39 +71,39 @@ pub(super) use retained_run::run_fragment;
 pub(super) use retained_run::{InstalledRunHost, RunLifecycle};
 mod presentation_composition;
 mod presentation_construction_host;
-mod pulse_observation_operation;
+mod pulse_observation_back;
 #[cfg(test)]
 mod pulse_observation_sink;
 mod quantity_mapping;
-mod recognition_text_operation;
-mod recognized_turn_commit_operation;
-mod record_delivery_operation;
-mod record_queue_operation;
-mod record_temporal_operation;
-mod record_transcript_operation;
+mod recognition_text_back;
+mod recognized_turn_commit_back;
+mod record_delivery_back;
+mod record_queue_back;
+mod record_temporal_back;
+mod record_transcript_back;
 #[cfg(any(test, feature = "local-model-proof"))]
-pub(crate) mod recorded_speech_operation;
+pub(crate) mod recorded_speech_back;
+mod recurrence_back;
 mod recurrence_codec;
 mod recurrence_encoding;
-mod recurrence_operation;
 mod remote_fragment_kernel;
-mod render_demand_operation;
+mod render_demand_back;
+mod rhythm_compare_back;
 pub(super) mod rhythm_compare_host;
-mod rhythm_compare_operation;
+mod robotics_backs;
 mod robotics_effect;
-mod robotics_operations;
-mod sequence_normalization_operation;
+mod sequence_normalization_back;
 mod simple_presentation_host;
-mod speech_recognition_adapter_operation;
-mod speech_synthesis_operation;
-mod state_select_operation;
+mod speech_recognition_adapter_back;
+mod speech_synthesis_back;
+mod state_select_back;
 mod structured_presentation_host;
-mod structured_selector_operation;
-mod structured_values_operation;
-mod synth_operation;
+mod structured_selector_back;
+mod structured_values_back;
+mod synth_back;
 mod synth_render;
+mod template_storage_back;
 mod template_storage_host;
-mod template_storage_operation;
 mod test_audio_source;
 #[cfg(test)]
 mod test_gate;
@@ -131,50 +131,50 @@ mod test_support;
 mod test_text_source;
 #[cfg(test)]
 mod test_timing_sink;
-mod text_operations;
+mod text_backs;
 #[cfg(test)]
-mod text_operations_tests;
-mod text_state_operation;
-mod tick_operations;
+mod text_backs_tests;
+mod text_state_back;
+mod tick_backs;
 mod tick_presentation;
+mod timed_button_attempt_back;
 mod timed_button_attempt_host;
-mod timed_button_attempt_operation;
-mod timed_pattern_operation;
+mod timed_pattern_back;
+mod timing_backs;
 mod timing_configuration;
-mod timing_operations;
-mod toggle_operation;
-mod typed_record_operation;
+mod toggle_back;
+mod typed_record_back;
+mod vector_search_back;
 mod vector_search_host;
-mod vector_search_operation;
-mod wav_artifact_operation;
-mod whisper_speech_operation;
+mod vision_describe_back;
+mod vision_experience_back;
+mod wav_artifact_back;
+mod whisper_speech_back;
 
+use self::back::InstalledBack;
 pub(crate) use self::catalog::supports;
 #[cfg(test)]
 use self::contract::parse_tick_configuration;
 use self::contract::{decode_tick, TICK_ENCODED_LEN};
-use self::operation::InstalledOperation;
 pub use self::remote_fragment_kernel::{
     InstalledRemoteFragment, RemoteHostWork, RemoteValueTransfer,
 };
 #[cfg(test)]
-use self::tick_operations::{TEST_OBSERVER_IMPLEMENTATION, TICK_FACTORY};
+use self::tick_backs::{TEST_OBSERVER_IMPLEMENTATION, TICK_FACTORY};
 use super::{
     RunControl, RunControlDisposition, RunControlReceipt, StdKernelExecutionReport, StdRunReport,
     TimerAdapter,
 };
 #[cfg(test)]
-use conduit_core::present_host_operation_requirement;
+use conduit_core::present_host_call_requirement;
 use conduit_core::{
-    bind_active_play, bind_sign, kind_id, wait_host_operation_requirement, CancellationReason,
+    bind_active_play, bind_sign, kind_id, wait_host_call_requirement, CancellationReason,
     Observation, ObservationKind, PlanFragment, TerminalDisposition,
 };
-use conduit_kernel::scheduler::{
-    FixedScheduler, HostOperationRequest, OperationDriver, SchedulerStatus,
-};
+use conduit_kernel::scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationOutcome, HostedSignLog,
-    HostedValueStore, SignSink, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedSignLog, HostedValueStore,
+    SignSink, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     KernelExecutionIdentityMap, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
@@ -182,10 +182,10 @@ use conduit_plan_lowering::lowering::{
 use std::io::Write;
 use std::time::Duration;
 
-fn record_request(requests: &mut Vec<HostOperationRequest>, request: HostOperationRequest) {
+fn record_request(requests: &mut Vec<HostCallRequest>, request: HostCallRequest) {
     if !requests
         .iter()
-        .any(|observed| observed.node == request.node && observed.operation == request.operation)
+        .any(|observed| observed.node == request.node && observed.call == request.call)
     {
         requests.push(request);
     }
@@ -199,13 +199,13 @@ const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
 const ROUTE_TARGETS: usize = 64;
 
 pub(crate) use facade::*;
-const HOST_OPERATIONS_PER_NODE: u16 = 4;
-const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_OPERATIONS_PER_NODE as usize;
+const HOST_CALLS_PER_NODE: u16 = 4;
+const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_CALLS_PER_NODE as usize;
 const PENDING_REQUESTS: usize = MAX_NODES;
 const PROOF_PCM_CLIP_SOURCE_OPERATION: &str = "conduit.host/proof-recorded-pcm-clip@1";
 
 pub(in crate::installed_std) type InstalledScheduler = FixedScheduler<
-    OperationDriver<InstalledOperation, PORTS>,
+    InstalledBack,
     HostedValueStore,
     HostedSignLog,
     MAX_NODES,
@@ -269,7 +269,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .sum::<usize>()
             > ROUTE_TARGETS
         || !lowered.remote_endpoints.is_empty()
-        || lowered.host_operations.len() > HOST_BINDING_SLOTS
+        || lowered.host_calls.len() > HOST_BINDING_SLOTS
     {
         return Err("fragment exceeds the installed std kernel profile".to_string());
     }
@@ -280,7 +280,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut maximum_value_bytes = TICK_ENCODED_LEN;
     let mut sign_items = 32_u16;
     for placement in &fragment.placements {
-        let budget = preparation::operation_budget(placement)?;
+        let budget = preparation::back_budget(placement)?;
         value_items = value_items
             .checked_add(budget.value_items)
             .ok_or_else(|| "installed value item budget overflow".to_string())?;
@@ -319,7 +319,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         preparation::prepare_operations(fragment, &lowered, &mut values, &active_play, retained)?;
     let driver_capacity_before = drivers
         .iter()
-        .map(|driver| driver.operation().allocation_capacity())
+        .map(InstalledBack::allocation_capacity)
         .sum::<usize>();
     let value_allocation_before = values.allocation_capacities();
 
@@ -371,44 +371,40 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         presentation_capacity.saturating_add(2),
     )
     .map_err(|error| format!("prepare std execution identity: {error:?}"))?;
-    let mut requests = Vec::<HostOperationRequest>::with_capacity(request_capacity);
-    let wait_contract_id = wait_host_operation_requirement().contract_id;
-    let deadline_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_core::MONOTONIC_TIMER_HOST_OPERATION_CONTRACT,
-    );
+    let mut requests = Vec::<HostCallRequest>::with_capacity(request_capacity);
+    let wait_contract_id = wait_host_call_requirement().contract_id;
+    let deadline_contract_id =
+        conduit_core::HostCallContractId::from(conduit_core::MONOTONIC_TIMER_HOST_CALL_CONTRACT);
     let midi_input_contract_id =
-        conduit_core::HostOperationContractId::from(conduit_std_offers::MUSIC_INPUT_MIDI_OPERATION);
-    let keyboard_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_std_offers::NEXT_KEY_EVENT_HOST_OPERATION_CONTRACT,
+        conduit_core::HostCallContractId::from(conduit_std_offers::MUSIC_INPUT_MIDI_OPERATION);
+    let keyboard_contract_id = conduit_core::HostCallContractId::from(
+        conduit_std_offers::NEXT_KEY_EVENT_HOST_CALL_CONTRACT,
     );
-    let button_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_std_offers::button::NEXT_TRANSITION_HOST_OPERATION,
+    let button_contract_id = conduit_core::HostCallContractId::from(
+        conduit_std_offers::button::NEXT_TRANSITION_HOST_CALL,
     );
     let mut deadlines = deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
     let graphics_presentation_target_kind = kind_id("presentation/graphics-scene");
     let structured_presentation_target_kind =
         kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET);
-    let upper_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_std_offers::TEXT_UPPER_HOST_OPERATION_CONTRACT,
+    let upper_contract_id =
+        conduit_core::HostCallContractId::from(conduit_std_offers::TEXT_UPPER_HOST_CALL_CONTRACT);
+    let upper_target_kind = kind_id(conduit_std_offers::TEXT_UPPER_HOST_CALL_TARGET);
+    let join_contract_id =
+        conduit_core::HostCallContractId::from(conduit_std_offers::TEXT_JOIN_HOST_CALL_CONTRACT);
+    let join_target_kind = kind_id(conduit_std_offers::TEXT_JOIN_HOST_CALL_TARGET);
+    let morse_contract_id =
+        conduit_core::HostCallContractId::from(conduit_std_offers::TEXT_MORSE_HOST_CALL_CONTRACT);
+    let morse_target_kind = kind_id(conduit_std_offers::TEXT_MORSE_HOST_CALL_TARGET);
+    let gate_bool_contract_id = conduit_core::HostCallContractId::from(
+        conduit_std_offers::FLOW_GATE_BOOL_HOST_CALL_CONTRACT,
     );
-    let upper_target_kind = kind_id(conduit_std_offers::TEXT_UPPER_HOST_OPERATION_TARGET);
-    let join_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_std_offers::TEXT_JOIN_HOST_OPERATION_CONTRACT,
-    );
-    let join_target_kind = kind_id(conduit_std_offers::TEXT_JOIN_HOST_OPERATION_TARGET);
-    let morse_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_std_offers::TEXT_MORSE_HOST_OPERATION_CONTRACT,
-    );
-    let morse_target_kind = kind_id(conduit_std_offers::TEXT_MORSE_HOST_OPERATION_TARGET);
-    let gate_bool_contract_id = conduit_core::HostOperationContractId::from(
-        conduit_std_offers::FLOW_GATE_BOOL_HOST_OPERATION_CONTRACT,
-    );
-    let gate_bool_target_kind = kind_id(conduit_std_offers::FLOW_GATE_BOOL_HOST_OPERATION_TARGET);
+    let gate_bool_target_kind = kind_id(conduit_std_offers::FLOW_GATE_BOOL_HOST_CALL_TARGET);
     let keymap_contract_id =
-        conduit_core::HostOperationContractId::from(conduit_std_offers::KEYMAP_HOST_OPERATION);
+        conduit_core::HostCallContractId::from(conduit_std_offers::KEYMAP_HOST_CALL);
     let keymap_target_kind = kind_id(conduit_std_offers::KEYMAP_HOST_TARGET);
     let chords_contract_id =
-        conduit_core::HostOperationContractId::from(conduit_std_offers::CHORDS_HOST_OPERATION);
+        conduit_core::HostCallContractId::from(conduit_std_offers::CHORDS_HOST_CALL);
     let chords_target_kind = kind_id(conduit_std_offers::CHORDS_HOST_TARGET);
     let mut math_host = math_host::MathHost::prepare(fragment)?;
     let presentation_construction =
@@ -420,16 +416,16 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut text_state_hosts = fragment
         .placements
         .iter()
-        .map(text_state_operation::TextStateHost::from_placement)
+        .map(text_state_back::TextStateHost::from_placement)
         .collect::<Result<Vec<_>, String>>()?;
     let mut external_output =
         Vec::with_capacity(conduit_net::MAXIMUM_EXTERNAL_WEBSOCKET_MESSAGE_BYTES as usize + 1);
     let mut http_output =
         Vec::with_capacity(conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES as usize);
-    let mut json_host = json_operations::JsonHost::prepare(fragment);
+    let mut json_host = json_backs::JsonHost::prepare(fragment);
     let mut sequence_normalization_host =
-        sequence_normalization_operation::SequenceNormalizationHost::prepare();
-    let mut timed_pattern_host = timed_pattern_operation::TimedPatternHost::prepare();
+        sequence_normalization_back::SequenceNormalizationHost::prepare();
+    let mut timed_pattern_host = timed_pattern_back::TimedPatternHost::prepare();
     let mut timed_button_attempt_hosts = fragment
         .placements
         .iter()
@@ -437,7 +433,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             if placement.implementation_id.as_str()
                 == conduit_std_offers::TIMED_BUTTON_ATTEMPT_STD_IMPLEMENTATION
             {
-                timed_button_attempt_operation::host_maximum(placement).map(|maximum| {
+                timed_button_attempt_back::host_maximum(placement).map(|maximum| {
                     Some(timed_button_attempt_host::TimedButtonAttemptHost::prepare(
                         maximum,
                     ))
@@ -447,33 +443,44 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             }
         })
         .collect::<Result<Vec<_>, String>>()?;
-    let mut structured_selector_hosts = structured_selector_operation::prepare_hosts(fragment)?;
-    let mut image_text_hosts = image_text_operation::prepare_hosts(fragment);
-    let mut image_text_record_hosts = image_text_record_operation::prepare_hosts(fragment);
+    let mut structured_selector_hosts = structured_selector_back::prepare_hosts(fragment)?;
+    let mut image_text_hosts = image_text_back::prepare_hosts(fragment);
+    let mut image_text_record_hosts = image_text_record_back::prepare_hosts(fragment);
     let mut vision_request_sequence = 0_u64;
     let mut vision_run_id = String::with_capacity(active_play.active_play_id.as_str().len() + 64);
-    let mut address_detect_hosts = address_detect_operation::prepare_hosts(fragment);
+    let vision_clock_basis = format!("{}/monotonic", fragment.boot_id.as_str());
+    let mut vision_tracker = if fragment.placements.iter().any(|placement| {
+        placement.implementation_id.as_str()
+            == conduit_std_offers::LOCAL_VISION_TRACK_IMPLEMENTATION
+    }) {
+        Some(crate::vision_tracker::LocalVisionTracker::prepare(
+            format!(
+                "{}/{}",
+                fragment.host_id.as_str(),
+                fragment.boot_id.as_str()
+            ),
+            format!("{}/vision-track", active_play.active_play_id.as_str()),
+        )?)
+    } else {
+        None
+    };
+    let mut address_detect_hosts = address_detect_back::prepare_hosts(fragment);
     #[cfg(any(test, feature = "local-model-proof"))]
-    let mut recorded_speech_hosts = recorded_speech_operation::prepare_hosts(fragment)?;
+    let mut recorded_speech_hosts = recorded_speech_back::prepare_hosts(fragment)?;
     #[cfg(test)]
-    let mut speech_synthesis_hosts = speech_synthesis_operation::prepare_fake_hosts(fragment)?;
-    let mut house_prompt_hosts = house_prompt_operation::prepare_hosts(fragment);
-    let mut body_chat_prompt_hosts = body_chat_prompt_operation::prepare_hosts(fragment);
-    let mut recognized_turn_commit_hosts =
-        recognized_turn_commit_operation::prepare_hosts(fragment);
-    let mut speech_window_hosts =
-        speech_recognition_adapter_operation::prepare_window_hosts(fragment);
+    let mut speech_synthesis_hosts = speech_synthesis_back::prepare_fake_hosts(fragment)?;
+    let mut house_prompt_hosts = house_prompt_back::prepare_hosts(fragment);
+    let mut body_chat_prompt_hosts = body_chat_prompt_back::prepare_hosts(fragment);
+    let mut recognized_turn_commit_hosts = recognized_turn_commit_back::prepare_hosts(fragment);
+    let mut speech_window_hosts = speech_recognition_adapter_back::prepare_window_hosts(fragment);
     let mut speech_result_stream_hosts =
-        speech_recognition_adapter_operation::prepare_result_hosts(fragment);
-    let mut generated_speech_commit_hosts =
-        generated_speech_commit_operation::prepare_hosts(fragment)?;
+        speech_recognition_adapter_back::prepare_result_hosts(fragment);
+    let mut generated_speech_commit_hosts = generated_speech_commit_back::prepare_hosts(fragment)?;
     let mut body_conversation_context_host =
-        body_conversation_context_operation::BodyConversationContextHost::new(
-            body_conversation_context,
-        );
-    let mut navigation_hosts = navigation_operations::prepare_hosts(fragment);
-    let mut typed_record_hosts = typed_record_operation::prepare_hosts(fragment);
-    let mut record_delivery_hosts = record_delivery_operation::prepare_hosts(fragment)?;
+        body_conversation_context_back::BodyConversationContextHost::new(body_conversation_context);
+    let mut navigation_hosts = navigation_backs::prepare_hosts(fragment);
+    let mut typed_record_hosts = typed_record_back::prepare_hosts(fragment);
+    let mut record_delivery_hosts = record_delivery_back::prepare_hosts(fragment)?;
     let mut structured_presentation_host =
         structured_presentation_host::StructuredPresentationHost::prepare(
             fragment,
@@ -499,8 +506,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             if placement.implementation_id.as_str()
                 == conduit_std_offers::COMPARE_PATTERN_STD_IMPLEMENTATION
             {
-                pattern_comparison_operation::PatternComparisonHost::from_placement(placement)
-                    .map(Some)
+                pattern_comparison_back::PatternComparisonHost::from_placement(placement).map(Some)
             } else {
                 Ok(None)
             }
@@ -519,10 +525,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         Vec::with_capacity(conduit_ai::MAXIMUM_OUTPUT_TOKENS as usize * 4);
     let mut vector_search_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_VECTOR_SEARCH_OUTPUT_BYTES as usize);
-    let mut synth_output = Vec::with_capacity(synth_operation::PCM_BLOCK_BYTES as usize);
+    let mut synth_output = Vec::with_capacity(synth_back::PCM_BLOCK_BYTES as usize);
     let mut pcm_conversion_output =
         Vec::with_capacity(conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES as usize);
-    let mut pcm_conversion_hosts = pcm_profile_conversion_operation::prepare_hosts(fragment);
+    let mut pcm_conversion_hosts = pcm_profile_conversion_back::prepare_hosts(fragment);
     let mut synth_states = fragment
         .placements
         .iter()
@@ -530,7 +536,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             if placement.implementation_id.as_str()
                 == conduit_synth::REFERENCE_SYNTH_IMPLEMENTATION_ID
             {
-                synth_operation::InstalledSynthState::from_placement(placement).map(Some)
+                synth_back::InstalledSynthState::from_placement(placement).map(Some)
             } else {
                 Ok(None)
             }
@@ -538,7 +544,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         .collect::<Result<Vec<_>, String>>()?;
     if synth_states.iter().any(Option::is_some) {
         let clock_origin_micros = timer.monotonic_now_micros().ok_or_else(|| {
-            "installed music/synth requires the admitted Host/Boot monotonic-microsecond basis"
+            "installed music/synth requires the admitted host/Boot monotonic-microsecond basis"
                 .to_string()
         })?;
         for state in synth_states.iter_mut().flatten() {
@@ -552,7 +558,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             if placement.implementation_id.as_str()
                 == conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION
             {
-                audio_play_operation::prepare_session(placement, playback).map(Some)
+                audio_play_back::prepare_session(placement, playback).map(Some)
             } else {
                 Ok(None)
             }
@@ -565,7 +571,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             if placement.implementation_id.as_str()
                 == conduit_std_offers::AUDIO_WAV_ARTIFACT_IMPLEMENTATION
             {
-                wav_artifact_operation::prepare_session(placement, wav_artifact).map(Some)
+                wav_artifact_back::prepare_session(placement, wav_artifact).map(Some)
             } else {
                 Ok(None)
             }
@@ -578,7 +584,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             if placement.implementation_id.as_str()
                 == conduit_std_offers::MUSIC_INPUT_MIDI_IMPLEMENTATION
             {
-                midi_input_operation::prepare_session(placement, midi_input).map(Some)
+                midi_input_back::prepare_session(placement, midi_input).map(Some)
             } else {
                 Ok(None)
             }
@@ -588,7 +594,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut keyboard_host = keyboard_input_host::KeyboardInputHost::new(
         keyboard,
         lowered
-            .host_operations
+            .host_calls
             .iter()
             .any(|operation| operation.contract_id == keyboard_contract_id),
     );
@@ -606,7 +612,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             if placement.implementation_id.as_str()
                 == conduit_std_offers::MUSIC_PLAY_MIDI_IMPLEMENTATION
             {
-                midi_output_operation::prepare_session(placement, midi_output).map(Some)
+                midi_output_back::prepare_session(placement, midi_output).map(Some)
             } else {
                 Ok(None)
             }
@@ -619,7 +625,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             if placement.implementation_id.as_str()
                 == conduit_std_offers::MUSIC_PLAY_MIDI_IMPLEMENTATION
             {
-                midi_output_operation::prepare_adapter().map(Some)
+                midi_output_back::prepare_adapter().map(Some)
             } else {
                 Ok(None)
             }
@@ -628,11 +634,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     #[cfg(test)]
     let mut observed_ticks = Vec::with_capacity(request_capacity / 2);
     #[cfg(test)]
-    let observer_contract_id = present_host_operation_requirement(
-        kind_id("conduit-test/tick-observation"),
-        TICK_ENCODED_LEN,
-    )
-    .contract_id;
+    let observer_contract_id =
+        present_host_call_requirement(kind_id("conduit-test/tick-observation"), TICK_ENCODED_LEN)
+            .contract_id;
     #[cfg(test)]
     let observer_target_kind = kind_id("conduit-test/tick-observation");
     #[cfg(test)]
@@ -650,14 +654,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         }
         while let Some(cancellation) = scheduler.next_host_cancellation() {
             let cancelled_operation = lowered
-                .host_operations
+                .host_calls
                 .iter()
                 .find(|operation| {
-                    operation.node == cancellation.node
-                        && operation.operation == cancellation.operation
+                    operation.node == cancellation.node && operation.call == cancellation.call
                 })
                 .ok_or_else(|| "cancelled host request has no lowered identity".to_string())?;
-            if cancelled_operation.contract_id.as_str() == audio_play_operation::HOST_OPERATION {
+            if cancelled_operation.contract_id.as_str() == audio_play_back::HOST_CALL {
                 let session = playback_sessions
                     .get_mut(usize::from(cancellation.node.0))
                     .and_then(Option::as_mut)
@@ -665,9 +668,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 session
                     .stop()
                     .map_err(|error| format!("stop cancelled audio/play: {error:?}"))?;
-            } else if cancelled_operation.contract_id.as_str()
-                == wav_artifact_operation::HOST_OPERATION
-            {
+            } else if cancelled_operation.contract_id.as_str() == wav_artifact_back::HOST_CALL {
                 // The incomplete artifact is never finalized on cancellation.
             } else if matches!(
                 cancelled_operation.contract_id.as_str(),
@@ -738,11 +739,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 .host_value(request.input.value)
                 .map_err(|error| format!("read std host input: {error:?}"))?;
             let lowered_operation = lowered
-                .host_operations
+                .host_calls
                 .iter()
-                .find(|operation| {
-                    operation.node == request.node && operation.operation == request.operation
-                })
+                .find(|operation| operation.node == request.node && operation.call == request.call)
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
             if contract.as_str() == conduit_std_offers::MICROPHONE_CLIP_OPERATION {
@@ -763,26 +762,26 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             lowered_operation.binding.maximum_output_bytes,
                         )
                         .map_err(|error| format!("bound captured microphone clip: {error:?}"))?;
-                        (HostOperationDisposition::Completed, Some(output), None)
+                        (HostCallDisposition::Completed, Some(output), None)
                     }
                     Err(crate::hosted_microphone::MicrophoneFailure::Cancelled) => {
-                        (HostOperationDisposition::Cancelled, None, None)
+                        (HostCallDisposition::Cancelled, None, None)
                     }
                     Err(error) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            code: conduit_kernel::FailureCode::HostCallFailed,
                             detail: error as u16,
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -791,10 +790,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete microphone clip capture: {error:?}"))?;
                 continue;
             } else if [
-                conduit_std_offers::TYPED_RECORD_FRAME_HOST_OPERATION,
-                conduit_std_offers::TYPED_RECORD_DEFRAME_HOST_OPERATION,
-                conduit_std_offers::TEXT_TO_TYPED_RECORD_HOST_OPERATION,
-                conduit_std_offers::TYPED_RECORD_TO_TEXT_HOST_OPERATION,
+                conduit_std_offers::TYPED_RECORD_FRAME_HOST_CALL,
+                conduit_std_offers::TYPED_RECORD_DEFRAME_HOST_CALL,
+                conduit_std_offers::TEXT_TO_TYPED_RECORD_HOST_CALL,
+                conduit_std_offers::TYPED_RECORD_TO_TEXT_HOST_CALL,
             ]
             .contains(&contract.as_str())
             {
@@ -813,23 +812,23 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             lowered_operation.binding.maximum_output_bytes,
                         )
                         .map_err(|error| format!("bound framed typed record: {error:?}"))?;
-                        (HostOperationDisposition::Completed, Some(output), None)
+                        (HostCallDisposition::Completed, Some(output), None)
                     }
                     Err(refusal) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            code: conduit_kernel::FailureCode::HostCallFailed,
                             detail: refusal,
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -838,7 +837,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete typed-record codec: {error:?}"))?;
                 continue;
             }
-            if contract.as_str() == conduit_std_offers::RECORD_DELIVERY_STATUS_HOST_OPERATION {
+            if contract.as_str() == conduit_std_offers::RECORD_DELIVERY_STATUS_HOST_CALL {
                 let completion = record_delivery_hosts
                     .get_mut(usize::from(request.node.0))
                     .and_then(Option::as_mut)
@@ -856,23 +855,23 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             lowered_operation.binding.maximum_output_bytes,
                         )
                         .map_err(|error| format!("bound delivery status: {error:?}"))?;
-                        (HostOperationDisposition::Completed, Some(output), None)
+                        (HostCallDisposition::Completed, Some(output), None)
                     }
                     Err(refusal) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
-                            detail: record_delivery_operation::refusal_detail(refusal),
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail: record_delivery_back::refusal_detail(refusal),
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -897,23 +896,23 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             lowered_operation.binding.maximum_output_bytes,
                         )
                         .map_err(|error| format!("bound typed image-text record: {error:?}"))?;
-                        (HostOperationDisposition::Completed, Some(output), None)
+                        (HostCallDisposition::Completed, Some(output), None)
                     }
                     Err(_) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            code: conduit_kernel::FailureCode::HostCallFailed,
                             detail: 1,
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -922,7 +921,15 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete image-text record operation: {error:?}"))?;
                 continue;
             }
-            if contract.as_str() == conduit_std_offers::LOCAL_VISION_MOTION_OPERATION {
+            if matches!(
+                contract.as_str(),
+                conduit_std_offers::LOCAL_VISION_MOTION_OPERATION
+                    | conduit_std_offers::LOCAL_VISION_OBJECTS_OPERATION
+                    | conduit_std_offers::LOCAL_VISION_OCR_OPERATION
+                    | conduit_std_offers::LOCAL_VISION_DESCRIBE_OPERATION
+                    | conduit_std_offers::LOCAL_VISION_EXPERIENCE_OPERATION
+                    | conduit_std_offers::LOCAL_VISION_TRACK_OPERATION
+            ) {
                 vision_request_sequence = vision_request_sequence
                     .checked_add(1)
                     .ok_or_else(|| "local Vision request sequence exhausted".to_string())?;
@@ -936,43 +943,103 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     ),
                 )
                 .map_err(|_| "local Vision run identity exceeded admitted storage".to_string())?;
-                let encoded = vision
-                    .as_deref_mut()
-                    .ok_or_else(|| "local Vision request has no admitted Base".to_string())?
-                    .execute_motion(input, &vision_run_id);
+                let observed_at_micros = timer.monotonic_now_micros().ok_or_else(|| {
+                    "local Vision observation requires admitted monotonic time".to_string()
+                })?;
+                let encoded = if contract.as_str()
+                    == conduit_std_offers::LOCAL_VISION_TRACK_OPERATION
+                {
+                    vision_tracker
+                        .as_mut()
+                        .ok_or("local Vision tracker was not prepared")?
+                        .process(
+                            input,
+                            observed_at_micros,
+                            &vision_clock_basis,
+                            &vision_run_id,
+                        )
+                        .map(Some)
+                        .map_err(|_| crate::hosted_vision::HostedVisionRefusal::InvalidOutput)
+                } else {
+                    let vision = vision
+                        .as_deref_mut()
+                        .ok_or_else(|| "local Vision request has no admitted Base".to_string())?;
+                    if contract.as_str() == conduit_std_offers::LOCAL_VISION_MOTION_OPERATION {
+                        vision
+                            .execute_motion(
+                                input,
+                                &vision_run_id,
+                                observed_at_micros,
+                                &vision_clock_basis,
+                            )
+                            .map(Some)
+                    } else if contract.as_str() == conduit_std_offers::LOCAL_VISION_OCR_OPERATION {
+                        vision
+                            .execute_ocr(
+                                input,
+                                &vision_run_id,
+                                observed_at_micros,
+                                &vision_clock_basis,
+                            )
+                            .map(Some)
+                    } else if contract.as_str()
+                        == conduit_std_offers::LOCAL_VISION_DESCRIBE_OPERATION
+                    {
+                        vision.execute_describe(
+                            input,
+                            &vision_run_id,
+                            observed_at_micros,
+                            &vision_clock_basis,
+                        )
+                    } else if contract.as_str()
+                        == conduit_std_offers::LOCAL_VISION_EXPERIENCE_OPERATION
+                    {
+                        vision.execute_experience(input)
+                    } else {
+                        vision
+                            .execute_objects(
+                                input,
+                                &vision_run_id,
+                                observed_at_micros,
+                                &vision_clock_basis,
+                            )
+                            .map(Some)
+                    }
+                };
                 let (disposition, output, failure) = match encoded {
-                    Ok(encoded) => {
+                    Ok(Some(encoded)) => {
                         let value = scheduler
                             .store_host_value(encoded)
-                            .map_err(|error| format!("store local Vision motion: {error:?}"))?;
+                            .map_err(|error| format!("store local Vision result: {error:?}"))?;
                         let output = BoundedValueRef::new(
                             value,
                             lowered_operation.binding.maximum_output_bytes,
                         )
-                        .map_err(|error| format!("bound local Vision motion: {error:?}"))?;
-                        (HostOperationDisposition::Completed, Some(output), None)
+                        .map_err(|error| format!("bound local Vision result: {error:?}"))?;
+                        (HostCallDisposition::Completed, Some(output), None)
                     }
+                    Ok(None) => (HostCallDisposition::Completed, None, None),
                     Err(_) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            code: conduit_kernel::FailureCode::HostCallFailed,
                             detail: 1,
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
                         },
                     )
-                    .map_err(|error| format!("complete local Vision motion: {error:?}"))?;
+                    .map_err(|error| format!("complete local Vision operation: {error:?}"))?;
                 continue;
             }
             if matches!(
@@ -999,23 +1066,23 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             })
                             .transpose()
                             .map_err(|error| format!("bound image-text output: {error:?}"))?;
-                        (HostOperationDisposition::Completed, output, None)
+                        (HostCallDisposition::Completed, output, None)
                     }
                     Err(_) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            code: conduit_kernel::FailureCode::HostCallFailed,
                             detail: 1,
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -1024,7 +1091,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete image-text operation: {error:?}"))?;
                 continue;
             }
-            if json_operations::matches(contract.as_str()) {
+            if json_backs::matches(contract.as_str()) {
                 let completion =
                     json_host.execute(usize::from(request.node.0), contract.as_str(), input);
                 let (disposition, output, failure) = match completion {
@@ -1033,7 +1100,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             .store_host_value(encoded)
                             .map_err(|error| format!("store bounded JSON output: {error:?}"))?;
                         (
-                            HostOperationDisposition::Completed,
+                            HostCallDisposition::Completed,
                             Some(
                                 BoundedValueRef::new(
                                     value,
@@ -1045,20 +1112,20 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         )
                     }
                     Err(refusal) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            code: conduit_kernel::FailureCode::HostCallFailed,
                             detail: refusal,
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -1067,7 +1134,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete bounded JSON operation: {error:?}"))?;
                 continue;
             }
-            if contract.as_str() == conduit_std_offers::TEMPLATE_STORAGE_HOST_OPERATION {
+            if contract.as_str() == conduit_std_offers::TEMPLATE_STORAGE_HOST_CALL {
                 let completion = template_storage_hosts
                     .get_mut(usize::from(request.node.0))
                     .and_then(Option::as_mut)
@@ -1079,7 +1146,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             .store_host_value(encoded)
                             .map_err(|error| format!("store bounded template result: {error:?}"))?;
                         (
-                            HostOperationDisposition::Completed,
+                            HostCallDisposition::Completed,
                             Some(
                                 BoundedValueRef::new(
                                     value,
@@ -1091,20 +1158,20 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         )
                     }
                     Err(refusal) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
-                            detail: template_storage_operation::refusal_detail(refusal),
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail: template_storage_back::refusal_detail(refusal),
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -1113,8 +1180,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete bounded template storage: {error:?}"))?;
                 continue;
             }
-            if contract.as_str() == conduit_std_offers::TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_OPERATION
-            {
+            if contract.as_str() == conduit_std_offers::TIMED_BUTTON_ATTEMPT_OBSERVE_HOST_CALL {
                 let now_micros = timer.monotonic_now_micros().ok_or_else(|| {
                     "admitted pressed-button monotonic-microsecond Base is unavailable".to_string()
                 })?;
@@ -1127,14 +1193,14 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .observe(input, now_micros);
                 let (disposition, output, failure) = match completion {
                     Ok(timed_button_attempt_host::Observation::Released) => {
-                        (HostOperationDisposition::Completed, None, None)
+                        (HostCallDisposition::Completed, None, None)
                     }
                     Ok(timed_button_attempt_host::Observation::Pressed) => {
                         let value = scheduler.store_host_value(&[0]).map_err(|error| {
                             format!("store bounded pressed-button marker: {error:?}")
                         })?;
                         (
-                            HostOperationDisposition::Completed,
+                            HostCallDisposition::Completed,
                             Some(BoundedValueRef::new(value, 1).map_err(|error| {
                                 format!("bound pressed-button marker: {error:?}")
                             })?),
@@ -1146,7 +1212,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             format!("store bounded pressed-button attempt: {error:?}")
                         })?;
                         (
-                            HostOperationDisposition::Completed,
+                            HostCallDisposition::Completed,
                             Some(
                                 BoundedValueRef::new(
                                     value,
@@ -1160,20 +1226,20 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         )
                     }
                     Err(refusal) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
-                            detail: timed_button_attempt_operation::refusal_detail(refusal),
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail: timed_button_attempt_back::refusal_detail(refusal),
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -1184,7 +1250,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     })?;
                 continue;
             }
-            if contract.as_str() == conduit_std_offers::STRUCTURED_SELECTOR_HOST_OPERATION {
+            if contract.as_str() == conduit_std_offers::STRUCTURED_SELECTOR_HOST_CALL {
                 let completion = structured_selector_hosts
                     .get_mut(usize::from(request.node.0))
                     .and_then(Option::as_mut)
@@ -1196,7 +1262,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             format!("store bounded structured selector output: {error:?}")
                         })?;
                         (
-                            HostOperationDisposition::Completed,
+                            HostCallDisposition::Completed,
                             Some(
                                 BoundedValueRef::new(
                                     value,
@@ -1209,22 +1275,22 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             None,
                         )
                     }
-                    Ok(None) => (HostOperationDisposition::Completed, None, None),
+                    Ok(None) => (HostCallDisposition::Completed, None, None),
                     Err(refusal) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
-                            detail: structured_selector_operation::refusal_detail(&refusal),
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail: structured_selector_back::refusal_detail(&refusal),
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -1235,7 +1301,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     })?;
                 continue;
             }
-            if contract.as_str() == conduit_std_offers::TEXT_STATE_HOST_OPERATION {
+            if contract.as_str() == conduit_std_offers::TEXT_STATE_HOST_CALL {
                 let completion = text_state_hosts
                     .get_mut(usize::from(request.node.0))
                     .and_then(Option::as_mut)
@@ -1247,7 +1313,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             format!("store bounded text state output: {error:?}")
                         })?;
                         (
-                            HostOperationDisposition::Completed,
+                            HostCallDisposition::Completed,
                             Some(
                                 BoundedValueRef::new(
                                     value,
@@ -1258,9 +1324,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             None,
                         )
                     }
-                    Ok(None) => (HostOperationDisposition::Completed, None, None),
+                    Ok(None) => (HostCallDisposition::Completed, None, None),
                     Err(refusal) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
                             code: match refusal {
@@ -1278,10 +1344,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -1290,7 +1356,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete bounded text state: {error:?}"))?;
                 continue;
             }
-            if contract.as_str() == conduit_std_offers::ORDERED_EVENT_INTERVALS_HOST_OPERATION {
+            if contract.as_str() == conduit_std_offers::ORDERED_EVENT_INTERVALS_HOST_CALL {
                 let completion = timed_pattern_host.execute(input);
                 let (disposition, output, failure) = match completion {
                     Ok(encoded) => {
@@ -1298,7 +1364,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             format!("store bounded timed-pattern output: {error:?}")
                         })?;
                         (
-                            HostOperationDisposition::Completed,
+                            HostCallDisposition::Completed,
                             Some(
                                 BoundedValueRef::new(
                                     value,
@@ -1312,20 +1378,20 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         )
                     }
                     Err(refusal) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
-                            detail: timed_pattern_operation::refusal_detail(&refusal),
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail: timed_pattern_back::refusal_detail(&refusal),
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -1336,7 +1402,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     })?;
                 continue;
             }
-            if contract.as_str() == conduit_std_offers::NORMALIZE_SEQUENCE_HOST_OPERATION {
+            if contract.as_str() == conduit_std_offers::NORMALIZE_SEQUENCE_HOST_CALL {
                 let completion = sequence_normalization_host.execute(input);
                 let (disposition, output, failure) = match completion {
                     Ok(encoded) => {
@@ -1344,7 +1410,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             format!("store bounded normalized sequence: {error:?}")
                         })?;
                         (
-                            HostOperationDisposition::Completed,
+                            HostCallDisposition::Completed,
                             Some(
                                 BoundedValueRef::new(
                                     value,
@@ -1356,20 +1422,20 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         )
                     }
                     Err(refusal) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
-                            detail: sequence_normalization_operation::refusal_detail(&refusal),
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail: sequence_normalization_back::refusal_detail(&refusal),
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -1395,7 +1461,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             format!("store calendar provider output: {error:?}")
                         })?;
                         (
-                            HostOperationDisposition::Completed,
+                            HostCallDisposition::Completed,
                             Some(
                                 BoundedValueRef::new(
                                     value,
@@ -1409,35 +1475,33 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         )
                     }
                     Err(refusal) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            code: conduit_kernel::FailureCode::HostCallFailed,
                             detail: calendar_provider_host::refusal_detail(refusal),
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
                         },
                     )
-                    .map_err(|error| {
-                        format!("complete calendar provider host operation: {error:?}")
-                    })?;
+                    .map_err(|error| format!("complete calendar provider host-call: {error:?}"))?;
                 continue;
             }
             if matches!(
                 contract.as_str(),
-                conduit_std_offers::RHYTHM_PERFORMANCE_HOST_OPERATION
-                    | conduit_std_offers::RHYTHM_REFERENCE_HOST_OPERATION
-                    | conduit_std_offers::RHYTHM_DRAIN_HOST_OPERATION
+                conduit_std_offers::RHYTHM_PERFORMANCE_HOST_CALL
+                    | conduit_std_offers::RHYTHM_REFERENCE_HOST_CALL
+                    | conduit_std_offers::RHYTHM_DRAIN_HOST_CALL
             ) {
                 let completion = rhythm_compare_hosts
                     .get_mut(usize::from(request.node.0))
@@ -1450,7 +1514,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             .store_host_value(encoded)
                             .map_err(|error| format!("store bounded rhythm feedback: {error:?}"))?;
                         (
-                            HostOperationDisposition::Completed,
+                            HostCallDisposition::Completed,
                             Some(
                                 BoundedValueRef::new(
                                     value,
@@ -1463,22 +1527,22 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             None,
                         )
                     }
-                    Ok(None) => (HostOperationDisposition::Completed, None, None),
+                    Ok(None) => (HostCallDisposition::Completed, None, None),
                     Err(refusal) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            code: conduit_kernel::FailureCode::HostCallFailed,
                             detail: refusal as u16,
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -1503,7 +1567,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             format!("store bounded pattern comparison: {error:?}")
                         })?;
                         (
-                            HostOperationDisposition::Completed,
+                            HostCallDisposition::Completed,
                             Some(
                                 BoundedValueRef::new(
                                     value,
@@ -1514,22 +1578,22 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             None,
                         )
                     }
-                    Ok(None) => (HostOperationDisposition::Completed, None, None),
+                    Ok(None) => (HostCallDisposition::Completed, None, None),
                     Err(refusal) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
-                            detail: pattern_comparison_operation::refusal_detail(&refusal),
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail: pattern_comparison_back::refusal_detail(&refusal),
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -1561,23 +1625,23 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                                 .map_err(|error| format!("bound hosted HTTP output: {error:?}"))?,
                             )
                         };
-                        (HostOperationDisposition::Completed, output, None)
+                        (HostCallDisposition::Completed, output, None)
                     }
                     Err(error) => (
-                        HostOperationDisposition::Failed,
+                        HostCallDisposition::Failed,
                         None,
                         Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostOperationFailed,
+                            code: conduit_kernel::FailureCode::HostCallFailed,
                             detail: error.detail(),
                         }),
                     ),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -1612,18 +1676,18 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 )?;
                 record_request(&mut requests, request);
                 continue;
-            } else if contract.as_str() == synth_operation::SYNTH_HOST_OPERATION {
+            } else if contract.as_str() == synth_back::SYNTH_HOST_CALL {
                 let state = synth_states
                     .get_mut(usize::from(request.node.0))
                     .and_then(Option::as_mut)
                     .ok_or_else(|| "synth request has no exact admitted state".to_string())?;
-                let has_output = synth_operation::execute(state, input, &mut synth_output)?;
+                let has_output = synth_back::execute(state, input, &mut synth_output)?;
                 let output = if has_output {
                     let value = scheduler
                         .store_host_value(&synth_output)
                         .map_err(|error| format!("store reference synth PCM: {error:?}"))?;
                     Some(
-                        BoundedValueRef::new(value, synth_operation::PCM_BLOCK_BYTES)
+                        BoundedValueRef::new(value, synth_back::PCM_BLOCK_BYTES)
                             .map_err(|error| format!("bound reference synth PCM: {error:?}"))?,
                     )
                 } else {
@@ -1631,44 +1695,44 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output,
                             failure: None,
                         },
                     )
                     .map_err(|error| format!("complete reference synth render: {error:?}"))?;
                 continue;
-            } else if contract.as_str() == audio_play_operation::HOST_OPERATION {
+            } else if contract.as_str() == audio_play_back::HOST_CALL {
                 let session = playback_sessions
                     .get_mut(usize::from(request.node.0))
                     .and_then(Option::as_mut)
                     .ok_or_else(|| {
                         "audio/play request has no exact admitted session".to_string()
                     })?;
-                let outcome = audio_play_operation::execute(session, input);
+                let outcome = audio_play_back::execute(session, input);
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(request.node, request.request, outcome)
-                    .map_err(|error| format!("complete audio/play host operation: {error:?}"))?;
+                    .complete_host_call(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete audio/play host-call: {error:?}"))?;
                 continue;
-            } else if contract.as_str() == wav_artifact_operation::HOST_OPERATION {
+            } else if contract.as_str() == wav_artifact_back::HOST_CALL {
                 let session = wav_artifact_sessions
                     .get_mut(usize::from(request.node.0))
                     .and_then(Option::as_mut)
                     .ok_or_else(|| {
                         "WAV artifact request has no exact admitted session".to_string()
                     })?;
-                let outcome = wav_artifact_operation::execute(session, input);
+                let outcome = wav_artifact_back::execute(session, input);
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(request.node, request.request, outcome)
-                    .map_err(|error| format!("complete WAV artifact host operation: {error:?}"))?;
+                    .complete_host_call(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete WAV artifact host-call: {error:?}"))?;
                 continue;
-            } else if contract.as_str() == pcm_profile_conversion_operation::HOST_OPERATION {
+            } else if contract.as_str() == pcm_profile_conversion_back::HOST_CALL {
                 let host = pcm_conversion_hosts
                     .get_mut(usize::from(request.node.0))
                     .and_then(Option::as_mut)
@@ -1681,8 +1745,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         let value = scheduler
                             .store_host_value(&pcm_conversion_output)
                             .map_err(|error| format!("store converted PCM: {error:?}"))?;
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: Some(
                                 BoundedValueRef::new(
                                     value,
@@ -1693,15 +1757,15 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             failure: None,
                         }
                     }
-                    Err(failure) => HostOperationOutcome {
-                        disposition: HostOperationDisposition::Failed,
+                    Err(failure) => HostCallOutcome {
+                        disposition: HostCallDisposition::Failed,
                         output: None,
                         failure: Some(failure),
                     },
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(request.node, request.request, outcome)
+                    .complete_host_call(request.node, request.request, outcome)
                     .map_err(|error| format!("complete PCM conversion: {error:?}"))?;
                 continue;
             } else if matches!(
@@ -1718,11 +1782,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .get_mut(node)
                     .and_then(Option::as_mut)
                     .ok_or_else(|| "MIDI request has no exact admitted adapter".to_string())?;
-                let outcome =
-                    midi_output_operation::execute(adapter, session, contract.as_str(), input);
+                let outcome = midi_output_back::execute(adapter, session, contract.as_str(), input);
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(request.node, request.request, outcome)
+                    .complete_host_call(request.node, request.request, outcome)
                     .map_err(|error| format!("complete MIDI output operation: {error:?}"))?;
                 continue;
             } else if contract.as_str() == test_audio_source::YIELD_OPERATION
@@ -1733,11 +1796,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 }
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: None,
                             failure: None,
                         },
@@ -1764,11 +1827,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         .map_err(|error| format!("bound proof PCM clip: {error:?}"))?;
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: Some(output),
                             failure: None,
                         },
@@ -1778,27 +1841,26 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             } else if contract.as_str() == conduit_std_offers::WHISPER_SPEECH_OPERATION
                 || contract.as_str() == conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION
             {
-                let recognition =
-                    if contract.as_str() == conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION {
-                        whisper_speech_operation::execute_clip(
-                            speech_recognition.as_deref_mut(),
-                            input,
-                            || control.requested_stop().is_some(),
-                        )
-                    } else {
-                        whisper_speech_operation::execute(
-                            speech_recognition.as_deref_mut(),
-                            input,
-                            || control.requested_stop().is_some(),
-                        )
-                    };
+                let recognition = if contract.as_str()
+                    == conduit_std_offers::WHISPER_CLIP_SPEECH_OPERATION
+                {
+                    whisper_speech_back::execute_clip(
+                        speech_recognition.as_deref_mut(),
+                        input,
+                        || control.requested_stop().is_some(),
+                    )
+                } else {
+                    whisper_speech_back::execute(speech_recognition.as_deref_mut(), input, || {
+                        control.requested_stop().is_some()
+                    })
+                };
                 let outcome = match recognition {
                     Ok(encoded) => {
                         let value = scheduler
                             .store_host_value(&encoded)
                             .map_err(|error| format!("store Whisper recognition: {error:?}"))?;
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: Some(
                                 BoundedValueRef::new(
                                     value,
@@ -1809,11 +1871,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             failure: None,
                         }
                     }
-                    Err(failure) => whisper_speech_operation::failure_outcome(failure),
+                    Err(failure) => whisper_speech_back::failure_outcome(failure),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(request.node, request.request, outcome)
+                    .complete_host_call(request.node, request.request, outcome)
                     .map_err(|error| format!("complete Whisper recognition: {error:?}"))?;
                 continue;
             } else if contract.as_str() == "conduit.host/proof-recorded-speech-recognize@1" {
@@ -1834,11 +1896,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             .map_err(|error| format!("bound recorded recognition: {error:?}"))?;
                     record_request(&mut requests, request);
                     scheduler
-                        .complete_host_operation(
+                        .complete_host_call(
                             request.node,
                             request.request,
-                            HostOperationOutcome {
-                                disposition: HostOperationDisposition::Completed,
+                            HostCallOutcome {
+                                disposition: HostCallDisposition::Completed,
                                 output: Some(output),
                                 failure: None,
                             },
@@ -1875,11 +1937,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("bound speech-window output: {error:?}"))?;
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output,
                             failure: None,
                         },
@@ -1902,11 +1964,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         .map_err(|error| format!("bound recognition event: {error:?}"))?;
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: Some(output),
                             failure: None,
                         },
@@ -1932,11 +1994,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("bound committed recognition turn: {error:?}"))?;
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output,
                             failure: None,
                         },
@@ -1967,11 +2029,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("bound committed speech segment: {error:?}"))?;
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output,
                             failure: None,
                         },
@@ -2005,11 +2067,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         .transpose()?;
                     record_request(&mut requests, request);
                     scheduler
-                        .complete_host_operation(
+                        .complete_host_call(
                             request.node,
                             request.request,
-                            HostOperationOutcome {
-                                disposition: HostOperationDisposition::Completed,
+                            HostCallOutcome {
+                                disposition: HostCallDisposition::Completed,
                                 output,
                                 failure: None,
                             },
@@ -2019,7 +2081,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         })?;
                     continue;
                 }
-                let completion = speech_synthesis_operation::execute_piper(
+                let completion = speech_synthesis_back::execute_piper(
                     speech_synthesis.as_deref_mut(),
                     input,
                     fragment
@@ -2045,20 +2107,20 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             })
                             .transpose()
                             .map_err(|error| format!("bound Piper speech block: {error:?}"))?;
-                        (HostOperationDisposition::Completed, output, None)
+                        (HostCallDisposition::Completed, output, None)
                     }
                     Err(error) => {
                         let (disposition, failure) =
-                            speech_synthesis_operation::piper_failure_outcome(error);
+                            speech_synthesis_back::piper_failure_outcome(error);
                         (disposition, None, Some(failure))
                     }
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure,
@@ -2077,16 +2139,16 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u32,
                         )
                         .map_err(|error| format!("bound recognized text: {error:?}"))?;
-                        (HostOperationDisposition::Completed, Some(output))
+                        (HostCallDisposition::Completed, Some(output))
                     }
-                    Err(_) => (HostOperationDisposition::Denied, None),
+                    Err(_) => (HostCallDisposition::Denied, None),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure: None,
@@ -2106,16 +2168,16 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                                 conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u32,
                             )
                             .map_err(|error| format!("bound committed turn text: {error:?}"))?;
-                            (HostOperationDisposition::Completed, Some(output))
+                            (HostCallDisposition::Completed, Some(output))
                         }
-                        Err(_) => (HostOperationDisposition::Denied, None),
+                        Err(_) => (HostCallDisposition::Denied, None),
                     };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure: None,
@@ -2144,16 +2206,16 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             lowered_operation.binding.maximum_output_bytes,
                         )
                         .map_err(|error| format!("bound projected model text: {error:?}"))?;
-                        (HostOperationDisposition::Completed, Some(output))
+                        (HostCallDisposition::Completed, Some(output))
                     }
-                    Err(_) => (HostOperationDisposition::Denied, None),
+                    Err(_) => (HostCallDisposition::Denied, None),
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure: None,
@@ -2161,7 +2223,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete model-text projection: {error:?}"))?;
                 continue;
-            } else if navigation_operations::is_host_operation(contract.as_str()) {
+            } else if navigation_backs::is_host_call(contract.as_str()) {
                 let completion = navigation_hosts
                     .get_mut(usize::from(request.node.0))
                     .and_then(Option::as_mut)
@@ -2178,11 +2240,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .transpose()?;
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output,
                             failure: None,
                         },
@@ -2200,8 +2262,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .ok_or_else(|| "address-detect request has no admitted host".to_string())?
                     .execute(contract.as_str(), input)?;
                 let output = match completion {
-                    address_detect_operation::HostCompletion::Stored => None,
-                    address_detect_operation::HostCompletion::Output(encoded) => {
+                    address_detect_back::HostCompletion::Stored => None,
+                    address_detect_back::HostCompletion::Output(encoded) => {
                         let value = scheduler
                             .store_host_value(encoded)
                             .map_err(|error| format!("store address detection: {error:?}"))?;
@@ -2216,11 +2278,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output,
                             failure: None,
                         },
@@ -2256,11 +2318,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("bound Body Chat prompt output: {error:?}"))?;
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output,
                             failure: None,
                         },
@@ -2278,10 +2340,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .ok_or_else(|| "House prompt request has no admitted host".to_string())?
                     .execute(contract.as_str(), input)?;
                 let (disposition, output) = match completion {
-                    house_prompt_operation::HostCompletion::Stored => {
-                        (HostOperationDisposition::Completed, None)
+                    house_prompt_back::HostCompletion::Stored => {
+                        (HostCallDisposition::Completed, None)
                     }
-                    house_prompt_operation::HostCompletion::Output(encoded) => {
+                    house_prompt_back::HostCompletion::Output(encoded) => {
                         let value = scheduler
                             .store_host_value(encoded)
                             .map_err(|error| format!("store bounded House prompt: {error:?}"))?;
@@ -2290,18 +2352,18 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             lowered_operation.binding.maximum_output_bytes,
                         )
                         .map_err(|error| format!("bound House prompt: {error:?}"))?;
-                        (HostOperationDisposition::Completed, Some(output))
+                        (HostCallDisposition::Completed, Some(output))
                     }
-                    house_prompt_operation::HostCompletion::NotAddressed => {
-                        (HostOperationDisposition::Denied, None)
+                    house_prompt_back::HostCompletion::NotAddressed => {
+                        (HostCallDisposition::Denied, None)
                     }
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure: None,
@@ -2311,7 +2373,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 continue;
             } else if matches!(
                 contract.as_str(),
-                conduit_ai::GENERATE_TEXT_HOST_OPERATION | conduit_ai::LOCAL_MODEL_OPERATION
+                conduit_ai::GENERATE_TEXT_HOST_CALL | conduit_ai::LOCAL_MODEL_OPERATION
             ) {
                 let placement = fragment
                     .placements
@@ -2340,11 +2402,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
-                        request.node,
-                        request.request,
-                        completion.outcome(output),
-                    )
+                    .complete_host_call(request.node, request.request, completion.outcome(output))
                     .map_err(|error| format!("complete model operation: {error:?}"))?;
                 continue;
             } else if contract.as_str() == conduit_ai::VECTOR_SEARCH_OPERATION {
@@ -2374,11 +2432,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
-                        request.node,
-                        request.request,
-                        completion.outcome(output),
-                    )
+                    .complete_host_call(request.node, request.request, completion.outcome(output))
                     .map_err(|error| format!("complete vector-search operation: {error:?}"))?;
                 continue;
             } else if contract
@@ -2400,7 +2454,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                                     format!("store external WebSocket output: {error:?}")
                                 })?;
                         (
-                            HostOperationDisposition::Completed,
+                            HostCallDisposition::Completed,
                             Some(
                                 BoundedValueRef::new(
                                     value,
@@ -2413,10 +2467,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         )
                     }
                     external_websocket_host::ExternalHostCompletion::NoOutput => {
-                        (HostOperationDisposition::Completed, None)
+                        (HostCallDisposition::Completed, None)
                     }
                     external_websocket_host::ExternalHostCompletion::ReturnedInput => {
-                        (HostOperationDisposition::Completed, Some(request.input))
+                        (HostCallDisposition::Completed, Some(request.input))
                     }
                     external_websocket_host::ExternalHostCompletion::Disconnected => {
                         let output = if external_output.is_empty() {
@@ -2438,23 +2492,21 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                                 })?,
                             )
                         };
-                        (HostOperationDisposition::Cancelled, output)
+                        (HostCallDisposition::Cancelled, output)
                     }
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
+                        HostCallOutcome {
                             disposition,
                             output,
                             failure: None,
                         },
                     )
-                    .map_err(|error| {
-                        format!("complete external WebSocket host operation: {error:?}")
-                    })?;
+                    .map_err(|error| format!("complete external WebSocket host-call: {error:?}"))?;
                 continue;
             } else if let Some(completion) = alife_host.execute(
                 contract,
@@ -2465,8 +2517,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 _output,
             ) {
                 let outcome = match completion {
-                    alife_host::AlifeCompletion::Completed => HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    alife_host::AlifeCompletion::Completed => HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: None,
                         failure: None,
                     },
@@ -2474,8 +2526,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         let value = scheduler
                             .store_host_value(encoded)
                             .map_err(|error| format!("store Lenia field: {error:?}"))?;
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: Some(
                                 BoundedValueRef::new(
                                     value,
@@ -2486,16 +2538,16 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             failure: None,
                         }
                     }
-                    alife_host::AlifeCompletion::Failed(failure) => HostOperationOutcome {
-                        disposition: HostOperationDisposition::Failed,
+                    alife_host::AlifeCompletion::Failed(failure) => HostCallOutcome {
+                        disposition: HostCallDisposition::Failed,
                         output: None,
                         failure: Some(failure),
                     },
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(request.node, request.request, outcome)
-                    .map_err(|error| format!("complete alife host operation: {error:?}"))?;
+                    .complete_host_call(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete alife host-call: {error:?}"))?;
                 continue;
             } else if contract == &wait_contract_id {
                 let duration = decode_tick(input).map_err(|error| error.to_string())?;
@@ -2517,18 +2569,18 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             } else if contract == &upper_contract_id
                 && lowered_operation.target_kind.as_ref() == Some(&upper_target_kind)
             {
-                text_operations::uppercase_utf8(input, &mut text_output_buffer)?;
+                text_backs::uppercase_utf8(input, &mut text_output_buffer)?;
                 let value = scheduler
                     .store_host_value(&text_output_buffer)
                     .map_err(|error| format!("store uppercase text output: {error:?}"))?;
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        text_operations::completed_with_output(value),
+                        text_backs::completed_with_output(value),
                     )
-                    .map_err(|error| format!("complete text/upper host operation: {error:?}"))?;
+                    .map_err(|error| format!("complete text/upper host-call: {error:?}"))?;
                 continue;
             } else if contract == &join_contract_id
                 && lowered_operation.target_kind.as_ref() == Some(&join_target_kind)
@@ -2537,19 +2589,19 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .placements
                     .get(usize::from(request.node.0))
                     .ok_or_else(|| "text/join request has no exact placement".to_string())?;
-                let prefix = text_operations::join_prefix(placement)?;
-                text_operations::prefix_utf8(prefix, input, &mut text_output_buffer)?;
+                let prefix = text_backs::join_prefix(placement)?;
+                text_backs::prefix_utf8(prefix, input, &mut text_output_buffer)?;
                 let value = scheduler
                     .store_host_value(&text_output_buffer)
                     .map_err(|error| format!("store joined text output: {error:?}"))?;
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        text_operations::completed_with_output(value),
+                        text_backs::completed_with_output(value),
                     )
-                    .map_err(|error| format!("complete text/join host operation: {error:?}"))?;
+                    .map_err(|error| format!("complete text/join host-call: {error:?}"))?;
                 continue;
             } else if contract == &morse_contract_id
                 && lowered_operation.target_kind.as_ref() == Some(&morse_target_kind)
@@ -2558,23 +2610,23 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .placements
                     .get(usize::from(request.node.0))
                     .ok_or_else(|| "text/morse request has no exact placement".to_string())?;
-                morse_operations::encode(placement, input, &mut text_output_buffer)?;
+                morse_backs::encode(placement, input, &mut text_output_buffer)?;
                 let value = scheduler
                     .store_host_value(&text_output_buffer)
                     .map_err(|error| format!("store Morse pattern output: {error:?}"))?;
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        morse_operations::completed_with_output(value),
+                        morse_backs::completed_with_output(value),
                     )
-                    .map_err(|error| format!("complete text/morse host operation: {error:?}"))?;
+                    .map_err(|error| format!("complete text/morse host-call: {error:?}"))?;
                 continue;
             } else if lowered_operation
                 .target_kind
                 .as_ref()
-                .is_some_and(|target| morse_operations::is_composition_operation(contract, target))
+                .is_some_and(|target| morse_backs::is_composition_operation(contract, target))
             {
                 let placement = fragment
                     .placements
@@ -2582,32 +2634,30 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .ok_or_else(|| {
                         "Morse composition request has no exact placement".to_string()
                     })?;
-                morse_operations::compose(placement, input, &mut text_output_buffer)?;
+                morse_backs::compose(placement, input, &mut text_output_buffer)?;
                 let value = scheduler
                     .store_host_value(&text_output_buffer)
                     .map_err(|error| format!("store Morse composition output: {error:?}"))?;
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        morse_operations::composition_completed_with_output(placement, value),
+                        morse_backs::composition_completed_with_output(placement, value),
                     )
-                    .map_err(|error| {
-                        format!("complete Morse composition host operation: {error:?}")
-                    })?;
+                    .map_err(|error| format!("complete Morse composition host-call: {error:?}"))?;
                 continue;
             } else if contract == &gate_bool_contract_id
                 && lowered_operation.target_kind.as_ref() == Some(&gate_bool_target_kind)
             {
-                let enabled = flow_gate_operation::decode_bool(input)?;
+                let enabled = flow_gate_back::decode_bool(input)?;
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(
+                    .complete_host_call(
                         request.node,
                         request.request,
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: enabled.then_some(request.input),
                             failure: None,
                         },
@@ -2620,7 +2670,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     && lowered_operation.target_kind.as_ref() == Some(&chords_target_kind))
             {
                 let node = usize::from(request.node.0);
-                let completion = input_semantic_operations::execute_host(
+                let completion = input_semantic_backs::execute_host(
                     contract == &keymap_contract_id,
                     &mut input_keymaps[node],
                     input,
@@ -2630,8 +2680,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         let value = scheduler
                             .store_host_value(encoded.as_slice())
                             .map_err(|error| format!("store input semantic output: {error:?}"))?;
-                        HostOperationOutcome {
-                            disposition: HostOperationDisposition::Completed,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
                             output: Some(
                                 BoundedValueRef::new(
                                     value,
@@ -2644,23 +2694,21 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             failure: None,
                         }
                     }
-                    Ok(None) => HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    Ok(None) => HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: None,
                         failure: None,
                     },
-                    Err(failure) => HostOperationOutcome {
-                        disposition: HostOperationDisposition::Failed,
+                    Err(failure) => HostCallOutcome {
+                        disposition: HostCallDisposition::Failed,
                         output: None,
                         failure: Some(failure),
                     },
                 };
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(request.node, request.request, outcome)
-                    .map_err(|error| {
-                        format!("complete input semantic host operation: {error:?}")
-                    })?;
+                    .complete_host_call(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete input semantic host-call: {error:?}"))?;
                 continue;
             } else if math_host.matches(contract, lowered_operation.target_kind.as_ref()) {
                 math_host.complete(fragment, request, &mut scheduler, &mut requests)?;
@@ -2681,7 +2729,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 let outcome = indicator_host.present(request, input);
                 record_request(&mut requests, request);
                 scheduler
-                    .complete_host_operation(request.node, request.request, outcome)
+                    .complete_host_call(request.node, request.request, outcome)
                     .map_err(|error| format!("complete indicator operation: {error:?}"))?;
                 continue;
             } else if lowered_operation.target_kind.as_ref()
@@ -2711,7 +2759,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     if contract != &observer_contract_id
                         || lowered_operation.target_kind.as_ref() != Some(&observer_target_kind)
                     {
-                        return Err("installed host-operation contract is unsupported".to_string());
+                        return Err("installed Host Call contract is unsupported".to_string());
                     }
                     let tick = decode_tick(input).map_err(|error| error.to_string())?;
                     observed_ticks.push(tick);
@@ -2719,29 +2767,31 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         .map_err(|error| error.to_string())?;
                 }
                 #[cfg(not(test))]
-                return Err("installed host-operation contract is unsupported".to_string());
+                return Err("installed Host Call contract is unsupported".to_string());
             }
             record_request(&mut requests, request);
             scheduler
-                .complete_host_operation(
+                .complete_host_call(
                     request.node,
                     request.request,
-                    HostOperationOutcome {
-                        disposition: HostOperationDisposition::Completed,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
                         output: None,
                         failure: None,
                     },
                 )
-                .map_err(|error| format!("complete std host operation: {error:?}"))?;
+                .map_err(|error| format!("complete std host-call: {error:?}"))?;
         }
         let status = match scheduler.step() {
             Ok(status) => status,
-            Err(conduit_kernel::scheduler::SchedulerError::OperationFailed(failure))
+            Err(conduit_kernel::scheduler::SchedulerError::BackFailed(failure))
                 if math_host.accept_failure(
                     scheduler
                         .signs()
                         .events()
-                        .filter(|event| event.kind == conduit_kernel::KernelEventKind::Decision)
+                        .filter(|event| {
+                            event.kind == conduit_kernel::KernelEventKind::StepFuelGranted
+                        })
                         .last()
                         .map(|event| event.node),
                     failure.detail,
@@ -2788,10 +2838,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         Ok(readable) => readable,
                         Err(error) => {
                             scheduler
-                                .complete_host_operation(
+                                .complete_host_call(
                                     request.node,
                                     request.request,
-                                    midi_input_operation::failure_outcome(error),
+                                    midi_input_back::failure_outcome(error),
                                 )
                                 .map_err(|completion| {
                                     format!("complete MIDI input readiness failure: {completion:?}")
@@ -2816,8 +2866,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             let value = scheduler.store_host_value(&encoded).map_err(|error| {
                                 format!("store MIDI input observation: {error:?}")
                             })?;
-                            HostOperationOutcome {
-                                disposition: HostOperationDisposition::Completed,
+                            HostCallOutcome {
+                                disposition: HostCallDisposition::Completed,
                                 output: Some(
                                     BoundedValueRef::new(
                                         value,
@@ -2830,13 +2880,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                                 failure: None,
                             }
                         }
-                        Err(error) => midi_input_operation::failure_outcome(error),
+                        Err(error) => midi_input_back::failure_outcome(error),
                     };
                     scheduler
-                        .complete_host_operation(request.node, request.request, outcome)
-                        .map_err(|error| {
-                            format!("complete MIDI input host operation: {error:?}")
-                        })?;
+                        .complete_host_call(request.node, request.request, outcome)
+                        .map_err(|error| format!("complete MIDI input host-call: {error:?}"))?;
                     midi_input_requests[node] = None;
                     completed_midi_input = true;
                 }
@@ -2955,10 +3003,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     };
 
     for driver in scheduler.drivers() {
-        robotics_effect::write_simulated_drive_effect(
-            _output,
-            driver.operation().simulated_drive_effect(),
-        )?;
+        robotics_effect::write_simulated_drive_effect(_output, driver.simulated_drive_effect())?;
     }
 
     #[cfg(test)]
@@ -2991,7 +3036,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let driver_capacity_after = scheduler
         .drivers()
         .iter()
-        .map(|driver| driver.operation().allocation_capacity())
+        .map(InstalledBack::allocation_capacity)
         .sum::<usize>();
     let value_allocation_after = scheduler.values().allocation_capacities();
     let alife_capacity_after = alife_host.allocation_capacity();
@@ -3007,7 +3052,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 &lowered.identity,
                 request.node,
                 request.request,
-                request.operation,
+                request.call,
             )
             .map_err(|error| format!("bind std request identity: {error:?}"))?;
     }

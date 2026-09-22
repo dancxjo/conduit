@@ -36,7 +36,7 @@ export function createBodyInputRouting({ forms, foreground, maximumPlacements })
   };
   const selected = () => {
     const form = foreground();
-    if (!formIds.has(form)) throw new BrowserInputRefusal("StaleForm", "foreground Form is outside the admitted Body Plan");
+    if (!formIds.has(form)) throw new BrowserInputRefusal("StaleForm", "foreground Form is outside the admitted body Plan");
     return form;
   };
   const accepts = (form, kind) => {
@@ -194,7 +194,7 @@ export function createBodyInputRouting({ forms, foreground, maximumPlacements })
     next(kind, placement, signal) {
       if (terminal) return Promise.reject(terminal);
       if (!input || placementInputs.get(placement) !== kind) {
-        return Promise.reject(new BrowserInputRefusal("StalePlacement", "input request is outside the admitted Body Plan"));
+        return Promise.reject(new BrowserInputRefusal("StalePlacement", "input request is outside the admitted body Plan"));
       }
       if (signal.aborted) return Promise.reject(new BrowserInputRefusal("Cancelled", "Body input request cancelled"));
       if (waiters.some(waiter => waiter.placement === placement)) {

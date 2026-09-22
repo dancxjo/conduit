@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 use crate::{
-    PatchbayComposition, PatchbayCompositionBinding, PatchbayFacePort, PatchbayGraph,
+    PatchbayComposition, PatchbayCompositionBinding, PatchbayFrontPort, PatchbayGraph,
     PatchbayGraphError, RecursiveFormGearProjection,
 };
 use conduit_core::{GearId, PortDescriptor};
@@ -12,7 +12,7 @@ impl PatchbayGraph {
     /// Adds one presentation boundary for realization truth already projected
     /// from an admitted recursive Form Back. The flattened Gears and Cords
     /// remain authoritative; this records only how Patchbay may collapse that
-    /// graph behind the checked Front.
+    /// graph behind the checked front.
     pub fn admit_recursive_form(
         &mut self,
         projection: &RecursiveFormGearProjection,
@@ -32,7 +32,7 @@ impl PatchbayGraph {
             .inputs()
             .iter()
             .cloned()
-            .map(|descriptor| PatchbayFacePort {
+            .map(|descriptor| PatchbayFrontPort {
                 identity: port_identity("input", &descriptor),
                 descriptor,
             })
@@ -42,7 +42,7 @@ impl PatchbayGraph {
             .outputs()
             .iter()
             .cloned()
-            .map(|descriptor| PatchbayFacePort {
+            .map(|descriptor| PatchbayFrontPort {
                 identity: port_identity("output", &descriptor),
                 descriptor,
             })

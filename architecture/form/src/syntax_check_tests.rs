@@ -6,6 +6,9 @@ use crate::{
 fn catalog() -> StartupCatalog {
     let mut catalog = StartupCatalog::new();
     catalog
+        .insert_value_kind_alias("ChatMessage", conduit_core::kind_id("chat/message@1"))
+        .unwrap();
+    catalog
         .insert(KindSignature {
             kind: "time/every".into(),
             startup_parameters: vec![StartupParameterSignature {
@@ -343,6 +346,57 @@ fn checked_front_equality_ignores_callable_name_and_back() {
     assert_ne!(
         checked.forms[0].checked_form_id,
         checked.forms[1].checked_form_id
+    );
+}
+
+#[test]
+fn startup_aliases_canonicalize_front_identity_and_fingerprint() {
+    let mut aliases = catalog();
+    aliases
+        .insert_value_kind_alias("ShortText", conduit_core::kind_id("value/text"))
+        .unwrap();
+    aliases
+        .insert_value_kind_alias("LongText", conduit_core::kind_id("value/text"))
+        .unwrap();
+    let short = parse_syntax_document("form a (\n value: ShortText\n) {\n}\n");
+    let long = parse_syntax_document("form a (\n value: LongText\n) {\n}\n");
+    let short = check_syntax_document(&short, &aliases).unwrap();
+    let long = check_syntax_document(&long, &aliases).unwrap();
+    let short_front = short.forms[0].checked_front();
+    let long_front = long.forms[0].checked_front();
+
+    assert_eq!(short_front, long_front);
+    assert_eq!(
+        short_front.startup_parameters()[0].value_type.as_str(),
+        "value/text"
+    );
+    assert_eq!(
+        conduit_core::compute_checked_front_fingerprint(&short_front),
+        conduit_core::compute_checked_front_fingerprint(&long_front)
+    );
+}
+
+#[test]
+fn startup_type_and_default_semantics_have_explicit_identity_boundaries() {
+    let text_default = check("form a (\n value: Text = \"one\"\n) {\n}\n");
+    let other_default = check("form a (\n value: Text = \"two\"\n) {\n}\n");
+    let count = check("form a (\n value: Count = 1\n) {\n}\n");
+
+    assert_eq!(
+        text_default.forms[0].checked_front(),
+        other_default.forms[0].checked_front()
+    );
+    assert_ne!(
+        text_default.forms[0].checked_form_id,
+        other_default.forms[0].checked_form_id
+    );
+    assert_ne!(
+        text_default.forms[0].checked_front(),
+        count.forms[0].checked_front()
+    );
+    assert_ne!(
+        conduit_core::compute_checked_front_fingerprint(&text_default.forms[0].checked_front()),
+        conduit_core::compute_checked_front_fingerprint(&count.forms[0].checked_front())
     );
 }
 

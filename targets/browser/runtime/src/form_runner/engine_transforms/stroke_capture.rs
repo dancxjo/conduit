@@ -1,14 +1,14 @@
-//! Prepared bounded-stroke host-operation dispatch.
+//! Prepared bounded-stroke Host Call dispatch.
 
 use super::{debug_error, TourScheduler};
-use conduit_core::HostOperationRequirement;
-use conduit_kernel::scheduler::HostOperationRequest;
-use conduit_kernel::{BoundedValueRef, HostOperationDisposition, HostOperationOutcome};
+use conduit_core::HostCallRequirement;
+use conduit_kernel::scheduler::HostCallRequest;
+use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
 
 pub(super) fn complete(
     scheduler: &mut TourScheduler,
-    operation: &HostOperationRequirement,
-    request: HostOperationRequest,
+    operation: &HostCallRequirement,
+    request: HostCallRequest,
 ) -> Result<(), String> {
     let input = scheduler
         .kernel
@@ -19,8 +19,8 @@ pub(super) fn complete(
         .ok_or("bounded stroke capture was not prepared before Play")?
         .execute(operation.contract_id.as_str(), input);
     let outcome = match result {
-        Ok(output) => HostOperationOutcome {
-            disposition: HostOperationDisposition::Completed,
+        Ok(output) => HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
             output: output
                 .map(|bytes| {
                     let value = scheduler.store_host_value(&bytes).map_err(debug_error)?;
@@ -29,13 +29,13 @@ pub(super) fn complete(
                 .transpose()?,
             failure: None,
         },
-        Err(failure) => HostOperationOutcome {
-            disposition: HostOperationDisposition::Failed,
+        Err(failure) => HostCallOutcome {
+            disposition: HostCallDisposition::Failed,
             output: None,
             failure: Some(failure),
         },
     };
     scheduler
-        .complete_host_operation(request.node, request.request, outcome)
+        .complete_host_call(request.node, request.request, outcome)
         .map_err(debug_error)
 }

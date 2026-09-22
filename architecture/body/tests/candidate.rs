@@ -6,9 +6,8 @@ use conduit_body::{
 };
 use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    KindContractRevision, KindId, LinkBindingId, OfferGeneration, SignId, SourceDocumentId,
-    PROTOCOL_VERSION,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindId,
+    KindIdentity, LinkBindingId, OfferGeneration, SignId, SourceDocumentId, PROTOCOL_VERSION,
 };
 
 fn body() -> Body {
@@ -28,6 +27,7 @@ fn advertisement(host: &str, boot: &str, generation: u64) -> HostAdvertisement {
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(generation),
         profile: HostProfileId::from("profile/untrusted-peer"),
+        bases: vec![],
         resources: Vec::new(),
         capabilities: Vec::new(),
         planner_capabilities: Vec::new(),
@@ -40,7 +40,7 @@ fn capability(index: usize) -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from(format!("claimed/capability/{index}")),
         kind_id: KindId::from(format!("claimed/kind/{index}")),
-        kind_contract_revision: KindContractRevision::from("claimed/revision"),
+        kind_contract_revision: KindIdentity::from("claimed/revision"),
         inputs: Vec::new(),
         outputs: Vec::new(),
         implementation: conduit_core::ImplementationOffer {
@@ -48,7 +48,7 @@ fn capability(index: usize) -> CapabilityOffer {
             implementation_id: ImplementationId::from(format!("claimed/implementation/{index}")),
             artifact_id: ArtifactId::from("claimed/artifact"),
         },
-        host_operations: Vec::new(),
+        host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {

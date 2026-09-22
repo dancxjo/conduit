@@ -4,8 +4,8 @@
 use alloc::string::ToString;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindContractRevision, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const MORSE_PATTERN_VALUE_KIND: &str = "value/morse-pattern@1";
@@ -50,7 +50,7 @@ pub enum MorseError {
 pub fn text_morse_semantics() -> MorseKindContract {
     MorseKindContract {
         kind_id: kind_id(TEXT_MORSE_KIND),
-        kind_contract_revision: KindContractRevision::from(TEXT_MORSE_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(TEXT_MORSE_CONTRACT_REVISION),
         inputs: vec![text_port(PortDirection::Input)],
         outputs: vec![morse_port(PortDirection::Output)],
         configuration: vec![(
@@ -64,10 +64,10 @@ pub fn text_morse_semantics() -> MorseKindContract {
 pub fn morse_text_semantics() -> MorseKindContract {
     MorseKindContract {
         kind_id: kind_id(MORSE_TEXT_KIND),
-        kind_contract_revision: KindContractRevision::from(MORSE_TEXT_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(MORSE_TEXT_CONTRACT_REVISION),
         inputs: vec![morse_port(PortDirection::Input)],
         outputs: vec![text_port(PortDirection::Output)],
-        configuration: Vec::new(),
+        configuration: Default::default(),
         limits: morse_limits(),
     }
 }
@@ -75,11 +75,38 @@ pub fn morse_text_semantics() -> MorseKindContract {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MorseKindContract {
     pub kind_id: conduit_core::KindId,
-    pub kind_contract_revision: KindContractRevision,
+    pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub configuration: Vec<(&'static str, ConfigurationValue)>,
     pub limits: CapabilityLimits,
+}
+
+impl MorseKindContract {
+    pub fn into_semantic_contract(self) -> Kind {
+        Kind {
+            startup_parameters: self
+                .configuration
+                .iter()
+                .map(|(name, _)| FrontStartupParameter {
+                    name: (*name).into(),
+                    value_type: kind_id("value/count"),
+                    has_default: true,
+                })
+                .collect(),
+            shorthand: Some((
+                self.inputs[0].port_id.clone(),
+                self.outputs[0].port_id.clone(),
+            )),
+            kind_id: self.kind_id,
+            kind_contract_revision: self.kind_contract_revision,
+            inputs: self.inputs,
+            outputs: self.outputs,
+            configuration: Default::default(),
+            semantic_laws: Default::default(),
+            limits: self.limits,
+        }
+    }
 }
 
 #[cfg(feature = "form-catalog")]
@@ -88,8 +115,7 @@ pub fn install_morse_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
     use conduit_form::{
-        ConfigurationField, ConfigurationRule, KindDefinition, KindSignature,
-        StartupParameterSignature,
+        KindConfigurationField, KindConfigurationRule, KindSignature, StartupParameterSignature,
     };
 
     startup.insert(KindSignature {
@@ -104,32 +130,21 @@ pub fn install_morse_catalogs(
         kind: MORSE_TEXT_KIND.into(),
         startup_parameters: Vec::new(),
     })?;
-    let encoder = text_morse_semantics();
+    let mut encoder = text_morse_semantics().into_semantic_contract();
+    encoder.configuration = vec![KindConfigurationField {
+        key: MORSE_UNIT_MILLIS_KEY.into(),
+        default_value: ConfigurationValue::U64(u64::from(DEFAULT_MORSE_UNIT_MILLIS)),
+        rule: KindConfigurationRule::U64Range {
+            minimum: u64::from(MINIMUM_MORSE_UNIT_MILLIS),
+            maximum: u64::from(MAXIMUM_MORSE_UNIT_MILLIS),
+        },
+    }];
     profile
-        .insert(KindDefinition {
-            kind_id: encoder.kind_id,
-            kind_contract_revision: encoder.kind_contract_revision,
-            inputs: encoder.inputs,
-            outputs: encoder.outputs,
-            configuration: vec![ConfigurationField {
-                key: MORSE_UNIT_MILLIS_KEY.into(),
-                default_value: ConfigurationValue::U64(u64::from(DEFAULT_MORSE_UNIT_MILLIS)),
-                validation: ConfigurationRule::U64Range {
-                    minimum: u64::from(MINIMUM_MORSE_UNIT_MILLIS),
-                    maximum: u64::from(MAXIMUM_MORSE_UNIT_MILLIS),
-                },
-            }],
-        })
+        .insert_kind(encoder)
         .map_err(|error| error.to_string())?;
-    let decoder = morse_text_semantics();
+    let decoder = morse_text_semantics().into_semantic_contract();
     profile
-        .insert(KindDefinition {
-            kind_id: decoder.kind_id,
-            kind_contract_revision: decoder.kind_contract_revision,
-            inputs: decoder.inputs,
-            outputs: decoder.outputs,
-            configuration: Vec::new(),
-        })
+        .insert_kind(decoder)
         .map_err(|error| error.to_string())?;
     crate::morse_catalog::install_morse_composition_catalogs(startup, profile)
 }

@@ -12,10 +12,10 @@ use alloc::{
     vec::Vec,
 };
 use conduit_core::{
-    kind_id, present_host_operation_requirement, process_owned_line_offer_with_limits,
-    resource_offer, resource_requirement, BaseImplementationId, BootId, CapabilityOffer,
-    HostAdvertisement, HostId, HostProfileId, LineOffer, LineScope, LineSecurity, LinkLimits,
-    OfferGeneration, Plan, INPUT_RESOURCE_CLASS, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    kind_id, present_host_call_requirement, process_owned_line_offer_with_limits, resource_offer,
+    resource_requirement, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId,
+    HostProfileId, LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration, Plan,
+    INPUT_RESOURCE_CLASS, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -93,7 +93,7 @@ pub fn exact_text_lab_line_loss_outcome(
         browser_text_upper,
         Some(unavailable_line),
     ) {
-        Ok(_) => return Err("lost selected Text Lab Line still produced a Plan".into()),
+        Ok(_) => return Err("lost selected Text Lab Line still produced a plan".into()),
         Err(refusal) => refusal,
     };
     if accepted.plan.plan_id != immutable_plan_id || !conduit_core::verify_plan(&accepted.plan) {
@@ -131,6 +131,7 @@ fn exact_text_lab_split_plan_with_loss(
         boot_id: BootId::from(TEXT_LAB_NATIVE_BOOT),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("text-lab/native-fixture@1"),
+        bases: vec![],
         resources: vec![
             resource_offer("text-lab/native-input", INPUT_RESOURCE_CLASS, 1),
             resource_offer(
@@ -164,6 +165,7 @@ fn exact_text_lab_split_plan_with_loss(
         boot_id: BootId::from(TEXT_LAB_BROWSER_BOOT),
         offer_generation: OfferGeneration(1),
         profile: conduit_core::HostProfileId::from("browser/text-lab@1"),
+        bases: vec![],
         resources: Vec::new(),
         planner_capabilities: Vec::new(),
         capabilities: vec![browser_text_upper.clone()],
@@ -288,31 +290,25 @@ fn exact_text_lab_split_plan_with_loss(
 }
 
 fn keyboard_fixture_offer() -> CapabilityOffer {
-    let contract = crate::keyboard_contract();
-    CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: "text-lab-native-keyboard".into(),
-        kind_id: contract.kind_id,
-        kind_contract_revision: crate::keyboard_contract_revision(),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: "text-lab/native-fixture@1".into(),
-            implementation_id: "text-lab/native-keyboard@1".into(),
-            artifact_id: "text-lab/native-keyboard@1".into(),
+    crate::realization_offer(
+        crate::keyboard_contract(),
+        crate::KEYBOARD_CONTRACT_REVISION,
+        crate::RealizationOfferIdentity {
+            capability: "text-lab-native-keyboard",
+            execution_profile: "text-lab/native-fixture@1",
+            implementation: "text-lab/native-keyboard@1",
+            artifact: "text-lab/native-keyboard@1",
         },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_operations: vec![conduit_core::HostOperationRequirement {
+        vec![conduit_core::HostCallRequirement {
             contract_id: "proof/input-next-key-event@1".into(),
             target_kind: Some(kind_id(conduit_human::KEY_EVENT_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: 0,
             maximum_output_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
         }],
-        resource_requirements: vec![resource_requirement(INPUT_RESOURCE_CLASS, 1)],
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    }
+        vec![resource_requirement(INPUT_RESOURCE_CLASS, 1)],
+        Vec::new(),
+    )
 }
 
 fn text_presentation_fixture_offer() -> CapabilityOffer {
@@ -325,7 +321,7 @@ fn text_presentation_fixture_offer() -> CapabilityOffer {
             implementation: "text-lab/native-text-presentation@1",
             artifact: "text-lab/native-fixture@1",
         },
-        vec![present_host_operation_requirement(
+        vec![present_host_call_requirement(
             kind_id("presentation/text-lab-native"),
             conduit_text::MAX_TEXT_BYTES,
         )],
@@ -344,8 +340,8 @@ fn keymap_fixture_offer() -> CapabilityOffer {
             implementation: "text-lab/native-keymap@1",
             artifact: "text-lab/native-fixture@1",
         },
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from("conduit.host/input-keymap@1"),
+        vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from("conduit.host/input-keymap@1"),
             target_kind: Some(kind_id("input/keymap-text-fragment")),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
@@ -371,8 +367,8 @@ fn text_upper_fixture_offer(
             implementation,
             artifact,
         },
-        vec![conduit_core::HostOperationRequirement {
-            contract_id: conduit_core::HostOperationContractId::from("conduit.host/text-upper@1"),
+        vec![conduit_core::HostCallRequirement {
+            contract_id: conduit_core::HostCallContractId::from("conduit.host/text-upper@1"),
             target_kind: Some(kind_id("text/uppercase-utf8")),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_text::MAX_TEXT_BYTES,
@@ -389,7 +385,7 @@ fn text_upper_fixture_offer(
 mod tests {
     use super::*;
 
-    fn browser_text_upper_fixture() -> conduit_core::CapabilityOffer {
+    fn browser_text_upper_fixture() -> CapabilityOffer {
         text_upper_fixture_offer(
             "test-browser-text-upper-v1",
             "test/browser-text-upper@1",

@@ -57,12 +57,12 @@ pub fn project_body_biography(
             }
             BodyBiographyRecordKind::LullRetained { wake_id } => (
                 "Body retained after Lull",
-                format!("Wake {} ended; the Body and its history remain available.", wake_id.as_str()),
+                format!("Wake {} ended; the body and its history remain available.", wake_id.as_str()),
             ),
             BodyBiographyRecordKind::Born { initial_workset, workload_revision } => (
                 "Born",
                 format!(
-                    "{} became Body {} with {} initial active Form(s) at workload revision {}.",
+                    "{} became Body {} with {} initial active form(s) at workload revision {}.",
                     evidence.friendly_name,
                     evidence.body_id.as_str(),
                     initial_workset.len(),
@@ -72,7 +72,7 @@ pub fn project_body_biography(
             BodyBiographyRecordKind::PartAdmitted { part_id, .. } => (
                 "Part admitted",
                 format!(
-                    "Part {} joined the admitted membership of this Body.",
+                    "Part {} joined the admitted membership of this body.",
                     part_id.as_str()
                 ),
             ),
@@ -113,7 +113,7 @@ pub fn project_body_biography(
             } => (
                 "Form admitted",
                 format!(
-                    "Form {} joined the Body workset at revision {}.",
+                    "Form {} joined the body workset at revision {}.",
                     checked_form_id.as_str(),
                     workload_revision
                 ),
@@ -125,7 +125,7 @@ pub fn project_body_biography(
             } => (
                 "Form stopped",
                 format!(
-                    "Form {} left the Body workset at revision {} without deleting the Body.",
+                    "Form {} left the body workset at revision {} without deleting the body.",
                     checked_form_id.as_str(),
                     workload_revision
                 ),
@@ -138,7 +138,7 @@ pub fn project_body_biography(
             } => (
                 "Fulfilled",
                 format!(
-                    "This Body completed its useful life at workload revision {} by {} after {} settlement obligation(s). Its biography and evidence remain available.",
+                    "This body completed its useful life at workload revision {} by {} after {} settlement obligation(s). Its biography and evidence remain available.",
                     final_workload_revision,
                     attribution,
                     settled_obligations.len(),
@@ -151,7 +151,7 @@ pub fn project_body_biography(
             } => (
                 "Graduated from the Crèche",
                 format!(
-                    "Patchbay was placed by Plan {} using implementation {}. The durable Body evidence remains independent of this reader.",
+                    "Patchbay was placed by Plan {} using implementation {}. The durable body evidence remains independent of this reader.",
                     patchbay_plan_id
                         .as_ref()
                         .expect("validated hosted graduation")
@@ -167,9 +167,28 @@ pub fn project_body_biography(
                 ..
             } => (
                 "Graduated from the Crèche",
-                "No Patchbay was hosted. A compatible reader can project this same durable Body evidence later."
+                "No Patchbay was hosted. A compatible reader can project this same durable body evidence later."
                     .into(),
             ),
+            BodyBiographyRecordKind::EmergencyConfigured { configuration } => {
+                let words = configuration
+                    .key
+                    .words()
+                    .expect("validated emergency key vocabulary");
+                (
+                    "Emergency phrase configured",
+                    format!(
+                        "Emergency phrase revision {} is {} {} {}. Detector {} reports {:?}; entropy came from admitted provider {}.",
+                        configuration.revision,
+                        words[0],
+                        words[1],
+                        words[2],
+                        configuration.detector_version,
+                        configuration.acoustic_availability,
+                        configuration.entropy_provider_id,
+                    ),
+                )
+            }
         };
         if explanation.len() > MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES {
             return Err(BodyBiographyProjectionError::ExplanationTooLong);
@@ -212,7 +231,7 @@ fn wake_event_heading(event: &conduit_body::WakeLifecycleEvent) -> &'static str 
         BecameUnsatisfied { .. } => "Plan unsatisfied",
         WorkloadChanged { .. } => "Wake workload changed",
         Replanned { .. } => "Replacement Plan accepted",
-        SamePlanObserved { .. } => "Same Plan observed",
+        SamePlanObserved { .. } => "Same plan observed",
         Lulled { .. } => "Wake lulled",
         Failed { .. } => "Wake failed",
     }
@@ -221,7 +240,10 @@ fn wake_event_heading(event: &conduit_body::WakeLifecycleEvent) -> &'static str 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_body::{Body, BodyBiographyEvidence, BodyMembership};
+    use conduit_body::{
+        Body, BodyBiographyEvidence, BodyMembership, DurableEmergencyConfiguration,
+        EmergencyAcousticAvailability, EmergencyKey,
+    };
     use conduit_core::{bind_sign, BootId, CheckedFormId, HostId, SourceDocumentId};
 
     #[test]
@@ -256,5 +278,42 @@ mod tests {
             project_body_biography(&invented),
             Err(BodyBiographyProjectionError::InvalidEvidence)
         );
+    }
+
+    #[test]
+    fn projects_the_exact_durable_emergency_phrase_and_detector_state() {
+        let body = Body::born(
+            SourceDocumentId::from("source/emergency-reader"),
+            CheckedFormId::from("checked/emergency-reader"),
+            1,
+            SignId::from("sign/emergency-reader-born"),
+        )
+        .unwrap();
+        let membership = BodyMembership::new(body.body_id.clone()).unwrap();
+        let evidence = BodyBiographyEvidence::born_with_emergency(
+            body,
+            membership,
+            "Emergency reader".into(),
+            DurableEmergencyConfiguration {
+                revision: 1,
+                key: EmergencyKey::from_admitted_entropy([0, 1, 2]).unwrap(),
+                detector_version: "fixed-keyword-spotter/en-us@1".into(),
+                entropy_provider_id: "base/entropy/specimen".into(),
+                acoustic_availability: EmergencyAcousticAvailability::Ready,
+            },
+            2,
+            SignId::from("sign/emergency-reader-configured"),
+        )
+        .unwrap();
+
+        let projection = project_body_biography(&evidence).unwrap();
+        assert_eq!(projection.entries.len(), 2);
+        assert_eq!(projection.entries[1].heading, "Emergency phrase configured");
+        assert!(projection.entries[1]
+            .explanation
+            .contains("copper kestrel lantern"));
+        assert!(projection.entries[1]
+            .explanation
+            .contains("fixed-keyword-spotter/en-us@1 reports Ready"));
     }
 }

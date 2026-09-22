@@ -1,27 +1,23 @@
 //! Finite std-host realization for the portable reaction-diffusion contract.
 
 use conduit_alife::{
-    reaction_diffusion_inputs, reaction_diffusion_outputs, ReactionDiffusionEvolveRequest,
+    reaction_diffusion_semantic_contract, ReactionDiffusionEvolveRequest,
     ReactionDiffusionFieldState, ReactionDiffusionRefusal, REACTION_DIFFUSION_EVOLVE_KIND,
-    REACTION_DIFFUSION_KIND_REVISION, REACTION_DIFFUSION_MAXIMUM_STATE_BYTES,
-    REACTION_DIFFUSION_REQUEST_BYTES,
+    REACTION_DIFFUSION_MAXIMUM_STATE_BYTES, REACTION_DIFFUSION_REQUEST_BYTES,
 };
 use conduit_core::{
-    kind_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostOperationContractId, HostOperationRequirement, ImplementationId, ImplementationOffer,
-    KindContractRevision,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
+    HostCallContractId, HostCallRequirement, ImplementationId,
 };
 
 pub const REACTION_DIFFUSION_HOSTED_PROFILE: &str = "std/field-gray-scott-hosted@1";
 pub const REACTION_DIFFUSION_HOSTED_ARTIFACT: &str = "conduit-std-host/field-gray-scott@1";
-pub const REACTION_DIFFUSION_HOST_OPERATION: &str = "conduit.host/field-evolve@1";
+pub const REACTION_DIFFUSION_HOST_CALL: &str = "conduit.host/field-evolve@1";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct HostedReactionDiffusionLimits {
     pub maximum_input_bytes: u32,
     pub maximum_output_bytes: u32,
-    pub maximum_active_instances: u16,
-    pub maximum_queued_requests: u16,
 }
 
 pub const HOSTED_REACTION_DIFFUSION_LIMITS: HostedReactionDiffusionLimits =
@@ -29,39 +25,28 @@ pub const HOSTED_REACTION_DIFFUSION_LIMITS: HostedReactionDiffusionLimits =
         maximum_input_bytes: REACTION_DIFFUSION_MAXIMUM_STATE_BYTES
             + REACTION_DIFFUSION_REQUEST_BYTES,
         maximum_output_bytes: REACTION_DIFFUSION_MAXIMUM_STATE_BYTES,
-        maximum_active_instances: 1,
-        maximum_queued_requests: 1,
     };
 
 pub fn reaction_diffusion_std_offer() -> CapabilityOffer {
-    CapabilityOffer {
-        startup_parameters: vec![],
-        shorthand: None,
-        capability_id: CapabilityId::from("std/field-evolve@1"),
-        kind_id: kind_id(REACTION_DIFFUSION_EVOLVE_KIND),
-        kind_contract_revision: KindContractRevision::from(REACTION_DIFFUSION_KIND_REVISION),
-        implementation: ImplementationOffer {
+    BackOfferBuilder::new(
+        reaction_diffusion_semantic_contract(),
+        Back {
+            capability_id: CapabilityId::from("std/field-evolve@1"),
             execution_profile_id: ExecutionProfileId::from(REACTION_DIFFUSION_HOSTED_PROFILE),
             implementation_id: ImplementationId::from("std/field-gray-scott@1"),
             artifact_id: ArtifactId::from(REACTION_DIFFUSION_HOSTED_ARTIFACT),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(REACTION_DIFFUSION_HOST_CALL),
+                target_kind: Some(kind_id(REACTION_DIFFUSION_EVOLVE_KIND)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: HOSTED_REACTION_DIFFUSION_LIMITS.maximum_input_bytes,
+                maximum_output_bytes: HOSTED_REACTION_DIFFUSION_LIMITS.maximum_output_bytes,
+            }],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
         },
-        inputs: reaction_diffusion_inputs(),
-        outputs: reaction_diffusion_outputs(),
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(REACTION_DIFFUSION_HOST_OPERATION),
-            target_kind: Some(kind_id(REACTION_DIFFUSION_EVOLVE_KIND)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: HOSTED_REACTION_DIFFUSION_LIMITS.maximum_input_bytes,
-            maximum_output_bytes: HOSTED_REACTION_DIFFUSION_LIMITS.maximum_output_bytes,
-        }],
-        resource_requirements: vec![],
-        authority_requirements: vec![],
-        limits: CapabilityLimits {
-            max_active_instances: HOSTED_REACTION_DIFFUSION_LIMITS.maximum_active_instances,
-            max_queue_items: HOSTED_REACTION_DIFFUSION_LIMITS.maximum_queued_requests,
-            max_queue_bytes: REACTION_DIFFUSION_MAXIMUM_STATE_BYTES,
-        },
-    }
+    )
+    .build()
 }
 
 /// Executes the reviewed synchronous toroidal ppm profile.
@@ -90,7 +75,7 @@ mod tests {
         assert_eq!(offer.outputs, definition.outputs);
         assert_eq!(offer.limits.max_active_instances, 1);
         assert_eq!(offer.limits.max_queue_items, 1);
-        assert_eq!(offer.host_operations.len(), 1);
+        assert_eq!(offer.host_calls.len(), 1);
     }
 
     #[test]

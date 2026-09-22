@@ -38,7 +38,7 @@ pub struct DeviceIdentityEvidence {
 }
 
 /// Inspectable resource provenance. This is neither a resource grant nor a
-/// replacement for the Host adapter's authoritative acquired-resource state.
+/// replacement for the host adapter's authoritative acquired-resource state.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct DeviceResourceProvenance {
     pub handle_id: ResourceHandleId,
@@ -51,7 +51,7 @@ pub struct DeviceResourceProvenance {
 #[serde(rename_all = "kebab-case")]
 pub enum DeviceTruthDisposition {
     Current,
-    /// Retained inspection/replay provenance, never current Host truth.
+    /// Retained inspection/replay provenance, never current host truth.
     HistoricalLost {
         terminal_sign_id: Option<SignId>,
     },
@@ -210,8 +210,7 @@ mod tests {
     use super::*;
     use crate::{
         ArtifactId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostProfileId,
-        ImplementationId, ImplementationOffer, KindContractRevision, KindId,
-        PlannerCapabilityOffer,
+        ImplementationId, ImplementationOffer, KindId, KindIdentity, PlannerCapabilityOffer,
     };
 
     fn offer(id: &str) -> CapabilityOffer {
@@ -220,7 +219,7 @@ mod tests {
             shorthand: None,
             capability_id: CapabilityId::from(id),
             kind_id: KindId::from("input/example@1"),
-            kind_contract_revision: KindContractRevision::from("revision/1"),
+            kind_contract_revision: KindIdentity::from("revision/1"),
             implementation: ImplementationOffer {
                 execution_profile_id: ExecutionProfileId::from("fixture/profile@1"),
                 implementation_id: ImplementationId::from("fixture/input@1"),
@@ -228,7 +227,7 @@ mod tests {
             },
             inputs: Vec::new(),
             outputs: Vec::new(),
-            host_operations: Vec::new(),
+            host_calls: Vec::new(),
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
             limits: CapabilityLimits {
@@ -246,6 +245,7 @@ mod tests {
             boot_id: BootId::from("boot/current"),
             offer_generation: OfferGeneration(7),
             profile: HostProfileId::from("fixture/profile@1"),
+            bases: vec![],
             resources: Vec::new(),
             capabilities: vec![offer("button"), offer("haptic")],
             planner_capabilities: Vec::<PlannerCapabilityOffer>::new(),

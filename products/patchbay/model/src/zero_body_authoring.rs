@@ -1,4 +1,4 @@
-//! Canonical pre-Birth Form authoring through the zero-Body front door.
+//! Canonical pre-birth Form authoring through the zero-body front door.
 
 use crate::{
     FormCandidate, FormDocumentView, FormEditorError, OpenedFrontDoorSubject, PatchbayEdit,

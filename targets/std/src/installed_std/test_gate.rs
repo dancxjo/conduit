@@ -1,14 +1,14 @@
-use super::operation::{InstalledFactory, InstalledOperation, OperationBudget};
+use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, ImplementationId, InfoBool, KindContractRevision,
-    PlannedGear, PortDescriptor, PortDirection, PortTemporal, Scalar, BOOL_INFO_ID,
-    SCALAR_ENCODED_LEN, SCALAR_INFO_ID, TIMER_RESOURCE_CLASS,
+    CapabilityOffer, ExecutionProfileId, ImplementationId, InfoBool, KindIdentity, PlannedGear,
+    PortDescriptor, PortDirection, PortTemporal, Scalar, BOOL_INFO_ID, SCALAR_ENCODED_LEN,
+    SCALAR_INFO_ID, TIMER_RESOURCE_CLASS,
 };
-use conduit_form::{KindDefinition, ProfileCatalog};
+use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
-    BoundedValueRef, HostOperationDisposition, HostOperationId, OperationAction, OperationInput,
-    PortId, RequestId, ValueRef, ValueStorage,
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 const SOURCE_KIND: &str = "conduit-test/gate-script";
@@ -26,121 +26,134 @@ const SLOW_SINK_ARTIFACT: &str = "conduit-std-host/test-slow-scalar-sink@1";
 const SCRIPT_ITEMS: usize = 6;
 const EXPECTED_SCALARS: usize = 3;
 
-pub(super) static TEST_GATE_SCRIPT_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_GATE_SCRIPT_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget: source_budget,
     prepare: prepare_source,
 };
 
-pub(super) static TEST_SLOW_SCALAR_SINK_FACTORY: InstalledFactory = InstalledFactory {
+pub(super) static TEST_SLOW_SCALAR_SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: SLOW_SINK_IMPLEMENTATION,
     budget: slow_sink_budget,
     prepare: prepare_slow_sink,
 };
 
-pub(super) struct TestGateScriptOperation {
+pub(super) struct TestGateScriptBack {
     pub(super) items: Vec<(PortId, ValueRef)>,
     pub(super) waits: Vec<ValueRef>,
     pub(super) next: usize,
     pending: Option<RequestId>,
 }
 
-pub(super) struct TestSlowScalarSinkOperation {
+pub(super) struct TestSlowScalarSinkBack {
     pub(super) waits: Vec<ValueRef>,
     next: usize,
     pending: Option<RequestId>,
 }
 
-impl TestGateScriptOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
+impl<const PORTS: usize> StepBack<PORTS> for TestGateScriptBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
             {
-                self.pending = None;
-                self.items.get(self.next).copied().map_or_else(
-                    || InstalledOperation::fail(17),
-                    |(port, value)| OperationAction::Emit { port, value },
-                )
+                return gate_fixture_fail(17);
             }
-            _ => InstalledOperation::fail(17),
+            let Some((port, value)) = self.items.get(self.next).copied() else {
+                return gate_fixture_fail(17);
+            };
+            if !io.output_ready(port) {
+                return StepOutcome::Await;
+            }
+            io.consume_host_completion()
+                .expect("observed gate fixture wait");
+            io.send(port, value).expect("ready gate fixture output");
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
         }
-    }
-
-    pub(super) fn advance(&mut self) -> OperationAction {
-        self.next += 1;
-        self.request_wait().unwrap_or(OperationAction::Complete)
-    }
-
-    pub(super) fn cancel(&mut self) {
-        self.pending = None;
-    }
-
-    fn request_wait(&mut self) -> Option<OperationAction> {
-        let wait = self.waits.get(self.next).copied()?;
-        let request = RequestId(u32::try_from(self.next).ok()?);
-        self.pending = Some(request);
-        Some(OperationAction::RequestHostOperation {
-            request,
-            operation: HostOperationId(0),
-            input: BoundedValueRef::new(wait, 8).ok()?,
-        })
-    }
-}
-
-impl TestSlowScalarSinkOperation {
-    pub(super) fn start(&mut self) -> OperationAction {
-        OperationAction::Await
-    }
-
-    pub(super) fn resume(&mut self, input: OperationInput) -> OperationAction {
-        match input {
-            OperationInput::Value {
-                port: PortId(0),
-                value,
-            } if value.byte_len == SCALAR_ENCODED_LEN as u32
-                && self.pending.is_none()
-                && self.next < self.waits.len() =>
-            {
-                let request = RequestId(u32::try_from(self.next).unwrap_or(u32::MAX));
-                self.pending = Some(request);
-                OperationAction::RequestHostOperation {
-                    request,
-                    operation: HostOperationId(0),
-                    input: BoundedValueRef::new(self.waits[self.next], 8)
-                        .expect("slow sink wait is exactly eight bytes"),
-                }
-            }
-            OperationInput::HostOperationCompleted { request, outcome }
-                if self.pending == Some(request)
-                    && outcome.disposition == HostOperationDisposition::Completed
-                    && outcome.output.is_none()
-                    && outcome.failure.is_none() =>
-            {
-                self.pending = None;
-                self.next += 1;
-                OperationAction::Await
-            }
-            OperationInput::Closed { port: PortId(0) }
-                if self.pending.is_none() && self.next == self.waits.len() =>
-            {
-                OperationAction::Complete
-            }
-            _ => InstalledOperation::fail(18),
+        let Some(wait) = self.waits.get(self.next).copied() else {
+            return StepOutcome::Complete;
+        };
+        if self.pending.is_none() {
+            let request = RequestId(u32::try_from(self.next).unwrap_or(u32::MAX));
+            io.request_host_call(
+                request,
+                HostCallId(0),
+                BoundedValueRef::new(wait, 8).expect("gate fixture wait is bounded"),
+            )
+            .expect("gate fixture wait Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
         }
+        StepOutcome::Await
     }
 
-    pub(super) fn cancel(&mut self) {
+    fn cancel(&mut self) {
         self.pending = None;
     }
 }
+
+impl<const PORTS: usize> StepBack<PORTS> for TestSlowScalarSinkBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some((request, outcome)) = io.host_completion() {
+            if self.pending != Some(request)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return gate_fixture_fail(18);
+            }
+            io.consume_host_completion()
+                .expect("observed slow sink wait");
+            self.pending = None;
+            self.next += 1;
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = io.input(PortId(0)) {
+            if value.byte_len != SCALAR_ENCODED_LEN as u32
+                || self.pending.is_some()
+                || self.next >= self.waits.len()
+            {
+                return gate_fixture_fail(18);
+            }
+            let request = RequestId(u32::try_from(self.next).unwrap_or(u32::MAX));
+            io.consume(PortId(0)).expect("present slow scalar input");
+            io.request_host_call(
+                request,
+                HostCallId(0),
+                BoundedValueRef::new(self.waits[self.next], 8)
+                    .expect("slow sink wait is exactly eight bytes"),
+            )
+            .expect("slow sink wait Host Call");
+            self.pending = Some(request);
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) && self.pending.is_none() && self.next == self.waits.len() {
+            io.consume_closed(PortId(0))
+                .expect("observed slow sink closure");
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+
+    fn cancel(&mut self) {
+        self.pending = None;
+    }
+}
+
+const fn gate_fixture_fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    })
+}
+
+impl TestGateScriptBack {}
+
+impl TestSlowScalarSinkBack {}
 
 pub(super) fn source_offer() -> CapabilityOffer {
     offer(
@@ -198,7 +211,7 @@ fn offer(
         shorthand: None,
         capability_id: CapabilityId::from(implementation),
         kind_id: kind_id(kind),
-        kind_contract_revision: KindContractRevision::from(revision),
+        kind_contract_revision: KindIdentity::from(revision),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id: ImplementationId::from(implementation),
@@ -206,7 +219,7 @@ fn offer(
         },
         inputs,
         outputs,
-        host_operations: vec![conduit_core::wait_host_operation_requirement()],
+        host_calls: vec![conduit_core::wait_host_call_requirement()],
         resource_requirements: vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
@@ -237,12 +250,12 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
         (slow_sink_offer(), Vec::new()),
         (
             conduit_std_offers::flow_gate_scalar_offer(),
-            vec![conduit_form::ConfigurationField {
+            vec![conduit_form::KindConfigurationField {
                 key: "maximum-enable-updates".into(),
                 default_value: conduit_core::ConfigurationValue::U64(
                     conduit_semantic_catalog::FLOW_STATE_MAXIMUM_VALUES.into(),
                 ),
-                validation: conduit_form::ConfigurationRule::U64Range {
+                rule: conduit_form::KindConfigurationRule::U64Range {
                     minimum: 1,
                     maximum: conduit_semantic_catalog::FLOW_STATE_MAXIMUM_VALUES.into(),
                 },
@@ -250,7 +263,7 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
         ),
     ] {
         catalog
-            .insert(KindDefinition {
+            .insert(KindProjection {
                 kind_id: offer.kind_id,
                 kind_contract_revision: offer.kind_contract_revision,
                 inputs: offer.inputs,
@@ -261,9 +274,9 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     }
 }
 
-fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn source_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, &source_offer())?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: (SCRIPT_ITEMS * 2) as u16,
         value_bytes: 75,
         host_requests: SCRIPT_ITEMS,
@@ -275,7 +288,7 @@ fn source_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
 fn prepare_source(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement, &source_offer())?;
     let encoded = [
         (PortId(1), InfoBool::FALSE.encode().to_vec()),
@@ -304,19 +317,17 @@ fn prepare_source(
                 .map_err(|error| format!("store gate script wait: {error:?}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(InstalledOperation::TestGateScript(
-        TestGateScriptOperation {
-            items,
-            waits,
-            next: 0,
-            pending: None,
-        },
-    ))
+    Ok(InstalledBack::TestGateScript(TestGateScriptBack {
+        items,
+        waits,
+        next: 0,
+        pending: None,
+    }))
 }
 
-fn slow_sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> {
+fn slow_sink_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, &slow_sink_offer())?;
-    Ok(OperationBudget {
+    Ok(BackBudget {
         value_items: EXPECTED_SCALARS as u16,
         value_bytes: (EXPECTED_SCALARS * SCALAR_ENCODED_LEN) as u32,
         host_requests: EXPECTED_SCALARS,
@@ -328,7 +339,7 @@ fn slow_sink_budget(placement: &PlannedGear) -> Result<OperationBudget, String> 
 fn prepare_slow_sink(
     placement: &PlannedGear,
     values: &mut conduit_kernel::HostedValueStore,
-) -> Result<InstalledOperation, String> {
+) -> Result<InstalledBack, String> {
     validate(placement, &slow_sink_offer())?;
     let waits = (0..EXPECTED_SCALARS)
         .map(|_| {
@@ -337,13 +348,11 @@ fn prepare_slow_sink(
                 .map_err(|error| format!("store slow sink wait: {error:?}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(InstalledOperation::TestSlowScalarSink(
-        TestSlowScalarSinkOperation {
-            waits,
-            next: 0,
-            pending: None,
-        },
-    ))
+    Ok(InstalledBack::TestSlowScalarSink(TestSlowScalarSinkBack {
+        waits,
+        next: 0,
+        pending: None,
+    }))
 }
 
 fn validate(placement: &PlannedGear, offer: &CapabilityOffer) -> Result<(), String> {
@@ -354,7 +363,7 @@ fn validate(placement: &PlannedGear, offer: &CapabilityOffer) -> Result<(), Stri
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.host_operations != offer.host_operations
+        || placement.host_calls != offer.host_calls
         || !placement.configuration.is_empty()
     {
         return Err("planned gate fixture identity does not match its installation".into());

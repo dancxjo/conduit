@@ -41,7 +41,7 @@ fn selected_gear_manifests_independent_focused_inspector_and_dismisses_it() {
     let selected = shell.present(&tour, &mut display).unwrap();
     let inspector = selected
         .inspector
-        .expect("selected Gear must manifest its inspector");
+        .expect("selected gear must manifest its inspector");
     assert_eq!(inspector.surface_id, INSPECTOR_SURFACE);
     assert_ne!(
         inspector.presentation_id,
@@ -338,7 +338,7 @@ fn status_surface_uses_exact_body_wake_plan_and_play_basis() {
     let (tour, mut shell, mut display) = fixture();
     shell
         .present_with_lifecycle(&tour, &journey.projection(), &mut display)
-        .expect("a pre-Birth lifecycle must remain a valid status basis");
+        .expect("a pre-birth lifecycle must remain a valid status basis");
     assert_lifecycle_status(&shell, "body", "Absent");
     assert_lifecycle_status(&shell, "play", "Inactive");
     for action in [
@@ -533,7 +533,7 @@ fn host_offer(identities: &BootIdentities) -> HostOffer<'_> {
             mechanism: crate::keyboard_offer::KeyboardMechanism::UsbHid,
             controller_id: [3; 32],
             device_id: [4; 32],
-            interfront_id: [5; 32],
+            interface_id: [5; 32],
             endpoint_id: [6; 32],
             report_buffers: 2,
             transition_slots: 8,

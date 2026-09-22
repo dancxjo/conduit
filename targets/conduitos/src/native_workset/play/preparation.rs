@@ -1,11 +1,11 @@
 //! Numeric composition and all runtime storage admission before Play.
 use super::*;
-use crate::keyboard_text_operations::{
-    ApplicationOperation, KeyboardOperation, PresentationOperation, StreamTransformOperation,
+use crate::keyboard_text_backs::{
+    ApplicationBack, KeyboardBack, PresentationBack, StreamTransformBack,
 };
 use alloc::vec::Vec;
 use conduit_kernel::{
-    CordEndpoint, CordId, FixedHostOperationBindings, FixedRoutes, PortId, ValueStorage,
+    CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, PortId, ValueStorage,
     scheduler::{CordSpec, NodeSpec},
 };
 
@@ -49,7 +49,7 @@ pub(super) fn prepare(
             let (effect, operation) = match placement.implementation_id.as_str() {
                 super::super::keyboard_delivery::IMPLEMENTATION => (
                     Effect::Keyboard,
-                    PlannedOperation::Keyboard(KeyboardOperation {
+                    PlannedBack::Keyboard(KeyboardBack {
                         empty,
                         pending: None,
                         next: 0,
@@ -58,7 +58,7 @@ pub(super) fn prepare(
                 ),
                 super::super::application_delivery::EVENT_IMPLEMENTATION => (
                     Effect::ApplicationEvent,
-                    PlannedOperation::Keyboard(KeyboardOperation {
+                    PlannedBack::Keyboard(KeyboardBack {
                         empty,
                         pending: None,
                         next: 0,
@@ -67,7 +67,7 @@ pub(super) fn prepare(
                 ),
                 super::super::application_delivery::STATE_IMPLEMENTATION => (
                     Effect::Application,
-                    PlannedOperation::Application(ApplicationOperation {
+                    PlannedBack::Application(ApplicationBack {
                         empty: values.store(&[]).map_err(|_| WorksetRefusal::Kernel)?,
                         pending: None,
                         next: 0,
@@ -76,18 +76,18 @@ pub(super) fn prepare(
                 ),
                 super::super::application_delivery::PRESENTATION_IMPLEMENTATION => (
                     Effect::ApplicationPresentation,
-                    PlannedOperation::Presentation(PresentationOperation {
+                    PlannedBack::Presentation(PresentationBack {
                         pending: None,
                         next: 0,
                     }),
                 ),
                 crate::keyboard_text_plan::KEYMAP_IMPLEMENTATION => (
                     Effect::Keymap,
-                    PlannedOperation::Keymap(StreamTransformOperation::new(true)),
+                    PlannedBack::Keymap(StreamTransformBack::new(true)),
                 ),
                 crate::offer::TEXT_UPPER_IMPLEMENTATION => (
                     Effect::Upper,
-                    PlannedOperation::Upper(StreamTransformOperation::new(false)),
+                    PlannedBack::Upper(StreamTransformBack::new(false)),
                 ),
                 super::super::text_state::TEXT_EDIT_IMPLEMENTATION => {
                     let maximum = placement
@@ -111,15 +111,15 @@ pub(super) fn prepare(
                         .map_err(|_| WorksetRefusal::Plan)?,
                     );
                     // Edit is an ordinary one-input/one-output transform; the
-                    // installed Host binding gives it retained text semantics.
+                    // installed host binding gives it retained text semantics.
                     (
                         Effect::Edit,
-                        PlannedOperation::TextEdit(StreamTransformOperation::new(false)),
+                        PlannedBack::TextEdit(StreamTransformBack::new(false)),
                     )
                 }
                 crate::offer::TEXT_PRESENTATION_IMPLEMENTATION => (
                     Effect::Presentation,
-                    PlannedOperation::Presentation(PresentationOperation {
+                    PlannedBack::Presentation(PresentationBack {
                         pending: None,
                         next: 0,
                     }),
@@ -134,19 +134,16 @@ pub(super) fn prepare(
         }
     }
     while operations.len() < NODES {
-        operations.push(PlannedOperation::Upper(StreamTransformOperation::new(
-            false,
-        )));
+        operations.push(PlannedBack::Upper(StreamTransformBack::new(false)));
     }
     let drivers = operations
         .into_iter()
-        .map(|operation| OperationDriver::new(operation).map_err(|_| WorksetRefusal::Kernel))
-        .collect::<Result<Vec<_>, _>>()?
+        .collect::<Vec<_>>()
         .try_into()
         .map_err(|_| WorksetRefusal::Kernel)?;
     let mut nodes = [NodeSpec {
         input_cords: [None; PORTS],
-        maximum_step_work: 1,
+        maximum_step_fuel: 1,
     }; NODES];
     for (target, spec) in nodes
         .iter_mut()
@@ -181,8 +178,8 @@ pub(super) fn prepare(
             .map_err(|_| WorksetRefusal::Kernel)?;
     }
     routes.seal().map_err(|_| WorksetRefusal::Kernel)?;
-    let mut host_bindings = FixedHostOperationBindings::<NODES>::new(1);
-    for operation in parts.iter().flat_map(|part| &part.host_operations) {
+    let mut host_bindings = FixedHostCallBindings::<NODES>::new(1);
+    for operation in parts.iter().flat_map(|part| &part.host_calls) {
         host_bindings
             .install(operation.node, operation.binding)
             .map_err(|_| WorksetRefusal::Kernel)?;
@@ -191,7 +188,7 @@ pub(super) fn prepare(
     let signs =
         FixedSignLog::<SIGN_ITEMS>::new((SIGN_ITEMS * core::mem::size_of::<KernelEvent>()) as u32)
             .map_err(|_| WorksetRefusal::Kernel)?;
-    let scheduler = Scheduler::new_with_active_counts_and_host_operations(
+    let scheduler = Scheduler::new_with_active_counts_and_host_calls(
         usize::from(prepared.lowered.nodes),
         usize::from(prepared.lowered.cords),
         nodes,

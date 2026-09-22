@@ -316,7 +316,7 @@ fn result_detail(state: &TourWorkspaceState) -> String {
     };
     match state.progress.current_stage().map(|stage| stage.mode) {
         Some(TourStageMode::Compare) => {
-            format!("{result}. Same source and checked Form; distinct expanded Forms and Plans.")
+            format!("{result}. Same source and checked form; distinct expanded Forms and Plans.")
         }
         Some(TourStageMode::TwoHost | TourStageMode::TwoHostPlan) => format!(
             "{result} · one value delivered over one planned Line between two Host fragments."
@@ -338,7 +338,7 @@ fn format_phase(phase: TourWorkspacePhase) -> &'static str {
 
 fn patchbay_label(state: &TourWorkspaceState) -> String {
     let base = format!(
-        "Active Form {}; {}",
+        "Active form {}; {}",
         state.specimen_id,
         format_phase(state.phase)
     );
@@ -405,7 +405,7 @@ mod tests {
         state.specimen_id = "canonical-form:hello-across".into();
         state.result = Some("hello across one cord".into());
         assert!(result_detail(&state).contains("one planned Line"));
-        assert!(patchbay_label(&state).starts_with("Active Form canonical-form:hello-across"));
+        assert!(patchbay_label(&state).starts_with("Active form canonical-form:hello-across"));
     }
 
     #[test]

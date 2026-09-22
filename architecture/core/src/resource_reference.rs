@@ -1,7 +1,7 @@
 //! Exact bounded references to large typed content.
 //!
 //! A reference is portable semantic Info. It deliberately contains no path,
-//! URL, socket, credential, Host-local handle, or ambient authority. Opening
+//! URL, socket, credential, host-local handle, or ambient authority. Opening
 //! the referenced content remains a separately admitted effect.
 
 use alloc::string::String;

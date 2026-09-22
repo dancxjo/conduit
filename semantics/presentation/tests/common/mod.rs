@@ -3,14 +3,14 @@
 use conduit_body::Body;
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, BootId, CapabilityId,
-    CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId, HostOperationContractId,
-    HostOperationRequirement, HostProfileId, ImplementationId, OfferGeneration, SignId,
+    CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostCallContractId,
+    HostCallRequirement, HostId, HostProfileId, ImplementationId, OfferGeneration, SignId,
     PROTOCOL_VERSION,
 };
 use conduit_form::{parse, ProfileCatalog};
 use conduit_planner::{default_placements, plan};
 use conduit_presentation::{
-    renderer_kind_definition, renderer_offer, Presentation, PresentationBasis,
+    renderer_kind_projection, renderer_offer, Presentation, PresentationBasis,
     PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
     PresentationText, RendererRealizationOffer, MAX_RENDERER_VALUE_BYTES,
 };
@@ -20,7 +20,7 @@ pub const DOM_RESOURCE: &str = "conduit.resource/browser-document@1";
 
 pub fn checked_renderer_form() -> conduit_form::CheckedForm {
     let mut catalog = ProfileCatalog::new();
-    catalog.insert(renderer_kind_definition()).unwrap();
+    catalog.insert(renderer_kind_projection()).unwrap();
     parse(
         "form patchbay-show {\n    renderer: presentation/renderer\n}\n",
         &catalog,
@@ -49,14 +49,15 @@ pub fn host(
         boot_id: BootId::from(boot),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("presentation/host@1"),
+        bases: vec![],
         resources: vec![resource_offer(&pool_id, resource_class, 1)],
         capabilities: vec![renderer_offer(RendererRealizationOffer {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from("presentation/renderer-hosted@1"),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
-            host_operation: HostOperationRequirement {
-                contract_id: HostOperationContractId::from("conduit.host/present@1"),
+            host_call: HostCallRequirement {
+                contract_id: HostCallContractId::from("conduit.host/present@1"),
                 target_kind: Some(kind_id(target)),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,

@@ -781,7 +781,7 @@ fn gallery_publishes_current_history_and_provenance() {
     );
     let two_fronts_page =
         fs::read_to_string(site_root.join("current/one-form-two-fronts/index.html")).unwrap();
-    assert!(two_fronts_page.contains("One Form, Two Fronts"));
+    assert!(two_fronts_page.contains("One form, Two Fronts"));
     assert!(two_fronts_page.contains("One meaning, two manifestations"));
     assert!(two_fronts_page.contains("Pixel equality, physical display output"));
     assert!(two_fronts_page.contains("What Conduit established"));

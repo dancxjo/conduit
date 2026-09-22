@@ -5,9 +5,9 @@ use std::collections::BTreeMap;
 use conduit_core::{
     authority_grant, kind_id, resource_offer, resource_requirement, ArtifactId,
     AuthorityContractId, AuthorityRequirement, BaseImplementationId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, ExecutionProfileId, FaceStartupParameter, HostAdvertisement,
-    HostId, HostOperationContractId, HostOperationRequirement, HostProfileId, ImplementationId,
-    ImplementationOffer, KindContractRevision, OfferGeneration, ResourceHealth,
+    CapabilityLimits, CapabilityOffer, ExecutionProfileId, FrontStartupParameter,
+    HostAdvertisement, HostCallContractId, HostCallRequirement, HostId, HostProfileId,
+    ImplementationId, ImplementationOffer, KindIdentity, OfferGeneration, ResourceHealth,
     ResourceObservation, SignId, BOOL_ENCODED_LEN, BOOL_INFO_ID, PROTOCOL_VERSION,
     TIMER_RESOURCE_CLASS,
 };
@@ -119,19 +119,19 @@ pub fn live_create_dock_advertisement(
     requirements.sort();
     let authority_requirement = AuthorityRequirement {
         contract_id: AuthorityContractId::from(authority),
-        host_operation_contract_id: HostOperationContractId::from(CREATE_DOCK_OPERATION),
+        host_call_contract_id: HostCallContractId::from(CREATE_DOCK_OPERATION),
         subject_kind: kind_id(BOOL_INFO_ID),
     };
     let dock = CapabilityOffer {
-        startup_parameters: vec![FaceStartupParameter {
+        startup_parameters: vec![FrontStartupParameter {
             name: "timeout-ms".into(),
-            value_type: "Count".into(),
+            value_type: conduit_core::kind_id("value/count"),
             has_default: true,
         }],
         shorthand: None,
         capability_id: CapabilityId::from(CREATE_DOCK_CAPABILITY),
         kind_id: contract.kind_id,
-        kind_contract_revision: KindContractRevision::from(
+        kind_contract_revision: KindIdentity::from(
             conduit_semantic_catalog::ROBOTICS_DOCK_REVISION,
         ),
         implementation: ImplementationOffer {
@@ -141,8 +141,8 @@ pub fn live_create_dock_advertisement(
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
-        host_operations: vec![HostOperationRequirement {
-            contract_id: HostOperationContractId::from(CREATE_DOCK_OPERATION),
+        host_calls: vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(CREATE_DOCK_OPERATION),
             target_kind: Some(kind_id(BOOL_INFO_ID)),
             maximum_in_flight: 1,
             maximum_input_bytes: BOOL_ENCODED_LEN as u32,
@@ -166,6 +166,7 @@ pub fn live_create_dock_advertisement(
         boot_id: observation.boot_id.clone(),
         offer_generation: observation.offer_generation,
         profile: HostProfileId::from(profile),
+        bases: vec![],
         resources,
         capabilities,
         planner_capabilities: Vec::new(),
@@ -189,7 +190,7 @@ pub fn create_dock_plan(
     };
     let requirement = AuthorityRequirement {
         contract_id: AuthorityContractId::from(authority_contract),
-        host_operation_contract_id: HostOperationContractId::from(CREATE_DOCK_OPERATION),
+        host_call_contract_id: HostCallContractId::from(CREATE_DOCK_OPERATION),
         subject_kind: kind_id(BOOL_INFO_ID),
     };
     let grant = authority_granted.then(|| {

@@ -67,12 +67,12 @@ async function prepareBody(page) {
   const probe = await startPresenceProbe(["--body-evidence", current]);processes.push(probe.process);
   await open(page, ["--body-evidence", current, "--external-reader", "--body-invitation", probe.url, ...forms]);
   await page.locator("#body-summary").click();
-  await page.getByRole("button", { name: "Join this Body", exact: true }).click();
+  await page.getByRole("button", { name: "Join this body", exact: true }).click();
   await expect(page.locator("#body-membership-status")).toContainText("admitted");
   await expect.poll(async () => (await snapshot(page)).body_host_offer_evidence?.stage).toBe("AdmittedMembership");
-  await page.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
+  await page.getByRole("button", { name: "Request active form evidence", exact: true }).click();
   await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
-  await page.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
+  await page.getByRole("button", { name: "Plan active forms on this host", exact: true }).click();
   await expect(page.locator("#body-capability-evidence-status")).toContainText("Body replanned");
   const proposed = await snapshot(page);
   expect(proposed.body_planning.lifecycle).toBe("AwaitingPlan");
@@ -136,9 +136,9 @@ test("canonical button, clock, and Desk Telegraph run through one page Body Play
   await page.locator('#body-workbench-available [data-application-component="artifact"]').filter({ hasText: "Button to Indicator" }).getByRole("button", { name: "Add to Body", exact: true }).click();
   await expect(active).toHaveCount(3);
   await page.locator("#body-summary").click();
-  await page.getByRole("button", { name: "Request active Form evidence", exact: true }).click();
+  await page.getByRole("button", { name: "Request active form evidence", exact: true }).click();
   await expect(page.locator("#body-capability-evidence-status")).toContainText("SelfReported evidence");
-  await page.getByRole("button", { name: "Plan active Forms on this Host", exact: true }).click();
+  await page.getByRole("button", { name: "Plan active forms on this host", exact: true }).click();
   await expect.poll(async () => (await snapshot(page)).body_planning.wake_id).not.toBe(running.body_planning.wake_id);
   const next = await snapshot(page);
   expect(next.body_workbench.body_id).toBe(initial.body_workbench.body_id);

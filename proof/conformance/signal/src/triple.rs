@@ -13,11 +13,11 @@ use conduit_core::{
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 
 use crate::{
-    pulse_contract_revision, pulse_execution_profile, pulse_host_operation_requirements,
-    pulse_outputs, pulse_resource_requirements, show_contract_revision, show_execution_profile,
-    show_host_operation_requirements, show_inputs, show_resource_requirements,
-    signal_profile_catalog, signal_resource_offers, DISTRIBUTED_MAXIMUM_FRAME_BYTES,
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, SIGNAL_ENCODED_LEN,
+    pulse_contract_revision, pulse_execution_profile, pulse_host_call_requirements, pulse_outputs,
+    pulse_resource_requirements, show_contract_revision, show_execution_profile,
+    show_host_call_requirements, show_inputs, show_resource_requirements, signal_profile_catalog,
+    signal_resource_offers, DISTRIBUTED_MAXIMUM_FRAME_BYTES, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+    SIGNAL_ENCODED_LEN,
 };
 
 pub const SOURCE_HOST_ID: &str = "s4/triple-std";
@@ -87,10 +87,10 @@ fn capability(capability_id: &str, implementation_id: &str, is_pulse: bool) -> C
         },
         inputs: if is_pulse { vec![] } else { show_inputs() },
         outputs: if is_pulse { pulse_outputs() } else { vec![] },
-        host_operations: if is_pulse {
-            pulse_host_operation_requirements()
+        host_calls: if is_pulse {
+            pulse_host_call_requirements()
         } else {
-            show_host_operation_requirements()
+            show_host_call_requirements()
         },
         resource_requirements: if is_pulse {
             pulse_resource_requirements()
@@ -113,6 +113,7 @@ pub fn source_advertisement() -> HostAdvertisement {
         boot_id: conduit_core::BootId::from(SOURCE_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-triple-kernel"),
+        bases: vec![],
         resources: signal_resource_offers("s4/triple-std-timer", "s4/triple-stdout", 1),
         planner_capabilities: vec![],
         capabilities: vec![
@@ -133,6 +134,7 @@ pub fn browser_advertisement() -> HostAdvertisement {
         boot_id: conduit_core::BootId::from(BROWSER_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser-wasm-triple-kernel"),
+        bases: vec![],
         resources: signal_resource_offers("s4/triple-browser-unused-timer", "s4/triple-dom", 1)
             .into_iter()
             .filter(|resource| {
@@ -155,6 +157,7 @@ pub fn pico_advertisement() -> HostAdvertisement {
         boot_id: conduit_core::BootId::from(PICO_IMAGE_BOOT_ID),
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rp2040-triple-kernel"),
+        bases: vec![],
         resources: signal_resource_offers("s4/triple-pico-unused-timer", "s4/triple-cyw43-led", 1)
             .into_iter()
             .filter(|resource| {

@@ -9,7 +9,7 @@ use crate::{
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId, AuthorityGrant,
     AuthorityGrantId, BaseImplementationId, CapabilityId, ExecutionProfileId, HostAdvertisement,
-    HostOperationContractId, ImplementationId, ResourceHealth, ResourceObservation, SignId,
+    HostCallContractId, ImplementationId, ResourceHealth, ResourceObservation, SignId,
     SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
 use conduit_planner::{
@@ -201,6 +201,7 @@ pub fn capstone_advertisement(
         boot_id: observation.boot_id,
         offer_generation: observation.offer_generation,
         profile: profile.into(),
+        bases: vec![],
         resources,
         capabilities: vec![bump, velocity, select, drive_offer],
         planner_capabilities: Vec::new(),
@@ -226,7 +227,7 @@ pub fn capstone_plan(
     let grant = AuthorityGrant {
         grant_id: AuthorityGrantId::from(CAPSTONE_DRIVE_GRANT),
         contract_id: AuthorityContractId::from(authority_contract),
-        host_operation_contract_id: HostOperationContractId::from(CREATE_DRIVE_OPERATION),
+        host_call_contract_id: HostCallContractId::from(CREATE_DRIVE_OPERATION),
         subject_kind: kind_id(SCALAR_INFO_ID),
         host_id: host.host_id.clone(),
         boot_id: host.boot_id.clone(),

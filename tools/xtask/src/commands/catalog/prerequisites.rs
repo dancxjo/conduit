@@ -1,4 +1,4 @@
-//! Mechanical prerequisite classification for one exact Host profile.
+//! Mechanical prerequisite classification for one exact host profile.
 
 use std::collections::BTreeSet;
 
@@ -9,7 +9,7 @@ use super::{inventory, GapClassification};
 pub(crate) struct Classification {
     pub(crate) classification: GapClassification,
     pub(crate) reason_code: Option<&'static str>,
-    pub(crate) required_host_operations: Vec<String>,
+    pub(crate) required_host_calls: Vec<String>,
     pub(crate) required_resources: Vec<String>,
     pub(crate) required_bases: Vec<String>,
     pub(crate) unsatisfied: Vec<String>,
@@ -28,8 +28,8 @@ pub(crate) fn classify(
                 && offer.kind_contract_revision.as_str() == kind.contract_revision
         })
         .expect("inventory and canonical offers share exact identities");
-    let required_host_operations = canonical
-        .host_operations
+    let required_host_calls = canonical
+        .host_calls
         .iter()
         .map(|requirement| requirement.contract_id.as_str().to_owned())
         .collect::<Vec<_>>();
@@ -49,7 +49,7 @@ pub(crate) fn classify(
         return Classification {
             classification: GapClassification::Implemented,
             reason_code: None,
-            required_host_operations,
+            required_host_calls,
             required_resources,
             required_bases,
             unsatisfied: Vec::new(),
@@ -60,7 +60,7 @@ pub(crate) fn classify(
     let available_operations = host
         .capabilities
         .iter()
-        .flat_map(|capability| capability.host_operations.iter())
+        .flat_map(|capability| capability.host_calls.iter())
         .map(|requirement| requirement.contract_id.as_str())
         .collect::<BTreeSet<_>>();
     let available_resources = host
@@ -84,7 +84,7 @@ pub(crate) fn classify(
         return missing(
             GapClassification::MissingBase,
             "required-base-unavailable",
-            required_host_operations,
+            required_host_calls,
             required_resources,
             required_bases,
             missing_bases,
@@ -99,22 +99,22 @@ pub(crate) fn classify(
         return missing(
             GapClassification::MissingResource,
             "required-resource-unavailable",
-            required_host_operations,
+            required_host_calls,
             required_resources,
             required_bases,
             missing_resources,
         );
     }
-    let missing_operations = required_host_operations
+    let missing_operations = required_host_calls
         .iter()
         .filter(|operation| !available_operations.contains(operation.as_str()))
-        .map(|operation| format!("host-operation:{operation}"))
+        .map(|operation| format!("host-call:{operation}"))
         .collect::<Vec<_>>();
     if !missing_operations.is_empty() {
         return missing(
-            GapClassification::MissingHostOperation,
-            "required-host-operation-unavailable",
-            required_host_operations,
+            GapClassification::MissingHostCall,
+            "required-host-call-unavailable",
+            required_host_calls,
             required_resources,
             required_bases,
             missing_operations,
@@ -123,7 +123,7 @@ pub(crate) fn classify(
     Classification {
         classification: GapClassification::PortableImplementationMissing,
         reason_code: Some("portable-implementation-not-installed"),
-        required_host_operations,
+        required_host_calls,
         required_resources,
         required_bases,
         unsatisfied: vec!["implementation:portable".to_owned()],
@@ -134,7 +134,7 @@ pub(crate) fn classify(
 fn missing(
     classification: GapClassification,
     reason_code: &'static str,
-    required_host_operations: Vec<String>,
+    required_host_calls: Vec<String>,
     required_resources: Vec<String>,
     required_bases: Vec<String>,
     unsatisfied: Vec<String>,
@@ -142,7 +142,7 @@ fn missing(
     Classification {
         classification,
         reason_code: Some(reason_code),
-        required_host_operations,
+        required_host_calls,
         required_resources,
         required_bases,
         unsatisfied,
@@ -210,7 +210,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             classify(&without_text_join, text_join, false).classification,
-            GapClassification::MissingHostOperation
+            GapClassification::MissingHostCall
         );
         assert_eq!(
             classify_kind("time/debounce"),

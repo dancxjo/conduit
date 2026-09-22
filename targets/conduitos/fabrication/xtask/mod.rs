@@ -17,6 +17,7 @@ mod armv6_rpi_flash;
 mod armv6_rpi_physical;
 mod build;
 mod demo;
+mod emergency_halt_proof;
 mod fabrication_resolution;
 mod front_door_proof;
 mod graphical_asset_proof;
@@ -140,7 +141,7 @@ enum ConduitosCommand {
     RpiPhysicalProof(RpiPhysicalProofArgs),
     /// Open a visible interactive QEMU session without making proof claims.
     Demo(DemoArgs),
-    /// Prove the normal IMAGE zero-Body front door and long-lived interaction.
+    /// Prove the normal IMAGE zero-body front door and long-lived interaction.
     FrontDoorProof,
     /// Prove the normal IMAGE Body/Wake/Plan/Play product journey.
     JourneyProof,
@@ -154,7 +155,7 @@ enum ConduitosCommand {
     ProveMany(prove_many::ProveManyArgs),
     /// Inventory the portable std nucleus and classify the exact ConduitOS gap.
     StdGap,
-    /// Prove one exact deterministic deadline-bounded local Plan and refusal.
+    /// Prove one exact deterministic deadline-bounded local plan and refusal.
     TimingProfile,
     /// Prove one real bounded xHCI Base and fail-closed controller absence.
     XhciProof(PreparedProofArgs),
@@ -174,6 +175,8 @@ enum ConduitosCommand {
     HotplugProof,
     /// Prove one low-level local rescue request and real fresh boot.
     RescueProof(PreparedProofArgs),
+    /// Prove the x86_64 emergency callback enters a terminal CPU halt.
+    EmergencyHaltProof,
     /// Prove one exact native OPL2 musical realization on QEMU AdLib.
     Opl2Proof,
     /// Prove one x86_64 ring-3 protection domain and exact kernel capability gate.
@@ -184,7 +187,7 @@ enum ConduitosCommand {
 
 #[derive(Args, Debug, Clone)]
 struct AcceptanceArgs {
-    /// Exact Body-provisioned ConduitOS ISO exported by the Crèche.
+    /// Exact body-provisioned ConduitOS ISO exported by the Crèche.
     #[arg(long)]
     spore: PathBuf,
 }
@@ -521,6 +524,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::PcSpeakerProof => pc_speaker_proof::execute(opts),
         ConduitosCommand::HotplugProof => hotplug_proof::execute(opts),
         ConduitosCommand::RescueProof(args) => rescue_proof::execute(args.prepared_image, opts),
+        ConduitosCommand::EmergencyHaltProof => emergency_halt_proof::execute(opts),
         ConduitosCommand::Opl2Proof => opl2_proof::execute(opts),
         ConduitosCommand::IsolationProof => isolation_proof::execute(opts),
         ConduitosCommand::VirtioNetProof => virtio_net_proof::execute(opts),

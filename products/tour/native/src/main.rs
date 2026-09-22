@@ -130,7 +130,7 @@ impl NativeTour {
                                     self.presentation = presentation;
                                 }
                                 format!(
-                                    "Exercise {}.{} completed on this Host.",
+                                    "Exercise {}.{} completed on this host.",
                                     chapter + 1,
                                     stage + 1
                                 )
@@ -139,7 +139,7 @@ impl NativeTour {
                         }
                     }
                     Some(TourWorkspaceRequest::OpenPatchbay) => {
-                        "Patchbay opened for the exact current Form.".into()
+                        "Patchbay opened for the exact current form.".into()
                     }
                     None => "Shared Tour state updated.".into(),
                 };

@@ -37,12 +37,12 @@ export async function acquireHostRelease(profile, signal, {
     totalBytes += bytes.byteLength;
     if (bytes.byteLength !== file.bytes || bytes.byteLength < 1 || bytes.byteLength > MAXIMUM_FILE_BYTES
       || totalBytes > MAXIMUM_BUNDLE_BYTES) {
-      refuse("ArtifactBound", "reviewed Host release violated its sealed byte bounds");
+      refuse("ArtifactBound", "reviewed host release violated its sealed byte bounds");
     }
     payloads.push(Object.freeze({ ...file, bytes }));
   }
   const bundleDigest = await digestFileIdentities(payloads);
-  if (bundleDigest !== manifest.bundle_sha256) refuse("StaleArtifact", "reviewed Host release bundle identity is stale");
+  if (bundleDigest !== manifest.bundle_sha256) refuse("StaleArtifact", "reviewed host release bundle identity is stale");
   return Object.freeze({ manifest: Object.freeze(manifest), payloads: Object.freeze(payloads), totalBytes });
 }
 
@@ -58,12 +58,12 @@ export async function acquireExactReleaseBytes({ url, expected, maximumBytes, si
   }
   let response;
   try { response = await fetcher(url, { signal, cache: "no-store" }); }
-  catch (error) { refuse("ArtifactUnavailable", `reviewed Host release ${label} is unavailable`, error); }
-  if (!response?.ok) refuse("ArtifactUnavailable", `reviewed Host release ${label} returned HTTP ${response?.status}`);
+  catch (error) { refuse("ArtifactUnavailable", `reviewed host release ${label} is unavailable`, error); }
+  if (!response?.ok) refuse("ArtifactUnavailable", `reviewed host release ${label} returned HTTP ${response?.status}`);
   const bytes = new Uint8Array(await response.arrayBuffer());
   if (bytes.byteLength < 1 || bytes.byteLength > maximumBytes
     || expected && (bytes.byteLength !== expected.bytes || await sha256(bytes) !== expected.sha256)) {
-    refuse("StaleArtifact", `reviewed Host release ${label} failed its exact identity`);
+    refuse("StaleArtifact", `reviewed host release ${label} failed its exact identity`);
   }
   if (expected && cache) await cache.put(expected.sha256, bytes);
   return Object.freeze({ bytes, url: response.url || String(url), cache_hit: false });
