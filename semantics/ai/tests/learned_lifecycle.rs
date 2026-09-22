@@ -47,6 +47,7 @@ fn run(contract: &ShadowContract) -> ShadowRun {
     ShadowRun {
         identity: [13; 32],
         contract_identity: contract.identity,
+        shared_input_set_identity: contract.shared_input_set_identity,
         shared_input_identity: [14; 32],
         baseline_evidence: evidence(contract.baseline, [14; 32]),
         candidate_evidence: evidence(contract.candidate, [14; 32]),
@@ -161,6 +162,12 @@ fn shadow_candidate_cannot_share_a_protected_effect_route() {
 #[test]
 fn shadow_requires_exact_shared_input_and_stays_within_finite_resources() {
     let contract = contract();
+    let mut value = run(&contract);
+    value.shared_input_set_identity = [98; 32];
+    assert_eq!(
+        contract.validate_run(&value),
+        Err(LearnedLifecycleRefusal::WrongInput)
+    );
     let mut value = run(&contract);
     value.candidate_evidence.input_identities = vec![[99; 32]];
     assert_eq!(

@@ -51,6 +51,7 @@ pub enum ShadowTerminal {
 pub struct ShadowRun {
     pub identity: [u8; 32],
     pub contract_identity: [u8; 32],
+    pub shared_input_set_identity: [u8; 32],
     pub shared_input_identity: [u8; 32],
     pub baseline_evidence: ModelInvocationEvidence,
     pub candidate_evidence: ModelInvocationEvidence,
@@ -264,7 +265,8 @@ impl ShadowContract {
         if run.contract_identity != self.identity {
             return Err(LearnedLifecycleRefusal::WrongContract);
         }
-        if run.shared_input_identity == [0; 32]
+        if run.shared_input_set_identity != self.shared_input_set_identity
+            || run.shared_input_identity == [0; 32]
             || run.baseline_evidence.input_identities != run.candidate_evidence.input_identities
             || !run
                 .baseline_evidence

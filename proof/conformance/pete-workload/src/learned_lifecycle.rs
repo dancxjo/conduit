@@ -54,6 +54,7 @@ fn pete_interpretation_candidate_is_body_scoped_non_actuating_and_rollback_capab
     let shadow = ShadowRun {
         identity: [70; 32],
         contract_identity: contract.identity,
+        shared_input_set_identity: contract.shared_input_set_identity,
         shared_input_identity: [66; 32],
         baseline_evidence: evidence(baseline),
         candidate_evidence: evidence(candidate),
