@@ -112,16 +112,37 @@ impl FrontDoor {
             return Err(Error::Presentation);
         }
         if let Some(previous) = &self.workspace {
-            // This native slice has an immutable resident workset. Revisions
-            // change selection/output; they do not re-check Forms during Play.
-            if previous.forms.len() != workspace.forms.len()
-                || previous
+            let unchanged = previous.forms.len() == workspace.forms.len()
+                && previous
                     .forms
                     .iter()
                     .zip(&workspace.forms)
-                    .any(|(left, right)| left.form != right.form || left.title != right.title)
-            {
+                    .all(|(left, right)| left.form == right.form && left.title == right.title);
+            let admitted_append = workspace.forms.len() == previous.forms.len() + 1
+                && previous
+                    .forms
+                    .iter()
+                    .zip(&workspace.forms)
+                    .all(|(left, right)| left.form == right.form && left.title == right.title)
+                && self.journey.as_ref().is_some_and(|prior| {
+                    prior
+                        .workload_revision
+                        .zip(journey.workload_revision)
+                        .is_some_and(|(left, right)| left.checked_add(1) == Some(right))
+                })
+                && journey.workload_sign_id.is_some();
+            // Selection and output cannot rewrite membership. The sole growth
+            // case is an exact append backed by the Body/Wake workload event.
+            if !unchanged && !admitted_append {
                 return Err(Error::Presentation);
+            }
+            if admitted_append {
+                let appended = workspace.forms.last().ok_or(Error::Presentation)?;
+                let kind = crate::native_workset::resolve(&appended.form)
+                    .map_err(|_| Error::Presentation)?;
+                if kind.title() != appended.title {
+                    return Err(Error::Presentation);
+                }
             }
         } else {
             for form in &workspace.forms {

@@ -15,7 +15,7 @@ for asset in creche-names.mjs creche-rendezvous.mjs rendezvous-candidate-schedul
   cp "products/creche/browser/$asset" "$destination/$asset"
 done
 cp targets/browser/deployment/browser/creche-adapter.mjs targets/browser/deployment/browser/browser-bundle.mjs "$destination/targets/browser/browser-deployment/"
-for artifact in browser-page.json runtime.wasm index.html host.mjs browser-host-bootstrap.mjs browser-host-membership.mjs browser-host-identity.mjs browser-boot-profile.mjs media-host.mjs device-base.mjs usb-device-base.mjs; do
+for artifact in browser-page.json runtime.wasm index.html host.mjs browser-host-bootstrap.mjs browser-host-membership.mjs browser-host-identity.mjs browser-boot-profile.mjs browser-relay-line.mjs media-host.mjs device-base.mjs usb-device-base.mjs; do
   test -f "$release_artifacts/$artifact"
   cp "$release_artifacts/$artifact" "$destination/artifacts/"
 done
