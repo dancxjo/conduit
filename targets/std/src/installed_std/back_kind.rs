@@ -77,6 +77,7 @@ use super::toggle_back::StateToggleBack;
 use super::typed_record_back::TypedRecordBack;
 use super::vector_search_back::VectorSearchBack;
 use super::vision_describe_back::VisionDescribeBack;
+use super::vision_experience_back::VisionExperienceBack;
 use super::wav_artifact_back::WavArtifactBack;
 
 pub(super) enum InstalledBack {
@@ -163,6 +164,7 @@ pub(super) enum InstalledBack {
     LocalModel(LocalModelBack),
     LocalVision(LocalVisionBack),
     VisionDescribe(VisionDescribeBack),
+    VisionExperience(VisionExperienceBack),
     ModelText(ModelTextBack),
     GeneratedSpeechCommit(GeneratedSpeechCommitBack),
     Navigation(NavigationBack),

@@ -65,6 +65,8 @@ mod vision_experience_catalog;
 pub use vision_experience_catalog::*;
 mod vision_experience_codec;
 pub use vision_experience_codec::*;
+mod vision_experience_motion_prepared;
+pub use vision_experience_motion_prepared::*;
 mod vision_experience_decode;
 pub use vision_experience_decode::*;
 mod vision_local_cv;

@@ -623,6 +623,7 @@ impl StdHost {
         let mut vision_capabilities = vec![
             hosted_vision::FiniteHostedVisionBase::motion_offer(),
             hosted_vision::FiniteHostedVisionBase::objects_offer(),
+            hosted_vision::FiniteHostedVisionBase::experience_offer(),
         ];
         if let Some(ocr_offer) = vision.ocr_offer() {
             vision_capabilities.push(ocr_offer);

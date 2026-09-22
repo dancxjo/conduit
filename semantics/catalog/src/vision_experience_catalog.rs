@@ -112,7 +112,7 @@ pub(crate) fn observation_provenance_type() -> StructuredInfoType {
 }
 
 pub fn vision_motions_type() -> StructuredInfoType {
-    crate::local_vision_motion_observations_type()
+    sequence(motion_observation_type(), 4)
 }
 
 pub fn vision_objects_type() -> StructuredInfoType {

@@ -157,6 +157,7 @@ use super::typed_record_back::{
 };
 use super::vector_search_back::{EXACT_FACTORY as EXACT_VECTOR_SEARCH_FACTORY, HNSW_FACTORY};
 use super::vision_describe_back::FACTORY as VISION_DESCRIBE_FACTORY;
+use super::vision_experience_back::FACTORY as VISION_EXPERIENCE_FACTORY;
 use super::wav_artifact_back::FACTORY as WAV_ARTIFACT_FACTORY;
 use super::whisper_speech_back::{
     CLIP_FACTORY as WHISPER_CLIP_SPEECH_FACTORY, FACTORY as WHISPER_SPEECH_FACTORY,
@@ -242,6 +243,7 @@ const FACTORIES: &[&BackFactory] = &[
     &LOCAL_VISION_OCR_FACTORY,
     &LOCAL_VISION_TRACK_FACTORY,
     &VISION_DESCRIBE_FACTORY,
+    &VISION_EXPERIENCE_FACTORY,
     &MODEL_TEXT_FACTORY,
     &GENERATED_SPEECH_COMMIT_FACTORY,
     &NAVIGATION_ROUTE_FACTORY,

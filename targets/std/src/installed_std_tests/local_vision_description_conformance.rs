@@ -47,7 +47,7 @@ impl crate::hosted_local_model::HostedVisualModelAdapter for FixtureVisualModel 
 }
 
 #[test]
-fn authored_description_joins_four_typed_inputs_through_one_production_play() {
+fn authored_description_and_experience_join_through_one_production_play() {
     let image = conduit_semantic_catalog::deterministic_vision_fixture()
         .unwrap()
         .image;
@@ -60,6 +60,7 @@ fn authored_description_joins_four_typed_inputs_through_one_production_play() {
         conduit_semantic_catalog::object_observations_value(&[], &profile).unwrap(),
         conduit_semantic_catalog::visible_text_observations_value(&[], &profile).unwrap(),
         conduit_semantic_catalog::track_observations_value(&[], &profile).unwrap(),
+        conduit_semantic_catalog::motion_observations_value(&[], &profile).unwrap(),
     ];
     let base = FiniteHostedVisionBase::new(
         vec![HostedVisionFrame {
@@ -95,11 +96,12 @@ fn authored_description_joins_four_typed_inputs_through_one_production_play() {
     host.kernel_resources =
         crate::kernel_preparation::KernelResourceLedger::new(&host.advertisement).unwrap();
     let source = format!(
-        "form proof {{\n image: conduit-test/vision-image(value = \"{}\")\n objects: conduit-test/vision-objects(value = \"{}\")\n texts: conduit-test/vision-texts(value = \"{}\")\n tracks: conduit-test/vision-tracks(value = \"{}\")\n describe: vision/model-describe\n sink: conduit-test/local-model-result\n image.image > describe.image\n objects.detections > describe.detections\n texts.texts > describe.texts\n tracks.tracks > describe.tracks\n describe.impression > sink.value\n}}\n",
+        "form proof {{\n image: conduit-test/vision-image(value = \"{}\")\n objects: conduit-test/vision-objects(value = \"{}\")\n texts: conduit-test/vision-texts(value = \"{}\")\n tracks: conduit-test/vision-tracks(value = \"{}\")\n motions: conduit-test/vision-motions(value = \"{}\")\n describe: vision/model-describe\n relate: vision/relate-experience\n sink: conduit-test/local-model-result\n image.image > describe.image\n objects.detections > describe.detections\n objects.detections > relate.detections\n texts.texts > describe.texts\n texts.texts > relate.texts\n tracks.tracks > describe.tracks\n tracks.tracks > relate.tracks\n motions.motions > relate.motions\n describe.impression > relate.impression\n relate.experience > sink.value\n}}\n",
         hex(&values[0].canonical_bytes().unwrap()),
         hex(&values[1].canonical_bytes().unwrap()),
         hex(&values[2].canonical_bytes().unwrap()),
         hex(&values[3].canonical_bytes().unwrap()),
+        hex(&values[4].canonical_bytes().unwrap()),
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "proof", &profile_catalog).unwrap();
@@ -166,7 +168,7 @@ fn authored_description_joins_four_typed_inputs_through_one_production_play() {
 }
 
 fn describe_catalogs(
-    values: &[conduit_core::StructuredInfoValue; 4],
+    values: &[conduit_core::StructuredInfoValue; 5],
 ) -> (
     StartupCatalog,
     ProfileCatalog,
@@ -181,8 +183,9 @@ fn describe_catalogs(
         ("conduit-test/vision-objects", "detections"),
         ("conduit-test/vision-texts", "texts"),
         ("conduit-test/vision-tracks", "tracks"),
+        ("conduit-test/vision-motions", "motions"),
     ];
-    let mut offers = Vec::with_capacity(4);
+    let mut offers = Vec::with_capacity(5);
     for ((kind, port), value) in sources.into_iter().zip(values) {
         let mut offer = crate::installed_std::test_structured_selector::offer_named(
             value.value_type(),
@@ -221,7 +224,7 @@ fn describe_catalogs(
         offers.push(offer);
     }
     let mut sink_offer = crate::installed_std::test_local_model_io::sink_offer(
-        conduit_semantic_catalog::visual_impression_type()
+        conduit_semantic_catalog::visual_experience_type()
             .profile()
             .unwrap()
             .value_kind()

@@ -22,12 +22,16 @@ pub const LOCAL_VISION_DESCRIBE_PROFILE: &str = "conduit.std/ollama-visual-descr
 pub const LOCAL_VISION_DESCRIBE_IMPLEMENTATION: &str = "std/ollama-visual-description@1";
 pub const LOCAL_VISION_DESCRIBE_ARTIFACT: &str = "conduit-std-host/ollama-vision@1";
 pub const LOCAL_VISION_DESCRIBE_OPERATION: &str = "conduit.host/visual-description@1";
+pub const LOCAL_VISION_EXPERIENCE_PROFILE: &str = "conduit.std/visual-experience@1";
+pub const LOCAL_VISION_EXPERIENCE_IMPLEMENTATION: &str = "std/visual-experience@1";
+pub const LOCAL_VISION_EXPERIENCE_ARTIFACT: &str = "conduit-std-host/visual-experience@1";
+pub const LOCAL_VISION_EXPERIENCE_OPERATION: &str = "conduit.host/visual-experience@1";
 pub const LOCAL_VISION_TRACK_PROFILE: &str = "conduit.std/local-vision-track@1";
 pub const LOCAL_VISION_TRACK_IMPLEMENTATION: &str = "std/local-vision-track@1";
 pub const LOCAL_VISION_TRACK_ARTIFACT: &str = "conduit-std-host/local-vision-track@1";
 pub const LOCAL_VISION_TRACK_OPERATION: &str = "conduit.host/local-vision-track@1";
 
-pub fn local_vision_offers() -> [CapabilityOffer; 5] {
+pub fn local_vision_offers() -> [CapabilityOffer; 6] {
     [
         local_vision_offer(
             "local-vision-motion",
@@ -42,7 +46,32 @@ pub fn local_vision_offers() -> [CapabilityOffer; 5] {
         local_ocr_offer(),
         local_describe_offer(),
         local_track_offer(),
+        local_experience_offer(),
     ]
+}
+
+fn local_experience_offer() -> CapabilityOffer {
+    let contract = vision_contract(conduit_semantic_catalog::VISION_EXPERIENCE_KIND);
+    let target_kind = contract.kind_id.clone();
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from("local-visual-experience"),
+            execution_profile_id: ExecutionProfileId::from(LOCAL_VISION_EXPERIENCE_PROFILE),
+            implementation_id: ImplementationId::from(LOCAL_VISION_EXPERIENCE_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(LOCAL_VISION_EXPERIENCE_ARTIFACT),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(LOCAL_VISION_EXPERIENCE_OPERATION),
+                target_kind: Some(target_kind),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+                maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            }],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+        },
+    )
+    .build()
 }
 
 fn local_describe_offer() -> CapabilityOffer {

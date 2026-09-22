@@ -54,6 +54,28 @@ pub fn visible_text_observations_value(
     Ok(StructuredInfoValue::sequence(vision_texts_type(), values)?)
 }
 
+pub fn motion_observations_value(
+    observations: &[MotionObservation],
+    image_profile: &KindId,
+) -> Result<StructuredInfoValue, VisualValueRefusal> {
+    if observations.len() > 4 {
+        return Err(VisualValueRefusal::InvalidObservation);
+    }
+    let values = observations
+        .iter()
+        .map(|observation| {
+            observation
+                .validate(image_profile)
+                .map_err(|_| VisualValueRefusal::InvalidObservation)?;
+            motion_value(observation)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(StructuredInfoValue::sequence(
+        crate::vision_motions_type(),
+        values,
+    )?)
+}
+
 pub fn track_observations_value(
     observations: &[TrackObservation],
     image_profile: &KindId,

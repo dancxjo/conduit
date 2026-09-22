@@ -14,6 +14,7 @@ use conduit_semantic_catalog::{
 };
 
 mod describe;
+mod experience;
 mod ocr;
 
 pub const MAXIMUM_HOSTED_VISION_RESOURCES: usize = 8;
@@ -25,11 +26,12 @@ pub struct FiniteHostedVisionBase {
     workspace: ContinuousLocalVision,
     last_frame: Option<usize>,
     last_observation: Option<ContinuousLocalVisionObservation>,
-    motion_encoder: conduit_semantic_catalog::PreparedLocalVisionMotionEncoder,
+    motion_encoder: conduit_semantic_catalog::PreparedVisualMotionEncoder,
     object_encoder: conduit_semantic_catalog::PreparedLocalVisionObjectEncoder,
     ocr_provider: Option<crate::TesseractOcrProvider>,
     ocr_output: Vec<u8>,
     describe: Option<describe::VisualDescriptionState>,
+    experience: experience::VisualExperienceState,
     minimum_motion_delta: u8,
     component_threshold: u8,
     minimum_component_area: u32,
@@ -118,13 +120,15 @@ impl FiniteHostedVisionBase {
             })
             .collect::<Result<Vec<_>, _>>()?;
         let provider = FiniteVisionProvider::new(frames)?;
-        let motion_encoder = conduit_semantic_catalog::PreparedLocalVisionMotionEncoder::new(
+        let object_encoder = conduit_semantic_catalog::PreparedLocalVisionObjectEncoder::new(
             conduit_std_offers::LOCAL_VISION_IMPLEMENTATION,
             provider_instance_id.clone(),
             conduit_std_offers::LOCAL_VISION_ARTIFACT,
+            width,
+            height,
         )
         .map_err(|_| HostedVisionRefusal::InvalidOutput)?;
-        let object_encoder = conduit_semantic_catalog::PreparedLocalVisionObjectEncoder::new(
+        let motion_encoder = conduit_semantic_catalog::PreparedVisualMotionEncoder::new(
             conduit_std_offers::LOCAL_VISION_IMPLEMENTATION,
             provider_instance_id.clone(),
             conduit_std_offers::LOCAL_VISION_ARTIFACT,
@@ -145,6 +149,7 @@ impl FiniteHostedVisionBase {
             ocr_provider,
             ocr_output: Vec::with_capacity(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES),
             describe: visual_model.map(describe::VisualDescriptionState::new),
+            experience: experience::VisualExperienceState::new(),
             minimum_motion_delta: 32,
             component_threshold: 128,
             minimum_component_area: 2,
@@ -197,10 +202,21 @@ impl FiniteHostedVisionBase {
         })
     }
 
+    pub fn experience_offer() -> conduit_core::CapabilityOffer {
+        conduit_std_offers::local_vision_offers()
+            .into_iter()
+            .find(|offer| {
+                offer.kind_id.as_str() == conduit_semantic_catalog::VISION_EXPERIENCE_KIND
+            })
+            .expect("reviewed visual experience offer")
+    }
+
     pub(crate) fn execute_motion(
         &mut self,
         input: &[u8],
         run_id: &str,
+        observed_at_micros: u64,
+        clock_basis: &str,
     ) -> Result<&[u8], HostedVisionRefusal> {
         let (frame_index, pixels) = self.provider.resolve_exact_canonical(input)?;
         if self.last_frame != Some(frame_index) {
@@ -221,7 +237,15 @@ impl FiniteHostedVisionBase {
             .as_ref()
             .ok_or(HostedVisionRefusal::InvalidOutput)?;
         self.motion_encoder
-            .encode(input, observation, run_id)
+            .encode(
+                self.observation_images
+                    .get(frame_index)
+                    .ok_or(HostedVisionRefusal::InvalidOutput)?,
+                observation.motion,
+                run_id,
+                observed_at_micros,
+                clock_basis,
+            )
             .map_err(|_| HostedVisionRefusal::InvalidOutput)
     }
 
@@ -629,7 +653,7 @@ mod tests {
         let value = StructuredInfoValue::from_canonical_bytes(output).unwrap();
         assert_eq!(
             value.value_type(),
-            &conduit_semantic_catalog::vision_motions_type()
+            &conduit_semantic_catalog::local_vision_motion_observations_type()
         );
         assert_eq!(vision.storage().previous_pixels, 64 * 48);
     }
@@ -676,7 +700,7 @@ mod tests {
             "play/test/request-1/observation-0"
         );
         vision
-            .execute_motion(&encoded, "play/test/request-2")
+            .execute_motion(&encoded, "play/test/request-2", 42, "boot/test/monotonic")
             .unwrap();
         assert_eq!(vision.last_observation.unwrap().sequence, 1);
     }

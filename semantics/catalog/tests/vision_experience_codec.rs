@@ -4,16 +4,17 @@ use conduit_core::{
     StructuredInfoTypeShape, StructuredInfoValueShape, TemporalInstant, TemporalScale,
 };
 use conduit_human::{
-    ImageObservationReference, ImageRegion, ObjectObservation, TrackObservation,
+    ImageObservationReference, ImageRegion, MotionObservation, ObjectObservation, TrackObservation,
     VisibleTextObservation, VisualEvidenceClass, VisualExperience, VisualExperienceLimits,
     VisualExperienceObservation, VisualExperienceRelation, VisualExperienceRelationKind,
     VisualImpression, VisualImpressionDisposition, VisualObservationProvenance,
 };
 use conduit_semantic_catalog::{
-    object_observations_from_value, object_observations_value, track_observations_from_value,
-    track_observations_value, visible_text_observations_from_value,
-    visible_text_observations_value, visual_experience_from_value, visual_experience_value,
-    visual_impression_from_value, visual_impression_value,
+    motion_observations_from_value, motion_observations_value, object_observations_from_value,
+    object_observations_value, track_observations_from_value, track_observations_value,
+    visible_text_observations_from_value, visible_text_observations_value,
+    visual_experience_from_value, visual_experience_value, visual_impression_from_value,
+    visual_impression_value,
 };
 
 fn image() -> ImageObservationReference {
@@ -83,6 +84,15 @@ fn object() -> ObjectObservation {
     }
 }
 
+fn motion() -> MotionObservation {
+    MotionObservation {
+        source_image: image(),
+        changed_region: region(),
+        change_permille: 125,
+        provenance: provenance(VisualEvidenceClass::DeterministicDerived, "motion"),
+    }
+}
+
 fn track() -> TrackObservation {
     TrackObservation {
         source_image: image(),
@@ -113,7 +123,8 @@ fn observation_values_retain_actual_length_and_exact_domain_truth() {
     let texts = visible_text_observations_value(&[visible_text()], &profile).unwrap();
     let tracks = track_observations_value(&[track()], &profile).unwrap();
     let objects = object_observations_value(&[object()], &profile).unwrap();
-    for value in [&texts, &tracks, &objects] {
+    let motions = motion_observations_value(&[motion()], &profile).unwrap();
+    for value in [&texts, &tracks, &objects, &motions] {
         let StructuredInfoValueShape::Collection(values) = value.shape() else {
             panic!("expected bounded sequence value")
         };
@@ -135,6 +146,10 @@ fn observation_values_retain_actual_length_and_exact_domain_truth() {
     assert_eq!(
         object_observations_from_value(&objects, &profile).unwrap(),
         [object()]
+    );
+    assert_eq!(
+        motion_observations_from_value(&motions, &profile).unwrap(),
+        [motion()]
     );
 }
 
