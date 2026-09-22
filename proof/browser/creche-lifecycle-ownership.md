@@ -15,7 +15,7 @@ proved; removing an old spec name does not remove its evidence.
 | Rosehip measurement plot, threshold, history, and cancellation | `workspace-body-execution.spec.mjs` | Migrated without changing the Patchbay execution boundary. |
 | Independent browser hosts, membership, replay refusal, mixed parts, loss, and replacement planning | `workspace-body-execution.spec.mjs` and `workspace-membership.spec.mjs` | Birth evidence originates in Workspace; the comprehensive membership owner remains Workspace. |
 | Browser, microcontroller, native-computer, and ConduitOS target selection, fabrication, and Body-bound handoff | `creche-*.spec.mjs` through the Workspace `Add a host` surface | The target catalog, adapters, and runner remain shared standard machinery; Workspace supplies the current Body and admission boundary. |
-| Retired Tour scenarios that drove the standalone Crèche stepper, direct routes, or graduation | Workspace lifecycle specs plus the Workspace-hosted machine specs above | Removed from the active Tour shard; the surviving target-neutral catalog/cancellation/delegation tests remain active. |
+| Retired Tour scenarios that drove the standalone Crèche stepper, direct routes, target catalog, cancellation/delegation fixture, or graduation | Workspace lifecycle specs, Workspace-hosted machine specs, and lower-level catalog/runner contracts | Removed from the active Tour shard because each fixture booted the retired lifecycle owner. |
 
 The retired Crèche-only expectations—`Crèche ready`, `/creche/birth/`, direct
 workflow steps, graduation controls, and standalone evidence download—described

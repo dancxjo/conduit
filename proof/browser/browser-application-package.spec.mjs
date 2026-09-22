@@ -190,7 +190,7 @@ test("browser Host refuses malformed and escaping application packages before la
   for (const [mutate, refusal] of [
     [(manifest) => { manifest.schema = "wrong"; }, "browser application package schema is unsupported"],
     [(manifest) => { manifest.resources[0].path = "https://example.com/tour.mjs"; }, "application resource path escapes the application package"],
-    [(manifest) => { manifest.resources.push(...Array.from({ length: 40 }, () => manifest.resources.at(-1))); }, "application package resource count is outside its admitted bound"],
+    [(manifest) => { manifest.resources.push(...Array.from({ length: 100 }, () => manifest.resources.at(-1))); }, "application package resource count is outside its admitted bound"],
   ]) {
     await mutatePackage(page, mutate);
     await page.goto(entrance.url);
