@@ -387,7 +387,8 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
     let creche_stage =
         fs::read_to_string(root.join("products/creche/tools/stage-creche-product.sh"))
             .expect("read Creche staging contract");
-    assert!(creche_stage.contains("release) test \"$file_count\" -le 130"));
+    assert!(creche_stage.contains("browser-relay-line.mjs"));
+    assert!(creche_stage.contains("release) test \"$file_count\" -le 131"));
     assert!(creche_stage.contains("browser-proof) test \"$file_count\" -le 128"));
     assert!(stage.contains("--root target/creche-release-artifacts"));
     assert!(stage.contains("--generation \"${{ github.run_number }}\""));
