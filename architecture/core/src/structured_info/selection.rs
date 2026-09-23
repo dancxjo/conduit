@@ -11,6 +11,7 @@ use super::{
 };
 
 mod canonical_selection;
+mod predicate;
 
 const SELECTOR_DIGEST_DOMAIN: &[u8] = b"conduit.structured-info.selector.v1";
 
@@ -26,6 +27,12 @@ enum StructuredSelectorBack {
     Index(u16),
     Variant {
         tag: String,
+        unmatched: UnmatchedVariantDisposition,
+    },
+    RecordFieldValues {
+        field: String,
+        expected: Vec<Vec<u8>>,
+        match_when_present: bool,
         unmatched: UnmatchedVariantDisposition,
     },
 }
@@ -47,6 +54,10 @@ pub enum StructuredSelectorRefusal {
     UnknownField,
     IndexOutOfRange,
     UnknownVariantTag,
+    PredicateRequiresLeafField,
+    EmptyPredicateSet,
+    DuplicatePredicateValue,
+    TooManyPredicateValues,
     WrongInputType,
     MalformedCheckedValue,
     UnmatchedVariant,
@@ -120,6 +131,46 @@ impl StructuredSelector {
                     _ => return Err(StructuredSelectorRefusal::MalformedCanonicalEncoding),
                 };
                 Self::variant(input_type, tag, unmatched)?
+            }
+            3 => {
+                let field = cursor
+                    .text()
+                    .map_err(|_| StructuredSelectorRefusal::MalformedCanonicalEncoding)?;
+                let count = cursor
+                    .u16()
+                    .map_err(|_| StructuredSelectorRefusal::MalformedCanonicalEncoding)?;
+                let mut expected = Vec::with_capacity(usize::from(count));
+                for _ in 0..count {
+                    expected.push(
+                        cursor
+                            .bytes()
+                            .map_err(|_| StructuredSelectorRefusal::MalformedCanonicalEncoding)?
+                            .to_vec(),
+                    );
+                }
+                let match_when_present = match cursor
+                    .byte()
+                    .map_err(|_| StructuredSelectorRefusal::MalformedCanonicalEncoding)?
+                {
+                    0 => false,
+                    1 => true,
+                    _ => return Err(StructuredSelectorRefusal::MalformedCanonicalEncoding),
+                };
+                let unmatched = match cursor
+                    .byte()
+                    .map_err(|_| StructuredSelectorRefusal::MalformedCanonicalEncoding)?
+                {
+                    0 => UnmatchedVariantDisposition::Drop,
+                    1 => UnmatchedVariantDisposition::Refuse,
+                    _ => return Err(StructuredSelectorRefusal::MalformedCanonicalEncoding),
+                };
+                Self::record_field_values(
+                    input_type,
+                    field,
+                    expected,
+                    match_when_present,
+                    unmatched,
+                )?
             }
             _ => return Err(StructuredSelectorRefusal::MalformedCanonicalEncoding),
         };
@@ -229,6 +280,7 @@ impl StructuredSelector {
     pub fn unmatched_disposition(&self) -> Option<UnmatchedVariantDisposition> {
         match self.operation {
             StructuredSelectorBack::Variant { unmatched, .. } => Some(unmatched),
+            StructuredSelectorBack::RecordFieldValues { unmatched, .. } => Some(unmatched),
             StructuredSelectorBack::Field(_) | StructuredSelectorBack::Index(_) => None,
         }
     }
@@ -253,6 +305,24 @@ impl StructuredSelector {
             StructuredSelectorBack::Variant { tag, unmatched } => {
                 encoded.push(2);
                 push_bytes(&mut encoded, tag.as_bytes());
+                encoded.push(match unmatched {
+                    UnmatchedVariantDisposition::Drop => 0,
+                    UnmatchedVariantDisposition::Refuse => 1,
+                });
+            }
+            StructuredSelectorBack::RecordFieldValues {
+                field,
+                expected,
+                match_when_present,
+                unmatched,
+            } => {
+                encoded.push(3);
+                push_bytes(&mut encoded, field.as_bytes());
+                encoded.extend_from_slice(&(expected.len() as u16).to_le_bytes());
+                for value in expected {
+                    push_bytes(&mut encoded, value);
+                }
+                encoded.push(u8::from(*match_when_present));
                 encoded.push(match unmatched {
                     UnmatchedVariantDisposition::Drop => 0,
                     UnmatchedVariantDisposition::Refuse => 1,
@@ -316,6 +386,28 @@ impl StructuredSelector {
             ) => {
                 if actual == tag {
                     Ok(StructuredSelection::Matched(payload.as_ref().clone()))
+                } else {
+                    Ok(StructuredSelection::Unmatched(*unmatched))
+                }
+            }
+            (
+                StructuredSelectorBack::RecordFieldValues {
+                    field,
+                    expected,
+                    match_when_present,
+                    unmatched,
+                },
+                StructuredInfoValueNode::Record(fields),
+            ) => {
+                let value = fields
+                    .iter()
+                    .find(|candidate| candidate.name == *field)
+                    .ok_or(StructuredSelectorRefusal::MalformedCheckedValue)?;
+                let StructuredInfoValueNode::Leaf(actual) = &value.value.node else {
+                    return Err(StructuredSelectorRefusal::MalformedCheckedValue);
+                };
+                if expected.contains(actual) == *match_when_present {
+                    Ok(StructuredSelection::Matched(input.clone()))
                 } else {
                     Ok(StructuredSelection::Unmatched(*unmatched))
                 }

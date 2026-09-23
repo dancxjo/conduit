@@ -156,6 +156,12 @@ pub enum MatchedRoutePattern {
         tag: SpannedText,
         span: Span,
     },
+    Guard {
+        value_type: SpannedText,
+        field: SpannedText,
+        expected: Expression,
+        span: Span,
+    },
     Otherwise(Span),
 }
 

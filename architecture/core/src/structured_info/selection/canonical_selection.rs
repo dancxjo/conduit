@@ -47,6 +47,31 @@ impl StructuredSelector {
                 }
                 value
             }
+            (
+                StructuredSelectorBack::RecordFieldValues {
+                    field,
+                    expected,
+                    match_when_present,
+                    unmatched,
+                },
+                crate::StructuredInfoTypeShape::Record { fields, .. },
+            ) => {
+                let value = select_field(field, fields, &mut cursor)?;
+                let mut value_cursor = Cursor::new(value);
+                expect_byte(&mut value_cursor, 0)?;
+                let actual = value_cursor.bytes().map_err(malformed)?;
+                finish(&value_cursor)?;
+                finish(&cursor)?;
+                if expected
+                    .iter()
+                    .any(|candidate| candidate.as_slice() == actual)
+                    == *match_when_present
+                {
+                    node
+                } else {
+                    return Ok(StructuredCanonicalSelection::Unmatched(*unmatched));
+                }
+            }
             _ => return Err(StructuredSelectorRefusal::MalformedCheckedValue),
         };
         finish(&cursor)?;

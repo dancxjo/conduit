@@ -17,6 +17,7 @@ use conduit_core::{
     UnmatchedVariantDisposition,
 };
 
+mod matched_route;
 mod resolution;
 mod shared_pool;
 mod structured_selector;
@@ -299,6 +300,13 @@ fn check_matched_route(
     resolver: &mut Resolver<'_>,
     gears: &mut Vec<CheckedCanonicalGear>,
 ) -> Result<Vec<CheckedCanonicalCord>, SyntaxCheckDiagnostic> {
+    if route
+        .arms
+        .iter()
+        .any(|arm| matches!(arm.pattern, MatchedRoutePattern::Guard { .. }))
+    {
+        return matched_route::check_guarded(route, catalog, form_signatures, resolver, gears);
+    }
     let mut route_type = None;
     let mut seen = BTreeSet::new();
     for (index, arm) in route.arms.iter().enumerate() {
@@ -330,6 +338,12 @@ fn check_matched_route(
                 if !seen.insert(tag.text.as_str()) {
                     return Err(route_diagnostic(tag.span, "duplicate matched route track"));
                 }
+            }
+            MatchedRoutePattern::Guard { span, .. } => {
+                return Err(route_diagnostic(
+                    *span,
+                    "variant and guarded tracks cannot be mixed",
+                ));
             }
         }
     }
@@ -365,39 +379,59 @@ fn check_matched_route(
             UnmatchedVariantDisposition::Drop,
         )
         .map_err(|_| route_diagnostic(*span, "invalid matched route variant track"))?;
-        let mut stages = vec![
-            CheckedCordStage::Reference(route.source.text.clone()),
-            CheckedCordStage::StructuredSelector {
-                selector,
-                source_span: *span,
-            },
-        ];
-        let carried = arm.stages.first().is_some_and(
-            |stage| matches!(stage, CordStage::Reference(reference) if reference.text == "_"),
-        );
-        if let Some(stage) =
-            arm.stages.iter().skip(usize::from(carried)).find(
-                |stage| matches!(stage, CordStage::Reference(reference) if reference.text == "_"),
-            )
-        {
-            let CordStage::Reference(reference) = stage else {
-                unreachable!()
-            };
-            return Err(route_diagnostic(
-                reference.span,
-                "carried value '_' must be the first stage of a matched track",
-            ));
-        }
-        stages.extend(check_cord_stages(
-            &arm.stages[usize::from(carried)..],
-            catalog,
-            form_signatures,
-            resolver,
-            gears,
+        cords.push(checked_route_track(
+            route,
+            arm,
+            selector,
+            *span,
+            (catalog, form_signatures, resolver, gears),
         )?);
-        cords.push(CheckedCanonicalCord { stages });
     }
     Ok(cords)
+}
+
+fn checked_route_track(
+    route: &MatchedRoute,
+    arm: &crate::MatchedRouteArm,
+    selector: StructuredSelector,
+    selector_span: crate::Span,
+    context: (
+        &StartupCatalog,
+        &BTreeMap<String, KindSignature>,
+        &mut Resolver<'_>,
+        &mut Vec<CheckedCanonicalGear>,
+    ),
+) -> Result<CheckedCanonicalCord, SyntaxCheckDiagnostic> {
+    let (catalog, form_signatures, resolver, gears) = context;
+    let mut stages = vec![
+        CheckedCordStage::Reference(route.source.text.clone()),
+        CheckedCordStage::StructuredSelector {
+            selector,
+            source_span: selector_span,
+        },
+    ];
+    let carried = arm.stages.first().is_some_and(
+        |stage| matches!(stage, CordStage::Reference(reference) if reference.text == "_"),
+    );
+    if let Some(CordStage::Reference(reference)) = arm
+        .stages
+        .iter()
+        .skip(usize::from(carried))
+        .find(|stage| matches!(stage, CordStage::Reference(reference) if reference.text == "_"))
+    {
+        return Err(route_diagnostic(
+            reference.span,
+            "carried value '_' must be the first stage of a matched track",
+        ));
+    }
+    stages.extend(check_cord_stages(
+        &arm.stages[usize::from(carried)..],
+        catalog,
+        form_signatures,
+        resolver,
+        gears,
+    )?);
+    Ok(CheckedCanonicalCord { stages })
 }
 
 fn route_diagnostic(span: crate::Span, message: &str) -> SyntaxCheckDiagnostic {

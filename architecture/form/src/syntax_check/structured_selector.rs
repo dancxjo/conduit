@@ -50,6 +50,12 @@ fn refusal_message(refusal: &StructuredSelectorRefusal) -> &'static str {
             "structured selector index is outside the exact collection bound"
         }
         StructuredSelectorRefusal::UnknownVariantTag => "unknown structured selector variant tag",
+        StructuredSelectorRefusal::PredicateRequiresLeafField
+        | StructuredSelectorRefusal::EmptyPredicateSet
+        | StructuredSelectorRefusal::DuplicatePredicateValue
+        | StructuredSelectorRefusal::TooManyPredicateValues => {
+            "invalid finite structured selector predicate"
+        }
         StructuredSelectorRefusal::InvalidName(_)
         | StructuredSelectorRefusal::WrongInputType
         | StructuredSelectorRefusal::MalformedCheckedValue
