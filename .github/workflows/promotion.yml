@@ -93,6 +93,21 @@ jobs:
         run: >-
           cargo xtask conduitos acceptance --locked
           --spore target/conduitos/x86_64/creche-export.iso
+      - name: Capture the native Body journey proof capsule
+        env:
+          EXACT_COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: >-
+          node tools/ci/capture-three-body-track.mjs native "$EXACT_COMMIT"
+          target/conduitos/x86_64/journey-proof.json -
+          "$RUNNER_TEMP/native-body-journey"
+      - name: Retain the native Body journey proof capsule
+        uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: conduit-native-body-journey-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/native-body-journey
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 6
       - name: Retain exact visual and failure evidence
         if: always()
         uses: ./.github/actions/upload-artifact-retry
@@ -147,11 +162,14 @@ jobs:
           PATH="$RUNNER_TEMP:$PATH" cargo xtask --json host prove-local-model --locked \
             --model gemma3:270m --admitted-memory-mib 2048 --orifina-presenter \
             > "$RUNNER_TEMP/model-body.json"
+          node tools/ci/capture-three-body-track.mjs generative \
+            "${{ github.event.pull_request.head.sha }}" "$RUNNER_TEMP/model-body.json" - \
+            "$RUNNER_TEMP/generative-body-journey"
       - name: Retain the generative Body proof capsule
         uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-generative-body-journey-${{ github.event.pull_request.head.sha }}
-          path: ${{ runner.temp }}/model-body.json
+          path: ${{ runner.temp }}/generative-body-journey
           if-no-files-found: error
           retention-days: 14
           compression-level: 6
@@ -178,28 +196,21 @@ jobs:
         uses: ./.github/actions/download-artifact-retry
         with:
           name: conduit-browser-body-journey-${{ github.event.pull_request.head.sha }}
-          path: ${{ runner.temp }}/browser-body
+          path: ${{ runner.temp }}/three-bodies/browser-graphical
       - uses: ./.github/actions/download-artifact-retry
         with:
-          name: conduitos-creche-acceptance-${{ github.event.pull_request.head.sha }}
-          path: ${{ runner.temp }}/native-body
+          name: conduit-native-body-journey-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/three-bodies/native-graphical
       - uses: ./.github/actions/download-artifact-retry
         with:
           name: conduit-generative-body-journey-${{ github.event.pull_request.head.sha }}
-          path: ${{ runner.temp }}
+          path: ${{ runner.temp }}/three-bodies/hosted-generative
       - name: Verify and publish the exact three-Body comparison
         env:
           EXACT_COMMIT: ${{ github.event.pull_request.head.sha }}
         run: |
-          native=$(find "$RUNNER_TEMP/native-body" -name journey-proof.json -type f -print -quit)
-          browser=$(find "$RUNNER_TEMP/browser-body" -name browser-body-journey.json -type f -print -quit)
-          screenshot=$(find "$RUNNER_TEMP/browser-body" -name browser-body-fulfilled.png -type f -print -quit)
-          test -n "$native" && test -n "$browser" && test -n "$screenshot"
           cargo xtask evidence three-body-journey-contract --locked \
             --commit "$EXACT_COMMIT" --output "$RUNNER_TEMP/three-bodies/contract.json"
-          node tools/ci/build-three-body-journey.mjs \
-            "$EXACT_COMMIT" "$native" "$browser" "$screenshot" \
-            "$RUNNER_TEMP/model-body.json" "$RUNNER_TEMP/three-bodies"
           cargo xtask evidence three-body-journey --locked \
             --commit "$EXACT_COMMIT" \
             --contract "$RUNNER_TEMP/three-bodies/contract.json" \

@@ -1126,13 +1126,14 @@ jobs:
           compression-level: 0
       - name: Stage the browser Body journey proof capsule
         if: matrix.shard == 'creche-machines'
+        env:
+          EXACT_COMMIT: ${{ env.CONDUIT_CANDIDATE_SHA }}
         run: |
           receipt=$(find "$CONDUIT_BROWSER_PROOF_OUTPUT" -name browser-body-journey.json -type f -print -quit)
           screenshot=$(find "$CONDUIT_BROWSER_PROOF_OUTPUT" -name browser-body-fulfilled.png -type f -print -quit)
           test -n "$receipt" && test -n "$screenshot"
-          mkdir -p "$RUNNER_TEMP/browser-body-journey"
-          cp "$receipt" "$RUNNER_TEMP/browser-body-journey/browser-body-journey.json"
-          cp "$screenshot" "$RUNNER_TEMP/browser-body-journey/browser-body-fulfilled.png"
+          node tools/ci/capture-three-body-track.mjs browser "$EXACT_COMMIT" \
+            "$receipt" "$screenshot" "$RUNNER_TEMP/browser-body-journey"
       - name: Retain the browser Body journey proof capsule
         if: matrix.shard == 'creche-machines'
         uses: ./.github/actions/upload-artifact-retry
