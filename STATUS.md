@@ -1,6 +1,6 @@
 # Current project status
 
-Reviewed against the development tree and open issues on **15 September 2026**.
+Reviewed against the development tree and open issues on **23 September 2026**.
 This is a capability summary, not a claim that every check has been rerun today.
 The [current-product truth surface](https://dancxjo.github.io/conduit/current-product.html)
 shows the exact latest development commit, accepted release, published Pages
@@ -38,14 +38,17 @@ These source-level capabilities are present in the reviewed development tree.
 Their presence is not an additional physical or release acceptance claim:
 
 - **Three-Body semantic journey (#3529):** ConduitOS, pinned Chromium/WASM,
-  and a hosted open-weight model now produce independent 13-step tracks for
+  and a hosted generative Presenter now produce independent 13-step tracks for
   one shared tutorial contract. Each track carries its own exact Body, Host,
   Boot, Plan, Play, Presentation, Manifestation, and lifecycle signs; the
   ConduitOS track additionally proves an admitted two-host Line and distributed
   Plan. Promotion verifies the three producer-owned tracks together and stages
-  the resulting browsable collection for Pages. Until that exact candidate is
-  accepted and published, this is development-tree and local execution proof,
-  not a stable-release claim.
+  the resulting browsable collection for Pages. The required provider boundary
+  crosses real HTTP through a deterministic Ollama-compatible fixture;
+  separately retained real Ollama/Gemma conformance proves actual inference
+  without making runner/model latency a release condition. Until that exact
+  candidate is accepted and published, this is development-tree and local
+  execution proof, not a stable-release claim.
 
 - **Startup forms (#3152):** the optional browser Startup Chime and separate
   First wake Chime run through the ordinary planner and kernel. The generic

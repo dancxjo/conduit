@@ -70,11 +70,7 @@ pub(super) fn prove(
         None
     };
     let presenter_requests = journey.as_ref().map_or_else(Vec::new, |journey| {
-        let mut requests = conduit_std_host::local_model_proof::presenter_policy_experiment(
-            journey.requests[0].clone(),
-        );
-        requests.extend(journey.requests.iter().skip(1).cloned());
-        requests
+        journey.requests.first().cloned().into_iter().collect()
     });
     let receipt = conduit_std_host::local_model_proof::run(adapter, &presenter_requests)?;
     if let Some(journey) = journey.as_ref() {

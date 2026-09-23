@@ -52,8 +52,8 @@ pub(super) fn write(
     let manifestation = receipt
         .presenter_requests
         .iter()
-        .find(|candidate| candidate.request_identity == journey.requests[1].request_identity)
-        .ok_or("Orifina live proof lacks the playing Presenter manifestation")?;
+        .find(|candidate| candidate.request_identity == journey.requests[0].request_identity)
+        .ok_or("Orifina live proof lacks its Presenter manifestation")?;
     let facts = [
         serde_json::json!({"initial_body": null, "host_id": journey.receipt.host_ids[0], "boot_id": journey.receipt.boot_ids[0]}),
         serde_json::json!({"provider": manifestation.manifestation.provider_identity, "model": manifestation.manifestation.model_identity}),
@@ -69,12 +69,23 @@ pub(super) fn write(
         serde_json::json!({"lull_sign_id": lulled}),
         serde_json::json!({"fulfilled_sign_id": fulfilled, "fulfilled": journey.receipt.fulfilled}),
     ];
+    let (embodiment, presenter_id) = if receipt.proof_class == "ollama-http-fixture" {
+        (
+            "hosted-ollama-http-fixture-body",
+            "std/ollama-http-fixture@1",
+        )
+    } else {
+        (
+            "hosted-open-weight-model-body",
+            "std/local-open-weight-model@1",
+        )
+    };
     body_journey_track::write(
         TrackSource {
             commit: git_head()?,
             track_id: "hosted-generative",
-            embodiment: "hosted-open-weight-model-body",
-            presenter_id: "std/local-open-weight-model@1",
+            embodiment,
+            presenter_id,
             identities: TrackIdentities {
                 body: journey.receipt.body_id.clone(),
                 host: journey.receipt.host_ids[0].clone(),

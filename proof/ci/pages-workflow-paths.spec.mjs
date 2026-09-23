@@ -150,6 +150,9 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(promotionWorkflow, /pages-carrier-with-conduitos:\n(?:    #.*\n)+    needs: \[products, conduitos-spore-acceptance, three-body-journey\]/);
   assert.match(promotionWorkflow, /  generative-body-journey:|  three-body-journey:/);
   assert.match(promotionWorkflow, /conduit-(?:browser|native|generative)-body-journey/);
+  assert.match(promotionWorkflow, /proof\/fixtures\/ollama-http-service\.mjs/);
+  assert.doesNotMatch(promotionWorkflow, /ollama\/ollama:|ollama" pull|gemma3:latest/);
+  assert.match(promotionWorkflow, /sha256sum --check SHA256SUMS/);
   assert.match(promotionWorkflow, /stage-three-body-journey/);
   assert.match(promotionWorkflow, /name: conduitos-x86-batch-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
   assert.match(promotionWorkflow, /target\/conduitos-x86-batch\/runs\/product-journey\/conduitos\/x86_64\/journey-frames/);
@@ -158,6 +161,11 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(promotionWorkflow, /verify-pages-carrier\.mjs target\/journey-gallery-carrier/);
   assert.match(promotionWorkflow, /stage-journey-pages-evidence\.mjs/);
   assert.match(promotionWorkflow, /name: conduit-pages-carrier-with-conduitos/);
+
+  const liveModelWorkflow = readFileSync(".github/workflows/live-local-model-conformance.yml", "utf8");
+  assert.match(liveModelWorkflow, /workflow_dispatch:/);
+  assert.match(liveModelWorkflow, /ollama\/ollama:0\.12\.3@sha256:/);
+  assert.match(liveModelWorkflow, /host prove-local-model --locked/);
 });
 
 test("standalone locks fail before ESP32 fabrication fans out", () => {

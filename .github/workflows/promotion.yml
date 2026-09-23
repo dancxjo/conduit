@@ -122,7 +122,7 @@ jobs:
     needs: [boundary, check]
     if: always() && !cancelled() && needs.boundary.result == 'success' && needs.check.result == 'success'
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
         with:
@@ -132,27 +132,19 @@ jobs:
         with:
           cache-on-failure: false
           shared-key: three-body-journey
-      - name: Restore the exact local model blobs
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/ollama-cache/models
-          key: ollama-${{ runner.os }}-0.12.3-gemma3-latest-v1
-      - name: Run the structured-Face generative Body journey
+      - name: Run the structured-Face generative Body journey through real HTTP
         run: |
-          mkdir -p "$RUNNER_TEMP/ollama-cache/models"
-          docker run --detach --name conduit-ollama -p 11434:11434 \
-            --volume "$RUNNER_TEMP/ollama-cache/models:/root/.ollama/models" \
-            ollama/ollama:0.12.3@sha256:36ccf1b4c161179a198a19e897aa0a1acd54cd5eeb6ab99c80f2ef50ba7fa106
-          docker cp conduit-ollama:/bin/ollama "$RUNNER_TEMP/ollama"
-          chmod 755 "$RUNNER_TEMP/ollama"
+          node proof/fixtures/ollama-http-service.mjs >"$RUNNER_TEMP/ollama-fixture.log" 2>&1 &
+          fixture_pid=$!
+          trap 'kill "$fixture_pid" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:11434/api/version >/dev/null; then break; fi
             test "$attempt" -lt 30
             sleep 1
           done
-          PATH="$RUNNER_TEMP:$PATH" "$RUNNER_TEMP/ollama" pull gemma3:latest
-          PATH="$RUNNER_TEMP:$PATH" cargo xtask --json host prove-local-model --locked \
-            --model gemma3:latest --admitted-memory-mib 8192 --orifina-presenter \
+          chmod 755 proof/fixtures/ollama
+          PATH="$PWD/proof/fixtures:$PATH" cargo xtask --json host prove-local-model --locked \
+            --model conduit-fixture:latest --admitted-memory-mib 64 --orifina-presenter \
             > "$RUNNER_TEMP/model-body.json"
       - name: Retain the producer-owned generative Body journey track
         uses: ./.github/actions/upload-artifact-retry
@@ -208,6 +200,10 @@ jobs:
             --track "$RUNNER_TEMP/three-bodies/browser-graphical/track.json" \
             --track "$RUNNER_TEMP/three-bodies/hosted-generative/track.json" \
             --output "$RUNNER_TEMP/three-bodies/index.json"
+          live_evidence=proof/evidence/three-body/live-ollama-4ac95aa41915fa68bec8fadea9c4fd895d107acd
+          (cd "$live_evidence" && sha256sum --check SHA256SUMS)
+          cp -a "$live_evidence" \
+            "$RUNNER_TEMP/three-bodies/live-conformance"
       - name: Retain the exact three-Body Journey
         uses: ./.github/actions/upload-artifact-retry
         with:
