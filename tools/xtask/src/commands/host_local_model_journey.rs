@@ -52,8 +52,8 @@ pub(super) fn write(
     let manifestation = receipt
         .presenter_requests
         .iter()
-        .find(|candidate| candidate.request_identity == journey.requests[1].request_identity)
-        .ok_or("Orifina live proof lacks the playing Presenter manifestation")?;
+        .find(|candidate| candidate.request_identity == journey.requests[0].request_identity)
+        .ok_or("Orifina live proof lacks its Presenter manifestation")?;
     let facts = [
         serde_json::json!({"initial_body": null, "host_id": journey.receipt.host_ids[0], "boot_id": journey.receipt.boot_ids[0]}),
         serde_json::json!({"provider": manifestation.manifestation.provider_identity, "model": manifestation.manifestation.model_identity}),
