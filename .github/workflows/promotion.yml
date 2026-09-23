@@ -109,11 +109,16 @@ jobs:
           retention-days: 14
           compression-level: 0
 
+      - name: Receive the producer-owned native Body journey track
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduitos-x86-batch-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/conduitos-x86-batch
       - name: Retain the producer-owned native Body journey track
         uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-native-body-journey-${{ github.event.pull_request.head.sha }}
-          path: target/conduitos/x86_64/body-journey-track
+          path: ${{ runner.temp }}/conduitos-x86-batch/runs/product-journey/conduitos/x86_64/body-journey-track
           if-no-files-found: error
           retention-days: 14
           compression-level: 6
