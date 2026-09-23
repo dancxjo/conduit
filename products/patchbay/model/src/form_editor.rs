@@ -496,6 +496,54 @@ fn graph_revision(
                     }
                     cord_index += 1;
                 }
+                BackStatement::MatchedRoute(route) => {
+                    for arm in &route.arms {
+                        let label = form
+                            .cords
+                            .get(cord_index)
+                            .map(cord_label)
+                            .unwrap_or_else(|| "matched route track".into());
+                        push_item(
+                            &mut items,
+                            &form.name,
+                            "cord",
+                            &cord_index.to_string(),
+                            GraphItemKind::Cord,
+                            arm.span,
+                        )?;
+                        if let Some(item) = items.last_mut() {
+                            item.label = label;
+                        }
+                        if let Some(checked_cord) = form.cords.get(cord_index) {
+                            cords.push(GraphCord {
+                                identity: items
+                                    .last()
+                                    .expect("route track item was admitted")
+                                    .identity
+                                    .clone(),
+                                stages: checked_cord
+                                    .stages
+                                    .iter()
+                                    .map(|stage| match stage {
+                                        CheckedCordStage::Reference(name) => {
+                                            GraphCordStage::Reference(name.clone())
+                                        }
+                                        CheckedCordStage::InlineGear(gear) => {
+                                            GraphCordStage::InlineGear {
+                                                kind: gear.kind.clone(),
+                                            }
+                                        }
+                                        CheckedCordStage::Literal { .. } => GraphCordStage::Literal,
+                                        CheckedCordStage::StructuredSelector { .. } => {
+                                            GraphCordStage::StructuredSelector
+                                        }
+                                    })
+                                    .collect(),
+                            });
+                        }
+                        cord_index += 1;
+                    }
+                }
                 BackStatement::Pool(_) | BackStatement::LocalValue(_) => {}
             }
         }

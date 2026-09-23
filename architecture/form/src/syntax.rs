@@ -132,6 +132,31 @@ pub enum BackStatement {
     Pool(PoolDeclaration),
     LocalValue(LocalValue),
     Cord(Cord),
+    MatchedRoute(MatchedRoute),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MatchedRoute {
+    pub source: SpannedText,
+    pub arms: Vec<MatchedRouteArm>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MatchedRouteArm {
+    pub pattern: MatchedRoutePattern,
+    pub stages: Vec<CordStage>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MatchedRoutePattern {
+    Variant {
+        value_type: SpannedText,
+        tag: SpannedText,
+        span: Span,
+    },
+    Otherwise(Span),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

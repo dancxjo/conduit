@@ -5,9 +5,9 @@ use crate::surface_lex::{
 };
 use crate::syntax::{
     Argument, BackStatement, ConstructionRole, ConstructionSyntax, Cord, CordStage, Expression,
-    FormCompletionPolicy, FormFront, FormSyntax, Invocation, LocalValue, NamedGear, RuntimePort,
-    RuntimePortDirection, RuntimePortTemporal, ShorthandPair, SpannedText, StartupParameter,
-    SyntaxDocument,
+    FormCompletionPolicy, FormFront, FormSyntax, Invocation, LocalValue, MatchedRoute,
+    MatchedRouteArm, MatchedRoutePattern, NamedGear, RuntimePort, RuntimePortDirection,
+    RuntimePortTemporal, ShorthandPair, SpannedText, StartupParameter, SyntaxDocument,
 };
 use crate::{
     diagnostic, eof_span, tokenize_losslessly, FormError, Span, MAXIMUM_FORM_SOURCE_BYTES,
@@ -356,7 +356,121 @@ impl<'a> Parser<'a> {
                     self.span(start, start + text.len()),
                 ));
             }
+            if let Some(source) = text.strip_suffix("> ? {").map(str::trim) {
+                statements.push(BackStatement::MatchedRoute(
+                    self.parse_matched_route(source, text, start)?,
+                ));
+                continue;
+            }
             statements.push(self.parse_statement(text, start)?);
+            self.index += 1;
+        }
+        Err((FormError::MissingBlockEnd, eof_span(self.source)))
+    }
+
+    fn parse_matched_route(
+        &mut self,
+        source: &str,
+        opening: &str,
+        start: usize,
+    ) -> Result<MatchedRoute, (FormError, Span)> {
+        if !is_reference(source) {
+            return Err((
+                FormError::InvalidSyntax(
+                    "matched routing source must be one exact reference".into(),
+                ),
+                self.span(start, start + opening.len()),
+            ));
+        }
+        let route_source = self.spanned_at(source, opening, start);
+        let route_start = start;
+        self.index += 1;
+        let mut arms = Vec::new();
+        while self.index < self.lines.len() {
+            let line = self.lines[self.index];
+            let (text, arm_start) = line.statement();
+            if text == "}" {
+                if arms.is_empty() {
+                    return Err((
+                        FormError::InvalidSyntax(
+                            "matched routing requires at least one track".into(),
+                        ),
+                        self.line_span(line),
+                    ));
+                }
+                self.index += 1;
+                return Ok(MatchedRoute {
+                    source: route_source,
+                    arms,
+                    span: self.span(route_start, line.start + line.text.len()),
+                });
+            }
+            if text.is_empty() || text.starts_with('#') {
+                self.index += 1;
+                continue;
+            }
+            let Some(split) = top_level_positions(text, '>').first().copied() else {
+                return Err((
+                    FormError::InvalidSyntax(
+                        "matched routing track requires PATTERN > ROUTE".into(),
+                    ),
+                    self.line_span(line),
+                ));
+            };
+            let pattern_text = text[..split].trim();
+            let tail = text[split + 1..].trim();
+            if tail.is_empty() {
+                return Err(self.invalid_statement(text, arm_start));
+            }
+            let pattern_offset = arm_start + text.find(pattern_text).unwrap();
+            let pattern_span = self.span(pattern_offset, pattern_offset + pattern_text.len());
+            let pattern = if pattern_text == "_" {
+                MatchedRoutePattern::Otherwise(pattern_span)
+            } else {
+                let body = pattern_text
+                    .strip_prefix('[')
+                    .and_then(|body| body.strip_suffix(']'))
+                    .ok_or_else(|| {
+                        (
+                            FormError::InvalidSyntax(
+                                "matched routing pattern requires [Type.tag] or _".into(),
+                            ),
+                            pattern_span,
+                        )
+                    })?;
+                let (value_type, tag) = body.rsplit_once('.').ok_or_else(|| {
+                    (
+                        FormError::InvalidSyntax(
+                            "variant route pattern requires [Type.tag]".into(),
+                        ),
+                        pattern_span,
+                    )
+                })?;
+                let value_type = value_type.trim();
+                let tag = tag.trim();
+                if !is_name(value_type) || !is_name(tag) {
+                    return Err((
+                        FormError::InvalidSyntax(
+                            "variant route type and tag must be canonical names".into(),
+                        ),
+                        pattern_span,
+                    ));
+                }
+                let body_offset = pattern_offset + 1;
+                MatchedRoutePattern::Variant {
+                    value_type: self
+                        .spanned(value_type, body_offset + body.find(value_type).unwrap()),
+                    tag: self.spanned(tag, body_offset + body.rfind(tag).unwrap()),
+                    span: pattern_span,
+                }
+            };
+            let tail_start = arm_start + text.find(tail).unwrap();
+            let stages = self.parse_cord_stages(tail, tail_start)?;
+            arms.push(MatchedRouteArm {
+                pattern,
+                stages,
+                span: self.line_span(line),
+            });
             self.index += 1;
         }
         Err((FormError::MissingBlockEnd, eof_span(self.source)))
@@ -409,6 +523,22 @@ impl<'a> Parser<'a> {
         if parts.len() < 2 || parts.iter().any(|part| part.trim().is_empty()) {
             return Err(self.invalid_statement(text, start));
         }
+        let stages = self.parse_cord_stages(text, start)?;
+        Ok(Cord {
+            stages,
+            span: self.span(start, start + text.len()),
+        })
+    }
+
+    fn parse_cord_stages(
+        &self,
+        text: &str,
+        start: usize,
+    ) -> Result<Vec<CordStage>, (FormError, Span)> {
+        let parts = split_top_level(text, '>');
+        if parts.iter().any(|part| part.trim().is_empty()) {
+            return Err(self.invalid_statement(text, start));
+        }
         let mut stages = Vec::new();
         let mut search = 0;
         for part in parts {
@@ -438,10 +568,7 @@ impl<'a> Parser<'a> {
                 ));
             }
         }
-        Ok(Cord {
-            stages,
-            span: self.span(start, start + text.len()),
-        })
+        Ok(stages)
     }
 
     fn parse_invocation(&self, text: &str, start: usize) -> Result<Invocation, (FormError, Span)> {

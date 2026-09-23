@@ -19,6 +19,24 @@ ends with a standalone `.` full stop. The full stop means that draining fulfills
 the form's authored meaning; it is not a Gear, effect, or host instruction.
 There is deliberately no `complete` keyword or compatibility spelling.
 
+An exact closed structured variant can be routed as an exhaustive railway
+switch:
+
+```conduit
+event > ? {
+    [MusicEvent.note] > _ > play-note
+    [MusicEvent.rest] > _ > keep-silence
+}
+```
+
+`?` selects exactly one track. Every declared case must appear exactly once;
+gaps, duplicates, mixed variant types, and unreachable tracks are refused
+before planning. Each track lowers to an ordinary typed selector gear and Cord,
+so the immutable expanded Form exposes every possible track while only the
+selected track receives a value. Bare `_` is reserved for the final otherwise
+track of an open predicate switch; a closed variant must remain explicit. On
+the right of a pattern, `_` names the value carried into that track.
+
 [Startup Chime](startup-chime/README.md) and
 [First wake Chime](first-wake-chime/README.md) demonstrate non-graphical
 embodiment: a body wakes its installed forms, and a form may simply make a
