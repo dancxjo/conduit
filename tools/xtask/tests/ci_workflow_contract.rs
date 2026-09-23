@@ -818,59 +818,34 @@ fn browser_home_is_staged_proven_in_two_engines_and_carried_to_pages() {
 }
 
 #[test]
-fn promotion_publishes_the_exact_three_body_journey() {
+fn promotion_keeps_unadmitted_three_body_evidence_off_the_release_path() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/promotion.yml"))
         .expect("read promotion workflow");
-    let job = workflow
-        .split("\n  three-body-journey:\n")
-        .nth(1)
-        .and_then(|tail| tail.split("\n  pages-carrier-with-conduitos:\n").next())
-        .expect("locate three-Body promotion evidence job");
 
-    assert!(job.contains("conduit-browser-body-journey-${{ github.event.pull_request.head.sha }}"));
-    assert!(
-        job.contains("conduit-generative-body-journey-${{ github.event.pull_request.head.sha }}")
-    );
-    assert!(!job.contains("conduit-staged-browser-products"));
-    assert!(!job.contains("proof/browser/workspace-membership.spec.mjs"));
-    assert!(!job.contains("capture-three-body-track.mjs"));
-    assert!(!job.contains("build-three-body-journey.mjs"));
-    assert!(job.contains("evidence three-body-journey --locked"));
-    let generative = workflow
-        .split("\n  generative-body-journey:\n")
-        .nth(1)
-        .and_then(|tail| tail.split("\n  three-body-journey:\n").next())
-        .expect("locate generative Body proof job");
-    assert!(generative.contains("host prove-local-model"));
-    assert!(generative.contains("--orifina-presenter"));
-    assert!(generative.contains("actions/cache@v4"));
-    assert!(generative.contains("test -f \"$RUNNER_TEMP/generative-body-journey/track.json\""));
-    let native = workflow
-        .split("\n  conduitos-spore-acceptance:\n")
-        .nth(1)
-        .and_then(|tail| tail.split("\n  generative-body-journey:\n").next())
-        .expect("locate native Body proof job");
-    assert!(native.contains("body-journey-track/track.json"));
-    assert!(workflow.contains("evidence stage-three-body-journey --locked"));
-    assert!(workflow.contains("needs: [products, conduitos-spore-acceptance, three-body-journey]"));
+    assert!(!workflow.contains("\n  generative-body-journey:\n"));
+    assert!(!workflow.contains("\n  three-body-journey:\n"));
+    assert!(!workflow.contains("conduit-browser-body-journey-"));
+    assert!(!workflow.contains("conduit-native-body-journey-"));
+    assert!(!workflow.contains("conduit-generative-body-journey-"));
+    assert!(!workflow.contains("host prove-local-model"));
+    assert!(!workflow.contains("evidence stage-three-body-journey"));
+    assert!(workflow.contains("needs: [products, conduitos-spore-acceptance]"));
+    assert!(workflow.contains("fail-closed flagship placeholder"));
 }
 
 #[test]
-fn browser_journey_is_retained_by_its_existing_proof_shard() {
+fn browser_proof_reuses_the_staged_carrier_without_premature_journey_claims() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
 
     assert!(workflow.contains("CONDUIT_BROWSER_PROOF_SHARD: ${{ matrix.shard }}"));
-    assert!(
-        workflow.contains("name: conduit-browser-body-journey-${{ env.CONDUIT_CANDIDATE_SHA }}")
-    );
     assert!(workflow
         .contains("CONDUIT_BROWSER_PROOF_OUTPUT: /tmp/conduit-browser-proof-${{ matrix.shard }}"));
     assert!(workflow.contains("--output \"$CONDUIT_BROWSER_PROOF_OUTPUT\""));
-    assert!(workflow.contains("*/body-journey-track/track.json"));
-    assert!(workflow.contains("matrix.shard == 'creche-machines' && inputs.full_suite"));
+    assert!(!workflow.contains("body-journey-track/track.json"));
+    assert!(!workflow.contains("conduit-browser-body-journey-"));
     assert!(workflow.contains("name: Deduplicate the staged release catalog for transport"));
     assert_eq!(
         workflow
