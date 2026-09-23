@@ -24,8 +24,8 @@ switch:
 
 ```conduit
 event > ? {
-    [MusicEvent.note] > play-note
-    [MusicEvent.rest] > keep-silence
+    [MusicEvent.note] > _ > play-note
+    [MusicEvent.rest] > _ > keep-silence
 }
 ```
 
@@ -34,7 +34,8 @@ gaps, duplicates, mixed variant types, and unreachable tracks are refused
 before planning. Each track lowers to an ordinary typed selector gear and Cord,
 so the immutable expanded Form exposes every possible track while only the
 selected track receives a value. Bare `_` is reserved for the final otherwise
-track of an open predicate switch; a closed variant must remain explicit.
+track of an open predicate switch; a closed variant must remain explicit. On
+the right of a pattern, `_` names the value carried into that track.
 
 [Startup Chime](startup-chime/README.md) and
 [First wake Chime](first-wake-chime/README.md) demonstrate non-graphical
