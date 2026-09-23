@@ -433,35 +433,77 @@ impl<'a> Parser<'a> {
                     .ok_or_else(|| {
                         (
                             FormError::InvalidSyntax(
-                                "matched routing pattern requires [Type.tag] or _".into(),
+                                "matched routing pattern requires [Type.tag], [Type.field == value], or _"
+                                    .into(),
                             ),
                             pattern_span,
                         )
                     })?;
-                let (value_type, tag) = body.rsplit_once('.').ok_or_else(|| {
-                    (
-                        FormError::InvalidSyntax(
-                            "variant route pattern requires [Type.tag]".into(),
-                        ),
-                        pattern_span,
-                    )
-                })?;
-                let value_type = value_type.trim();
-                let tag = tag.trim();
-                if !is_name(value_type) || !is_name(tag) {
-                    return Err((
-                        FormError::InvalidSyntax(
-                            "variant route type and tag must be canonical names".into(),
-                        ),
-                        pattern_span,
-                    ));
-                }
-                let body_offset = pattern_offset + 1;
-                MatchedRoutePattern::Variant {
-                    value_type: self
-                        .spanned(value_type, body_offset + body.find(value_type).unwrap()),
-                    tag: self.spanned(tag, body_offset + body.rfind(tag).unwrap()),
-                    span: pattern_span,
+                let equals = top_level_positions(body, '=');
+                if equals.len() == 2 && equals[1] == equals[0] + 1 {
+                    let left = body[..equals[0]].trim();
+                    let expected = body[equals[1] + 1..].trim();
+                    let (value_type, field) = left.rsplit_once('.').ok_or_else(|| {
+                        (
+                            FormError::InvalidSyntax(
+                                "guard route pattern requires [Type.field == value]".into(),
+                            ),
+                            pattern_span,
+                        )
+                    })?;
+                    let value_type = value_type.trim();
+                    let field = field.trim();
+                    if !is_name(value_type) || !is_name(field) || expected.is_empty() {
+                        return Err((
+                            FormError::InvalidSyntax(
+                                "guard route type and field must be canonical names and name one value"
+                                    .into(),
+                            ),
+                            pattern_span,
+                        ));
+                    }
+                    let body_offset = pattern_offset + 1;
+                    let expected_offset = body_offset + body.rfind(expected).unwrap();
+                    let syntax =
+                        crate::structured_expression::parse(self.source, expected, expected_offset)
+                            .map_err(|(message, span)| (FormError::InvalidSyntax(message), span))?;
+                    MatchedRoutePattern::Guard {
+                        value_type: self
+                            .spanned(value_type, body_offset + body.find(value_type).unwrap()),
+                        field: self.spanned(field, body_offset + body.find(field).unwrap()),
+                        expected: Expression {
+                            text: expected.to_string(),
+                            syntax,
+                            span: self.span(expected_offset, expected_offset + expected.len()),
+                        },
+                        span: pattern_span,
+                    }
+                } else {
+                    let (value_type, tag) = body.rsplit_once('.').ok_or_else(|| {
+                        (
+                            FormError::InvalidSyntax(
+                                "variant route pattern requires [Type.tag]".into(),
+                            ),
+                            pattern_span,
+                        )
+                    })?;
+                    let value_type = value_type.trim();
+                    let tag = tag.trim();
+                    if !is_name(value_type) || !is_name(tag) {
+                        return Err((
+                            FormError::InvalidSyntax(
+                                "variant route type and tag must be canonical names".into(),
+                            ),
+                            pattern_span,
+                        ));
+                    }
+                    let body_offset = pattern_offset + 1;
+                    MatchedRoutePattern::Variant {
+                        value_type: self
+                            .spanned(value_type, body_offset + body.find(value_type).unwrap()),
+                        tag: self.spanned(tag, body_offset + body.rfind(tag).unwrap()),
+                        span: pattern_span,
+                    }
                 }
             };
             let tail_start = arm_start + text.find(tail).unwrap();
