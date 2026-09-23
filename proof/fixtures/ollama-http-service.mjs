@@ -36,7 +36,7 @@ const server = http.createServer((request, response) => {
       details: { family: "fixture", parameter_size: "finite", quantization_level: "exact" },
     }] });
     if (request.url === "/api/show") return json(response, 200, {
-      model_info: { "general.architecture": "fixture", "fixture.context_length": 8192 },
+      model_info: { "general.architecture": "fixture", "fixture.context_length": 131072 },
       capabilities: ["completion"],
     });
     if (request.url === "/api/generate") return json(response, 200, {
