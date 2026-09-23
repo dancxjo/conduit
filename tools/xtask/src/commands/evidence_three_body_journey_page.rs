@@ -7,18 +7,19 @@ use super::{BodyTrack, ContractStep, ThreeBodyJourneyIndex, TrackStep};
 pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
     let mut html = String::from(
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">\
-         <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\
+         <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\">\
          <title>Three Bodies, one semantic Journey</title><style>\
-         body{font:16px/1.5 system-ui,sans-serif;max-width:90rem;margin:auto;padding:2rem;color:#18212b}\
-         nav a{margin-right:1rem}section{margin:3rem 0}.track,.step{border:1px solid #ccd5df;border-radius:.6rem;padding:1rem;margin:1rem 0}\
-         table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccd5df;padding:.7rem;text-align:left;vertical-align:top}\
-         code{overflow-wrap:anywhere}.nonclaim{color:#694100}dt{font-weight:700}dd{margin:0 0 .7rem}</style></head><body>",
+         :root{--ink:#f5f2e8;--muted:#aebbb3;--green:#77e6ad;--gold:#f5b95f;--paper:#090e0c;--card:#121d17;--line:#31473c}*{box-sizing:border-box}html{scroll-behavior:smooth}body{font:16px/1.55 system-ui,sans-serif;max-width:96rem;margin:auto;padding:clamp(1rem,4vw,4rem);color:var(--ink);background:radial-gradient(circle at 85% 0,#183b2a 0,transparent 28rem),var(--paper)}\
+         header{min-height:70vh;display:flex;flex-direction:column;justify-content:center}header>p:first-child{color:var(--green);font-weight:850;letter-spacing:.15em;text-transform:uppercase;font-size:.76rem}h1{font-size:clamp(3.5rem,8vw,8rem);line-height:.86;letter-spacing:-.065em;max-width:12ch;margin:.15em 0}h2{font-size:clamp(2.2rem,5vw,4.5rem);line-height:1;letter-spacing:-.04em}h3{font-size:1.5rem}h4{font-size:1.15rem}a{color:var(--green);text-underline-offset:.2em}nav{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:2rem}nav a{padding:.7rem 1rem;border:1px solid var(--green);border-radius:999px;text-decoration:none;font-weight:800}\
+         section{margin:clamp(4rem,9vw,9rem) 0}.track,.step{border:1px solid var(--line);border-radius:1.2rem;padding:clamp(1rem,3vw,2.5rem);margin:1.25rem 0;background:linear-gradient(145deg,#15231c,var(--card))}.track>section{margin:2rem 0;padding:1.2rem;border-left:.25rem solid var(--green);background:#0d1511}.track:nth-of-type(2)>section{border-color:#73b9ff}.track:nth-of-type(3)>section{border-color:#ff806c}\
+         table{border-collapse:separate;border-spacing:.45rem;width:100%}th,td{border:1px solid var(--line);border-radius:.6rem;padding:1rem;text-align:left;vertical-align:top;background:#0d1511}thead th{color:var(--green)}code,pre{overflow-wrap:anywhere;white-space:pre-wrap;color:#c7f7dc}.nonclaim{color:#e7c98e;border-left:.25rem solid var(--gold);padding-left:1rem}dt{font-weight:800;color:var(--muted)}dd{margin:0 0 .7rem}details{border-top:1px solid var(--line);padding-top:.8rem}summary{cursor:pointer;font-weight:800}@media(max-width:48rem){table,thead,tbody,tr,th,td{display:block}thead{display:none}tr{margin:1rem 0}h1{font-size:clamp(3.2rem,18vw,5.5rem)}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}</style></head><body>",
     );
     let _ = write!(
         html,
-        "<header><p>Verified evidence projection</p><h1>Three Bodies, one semantic Journey</h1>\
-         <p>Journey <code>{}</code> at commit <code>{}</code>. Semantic assertions come from verified receipts; documentary media show what a human could observe.</p>\
-         <nav><a href=\"#by-body\">Follow one body</a><a href=\"#by-step\">Compare one semantic step</a></nav></header>",
+        "<header><p>Verified evidence projection</p><h1>One Journey.<br>Three Bodies.</h1>\
+         <p>One portable tutorial, lived independently through native ConduitOS, a browser, and a distributed conversational Body. Journey <code>{}</code> at exact commit <code>{}</code>.</p>\
+         <p>Semantic assertions come from verified receipts. Documentary media show what a human could observe; they never become runtime truth.</p>\
+         <nav aria-label=\"Choose how to read the Journey\"><a href=\"#by-body\">↓ Follow one Body's life</a><a href=\"#by-step\">→ Compare one semantic moment</a></nav></header>",
         escape(&index.journey_id),
         escape(&index.git_commit)
     );

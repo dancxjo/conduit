@@ -53,7 +53,12 @@ fn selector_catalog() -> StartupCatalog {
     ] {
         catalog.insert_structured_type(name, value_type).unwrap();
     }
-    for kind in ["test/source", "test/sink"] {
+    for kind in [
+        "test/source",
+        "test/sink",
+        "test/note-sink",
+        "test/rest-sink",
+    ] {
         catalog
             .insert(KindSignature {
                 kind: kind.into(),
@@ -62,6 +67,26 @@ fn selector_catalog() -> StartupCatalog {
             .unwrap();
     }
     catalog
+}
+
+fn guarded_selector_catalog() -> StartupCatalog {
+    let mut catalog = selector_catalog();
+    catalog
+        .insert_structured_type("Notice", thoughtful_notice_type())
+        .unwrap();
+    catalog
+}
+
+fn thoughtful_notice_type() -> StructuredInfoType {
+    let text = StructuredInfoType::leaf(KindId::from("value/text")).unwrap();
+    StructuredInfoType::record(
+        KindId::from("notice/thoughtful@1"),
+        vec![
+            StructuredFieldType::new("delivery", text.clone()).unwrap(),
+            StructuredFieldType::new("body", text).unwrap(),
+        ],
+    )
+    .unwrap()
 }
 
 fn check(source: &str) -> conduit_form::CheckedSyntaxDocument {
@@ -104,6 +129,245 @@ fn required_domain_selectors_are_statically_typed_cord_stages() {
         &StructuredInfoType::leaf(KindId::from("value/text")).unwrap()
     );
     assert!(checked.forms[0].gears.is_empty());
+}
+
+#[test]
+fn exhaustive_variant_route_lowers_to_exact_drop_selectors() {
+    let source = "form route {\n events > ? {\n  [MusicEvent.note] > _ > notes\n  [MusicEvent.rest] > _ > rests\n }\n}\n";
+    let parsed = parse_syntax_document(source);
+    assert_eq!(parsed.round_trip(), source);
+    assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+    let checked = check_syntax_document(&parsed, &selector_catalog()).unwrap();
+    assert_eq!(checked.forms[0].cords.len(), 2);
+    let mut selected = checked.forms[0]
+        .cords
+        .iter()
+        .map(|cord| {
+            assert_eq!(
+                cord.stages.first(),
+                Some(&CheckedCordStage::Reference("events".into()))
+            );
+            let CheckedCordStage::StructuredSelector { selector, .. } = &cord.stages[1] else {
+                panic!("route arm lowers through one exact selector")
+            };
+            assert_eq!(
+                selector.unmatched_disposition(),
+                Some(UnmatchedVariantDisposition::Drop)
+            );
+            selector.output_type().clone()
+        })
+        .collect::<Vec<_>>();
+    selected.sort();
+    let mut expected = vec![
+        note_type(),
+        StructuredInfoType::leaf(KindId::from("music/rest@1")).unwrap(),
+    ];
+    expected.sort();
+    assert_eq!(selected, expected);
+}
+
+#[test]
+fn guarded_route_round_trips_and_lowers_to_exact_record_carrying_tracks() {
+    let source = "form route {\n notice > ? {\n  [Notice.delivery == \"visible\"] > _ > display\n  [Notice.delivery == \"spoken\"] > _ > speak\n  _ > _ > silence\n }\n}\n";
+    let parsed = parse_syntax_document(source);
+    assert_eq!(parsed.round_trip(), source);
+    assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+    let checked = check_syntax_document(&parsed, &guarded_selector_catalog()).unwrap();
+    assert_eq!(checked.forms[0].cords.len(), 3);
+    for cord in &checked.forms[0].cords {
+        assert_eq!(cord.stages[0], CheckedCordStage::Reference("notice".into()));
+        let CheckedCordStage::StructuredSelector { selector, .. } = &cord.stages[1] else {
+            panic!("every guarded track lowers to one typed selector")
+        };
+        assert_eq!(selector.input_type(), selector.output_type());
+        assert_eq!(
+            selector.unmatched_disposition(),
+            Some(UnmatchedVariantDisposition::Drop)
+        );
+    }
+}
+
+#[test]
+fn guarded_route_retains_every_possible_track_in_the_expanded_graph() {
+    let source = "form route {\n source: test/source\n visible: test/sink\n spoken: test/sink\n silent: test/sink\n source > ? {\n  [Notice.delivery == \"visible\"] > visible\n  [Notice.delivery == \"spoken\"] > spoken\n  _ > silent\n }\n}\n";
+    let parsed = parse_syntax_document(source);
+    let checked = check_syntax_document(&parsed, &guarded_selector_catalog()).unwrap();
+    let notice = thoughtful_notice_type();
+    let value_kind = notice.profile().unwrap().value_kind().clone();
+    let temporal = PortTemporal::Flow { closes: true };
+    let mut profile = ProfileCatalog::new();
+    profile
+        .insert(primitive(
+            "test/source",
+            None,
+            Some(value_kind.clone()),
+            temporal,
+        ))
+        .unwrap();
+    profile
+        .insert(primitive("test/sink", Some(value_kind), None, temporal))
+        .unwrap();
+    for cord in &checked.forms[0].cords {
+        let CheckedCordStage::StructuredSelector { selector, .. } = &cord.stages[1] else {
+            panic!("each guarded track owns one selector")
+        };
+        profile
+            .insert(structured_selector_definition(selector, temporal))
+            .unwrap();
+    }
+
+    let expanded = expand_canonical_form(&checked, "route", &profile).unwrap();
+    assert_eq!(expanded.gears.len(), 7);
+    assert_eq!(expanded.connections.len(), 6);
+    assert_eq!(
+        expanded
+            .gears
+            .iter()
+            .filter(|gear| gear.kind_contract_revision.as_str()
+                == "structured-info/selector-operation@1")
+            .count(),
+        3
+    );
+}
+
+#[test]
+fn guarded_routes_refuse_gaps_overlap_mixed_fields_and_nonfinal_otherwise() {
+    let cases = [
+        (
+            "form route {\n notice > ? {\n  [Notice.delivery == \"visible\"] > show\n }\n}\n",
+            "final otherwise track",
+        ),
+        (
+            "form route {\n notice > ? {\n  [Notice.delivery == \"visible\"] > show\n  [Notice.delivery == \"visible\"] > show\n  _ > silence\n }\n}\n",
+            "duplicate or overlapping guard",
+        ),
+        (
+            "form route {\n notice > ? {\n  [Notice.delivery == \"visible\"] > show\n  [Notice.body == \"hello\"] > show\n  _ > silence\n }\n}\n",
+            "same typed field",
+        ),
+        (
+            "form route {\n notice > ? {\n  _ > silence\n  [Notice.delivery == \"visible\"] > show\n }\n}\n",
+            "otherwise track must be final",
+        ),
+        (
+            "form route {\n notice > ? {\n  [Notice.delivery == \"visible\"] > show\n  _ > silence\n  _ > silence\n }\n}\n",
+            "exactly one final otherwise track",
+        ),
+    ];
+    for (source, message) in cases {
+        let parsed = parse_syntax_document(source);
+        assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+        let error = check_syntax_document(&parsed, &guarded_selector_catalog()).unwrap_err();
+        assert_eq!(error.code, "CND-FRM-054");
+        assert!(error.message.contains(message), "{}", error.message);
+    }
+}
+
+#[test]
+fn route_trivia_changes_source_identity_but_not_checked_meaning() {
+    let plain = check(
+        "form route {\n events > ? {\n  [MusicEvent.note] > notes\n  [MusicEvent.rest] > rests\n }\n}\n",
+    );
+    let commented = check(
+        "# railway prose is not meaning\nform route {\n events > ? {\n  [MusicEvent.note] > notes # audible\n  [MusicEvent.rest] > rests\n }\n}\n",
+    );
+    assert_ne!(plain.source_document_id, commented.source_document_id);
+    assert_eq!(
+        plain.forms[0].checked_form_id,
+        commented.forms[0].checked_form_id
+    );
+}
+
+#[test]
+fn exhaustive_variant_route_expands_every_track_into_the_immutable_graph() {
+    let source = "form route {\n source: test/source\n notes: test/note-sink\n rests: test/rest-sink\n source > ? {\n  [MusicEvent.note] > notes\n  [MusicEvent.rest] > rests\n }\n}\n";
+    let checked = check(source);
+    let (.., event, _) = selector_types();
+    let rest = StructuredInfoType::leaf(KindId::from("music/rest@1")).unwrap();
+    let temporal = PortTemporal::Flow { closes: true };
+    let mut profile = ProfileCatalog::new();
+    profile
+        .insert(primitive(
+            "test/source",
+            None,
+            Some(event.profile().unwrap().value_kind().clone()),
+            temporal,
+        ))
+        .unwrap();
+    profile
+        .insert(primitive(
+            "test/note-sink",
+            Some(note_type().profile().unwrap().value_kind().clone()),
+            None,
+            temporal,
+        ))
+        .unwrap();
+    profile
+        .insert(primitive(
+            "test/rest-sink",
+            Some(rest.profile().unwrap().value_kind().clone()),
+            None,
+            temporal,
+        ))
+        .unwrap();
+    for cord in &checked.forms[0].cords {
+        let CheckedCordStage::StructuredSelector { selector, .. } = &cord.stages[1] else {
+            panic!("each checked track owns one selector")
+        };
+        profile
+            .insert(structured_selector_definition(selector, temporal))
+            .unwrap();
+    }
+
+    let expanded = expand_canonical_form(&checked, "route", &profile).unwrap();
+    assert_eq!(expanded.gears.len(), 5);
+    assert_eq!(expanded.connections.len(), 4);
+    assert_eq!(
+        expanded
+            .gears
+            .iter()
+            .filter(|gear| gear.kind_contract_revision.as_str()
+                == "structured-info/selector-operation@1")
+            .count(),
+        2
+    );
+}
+
+#[test]
+fn closed_variant_routes_refuse_gaps_duplicates_mixed_types_and_otherwise() {
+    let cases = [
+        (
+            "form route {\n events > ? {\n  [MusicEvent.note] > notes\n }\n}\n",
+            "name every case exactly once",
+        ),
+        (
+            "form route {\n events > ? {\n  [MusicEvent.note] > notes\n  [MusicEvent.note] > notes\n }\n}\n",
+            "duplicate matched route track",
+        ),
+        (
+            "form route {\n events > ? {\n  [MusicEvent.note] > notes\n  [Feedback.status] > status\n }\n}\n",
+            "same variant type",
+        ),
+        (
+            "form route {\n events > ? {\n  [MusicEvent.note] > notes\n  _ > rest\n }\n}\n",
+            "explicit exhaustive tracks",
+        ),
+        (
+            "form route {\n events > ? {\n  _ > rest\n  [MusicEvent.note] > notes\n }\n}\n",
+            "otherwise track must be final",
+        ),
+        (
+            "form route {\n events > ? {\n  [MusicEvent.note] > notes > _\n  [MusicEvent.rest] > rests\n }\n}\n",
+            "carried value '_' must be the first stage",
+        ),
+    ];
+    for (source, message) in cases {
+        let parsed = parse_syntax_document(source);
+        assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+        let error = check_syntax_document(&parsed, &selector_catalog()).unwrap_err();
+        assert_eq!(error.code, "CND-FRM-054");
+        assert!(error.message.contains(message), "{}", error.message);
+    }
 }
 
 #[test]

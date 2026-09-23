@@ -56,7 +56,7 @@ fn check(source: &str) -> crate::CheckedSyntaxDocument {
 #[test]
 fn completion_policy_is_exact_checked_meaning() {
     let live = check("form example {\n tick: time/every(1s)\n}\n");
-    let finite = check("form example {\n complete\n tick: time/every(1s)\n}\n");
+    let finite = check("form example {\n .\n tick: time/every(1s)\n}\n");
     assert_eq!(live.forms[0].completion, crate::FormCompletionPolicy::Live);
     assert_eq!(
         finite.forms[0].completion,
