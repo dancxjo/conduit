@@ -816,3 +816,24 @@ fn browser_home_is_staged_proven_in_two_engines_and_carried_to_pages() {
     assert!(workflow.contains("--project firefox"));
     assert!(workflow.contains("target/pages-site/home/home.application.json"));
 }
+
+#[test]
+fn promotion_publishes_the_exact_three_body_journey() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/promotion.yml"))
+        .expect("read promotion workflow");
+    let job = workflow
+        .split("\n  three-body-journey:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  pages-carrier-with-conduitos:\n").next())
+        .expect("locate three-Body promotion evidence job");
+
+    assert!(job.contains("proof/browser/workspace-membership.spec.mjs"));
+    assert!(job.contains("--workers 1 --retries 0"));
+    assert!(job.contains("host prove-local-model"));
+    assert!(job.contains("--orifina-presenter"));
+    assert!(job.contains("build-three-body-journey.mjs"));
+    assert!(job.contains("evidence three-body-journey --locked"));
+    assert!(workflow.contains("evidence stage-three-body-journey --locked"));
+    assert!(workflow.contains("needs: [products, conduitos-spore-acceptance, three-body-journey]"));
+}
