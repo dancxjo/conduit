@@ -816,3 +816,20 @@ fn browser_home_is_staged_proven_in_two_engines_and_carried_to_pages() {
     assert!(workflow.contains("--project firefox"));
     assert!(workflow.contains("target/pages-site/home/home.application.json"));
 }
+
+#[test]
+fn promotion_keeps_unadmitted_three_body_evidence_off_the_release_path() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/promotion.yml"))
+        .expect("read promotion workflow");
+
+    assert!(!workflow.contains("\n  generative-body-journey:\n"));
+    assert!(!workflow.contains("\n  three-body-journey:\n"));
+    assert!(!workflow.contains("conduit-browser-body-journey-"));
+    assert!(!workflow.contains("conduit-native-body-journey-"));
+    assert!(!workflow.contains("conduit-generative-body-journey-"));
+    assert!(!workflow.contains("host prove-local-model"));
+    assert!(!workflow.contains("evidence stage-three-body-journey"));
+    assert!(workflow.contains("needs: [products, conduitos-spore-acceptance]"));
+    assert!(workflow.contains("fail-closed flagship placeholder"));
+}

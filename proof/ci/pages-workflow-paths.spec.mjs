@@ -147,7 +147,10 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(deployWorkflow, /name: \$\{\{ needs\.resolve\.outputs\.carrier_name \}\}/);
 
   const promotionWorkflow = readFileSync(".github/workflows/promotion.yml", "utf8");
-  assert.match(promotionWorkflow, /pages-carrier-with-conduitos:\n    needs: \[products, conduitos-spore-acceptance\]/);
+  assert.match(promotionWorkflow, /pages-carrier-with-conduitos:\n(?:    #.*\n){3}    needs: \[products, conduitos-spore-acceptance\]/);
+  assert.doesNotMatch(promotionWorkflow, /  generative-body-journey:|  three-body-journey:/);
+  assert.doesNotMatch(promotionWorkflow, /conduit-(?:browser|native|generative)-body-journey/);
+  assert.doesNotMatch(promotionWorkflow, /stage-three-body-journey/);
   assert.match(promotionWorkflow, /name: conduitos-x86-batch-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
   assert.match(promotionWorkflow, /target\/conduitos-x86-batch\/runs\/product-journey\/conduitos\/x86_64\/journey-frames/);
   assert.match(promotionWorkflow, /stage-conduitos-pages-evidence\.mjs/);

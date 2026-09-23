@@ -110,6 +110,9 @@ jobs:
           compression-level: 0
 
   pages-carrier-with-conduitos:
+    # The base gallery already carries #3529's fail-closed flagship placeholder.
+    # Reintroduce producer-owned capsule collection only after all three Bodies
+    # emit complete tracks; an unavailable proof must not block unrelated releases.
     needs: [products, conduitos-spore-acceptance]
     if: always() && !cancelled() && needs.products.result == 'success' && needs.conduitos-spore-acceptance.result == 'success'
     runs-on: ubuntu-24.04
