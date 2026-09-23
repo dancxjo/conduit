@@ -659,6 +659,20 @@ fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
 }
 
 #[test]
+fn conduitos_pages_contract_tracks_the_complete_product_lifecycle() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let staging = fs::read_to_string(root.join("tools/ci/stage-conduitos-pages-evidence.mjs"))
+        .expect("read ConduitOS Pages staging contract");
+
+    let revised = staging.find("stage(\"workload-revised\"").unwrap();
+    let replanned = staging.find("stage(\"workload-replanned\"").unwrap();
+    let fulfilled = staging.find("stage(\"fulfilled\"").unwrap();
+    assert!(revised < replanned);
+    assert!(replanned < fulfilled);
+    assert!(staging.contains("exact fulfilled sign and biography state"));
+}
+
+#[test]
 fn pages_resolver_has_one_local_and_hosted_proof_entrance() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/pages-deploy-pr-proof.yml"))
