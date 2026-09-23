@@ -1051,7 +1051,7 @@ jobs:
       NPM_CONFIG_AUDIT: "false"
       NPM_CONFIG_FUND: "false"
       CONDUIT_BROWSER_PROOF_SHARD: ${{ matrix.shard }}
-      CONDUIT_BROWSER_PROOF_OUTPUT: ${{ runner.temp }}/browser-proof-${{ matrix.shard }}
+      CONDUIT_BROWSER_PROOF_OUTPUT: /tmp/conduit-browser-proof-${{ matrix.shard }}
     steps:
       - uses: actions/checkout@v7
         with:

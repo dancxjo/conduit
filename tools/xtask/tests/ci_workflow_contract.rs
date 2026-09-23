@@ -865,9 +865,8 @@ fn browser_journey_is_retained_by_its_existing_proof_shard() {
     assert!(
         workflow.contains("name: conduit-browser-body-journey-${{ env.CONDUIT_CANDIDATE_SHA }}")
     );
-    assert!(workflow.contains(
-        "CONDUIT_BROWSER_PROOF_OUTPUT: ${{ runner.temp }}/browser-proof-${{ matrix.shard }}"
-    ));
+    assert!(workflow
+        .contains("CONDUIT_BROWSER_PROOF_OUTPUT: /tmp/conduit-browser-proof-${{ matrix.shard }}"));
     assert!(workflow.contains("--output \"$CONDUIT_BROWSER_PROOF_OUTPUT\""));
     assert!(workflow.contains("capture-three-body-track.mjs browser"));
     assert!(workflow.contains("name: Deduplicate the staged release catalog for transport"));
