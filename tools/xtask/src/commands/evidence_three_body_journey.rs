@@ -327,13 +327,21 @@ pub(super) fn stage(
     copy_publication(&publication_root, &historic)?;
     let mut html = std::fs::read_to_string(&gallery_index)
         .map_err(|error| format!("read journeys gallery entrance: {error}"))?;
-    let marker = "<section class=\"cards\"";
-    let insertion = "<article class=\"journey-card\"><p class=\"eyebrow\">Three independent Bodies · one semantic contract</p><h2>Three Bodies, one Journey</h2><p>Follow ConduitOS, browser, and distributed conversational Bodies from birth through fulfillment—or compare the same semantic step across all three.</p><p class=\"card-boundary\">Boundary: semantic portability with independent realization identities; not pixel, wording, timing, or Body identity equality.</p><p><a class=\"primary\" href=\"current/three-bodies/\">Compare the Bodies</a></p></article>";
-    let position = html
-        .find(marker)
-        .and_then(|start| html[start..].find('>').map(|offset| start + offset + 1))
-        .ok_or("journeys gallery entrance lacks its cards section")?;
-    html.insert_str(position, insertion);
+    let start_marker = "<!-- conduit-three-body-flagship@2 -->";
+    let end_marker = "<!-- conduit-three-body-flagship:end -->";
+    let insertion = "<!-- conduit-three-body-flagship@2 --><section class=\"flagship admitted\" aria-labelledby=\"flagship-title\"><div><p class=\"eyebrow\">Accepted three-Body Journey</p><h2 id=\"flagship-title\">The same meaning. Three radically different lives.</h2><p class=\"lede\">Three independently born Bodies traverse one shared semantic contract, each retaining its own machinery, identity, biography, and evidence.</p><p><a class=\"primary\" href=\"current/three-bodies/\">Enter the Journey</a></p></div><div class=\"body-lanes\"><article><b>A</b><h3>ConduitOS</h3><p>Native, freestanding, graphical</p></article><article><b>B</b><h3>Browser</h3><p>DOM, WASM, interactive</p></article><article><b>C</b><h3>Distributed</h3><p>Multi-Host, Line, generative</p></article></div><ol class=\"semantic-spine\"><li>Birth</li><li>Wake</li><li>Use</li><li>Inspect</li><li>Change</li><li>Replan</li><li>Add Host</li><li>Fault</li><li>Repair</li><li>Continue</li><li>Lull</li><li>Fulfill</li></ol><p class=\"boundary\"><strong>What this establishes:</strong> semantic portability with independent realization identities. It does not claim equal pixels, prose, timing, placement, or Body identity.</p></section><!-- conduit-three-body-flagship:end -->";
+    let insertion = insertion.replace(
+        "<ol class=\"semantic-spine\"><li>Birth</li><li>Wake</li><li>Use</li><li>Inspect</li><li>Change</li><li>Replan</li><li>Add Host</li><li>Fault</li><li>Repair</li><li>Continue</li><li>Lull</li><li>Fulfill</li></ol>",
+        "<ol class=\"semantic-spine\"><li>Before</li><li>Bootstrap</li><li>Birth</li><li>Wake</li><li>Use</li><li>Inspect</li><li>Change / replan</li><li>Add Host</li><li>Fault</li><li>Repair</li><li>Continue</li><li>Lull</li><li>Fulfill</li></ol>",
+    );
+    let start = html
+        .find(start_marker)
+        .ok_or("journeys gallery entrance lacks its flagship marker")?;
+    let end = html[start..]
+        .find(end_marker)
+        .map(|offset| start + offset + end_marker.len())
+        .ok_or("journeys gallery entrance lacks its flagship end marker")?;
+    html.replace_range(start..end, &insertion);
     let history_marker = format!("<li><code>{expected_git_commit}</code>");
     let history_position = html
         .find(&history_marker)

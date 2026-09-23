@@ -764,8 +764,10 @@ fn gallery_publishes_current_history_and_provenance() {
         fs::read_to_string(site_root.join("current/patchbay/overview/index.html")).unwrap();
     assert!(index.contains(&commit));
     assert!(index.contains("latest 32 published main commits"));
-    assert!(index.contains("True stories from ordinary Conduit execution"));
-    assert!(index.contains("Nothing here is a simulated demo"));
+    assert!(index.contains("One Journey.<br><em>Three Bodies.</em>"));
+    assert!(index.contains("Evidence not yet admitted for this commit"));
+    assert!(index.contains("The evidence library"));
+    assert!(index.contains("conduit-three-body-flagship@2"));
     assert!(index.contains("journey-card"));
     assert!(index.contains("Follow the evidence"));
     assert!(index.contains("<audio controls"));

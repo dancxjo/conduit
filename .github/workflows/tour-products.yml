@@ -989,6 +989,14 @@ jobs:
           products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product target/creche-release-artifacts target/reviewed-form-bundles/initial-body.conduit target/reviewed-form-bundles/workspace-catalog.json
           products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
           products/home/tools/stage-home-product.sh target/browser-product-runtimes/home-runtime.wasm target/home-product
+      - name: Deduplicate the staged release catalog for transport
+        run: |
+          (cd target/workspace-product/artifacts && find . -type f -print | LC_ALL=C sort) > target/staged-workspace-artifacts.txt
+          while IFS= read -r relative; do
+            test -f "target/creche-product/artifacts/${relative#./}"
+            cmp -s "target/workspace-product/artifacts/${relative#./}" "target/creche-product/artifacts/${relative#./}"
+          done < target/staged-workspace-artifacts.txt
+          rm -rf target/workspace-product/artifacts
       - name: Retain the exact staged products once for parallel consumers
         uses: ./.github/actions/upload-artifact-retry
         with:
@@ -1009,10 +1017,14 @@ jobs:
             target/workspace-product
             target/patchbay-product
             target/home-product
+            target/staged-workspace-artifacts.txt
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 1
-          compression-level: 0
+          # This carrier contains sparse target images. Disabling compression
+          # turns roughly 157 MiB of transported content into a 3.1 GiB
+          # artifact and every browser shard pays that cost again.
+          compression-level: 6
 
   browser-proof:
     needs: products-stage
@@ -1038,6 +1050,8 @@ jobs:
     env:
       NPM_CONFIG_AUDIT: "false"
       NPM_CONFIG_FUND: "false"
+      CONDUIT_BROWSER_PROOF_SHARD: ${{ matrix.shard }}
+      CONDUIT_BROWSER_PROOF_OUTPUT: /tmp/conduit-browser-proof-${{ matrix.shard }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -1050,6 +1064,8 @@ jobs:
         with:
           name: conduit-staged-browser-products
           path: target
+      - name: Restore the deduplicated Workspace release catalog
+        run: tools/ci/restore-workspace-product-artifacts.sh target
       - name: Restore executable Host permission
         run: chmod 755 target/debug/conduit target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-parts-capstone target/debug/webchat-server target/debug/browser-admission-probe target/debug/protected-line-browser-peer target/debug/native-webrtc-line-probe
       - name: Prove foreground input and Body retirement contracts
@@ -1068,6 +1084,7 @@ jobs:
           --project chromium
           --workers 1
           --retries 0
+          --output "$CONDUIT_BROWSER_PROOF_OUTPUT"
       - name: Prove portable Home in pinned Firefox
         if: matrix.shard == 'browser-host'
         env:
@@ -1273,6 +1290,8 @@ jobs:
         with:
           name: conduit-staged-browser-products
           path: target
+      - name: Restore the deduplicated Workspace release catalog
+        run: tools/ci/restore-workspace-product-artifacts.sh target
       - name: Seal the already-proven Pages carrier
         run: |
           rm -rf target/pages-site target/pages-carrier

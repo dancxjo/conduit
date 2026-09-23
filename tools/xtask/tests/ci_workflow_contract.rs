@@ -833,3 +833,31 @@ fn promotion_keeps_unadmitted_three_body_evidence_off_the_release_path() {
     assert!(workflow.contains("needs: [products, conduitos-spore-acceptance]"));
     assert!(workflow.contains("fail-closed flagship placeholder"));
 }
+
+#[test]
+fn browser_proof_reuses_the_staged_carrier_without_premature_journey_claims() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+        .expect("read product workflow");
+
+    assert!(workflow.contains("CONDUIT_BROWSER_PROOF_SHARD: ${{ matrix.shard }}"));
+    assert!(workflow
+        .contains("CONDUIT_BROWSER_PROOF_OUTPUT: /tmp/conduit-browser-proof-${{ matrix.shard }}"));
+    assert!(workflow.contains("--output \"$CONDUIT_BROWSER_PROOF_OUTPUT\""));
+    assert!(!workflow.contains("body-journey-track/track.json"));
+    assert!(!workflow.contains("conduit-browser-body-journey-"));
+    assert!(workflow.contains("name: Deduplicate the staged release catalog for transport"));
+    assert_eq!(
+        workflow
+            .matches("tools/ci/restore-workspace-product-artifacts.sh target")
+            .count(),
+        2
+    );
+    let staged = workflow
+        .split("name: conduit-staged-browser-products")
+        .nth(1)
+        .and_then(|tail| tail.split("\n\n  browser-proof:").next())
+        .expect("locate staged browser carrier upload");
+    assert!(staged.contains("compression-level: 6"));
+    assert!(!staged.contains("compression-level: 0"));
+}

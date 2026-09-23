@@ -64,6 +64,28 @@ fn music_event(tag: &str) -> StructuredInfoValue {
     StructuredInfoValue::variant(music_event_type(), tag, payload).unwrap()
 }
 
+fn notice_type() -> StructuredInfoType {
+    StructuredInfoType::record(
+        KindId::from("notice/thoughtful@1"),
+        vec![
+            StructuredFieldType::new("delivery", leaf("value/text")).unwrap(),
+            StructuredFieldType::new("body", leaf("value/text")).unwrap(),
+        ],
+    )
+    .unwrap()
+}
+
+fn notice(delivery: &str) -> StructuredInfoValue {
+    StructuredInfoValue::record(
+        notice_type(),
+        vec![
+            StructuredFieldValue::new("delivery", text(delivery)).unwrap(),
+            StructuredFieldValue::new("body", text("Mind the step")).unwrap(),
+        ],
+    )
+    .unwrap()
+}
+
 #[test]
 fn button_index_selects_one_finite_pitch_without_numeric_coercion() {
     let selector = StructuredSelector::index(pitch_table_type(), 1).unwrap();
@@ -131,6 +153,82 @@ fn feedback_field_projection_is_typed_for_presentation() {
     assert_eq!(
         selector.select(&feedback).unwrap(),
         StructuredSelection::Matched(text("ready"))
+    );
+}
+
+#[test]
+fn record_field_predicates_carry_the_whole_record_and_have_an_exact_inverse() {
+    let visible = StructuredSelector::record_field_values(
+        notice_type(),
+        "delivery",
+        vec![b"visible".to_vec()],
+        true,
+        UnmatchedVariantDisposition::Drop,
+    )
+    .unwrap();
+    let otherwise = StructuredSelector::record_field_values(
+        notice_type(),
+        "delivery",
+        vec![b"spoken".to_vec(), b"visible".to_vec()],
+        false,
+        UnmatchedVariantDisposition::Drop,
+    )
+    .unwrap();
+
+    assert_eq!(
+        visible.select(&notice("visible")).unwrap(),
+        StructuredSelection::Matched(notice("visible"))
+    );
+    assert_eq!(
+        visible.select(&notice("silent")).unwrap(),
+        StructuredSelection::Unmatched(UnmatchedVariantDisposition::Drop)
+    );
+    assert_eq!(
+        otherwise.select(&notice("visible")).unwrap(),
+        StructuredSelection::Unmatched(UnmatchedVariantDisposition::Drop)
+    );
+    assert_eq!(
+        otherwise.select(&notice("silent")).unwrap(),
+        StructuredSelection::Matched(notice("silent"))
+    );
+    assert_eq!(otherwise.output_type(), &notice_type());
+}
+
+#[test]
+fn record_field_predicate_round_trips_and_selects_without_play_time_allocation() {
+    let selector = StructuredSelector::record_field_values(
+        notice_type(),
+        "delivery",
+        vec![b"visible".to_vec()],
+        true,
+        UnmatchedVariantDisposition::Drop,
+    )
+    .unwrap();
+    let encoded = selector.canonical_bytes().unwrap();
+    assert_eq!(
+        StructuredSelector::from_canonical_bytes(&encoded),
+        Ok(selector.clone())
+    );
+
+    let input_type = selector.input_type().canonical_bytes().unwrap();
+    let output_type = selector.output_type().canonical_bytes().unwrap();
+    let expected = notice("visible").canonical_bytes().unwrap();
+    let mut output = Vec::with_capacity(expected.len());
+    assert_eq!(
+        selector.select_canonical_into(&expected, &input_type, &output_type, &mut output),
+        Ok(StructuredCanonicalSelection::Matched)
+    );
+    assert_eq!(output, expected);
+    assert_eq!(
+        selector.select_canonical_into(
+            &notice("silent").canonical_bytes().unwrap(),
+            &input_type,
+            &output_type,
+            &mut output,
+        ),
+        Ok(StructuredCanonicalSelection::Unmatched(
+            UnmatchedVariantDisposition::Drop
+        ))
     );
 }
 
