@@ -234,17 +234,6 @@ export function decideReleaseLane(snapshot, options = {}) {
     });
   }
 
-  for (const stuck of classified.filter(({ classification }) => classification.state === "stuck")) {
-    const key = `release-stuck:${stuck.classification.evidence.runId}`;
-    if (!(snapshot.escalations ?? []).includes(key)) {
-      actions.escalate.push({
-        key,
-        reason: stuck.classification.reason,
-        ...stuck.classification.evidence,
-      });
-    }
-  }
-
   return {
     schema: "conduit.ci/release-lane-decision@1",
     classifications: classified.map(({ candidate, classification }) => ({

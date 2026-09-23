@@ -180,6 +180,9 @@ test("release admission wakes from state changes instead of polling", () => {
   assert.doesNotMatch(releaseLane, /^    - cron: "\*\/5 \* \* \* \*"$/m);
   assert.match(releaseLaneAdapter, /actions\/workflows\/promote-dev\.yml\/dispatches/);
   assert.match(releaseLaneAdapter, /releaseAdmissionNeedsWake/);
+  assert.doesNotMatch(releaseLaneAdapter, /release-liveness\/repair-needed/);
+  assert.doesNotMatch(releaseLaneAdapter, /<!-- conduit-release-liveness:/);
+  assert.doesNotMatch(releaseLaneAdapter, /api\("\/issues"/);
   assert.match(finalizer, /Revisit queued development after a no-op synchronization/);
   assert.match(finalizer, /if: steps\.merge\.outputs\.changed == 'false'/);
   assert.match(finalizer, /gh workflow run promote-dev\.yml --ref main/);

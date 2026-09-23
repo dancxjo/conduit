@@ -46,10 +46,9 @@ async function jobsFor(run) {
 }
 
 async function observe() {
-  const [pulls, runResponse, issues] = await Promise.all([
+  const [pulls, runResponse] = await Promise.all([
     api("/pulls?state=open&base=main&per_page=100&sort=created&direction=asc"),
     api("/actions/workflows/promotion.yml/runs?per_page=100"),
-    api("/issues?state=all&labels=release-liveness%2Frepair-needed&per_page=100"),
   ]);
   const releases = pulls.filter((pull) =>
     pull.head.repo?.full_name === repository && /^release\/[0-9a-f]{40}$/.test(pull.head.ref),
@@ -73,10 +72,7 @@ async function observe() {
   }));
 
   const candidates = currentReleaseCandidates(releases, runs);
-  const escalations = issues
-    .filter((issue) => !issue.pull_request)
-    .flatMap((issue) => [...(issue.body ?? "").matchAll(/<!-- conduit-release-liveness:([^ ]+) -->/g)].map((match) => match[1]));
-  return { now: Date.now(), candidates, escalations, pulls: releases };
+  return { now: Date.now(), candidates, pulls: releases };
 }
 
 async function commentOnce(prNumber, marker, message) {
@@ -93,22 +89,6 @@ function evidenceLines(action) {
     ? action.failedJobs.map((job) => `- ${job.name}: ${job.url ?? `job ${job.id}`}`).join("\n")
     : "- No decisive job failure was reported; inspect the run liveness context.";
   return `Release PR: #${action.prNumber}\nExact head: \`${action.headSha}\`\nRun: ${action.runUrl ?? action.runId}\nRelevant jobs:\n${jobs}`;
-}
-
-async function ensureLivenessLabel() {
-  try {
-    await api("/labels/release-liveness%2Frepair-needed");
-  } catch (error) {
-    if (!String(error).includes(" 404 ")) throw error;
-    await api("/labels", {
-      method: "POST",
-      ...body({
-        name: "release-liveness/repair-needed",
-        color: "B60205",
-        description: "A bounded release-lane watchdog needs repair attention",
-      }),
-    });
-  }
 }
 
 async function enact(snapshot, decision) {
@@ -147,18 +127,6 @@ async function enact(snapshot, decision) {
     await api("/actions/workflows/promote-dev.yml/dispatches", {
       method: "POST",
       ...body({ ref: "main" }),
-    });
-  }
-
-  for (const action of decision.actions.escalate) {
-    await ensureLivenessLabel();
-    await api("/issues", {
-      method: "POST",
-      ...body({
-        title: `[release-liveness] Promotion ${action.runId} is stuck`,
-        labels: ["release-liveness/repair-needed"],
-        body: `<!-- conduit-release-liveness:${action.key} -->\nThe bounded release watchdog classified this promotion as **stuck** (${action.reason}). It remains the lane owner; no replacement train was started.\n\n${evidenceLines(action)}`,
-      }),
     });
   }
 }
