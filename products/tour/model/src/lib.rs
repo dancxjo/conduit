@@ -37,7 +37,7 @@ pub const CANONICAL_LITERAL: &str = "hello";
 pub const CANONICAL_RESULT: &str = "HELLO";
 pub const CANONICAL_SOURCE: &str = concat!(
     "form meet-one-gear {\n",
-    "    complete\n",
+    "    .\n",
     "    words: text/literal(\"hello\")\n",
     "    change: text/upper\n",
     "    result: presentation/text\n\n",

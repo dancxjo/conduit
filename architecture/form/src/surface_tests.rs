@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 
 #[test]
 fn forms_are_live_by_default_and_completion_is_explicit() {
-    let source = "form live {\n    source: text/literal(\"ready\")\n}\nform finite {\n    complete\n    source: text/literal(\"done\")\n}\n";
+    let source = "form live {\n    source: text/literal(\"ready\")\n}\nform finite {\n    .\n    source: text/literal(\"done\")\n}\n";
     let document = parse_syntax_document(source);
     assert!(
         document.diagnostics.is_empty(),
@@ -23,11 +23,23 @@ fn forms_are_live_by_default_and_completion_is_explicit() {
 
 #[test]
 fn duplicate_completion_declarations_are_rejected() {
-    let document = parse_syntax_document("form invalid {\n    complete\n    complete\n}\n");
+    let document = parse_syntax_document("form invalid {\n    .\n    .\n}\n");
     assert_eq!(document.diagnostics.len(), 1);
     assert!(document.diagnostics[0]
         .message
-        .contains("semantic completion only once"));
+        .contains("only one semantic full stop"));
+}
+
+#[test]
+fn english_completion_keyword_is_not_retained_as_an_alias() {
+    let source = "form invalid {\n    complete\n}\n";
+    let document = parse_syntax_document(source);
+    let diagnostic = document.diagnostics.first().unwrap();
+    assert_eq!(
+        &source[diagnostic.span.start..diagnostic.span.end],
+        "complete"
+    );
+    assert!(diagnostic.message.contains("standalone '.' full stop"));
 }
 
 #[test]

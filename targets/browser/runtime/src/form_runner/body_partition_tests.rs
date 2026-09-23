@@ -5,7 +5,7 @@ use conduit_plan_lowering::fragment_set::{lower_local_fragment_set, FragmentSetB
 use std::collections::BTreeMap;
 
 fn fragment(name: &str, message: &str) -> PlanFragment {
-    let source = format!("form {name} {{\n complete\n source: text/literal(\"{message}\")\n result: presentation/text\n source > result\n}}\n");
+    let source = format!("form {name} {{\n .\n source: text/literal(\"{message}\")\n result: presentation/text\n source > result\n}}\n");
     let (startup, catalog) = crate::installed_browser::catalogs().unwrap();
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, name, &catalog).unwrap();

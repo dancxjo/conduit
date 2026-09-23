@@ -149,18 +149,35 @@ fn punctuation(text: &str) -> Option<(usize, SyntaxHighlightKind)> {
         return Some((3, SyntaxHighlightKind::Operator));
     }
     let character = text.chars().next()?;
+    let following = &text[character.len_utf8()..];
     match character {
         '(' | ')' | '{' | '}' | '[' | ']' | ',' => {
             Some((character.len_utf8(), SyntaxHighlightKind::Delimiter))
         }
-        ':' | '=' | '>' | '|' | '$' => Some((character.len_utf8(), SyntaxHighlightKind::Operator)),
+        ':' | '=' | '>' | '|' | '$' | '?' => {
+            Some((character.len_utf8(), SyntaxHighlightKind::Operator))
+        }
+        '.' if following
+            .chars()
+            .next()
+            .is_none_or(|next| next.is_whitespace() || next == '}') =>
+        {
+            Some((character.len_utf8(), SyntaxHighlightKind::Literal))
+        }
+        '_' if following
+            .chars()
+            .next()
+            .is_none_or(|next| next.is_whitespace() || matches!(next, '>' | '}')) =>
+        {
+            Some((character.len_utf8(), SyntaxHighlightKind::Literal))
+        }
         _ => None,
     }
 }
 
 fn classify_word(word: &str) -> SyntaxHighlightKind {
     match word {
-        "form" | "host" | "body" | "pool" | "complete" => SyntaxHighlightKind::Keyword,
+        "form" | "host" | "body" | "pool" => SyntaxHighlightKind::Keyword,
         "true" | "false" => SyntaxHighlightKind::Literal,
         _ if word.parse::<i128>().is_ok() || word.parse::<u128>().is_ok() => {
             SyntaxHighlightKind::Number
@@ -206,7 +223,7 @@ mod tests {
 
     #[test]
     fn canonical_source_is_lossless_and_grammar_aware() {
-        let source = "form hello (\n  name: value/text = \"reader\"\n  tick: value/u64@1... >\n) {\n  complete\n  count = 42\n  source: text/constant(value=\"hi\")\n  source.output > sink.input\n}\n";
+        let source = "form hello (\n  name: value/text = \"reader\"\n  tick: value/u64@1... >\n) {\n  .\n  count = 42\n  source: text/constant(value=\"hi\")\n  source.output > sink.input\n}\n";
         let spans = highlight_syntax(source).unwrap();
         let reconstructed: String = spans
             .iter()
@@ -216,7 +233,7 @@ mod tests {
         let pieces = pieces(source, &spans);
         for expected in [
             (SyntaxHighlightKind::Keyword, "form"),
-            (SyntaxHighlightKind::Keyword, "complete"),
+            (SyntaxHighlightKind::Literal, "."),
             (SyntaxHighlightKind::Identity, "value/text"),
             (SyntaxHighlightKind::String, "\"reader\""),
             (SyntaxHighlightKind::Operator, "..."),
