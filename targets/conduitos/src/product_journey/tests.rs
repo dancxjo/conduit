@@ -152,6 +152,15 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
             .any(|property| property.name == "semantic-result")
     );
     let body_id = result.body_id.clone();
+    invoke(&mut journey, JourneyAction::AdmitForm, &identities, &offer).unwrap();
+    let revised = journey.projection();
+    assert_eq!(revised.status, JourneyStatus::Awake);
+    assert_eq!(revised.workload_revision, Some(1));
+    assert!(revised.workload_sign_id.is_some());
+    invoke(&mut journey, JourneyAction::Plan, &identities, &offer).unwrap();
+    let replacement_plan = journey.projection().plan_id;
+    assert_ne!(replacement_plan, result.plan_id);
+    invoke(&mut journey, JourneyAction::Play, &identities, &offer).unwrap();
     invoke(&mut journey, JourneyAction::Stop, &identities, &offer).unwrap();
     invoke(&mut journey, JourneyAction::Lull, &identities, &offer).unwrap();
     let lulled = journey.projection();
@@ -160,6 +169,15 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     assert_eq!(
         journey.wake.as_ref().unwrap().lifecycle,
         WakeLifecycle::Lulled
+    );
+    invoke(&mut journey, JourneyAction::Fulfill, &identities, &offer).unwrap();
+    let fulfilled = journey.projection();
+    assert_eq!(fulfilled.status, JourneyStatus::Fulfilled);
+    assert_eq!(fulfilled.body_id, body_id);
+    assert!(fulfilled.fulfilled_sign_id.is_some());
+    assert_eq!(
+        invoke(&mut journey, JourneyAction::Wake, &identities, &offer),
+        Err(JourneyError::InvalidTransition)
     );
 }
 

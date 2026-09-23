@@ -11,16 +11,17 @@ pub(super) fn type_hello(
     reader: &mut qmp::Reader,
     serial: &Path,
     child: &mut Child,
+    workload_revision: u64,
 ) -> Result<(), ConduitosError> {
     for (index, key) in ["h", "e", "l", "l", "o"].into_iter().enumerate() {
         let expected = &"HELLO"[..index + 1];
         let pressed_count = index * 2 + 1;
         hid_qmp::send_named_keys(stream, reader, &[key], true, "standing-input-down")?;
-        wait_prefix(serial, child, expected, pressed_count)?;
+        wait_prefix(serial, child, expected, pressed_count, workload_revision)?;
 
         let released_count = pressed_count + 1;
         hid_qmp::send_named_keys(stream, reader, &[key], false, "standing-input-up")?;
-        wait_prefix(serial, child, expected, released_count)?;
+        wait_prefix(serial, child, expected, released_count, workload_revision)?;
     }
     Ok(())
 }
@@ -30,6 +31,7 @@ fn wait_prefix(
     child: &mut Child,
     expected: &str,
     input_count: usize,
+    workload_revision: u64,
 ) -> Result<(), ConduitosError> {
     journey_input::wait_for_record(
         serial,
@@ -39,6 +41,7 @@ fn wait_prefix(
         |text| {
             Ok(journey_records::decode(text)?.iter().any(|record| {
                 record["status"] == "quiescent-awaiting-input"
+                    && record["workload_revision"].as_u64().unwrap_or(0) == workload_revision
                     && record["result"] == expected
                     && record["input_count"] == input_count as u64
             }))
@@ -56,6 +59,7 @@ pub(super) fn validate(records: &[Value]) -> Result<&Value, ConduitosError> {
     let quiescent = records
         .iter()
         .filter(|record| record["status"] == "quiescent-awaiting-input")
+        .filter(|record| record["workload_revision"].as_u64().unwrap_or(0) == 0)
         .collect::<Vec<_>>();
     let first = quiescent.first().ok_or_else(refuse)?;
     let result = *quiescent.last().ok_or_else(refuse)?;

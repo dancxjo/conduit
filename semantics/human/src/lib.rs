@@ -3,6 +3,7 @@
 extern crate alloc;
 
 mod current_experience;
+mod experience_observation;
 mod experience_sources;
 mod experience_temporal;
 mod experience_updates;
@@ -19,6 +20,7 @@ mod visual_impression;
 mod visual_observation;
 
 pub use current_experience::*;
+pub use experience_observation::*;
 pub use experience_sources::*;
 pub use experience_temporal::*;
 pub use experience_updates::*;

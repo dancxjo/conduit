@@ -10,7 +10,8 @@ use crate::{
 };
 
 pub const MAXIMUM_UTTERANCE_BYTES: usize = 2_048;
-pub const MAXIMUM_BODY_SELF_STATE_BYTES: usize = 4_096;
+/// Bounded room for a structured self-state plus its exact source evidence.
+pub const MAXIMUM_BODY_SELF_STATE_BYTES: usize = 8_192;
 pub const MAXIMUM_RECOLLECTION_BYTES: usize = 4_096;
 pub const MAXIMUM_RECOLLECTION_SOURCE_REFS: usize = 32;
 pub const MAXIMUM_EXPERIENCE_SOURCE_IDENTITY_BYTES: usize = 128;
@@ -36,6 +37,9 @@ pub struct BodySelfObservation {
     pub observation_sign_id: SignId,
     pub observed_at: TemporalInstant,
     pub certainty: ExperienceCertainty,
+    /// Exact source evidence used to derive this self-state. The reducer's
+    /// own sign remains separate in `observation_sign_id`.
+    pub source_refs: Vec<ExperienceSourceRef>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -203,9 +207,21 @@ pub fn body_self_experience(
         certainty: observation.certainty,
         observed_at: Some(observation.observed_at.clone()),
         recorded_at: None,
-        sources: vec![ExperienceSourceRef::Sign(
-            observation.observation_sign_id.clone(),
-        )],
+        sources: {
+            let mut sources = Vec::with_capacity(observation.source_refs.len() + 1);
+            sources.push(ExperienceSourceRef::Sign(
+                observation.observation_sign_id.clone(),
+            ));
+            for source in &observation.source_refs {
+                if !sources.contains(source) {
+                    sources.push(source.clone());
+                }
+            }
+            if sources.len() > MAXIMUM_RECOLLECTION_SOURCE_REFS {
+                return Err(ExperienceSourceRefusal::SourceBound);
+            }
+            sources
+        },
     })
 }
 

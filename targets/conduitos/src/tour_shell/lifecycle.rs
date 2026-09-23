@@ -78,6 +78,7 @@ pub(super) fn with_status(
     } else {
         match snapshot.status {
             JourneyStatus::BornLulled | JourneyStatus::Lulled => "Lulled",
+            JourneyStatus::Fulfilled => "Fulfilled",
             _ => "Awake",
         }
     };
@@ -99,6 +100,7 @@ pub(super) fn with_status(
             JourneyStatus::Stopped => "Stopped",
             JourneyStatus::InputUnavailable => "Input unavailable",
             JourneyStatus::Lulled => "Ended",
+            JourneyStatus::Fulfilled => "Fulfilled",
             _ => "Recorded",
         }
     };
@@ -146,6 +148,7 @@ pub(super) fn basis_from_projection(lifecycle: &JourneyProjection) -> Presentati
     let mut sign_ids = lifecycle
         .born_sign_id
         .iter()
+        .chain(lifecycle.fulfilled_sign_id.iter())
         .chain(lifecycle.input_sign_id.iter())
         .chain(lifecycle.result_sign_id.iter())
         .cloned()
