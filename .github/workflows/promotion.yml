@@ -109,9 +109,11 @@ jobs:
           retention-days: 14
           compression-level: 0
 
-  three-body-journey:
-    needs: [products, conduitos-spore-acceptance]
-    if: always() && !cancelled() && needs.products.result == 'success' && needs.conduitos-spore-acceptance.result == 'success'
+  generative-body-journey:
+    # The provider proof is independent of product fabrication. Run it beside
+    # the long product fan-out instead of adding it to the release critical path.
+    needs: [boundary, check]
+    if: always() && !cancelled() && needs.boundary.result == 'success' && needs.check.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
@@ -123,28 +125,16 @@ jobs:
         with:
           cache-on-failure: false
           shared-key: three-body-journey
-      - name: Receive the staged browser Body and native Body evidence
-        uses: ./.github/actions/download-artifact-retry
+      - name: Restore the exact local model blobs
+        uses: actions/cache@v4
         with:
-          name: conduit-staged-browser-products
-          path: target
-      - uses: ./.github/actions/download-artifact-retry
-        with:
-          name: conduitos-creche-acceptance-${{ github.event.pull_request.head.sha }}
-          path: ${{ runner.temp }}/native-body
-      - name: Capture the browser Body journey in pinned Chromium
-        run: |
-          npm --prefix proof/browser ci --ignore-scripts --prefer-offline
-          node proof/browser/node_modules/@playwright/test/cli.js install chromium --with-deps
-          chmod 755 target/debug/conduit target/debug/conduit-browser-host
-          node proof/browser/node_modules/@playwright/test/cli.js test \
-            --config proof/browser/playwright.config.mjs \
-            proof/browser/workspace-membership.spec.mjs \
-            --project chromium --workers 1 --retries 0 \
-            --output "$RUNNER_TEMP/browser-body"
+          path: ${{ runner.temp }}/ollama-cache/models
+          key: ollama-${{ runner.os }}-0.12.3-gemma3-270m-v1
       - name: Capture the structured-Face generative Body journey
         run: |
+          mkdir -p "$RUNNER_TEMP/ollama-cache/models"
           docker run --detach --name conduit-ollama -p 11434:11434 \
+            --volume "$RUNNER_TEMP/ollama-cache/models:/root/.ollama/models" \
             ollama/ollama:0.12.3@sha256:36ccf1b4c161179a198a19e897aa0a1acd54cd5eeb6ab99c80f2ef50ba7fa106
           docker cp conduit-ollama:/bin/ollama "$RUNNER_TEMP/ollama"
           chmod 755 "$RUNNER_TEMP/ollama"
@@ -157,6 +147,46 @@ jobs:
           PATH="$RUNNER_TEMP:$PATH" cargo xtask --json host prove-local-model --locked \
             --model gemma3:270m --admitted-memory-mib 2048 --orifina-presenter \
             > "$RUNNER_TEMP/model-body.json"
+      - name: Retain the generative Body proof capsule
+        uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: conduit-generative-body-journey-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/model-body.json
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 6
+
+  three-body-journey:
+    needs: [products, conduitos-spore-acceptance, generative-body-journey]
+    if: >-
+      always() && !cancelled() &&
+      needs.products.result == 'success' &&
+      needs.conduitos-spore-acceptance.result == 'success' &&
+      needs.generative-body-journey.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+          shared-key: three-body-journey
+      - name: Receive the three bounded Body proof capsules
+        uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-browser-body-journey-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/browser-body
+      - uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduitos-creche-acceptance-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/native-body
+      - uses: ./.github/actions/download-artifact-retry
+        with:
+          name: conduit-generative-body-journey-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}
       - name: Verify and publish the exact three-Body comparison
         env:
           EXACT_COMMIT: ${{ github.event.pull_request.head.sha }}
