@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { startStaticProduct } from "./tour-test-server.mjs";
+import { writeBrowserBodyJourneyTrack } from "./body-journey-track.mjs";
 
 let entrance;
 test.beforeEach(async () => { entrance = await startStaticProduct("target/workspace-product", "/conduit/workspace/"); });
@@ -211,14 +212,17 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
     state: globalThis.__conduitWorkspace.state(),
     evidence: globalThis.__conduitWorkspace.evidence(),
   }));
-  await writeFile(testInfo.outputPath("browser-body-journey.json"), JSON.stringify({
+  const retainedJourney = {
     schema: "conduit.browser/body-journey@1",
     git_commit: process.env.CONDUIT_CANDIDATE_SHA ?? "local",
     ...journeyReceipt,
     checkpoints: { joined: after, refused: replan, restored, repaired },
     host_fabrication: evidence,
-  }, null, 2));
-  await page.screenshot({ path: testInfo.outputPath("browser-body-fulfilled.png"), fullPage: true });
+  };
+  await writeFile(testInfo.outputPath("browser-body-journey.json"), JSON.stringify(retainedJourney, null, 2));
+  const screenshot = testInfo.outputPath("browser-body-fulfilled.png");
+  await page.screenshot({ path: screenshot, fullPage: true });
+  await writeBrowserBodyJourneyTrack(retainedJourney, screenshot, testInfo.outputPath("body-journey-track"));
 });
 
 test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context, browser }) => {

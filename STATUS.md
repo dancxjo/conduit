@@ -37,6 +37,16 @@ present limitation.
 These source-level capabilities are present in the reviewed development tree.
 Their presence is not an additional physical or release acceptance claim:
 
+- **Three-Body semantic journey (#3529):** ConduitOS, pinned Chromium/WASM,
+  and a hosted open-weight model now produce independent 13-step tracks for
+  one shared tutorial contract. Each track carries its own exact Body, Host,
+  Boot, Plan, Play, Presentation, Manifestation, and lifecycle signs; the
+  ConduitOS track additionally proves an admitted two-host Line and distributed
+  Plan. Promotion verifies the three producer-owned tracks together and stages
+  the resulting browsable collection for Pages. Until that exact candidate is
+  accepted and published, this is development-tree and local execution proof,
+  not a stable-release claim.
+
 - **Startup forms (#3152):** the optional browser Startup Chime and separate
   First wake Chime run through the ordinary planner and kernel. The generic
   first-wake source uses retained body biography across later wakes and fresh

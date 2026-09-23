@@ -3,6 +3,7 @@ pub mod avr;
 pub mod bluetooth;
 pub mod body;
 pub mod body_coordination;
+pub(crate) mod body_journey_track;
 mod body_membership_demo;
 pub mod browser;
 pub mod button_indicator;

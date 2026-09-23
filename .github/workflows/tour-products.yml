@@ -1124,6 +1124,22 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
+      - name: Retain the browser Body journey track
+        if: matrix.shard == 'creche-machines'
+        run: |
+          track=$(find "$CONDUIT_BROWSER_PROOF_OUTPUT" -path '*/body-journey-track/track.json' -type f -print -quit)
+          test -n "$track"
+          mkdir -p "$RUNNER_TEMP/browser-body-journey"
+          cp -a "$(dirname "$track")/." "$RUNNER_TEMP/browser-body-journey/"
+      - name: Upload the browser Body journey track
+        if: matrix.shard == 'creche-machines'
+        uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: conduit-browser-body-journey-${{ env.CONDUIT_CANDIDATE_SHA }}
+          path: ${{ runner.temp }}/browser-body-journey
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 6
       - name: Prove the remaining Tour surface in pinned Chromium
         if: matrix.shard == 'tour'
         run: >-
