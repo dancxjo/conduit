@@ -212,6 +212,8 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
     evidence: globalThis.__conduitWorkspace.evidence(),
   }));
   await writeFile(testInfo.outputPath("browser-body-journey.json"), JSON.stringify({
+    schema: "conduit.browser/body-journey@1",
+    git_commit: process.env.CONDUIT_CANDIDATE_SHA ?? "local",
     ...journeyReceipt,
     checkpoints: { joined: after, refused: replan, restored, repaired },
     host_fabrication: evidence,
