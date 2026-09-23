@@ -6,10 +6,16 @@ use crate::checked_syntax::{
 };
 use crate::hash_string;
 use crate::prelude::*;
-use crate::syntax::{Argument, BackStatement, CordStage, FormSyntax, Invocation, SyntaxDocument};
+use crate::syntax::{
+    Argument, BackStatement, CordStage, FormSyntax, Invocation, MatchedRoute, MatchedRoutePattern,
+    SyntaxDocument,
+};
 use crate::syntax_identity::{canonical_cord, canonical_gear, checked_identity};
 use alloc::collections::{BTreeMap, BTreeSet};
-use conduit_core::{CheckedFront, SourceDocumentId};
+use conduit_core::{
+    CheckedFront, SourceDocumentId, StructuredInfoTypeShape, StructuredSelector,
+    UnmatchedVariantDisposition,
+};
 
 mod resolution;
 mod shared_pool;
@@ -152,7 +158,7 @@ fn check_form(
                         .diagnostic(pool.span));
                 }
             }
-            BackStatement::Cord(_) => {}
+            BackStatement::Cord(_) | BackStatement::MatchedRoute(_) => {}
         }
     }
 
@@ -170,50 +176,22 @@ fn check_form(
                 &mut resolver,
             )?),
             BackStatement::Cord(cord) => {
-                let mut stages = Vec::new();
-                for stage in &cord.stages {
-                    match stage {
-                        CordStage::Reference(reference) => {
-                            stages.push(CheckedCordStage::Reference(reference.text.clone()));
-                        }
-                        CordStage::InlineGear(invocation) => {
-                            let gear = check_invocation(
-                                None,
-                                invocation,
-                                catalog,
-                                form_signatures,
-                                &mut resolver,
-                            )?;
-                            stages.push(CheckedCordStage::InlineGear(gear.clone()));
-                            gears.push(gear);
-                        }
-                        CordStage::Literal(expression) => {
-                            let value = resolver
-                                .resolve_expression(expression, None)
-                                .map_err(|error| error.diagnostic(expression.span))?;
-                            if !matches!(value, CanonicalStartupValue::Literal(_))
-                                || crate::text_value::parse_quoted_text(&expression.text).is_none()
-                            {
-                                return Err(SyntaxCheckError::UnsupportedExpression(
-                                    expression.text.clone(),
-                                )
-                                .diagnostic(expression.span));
-                            }
-                            stages.push(CheckedCordStage::Literal {
-                                value,
-                                source_span: expression.span,
-                            });
-                        }
-                        CordStage::StructuredSelector(selector) => {
-                            stages.push(CheckedCordStage::StructuredSelector {
-                                selector: structured_selector::check(selector, catalog)?,
-                                source_span: selector.span(),
-                            });
-                        }
-                    }
-                }
+                let stages = check_cord_stages(
+                    &cord.stages,
+                    catalog,
+                    form_signatures,
+                    &mut resolver,
+                    &mut gears,
+                )?;
                 cords.push(CheckedCanonicalCord { stages });
             }
+            BackStatement::MatchedRoute(route) => cords.extend(check_matched_route(
+                route,
+                catalog,
+                form_signatures,
+                &mut resolver,
+                &mut gears,
+            )?),
             BackStatement::Pool(pool) => pools.push(checked_pool(pool, form_fronts)),
             BackStatement::LocalValue(_) => {}
         }
@@ -266,6 +244,152 @@ fn check_form(
         gears,
         cords,
     })
+}
+
+fn check_cord_stages(
+    source: &[CordStage],
+    catalog: &StartupCatalog,
+    form_signatures: &BTreeMap<String, KindSignature>,
+    resolver: &mut Resolver<'_>,
+    gears: &mut Vec<CheckedCanonicalGear>,
+) -> Result<Vec<CheckedCordStage>, SyntaxCheckDiagnostic> {
+    let mut stages = Vec::with_capacity(source.len());
+    for stage in source {
+        match stage {
+            CordStage::Reference(reference) => {
+                stages.push(CheckedCordStage::Reference(reference.text.clone()));
+            }
+            CordStage::InlineGear(invocation) => {
+                let gear = check_invocation(None, invocation, catalog, form_signatures, resolver)?;
+                stages.push(CheckedCordStage::InlineGear(gear.clone()));
+                gears.push(gear);
+            }
+            CordStage::Literal(expression) => {
+                let value = resolver
+                    .resolve_expression(expression, None)
+                    .map_err(|error| error.diagnostic(expression.span))?;
+                if !matches!(value, CanonicalStartupValue::Literal(_))
+                    || crate::text_value::parse_quoted_text(&expression.text).is_none()
+                {
+                    return Err(
+                        SyntaxCheckError::UnsupportedExpression(expression.text.clone())
+                            .diagnostic(expression.span),
+                    );
+                }
+                stages.push(CheckedCordStage::Literal {
+                    value,
+                    source_span: expression.span,
+                });
+            }
+            CordStage::StructuredSelector(selector) => {
+                stages.push(CheckedCordStage::StructuredSelector {
+                    selector: structured_selector::check(selector, catalog)?,
+                    source_span: selector.span(),
+                });
+            }
+        }
+    }
+    Ok(stages)
+}
+
+fn check_matched_route(
+    route: &MatchedRoute,
+    catalog: &StartupCatalog,
+    form_signatures: &BTreeMap<String, KindSignature>,
+    resolver: &mut Resolver<'_>,
+    gears: &mut Vec<CheckedCanonicalGear>,
+) -> Result<Vec<CheckedCanonicalCord>, SyntaxCheckDiagnostic> {
+    let mut route_type = None;
+    let mut seen = BTreeSet::new();
+    for (index, arm) in route.arms.iter().enumerate() {
+        match &arm.pattern {
+            MatchedRoutePattern::Otherwise(span) => {
+                if index + 1 != route.arms.len() {
+                    return Err(route_diagnostic(*span, "otherwise track must be final"));
+                }
+                return Err(route_diagnostic(
+                    *span,
+                    "closed variant routing requires explicit exhaustive tracks",
+                ));
+            }
+            MatchedRoutePattern::Variant {
+                value_type,
+                tag,
+                span,
+            } => {
+                match route_type {
+                    Some(current) if current != value_type.text => {
+                        return Err(route_diagnostic(
+                            *span,
+                            "all tracks in one matched route must use the same variant type",
+                        ));
+                    }
+                    None => route_type = Some(value_type.text.as_str()),
+                    Some(_) => {}
+                }
+                if !seen.insert(tag.text.as_str()) {
+                    return Err(route_diagnostic(tag.span, "duplicate matched route track"));
+                }
+            }
+        }
+    }
+    let type_name = route_type.ok_or_else(|| {
+        route_diagnostic(route.span, "matched routing requires typed variant tracks")
+    })?;
+    let value_type = catalog
+        .structured_type(type_name)
+        .cloned()
+        .ok_or_else(|| route_diagnostic(route.span, "unknown matched route variant type"))?;
+    let StructuredInfoTypeShape::Variant { cases, .. } = value_type.shape() else {
+        return Err(route_diagnostic(
+            route.span,
+            "matched routing type must be a closed structured variant",
+        ));
+    };
+    let expected = cases.iter().map(|case| case.tag()).collect::<BTreeSet<_>>();
+    if seen != expected {
+        return Err(route_diagnostic(
+            route.span,
+            "closed variant routing must name every case exactly once",
+        ));
+    }
+
+    let mut cords = Vec::with_capacity(route.arms.len());
+    for arm in &route.arms {
+        let MatchedRoutePattern::Variant { tag, span, .. } = &arm.pattern else {
+            unreachable!("closed variant routing admitted only explicit cases")
+        };
+        let selector = StructuredSelector::variant(
+            value_type.clone(),
+            tag.text.clone(),
+            UnmatchedVariantDisposition::Drop,
+        )
+        .map_err(|_| route_diagnostic(*span, "invalid matched route variant track"))?;
+        let mut stages = vec![
+            CheckedCordStage::Reference(route.source.text.clone()),
+            CheckedCordStage::StructuredSelector {
+                selector,
+                source_span: *span,
+            },
+        ];
+        stages.extend(check_cord_stages(
+            &arm.stages,
+            catalog,
+            form_signatures,
+            resolver,
+            gears,
+        )?);
+        cords.push(CheckedCanonicalCord { stages });
+    }
+    Ok(cords)
+}
+
+fn route_diagnostic(span: crate::Span, message: &str) -> SyntaxCheckDiagnostic {
+    SyntaxCheckDiagnostic {
+        code: "CND-FRM-054",
+        span,
+        message: message.into(),
+    }
 }
 
 fn checked_parameters(
