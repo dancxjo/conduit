@@ -147,6 +147,21 @@ fn exhaustive_variant_route_lowers_to_exact_drop_selectors() {
 }
 
 #[test]
+fn route_trivia_changes_source_identity_but_not_checked_meaning() {
+    let plain = check(
+        "form route {\n events > ? {\n  [MusicEvent.note] > notes\n  [MusicEvent.rest] > rests\n }\n}\n",
+    );
+    let commented = check(
+        "# railway prose is not meaning\nform route {\n events > ? {\n  [MusicEvent.note] > notes # audible\n  [MusicEvent.rest] > rests\n }\n}\n",
+    );
+    assert_ne!(plain.source_document_id, commented.source_document_id);
+    assert_eq!(
+        plain.forms[0].checked_form_id,
+        commented.forms[0].checked_form_id
+    );
+}
+
+#[test]
 fn exhaustive_variant_route_expands_every_track_into_the_immutable_graph() {
     let source = "form route {\n source: test/source\n notes: test/note-sink\n rests: test/rest-sink\n source > ? {\n  [MusicEvent.note] > notes\n  [MusicEvent.rest] > rests\n }\n}\n";
     let checked = check(source);
