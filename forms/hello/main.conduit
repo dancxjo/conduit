@@ -1,6 +1,7 @@
 form hello {
     # This literal pipeline is transactional and explicitly completes.
-    .    upper: text/upper
+    .
+    upper: text/upper
     show: presentation/text
 
     "Hello, world." > upper > show

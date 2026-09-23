@@ -217,7 +217,8 @@ fn browser_quantity_authored_forms_reach_typed_output_and_completed_receipts() {
             let source = format!(
                 r#"{authored}
 form zz-quantity-output {{
- . input: scalar/literal(value = {value})
+ .
+ input: scalar/literal(value = {value})
  map: {name}
  wrap: structured-info/wrap-quantity
  show: presentation/quantity
