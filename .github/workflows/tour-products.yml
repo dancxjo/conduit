@@ -1124,18 +1124,14 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
-      - name: Stage the browser Body journey proof capsule
-        if: matrix.shard == 'creche-machines'
-        env:
-          EXACT_COMMIT: ${{ env.CONDUIT_CANDIDATE_SHA }}
+      - name: Require the browser Body to emit its own journey proof capsule
+        if: matrix.shard == 'creche-machines' && inputs.full_suite
         run: |
-          receipt=$(find "$CONDUIT_BROWSER_PROOF_OUTPUT" -name browser-body-journey.json -type f -print -quit)
-          screenshot=$(find "$CONDUIT_BROWSER_PROOF_OUTPUT" -name browser-body-fulfilled.png -type f -print -quit)
-          test -n "$receipt" && test -n "$screenshot"
-          node tools/ci/capture-three-body-track.mjs browser "$EXACT_COMMIT" \
-            "$receipt" "$screenshot" "$RUNNER_TEMP/browser-body-journey"
+          track=$(find "$CONDUIT_BROWSER_PROOF_OUTPUT" -path '*/body-journey-track/track.json' -type f -print -quit)
+          test -n "$track"
+          cp -R "$(dirname "$track")" "$RUNNER_TEMP/browser-body-journey"
       - name: Retain the browser Body journey proof capsule
-        if: matrix.shard == 'creche-machines'
+        if: matrix.shard == 'creche-machines' && inputs.full_suite
         uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-browser-body-journey-${{ env.CONDUIT_CANDIDATE_SHA }}
