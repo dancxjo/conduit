@@ -818,24 +818,24 @@ fn browser_home_is_staged_proven_in_two_engines_and_carried_to_pages() {
 }
 
 #[test]
-fn promotion_keeps_unadmitted_three_body_evidence_off_the_release_path() {
+fn promotion_requires_producer_owned_three_body_evidence() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/promotion.yml"))
         .expect("read promotion workflow");
 
-    assert!(!workflow.contains("\n  generative-body-journey:\n"));
-    assert!(!workflow.contains("\n  three-body-journey:\n"));
-    assert!(!workflow.contains("conduit-browser-body-journey-"));
-    assert!(!workflow.contains("conduit-native-body-journey-"));
-    assert!(!workflow.contains("conduit-generative-body-journey-"));
-    assert!(!workflow.contains("host prove-local-model"));
-    assert!(!workflow.contains("evidence stage-three-body-journey"));
-    assert!(workflow.contains("needs: [products, conduitos-spore-acceptance]"));
-    assert!(workflow.contains("fail-closed flagship placeholder"));
+    assert!(workflow.contains("\n  generative-body-journey:\n"));
+    assert!(workflow.contains("\n  three-body-journey:\n"));
+    assert!(workflow.contains("conduit-browser-body-journey-"));
+    assert!(workflow.contains("conduit-native-body-journey-"));
+    assert!(workflow.contains("conduit-generative-body-journey-"));
+    assert!(workflow.contains("host prove-local-model"));
+    assert!(workflow.contains("evidence stage-three-body-journey"));
+    assert!(workflow.contains("needs: [products, conduitos-spore-acceptance, three-body-journey]"));
+    assert!(!workflow.contains("capture-three-body-track"));
 }
 
 #[test]
-fn browser_proof_reuses_the_staged_carrier_without_premature_journey_claims() {
+fn browser_proof_reuses_the_staged_carrier_and_retains_its_own_journey_track() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
@@ -844,8 +844,8 @@ fn browser_proof_reuses_the_staged_carrier_without_premature_journey_claims() {
     assert!(workflow
         .contains("CONDUIT_BROWSER_PROOF_OUTPUT: /tmp/conduit-browser-proof-${{ matrix.shard }}"));
     assert!(workflow.contains("--output \"$CONDUIT_BROWSER_PROOF_OUTPUT\""));
-    assert!(!workflow.contains("body-journey-track/track.json"));
-    assert!(!workflow.contains("conduit-browser-body-journey-"));
+    assert!(workflow.contains("body-journey-track"));
+    assert!(workflow.contains("conduit-browser-body-journey-"));
     assert!(workflow.contains("name: Deduplicate the staged release catalog for transport"));
     assert_eq!(
         workflow
