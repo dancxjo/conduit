@@ -1,4 +1,7 @@
 import { spawn } from "node:child_process";
+import { mkdtemp, rm, symlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { expect } from "@playwright/test";
 
 function awaitUrl(child, pattern, label) {
@@ -41,6 +44,17 @@ export async function startStaticProduct(root, mount = "/") {
   });
   const url = await awaitUrl(child, /CONDUIT_STATIC_SERVER_URL=(http:\/\/127\.0\.0\.1:\d+\/\S*)/, "staged product");
   return { child, url };
+}
+
+export async function startCrecheCompatibility() {
+  const root = await mkdtemp(join(tmpdir(), "conduit-creche-proof-"));
+  const creche = resolve(process.env.CONDUIT_CRECHE_PRODUCT_ROOT ?? "target/creche-product");
+  const workspace = resolve(process.env.CONDUIT_WORKSPACE_PRODUCT_ROOT ?? "target/workspace-product");
+  await symlink(creche, join(root, "creche"), "dir");
+  await symlink(workspace, join(root, "workspace"), "dir");
+  const entrance = await startStaticProduct(root);
+  entrance.child.once("exit", () => { void rm(root, { recursive: true, force: true }); });
+  return { ...entrance, url: new URL("creche/", entrance.url).href };
 }
 
 export async function openTourStep(page, entrance, index) {

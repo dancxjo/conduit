@@ -1,9 +1,9 @@
 import { openCrecheStep } from "./creche-test-actions.mjs";
-import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { reviewAndBirth } from "./creche-test-actions.mjs";
 import { downloadArtifact, sha256 } from "./download-artifact.mjs";
+import { startCrecheCompatibility } from "./tour-test-server.mjs";
 
 const X86 = "conduitos/x86_64/pc";
 const AARCH64 = "conduitos/aarch64/virt";
@@ -13,26 +13,6 @@ const PROMOTED = Object.freeze([
   Object.freeze({ id: "conduitos/loongarch64/virt", manifest: "conduitos-loongarch64-virt-release.json", architecture: "loongarch64", machine: "virt", firmware: "EDK2 QEMU_EFI.fd", bootEntry: "BOOTLOONGARCH64.EFI", deployment: "conduit-host-conduitos/boot-loongarch64@1" }),
 ]);
 let entrance;
-
-async function startCreche() {
-  const child = spawn("target/debug/conduit-browser-host", ["--application", "target/creche-product", "--mount", "/creche/", "--no-open"], {
-    cwd: new URL("../..", import.meta.url).pathname,
-    env: process.env,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let output = "";
-  const url = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Crèche was not ready\n${output}`)), 10_000);
-    const inspect = (chunk) => {
-      output += chunk.toString();
-      const match = output.match(/CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/creche\/)/);
-      if (match) { clearTimeout(timeout); resolve(match[1]); }
-    };
-    child.stdout.on("data", inspect); child.stderr.on("data", inspect);
-    child.once("exit", (code) => { clearTimeout(timeout); reject(new Error(`Crèche exited (${code})\n${output}`)); });
-  });
-  return { child, url };
-}
 
 async function installRelease(page, name) {
   const root = new URL("../../target/creche-product/artifacts/", import.meta.url);
@@ -46,13 +26,12 @@ async function installRelease(page, name) {
 
 async function birthBody(page) {
   await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   await reviewAndBirth(page);
   await openCrecheStep(page, "3. Physical Host");
   return page.locator(".physical-host-runner");
 }
 
-test.beforeEach(async () => { entrance = await startCreche(); });
+test.beforeEach(async () => { entrance = await startCrecheCompatibility(); });
 test.afterEach(() => entrance?.child.kill());
 
 test("exact x86_64 product IMAGE obtains and binds as a downloadable spore without device authority", async ({ page }) => {

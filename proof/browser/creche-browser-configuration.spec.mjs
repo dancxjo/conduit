@@ -1,13 +1,13 @@
 import { openCrecheStep } from "./creche-test-actions.mjs";
-import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { reviewAndBirth } from "./creche-test-actions.mjs";
 import { EXISTING_COMPUTER_BOUNDS } from "../../products/creche/browser/creche-existing-computer.mjs";
+import { startCrecheCompatibility } from "./tour-test-server.mjs";
 
 let entrance;
 
-test.beforeEach(async () => { entrance = await startCreche(); });
+test.beforeEach(async () => { entrance = await startCrecheCompatibility(); });
 test.afterEach(() => entrance?.child.kill());
 
 test("Crèche evidence budgets cover the release runtime's canonical advertisement and join envelope", async () => {
@@ -89,7 +89,7 @@ test("one reviewed distribution fabricates materially different, capability-enfo
 test("browser outfitting is catalog-driven, editable, and handed to checked fabrication", async ({ page }) => {
   const release = await installBrowserRelease(page);
   await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await expect(page.locator(".body-birth-runner")).toBeVisible();
   await reviewAndBirth(page);
   await openCrecheStep(page, "3. Physical Host");
   const runner = page.locator(".physical-host-runner");
@@ -157,7 +157,7 @@ test("browser outfitting is catalog-driven, editable, and handed to checked fabr
 
 test("stale restored browser choices are refused before lifecycle change", async ({ page }) => {
   await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await expect(page.locator(".body-birth-runner")).toBeVisible();
   await page.evaluate(async () => {
     const { createBrowserConfigurationOutfitter } = await import(new URL("../creche-browser-configuration.mjs", location.href).href);
     const root = document.createElement("div");
@@ -175,28 +175,6 @@ test("stale restored browser choices are refused before lifecycle change", async
   await expect(page.locator("#stale-browser-configuration")).not.toContainText("PROFILE");
   expect(await page.evaluate(() => globalThis.__conduitCrecheHost.runtime.conduit_creche_current())).toBe(1);
 });
-
-async function startCreche() {
-  const product = process.env.CONDUIT_CRECHE_PRODUCT_ROOT ?? "target/creche-product";
-  const child = spawn("target/debug/conduit-browser-host", ["--application", product, "--mount", "/creche/", "--no-open"], {
-    cwd: new URL("../..", import.meta.url).pathname,
-    env: process.env,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let output = "";
-  const url = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Crèche was not ready\n${output}`)), 10_000);
-    const inspect = (chunk) => {
-      output += chunk.toString();
-      const match = output.match(/CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/creche\/)/);
-      if (match) { clearTimeout(timeout); resolve(match[1]); }
-    };
-    child.stdout.on("data", inspect);
-    child.stderr.on("data", inspect);
-    child.once("exit", (code) => { clearTimeout(timeout); reject(new Error(`Crèche exited (${code})\n${output}`)); });
-  });
-  return { child, url };
-}
 
 async function installBrowserRelease(page) {
   const root = process.env.CONDUIT_CRECHE_PRODUCT_ROOT
@@ -221,7 +199,7 @@ async function installBrowserRelease(page) {
 
 async function fabricateBrowserHost(page, { preset, add = [] }) {
   await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await expect(page.locator(".body-birth-runner")).toBeVisible();
   await reviewAndBirth(page);
   await openCrecheStep(page, "3. Physical Host");
   const runner = page.locator(".physical-host-runner");

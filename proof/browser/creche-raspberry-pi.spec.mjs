@@ -1,35 +1,15 @@
 import { openCrecheStep } from "./creche-test-actions.mjs";
-import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { reviewAndBirth } from "./creche-test-actions.mjs";
 import { downloadArtifact, sha256 } from "./download-artifact.mjs";
+import { startCrecheCompatibility } from "./tour-test-server.mjs";
 
 const PI_OS_TARGET = "std/aarch64/raspberry-pi-4-model-b-rev-1.5-4gb";
 const BARE_TARGET = "conduitos/armv6/raspberry-pi-model-b-plus-v1.2";
 const PI_OS_MANIFEST = "raspios-bookworm-pi4-model-b-rev-1.5-4gb.json";
 const BARE_MANIFEST = "rpi-b-plus-image.json";
 let entrance;
-
-async function startCreche() {
-  const child = spawn("target/debug/conduit-browser-host", ["--application", "target/creche-product", "--mount", "/creche/", "--no-open"], {
-    cwd: new URL("../..", import.meta.url).pathname,
-    env: process.env,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let output = "";
-  const url = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Crèche was not ready\n${output}`)), 10_000);
-    const inspect = (chunk) => {
-      output += chunk.toString();
-      const match = output.match(/CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/creche\/)/);
-      if (match) { clearTimeout(timeout); resolve(match[1]); }
-    };
-    child.stdout.on("data", inspect); child.stderr.on("data", inspect);
-    child.once("exit", (code) => { clearTimeout(timeout); reject(new Error(`Crèche exited (${code})\n${output}`)); });
-  });
-  return { child, url };
-}
 
 async function installRelease(page, manifestName) {
   const root = new URL("../../target/creche-product/artifacts/", import.meta.url);
@@ -52,13 +32,12 @@ async function installRelease(page, manifestName) {
 
 async function birthBody(page) {
   await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
   await reviewAndBirth(page);
   await openCrecheStep(page, "3. Physical Host");
   return page.locator(".physical-host-runner");
 }
 
-test.beforeEach(async () => { entrance = await startCreche(); });
+test.beforeEach(async () => { entrance = await startCrecheCompatibility(); });
 test.afterEach(() => entrance?.child.kill());
 
 test("Raspberry Pi OS is an exact existing-machine package, not a disk image", async ({ page }) => {

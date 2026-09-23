@@ -1,11 +1,10 @@
 import { openCrecheStep } from "./creche-test-actions.mjs";
-import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { reviewAndBirth, selectBirthForm } from "./creche-test-actions.mjs";
 import { installB7Devices } from "./b7-fixture.mjs";
-import { openTourStep, startTour, startStaticProduct } from "./tour-test-server.mjs";
+import { openTourStep, startCrecheCompatibility, startTour, startStaticProduct } from "./tour-test-server.mjs";
 import { downloadArtifact, sha256 } from "./download-artifact.mjs";
 import { registerTourGalleryExecutionTests } from "./tour-gallery-execution.cases.mjs";
 import { registerButtonMultiHostTests } from "./button-multihost.cases.mjs";
@@ -28,38 +27,15 @@ function browserApplicationPackageDigest(manifest) {
   return `sha256:${createHash("sha256").update(`${lines.join("\n")}\n`).digest("hex")}`;
 }
 
-async function startCreche() {
-  const host = process.env.CONDUIT_BROWSER_HOST_BIN ?? "target/debug/conduit-browser-host";
-  const product = process.env.CONDUIT_CRECHE_PRODUCT_ROOT ?? "target/creche-product";
-  const child = spawn(host, ["--application", product, "--mount", "/creche/", "--no-open"], {
-    cwd: new URL("../..", import.meta.url).pathname,
-    env: process.env,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let output = "";
-  const url = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Crèche was not ready\n${output}`)), 10_000);
-    const inspect = (chunk) => {
-      output += chunk.toString();
-      const match = output.match(/CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/creche\/)/);
-      if (match) { clearTimeout(timeout); resolve(match[1]); }
-    };
-    child.stdout.on("data", inspect);
-    child.stderr.on("data", inspect);
-    child.once("exit", (code) => { clearTimeout(timeout); reject(new Error(`Crèche exited (${code})\n${output}`)); });
-  });
-  return { child, url };
-}
-
 async function openStep(page, index) {
   await openTourStep(page, entrance, index);
 }
 
 async function openStandaloneCreche(page) {
   entrance.child.kill();
-  entrance = await startCreche();
+  entrance = await startCrecheCompatibility();
   await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await expect(page.locator(".body-birth-runner")).toBeVisible();
 }
 
 async function readPhysicalHostEvidence(runner) {
@@ -681,7 +657,7 @@ test("the staged Tour and Crèche each boot with only their own product tree", a
     tour.child.kill();
   }
 
-  const creche = await startStaticProduct("target/creche-product", "/conduit/creche/");
+  const creche = await startCrecheCompatibility();
   try {
     const requestedPaths = [];
     page.on("request", (request) => requestedPaths.push(new URL(request.url()).pathname));
@@ -695,8 +671,8 @@ test("the staged Tour and Crèche each boot with only their own product tree", a
         });
       }
     });
-    await page.goto(`${creche.url}index.html`);
-    await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+    await page.goto(creche.url);
+    await expect(page.locator(".body-birth-runner")).toBeVisible();
     const exports = await page.evaluate(() => Object.keys(globalThis.__conduitCrecheHost.runtime));
     expect(exports.some((name) => name.startsWith("conduit_tour_"))).toBe(false);
     expect((await page.request.get(`${creche.url}chapter-1.md`)).status()).toBe(404);
@@ -772,8 +748,8 @@ test("the staged Tour and Crèche each boot with only their own product tree", a
     expect(await page.evaluate(() => globalThis.__crecheDeviceAuthorityRequests)).toBe(0);
     await page.evaluate(() => globalThis.__conduitCrecheDurability.settled());
 
-    await page.goto(`${creche.url}index.html`);
-    await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+    await page.goto(creche.url);
+    await expect(page.locator(".body-birth-runner")).toBeVisible();
     await expect(page.locator(".body-birth-runner")).toHaveAttribute("data-body-id", stagedBodyId);
     await expect(page.locator(".body-birth-runner").getByRole("button", { name: "Birth Body" })).toBeHidden();
     await openCrecheStep(page, "3. Physical Host");
@@ -828,7 +804,7 @@ test("the staged Tour and Crèche each boot with only their own product tree", a
 test("a missing ESP32 release in the prefixed staged Crèche refuses before binding or device authority", async ({ page }) => {
   entrance.child.kill();
   entrance = null;
-  const creche = await startStaticProduct("target/creche-product", "/conduit/creche/");
+  const creche = await startCrecheCompatibility();
   const requestedPaths = [];
   page.on("request", (request) => requestedPaths.push(new URL(request.url()).pathname));
   await page.addInitScript(() => {
@@ -843,8 +819,8 @@ test("a missing ESP32 release in the prefixed staged Crèche refuses before bind
   });
   await page.route("**/conduit/creche/artifacts/esp32-c3-generic-release.json", (route) => route.fulfill({ status: 404 }));
   try {
-    await page.goto(`${creche.url}index.html`);
-    await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+    await page.goto(creche.url);
+    await expect(page.locator(".body-birth-runner")).toBeVisible();
     await reviewAndBirth(page);
     await openCrecheStep(page, "3. Physical Host");
     const runner = page.locator(".physical-host-runner");
@@ -1159,9 +1135,9 @@ test("the Tour opens with one logical Body premise and keeps Crèche machinery l
 
 test("the standalone Crèche physical Host selects use only the custom dropdown arrow", async ({ page }) => {
   entrance.child.kill();
-  entrance = await startCreche();
+  entrance = await startCrecheCompatibility();
   await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Crèche ready");
+  await expect(page.locator(".body-birth-runner")).toBeVisible();
   await birthStandaloneBody(page);
   await openCrecheStep(page, "3. Physical Host");
   const selects = page.locator('.physical-host-runner [data-application-key="physical-mode"], .physical-host-runner [data-application-key="physical-target"]');
