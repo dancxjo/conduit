@@ -828,6 +828,11 @@ fn promotion_requires_producer_owned_three_body_evidence() {
     assert!(workflow.contains("conduit-browser-body-journey-"));
     assert!(workflow.contains("conduit-native-body-journey-"));
     assert!(workflow.contains("conduit-generative-body-journey-"));
+    assert!(
+        workflow.contains("name: conduitos-x86-batch-${{ github.event.pull_request.head.sha }}")
+    );
+    assert!(workflow
+        .contains("conduitos-x86-batch/runs/product-journey/conduitos/x86_64/body-journey-track"));
     assert!(workflow.contains("host prove-local-model"));
     assert!(workflow.contains("evidence stage-three-body-journey"));
     assert!(workflow.contains("needs: [products, conduitos-spore-acceptance, three-body-journey]"));
