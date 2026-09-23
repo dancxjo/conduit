@@ -14,6 +14,11 @@ Adding or changing a canonical form requires checker coverage and explicit
 consumer updates. form source grants no host, membership, authority, plan, or
 play truth.
 
+Conduitese forms remain alive when their admitted work drains unless the body
+ends with a standalone `.` full stop. The full stop means that draining fulfills
+the form's authored meaning; it is not a Gear, effect, or host instruction.
+There is deliberately no `complete` keyword or compatibility spelling.
+
 [Startup Chime](startup-chime/README.md) and
 [First wake Chime](first-wake-chime/README.md) demonstrate non-graphical
 embodiment: a body wakes its installed forms, and a form may simply make a

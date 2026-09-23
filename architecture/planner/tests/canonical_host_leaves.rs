@@ -234,8 +234,7 @@ fn nested_form_terminates_only_in_exact_planned_host_call_leaves() {
 #[test]
 fn explicit_form_completion_reaches_the_exact_plan() {
     let source = r#"form finite {
-    complete
-    source: text/source
+    .    source: text/source
     show: presentation/text
     source > show
 }

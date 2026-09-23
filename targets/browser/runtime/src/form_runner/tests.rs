@@ -3,8 +3,7 @@ use super::*;
 const MAXIMUM_EFFECT_DRIVE_STEPS: usize = crate::installed_browser::BROWSER_ROUTE_SLOTS;
 
 const HELLO_LIGHT: &str = r#"form hello-light {
-    complete
-    message: text/literal("SOS")
+    .    message: text/literal("SOS")
     morse: text/morse(120)
     light: presentation/indicator
 
@@ -406,8 +405,7 @@ fn desk_telegraph_and_night_radio_submit_two_messages_in_one_play() {
 #[test]
 fn four_gear_text_form_runs_without_a_topology_special_case() {
     let source = r#"form text-chain {
-    complete
-    source: text/literal("hello")
+    .    source: text/literal("hello")
     prefix: text/join("say: ")
     upper: text/upper
     result: presentation/text
@@ -425,8 +423,7 @@ fn four_gear_text_form_runs_without_a_topology_special_case() {
 #[test]
 fn explicit_record_temporal_boundary_runs_the_bounded_queue() {
     let source = r#"form queued-record {
-    complete
-    message: text/literal("CALLING")
+    .    message: text/literal("CALLING")
     encode: record/text-to-typed
     frame: record/frame-typed
     queue: record/ordered-send-queue(4, 4096)
@@ -451,8 +448,7 @@ fn explicit_record_temporal_boundary_runs_the_bounded_queue() {
 #[test]
 fn linguistic_structured_info_runs_through_the_same_browser_envelope() {
     let source = r#"form language-lab {
-    complete
-    tokens: language/tokenize-four("Bright stars shine.")
+    .    tokens: language/tokenize-four("Bright stars shine.")
     annotate: language/annotate-four
     result: presentation/structured-info
 
@@ -476,8 +472,7 @@ fn linguistic_structured_info_runs_through_the_same_browser_envelope() {
 #[test]
 fn math_and_logic_families_use_the_same_generic_host_path() {
     let math = r#"form math-lab {
-    complete
-    source: scalar/literal(1.5)
+    .    source: scalar/literal(1.5)
     scale: math/scale(2.0)
     result: presentation/scalar
     source > scale > result
@@ -490,8 +485,7 @@ fn math_and_logic_families_use_the_same_generic_host_path() {
     assert_eq!(math_session.complete().unwrap().disposition, "completed");
 
     let logic = r#"form logic-lab {
-    complete
-    source: boolean/literal(true)
+    .    source: boolean/literal(true)
     invert: logic/not
     result: presentation/bool-value
     source > invert > result
@@ -507,8 +501,7 @@ fn math_and_logic_families_use_the_same_generic_host_path() {
 #[test]
 fn typed_fanout_reconverges_without_tour_topology_code() {
     let source = r#"form fanout-lab {
-    complete
-    source: scalar/literal(0.5)
+    .    source: scalar/literal(0.5)
     scaled: math/scale(2.0)
     quiet: math/deadband(0.6)
     compare: logic/compare("gt")
@@ -745,8 +738,7 @@ fn semantic_kind_without_browser_installation_refuses_before_play() {
 #[test]
 fn newly_installed_logic_select_executes_through_the_generic_host() {
     let select = r#"form browser-select {
-    complete
-    selector: boolean/literal(true)
+    .    selector: boolean/literal(true)
     when_false: scalar/literal(1.0)
     when_true: scalar/literal(2.0)
     choose: logic/select

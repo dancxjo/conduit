@@ -335,11 +335,11 @@ impl<'a> Parser<'a> {
                 self.index += 1;
                 continue;
             }
-            if text == "complete" {
+            if text == "." {
                 if completion == FormCompletionPolicy::SemanticCompletion {
                     return Err((
                         FormError::InvalidSyntax(
-                            "a form may declare semantic completion only once".into(),
+                            "a form may contain only one semantic full stop".into(),
                         ),
                         self.span(start, start + text.len()),
                     ));
@@ -347,6 +347,14 @@ impl<'a> Parser<'a> {
                 completion = FormCompletionPolicy::SemanticCompletion;
                 self.index += 1;
                 continue;
+            }
+            if text == "complete" {
+                return Err((
+                    FormError::InvalidSyntax(
+                        "'complete' is not Conduitese; use a standalone '.' full stop".into(),
+                    ),
+                    self.span(start, start + text.len()),
+                ));
             }
             statements.push(self.parse_statement(text, start)?);
             self.index += 1;

@@ -68,8 +68,7 @@ form little-seismograph-processing (
 # the manifestations consume the portable processing outputs.
 form little-seismograph-display {
     # Transactional display specimen: one bounded measurement series.
-    complete
-    source: measurement/deterministic-seismograph-inputs
+    .    source: measurement/deterministic-seismograph-inputs
     processing: little-seismograph-processing
     plot: presentation/measurement-plot
     threshold: presentation/measurement-threshold

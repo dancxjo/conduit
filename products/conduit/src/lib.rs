@@ -97,7 +97,7 @@ mod tests {
     fn library_entrance_runs_the_same_real_hosted_form_pipeline() {
         let mut output = Vec::new();
         let execution = execute_hosted_form(
-            "form hosted-library {\n  complete\n  words: text/literal(\"hello\")\n  change: text/upper\n  result: presentation/text\n  words > change > result\n}\n",
+            "form hosted-library {\n  .\n  words: text/literal(\"hello\")\n  change: text/upper\n  result: presentation/text\n  words > change > result\n}\n",
             &mut output,
         )
         .unwrap();
