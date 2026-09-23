@@ -20,6 +20,7 @@ const OLLAMA_ENDPOINT: &str = "http://127.0.0.1:11434";
 const MAXIMUM_INVENTORY_BYTES: usize = 16 * 1024 * 1024;
 const MAXIMUM_RUNTIME_IDENTITY_BYTES: usize = 4 * 1024;
 const REQUEST_TIMEOUT_SECONDS: &str = "120";
+const WARMUP_MAXIMUM_TOKENS: u64 = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct OllamaDiscovery {
@@ -246,7 +247,11 @@ impl OllamaDiscovery {
             active_stream: None,
         };
         if needs_completion {
-            let warmup = adapter.generate("Reply with one word.", 1, false)?;
+            // One token is not enough for every completion-capable model to
+            // cross its private tokenizer's control-token prefix and emit
+            // visible text. Keep the probe tiny and finite, but admit enough
+            // output for the provider to demonstrate a usable completion.
+            let warmup = adapter.generate("Reply with one word.", WARMUP_MAXIMUM_TOKENS, false)?;
             if warmup.response.is_empty() {
                 return Err("local model warmup produced no output".to_string());
             }
