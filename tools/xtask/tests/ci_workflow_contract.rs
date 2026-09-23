@@ -835,6 +835,7 @@ fn promotion_publishes_the_exact_three_body_journey() {
     assert!(!job.contains("conduit-staged-browser-products"));
     assert!(!job.contains("proof/browser/workspace-membership.spec.mjs"));
     assert!(!job.contains("capture-three-body-track.mjs"));
+    assert!(!job.contains("build-three-body-journey.mjs"));
     assert!(job.contains("evidence three-body-journey --locked"));
     let generative = workflow
         .split("\n  generative-body-journey:\n")
@@ -844,13 +845,13 @@ fn promotion_publishes_the_exact_three_body_journey() {
     assert!(generative.contains("host prove-local-model"));
     assert!(generative.contains("--orifina-presenter"));
     assert!(generative.contains("actions/cache@v4"));
-    assert!(generative.contains("capture-three-body-track.mjs generative"));
+    assert!(generative.contains("test -f \"$RUNNER_TEMP/generative-body-journey/track.json\""));
     let native = workflow
         .split("\n  conduitos-spore-acceptance:\n")
         .nth(1)
         .and_then(|tail| tail.split("\n  generative-body-journey:\n").next())
         .expect("locate native Body proof job");
-    assert!(native.contains("capture-three-body-track.mjs native"));
+    assert!(native.contains("body-journey-track/track.json"));
     assert!(workflow.contains("evidence stage-three-body-journey --locked"));
     assert!(workflow.contains("needs: [products, conduitos-spore-acceptance, three-body-journey]"));
 }
@@ -868,7 +869,8 @@ fn browser_journey_is_retained_by_its_existing_proof_shard() {
     assert!(workflow
         .contains("CONDUIT_BROWSER_PROOF_OUTPUT: /tmp/conduit-browser-proof-${{ matrix.shard }}"));
     assert!(workflow.contains("--output \"$CONDUIT_BROWSER_PROOF_OUTPUT\""));
-    assert!(workflow.contains("capture-three-body-track.mjs browser"));
+    assert!(workflow.contains("*/body-journey-track/track.json"));
+    assert!(workflow.contains("matrix.shard == 'creche-machines' && inputs.full_suite"));
     assert!(workflow.contains("name: Deduplicate the staged release catalog for transport"));
     assert_eq!(
         workflow

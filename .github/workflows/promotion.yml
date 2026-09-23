@@ -93,18 +93,13 @@ jobs:
         run: >-
           cargo xtask conduitos acceptance --locked
           --spore target/conduitos/x86_64/creche-export.iso
-      - name: Capture the native Body journey proof capsule
-        env:
-          EXACT_COMMIT: ${{ github.event.pull_request.head.sha }}
-        run: >-
-          node tools/ci/capture-three-body-track.mjs native "$EXACT_COMMIT"
-          target/conduitos/x86_64/journey-proof.json -
-          "$RUNNER_TEMP/native-body-journey"
+      - name: Require the native Body to emit its own journey proof capsule
+        run: test -f target/conduitos/x86_64/body-journey-track/track.json
       - name: Retain the native Body journey proof capsule
         uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-native-body-journey-${{ github.event.pull_request.head.sha }}
-          path: ${{ runner.temp }}/native-body-journey
+          path: target/conduitos/x86_64/body-journey-track
           if-no-files-found: error
           retention-days: 14
           compression-level: 6
@@ -162,9 +157,7 @@ jobs:
           PATH="$RUNNER_TEMP:$PATH" cargo xtask --json host prove-local-model --locked \
             --model gemma3:270m --admitted-memory-mib 2048 --orifina-presenter \
             > "$RUNNER_TEMP/model-body.json"
-          node tools/ci/capture-three-body-track.mjs generative \
-            "${{ github.event.pull_request.head.sha }}" "$RUNNER_TEMP/model-body.json" - \
-            "$RUNNER_TEMP/generative-body-journey"
+          test -f "$RUNNER_TEMP/generative-body-journey/track.json"
       - name: Retain the generative Body proof capsule
         uses: ./.github/actions/upload-artifact-retry
         with:
