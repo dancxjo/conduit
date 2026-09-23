@@ -1,0 +1,12 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "4ac95aa41915fa68bec8fadea9c4fd895d107acd",
+  "track": "hosted-generative",
+  "step_id": "body.repaired",
+  "assertion": "body-repaired",
+  "source_facts": {
+    "plan_id": "body-plan/sha256:37bd101cb0acaa391728c53e0919fb104dbea24f2e3e8e28bc9b3bd52a7befa3",
+    "play_id": "body-play/sha256:28b9ffc01c676964a824d0c6ff69fd94df319253b5ca7de179661036b73d473b",
+    "repaired": true
+  }
+}

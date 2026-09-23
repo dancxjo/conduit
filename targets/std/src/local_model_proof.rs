@@ -14,7 +14,7 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct LocalModelLiveProofReceipt {
-    pub proof_class: &'static str,
+    pub proof_class: String,
     pub host_id: String,
     pub boot_id: String,
     pub model_content_identity: String,
@@ -134,6 +134,16 @@ pub fn run(
     adapter: OllamaLocalModelAdapter,
     presenter_requests: &[GenerativePresenterRequest],
 ) -> Result<LocalModelLiveProofReceipt, Box<dyn std::error::Error>> {
+    let proof_class = if adapter
+        .offer()
+        .identity
+        .runtime_version
+        .contains("fixture-http")
+    {
+        "ollama-http-fixture"
+    } else {
+        "live-local-model"
+    };
     let model_content_identity = adapter.offer().identity.model_content_identity.clone();
     let generated_text = Arc::new(Mutex::new(None));
     let presenter_manifestations = Arc::new(Mutex::new(Vec::new()));
@@ -241,7 +251,7 @@ pub fn run(
         conduit_tongues::SpeechFault::None,
     )?;
     Ok(LocalModelLiveProofReceipt {
-        proof_class: "live-local-model",
+        proof_class: proof_class.into(),
         host_id: host.advertisement.host_id.as_str().into(),
         boot_id: host.advertisement.boot_id.as_str().into(),
         model_content_identity,

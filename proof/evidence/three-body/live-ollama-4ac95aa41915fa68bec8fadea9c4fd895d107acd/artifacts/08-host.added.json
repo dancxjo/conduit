@@ -1,0 +1,102 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "4ac95aa41915fa68bec8fadea9c4fd895d107acd",
+  "track": "hosted-generative",
+  "step_id": "host.added",
+  "assertion": "host-added",
+  "source_facts": {
+    "boot_id": "boot/orifina-companion",
+    "host_id": "host/orifina-companion",
+    "membership": {
+      "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+      "events": [
+        {
+          "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+          "change_id": "a29c46b4eb9012ea5e63eb2837d53d0c4fd483a1e4655c19b5e91cb18f5c0e68",
+          "kind": {
+            "Admitted": {
+              "proof_id": "e5c98e63fcc032f554d5182dd974a4d37147c0747b66082417b181fa6810f6b3"
+            }
+          },
+          "part_id": "12a48b228d592c38ce92d40009c9e97d1268352f29d7d0e8203ebcfd48b7dc57",
+          "revision": 1,
+          "sign_id": "sign/orifina-provider-proof/admit"
+        },
+        {
+          "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+          "change_id": "fd77e37734abebe56c10eb9957cc0403cbde0200b2920b1a44fbb6af664f6b34",
+          "kind": {
+            "HostAttached": {
+              "observation": {
+                "boot_id": "boot/orifina-local-model",
+                "host_id": "host/orifina-local-model",
+                "offer_generation": 1,
+                "proof_id": "e5c98e63fcc032f554d5182dd974a4d37147c0747b66082417b181fa6810f6b3",
+                "sequence": 1
+              }
+            }
+          },
+          "part_id": "12a48b228d592c38ce92d40009c9e97d1268352f29d7d0e8203ebcfd48b7dc57",
+          "revision": 2,
+          "sign_id": "sign/orifina-provider-proof/present"
+        },
+        {
+          "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+          "change_id": "599006581e8a47759f7dea50a22d38e8d75f77451b9ac0d07e911e1c06e2cc51",
+          "kind": {
+            "Admitted": {
+              "proof_id": "a491462db8959c7691c2d37827811fa97a4553f7d88cb9ac1d8bfacabbfb7297"
+            }
+          },
+          "part_id": "5d8d518171eb0f1b0a611a9198efcf6392e64ff718c92008904e9606cf1f42b9",
+          "revision": 3,
+          "sign_id": "sign/orifina-companion/admitted"
+        },
+        {
+          "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+          "change_id": "2ab4e306baffabc75403156973a18fb1bab2cf6232bc882b5e0cf86025330eb9",
+          "kind": {
+            "HostAttached": {
+              "observation": {
+                "boot_id": "boot/orifina-companion",
+                "host_id": "host/orifina-companion",
+                "offer_generation": 1,
+                "proof_id": "a491462db8959c7691c2d37827811fa97a4553f7d88cb9ac1d8bfacabbfb7297",
+                "sequence": 1
+              }
+            }
+          },
+          "part_id": "5d8d518171eb0f1b0a611a9198efcf6392e64ff718c92008904e9606cf1f42b9",
+          "revision": 4,
+          "sign_id": "sign/orifina-companion/joined"
+        }
+      ],
+      "fulfilled_sign_id": "f7c46ad3fde073df05ffce70e5e8f38d335d2650a6567351c9e81da6eba520d9",
+      "parts": [
+        {
+          "current": {
+            "boot_id": "boot/orifina-local-model",
+            "host_id": "host/orifina-local-model",
+            "offer_generation": 1,
+            "proof_id": "e5c98e63fcc032f554d5182dd974a4d37147c0747b66082417b181fa6810f6b3",
+            "sequence": 1
+          },
+          "part_id": "12a48b228d592c38ce92d40009c9e97d1268352f29d7d0e8203ebcfd48b7dc57",
+          "state": "Admitted"
+        },
+        {
+          "current": {
+            "boot_id": "boot/orifina-companion",
+            "host_id": "host/orifina-companion",
+            "offer_generation": 1,
+            "proof_id": "a491462db8959c7691c2d37827811fa97a4553f7d88cb9ac1d8bfacabbfb7297",
+            "sequence": 1
+          },
+          "part_id": "5d8d518171eb0f1b0a611a9198efcf6392e64ff718c92008904e9606cf1f42b9",
+          "state": "Admitted"
+        }
+      ],
+      "revision": 4
+    }
+  }
+}

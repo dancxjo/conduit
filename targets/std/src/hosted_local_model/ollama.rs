@@ -20,7 +20,7 @@ use std::process::{Command, Stdio};
 const OLLAMA_ENDPOINT: &str = "http://127.0.0.1:11434";
 const MAXIMUM_INVENTORY_BYTES: usize = 16 * 1024 * 1024;
 const MAXIMUM_RUNTIME_IDENTITY_BYTES: usize = 4 * 1024;
-const REQUEST_TIMEOUT_SECONDS: &str = "300";
+const REQUEST_TIMEOUT_SECONDS: &str = "120";
 const WARMUP_MAXIMUM_TOKENS: u64 = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
