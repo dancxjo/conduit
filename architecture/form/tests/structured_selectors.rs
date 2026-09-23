@@ -113,7 +113,7 @@ fn required_domain_selectors_are_statically_typed_cord_stages() {
 
 #[test]
 fn exhaustive_variant_route_lowers_to_exact_drop_selectors() {
-    let source = "form route {\n events > ? {\n  [MusicEvent.note] > notes\n  [MusicEvent.rest] > rests\n }\n}\n";
+    let source = "form route {\n events > ? {\n  [MusicEvent.note] > _ > notes\n  [MusicEvent.rest] > _ > rests\n }\n}\n";
     let parsed = parse_syntax_document(source);
     assert_eq!(parsed.round_trip(), source);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
@@ -223,6 +223,10 @@ fn closed_variant_routes_refuse_gaps_duplicates_mixed_types_and_otherwise() {
         (
             "form route {\n events > ? {\n  _ > rest\n  [MusicEvent.note] > notes\n }\n}\n",
             "otherwise track must be final",
+        ),
+        (
+            "form route {\n events > ? {\n  [MusicEvent.note] > notes > _\n  [MusicEvent.rest] > rests\n }\n}\n",
+            "carried value '_' must be the first stage",
         ),
     ];
     for (source, message) in cases {

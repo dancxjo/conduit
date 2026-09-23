@@ -372,8 +372,24 @@ fn check_matched_route(
                 source_span: *span,
             },
         ];
+        let carried = arm.stages.first().is_some_and(
+            |stage| matches!(stage, CordStage::Reference(reference) if reference.text == "_"),
+        );
+        if let Some(stage) =
+            arm.stages.iter().skip(usize::from(carried)).find(
+                |stage| matches!(stage, CordStage::Reference(reference) if reference.text == "_"),
+            )
+        {
+            let CordStage::Reference(reference) = stage else {
+                unreachable!()
+            };
+            return Err(route_diagnostic(
+                reference.span,
+                "carried value '_' must be the first stage of a matched track",
+            ));
+        }
         stages.extend(check_cord_stages(
-            &arm.stages,
+            &arm.stages[usize::from(carried)..],
             catalog,
             form_signatures,
             resolver,
