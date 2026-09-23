@@ -21,6 +21,11 @@ async function assemblePagesCarrier() {
 }
 
 test.beforeAll(async () => {
+  // Copying the complete accepted Pages carrier is bounded setup work, but its
+  // several product trees can legitimately exceed Playwright's generic 20 s
+  // hook timeout on a cold release runner. Keep browser actions on the normal
+  // strict timeout while giving this one filesystem assembly an explicit cap.
+  test.setTimeout(60_000);
   await assemblePagesCarrier();
 });
 
