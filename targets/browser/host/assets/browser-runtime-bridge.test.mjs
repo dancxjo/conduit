@@ -30,6 +30,13 @@ test("refuses unsupported runtime ABI revision", () => {
     && error.supported_runtime_abi_revisions.includes(1));
 });
 
+test("refuses malformed runtime ABI revision export", () => {
+  assert.throws(
+    () => bindBrowserRuntimeBridge(runtime("broken"), { context: "bridge proof" }),
+    /malformed runtime ABI revision export/,
+  );
+});
+
 test("rejects malformed input bytes", () => {
   const bridge = bindBrowserRuntimeBridge(runtime(), { context: "bridge proof" });
   assert.throws(
@@ -150,4 +157,26 @@ test("allows retry when start status is not accepted", () => {
     acceptedStatuses: [0],
     label: "proof lifecycle",
   });
+});
+
+test("start forwards the written input length", () => {
+  const bridge = bindBrowserRuntimeBridge(runtime(), { context: "bridge proof" });
+  let observedLength = null;
+  const bytes = Uint8Array.from([9, 8, 7]).subarray(1);
+  bridge.start({
+    inputBytes: bytes,
+    input: {
+      pointerExport: "conduit_test_input_ptr",
+      capacityExport: "conduit_test_input_capacity",
+      minimum: 1,
+      label: "test input",
+    },
+    invoke: (length) => {
+      observedLength = length;
+      return 0;
+    },
+    acceptedStatuses: [0],
+    label: "proof lifecycle",
+  });
+  assert.equal(observedLength, bytes.length);
 });

@@ -53,7 +53,10 @@ export function bindBrowserRuntimeBridge(api, { context, requiredExports = [] })
   if (!(api?.memory instanceof WebAssembly.Memory)) {
     throw new Error(`${context} requires WebAssembly linear memory`);
   }
-  const abiRevision = exported(api, "conduit_browser_runtime_abi_revision", context).call(api);
+  const abiRevision = Number(exported(api, "conduit_browser_runtime_abi_revision", context).call(api));
+  if (!Number.isSafeInteger(abiRevision) || abiRevision < 0) {
+    throw new Error(`${context} has a malformed runtime ABI revision export`);
+  }
   if (!supportedRevisions.includes(abiRevision)) {
     throw Object.assign(new Error(`${context} requires ${ABI.identity}@${supportedRevisions.join(",")}; runtime reported @${abiRevision}`), {
       code: "IncompatibleRuntimeAbi",
@@ -88,7 +91,7 @@ export function bindBrowserRuntimeBridge(api, { context, requiredExports = [] })
       let status;
       let outputBytes = null;
       try {
-        status = invoke(inputBytes.length);
+        status = invoke(written.length);
         if (acceptedStatuses.includes(status)) lifecycleStarted = true;
         outputBytes = output ? readOutputBytes(api, output) : null;
       } finally {
