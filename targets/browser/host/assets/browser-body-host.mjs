@@ -4,6 +4,7 @@ import { createBodyInputRouting } from "./browser-body-input.mjs";
 import { openBrowserHumanInput } from "./browser-human-input.mjs";
 import { createPitchTonePerformer, drainBrowserEffects } from "./browser-form-effects.mjs";
 import { manifestApplicationView } from "./application-presentation.mjs";
+import { bindBrowserRuntimeBridge } from "./browser-runtime-bridge.mjs";
 
 const PRESENTATION = "conduit.resource/presentation-slot@1";
 const INPUT = "conduit.resource/browser-window-input@1";
@@ -17,14 +18,14 @@ const pools = new Map([
   [TEMPLATE, "browser/named-pattern-storage"], [TIMER, "browser/timer"], [CLOCK, "browser/monotonic-millisecond-timer"],
 ]);
 
-function readOutput(api) {
-  const length = api.conduit_browser_form_output_len();
-  if (!Number.isSafeInteger(length) || length < 1 || length > 256 * 1024) {
-    throw new Error("invalid browser Body output bound");
-  }
-  return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(
-    new Uint8Array(api.memory.buffer, api.conduit_browser_form_output_ptr(), length),
-  ));
+function readOutput(bridge) {
+  return bridge.decodeJson(bridge.readOutputBytes({
+    pointerExport: "conduit_browser_form_output_ptr",
+    lengthExport: "conduit_browser_form_output_len",
+    minimum: 1,
+    maximum: 256 * 1024,
+    label: "browser Body output",
+  }));
 }
 
 function refuseUnavailableExecutionLine(proposal, fragment) {
@@ -69,8 +70,16 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       !outputRoot?.isConnected || !inputTarget?.isConnected) {
     throw new Error("invalid browser Body acquisition inputs");
   }
+  const bridge = bindBrowserRuntimeBridge(api, {
+    context: "browser Body host runtime",
+    requiredExports: [
+      "conduit_browser_form_output_ptr", "conduit_browser_form_output_len",
+      "conduit_browser_form_input_ptr", "conduit_browser_form_input_capacity",
+      "conduit_browser_body_input_ptr", "conduit_browser_body_input_capacity", "conduit_browser_body_start",
+    ],
+  });
   if (api.conduit_browser_form_human_machinery() < 0) throw new Error("browser machinery unavailable");
-  const machinery = readOutput(api);
+  const machinery = readOutput(bridge);
   const maximumPlacements = machinery?.limits?.maximum_gears;
   if (machinery.schema !== "conduit.browser/selected-human-machinery@1" || !Array.isArray(machinery.implementations) || machinery.implementations.length > 64 ||
       !Number.isSafeInteger(maximumPlacements) || maximumPlacements < 1) throw new Error("invalid browser machinery");
@@ -289,7 +298,13 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
         event.delta_x, event.delta_y, event.primary_pressed ? 1 : 0, event.coalesced,
         event.dropped, event.queue_capacity, event.sequence);
       if (status < 0) throw new Error("pointer encoding refused");
-      return new Uint8Array(api.memory.buffer, api.conduit_browser_form_output_ptr(), api.conduit_browser_form_output_len()).slice();
+      return bridge.readOutputBytes({
+        pointerExport: "conduit_browser_form_output_ptr",
+        lengthExport: "conduit_browser_form_output_len",
+        minimum: 1,
+        maximum: 256 * 1024,
+        label: "pointer encoding output",
+      });
     }
     if (effect.effect_kind === "key-event" || effect.effect_kind === "button-transition") {
       if (!input) throw new Error("browser input not acquired");
@@ -301,7 +316,13 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
         const event = await (routing ? routing.next("button", effect.placement_id, signal) : input.nextButton());
         assertCurrent();
         if (api.conduit_tour_encode_button_transition(event.pressed ? 1 : 0, BigInt(event.sequence)) < 0) throw new Error("button encoding refused");
-        return new Uint8Array(api.memory.buffer, api.conduit_browser_form_output_ptr(), api.conduit_browser_form_output_len()).slice();
+        return bridge.readOutputBytes({
+          pointerExport: "conduit_browser_form_output_ptr",
+          lengthExport: "conduit_browser_form_output_len",
+          minimum: 1,
+          maximum: 256 * 1024,
+          label: "button encoding output",
+        });
       } finally { signal.removeEventListener("abort", abort); }
     }
     if (effect.effect_kind === "application-event") {
@@ -344,12 +365,12 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (terminal) return terminal.kernel_signs ?? null;
       if (!started || closed) return null;
       if (api.conduit_browser_form_signs() < 0) throw new Error("active body observation is unavailable");
-      return readOutput(api);
+      return readOutput(bridge);
     },
     start(playSequence) {
       assertCurrent();
       if (startAccepted || !Number.isSafeInteger(playSequence) || playSequence < 1) throw new Error("browser Body start refused");
-      const request = new TextEncoder().encode(JSON.stringify({
+      const request = bridge.encodeJson({
         wake: proposal.wake,
         plan: proposal.plan,
         local_host_id: hostId,
@@ -360,17 +381,23 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
         foreground_checked_form_id: foregroundForm?.() ?? proposal.plan.forms[0].form?.checked_form_id ?? proposal.plan.forms[0].plan.checked_form_id,
         play_sequence: playSequence,
         observations: observations(),
-      }));
-      if (request.length > api.conduit_browser_body_input_capacity()) throw new Error("browser Body input bound exceeded");
-      // The heap-backed input arena may grow WASM memory on first access.
-      // Obtain the pointer before reading memory.buffer, which growth detaches.
-      const inputPointer = api.conduit_browser_body_input_ptr();
-      new Uint8Array(api.memory.buffer, inputPointer, request.length).set(request);
+      });
       startOutcome = "unknown";
-      const startStatus = api.conduit_browser_body_start(request.length);
+      const { status: startStatus } = bridge.start({
+        inputBytes: request,
+        input: {
+          pointerExport: "conduit_browser_body_input_ptr",
+          capacityExport: "conduit_browser_body_input_capacity",
+          minimum: 1,
+          label: "browser Body input",
+        },
+        invoke: (length) => api.conduit_browser_body_start(length),
+        retireInput: true,
+        label: "browser Body",
+      });
       if (startStatus < 0) {
         startOutcome = "refused-before-play";
-        const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
+        const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(bridge) : null;
         const rejection = refusal?.rejections?.[0];
         const detail = rejection
           ? `${rejection.stage} could not fit ${rejection.resource}: required ${rejection.required}, available ${rejection.available} on Host ${rejection.host_id} / Boot ${rejection.boot_id}`
@@ -381,7 +408,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       }
       startOutcome = "accepted";
       startAccepted = true;
-      started = readOutput(api);
+      started = readOutput(bridge);
       if (started.schema !== "conduit.browser/body-started@1" ||
           typeof started.play?.active_play_id !== "string" || !started.play.active_play_id ||
           started.play.plan_id !== proposal.plan.plan_id || started.play.wake_id !== proposal.wake.wake_id ||
@@ -392,7 +419,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     run() {
       assertCurrent();
       if (!started || completion) throw new Error("browser Body must be started exactly once before dispatch");
-      completion = drainBrowserEffects({ api, initialProgress: started.progress, readOutput, perform })
+      completion = drainBrowserEffects({ api, initialProgress: started.progress, readOutput: () => readOutput(bridge), perform, bridge })
         .then(receipt => {
           if (receipt?.schema === "conduit.tour/manifestation-receipt@3") terminal = receipt;
           return receipt;
@@ -410,7 +437,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       for (const timer of presentationTimers.values()) timer.cancel?.();
       const status = (startAccepted || startOutcome === "unknown") && !terminal ? api.conduit_tour_cancel() : null;
       try {
-        const receipt = status !== null && status >= 0 ? readOutput(api) : terminal;
+        const receipt = status !== null && status >= 0 ? readOutput(bridge) : terminal;
         return { status, receipt, startOutcome };
       } finally { elements.forEach(element => element.remove());owners.delete(api); }
     },

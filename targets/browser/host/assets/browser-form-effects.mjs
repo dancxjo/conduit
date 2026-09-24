@@ -78,7 +78,7 @@ export function createPitchTonePerformer(window) {
 // Shared page-Host dispatch for effects requested by the one WASM kernel.
 // It does not plan work or schedule semantic operations.
 export async function drainBrowserEffects({ api, initialProgress, readOutput, perform,
-  isCurrent = () => true, onWaiting = () => {} }) {
+  isCurrent = () => true, onWaiting = () => {}, bridge = null }) {
   const encoder = new TextEncoder();
   const effects = new Map();
   let wake = null;
@@ -99,10 +99,19 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
           effects.delete(key);
           const play = encoder.encode(effect.active_play_id);
           const placement = encoder.encode(effect.placement_id);
-          const input = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), play.length + placement.length);
-          input.set(play);
-          input.set(placement, play.length);
+          const bytes = new Uint8Array(play.length + placement.length);
+          bytes.set(play);
+          bytes.set(placement, play.length);
+          const input = bridge
+            ? bridge.writeInput(bytes, {
+                pointerExport: "conduit_browser_form_input_ptr",
+                capacityExport: "conduit_browser_form_input_capacity",
+                label: "cancellation acknowledgement input",
+              })
+            : new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), bytes.length);
+          if (!bridge) input.set(bytes);
           const result = api.conduit_browser_form_acknowledge_cancellation(play.length, placement.length, effect.request_sequence);
+          input.fill(0);
           if (result < 0) throw new Error(`cancellation acknowledgement refused (${result})`);
           progress = readOutput(api);
           continue;
@@ -143,20 +152,31 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
       const { effect, output = new Uint8Array() } = completed;
       const play = encoder.encode(effect.active_play_id);
       const placement = encoder.encode(effect.placement_id);
-      const total = play.length + placement.length + output.length;
-      if (total > api.conduit_browser_form_input_capacity()) {
-        throw new Error("effect completion exceeds the admitted input bound");
-      }
-      const bytes = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), total);
+      const bytes = new Uint8Array(play.length + placement.length + output.length);
       bytes.set(play);
       bytes.set(placement, play.length);
       bytes.set(output, play.length + placement.length);
+      const input = bridge
+        ? bridge.writeInput(bytes, {
+            pointerExport: "conduit_browser_form_input_ptr",
+            capacityExport: "conduit_browser_form_input_capacity",
+            label: "effect completion input",
+          })
+        : (() => {
+            if (bytes.length > api.conduit_browser_form_input_capacity()) {
+              throw new Error("effect completion exceeds the admitted input bound");
+            }
+            const view = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), bytes.length);
+            view.set(bytes);
+            return view;
+          })();
       const completion = completed.error
         ? api.conduit_browser_form_refuse_effect(play.length, placement.length,
             effect.request_sequence ?? effect.observation_sequence,
             completed.error.disposition === "denied" ? 1 : 2, completed.error.detail)
         : api.conduit_browser_form_complete_effect(play.length, placement.length,
             effect.request_sequence ?? effect.observation_sequence, output.length);
+      input.fill(0);
       if (completion < 0) {
         const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
         throw new Error(`effect completion refused (${completion})${refusal?.message ? `: ${refusal.message}` : ""}`);

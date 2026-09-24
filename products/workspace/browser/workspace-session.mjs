@@ -1,34 +1,59 @@
+import { bindBrowserRuntimeBridge } from "../../../targets/browser/host/assets/browser-runtime-bridge.mjs";
+
 // Workspace orchestration of the existing Crèche lifecycle. Rust owns Body truth.
 const encoder = new TextEncoder();
-const decoder = new TextDecoder('utf-8', { fatal: true });
 
 export function openWorkspaceSession({ host, storage }) {
   const api = host.runtime;
+  const bridge = bindBrowserRuntimeBridge(api, {
+    context: "workspace session runtime",
+    requiredExports: [
+      "conduit_workspace_input_ptr", "conduit_workspace_input_capacity",
+      "conduit_workspace_output_ptr", "conduit_workspace_output_len", "conduit_workspace_output_capacity",
+      "conduit_workspace_request",
+      "conduit_creche_input_ptr", "conduit_creche_input_capacity",
+      "conduit_creche_output_ptr", "conduit_creche_output_len",
+    ],
+  });
   const localAdvertisement = host.membership.advertisement();
   let sequence = 0;
   let write = Promise.resolve();
   let persistenceFailure = null;
   let workspace = null;
   const request = (action, fields = {}, binary = false) => {
-    const bytes = encoder.encode(JSON.stringify({ action, ...fields }));
-    if (bytes.length > api.conduit_workspace_input_capacity()) throw new Error('Workspace input exceeds its bound');
-    const pointer = api.conduit_workspace_input_ptr();
-    new Uint8Array(api.memory.buffer, pointer, bytes.length).set(bytes);
-    const status = api.conduit_workspace_request(bytes.length);
-    const length = api.conduit_workspace_output_len();
-    if (length < 1 || length > api.conduit_workspace_output_capacity()) throw new Error('Workspace output exceeds its bound');
-    const output = new Uint8Array(api.memory.buffer, api.conduit_workspace_output_ptr(), length).slice();
+    const { status, outputBytes: output } = bridge.transact({
+      inputBytes: bridge.encodeJson({ action, ...fields }),
+      input: {
+        pointerExport: "conduit_workspace_input_ptr",
+        capacityExport: "conduit_workspace_input_capacity",
+        label: "Workspace input",
+      },
+      output: {
+        pointerExport: "conduit_workspace_output_ptr",
+        lengthExport: "conduit_workspace_output_len",
+        capacityExport: "conduit_workspace_output_capacity",
+        minimum: 1,
+        maximum: 256 * 1024,
+        label: "Workspace output",
+      },
+      invoke: (length) => api.conduit_workspace_request(length),
+      retireInput: true,
+    });
     if (status >= 0 && binary) return output;
-    const result = JSON.parse(decoder.decode(output));
+    const result = bridge.decodeJson(output);
     if (status < 0) throw Object.assign(new Error(result.message ?? 'Workspace refused'), { code: result.code, refusal: result });
     if (result.schema === 'conduit.workspace/body@1') workspace = result;
     return result;
   };
   const here = { host_id: host.hostId, boot_id: host.bootId };
   const read = () => {
-    const length = api.conduit_creche_output_len();
-    if (!Number.isSafeInteger(length) || length < 1 || length > 65536) throw new Error('Body output exceeds its bound');
-    return JSON.parse(decoder.decode(new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), length)));
+    return bridge.decodeJson(bridge.readOutputBytes({
+      pointerExport: "conduit_creche_output_ptr",
+      lengthExport: "conduit_creche_output_len",
+      minimum: 1,
+      maximum: 65536,
+      label: "Body output",
+    }));
   };
   const call = (name, ...args) => {
     const status = api[name](...args);
@@ -36,9 +61,12 @@ export function openWorkspaceSession({ host, storage }) {
     return status === 1 ? null : read();
   };
   const put = bytes => {
-    if (bytes.length < 1 || bytes.length > api.conduit_creche_input_capacity()) throw new Error('Body input exceeds its bound');
-    const pointer = api.conduit_creche_input_ptr();
-    new Uint8Array(api.memory.buffer, pointer, bytes.length).set(bytes);
+    bridge.writeInput(bytes, {
+      pointerExport: "conduit_creche_input_ptr",
+      capacityExport: "conduit_creche_input_capacity",
+      minimum: 1,
+      label: "Body input",
+    });
   };
   const nextSequence = () => {
     if (sequence >= Number.MAX_SAFE_INTEGER - 2) throw new Error('Body event sequence exhausted');
