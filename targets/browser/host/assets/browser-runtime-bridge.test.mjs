@@ -67,15 +67,15 @@ test("refuses ABI identity mismatch", () => {
 });
 
 test("workspace request retires input even when invocation grows memory", () => {
-  const api = runtime();
+  const api = runtime({ inputPointer: 256 });
   api.conduit_workspace_request = (length) => {
     api.memory.grow(1);
+    api.setWorkspaceOutput(new TextEncoder().encode(JSON.stringify({ ok: true })));
     return 0;
   };
-  api.setWorkspaceOutput(new TextEncoder().encode(JSON.stringify({ ok: true })));
   const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });
   bridge.workspaceRequest({ action: "Proof" });
-  assert.deepEqual([...new Uint8Array(api.memory.buffer, 0, 16)], new Array(16).fill(0));
+  assert.deepEqual([...new Uint8Array(api.memory.buffer, 256, 16)], new Array(16).fill(0));
 });
 
 test("rejects malformed workspace input capacity", () => {
