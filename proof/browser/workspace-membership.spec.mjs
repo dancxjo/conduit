@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
@@ -10,28 +10,43 @@ let entrance;
 test.beforeEach(async () => { entrance = await startStaticProduct("target/workspace-product", "/conduit/workspace/"); });
 test.afterEach(() => entrance?.child.kill());
 
-test("the ordinary face binds and admits one compiler-free reviewed browser Host", async ({ page }, testInfo) => {
+test.use({ video: { mode: "on", size: { width: 1280, height: 800 } }, viewport: { width: 1280, height: 800 } });
+test("the ordinary face binds and admits one compiler-free reviewed browser Host", async ({ page, context }, testInfo) => {
   test.setTimeout(120_000);
+  const captures = {};
+  const capture = async (step, caption) => {
+    const path = testInfo.outputPath(`journey-${step}.png`);
+    await page.screenshot({ path, fullPage: true });
+    captures[step] = { path, caption };
+  };
   await page.goto(entrance.url);
+  await expect(page.getByRole("button", { name: "Birth Body", exact: true })).toBeVisible();
+  await capture("body.absent", "The browser opens at Crèche. No body has been born yet.");
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Firefly Choir", exact: true }).check();
+  await capture("bootstrap.started", "Firefly Choir is selected as the new body's first form.");
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   const bornBodyId = await page.evaluate(() => globalThis.__conduitWorkspace.current().body_id);
+  await capture("body.born", "The new body has its own home and a Wake control.");
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  await capture("body.awake", "The body is awake and its selected form is playing.");
   await page.locator('[data-inspect="lifecycle"]').click();
   await expect(page.getByText("Exact lifecycle evidence", { exact: true })).toBeVisible();
+  await capture("body.inspected", "The body's own inspection panel reveals its lifecycle.");
   await page.locator("[data-close-inspection]").click();
   await page.getByRole("button", { name: "+ Forms", exact: true }).click();
   await page.getByRole("textbox", { name: "Find a form", exact: true }).fill("desk");
   await page.locator('[data-application-key^="library-form-"]').filter({ hasText: /^Desk Telegraph/u })
     .getByRole("button", { name: "Use", exact: true }).click();
   await expect(page.locator("#surface-title")).toHaveText("Desk Telegraph");
+  await capture("workload.revised", "Desk Telegraph has been added through the form library.");
   await page.locator("#form-input").click();
   await page.keyboard.type("hello");
   await page.keyboard.press("Enter");
   await expect(page.locator("[data-form-output] output:visible")).toHaveText("hello");
+  await capture("form.used", "Typing hello into Desk Telegraph produces hello through the running form.");
   expect((await page.evaluate(() => globalThis.__conduitWorkspace.current())).workload_revision).toBe(1);
   await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
   await expect(page.getByLabel("parts and hosts").getByRole("button", { name: "Invite another host", exact: true })).toBeVisible();
@@ -124,6 +139,7 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   expect(await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership)).toEqual(before);
   await admit.click();
   await expect(page.locator(".member-card")).toHaveCount(2);
+  await capture("host.added", "The membership panel now contains two admitted hosts.");
   const after = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
   expect(after.evidence.membership.revision).toBe(before.revision + 2);
   expect(after.evidence.membership.parts.every(part => part.state === "Admitted" && part.current)).toBe(true);
@@ -138,6 +154,7 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   await page.locator("[data-close-membership]").click();
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Refused");
+  await capture("fault.observed", "Wake is refused because the added host has no current execution Line.");
   const replan = await page.evaluate(() => ({
     playback: globalThis.__conduitWorkspace.state(),
     evidence: globalThis.__conduitWorkspace.evidence(),
@@ -202,11 +219,22 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   expect(repaired.evidence.evidence.wakes.at(-1).lifecycle).toBe("Playing");
   await expect(page.locator('[data-application-key="tutorial-guidance"]:visible')).toContainText("Tutorial · revised");
   await expect(page.locator('[data-application-key="tutorial-guidance"]:visible')).not.toContainText("Tutorial · repair");
+  await capture("body.repaired", "After refreshing host presence, Wake succeeds on the available host.");
+  await page.locator("#form-input").click();
+  await page.keyboard.type("still here");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("[data-form-output] output:visible")).toHaveText("still here");
+  const continued = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().realization);
+  expect(continued.play).toBeTruthy();
+  expect(continued.play).toEqual(repaired.evidence.realization.play);
+  await capture("body.long-running", "Still here: another input succeeds through the same recovered play.");
   await page.getByRole("button", { name: "lull body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
+  await capture("body.lulled", "Lull stops the play while retaining the body.");
   page.once("dialog", dialog => dialog.accept());
   await page.getByRole("button", { name: "Finish body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Fulfilled");
+  await capture("body.fulfilled", "Finish closes this body's biography with Fulfilled.");
   const journeyReceipt = await page.evaluate(() => ({
     current: globalThis.__conduitWorkspace.current(),
     state: globalThis.__conduitWorkspace.state(),
@@ -214,7 +242,7 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   }));
   const retainedJourney = {
     schema: "conduit.browser/body-journey@1",
-    git_commit: process.env.CONDUIT_CANDIDATE_SHA ?? "local",
+    git_commit: process.env.CONDUIT_CANDIDATE_SHA ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
     ...journeyReceipt,
     checkpoints: { joined: after, refused: replan, restored, repaired },
     host_fabrication: evidence,
@@ -222,7 +250,11 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   await writeFile(testInfo.outputPath("browser-body-journey.json"), JSON.stringify(retainedJourney, null, 2));
   const screenshot = testInfo.outputPath("browser-body-fulfilled.png");
   await page.screenshot({ path: screenshot, fullPage: true });
-  await writeBrowserBodyJourneyTrack(retainedJourney, screenshot, testInfo.outputPath("body-journey-track"));
+  const video = page.video();
+  await context.close();
+  const videoPath = testInfo.outputPath("browser-body-session.webm");
+  await video.saveAs(videoPath);
+  await writeBrowserBodyJourneyTrack(retainedJourney, screenshot, testInfo.outputPath("body-journey-track"), captures, videoPath);
 });
 
 test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context, browser }) => {

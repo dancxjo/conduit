@@ -1,0 +1,10 @@
+{
+  "schema": "conduit.evidence/documentary-voicing@1",
+  "boundary": "Offline Piper voicing of exact outward model words. Not runtime speech/synthesize or speaker playback proof.",
+  "piper_sha256": "sha256:12672a94ca6716e5a8f335cfa68bf43bd9a33284960e3f9d16b85090bf7aab6b",
+  "model_sha256": "sha256:abf4c274862564ed647ba0d2c47f8ee7c9b717d27bdad9219100eb310db4047a",
+  "config_sha256": "sha256:44034c056cb15681b2ad494307c7f3f2e4499d1253c700c711fa0a4607ffe78d",
+  "ffmpeg_version": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+  "transcript_sha256": "sha256:d03177b1199ee96072c1f0bdc430287275b0735e137a7448519ae4477265c406",
+  "manifestation_identity": "manifestation/ollama/11"
+}

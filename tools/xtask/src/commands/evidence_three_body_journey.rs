@@ -7,12 +7,17 @@ use std::path::{Path, PathBuf};
 
 const CONTRACT_SCHEMA: &str = "conduit.evidence/semantic-journey-contract@2";
 const TRACK_SCHEMA: &str = "conduit.evidence/body-journey-track@2";
-const INDEX_SCHEMA: &str = "conduit.evidence/three-body-journey-index@2";
+const INDEX_SCHEMA: &str = "conduit.evidence/three-body-journey-index@3";
 const MAXIMUM_DOCUMENT_BYTES: usize = 1024 * 1024;
+const MAXIMUM_MEDIA_BYTES: u64 = 64 * 1024 * 1024;
 const MAXIMUM_STEPS: usize = 32;
 const MAXIMUM_HOSTS_PER_BODY: usize = 8;
 const MAXIMUM_EVIDENCE_PER_STEP: usize = 8;
 const REQUIRED_TRACKS: usize = 3;
+
+#[path = "evidence_three_body_journey_artifacts.rs"]
+mod artifacts;
+use artifacts::verify_artifacts;
 
 #[path = "evidence_three_body_journey_contract.rs"]
 mod contract;
@@ -235,12 +240,14 @@ struct ThreeBodyJourneyIndex {
     git_commit: String,
     semantic_steps: Vec<ContractStep>,
     tracks: Vec<BodyTrack>,
+    recorded_generative: Option<BodyTrack>,
 }
 
 pub(super) fn run(
     expected_git_commit: String,
     contract_path: PathBuf,
     track_paths: Vec<PathBuf>,
+    recorded_path: Option<PathBuf>,
     output: PathBuf,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let contract: JourneyContract = read_bounded_json(&contract_path)?;
@@ -252,6 +259,11 @@ pub(super) fn run(
     for (track, source) in tracks.iter().zip(&track_paths) {
         verify_artifacts(track, source)?;
     }
+    let recorded_generative = recorded_path
+        .as_deref()
+        .map(|source| artifacts::read_recording(source, &tracks, &track_paths))
+        .transpose()?;
+    artifacts::require_documentary(&tracks, recorded_generative.as_ref())?;
     let index = ThreeBodyJourneyIndex {
         schema: INDEX_SCHEMA.into(),
         disposition: "complete".into(),
@@ -259,6 +271,7 @@ pub(super) fn run(
         git_commit: contract.git_commit,
         semantic_steps: contract.steps,
         tracks,
+        recorded_generative,
     };
     publish(&index, &output)?;
     println!("THREE-BODY JOURNEY INDEX COMPLETE: {}", output.display());
@@ -282,6 +295,7 @@ pub(super) fn stage(
         return Err("three-Body Journey index is malformed or stale".into());
     }
     let contract = contract::canonical(&expected_git_commit);
+    artifacts::require_documentary(&index.tracks, index.recorded_generative.as_ref())?;
     validate(&contract, &index.tracks, &expected_git_commit)?;
     if index.journey_id != contract.journey_id || index.semantic_steps.len() != contract.steps.len()
     {
@@ -297,6 +311,23 @@ pub(super) fn stage(
             ));
         }
         verify_artifacts(&retained, &track_path)?;
+    }
+    if let Some(recording) = &index.recorded_generative {
+        let sources: Vec<_> = index
+            .tracks
+            .iter()
+            .map(|track| publication_root.join(&track.track_id).join("track.json"))
+            .collect();
+        let retained = artifacts::read_recording(
+            &publication_root.join("live-conformance/track.json"),
+            &index.tracks,
+            &sources,
+        )?;
+        if serde_json::to_value(&retained).map_err(|e| e.to_string())?
+            != serde_json::to_value(recording).map_err(|e| e.to_string())?
+        {
+            return Err("retained live recording diverges from its index".into());
+        }
     }
     if !publication_root.join("index.html").is_file() {
         return Err("three-Body Journey publication lacks index.html".into());
@@ -710,58 +741,6 @@ fn claim_identity(
         .is_some_and(|owner| owner != body_id)
     {
         return Err("Body tracks collapsed exact runtime or presentation identity".into());
-    }
-    Ok(())
-}
-
-fn verify_artifacts(track: &BodyTrack, source: &Path) -> Result<(), String> {
-    let root = source
-        .parent()
-        .ok_or("Body track manifest has no parent")?
-        .canonicalize()
-        .map_err(|error| format!("resolve Body track root: {error}"))?;
-    let mut artifact_ids = BTreeSet::new();
-    let mut artifact_paths = BTreeSet::new();
-    for evidence in track.steps.iter().flat_map(|step| &step.evidence) {
-        validate_relative_path(&evidence.path)?;
-        if !artifact_ids.insert(evidence.artifact_id.as_str())
-            || !artifact_paths.insert(&evidence.path)
-            || !valid_identity(&evidence.artifact_id)
-            || !valid_identity(&evidence.evidence_class)
-            || !valid_narrative(&evidence.documentary_description)
-            || !valid_sha256(&evidence.sha256)
-        {
-            return Err(format!(
-                "{} has duplicate or invalid artifact evidence",
-                track.track_id
-            ));
-        }
-        let candidate = root.join(&evidence.path);
-        let metadata = std::fs::symlink_metadata(&candidate)
-            .map_err(|error| format!("inspect {}: {error}", evidence.path.display()))?;
-        if !metadata.file_type().is_file() {
-            return Err(format!("{} artifact is not a regular file", track.track_id));
-        }
-        let resolved = candidate
-            .canonicalize()
-            .map_err(|error| format!("resolve {}: {error}", evidence.path.display()))?;
-        if !resolved.starts_with(&root) {
-            return Err(format!(
-                "{} artifact escaped its track root",
-                track.track_id
-            ));
-        }
-        let bytes = std::fs::read(&resolved)
-            .map_err(|error| format!("read {}: {error}", evidence.path.display()))?;
-        if bytes.is_empty() || bytes.len() > MAXIMUM_DOCUMENT_BYTES {
-            return Err(format!(
-                "{} artifact violates its byte bound",
-                track.track_id
-            ));
-        }
-        if format!("sha256:{:x}", Sha256::digest(&bytes)) != evidence.sha256 {
-            return Err(format!("{} artifact digest changed", evidence.artifact_id));
-        }
     }
     Ok(())
 }

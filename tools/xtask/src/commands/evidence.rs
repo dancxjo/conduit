@@ -6,6 +6,10 @@ use crate::evidence::{self, ExpectedEvidenceResult, VerificationRequest};
 
 #[path = "evidence_home_cross_front.rs"]
 mod home_cross_front;
+#[path = "evidence_journey_audio.rs"]
+mod journey_audio;
+#[path = "evidence_three_body_browser.rs"]
+mod three_body_browser;
 #[path = "evidence_three_body_journey.rs"]
 mod three_body_journey;
 #[path = "evidence_two_fronts.rs"]
@@ -19,6 +23,10 @@ pub struct EvidenceArgs {
 
 #[derive(Subcommand, Debug)]
 enum EvidenceCommand {
+    /// Check the assembled documentary's images, playback, navigation and mobile layout.
+    CheckThreeBodyJourney(three_body_browser::BrowserArgs),
+    /// Voice retained model speech into documentary MP3s and measured waveforms.
+    JourneyAudio(journey_audio::JourneyAudioArgs),
     /// Publish the bounded Home index after every front supplies exact evidence.
     HomeCrossFront(HomeCrossFrontArgs),
     /// Verify three independently born Bodies against one semantic Journey contract.
@@ -55,6 +63,9 @@ struct HomeCrossFrontArgs {
 
 #[derive(Args, Debug)]
 struct ThreeBodyJourneyArgs {
+    /// Separately retained real-model documentary; its exact Presenter inputs must match.
+    #[arg(long)]
+    recorded_generative: Option<PathBuf>,
     /// Exact commit whose three Body tracks are being verified.
     #[arg(long)]
     commit: String,
@@ -190,9 +201,15 @@ enum EvidenceResultArg {
 pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         EvidenceCommand::HomeCrossFront(args) => home_cross_front::run(args.receipts, args.output),
-        EvidenceCommand::ThreeBodyJourney(args) => {
-            three_body_journey::run(args.commit, args.contract, args.tracks, args.output)
-        }
+        EvidenceCommand::JourneyAudio(args) => journey_audio::run(args),
+        EvidenceCommand::CheckThreeBodyJourney(args) => three_body_browser::run(args),
+        EvidenceCommand::ThreeBodyJourney(args) => three_body_journey::run(
+            args.commit,
+            args.contract,
+            args.tracks,
+            args.recorded_generative,
+            args.output,
+        ),
         EvidenceCommand::ThreeBodyJourneyContract(args) => {
             three_body_journey::write_contract(args.commit, args.output).map_err(Into::into)
         }

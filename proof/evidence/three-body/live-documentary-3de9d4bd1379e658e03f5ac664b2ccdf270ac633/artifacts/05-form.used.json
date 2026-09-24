@@ -1,0 +1,11 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "3de9d4bd1379e658e03f5ac664b2ccdf270ac633",
+  "track": "hosted-generative",
+  "step_id": "form.used",
+  "assertion": "standing-form-used",
+  "source_facts": {
+    "plan_id": "body-plan/sha256:6d9a41240d03a127c39cdacf4331990b0761857442b2f97891a159044e308443",
+    "play_id": "body-play/sha256:81a2bd8811e936b022703455868b338abbc4386aa63a0deda5d3230235e8f9c6"
+  }
+}

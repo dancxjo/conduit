@@ -1,0 +1,11 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "3de9d4bd1379e658e03f5ac664b2ccdf270ac633",
+  "track": "hosted-generative",
+  "step_id": "fault.observed",
+  "assertion": "fault-observed",
+  "source_facts": {
+    "fault_sign_id": "4992c09186e039f7f436c1a5a4176d80b429238aaa802ccf243120b0581e4950",
+    "reason": "model.presenter-temporarily-unavailable"
+  }
+}
