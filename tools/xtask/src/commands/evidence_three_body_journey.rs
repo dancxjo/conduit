@@ -9,6 +9,7 @@ const CONTRACT_SCHEMA: &str = "conduit.evidence/semantic-journey-contract@2";
 const TRACK_SCHEMA: &str = "conduit.evidence/body-journey-track@2";
 const INDEX_SCHEMA: &str = "conduit.evidence/three-body-journey-index@2";
 const MAXIMUM_DOCUMENT_BYTES: usize = 1024 * 1024;
+const MAXIMUM_MEDIA_BYTES: u64 = 64 * 1024 * 1024;
 const MAXIMUM_STEPS: usize = 32;
 const MAXIMUM_HOSTS_PER_BODY: usize = 8;
 const MAXIMUM_EVIDENCE_PER_STEP: usize = 8;
@@ -751,9 +752,23 @@ fn verify_artifacts(track: &BodyTrack, source: &Path) -> Result<(), String> {
                 track.track_id
             ));
         }
+        let limit = if matches!(
+            evidence.evidence_class.as_str(),
+            "screenshot" | "audio" | "video"
+        ) {
+            MAXIMUM_MEDIA_BYTES
+        } else {
+            MAXIMUM_DOCUMENT_BYTES as u64
+        };
+        if metadata.len() == 0 || metadata.len() > limit {
+            return Err(format!(
+                "{} artifact violates its byte bound",
+                track.track_id
+            ));
+        }
         let bytes = std::fs::read(&resolved)
             .map_err(|error| format!("read {}: {error}", evidence.path.display()))?;
-        if bytes.is_empty() || bytes.len() > MAXIMUM_DOCUMENT_BYTES {
+        if bytes.is_empty() || bytes.len() as u64 > limit {
             return Err(format!(
                 "{} artifact violates its byte bound",
                 track.track_id

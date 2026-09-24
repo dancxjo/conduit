@@ -295,8 +295,10 @@ fn published_index_preserves_semantic_assertions_and_non_claims() {
         "not-physical-proof"
     );
     assert_eq!(value["tracks"].as_array().unwrap().len(), REQUIRED_TRACKS);
-    assert!(page.contains("Follow one body"));
-    assert!(page.contains("Compare one semantic step"));
+    assert!(page.contains("Select a body to follow its life"));
+    assert!(page.contains("Compare all three"));
+    assert!(!page.contains("<details open"));
+    assert!(page.contains("<summary>Evidence</summary>"));
     assert!(page.contains("not-physical-proof"));
 }
 

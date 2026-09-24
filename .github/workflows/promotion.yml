@@ -149,7 +149,7 @@ jobs:
           done
           chmod 755 proof/fixtures/ollama
           PATH="$PWD/proof/fixtures:$PATH" cargo xtask --json host prove-local-model --locked \
-            --model conduit-fixture:latest --admitted-memory-mib 64 --orifina-presenter \
+            --model conduit-fixture:latest --admitted-memory-mib 64 --orifina-presenter --journey-documentary \
             > "$RUNNER_TEMP/model-body.json"
       - name: Retain the producer-owned generative Body journey track
         uses: ./.github/actions/upload-artifact-retry
