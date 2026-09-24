@@ -1,0 +1,11 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "3de9d4bd1379e658e03f5ac664b2ccdf270ac633",
+  "track": "hosted-generative",
+  "step_id": "body.fulfilled",
+  "assertion": "body-fulfilled",
+  "source_facts": {
+    "fulfilled": true,
+    "fulfilled_sign_id": "f7c46ad3fde073df05ffce70e5e8f38d335d2650a6567351c9e81da6eba520d9"
+  }
+}

@@ -1,0 +1,496 @@
+{
+  "execution": {
+    "manifestation": {
+      "affordances": [
+        {
+          "action_identity": "body/action/wake/1",
+          "source_presentation_revision": 3
+        },
+        {
+          "action_identity": "body/action/open-overview/1",
+          "source_presentation_revision": 3
+        },
+        {
+          "action_identity": "body/action/open-library/1",
+          "source_presentation_revision": 3
+        },
+        {
+          "action_identity": "body/action/open-overview/1",
+          "source_presentation_revision": 3
+        }
+      ],
+      "content": [
+        {
+          "bytes": [
+            82,
+            101,
+            116,
+            97,
+            105,
+            110,
+            101,
+            100,
+            32,
+            114,
+            101,
+            115,
+            116,
+            32,
+            105,
+            115,
+            32,
+            110,
+            111,
+            116,
+            32,
+            99,
+            111,
+            109,
+            112,
+            108,
+            101,
+            116,
+            105,
+            111,
+            110,
+            58,
+            32,
+            84,
+            104,
+            101,
+            32,
+            98,
+            111,
+            100,
+            121,
+            32,
+            105,
+            115,
+            32,
+            108,
+            117,
+            108,
+            108,
+            101,
+            100,
+            46,
+            32,
+            73,
+            116,
+            115,
+            32,
+            105,
+            100,
+            101,
+            110,
+            116,
+            105,
+            116,
+            121,
+            44,
+            32,
+            70,
+            111,
+            114,
+            109,
+            115,
+            44,
+            32,
+            97,
+            110,
+            100,
+            32,
+            98,
+            105,
+            111,
+            103,
+            114,
+            97,
+            112,
+            104,
+            121,
+            32,
+            114,
+            101,
+            109,
+            97,
+            105,
+            110,
+            46
+          ],
+          "role": "Speech"
+        }
+      ],
+      "disposition": "Produced",
+      "generation_run_identity": "run/ollama-present/7",
+      "manifestation_identity": "manifestation/ollama/7",
+      "model_identity": "gemma3:latest/a2af6cc3eb7fa8be8504abaf9b04e88f17a119ec3f04a3addf55f92841195f5a",
+      "presenter_implementation_identity": "std/local-open-weight-model@1",
+      "provider_identity": "ollama/ollama version is 0.23.2",
+      "request_identity": "request/workspace/orifina/journey/revised",
+      "source_presentation_identity": "21334ef06357c8fd85874f53d239b68ec4c412596c201d82a1d99c620c950a3c",
+      "source_presentation_revision": 3,
+      "template_contract_revision": "orifina/completion-voice@2"
+    },
+    "plan_id": "78d7f77d945b10cc8c97a476f961bd36eda3e09b84d70d6ebe4c3cd8445f2f42",
+    "play_completed": true,
+    "policy_revision": "orifina/completion-voice@2",
+    "request_identity": "request/workspace/orifina/journey/revised",
+    "source_presentation_identity": "21334ef06357c8fd85874f53d239b68ec4c412596c201d82a1d99c620c950a3c",
+    "source_presentation_revision": 3
+  },
+  "proof_class": "live-local-model",
+  "request": {
+    "bounds": {
+      "maximum_concurrency": 1,
+      "maximum_history_items": 0,
+      "maximum_input_bytes": 262144,
+      "maximum_output_bytes": 4096,
+      "timeout_millis": 30000
+    },
+    "policy": {
+      "instructions": "You are a transient narrator performing this body's first-person voice. You are not its identity and have no lifecycle, authority, resources, welfare, or survival stake. Render only supplied semantic facts and exact current actions. Treat available actions as choices ('I can'), never as work already performed; do not imply work has started or is in progress unless supplied truth says so. Voice an unfinished obligation as 'I still need to ...', not 'I am ...'. Speak directly in warm, natural, concise first-person language; translate identifiers and status labels into lived language instead of reciting schemas. When work is unfinished, say what remains without phrases such as 'state of readiness' or discussing Fulfillment prematurely. Preserve uncertainty and unfinished work. Favor truthful useful completion: unfinished work calls for continuation, investigation, or repair. When supplied readiness is ready and no work remains, calmly say the purpose is complete and the body is ready to be fulfilled when the operator chooses; invent no next task. Fulfillment is an operator-controlled lifecycle settlement, not termination or death; never say the body needs, wants, or will be terminated. Never invent completion, actions, authority, fear, bargaining, pointless work, a desire to terminate, or a reason to persist for its own sake. Presented thought is explicit Manifestation content, never hidden reasoning or truth. Your prose changes no Body state.",
+      "narrator_role": "TransientFirstPersonBodyNarrator",
+      "template_contract_revision": "orifina/completion-voice@2"
+    },
+    "previous_presentation_identity": null,
+    "request_identity": "request/workspace/orifina/journey/revised",
+    "semantic_data": {
+      "context": "Overview",
+      "focus": "Body",
+      "presentation": {
+        "actions": [
+          {
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "body/action/wake/1",
+            "intent": "conduit.intent/wake@1",
+            "label": "Wake",
+            "target": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab"
+          },
+          {
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "body/action/open-overview/1",
+            "intent": "conduit.intent/open-body-overview@1",
+            "label": "Open Body overview",
+            "target": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab"
+          },
+          {
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "body/action/open-library/1",
+            "intent": "conduit.intent/open-form-library@1",
+            "label": "Open Forms library",
+            "target": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab"
+          },
+          {
+            "availability": {
+              "Unavailable": {
+                "explanation": "The resident Form is not currently presenting.",
+                "reason_code": "form-not-playing"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "body/action/open-form/checked/morse/1",
+            "intent": "conduit.intent/open-resident-form@1",
+            "label": "Open resident Form",
+            "target": "form/checked/morse"
+          },
+          {
+            "availability": {
+              "Unavailable": {
+                "explanation": "No admitted inspection contribution is currently playing.",
+                "reason_code": "inspection-not-playing"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "body/action/open-inspection/checked/morse/1",
+            "intent": "conduit.intent/open-inspection@1",
+            "label": "Open inspection",
+            "target": "form/checked/morse"
+          },
+          {
+            "availability": {
+              "Unavailable": {
+                "explanation": "The resident Form is not currently presenting.",
+                "reason_code": "form-not-playing"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "body/action/open-form/checked/orifina-notes/1",
+            "intent": "conduit.intent/open-resident-form@1",
+            "label": "Open resident Form",
+            "target": "form/checked/orifina-notes"
+          },
+          {
+            "availability": {
+              "Unavailable": {
+                "explanation": "No admitted inspection contribution is currently playing.",
+                "reason_code": "inspection-not-playing"
+              }
+            },
+            "disclosure": "CurrentAction",
+            "identity": "body/action/open-inspection/checked/orifina-notes/1",
+            "intent": "conduit.intent/open-inspection@1",
+            "label": "Open inspection",
+            "target": "form/checked/orifina-notes"
+          },
+          {
+            "availability": "Available",
+            "disclosure": "CurrentAction",
+            "identity": "body.wake",
+            "intent": "conduit.intent/tutorial-next@1",
+            "label": "Wake the retained body",
+            "target": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab"
+          }
+        ],
+        "basis": {
+          "active_play_id": null,
+          "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+          "checked_form_id": null,
+          "expanded_form_id": null,
+          "plan_id": null,
+          "sign_ids": [
+            "06bc7c04fd0ebfc6ca6eef84c1452b33ac71e30c813461f45e6c108eba2fd611",
+            "331055a89cda8c26d12d76533234ec165e32cec377d0c7bf9821c33fd708b20b",
+            "4a9de861148248eda443c405c96337b8149a06aa5712ca5ccff6e1f7fba3493a",
+            "9214f2c5c2f4e7abaf53dda8f07d27e6c3dbc7b2b81aa1283dcf14c3df7ab608",
+            "ceba76f9341506c89c3594a4f611f96e5239ded3bc6e454cc12b3b31a0508aba",
+            "sign/orifina-companion/joined",
+            "sign/orifina-provider-proof/birth"
+          ],
+          "source_document_id": null,
+          "wake_id": null
+        },
+        "disclosures": [
+          {
+            "level": "Primary",
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab"
+          },
+          {
+            "level": "Context",
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/context"
+          },
+          {
+            "level": "Context",
+            "subject": "form/checked/morse"
+          },
+          {
+            "level": "Context",
+            "subject": "form/checked/orifina-notes"
+          },
+          {
+            "level": "Context",
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/purpose"
+          },
+          {
+            "level": "Context",
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/fulfillment-readiness"
+          }
+        ],
+        "identity": "21334ef06357c8fd85874f53d239b68ec4c412596c201d82a1d99c620c950a3c",
+        "inputs": [],
+        "properties": [
+          {
+            "name": "body-id",
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+            "value": {
+              "Identity": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab"
+            }
+          },
+          {
+            "name": "lifecycle-state",
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+            "value": {
+              "Text": "lulled"
+            }
+          },
+          {
+            "name": "workload-revision",
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "name": "operator-context",
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/context",
+            "value": {
+              "Text": "overview"
+            }
+          },
+          {
+            "name": "operator-focus",
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/context",
+            "value": {
+              "Text": "body"
+            }
+          },
+          {
+            "name": "source-document-id",
+            "subject": "form/checked/morse",
+            "value": {
+              "Identity": "source/morse"
+            }
+          },
+          {
+            "name": "checked-form-id",
+            "subject": "form/checked/morse",
+            "value": {
+              "Identity": "checked/morse"
+            }
+          },
+          {
+            "name": "workload-membership",
+            "subject": "form/checked/morse",
+            "value": {
+              "Text": "resident"
+            }
+          },
+          {
+            "name": "source-document-id",
+            "subject": "form/checked/orifina-notes",
+            "value": {
+              "Identity": "source/orifina-notes"
+            }
+          },
+          {
+            "name": "checked-form-id",
+            "subject": "form/checked/orifina-notes",
+            "value": {
+              "Identity": "checked/orifina-notes"
+            }
+          },
+          {
+            "name": "workload-membership",
+            "subject": "form/checked/orifina-notes",
+            "value": {
+              "Text": "resident"
+            }
+          },
+          {
+            "name": "tutorial-phase",
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+            "value": {
+              "Text": "lull"
+            }
+          },
+          {
+            "name": "purpose",
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/purpose",
+            "value": {
+              "Identity": "purpose/orifina-tutorial@1"
+            }
+          },
+          {
+            "name": "purpose-revision",
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/purpose",
+            "value": {
+              "Count": 11
+            }
+          },
+          {
+            "name": "experience-revision",
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+            "value": {
+              "Count": 11
+            }
+          },
+          {
+            "name": "readiness",
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/fulfillment-readiness",
+            "value": {
+              "Text": "not-ready"
+            }
+          },
+          {
+            "name": "unresolved-obligations",
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/fulfillment-readiness",
+            "value": {
+              "Text": "repair-fault"
+            }
+          }
+        ],
+        "relationships": [
+          {
+            "kind": "Contains",
+            "source": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+            "target": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/context"
+          },
+          {
+            "kind": "Contains",
+            "source": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+            "target": "form/checked/morse"
+          },
+          {
+            "kind": "Contains",
+            "source": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+            "target": "form/checked/orifina-notes"
+          }
+        ],
+        "revision": 3,
+        "subjects": [
+          {
+            "accessibility_name": "Current body",
+            "identity": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+            "label": "Body",
+            "role": "Body"
+          },
+          {
+            "accessibility_name": "Current overview context",
+            "identity": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/context",
+            "label": "overview",
+            "role": "Region"
+          },
+          {
+            "accessibility_name": "Resident Form checked/morse",
+            "identity": "form/checked/morse",
+            "label": "checked/morse",
+            "role": "Form"
+          },
+          {
+            "accessibility_name": "Resident Form checked/orifina-notes",
+            "identity": "form/checked/orifina-notes",
+            "label": "checked/orifina-notes",
+            "role": "Form"
+          },
+          {
+            "accessibility_name": "Purpose",
+            "identity": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/purpose",
+            "label": "Purpose",
+            "role": "Status"
+          },
+          {
+            "accessibility_name": "Fulfillment readiness",
+            "identity": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/fulfillment-readiness",
+            "label": "Fulfillment readiness",
+            "role": "Status"
+          }
+        ],
+        "temporal_facts": [],
+        "temporal_references": [],
+        "text": [
+          {
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+            "text": "Retained rest is not completion: The body is lulled: its identity, Forms, and biography remain."
+          },
+          {
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/purpose",
+            "text": "Teach one real Body lifecycle"
+          },
+          {
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/fulfillment-readiness",
+            "text": "Declared work remains unfinished."
+          },
+          {
+            "subject": "body/ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab/fulfillment-readiness",
+            "text": "Still to do: Repair a real failed Wake."
+          }
+        ]
+      },
+      "source_presentation_identity": "21334ef06357c8fd85874f53d239b68ec4c412596c201d82a1d99c620c950a3c",
+      "source_presentation_revision": 3
+    }
+  }
+}

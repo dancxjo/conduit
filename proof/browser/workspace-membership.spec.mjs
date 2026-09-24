@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
@@ -220,7 +220,14 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   await expect(page.locator('[data-application-key="tutorial-guidance"]:visible')).toContainText("Tutorial · revised");
   await expect(page.locator('[data-application-key="tutorial-guidance"]:visible')).not.toContainText("Tutorial · repair");
   await capture("body.repaired", "After refreshing host presence, Wake succeeds on the available host.");
-  await capture("body.long-running", "The same body continues playing after recovery.");
+  await page.locator("#form-input").click();
+  await page.keyboard.type("still here");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("[data-form-output] output:visible")).toHaveText("still here");
+  const continued = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().realization);
+  expect(continued.play).toBeTruthy();
+  expect(continued.play).toEqual(repaired.evidence.realization.play);
+  await capture("body.long-running", "Still here: another input succeeds through the same recovered play.");
   await page.getByRole("button", { name: "lull body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
   await capture("body.lulled", "Lull stops the play while retaining the body.");
@@ -235,7 +242,7 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   }));
   const retainedJourney = {
     schema: "conduit.browser/body-journey@1",
-    git_commit: process.env.CONDUIT_CANDIDATE_SHA ?? "local",
+    git_commit: process.env.CONDUIT_CANDIDATE_SHA ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
     ...journeyReceipt,
     checkpoints: { joined: after, refused: replan, restored, repaired },
     host_fabrication: evidence,

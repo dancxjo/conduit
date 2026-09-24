@@ -197,6 +197,9 @@ jobs:
         env:
           EXACT_COMMIT: ${{ github.event.pull_request.head.sha }}
         run: |
+          live_evidence=proof/evidence/three-body/live-documentary-3de9d4bd1379e658e03f5ac664b2ccdf270ac633
+          (cd "$live_evidence" && sha256sum --check SHA256SUMS)
+          cp -a "$live_evidence" "$RUNNER_TEMP/three-bodies/live-conformance"
           cargo xtask evidence three-body-journey-contract --locked \
             --commit "$EXACT_COMMIT" --output "$RUNNER_TEMP/three-bodies/contract.json"
           cargo xtask evidence three-body-journey --locked \
@@ -204,11 +207,12 @@ jobs:
             --track "$RUNNER_TEMP/three-bodies/native-graphical/track.json" \
             --track "$RUNNER_TEMP/three-bodies/browser-graphical/track.json" \
             --track "$RUNNER_TEMP/three-bodies/hosted-generative/track.json" \
+            --recorded-generative "$RUNNER_TEMP/three-bodies/live-conformance/track.json" \
             --output "$RUNNER_TEMP/three-bodies/index.json"
           live_evidence=proof/evidence/three-body/live-ollama-4ac95aa41915fa68bec8fadea9c4fd895d107acd
           (cd "$live_evidence" && sha256sum --check SHA256SUMS)
           cp -a "$live_evidence" \
-            "$RUNNER_TEMP/three-bodies/live-conformance"
+            "$RUNNER_TEMP/three-bodies/live-provider-conformance"
       - name: Retain the exact three-Body Journey
         uses: ./.github/actions/upload-artifact-retry
         with:

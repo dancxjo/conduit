@@ -8,6 +8,8 @@ use crate::evidence::{self, ExpectedEvidenceResult, VerificationRequest};
 mod home_cross_front;
 #[path = "evidence_journey_audio.rs"]
 mod journey_audio;
+#[path = "evidence_three_body_browser.rs"]
+mod three_body_browser;
 #[path = "evidence_three_body_journey.rs"]
 mod three_body_journey;
 #[path = "evidence_two_fronts.rs"]
@@ -21,6 +23,8 @@ pub struct EvidenceArgs {
 
 #[derive(Subcommand, Debug)]
 enum EvidenceCommand {
+    /// Check the assembled documentary's images, playback, navigation and mobile layout.
+    CheckThreeBodyJourney(three_body_browser::BrowserArgs),
     /// Voice retained model speech into documentary MP3s and measured waveforms.
     JourneyAudio(journey_audio::JourneyAudioArgs),
     /// Publish the bounded Home index after every front supplies exact evidence.
@@ -198,6 +202,7 @@ pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         EvidenceCommand::HomeCrossFront(args) => home_cross_front::run(args.receipts, args.output),
         EvidenceCommand::JourneyAudio(args) => journey_audio::run(args),
+        EvidenceCommand::CheckThreeBodyJourney(args) => three_body_browser::run(args),
         EvidenceCommand::ThreeBodyJourney(args) => three_body_journey::run(
             args.commit,
             args.contract,
