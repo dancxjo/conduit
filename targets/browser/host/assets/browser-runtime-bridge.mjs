@@ -19,7 +19,8 @@ function boundedLength(length, { minimum, maximum, label }) {
 }
 
 function boundedView(buffer, pointer, length, label) {
-  if (!Number.isSafeInteger(pointer) || pointer < 0 || pointer + length > buffer.byteLength) {
+  const end = pointer + length;
+  if (!Number.isSafeInteger(pointer) || pointer < 0 || !Number.isSafeInteger(end) || end > buffer.byteLength) {
     throw new Error(`${label} exceeds its bound`);
   }
 }
