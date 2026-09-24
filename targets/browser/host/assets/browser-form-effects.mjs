@@ -77,10 +77,8 @@ export function createPitchTonePerformer(window) {
 
 // Shared page-Host dispatch for effects requested by the one WASM kernel.
 // It does not plan work or schedule semantic operations.
-// readOutput is accepted as either `readOutput(api)` or zero-arg closure.
 export async function drainBrowserEffects({ api, initialProgress, readOutput, perform,
   isCurrent = () => true, onWaiting = () => {}, bridge = null }) {
-  const nextOutput = () => (readOutput.length > 0 ? readOutput(api) : readOutput());
   const encoder = new TextEncoder();
   const effects = new Map();
   let wake = null;
@@ -125,7 +123,7 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
             input.fill(0);
           }
           if (result < 0) throw new Error(`cancellation acknowledgement refused (${result})`);
-          progress = nextOutput();
+          progress = readOutput();
           continue;
         }
         if (effects.has(key) || effects.size >= capacity) {
@@ -144,7 +142,7 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
         );
         const poll = api.conduit_browser_form_poll_effect();
         if (poll < 0) throw new Error(`effect poll refused (${poll})`);
-        progress = nextOutput();
+        progress = readOutput();
       }
       if (progress.disposition !== "waiting") {
         if (effects.size) throw new Error("Play completed with platform effects pending");
@@ -194,10 +192,10 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
         input.fill(0);
       }
       if (completion < 0) {
-        const refusal = api.conduit_browser_form_output_len() > 0 ? nextOutput() : null;
+        const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput() : null;
         throw new Error(`effect completion refused (${completion})${refusal?.message ? `: ${refusal.message}` : ""}`);
       }
-      progress = nextOutput();
+      progress = readOutput();
     }
     return isCurrent() ? progress : undefined;
   } finally {

@@ -66,6 +66,10 @@ export function openWorkspaceSession({ host, storage }) {
       pendingBodyInput = null;
     }
   };
+  const callWithInput = (bytes, name, ...args) => {
+    put(bytes);
+    return call(name, ...args);
+  };
   const put = bytes => {
     pendingBodyInput = bridge.writeInput(bytes, {
       pointerExport: "conduit_creche_input_ptr",
@@ -116,9 +120,9 @@ export function openWorkspaceSession({ host, storage }) {
     attachHere() {
       const parts = [host.hostId, host.bootId].map(value => encoder.encode(value));
       const bytes = new Uint8Array(parts[0].length + parts[1].length);
-      bytes.set(parts[0]); bytes.set(parts[1], parts[0].length); put(bytes);
+      bytes.set(parts[0]); bytes.set(parts[1], parts[0].length);
       const at = nextSequence(); nextSequence();
-      return call('conduit_creche_attach_here', parts[0].length, parts[1].length, BigInt(at));
+      return callWithInput(bytes, 'conduit_creche_attach_here', parts[0].length, parts[1].length, BigInt(at));
     },
     selectForm(form) { request('SelectForm', { form }); return save(); },
     libraryView(source, query, revision, joinedLines = []) { return request('LibraryView', { ...here, source, query, revision, joined_lines: joinedLines }, true); },
@@ -227,17 +231,17 @@ export function openWorkspaceSession({ host, storage }) {
         return { body: workspace, resume_wake: resumeWake };
       }
       const bytes = encoder.encode(JSON.stringify(snapshot));
-      put(bytes);
-      const receipt = call('conduit_creche_restore_durable', bytes.length);
+      const receipt = callWithInput(bytes, 'conduit_creche_restore_durable', bytes.length);
       const sequences = [receipt.birth_sequence, ...(snapshot.biography?.records ?? []).map(record => record.sequence)];
       if (sequences.some(value => !Number.isSafeInteger(value) || value < 0)) throw new Error('Retained body sequence is invalid');
       sequence = Math.max(...sequences);
       if (receipt.here_part_id) {
         const parts = [host.hostId, host.bootId].map(value => encoder.encode(value));
         const input = new Uint8Array(parts[0].length + parts[1].length);
-        input.set(parts[0]); input.set(parts[1], parts[0].length); put(input);
-        const restored = call('conduit_creche_attach_here', parts[0].length, parts[1].length, BigInt(nextSequence()));
+        input.set(parts[0]); input.set(parts[1], parts[0].length);
+        const at = nextSequence();
         nextSequence();
+        const restored = callWithInput(input, 'conduit_creche_attach_here', parts[0].length, parts[1].length, BigInt(at));
         if (restored.host_id !== host.hostId || restored.boot_id !== host.bootId) throw new Error('Body membership did not reconcile to this host and Boot');
         await save();
         return { body: restored, resume_wake: false };
