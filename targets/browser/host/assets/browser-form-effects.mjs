@@ -108,8 +108,14 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
                 capacityExport: "conduit_browser_form_input_capacity",
                 label: "cancellation acknowledgement input",
               })
-            : new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), bytes.length);
-          if (!bridge) input.set(bytes);
+            : (() => {
+                if (bytes.length > api.conduit_browser_form_input_capacity()) {
+                  throw new Error("cancellation acknowledgement exceeds the admitted input bound");
+                }
+                const view = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), bytes.length);
+                view.set(bytes);
+                return view;
+              })();
           let result;
           try {
             result = api.conduit_browser_form_acknowledge_cancellation(play.length, placement.length, effect.request_sequence);
