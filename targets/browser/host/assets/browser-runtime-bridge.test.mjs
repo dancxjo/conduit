@@ -40,6 +40,7 @@ function runtime({ revision = 1, identity = ABI, inputCapacity = 64, inputPointe
       new Uint8Array(memory.buffer, 0, bytes.length).set(bytes);
       state.workspaceOutputLength = bytes.length;
     },
+    setWorkspaceOutputLength(length) { state.workspaceOutputLength = length; },
     setBodyOutput(bytes) {
       new Uint8Array(memory.buffer, 0, bytes.length).set(bytes);
       state.bodyOutputLength = bytes.length;
@@ -76,6 +77,22 @@ test("workspace request retires input even when invocation grows memory", () => 
   const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });
   bridge.workspaceRequest({ action: "Proof" });
   assert.deepEqual([...new Uint8Array(api.memory.buffer, 256, 16)], new Array(16).fill(0));
+});
+
+test("workspace request snapshots a shared input/output arena before retiring input", () => {
+  const pointer = 256;
+  const api = runtime({ inputPointer: pointer, outputPointer: pointer });
+  const expected = { schema: "conduit.workspace/proof@1", state: "admitted" };
+  api.conduit_workspace_request = () => {
+    const bytes = new TextEncoder().encode(JSON.stringify(expected));
+    new Uint8Array(api.memory.buffer, pointer, bytes.length).set(bytes);
+    api.setWorkspaceOutputLength(bytes.length);
+    return 0;
+  };
+  const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });
+  const result = bridge.workspaceRequest({ action: "Proof" });
+  assert.deepEqual(result.outputJson, expected);
+  assert.deepEqual([...new Uint8Array(api.memory.buffer, pointer, 16)], new Array(16).fill(0));
 });
 
 test("rejects malformed workspace input capacity", () => {
@@ -118,5 +135,17 @@ test("workspace binary request permits empty output", () => {
   const result = bridge.workspaceRequest({ action: "BinaryProof" });
   assert.equal(result.status, 0);
   assert.equal(result.outputBytes.length, 0);
+  assert.equal(result.outputJson, null);
+});
+
+test("workspace binary request preserves opaque non-UTF-8 output", () => {
+  const api = runtime();
+  api.conduit_workspace_request = () => {
+    api.setWorkspaceOutput(Uint8Array.of(0xff, 0x00, 0xfe));
+    return 0;
+  };
+  const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });
+  const result = bridge.workspaceRequest({ action: "BinaryProof" }, { binary: true });
+  assert.deepEqual([...result.outputBytes], [0xff, 0x00, 0xfe]);
   assert.equal(result.outputJson, null);
 });

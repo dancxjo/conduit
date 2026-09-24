@@ -12,7 +12,7 @@ export function openWorkspaceSession({ host, storage }) {
   let persistenceFailure = null;
   let workspace = null;
   const request = (action, fields = {}, binary = false) => {
-    const { status, outputBytes: output, outputJson } = bridge.workspaceRequest({ action, ...fields });
+    const { status, outputBytes: output, outputJson } = bridge.workspaceRequest({ action, ...fields }, { binary });
     if (status < 0 && !output) throw new Error(`Workspace refused (${status})`);
     if (!output) throw new Error("Workspace output is unavailable");
     if (status >= 0 && binary) return output;

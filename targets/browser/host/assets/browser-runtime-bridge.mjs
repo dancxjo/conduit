@@ -73,7 +73,20 @@ function withInput(api, bytes, { pointerExport, capacityExport, minimum = 0, lab
 }
 
 function readJson(api, fields) {
-  return JSON.parse(decoder.decode(readBytes(api, fields)));
+  try {
+    return decodeJson(readBytes(api, fields), fields.label);
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith(`${fields.label} `)) throw error;
+    throw new Error(`${fields.label} is not valid bounded UTF-8 JSON: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+function decodeJson(bytes, label) {
+  let source;
+  try { source = decoder.decode(bytes); }
+  catch (error) { throw new Error(`${label} is not valid UTF-8: ${error instanceof Error ? error.message : String(error)}`); }
+  try { return JSON.parse(source); }
+  catch (error) { throw new Error(`${label} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`); }
 }
 
 function maybeReadFormOutputJson(api, minimum = 0) {
@@ -133,26 +146,28 @@ export function bindBrowserRuntimeBridge(api, { context }) {
     abi: ABI,
     encodeJson: (value) => encoder.encode(JSON.stringify(value)),
     decodeJson: (bytes) => JSON.parse(decoder.decode(bytes)),
-    workspaceRequest(message) {
+    workspaceRequest(message, { binary = false } = {}) {
       const input = encoder.encode(JSON.stringify(message));
-      const status = withInput(api, input, {
+      return withInput(api, input, {
         pointerExport: "conduit_workspace_input_ptr",
         capacityExport: "conduit_workspace_input_capacity",
         label: "Workspace input",
-      }, (length) => call("conduit_workspace_request", length), { retireInput: true });
-      const outputLength = readLength(api, "conduit_workspace_output_len", "Workspace output");
-      if (status >= 0 || outputLength > 0) {
-        const outputBytes = readBytes(api, {
-          pointerExport: "conduit_workspace_output_ptr",
-          lengthExport: "conduit_workspace_output_len",
-          capacityExport: "conduit_workspace_output_capacity",
-          minimum: 0,
-          maximum: OPERATION_OUTPUT_MAX,
-          label: "Workspace output",
-        });
-        return { status, outputBytes, outputJson: outputBytes.length > 0 ? JSON.parse(decoder.decode(outputBytes)) : null };
-      }
-      return { status, outputBytes: null, outputJson: null };
+      }, (length) => {
+        const status = call("conduit_workspace_request", length);
+        const outputLength = readLength(api, "conduit_workspace_output_len", "Workspace output");
+        if (status >= 0 || outputLength > 0) {
+          const outputBytes = readBytes(api, {
+            pointerExport: "conduit_workspace_output_ptr",
+            lengthExport: "conduit_workspace_output_len",
+            capacityExport: "conduit_workspace_output_capacity",
+            minimum: 0,
+            maximum: OPERATION_OUTPUT_MAX,
+            label: "Workspace output",
+          });
+          return { status, outputBytes, outputJson: !binary && outputBytes.length > 0 ? decodeJson(outputBytes, "Workspace output") : null };
+        }
+        return { status, outputBytes: null, outputJson: null };
+      }, { retireInput: true });
     },
     crecheCurrent() {
       const status = call("conduit_creche_current");
@@ -178,34 +193,38 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       const input = new Uint8Array(hostBytes.length + bootBytes.length);
       input.set(hostBytes);
       input.set(bootBytes, hostBytes.length);
-      const status = withInput(api, input, {
+      return withInput(api, input, {
         pointerExport: "conduit_creche_input_ptr",
         capacityExport: "conduit_creche_input_capacity",
         minimum: 1,
         label: "Body input",
-      }, () => call("conduit_creche_attach_here", hostBytes.length, bootBytes.length, sequence), { retireInput: true });
-      return { status, outputJson: status === 1 ? null : readJson(api, {
+      }, () => {
+        const status = call("conduit_creche_attach_here", hostBytes.length, bootBytes.length, sequence);
+        return { status, outputJson: status === 1 ? null : readJson(api, {
         pointerExport: "conduit_creche_output_ptr",
         lengthExport: "conduit_creche_output_len",
         minimum: 1,
         maximum: 65536,
         label: "Body output",
-      }) };
+        }) };
+      }, { retireInput: true });
     },
     crecheRestoreDurable(snapshotBytes) {
-      const status = withInput(api, snapshotBytes, {
+      return withInput(api, snapshotBytes, {
         pointerExport: "conduit_creche_input_ptr",
         capacityExport: "conduit_creche_input_capacity",
         minimum: 1,
         label: "Body input",
-      }, (length) => call("conduit_creche_restore_durable", length), { retireInput: true });
-      return { status, outputJson: status === 1 ? null : readJson(api, {
+      }, (length) => {
+        const status = call("conduit_creche_restore_durable", length);
+        return { status, outputJson: status === 1 ? null : readJson(api, {
         pointerExport: "conduit_creche_output_ptr",
         lengthExport: "conduit_creche_output_len",
         minimum: 1,
         maximum: 65536,
         label: "Body output",
-      }) };
+        }) };
+      }, { retireInput: true });
     },
     browserFormReadOutputJson() {
       return readJson(api, {
@@ -226,13 +245,15 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       });
     },
     browserBodyStart(startRequest) {
-      const status = withInput(api, encoder.encode(JSON.stringify(startRequest)), {
+      return withInput(api, encoder.encode(JSON.stringify(startRequest)), {
         pointerExport: "conduit_browser_body_input_ptr",
         capacityExport: "conduit_browser_body_input_capacity",
         minimum: 1,
         label: "browser Body input",
-      }, (length) => call("conduit_browser_body_start", length), { retireInput: true });
-      return { status, outputJson: maybeReadFormOutputJson(api, status >= 0 ? 1 : 0) };
+      }, (length) => {
+        const status = call("conduit_browser_body_start", length);
+        return { status, outputJson: maybeReadFormOutputJson(api, status >= 0 ? 1 : 0) };
+      }, { retireInput: true });
     },
     browserFormAcknowledgeCancellation(activePlayId, placementId, sequence) {
       const play = encoder.encode(activePlayId);
@@ -240,12 +261,14 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       const bytes = new Uint8Array(play.length + placement.length);
       bytes.set(play);
       bytes.set(placement, play.length);
-      const status = withInput(api, bytes, {
+      return withInput(api, bytes, {
         pointerExport: "conduit_browser_form_input_ptr",
         capacityExport: "conduit_browser_form_input_capacity",
         label: "cancellation acknowledgement input",
-      }, () => call("conduit_browser_form_acknowledge_cancellation", play.length, placement.length, sequence), { retireInput: true });
-      return { status, outputJson: maybeReadFormOutputJson(api, status >= 0 ? 1 : 0) };
+      }, () => {
+        const status = call("conduit_browser_form_acknowledge_cancellation", play.length, placement.length, sequence);
+        return { status, outputJson: maybeReadFormOutputJson(api, status >= 0 ? 1 : 0) };
+      }, { retireInput: true });
     },
     browserFormCompleteEffect(activePlayId, placementId, sequence, effectOutputBytes) {
       const play = encoder.encode(activePlayId);
@@ -254,12 +277,14 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       bytes.set(play);
       bytes.set(placement, play.length);
       bytes.set(effectOutputBytes, play.length + placement.length);
-      const status = withInput(api, bytes, {
+      return withInput(api, bytes, {
         pointerExport: "conduit_browser_form_input_ptr",
         capacityExport: "conduit_browser_form_input_capacity",
         label: "effect completion input",
-      }, () => call("conduit_browser_form_complete_effect", play.length, placement.length, sequence, effectOutputBytes.length), { retireInput: true });
-      return { status, outputJson: maybeReadFormOutputJson(api, status >= 0 ? 1 : 0) };
+      }, () => {
+        const status = call("conduit_browser_form_complete_effect", play.length, placement.length, sequence, effectOutputBytes.length);
+        return { status, outputJson: maybeReadFormOutputJson(api, status >= 0 ? 1 : 0) };
+      }, { retireInput: true });
     },
     browserFormRefuseEffect(activePlayId, placementId, sequence, disposition, detail) {
       const play = encoder.encode(activePlayId);
@@ -267,12 +292,14 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       const bytes = new Uint8Array(play.length + placement.length);
       bytes.set(play);
       bytes.set(placement, play.length);
-      const status = withInput(api, bytes, {
+      return withInput(api, bytes, {
         pointerExport: "conduit_browser_form_input_ptr",
         capacityExport: "conduit_browser_form_input_capacity",
         label: "effect refusal input",
-      }, () => call("conduit_browser_form_refuse_effect", play.length, placement.length, sequence, disposition, detail), { retireInput: true });
-      return { status, outputJson: maybeReadFormOutputJson(api, status >= 0 ? 1 : 0) };
+      }, () => {
+        const status = call("conduit_browser_form_refuse_effect", play.length, placement.length, sequence, disposition, detail);
+        return { status, outputJson: maybeReadFormOutputJson(api, status >= 0 ? 1 : 0) };
+      }, { retireInput: true });
     },
   });
 }
