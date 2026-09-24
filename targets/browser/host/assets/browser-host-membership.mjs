@@ -6,11 +6,18 @@ export async function initializeBrowserHost(runtimeBytes, options = {}) {
   if (!(runtimeBytes instanceof Uint8Array) || runtimeBytes.length === 0) {
     throw new Error("browser Host runtime bytes were not admitted");
   }
+  const runtime = await WebAssembly.instantiate(runtimeBytes, {});
+  return initializeBrowserHostInstance(runtime.instance, options);
+}
+
+export async function initializeBrowserHostInstance(instance, options = {}) {
+  const api = instance?.exports;
+  if (!(api?.memory instanceof WebAssembly.Memory)) {
+    throw new Error("browser Host runtime instance has no linear memory");
+  }
   const identity = await openBrowserHostIdentity(options);
   const hostId = identity.hostId;
-  const bootId = `browser-boot/${crypto.randomUUID()}`;
-  const runtime = await WebAssembly.instantiate(runtimeBytes, {});
-  const api = runtime.instance.exports;
+  const bootId = options.bootId ?? `browser-boot/${crypto.randomUUID()}`;
   const required = [
     "memory",
     "conduit_browser_membership_input_ptr",
