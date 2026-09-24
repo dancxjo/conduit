@@ -50,6 +50,14 @@ Their presence is not an additional physical or release acceptance claim:
   candidate is accepted and published, this is development-tree and local
   execution proof, not a stable-release claim.
 
+  The human-facing follow-up remains open: default comparison is being changed
+  to retained native/browser screenshots and conversational MP3s, waveforms and
+  transcripts, with machine evidence collapsed. Browser capture also retains an
+  uncut session video. Real-model recordings are reusable only while their exact
+  structured tutorial requests still match current conformance inputs. Offline
+  documentary voicing is not runtime TTS or physical-speaker proof. These changes
+  are not accepted publication until the release and deployed page are verified.
+
 - **Startup forms (#3152):** the optional browser Startup Chime and separate
   First wake Chime run through the ordinary planner and kernel. The generic
   first-wake source uses retained body biography across later wakes and fresh

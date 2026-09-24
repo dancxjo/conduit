@@ -1,0 +1,12 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "3de9d4bd1379e658e03f5ac664b2ccdf270ac633",
+  "track": "hosted-generative",
+  "step_id": "body.absent",
+  "assertion": "body-absent",
+  "source_facts": {
+    "boot_id": "boot/orifina-local-model",
+    "host_id": "host/orifina-local-model",
+    "initial_body": null
+  }
+}

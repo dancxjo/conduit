@@ -1,0 +1,11 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "3de9d4bd1379e658e03f5ac664b2ccdf270ac633",
+  "track": "hosted-generative",
+  "step_id": "workload.revised",
+  "assertion": "workload-revised",
+  "source_facts": {
+    "workload_revision": 1,
+    "workload_sign_id": "331055a89cda8c26d12d76533234ec165e32cec377d0c7bf9821c33fd708b20b"
+  }
+}

@@ -1,142 +1,162 @@
-//! Human-readable projection of an already verified three-Body Journey index.
-
+//! Human-facing documentary over verified journey evidence.
+use super::{BodyTrack, ThreeBodyJourneyIndex, TrackStep};
 use std::fmt::Write;
 
-use super::{BodyTrack, ContractStep, ThreeBodyJourneyIndex, TrackStep};
-
 pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
-    let mut html = String::from(
-        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">\
-         <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\">\
-         <title>Three Bodies, one semantic Journey</title><style>\
-         :root{--ink:#f5f2e8;--muted:#aebbb3;--green:#77e6ad;--gold:#f5b95f;--paper:#090e0c;--card:#121d17;--line:#31473c}*{box-sizing:border-box}html{scroll-behavior:smooth}body{font:16px/1.55 system-ui,sans-serif;max-width:96rem;margin:auto;padding:clamp(1rem,4vw,4rem);color:var(--ink);background:radial-gradient(circle at 85% 0,#183b2a 0,transparent 28rem),var(--paper)}\
-         header{min-height:70vh;display:flex;flex-direction:column;justify-content:center}header>p:first-child{color:var(--green);font-weight:850;letter-spacing:.15em;text-transform:uppercase;font-size:.76rem}h1{font-size:clamp(3.5rem,8vw,8rem);line-height:.86;letter-spacing:-.065em;max-width:12ch;margin:.15em 0}h2{font-size:clamp(2.2rem,5vw,4.5rem);line-height:1;letter-spacing:-.04em}h3{font-size:1.5rem}h4{font-size:1.15rem}a{color:var(--green);text-underline-offset:.2em}nav{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:2rem}nav a{padding:.7rem 1rem;border:1px solid var(--green);border-radius:999px;text-decoration:none;font-weight:800}\
-         section{margin:clamp(4rem,9vw,9rem) 0}.track,.step{border:1px solid var(--line);border-radius:1.2rem;padding:clamp(1rem,3vw,2.5rem);margin:1.25rem 0;background:linear-gradient(145deg,#15231c,var(--card))}.track>section{margin:2rem 0;padding:1.2rem;border-left:.25rem solid var(--green);background:#0d1511}.track:nth-of-type(2)>section{border-color:#73b9ff}.track:nth-of-type(3)>section{border-color:#ff806c}\
-         table{border-collapse:separate;border-spacing:.45rem;width:100%}th,td{border:1px solid var(--line);border-radius:.6rem;padding:1rem;text-align:left;vertical-align:top;background:#0d1511}thead th{color:var(--green)}code,pre{overflow-wrap:anywhere;white-space:pre-wrap;color:#c7f7dc}.nonclaim{color:#e7c98e;border-left:.25rem solid var(--gold);padding-left:1rem}dt{font-weight:800;color:var(--muted)}dd{margin:0 0 .7rem}details{border-top:1px solid var(--line);padding-top:.8rem}summary{cursor:pointer;font-weight:800}@media(max-width:48rem){table,thead,tbody,tr,th,td{display:block}thead{display:none}tr{margin:1rem 0}h1{font-size:clamp(3.2rem,18vw,5.5rem)}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}</style></head><body>",
-    );
-    let _ = write!(
-        html,
-        "<header><p>Verified evidence projection</p><h1>One Journey.<br>Three Bodies.</h1>\
-         <p>One portable tutorial, lived independently through native ConduitOS, a browser, and a distributed conversational Body. Journey <code>{}</code> at exact commit <code>{}</code>.</p>\
-         <p>Semantic assertions come from verified receipts. Documentary media show what a human could observe; they never become runtime truth.</p>\
-         <nav aria-label=\"Choose how to read the Journey\"><a href=\"#by-body\">↓ Follow one Body's life</a><a href=\"#by-step\">→ Compare one semantic moment</a></nav></header>",
-        escape(&index.journey_id),
-        escape(&index.git_commit)
-    );
-    html.push_str("<section id=\"by-body\"><h2>Follow one body</h2>");
+    let mut html = String::from("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>One journey. Three bodies. — Conduit</title><style>");
+    html.push_str(include_str!("evidence_three_body_journey.css"));
+    html.push_str("</style></head><body><nav class=\"topbar\"><a href=\"../../\">Conduit / Journeys</a><a href=\"#by-step\">Explore the journey</a></nav><header><p class=\"eyebrow\">A life in three kinds of machinery</p><h1>One journey.<br><em>Three bodies.</em></h1><p class=\"lede\">A computer boots. A browser opens. A model finds its voice. Watch them wake, do useful work, welcome another host, recover from failure, and come to rest.</p><a class=\"button\" href=\"#by-step\">Begin the journey ↓</a></header><main id=\"by-step\"><p class=\"eyebrow\">The same moment, three ways</p><h2>Watch the meaning carry through.</h2><p>Compare the screens and words below. Select a body to follow its life from beginning to end.</p><div class=\"view-controls\" role=\"group\" aria-label=\"Journey view\"><button data-view=\"all\" aria-pressed=\"true\">Compare all three</button>");
     for track in &index.tracks {
-        render_track(&mut html, track, &index.semantic_steps);
+        let _ = write!(
+            html,
+            "<button data-view=\"{}\" aria-pressed=\"false\">{}</button>",
+            escape(&track.track_id),
+            label(track)
+        );
     }
-    html.push_str("</section><section id=\"by-step\"><h2>Compare one semantic step</h2>");
-    for (step_index, contract) in index.semantic_steps.iter().enumerate() {
-        render_step_comparison(&mut html, contract, step_index, &index.tracks);
+    html.push_str("</div><nav class=\"chapter-nav\" aria-label=\"Journey moments\">");
+    for (i, step) in index.semantic_steps.iter().enumerate() {
+        let _ = write!(
+            html,
+            "<a href=\"#moment-{i}\">{:02} {}</a>",
+            i + 1,
+            escape(&step.title)
+        );
     }
-    html.push_str(
-        "</section><section id=\"live-conformance\"><h2>The physical universe also agreed</h2>\
-         <p>The required release proof uses a deterministic service speaking the real Ollama HTTP API. Separately retained live conformance ran the same adapter through real Ollama and Gemma, completed ordinary Plan/Play, and produced the Manifestation used by its thirteen-step track.</p>\
-         <p><a href=\"live-conformance/track.json\">Inspect the retained live Ollama track</a>. This evidence belongs to development commit <code>4ac95aa41915fa68bec8fadea9c4fd895d107acd</code>; it is not represented as an exact-main release gate.</p></section></body></html>",
-    );
+    html.push_str("</nav>");
+    for (i, contract) in index.semantic_steps.iter().enumerate() {
+        let _ = write!(html, "<article class=\"chapter\" id=\"moment-{i}\"><div class=\"chapter-heading\"><span class=\"number\">{:02}</span><div><h2>{}</h2><p>{}</p></div></div><div class=\"comparison\">", i+1, escape(&contract.title), escape(&contract.what_happened));
+        for track in &index.tracks {
+            let observed = &track.steps[i];
+            let _ = write!(
+                html,
+                "<section class=\"body-panel\" data-body=\"{}\"><h3>{}</h3>",
+                escape(&track.track_id),
+                label(track)
+            );
+            if let Some(recording) = index
+                .recorded_generative
+                .as_ref()
+                .filter(|_| track.track_id == "hosted-generative")
+            {
+                html.push_str(
+                    "<p class=\"proof-mode\">Recorded live Gemma · voiced with Piper</p>",
+                );
+                render_media(
+                    &mut html,
+                    recording,
+                    &recording.steps[i],
+                    "live-conformance",
+                );
+                render_evidence(
+                    &mut html,
+                    recording,
+                    &recording.steps[i],
+                    "live-conformance",
+                );
+                html.push_str("<details><summary>Current release contract check</summary>");
+                render_evidence(&mut html, track, observed, &track.track_id);
+                html.push_str("</details>");
+            } else {
+                render_media(&mut html, track, observed, &track.track_id);
+                render_evidence(&mut html, track, observed, &track.track_id);
+            }
+            html.push_str("<details><summary>What this does—and does not—prove</summary><ul>");
+            for claim in &contract.non_claims {
+                let _ = write!(html, "<li>{}</li>", escape(claim));
+            }
+            html.push_str("</ul></details>");
+            html.push_str("</section>");
+        }
+        html.push_str("</div></article>");
+    }
+    let _ = write!(html, "</main><footer><h2>The machinery changes.<br>The meaning carries through.</h2><p>Three independent bodies, each with its own history. Native captures show ConduitOS in QEMU; browser captures show Chromium. Chapters align meaning, not identical clocks or keystrokes.</p><p>The conversational recording preserves real model output, including its terse or repetitive moments. Piper voices the retained words for this documentary; this is not a recording of physical speakers. Some moments share one captured state. Release checks reuse the recording only while its exact tutorial inputs remain unchanged.</p><details><summary>Inspect the complete evidence</summary><p>Journey {} · source {}</p><a href=\"index.json\">Verified journey index</a></details><a href=\"../../\">Back to the journeys</a></footer>", escape(&index.journey_id), escape(&index.git_commit));
+    html.push_str("<script>");
+    html.push_str(include_str!("evidence_three_body_journey.js"));
+    html.push_str("</script></body></html>");
     html
 }
 
-fn render_track(html: &mut String, track: &BodyTrack, contracts: &[ContractStep]) {
-    let _ = write!(
-        html,
-        "<article class=\"track\"><h3>{}</h3><p>Body <code>{}</code> · embodiment <code>{}</code> · Presenter <code>{}</code> · {} Host(s)</p>",
-        escape(&track.track_id),
-        escape(&track.body_id),
-        escape(&track.embodiment),
-        escape(&track.presenter_id),
-        track.hosts.len()
-    );
-    for (contract, observed) in contracts.iter().zip(&track.steps) {
-        render_observation(html, contract, observed);
+fn label(track: &BodyTrack) -> &'static str {
+    match track.track_id.as_str() {
+        "native-graphical" => "ConduitOS",
+        "browser-graphical" => "Browser",
+        _ => "Conversational",
     }
-    html.push_str("</article>");
 }
 
-fn render_step_comparison(
-    html: &mut String,
-    contract: &ContractStep,
-    step_index: usize,
-    tracks: &[BodyTrack],
-) {
-    let _ = write!(
-        html,
-        "<article class=\"step\"><h3>{}</h3><p>{}</p><p><strong>Conduit established:</strong> {}</p>\
-         <p><strong>Authoritative assertion rung:</strong> <code>{}</code></p>\
-         <p class=\"nonclaim\"><strong>Does not establish:</strong> {}</p><table><thead><tr><th>Body</th><th>Exact realization evidence</th></tr></thead><tbody>",
-        escape(&contract.title),
-        escape(&contract.what_happened),
-        escape(&contract.what_conduit_established),
-        contract.required_assertion_rung.label(),
-        joined(&contract.non_claims)
-    );
-    for track in tracks {
-        let observed = &track.steps[step_index];
-        let _ = write!(
-            html,
-            "<tr><th><code>{}</code><br>{}</th><td>",
-            escape(&track.body_id),
-            escape(&track.embodiment)
+fn render_media(html: &mut String, track: &BodyTrack, observed: &TrackStep, root: &str) {
+    if track.embodiment.contains("fixture") {
+        html.push_str(
+            "<p class=\"proof-mode\">Release contract recording · deterministic model fixture</p>",
         );
-        render_evidence(html, observed);
-        html.push_str("</td></tr>");
     }
-    html.push_str("</tbody></table></article>");
+    if track.track_id == "hosted-generative"
+        && matches!(
+            observed.step_id.as_str(),
+            "body.absent" | "bootstrap.started"
+        )
+    {
+        html.push_str(
+            "<blockquote>No body has been born yet. There is no body voice to play.</blockquote>",
+        );
+    }
+    let mut media: Vec<_> = observed.evidence.iter().collect();
+    media.sort_by_key(|item| match item.evidence_class.as_str() {
+        "screenshot" => 0,
+        "waveform" => 1,
+        "audio" => 2,
+        "transcript" => 3,
+        _ => 4,
+    });
+    for evidence in media {
+        let url = escape(&format!("{root}/{}", evidence.path.display()));
+        let caption = escape(&evidence.documentary_description);
+        match evidence.evidence_class.as_str() {
+            "screenshot" => {
+                let _ = write!(html, "<figure><a href=\"{url}\" target=\"_blank\" rel=\"noopener\" aria-label=\"Open full-size screenshot\"><img src=\"{url}\" alt=\"{caption}\" loading=\"lazy\"></a><figcaption>{caption}</figcaption></figure>");
+            }
+            "audio" => {
+                let _ = write!(html, "<figure><audio controls preload=\"none\" src=\"{url}\"></audio><figcaption>{caption}</figcaption></figure>");
+            }
+            "waveform" => {
+                let _ = write!(
+                    html,
+                    "<img class=\"waveform\" src=\"{url}\" alt=\"{caption}\" loading=\"lazy\">"
+                );
+            }
+            "video" => {
+                let _ = write!(html, "<figure><video controls preload=\"metadata\" src=\"{url}\"></video><figcaption>{caption}</figcaption></figure>");
+            }
+            "transcript" => {
+                let _ = write!(html, "<blockquote data-transcript=\"{url}\"><a href=\"{url}\">Read the recorded words</a></blockquote><p class=\"caption\">{caption}</p>");
+            }
+            _ => {}
+        }
+    }
 }
 
-fn render_observation(html: &mut String, contract: &ContractStep, observed: &TrackStep) {
+fn render_evidence(html: &mut String, track: &BodyTrack, observed: &TrackStep, root: &str) {
+    html.push_str("<details class=\"evidence\"><summary>Evidence</summary><ul>");
     let _ = write!(
         html,
-        "<section><h4>{}</h4><dl><dt>What happened</dt><dd>{}</dd><dt>What Conduit established</dt><dd>{}</dd>\
-         <dt>Authoritative assertion rung</dt><dd><code>{}</code></dd><dt>Concepts in view</dt><dd>{}</dd><dt>Disposition</dt><dd><code>{}</code></dd></dl>",
-        escape(&contract.title),
-        escape(&contract.what_happened),
-        escape(&contract.what_conduit_established),
-        contract.required_assertion_rung.label(),
-        joined(&contract.concepts),
-        escape(&observed.disposition)
-    );
-    render_evidence(html, observed);
-    let _ = write!(
-        html,
-        "<p class=\"nonclaim\"><strong>Does not establish:</strong> {}</p></section>",
-        joined(&contract.non_claims)
-    );
-}
-
-fn render_evidence(html: &mut String, observed: &TrackStep) {
-    let _ = write!(
-        html,
-        "<p><strong>Assertion:</strong> <code>{}</code></p><ul>",
-        escape(&observed.assertion)
+        "<li>Recorded source: {} · Presenter: {}</li>",
+        escape(&track.git_commit),
+        escape(&track.presenter_id)
     );
     for evidence in &observed.evidence {
         let _ = write!(
             html,
-            "<li>{} — <code>{}</code> · class <code>{}</code> · assertion rung <code>{}</code> · <code>{}</code> · <code>{}</code></li>",
-            escape(&evidence.documentary_description),
-            escape(&evidence.artifact_id),
-            escape(&evidence.evidence_class),
-            evidence.assertion_rung.label(),
+            "<li><a href=\"{}/{}\">{}</a><br><small>{} · {}</small></li>",
+            escape(root),
             escape(&evidence.path.to_string_lossy()),
-            escape(&evidence.sha256)
+            escape(&evidence.documentary_description),
+            escape(&evidence.sha256),
+            evidence.assertion_rung.label()
         );
     }
-    html.push_str("</ul><details><summary>Exact provenance</summary><pre>");
-    let provenance = serde_json::to_string_pretty(&observed.provenance)
-        .unwrap_or_else(|_| "provenance serialization failed".into());
-    html.push_str(&escape(&provenance));
-    html.push_str("</pre></details>");
-}
-
-fn joined(values: &[String]) -> String {
-    values
-        .iter()
-        .map(|value| escape(value))
-        .collect::<Vec<_>>()
-        .join(" · ")
+    let provenance = serde_json::to_string_pretty(&observed.provenance).unwrap_or_default();
+    let _ = write!(html, "</ul><pre>{}</pre></details>", escape(&provenance));
 }
 
 fn escape(value: &str) -> String {

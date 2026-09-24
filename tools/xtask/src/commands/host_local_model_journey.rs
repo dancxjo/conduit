@@ -5,6 +5,9 @@ use conduit_body::{BodyLifecycleEvent, WakeLifecycleEvent};
 use super::host_local_model::PreparedOrifinaJourney;
 use crate::commands::body_journey_track::{self, TrackIdentities, TrackSource};
 
+#[path = "host_local_model_documentary.rs"]
+mod documentary;
+
 pub(super) fn write(
     journey: &PreparedOrifinaJourney,
     receipt: &conduit_std_host::local_model_proof::LocalModelLiveProofReceipt,
@@ -129,6 +132,11 @@ pub(super) fn write(
         Path::new("target/journeys/three-bodies/hosted-generative"),
     )
     .map_err(std::io::Error::other)?;
+    documentary::retain(
+        Path::new("target/journeys/three-bodies/hosted-generative"),
+        journey,
+        receipt,
+    )?;
     Ok(())
 }
 

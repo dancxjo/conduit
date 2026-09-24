@@ -43,6 +43,7 @@ pub(super) fn prove(
     model: &str,
     admitted_memory_mib: u32,
     orifina_presenter: bool,
+    journey_documentary: bool,
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if opts.dry_run {
@@ -70,7 +71,11 @@ pub(super) fn prove(
         None
     };
     let presenter_requests = journey.as_ref().map_or_else(Vec::new, |journey| {
-        journey.requests.first().cloned().into_iter().collect()
+        if journey_documentary {
+            journey.requests.clone()
+        } else {
+            journey.requests.first().cloned().into_iter().collect()
+        }
     });
     let receipt = conduit_std_host::local_model_proof::run(adapter, &presenter_requests)?;
     if let Some(journey) = journey.as_ref() {
@@ -262,6 +267,12 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
     )?);
     body.lull(&host, &boot, Some(&repaired))
         .map_err(|error| proof_error("lull repaired Orifina Play", error))?;
+    requests.push(tutorial_request(
+        &body,
+        "lulled",
+        6,
+        conduit_workspace_model::tutorial::TutorialPlayback::Lulled,
+    )?);
     body.fulfill(
         &host,
         &boot,
@@ -272,7 +283,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
     requests.push(tutorial_request(
         &body,
         "fulfilled",
-        6,
+        7,
         conduit_workspace_model::tutorial::TutorialPlayback::Completed,
     )?);
     let evidence = body.evidence().clone();

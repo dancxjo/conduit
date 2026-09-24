@@ -226,6 +226,35 @@ its page to expose that commit's provenance before Pages can deploy.
 
 ## Human review, not pixel authority
 
+The Three Bodies documentary foregrounds native and browser screenshots, an
+uncut browser session, and retained real-model speech with MP3 playback,
+measured waveforms and transcripts. By Step compares one semantic moment;
+body controls follow a single track. Machine receipts remain under Evidence.
+Pre-birth conversational moments are silent because no Body exists yet.
+
+`cargo xtask host prove-local-model --orifina-presenter --journey-documentary`
+retains every tutorial-state request and its actual outward model words (supply
+the explicit local model and admitted-memory options shown by `--help`). This
+is an explicit documentary run, not a required live-inference release gate.
+`cargo xtask evidence journey-audio` voices those exact retained words with an
+explicit Piper executable/model/configuration and produces MP3s and waveforms;
+its receipt labels this offline voicing, not runtime TTS or physical playback.
+
+Publication uses `cargo xtask evidence three-body-journey` with
+`--recorded-generative <recorded-track.json>`. It verifies each current producer
+track, requires graphical media, verifies retained media digests, and refuses
+live-recording reuse when any exact structured Presenter request changes.
+The recorded source commit remains distinct from the current release commit.
+Model repetitions and weak phrasing are preserved rather than rewritten into
+an invented dialogue. See the retained recording's README for its exact limits.
+
+`cargo xtask evidence check-three-body-journey --publication-root <directory>
+--output <new-review-directory>` checks the assembled documentary in the pinned
+Chromium with one worker and zero retries. It verifies media loading/playback,
+collapsed provenance, body navigation and mobile overflow, and retains desktop
+and mobile screenshots. This is browser decoding proof, not physical listening
+acceptance; it does not run a model or regenerate the source recordings.
+
 `proof/browser/patchbay-html.spec.mjs` produces five canonical images, four shown above only after the
 corresponding semantic browser assertions pass. The images remain available for
 human inspection and exact-commit comparison, but their pixels are not an

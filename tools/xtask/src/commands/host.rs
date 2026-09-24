@@ -153,6 +153,9 @@ enum HostCommand {
         /// Run the fixed-policy Orifina comparison over one exact Workspace tutorial state.
         #[arg(long)]
         orifina_presenter: bool,
+        /// Retain every tutorial-state manifestation for an explicit documentary run.
+        #[arg(long, requires = "orifina_presenter")]
+        journey_documentary: bool,
     },
     /// Exercise one explicitly selected local Piper provider under finite bounds.
     ProvePiper {
@@ -557,7 +560,14 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             model,
             admitted_memory_mib,
             orifina_presenter,
-        } => host_local_model::prove(&model, admitted_memory_mib, orifina_presenter, opts),
+            journey_documentary,
+        } => host_local_model::prove(
+            &model,
+            admitted_memory_mib,
+            orifina_presenter,
+            journey_documentary,
+            opts,
+        ),
         HostCommand::Verify { output, boot } => {
             let manifest = host_target::verify_target(&output)?;
             if boot {

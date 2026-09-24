@@ -1,0 +1,889 @@
+{
+  "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+  "distributed_plan_ids": [],
+  "embodiment": "hosted-open-weight-model-body",
+  "git_commit": "3de9d4bd1379e658e03f5ac664b2ccdf270ac633",
+  "hosts": [
+    {
+      "boot_id": "boot/orifina-local-model",
+      "host_id": "host/orifina-local-model"
+    },
+    {
+      "boot_id": "boot/orifina-companion",
+      "host_id": "host/orifina-companion"
+    }
+  ],
+  "journey_id": "orifina/tutorial@1",
+  "line_ids": [],
+  "presenter_id": "std/local-open-weight-model@1",
+  "schema": "conduit.evidence/body-journey-track@2",
+  "steps": [
+    {
+      "assertion": "body-absent",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.absent",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.absent.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/01-body.absent.json",
+          "sha256": "sha256:faeac919bbf5470c782f3714251268348df98163add25d389a77112f11dbbe16"
+        }
+      ],
+      "provenance": {
+        "body_id": null,
+        "boot_id": "boot/orifina-local-model",
+        "host_id": "host/orifina-local-model",
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": null
+      },
+      "step_id": "body.absent"
+    },
+    {
+      "assertion": "bootstrap-started",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/bootstrap.started",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for bootstrap.started.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/02-bootstrap.started.json",
+          "sha256": "sha256:e85bb05de578182684d500bb4be19e1b6c87ab9ec92cc97d1df668da5b77f399"
+        }
+      ],
+      "provenance": {
+        "body_id": null,
+        "boot_id": "boot/orifina-local-model",
+        "host_id": "host/orifina-local-model",
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": null
+      },
+      "step_id": "bootstrap.started"
+    },
+    {
+      "assertion": "body-born",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.born",
+          "assertion_rung": "body-biography",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.born.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/03-body.born.json",
+          "sha256": "sha256:3b44fd6821ead0d9c0c2aa13c87aaca3a903bd00336f1b8bb28a3371cc64318f"
+        },
+        {
+          "artifact_id": "hosted-generative/body.born/transcript",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "The model's actual outward words for this retained Body state.",
+          "evidence_class": "transcript",
+          "path": "artifacts/body.born-speech.txt",
+          "sha256": "sha256:3e4b4b26fcb861580cf8beab7ef3880b1f4470dd5bf57ba6651f63850ee06b73"
+        },
+        {
+          "artifact_id": "hosted-generative/body.born/presenter-receipt",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/body.born-speech.json",
+          "sha256": "sha256:929598ba35b7e8057562f90913363fd62da906a51d0730c82bb969dcfe0c0afa"
+        },
+        {
+          "artifact_id": "hosted-generative/body.born/waveform",
+          "evidence_class": "waveform",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Waveform measured from this voice recording.",
+          "path": "artifacts/body.born-voice.png",
+          "sha256": "sha256:b322bbab61a62c58e732e0002272ebeaa203b377545d9a7f3515306225e5e121"
+        },
+        {
+          "artifact_id": "hosted-generative/body.born/audio",
+          "evidence_class": "audio",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Hear the model's exact words, voiced by Piper for this documentary.",
+          "path": "artifacts/body.born-voice.mp3",
+          "sha256": "sha256:c0d85fcddc5184f80fc8b9c53e5019e4e8427279f39d24b8d13a6848d6025229"
+        },
+        {
+          "artifact_id": "hosted-generative/body.born/audio-source",
+          "evidence_class": "audio-source",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Lossless source recording of the documentary voice.",
+          "path": "artifacts/body.born-voice.wav",
+          "sha256": "sha256:9275343429cdfce12e35d5c6fd7b7d2092904a149345df45124845c6f9d71827"
+        },
+        {
+          "artifact_id": "hosted-generative/body.born/audio-receipt",
+          "evidence_class": "audio-receipt",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Offline Piper voicing of exact outward model words. Not runtime speech/synthesize or speaker playback proof.",
+          "path": "artifacts/body.born-voice.json",
+          "sha256": "sha256:b2dfd2b05d6fcbd6dfd4af8086beaef6554252b6fc3298a488379dd2088b4d18"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": "boot/orifina-local-model",
+        "host_id": "host/orifina-local-model",
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": "sign/orifina-provider-proof/birth"
+      },
+      "step_id": "body.born"
+    },
+    {
+      "assertion": "body-awake",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.awake",
+          "assertion_rung": "body-biography",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.awake.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/04-body.awake.json",
+          "sha256": "sha256:808d89c052e74f339b8fae955d963a2d8b0669684610739cf143e9df600357b8"
+        },
+        {
+          "artifact_id": "hosted-generative/body.awake/transcript",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "The model's actual outward words for this retained Body state.",
+          "evidence_class": "transcript",
+          "path": "artifacts/body.awake-speech.txt",
+          "sha256": "sha256:b0e74988f9d7eea06c88fcacf4ac807b627fd7fdc72fdbe13c59ae09b957f128"
+        },
+        {
+          "artifact_id": "hosted-generative/body.awake/presenter-receipt",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/body.awake-speech.json",
+          "sha256": "sha256:b76ca46e436a675a350001ce43c8b372335b23b55353ec21fb2a2b604bbf51c3"
+        },
+        {
+          "artifact_id": "hosted-generative/body.awake/waveform",
+          "evidence_class": "waveform",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Waveform measured from this voice recording.",
+          "path": "artifacts/body.awake-voice.png",
+          "sha256": "sha256:cea54206bfb7b5858559c3a24b37535d2d2ad43c7c102597f07c372f698be7fb"
+        },
+        {
+          "artifact_id": "hosted-generative/body.awake/audio",
+          "evidence_class": "audio",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Hear the model's exact words, voiced by Piper for this documentary.",
+          "path": "artifacts/body.awake-voice.mp3",
+          "sha256": "sha256:fab1b1bf8c59adc10ae23b0e15a65f367645d929711a1769f017722d0eb45910"
+        },
+        {
+          "artifact_id": "hosted-generative/body.awake/audio-source",
+          "evidence_class": "audio-source",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Lossless source recording of the documentary voice.",
+          "path": "artifacts/body.awake-voice.wav",
+          "sha256": "sha256:0f45aea6eda43b39a04624eee8d62f84cc2499fb973e358f522bf3b59be12121"
+        },
+        {
+          "artifact_id": "hosted-generative/body.awake/audio-receipt",
+          "evidence_class": "audio-receipt",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Offline Piper voicing of exact outward model words. Not runtime speech/synthesize or speaker playback proof.",
+          "path": "artifacts/body.awake-voice.json",
+          "sha256": "sha256:822e21fc076c25bdbeeca334710a4521bb4538311f5a4c11f8bdc8697cc30d3c"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": "06bc7c04fd0ebfc6ca6eef84c1452b33ac71e30c813461f45e6c108eba2fd611"
+      },
+      "step_id": "body.awake"
+    },
+    {
+      "assertion": "standing-form-used",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/form.used",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for form.used.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/05-form.used.json",
+          "sha256": "sha256:da3e524f29465dd20d18773604cdc28ad6384bda41ecdcdd1dc0a79811dfbab8"
+        },
+        {
+          "artifact_id": "hosted-generative/form.used/transcript",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "The model's actual outward words for this retained Body state.",
+          "evidence_class": "transcript",
+          "path": "artifacts/form.used-speech.txt",
+          "sha256": "sha256:b0e74988f9d7eea06c88fcacf4ac807b627fd7fdc72fdbe13c59ae09b957f128"
+        },
+        {
+          "artifact_id": "hosted-generative/form.used/presenter-receipt",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/form.used-speech.json",
+          "sha256": "sha256:b76ca46e436a675a350001ce43c8b372335b23b55353ec21fb2a2b604bbf51c3"
+        },
+        {
+          "artifact_id": "hosted-generative/form.used/waveform",
+          "evidence_class": "waveform",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Waveform measured from this voice recording.",
+          "path": "artifacts/form.used-voice.png",
+          "sha256": "sha256:cea54206bfb7b5858559c3a24b37535d2d2ad43c7c102597f07c372f698be7fb"
+        },
+        {
+          "artifact_id": "hosted-generative/form.used/audio",
+          "evidence_class": "audio",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Hear the model's exact words, voiced by Piper for this documentary.",
+          "path": "artifacts/form.used-voice.mp3",
+          "sha256": "sha256:fab1b1bf8c59adc10ae23b0e15a65f367645d929711a1769f017722d0eb45910"
+        },
+        {
+          "artifact_id": "hosted-generative/form.used/audio-source",
+          "evidence_class": "audio-source",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Lossless source recording of the documentary voice.",
+          "path": "artifacts/form.used-voice.wav",
+          "sha256": "sha256:0f45aea6eda43b39a04624eee8d62f84cc2499fb973e358f522bf3b59be12121"
+        },
+        {
+          "artifact_id": "hosted-generative/form.used/audio-receipt",
+          "evidence_class": "audio-receipt",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Offline Piper voicing of exact outward model words. Not runtime speech/synthesize or speaker playback proof.",
+          "path": "artifacts/form.used-voice.json",
+          "sha256": "sha256:822e21fc076c25bdbeeca334710a4521bb4538311f5a4c11f8bdc8697cc30d3c"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": "body-plan/sha256:37bd101cb0acaa391728c53e0919fb104dbea24f2e3e8e28bc9b3bd52a7befa3",
+        "play_id": "body-play/sha256:28b9ffc01c676964a824d0c6ff69fd94df319253b5ca7de179661036b73d473b",
+        "presentation_id": null,
+        "sign_id": "476082a6c2d349a7f08e0cb6427c4b68d4221357f0473b89854d7ba44389955e"
+      },
+      "step_id": "form.used"
+    },
+    {
+      "assertion": "body-inspected",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.inspected",
+          "assertion_rung": "semantic-presentation",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.inspected.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/06-body.inspected.json",
+          "sha256": "sha256:636fe84ec4a206e413a1a8c310dbcbab2ef65908fe68afd3d6deb234e58b7e14"
+        },
+        {
+          "artifact_id": "hosted-generative/body.inspected/transcript",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "The model's actual outward words for this retained Body state.",
+          "evidence_class": "transcript",
+          "path": "artifacts/body.inspected-speech.txt",
+          "sha256": "sha256:b0e74988f9d7eea06c88fcacf4ac807b627fd7fdc72fdbe13c59ae09b957f128"
+        },
+        {
+          "artifact_id": "hosted-generative/body.inspected/presenter-receipt",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/body.inspected-speech.json",
+          "sha256": "sha256:b76ca46e436a675a350001ce43c8b372335b23b55353ec21fb2a2b604bbf51c3"
+        },
+        {
+          "artifact_id": "hosted-generative/body.inspected/waveform",
+          "evidence_class": "waveform",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Waveform measured from this voice recording.",
+          "path": "artifacts/body.inspected-voice.png",
+          "sha256": "sha256:cea54206bfb7b5858559c3a24b37535d2d2ad43c7c102597f07c372f698be7fb"
+        },
+        {
+          "artifact_id": "hosted-generative/body.inspected/audio",
+          "evidence_class": "audio",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Hear the model's exact words, voiced by Piper for this documentary.",
+          "path": "artifacts/body.inspected-voice.mp3",
+          "sha256": "sha256:fab1b1bf8c59adc10ae23b0e15a65f367645d929711a1769f017722d0eb45910"
+        },
+        {
+          "artifact_id": "hosted-generative/body.inspected/audio-source",
+          "evidence_class": "audio-source",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Lossless source recording of the documentary voice.",
+          "path": "artifacts/body.inspected-voice.wav",
+          "sha256": "sha256:0f45aea6eda43b39a04624eee8d62f84cc2499fb973e358f522bf3b59be12121"
+        },
+        {
+          "artifact_id": "hosted-generative/body.inspected/audio-receipt",
+          "evidence_class": "audio-receipt",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Offline Piper voicing of exact outward model words. Not runtime speech/synthesize or speaker playback proof.",
+          "path": "artifacts/body.inspected-voice.json",
+          "sha256": "sha256:822e21fc076c25bdbeeca334710a4521bb4538311f5a4c11f8bdc8697cc30d3c"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": "manifestation/ollama/5",
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": "6991ca93cdb30577c9690e1fbad2b1cc05da7a56f609cc63e4803c69395b8fc4",
+        "sign_id": null
+      },
+      "step_id": "body.inspected"
+    },
+    {
+      "assertion": "workload-revised",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/workload.revised",
+          "assertion_rung": "body-biography",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for workload.revised.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/07-workload.revised.json",
+          "sha256": "sha256:dba59e882954e760f17ea5f81ca957f3055c2e904358aa20049e4341ef6ab10a"
+        },
+        {
+          "artifact_id": "hosted-generative/workload.revised/transcript",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "The model's actual outward words for this retained Body state.",
+          "evidence_class": "transcript",
+          "path": "artifacts/workload.revised-speech.txt",
+          "sha256": "sha256:110bdc58c27f8e3e2e3b934cf7f5a5783dbbbb3c92005d8aa93d547cdf8d2eb3"
+        },
+        {
+          "artifact_id": "hosted-generative/workload.revised/presenter-receipt",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/workload.revised-speech.json",
+          "sha256": "sha256:e067be29cfaa7306e4986f1968258ba1804081ce3f43cf590aa6149694deb257"
+        },
+        {
+          "artifact_id": "hosted-generative/workload.revised/waveform",
+          "evidence_class": "waveform",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Waveform measured from this voice recording.",
+          "path": "artifacts/workload.revised-voice.png",
+          "sha256": "sha256:b95774e65e1a057fe235fd68c8db37e47fae52c2ebcd4cde419568fa04ef7a79"
+        },
+        {
+          "artifact_id": "hosted-generative/workload.revised/audio",
+          "evidence_class": "audio",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Hear the model's exact words, voiced by Piper for this documentary.",
+          "path": "artifacts/workload.revised-voice.mp3",
+          "sha256": "sha256:1b461cb52fa4f0f4fcca542237f226e1970920731409b6b4762ae3dd3988c4f8"
+        },
+        {
+          "artifact_id": "hosted-generative/workload.revised/audio-source",
+          "evidence_class": "audio-source",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Lossless source recording of the documentary voice.",
+          "path": "artifacts/workload.revised-voice.wav",
+          "sha256": "sha256:78d893648aa0bea2eb45b3e5f2fa7caaa59cb6c5f0d7a05c6da7b18dc336d431"
+        },
+        {
+          "artifact_id": "hosted-generative/workload.revised/audio-receipt",
+          "evidence_class": "audio-receipt",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Offline Piper voicing of exact outward model words. Not runtime speech/synthesize or speaker playback proof.",
+          "path": "artifacts/workload.revised-voice.json",
+          "sha256": "sha256:76c38dd82d77aeb45b0641429437c625a2bddc14f8cbe93b07cf375b108b543d"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": "body-plan/sha256:37bd101cb0acaa391728c53e0919fb104dbea24f2e3e8e28bc9b3bd52a7befa3",
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": "331055a89cda8c26d12d76533234ec165e32cec377d0c7bf9821c33fd708b20b"
+      },
+      "step_id": "workload.revised"
+    },
+    {
+      "assertion": "host-added",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/host.added",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for host.added.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/08-host.added.json",
+          "sha256": "sha256:dad1f3c18074e5b3372a9fac7c829b270bb05d7b7147c37ea4d4e989483adb70"
+        },
+        {
+          "artifact_id": "hosted-generative/host.added/transcript",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "The model's actual outward words for this retained Body state.",
+          "evidence_class": "transcript",
+          "path": "artifacts/host.added-speech.txt",
+          "sha256": "sha256:110bdc58c27f8e3e2e3b934cf7f5a5783dbbbb3c92005d8aa93d547cdf8d2eb3"
+        },
+        {
+          "artifact_id": "hosted-generative/host.added/presenter-receipt",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/host.added-speech.json",
+          "sha256": "sha256:e067be29cfaa7306e4986f1968258ba1804081ce3f43cf590aa6149694deb257"
+        },
+        {
+          "artifact_id": "hosted-generative/host.added/waveform",
+          "evidence_class": "waveform",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Waveform measured from this voice recording.",
+          "path": "artifacts/host.added-voice.png",
+          "sha256": "sha256:b95774e65e1a057fe235fd68c8db37e47fae52c2ebcd4cde419568fa04ef7a79"
+        },
+        {
+          "artifact_id": "hosted-generative/host.added/audio",
+          "evidence_class": "audio",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Hear the model's exact words, voiced by Piper for this documentary.",
+          "path": "artifacts/host.added-voice.mp3",
+          "sha256": "sha256:1b461cb52fa4f0f4fcca542237f226e1970920731409b6b4762ae3dd3988c4f8"
+        },
+        {
+          "artifact_id": "hosted-generative/host.added/audio-source",
+          "evidence_class": "audio-source",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Lossless source recording of the documentary voice.",
+          "path": "artifacts/host.added-voice.wav",
+          "sha256": "sha256:78d893648aa0bea2eb45b3e5f2fa7caaa59cb6c5f0d7a05c6da7b18dc336d431"
+        },
+        {
+          "artifact_id": "hosted-generative/host.added/audio-receipt",
+          "evidence_class": "audio-receipt",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Offline Piper voicing of exact outward model words. Not runtime speech/synthesize or speaker playback proof.",
+          "path": "artifacts/host.added-voice.json",
+          "sha256": "sha256:76c38dd82d77aeb45b0641429437c625a2bddc14f8cbe93b07cf375b108b543d"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": "boot/orifina-companion",
+        "host_id": "host/orifina-companion",
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": "body-plan/sha256:37bd101cb0acaa391728c53e0919fb104dbea24f2e3e8e28bc9b3bd52a7befa3",
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": "sign/orifina-companion/joined"
+      },
+      "step_id": "host.added"
+    },
+    {
+      "assertion": "fault-observed",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/fault.observed",
+          "assertion_rung": "stream-disposition",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for fault.observed.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/09-fault.observed.json",
+          "sha256": "sha256:195f85b5beafb4f24c44e7e2fdaa53b48c6278f1df808c98c258dcc50d26f8fb"
+        },
+        {
+          "artifact_id": "hosted-generative/fault.observed/transcript",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "The model's actual outward words for this retained Body state.",
+          "evidence_class": "transcript",
+          "path": "artifacts/fault.observed-speech.txt",
+          "sha256": "sha256:b1b6f2fde2dd40c1702dce3fa73b090681f53892f4ab2f6eefab72b01cce39d6"
+        },
+        {
+          "artifact_id": "hosted-generative/fault.observed/presenter-receipt",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/fault.observed-speech.json",
+          "sha256": "sha256:2b1ae14ce72edd85bb3603b9335e5f3de07ed1d772861293eca94995a11f43c9"
+        },
+        {
+          "artifact_id": "hosted-generative/fault.observed/waveform",
+          "evidence_class": "waveform",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Waveform measured from this voice recording.",
+          "path": "artifacts/fault.observed-voice.png",
+          "sha256": "sha256:4d5f7273db082f47b723c876f05ba66512cdc9127fe6781dd6b215030ab48a67"
+        },
+        {
+          "artifact_id": "hosted-generative/fault.observed/audio",
+          "evidence_class": "audio",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Hear the model's exact words, voiced by Piper for this documentary.",
+          "path": "artifacts/fault.observed-voice.mp3",
+          "sha256": "sha256:22eed2b4212f698159cb221684619cf819aa8b0ef7d25aa4c910a566badd498a"
+        },
+        {
+          "artifact_id": "hosted-generative/fault.observed/audio-source",
+          "evidence_class": "audio-source",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Lossless source recording of the documentary voice.",
+          "path": "artifacts/fault.observed-voice.wav",
+          "sha256": "sha256:731ee0f23c7e0f74a67adbf891a45c1b537ac4e447361b2568ea9a87222c9c4a"
+        },
+        {
+          "artifact_id": "hosted-generative/fault.observed/audio-receipt",
+          "evidence_class": "audio-receipt",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Offline Piper voicing of exact outward model words. Not runtime speech/synthesize or speaker playback proof.",
+          "path": "artifacts/fault.observed-voice.json",
+          "sha256": "sha256:d7ced2f13ad5034bf15f4bb33070593858127deb4c12de49eae752064d4925d1"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": "4992c09186e039f7f436c1a5a4176d80b429238aaa802ccf243120b0581e4950"
+      },
+      "step_id": "fault.observed"
+    },
+    {
+      "assertion": "body-repaired",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.repaired",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.repaired.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/10-body.repaired.json",
+          "sha256": "sha256:451e970ac2cfd8dd6b1765e3b7a82924db7e1fba2547075fd1d68b86d51401dd"
+        },
+        {
+          "artifact_id": "hosted-generative/body.repaired/transcript",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "The model's actual outward words for this retained Body state.",
+          "evidence_class": "transcript",
+          "path": "artifacts/body.repaired-speech.txt",
+          "sha256": "sha256:ae82d541ea90cb797c6680d82da88c0bdb37f8950529212fed1554d87ead2e0a"
+        },
+        {
+          "artifact_id": "hosted-generative/body.repaired/presenter-receipt",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/body.repaired-speech.json",
+          "sha256": "sha256:5b06b8eb63523ac91cb8a1ed96e2d7e03468b7852e369032d1c072631df108bc"
+        },
+        {
+          "artifact_id": "hosted-generative/body.repaired/waveform",
+          "evidence_class": "waveform",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Waveform measured from this voice recording.",
+          "path": "artifacts/body.repaired-voice.png",
+          "sha256": "sha256:7f945f837f6ba1305928da84b1c0c3335392458db47cc35d8774ac7383d6e529"
+        },
+        {
+          "artifact_id": "hosted-generative/body.repaired/audio",
+          "evidence_class": "audio",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Hear the model's exact words, voiced by Piper for this documentary.",
+          "path": "artifacts/body.repaired-voice.mp3",
+          "sha256": "sha256:ceff9ddcd7383315a052e2a02f43d601af9fb48400ff85a69ae7d66397a6a877"
+        },
+        {
+          "artifact_id": "hosted-generative/body.repaired/audio-source",
+          "evidence_class": "audio-source",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Lossless source recording of the documentary voice.",
+          "path": "artifacts/body.repaired-voice.wav",
+          "sha256": "sha256:0fbc8eda9881d7071c516065a065a0b98c94bb72dd64e97774c230f616fd17ad"
+        },
+        {
+          "artifact_id": "hosted-generative/body.repaired/audio-receipt",
+          "evidence_class": "audio-receipt",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Offline Piper voicing of exact outward model words. Not runtime speech/synthesize or speaker playback proof.",
+          "path": "artifacts/body.repaired-voice.json",
+          "sha256": "sha256:7292693c279df73a9b5ac959c27d9659becc8f3ddad18256a6ee89dbf883f56e"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": "body-plan/sha256:37bd101cb0acaa391728c53e0919fb104dbea24f2e3e8e28bc9b3bd52a7befa3",
+        "play_id": "body-play/sha256:28b9ffc01c676964a824d0c6ff69fd94df319253b5ca7de179661036b73d473b",
+        "presentation_id": null,
+        "sign_id": "476082a6c2d349a7f08e0cb6427c4b68d4221357f0473b89854d7ba44389955e"
+      },
+      "step_id": "body.repaired"
+    },
+    {
+      "assertion": "body-long-running",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.long-running",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.long-running.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/11-body.long-running.json",
+          "sha256": "sha256:5dc4d306a14f537e498ac426f1f37b2e12bd34c81c4baee0afdeb194d5b36ab6"
+        },
+        {
+          "artifact_id": "hosted-generative/body.long-running/transcript",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "The model's actual outward words for this retained Body state.",
+          "evidence_class": "transcript",
+          "path": "artifacts/body.long-running-speech.txt",
+          "sha256": "sha256:ae82d541ea90cb797c6680d82da88c0bdb37f8950529212fed1554d87ead2e0a"
+        },
+        {
+          "artifact_id": "hosted-generative/body.long-running/presenter-receipt",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/body.long-running-speech.json",
+          "sha256": "sha256:5b06b8eb63523ac91cb8a1ed96e2d7e03468b7852e369032d1c072631df108bc"
+        },
+        {
+          "artifact_id": "hosted-generative/body.long-running/waveform",
+          "evidence_class": "waveform",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Waveform measured from this voice recording.",
+          "path": "artifacts/body.long-running-voice.png",
+          "sha256": "sha256:7f945f837f6ba1305928da84b1c0c3335392458db47cc35d8774ac7383d6e529"
+        },
+        {
+          "artifact_id": "hosted-generative/body.long-running/audio",
+          "evidence_class": "audio",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Hear the model's exact words, voiced by Piper for this documentary.",
+          "path": "artifacts/body.long-running-voice.mp3",
+          "sha256": "sha256:ceff9ddcd7383315a052e2a02f43d601af9fb48400ff85a69ae7d66397a6a877"
+        },
+        {
+          "artifact_id": "hosted-generative/body.long-running/audio-source",
+          "evidence_class": "audio-source",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Lossless source recording of the documentary voice.",
+          "path": "artifacts/body.long-running-voice.wav",
+          "sha256": "sha256:0fbc8eda9881d7071c516065a065a0b98c94bb72dd64e97774c230f616fd17ad"
+        },
+        {
+          "artifact_id": "hosted-generative/body.long-running/audio-receipt",
+          "evidence_class": "audio-receipt",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Offline Piper voicing of exact outward model words. Not runtime speech/synthesize or speaker playback proof.",
+          "path": "artifacts/body.long-running-voice.json",
+          "sha256": "sha256:7292693c279df73a9b5ac959c27d9659becc8f3ddad18256a6ee89dbf883f56e"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": "body-play/sha256:28b9ffc01c676964a824d0c6ff69fd94df319253b5ca7de179661036b73d473b",
+        "presentation_id": null,
+        "sign_id": "476082a6c2d349a7f08e0cb6427c4b68d4221357f0473b89854d7ba44389955e"
+      },
+      "step_id": "body.long-running"
+    },
+    {
+      "assertion": "body-lulled",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.lulled",
+          "assertion_rung": "lifecycle-action",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.lulled.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/12-body.lulled.json",
+          "sha256": "sha256:54074a0a3ed2fde580299a71bd078ce83ad13522158832715f43c8d9fd5b70b8"
+        },
+        {
+          "artifact_id": "hosted-generative/body.lulled/transcript",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "The model's actual outward words for this retained Body state.",
+          "evidence_class": "transcript",
+          "path": "artifacts/body.lulled-speech.txt",
+          "sha256": "sha256:d61a9402b038c3e060ed2ce915066245a906b64bf0254de9c9a8f459c2b63fdd"
+        },
+        {
+          "artifact_id": "hosted-generative/body.lulled/presenter-receipt",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/body.lulled-speech.json",
+          "sha256": "sha256:b6fe9fc87aa54b9465b69d5d4dd3d4674e4032473483c488ca675efe0b64e073"
+        },
+        {
+          "artifact_id": "hosted-generative/body.lulled/waveform",
+          "evidence_class": "waveform",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Waveform measured from this voice recording.",
+          "path": "artifacts/body.lulled-voice.png",
+          "sha256": "sha256:e04c727dfad2a7c625d94a9939dbc7c569457a6bd5a07eda1ec208808df2c0fa"
+        },
+        {
+          "artifact_id": "hosted-generative/body.lulled/audio",
+          "evidence_class": "audio",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Hear the model's exact words, voiced by Piper for this documentary.",
+          "path": "artifacts/body.lulled-voice.mp3",
+          "sha256": "sha256:650670b5b425be95abca3e45ad4a64845bc49a466ea0495c14ee2a569f3f7ddc"
+        },
+        {
+          "artifact_id": "hosted-generative/body.lulled/audio-source",
+          "evidence_class": "audio-source",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Lossless source recording of the documentary voice.",
+          "path": "artifacts/body.lulled-voice.wav",
+          "sha256": "sha256:69f7bc5af23bd52aeafc364149470e82ca384e34b56c67785fc7d68422d049e1"
+        },
+        {
+          "artifact_id": "hosted-generative/body.lulled/audio-receipt",
+          "evidence_class": "audio-receipt",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Offline Piper voicing of exact outward model words. Not runtime speech/synthesize or speaker playback proof.",
+          "path": "artifacts/body.lulled-voice.json",
+          "sha256": "sha256:5aee8b57e869026380a82312656e4adad4e60f6d8c9127c6fcb6d564b9d284b1"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": "9214f2c5c2f4e7abaf53dda8f07d27e6c3dbc7b2b81aa1283dcf14c3df7ab608"
+      },
+      "step_id": "body.lulled"
+    },
+    {
+      "assertion": "body-fulfilled",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.fulfilled",
+          "assertion_rung": "fulfilled-transition",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.fulfilled.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/13-body.fulfilled.json",
+          "sha256": "sha256:e79c725772c5433796777ac81f0016ac0aad3ebeeb89a1a198052f875a461d8c"
+        },
+        {
+          "artifact_id": "hosted-generative/body.fulfilled/transcript",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "The model's actual outward words for this retained Body state.",
+          "evidence_class": "transcript",
+          "path": "artifacts/body.fulfilled-speech.txt",
+          "sha256": "sha256:d03177b1199ee96072c1f0bdc430287275b0735e137a7448519ae4477265c406"
+        },
+        {
+          "artifact_id": "hosted-generative/body.fulfilled/presenter-receipt",
+          "assertion_rung": "generated-manifestation",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/body.fulfilled-speech.json",
+          "sha256": "sha256:f2c8adc29365c18981eacb3ac9bbc7da0bb60981ac0464081a5c58c0092d72be"
+        },
+        {
+          "artifact_id": "hosted-generative/body.fulfilled/waveform",
+          "evidence_class": "waveform",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Waveform measured from this voice recording.",
+          "path": "artifacts/body.fulfilled-voice.png",
+          "sha256": "sha256:7a1a7078cd8669642b9d47e4b8b8ff41e84ca20f37bdd847b18fea0bdae21d12"
+        },
+        {
+          "artifact_id": "hosted-generative/body.fulfilled/audio",
+          "evidence_class": "audio",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Hear the model's exact words, voiced by Piper for this documentary.",
+          "path": "artifacts/body.fulfilled-voice.mp3",
+          "sha256": "sha256:291e44edd0afa58aeb5620a09f4393791cfb1dab122531241f90b28b67b3100c"
+        },
+        {
+          "artifact_id": "hosted-generative/body.fulfilled/audio-source",
+          "evidence_class": "audio-source",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Lossless source recording of the documentary voice.",
+          "path": "artifacts/body.fulfilled-voice.wav",
+          "sha256": "sha256:e222ff0b469a6048f5f40237dbedf13f063e60c533366f60cdf2c5a4d05f95e5"
+        },
+        {
+          "artifact_id": "hosted-generative/body.fulfilled/audio-receipt",
+          "evidence_class": "audio-receipt",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Offline Piper voicing of exact outward model words. Not runtime speech/synthesize or speaker playback proof.",
+          "path": "artifacts/body.fulfilled-voice.json",
+          "sha256": "sha256:44c9272fe5bcef49fdfede516adea5b9865cf3365c6ab0e9fb1170886c075e2e"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": "f7c46ad3fde073df05ffce70e5e8f38d335d2650a6567351c9e81da6eba520d9"
+      },
+      "step_id": "body.fulfilled"
+    }
+  ],
+  "track_id": "hosted-generative"
+}

@@ -1,5 +1,7 @@
 @import url('./conduit.css');
 :root { color-scheme:dark; --paper:#101820; --ink:#e3eaf0; --muted:#a1b0ba; --line:#2b3b46; --panel:#14212a; --field:#101b23; --amber:#86d1f4; --green-dark:#86d1f4; font-family:ui-sans-serif,system-ui,sans-serif; }
+/* Workspace is explicitly dark, including renderer-neutral tutorial controls. */
+:root { --conduit-surface:var(--panel); --conduit-text-primary:var(--ink); --conduit-text-secondary:var(--muted); --conduit-structure-secondary:var(--line); --conduit-warning:#ffd58a; --conduit-emphasis:var(--amber); }
 * { box-sizing:border-box; }
 [hidden] { display:none !important; }
 html:root { background:#101820; }
@@ -22,6 +24,9 @@ a { color:var(--muted); text-decoration:none; }
 .body-tutorial { margin:0 0 1rem; border:1px solid var(--line); border-radius:.5rem; background:var(--panel); }
 .body-tutorial summary { padding:.75rem 1rem; color:var(--muted); cursor:pointer; font-size:.78rem; }
 .body-tutorial > div { padding:0 1rem 1rem; }
+.body-tutorial [data-application-component="panel"] { display:grid; gap:.75rem; color:var(--ink); }
+.body-tutorial [data-application-component="button"] { justify-self:start; }
+.body-tutorial output { display:block; line-height:1.6; }
 .body-tutorial h2 { margin:.25rem 0; font-size:1rem; font-weight:500; }
 .body-tutorial p { margin:.35rem 0; color:var(--muted); font-size:.82rem; line-height:1.5; }
 .body-tutorial .tutorial-kicker { color:var(--amber); font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; }

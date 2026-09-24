@@ -17,7 +17,7 @@ const required = (value, label) => {
   return value;
 };
 
-export async function writeBrowserBodyJourneyTrack(source, screenshotPath, output) {
+export async function writeBrowserBodyJourneyTrack(source, screenshotPath, output, captures = {}, videoPath) {
   const commit = required(source.git_commit, "exact commit");
   if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error("browser track refuses a non-exact commit");
   const current = source.current;
@@ -73,6 +73,28 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
     }, evidence: [{ artifact_id: `browser-graphical/${stepId}`, evidence_class: "semantic-receipt",
       assertion_rung: rung, documentary_description: `browser-wasm-body producer receipt for ${stepId}.`,
       path: relative, sha256: digest(bytes) }] });
+  }
+  for (const [stepId, capture] of Object.entries(captures)) {
+    const step = steps.find(candidate => candidate.step_id === stepId);
+    if (!step) throw new Error(`unknown captured journey step: ${stepId}`);
+    const bytes = await readFile(capture.path);
+    if (!bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
+      throw new Error(`journey screenshot is not PNG: ${stepId}`);
+    }
+    const relative = `artifacts/${stepId}.png`;
+    await writeFile(join(output, relative), bytes, { flag: "wx" });
+    step.evidence.push({ artifact_id: `browser-graphical/${stepId}/screen`,
+      evidence_class: "screenshot", assertion_rung: "deterministic-observation",
+      documentary_description: capture.caption, path: relative, sha256: digest(bytes) });
+  }
+  if (videoPath) {
+    const bytes = await readFile(videoPath);
+    const relative = "artifacts/browser-body-session.webm";
+    await writeFile(join(output, relative), bytes, { flag: "wx" });
+    steps.at(-1).evidence.push({ artifact_id: "browser-graphical/session-video",
+      evidence_class: "video", assertion_rung: "deterministic-observation",
+      documentary_description: "Watch the complete uncut browser session, including birth, host admission, refusal, recovery and fulfillment.",
+      path: relative, sha256: digest(bytes) });
   }
   await writeFile(join(output, "track.json"), `${JSON.stringify({
     schema: "conduit.evidence/body-journey-track@2", journey_id: "orifina/tutorial@1", git_commit: commit,
