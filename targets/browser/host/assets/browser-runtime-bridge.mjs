@@ -54,7 +54,8 @@ export function bindBrowserRuntimeBridge(api, { context, requiredExports = [] })
   if (!(api?.memory instanceof WebAssembly.Memory)) {
     throw new Error(`${context} requires WebAssembly linear memory`);
   }
-  const abiRevision = Number(exported(api, "conduit_browser_runtime_abi_revision", context).call(api));
+  const abiExport = api?.conduit_browser_runtime_abi_revision;
+  const abiRevision = typeof abiExport === "function" ? Number(abiExport.call(api)) : 0;
   if (!Number.isSafeInteger(abiRevision) || abiRevision < 0) {
     throw new Error(`${context} has a malformed runtime ABI revision export`);
   }

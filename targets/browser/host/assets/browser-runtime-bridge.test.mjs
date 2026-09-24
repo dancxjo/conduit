@@ -37,6 +37,13 @@ test("refuses malformed runtime ABI revision export", () => {
   );
 });
 
+test("treats missing runtime ABI export as incompatible revision zero", () => {
+  const api = runtime();
+  delete api.conduit_browser_runtime_abi_revision;
+  assert.throws(() => bindBrowserRuntimeBridge(api, { context: "bridge proof" }), (error) =>
+    error?.code === "IncompatibleRuntimeAbi" && error?.runtime_abi_revision === 0);
+});
+
 test("rejects malformed input bytes", () => {
   const bridge = bindBrowserRuntimeBridge(runtime(), { context: "bridge proof" });
   assert.throws(
