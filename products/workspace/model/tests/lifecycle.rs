@@ -26,6 +26,34 @@ fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
         conduit_presentation::ORIFINA_COMPLETION_POLICY_REVISION
     );
     assert_eq!(request.semantic_data.presentation.revision, 11);
+    assert!(
+        request
+            .semantic_data
+            .presentation
+            .text
+            .iter()
+            .any(|text| { text.text.contains("Birth made one retained body") })
+    );
+    assert!(
+        request
+            .semantic_data
+            .presentation
+            .properties
+            .iter()
+            .any(|property| {
+                property.name == "tutorial-phase"
+                    && property.value
+                        == conduit_presentation::PresentationPropertyValue::Text("wake".into())
+            })
+    );
+    assert!(
+        !request
+            .semantic_data
+            .presentation
+            .text
+            .iter()
+            .any(|text| { text.text.contains(body.evidence().body.body_id.as_str()) })
+    );
     assert_eq!(
         request.semantic_data.presentation.basis.body_id.as_ref(),
         Some(&body.evidence().body.body_id)

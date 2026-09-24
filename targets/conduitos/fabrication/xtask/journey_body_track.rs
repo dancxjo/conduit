@@ -90,8 +90,8 @@ pub(super) fn write(target: &Path, proof: &JourneyProof) -> Result<(), Conduitos
                 ),
                 (
                     "body.inspected",
-                    "home-patchbay-open",
-                    "Patchbay opens inside the native body to inspect its running forms.",
+                    "patchbay-current-canvas",
+                    "The native body's resident Patchbay inspects its current keyboard form.",
                 ),
                 (
                     "workload.revised",

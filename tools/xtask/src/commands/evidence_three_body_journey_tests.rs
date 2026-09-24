@@ -279,6 +279,7 @@ fn published_index_preserves_semantic_assertions_and_non_claims() {
         git_commit: contract.git_commit,
         semantic_steps: contract.steps,
         tracks: complete(),
+        recorded_generative: None,
     };
     let page = page::render(&index);
     let value = serde_json::to_value(index).unwrap();
@@ -334,6 +335,7 @@ fn publication_writes_both_views_and_refuses_overwrite() {
         git_commit: contract.git_commit,
         semantic_steps: contract.steps,
         tracks: complete(),
+        recorded_generative: None,
     };
     let root = std::env::temp_dir().join(format!(
         "conduit-three-body-publication-{}",
@@ -348,5 +350,115 @@ fn publication_writes_both_views_and_refuses_overwrite() {
         publish(&index, &output).unwrap_err(),
         "three-Body Journey publication refuses overwrite"
     );
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn media_is_foreground_and_machine_provenance_stays_collapsed() {
+    let contract = contract();
+    let mut tracks = complete();
+    for class in ["screenshot", "waveform", "audio", "video", "transcript"] {
+        let mut item = tracks[0].steps[0].evidence[0].clone();
+        item.evidence_class = class.into();
+        item.path = PathBuf::from(format!("media/{class}"));
+        item.documentary_description = "Visible & audible <proof>".into();
+        tracks[0].steps[0].evidence.push(item);
+    }
+    let page = page::render(&ThreeBodyJourneyIndex {
+        schema: INDEX_SCHEMA.into(),
+        disposition: "complete".into(),
+        journey_id: contract.journey_id,
+        git_commit: contract.git_commit,
+        semantic_steps: contract.steps,
+        tracks,
+        recorded_generative: None,
+    });
+    for tag in [
+        "<img",
+        "<audio controls",
+        "<video controls",
+        "<blockquote data-transcript",
+    ] {
+        assert!(page.contains(tag), "missing {tag}");
+    }
+    assert!(page.contains("Visible &amp; audible &lt;proof&gt;"));
+    assert!(!page.contains("<details open"));
+    assert!(page.find("<img").unwrap() < page.find("<summary>Evidence").unwrap());
+    for (position, _) in page.match_indices("<pre>") {
+        let prefix = &page[..position];
+        assert!(prefix.rfind("<details") > prefix.rfind("</details>"));
+    }
+}
+
+#[test]
+fn receipts_alone_cannot_pass_the_documentary_publication_gate() {
+    let mut native = track(0, 1);
+    native.track_id = "native-graphical".into();
+    assert!(artifacts::require_documentary(&[native], None)
+        .unwrap_err()
+        .contains("screenshot"));
+    let mut generated = track(2, 2);
+    generated.track_id = "hosted-generative".into();
+    assert!(artifacts::require_documentary(&[generated], None)
+        .unwrap_err()
+        .contains("live conversational media"));
+}
+
+#[test]
+fn retained_live_recordings_require_identical_current_presenter_inputs() {
+    let root = std::env::temp_dir().join(format!("conduit-recording-test-{}", std::process::id()));
+    let current_root = root.join("current");
+    let live_root = root.join("live");
+    std::fs::create_dir_all(&current_root).unwrap();
+    std::fs::create_dir_all(&live_root).unwrap();
+    let mut current = track(2, 2);
+    current.track_id = "hosted-generative".into();
+    let mut live = track(2, 2);
+    live.track_id = "hosted-generative".into();
+    live.embodiment = "hosted-open-weight-model-body".into();
+    live.git_commit = "b".repeat(40);
+    for (directory, track) in [(&current_root, &mut current), (&live_root, &mut live)] {
+        for (index, step) in track.steps.iter_mut().enumerate() {
+            step.evidence.clear();
+            for (class, bytes) in [
+                (
+                    "presenter-receipt",
+                    br#"{"proof_class":"live-local-model","request":{"state":"awake"}}"#.as_slice(),
+                ),
+                ("transcript", b"I am awake.".as_slice()),
+                ("audio", b"ID3test".as_slice()),
+                ("waveform", b"\x89PNG\r\n\x1a\n".as_slice()),
+            ] {
+                let path = PathBuf::from(format!("{index}-{class}"));
+                std::fs::write(directory.join(&path), bytes).unwrap();
+                step.evidence.push(StepEvidence {
+                    artifact_id: format!("{index}/{class}"),
+                    evidence_class: class.into(),
+                    assertion_rung: EvidenceRung::GeneratedManifestation,
+                    documentary_description: "Test-only retained recording".into(),
+                    path,
+                    sha256: format!("sha256:{:x}", Sha256::digest(bytes)),
+                });
+            }
+        }
+    }
+    let live_source = live_root.join("track.json");
+    std::fs::write(&live_source, serde_json::to_vec(&live).unwrap()).unwrap();
+    let sources = vec![current_root.join("track.json")];
+    let tracks = vec![current];
+    assert_eq!(
+        artifacts::read_recording(&live_source, &tracks, &sources)
+            .unwrap()
+            .git_commit,
+        "b".repeat(40)
+    );
+    std::fs::write(
+        current_root.join("0-presenter-receipt"),
+        br#"{"request":{"state":"lulled"}}"#,
+    )
+    .unwrap();
+    assert!(artifacts::read_recording(&live_source, &tracks, &sources)
+        .unwrap_err()
+        .contains("stale Presenter inputs"));
     std::fs::remove_dir_all(root).unwrap();
 }

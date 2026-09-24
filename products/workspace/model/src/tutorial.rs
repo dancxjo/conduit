@@ -10,9 +10,10 @@ use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, Face, FaceContext, FaceFocus, FaceRefusal,
     GenerativePresenterBounds, GenerativePresenterRefusal, GenerativePresenterRequest,
     OrifinaPresentationRefusal, Presentation, PresentationAction, PresentationActionAvailability,
-    PresentationDisclosureLevel, PresentationError, PresentationMechanism, SemanticAction,
-    SemanticApplicationView, SemanticPresentationNode, StatusKind,
-    orifina_completion_presenter_policy, project_orifina_purpose_presentation,
+    PresentationDisclosureLevel, PresentationError, PresentationMechanism, PresentationProperty,
+    PresentationPropertyValue, PresentationText, SemanticAction, SemanticApplicationView,
+    SemanticPresentationNode, StatusKind, orifina_completion_presenter_policy,
+    project_orifina_purpose_presentation,
 };
 use serde::{Deserialize, Serialize};
 
@@ -79,6 +80,21 @@ pub fn generative_request(
     )
     .map_err(TutorialPresenterRefusal::InvalidFace)?;
     let body_subject = format!("body/{}", body.evidence().body.body_id.as_str());
+    // The conversational Presenter receives the same tutorial meaning as the
+    // graphical view, not merely the generic Face's identifier-heavy summary.
+    // Exact identities and lifecycle facts remain structured properties.
+    face.presentation
+        .text
+        .retain(|text| text.subject != body_subject);
+    face.presentation.text.push(PresentationText {
+        subject: body_subject.clone(),
+        text: format!("{}: {}", guidance.title, guidance.detail),
+    });
+    face.presentation.properties.push(PresentationProperty {
+        subject: body_subject.clone(),
+        name: "tutorial-phase".into(),
+        value: PresentationPropertyValue::Text(guidance.phase.into()),
+    });
     let (identity, intent, label) = if matches!(readiness, FulfillmentReadiness::Ready { .. })
         && !matches!(body.evidence().body.state, BodyState::Fulfilled { .. })
     {

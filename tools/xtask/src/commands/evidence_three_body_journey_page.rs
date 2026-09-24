@@ -34,8 +34,33 @@ pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
                 escape(&track.track_id),
                 label(track)
             );
-            render_media(&mut html, track, observed);
-            render_evidence(&mut html, track, observed);
+            if let Some(recording) = index
+                .recorded_generative
+                .as_ref()
+                .filter(|_| track.track_id == "hosted-generative")
+            {
+                html.push_str(
+                    "<p class=\"proof-mode\">Recorded live Gemma · voiced with Piper</p>",
+                );
+                render_media(
+                    &mut html,
+                    recording,
+                    &recording.steps[i],
+                    "live-conformance",
+                );
+                render_evidence(
+                    &mut html,
+                    recording,
+                    &recording.steps[i],
+                    "live-conformance",
+                );
+                html.push_str("<details><summary>Current release contract check</summary>");
+                render_evidence(&mut html, track, observed, &track.track_id);
+                html.push_str("</details>");
+            } else {
+                render_media(&mut html, track, observed, &track.track_id);
+                render_evidence(&mut html, track, observed, &track.track_id);
+            }
             html.push_str("<details><summary>What this does—and does not—prove</summary><ul>");
             for claim in &contract.non_claims {
                 let _ = write!(html, "<li>{}</li>", escape(claim));
@@ -60,9 +85,32 @@ fn label(track: &BodyTrack) -> &'static str {
     }
 }
 
-fn render_media(html: &mut String, track: &BodyTrack, observed: &TrackStep) {
-    for evidence in &observed.evidence {
-        let url = escape(&format!("{}/{}", track.track_id, evidence.path.display()));
+fn render_media(html: &mut String, track: &BodyTrack, observed: &TrackStep, root: &str) {
+    if track.embodiment.contains("fixture") {
+        html.push_str(
+            "<p class=\"proof-mode\">Release contract recording · deterministic model fixture</p>",
+        );
+    }
+    if track.track_id == "hosted-generative"
+        && matches!(
+            observed.step_id.as_str(),
+            "body.absent" | "bootstrap.started"
+        )
+    {
+        html.push_str(
+            "<blockquote>No body has been born yet. There is no body voice to play.</blockquote>",
+        );
+    }
+    let mut media: Vec<_> = observed.evidence.iter().collect();
+    media.sort_by_key(|item| match item.evidence_class.as_str() {
+        "screenshot" => 0,
+        "waveform" => 1,
+        "audio" => 2,
+        "transcript" => 3,
+        _ => 4,
+    });
+    for evidence in media {
+        let url = escape(&format!("{root}/{}", evidence.path.display()));
         let caption = escape(&evidence.documentary_description);
         match evidence.evidence_class.as_str() {
             "screenshot" => {
@@ -71,24 +119,36 @@ fn render_media(html: &mut String, track: &BodyTrack, observed: &TrackStep) {
             "audio" => {
                 let _ = write!(html, "<figure><audio controls preload=\"none\" src=\"{url}\"></audio><figcaption>{caption}</figcaption></figure>");
             }
+            "waveform" => {
+                let _ = write!(
+                    html,
+                    "<img class=\"waveform\" src=\"{url}\" alt=\"{caption}\" loading=\"lazy\">"
+                );
+            }
             "video" => {
                 let _ = write!(html, "<figure><video controls preload=\"metadata\" src=\"{url}\"></video><figcaption>{caption}</figcaption></figure>");
             }
             "transcript" => {
-                let _ = write!(html, "<blockquote data-transcript=\"{url}\"><a href=\"{url}\">Read the recorded words</a></blockquote>");
+                let _ = write!(html, "<blockquote data-transcript=\"{url}\"><a href=\"{url}\">Read the recorded words</a></blockquote><p class=\"caption\">{caption}</p>");
             }
             _ => {}
         }
     }
 }
 
-fn render_evidence(html: &mut String, track: &BodyTrack, observed: &TrackStep) {
+fn render_evidence(html: &mut String, track: &BodyTrack, observed: &TrackStep, root: &str) {
     html.push_str("<details class=\"evidence\"><summary>Evidence</summary><ul>");
+    let _ = write!(
+        html,
+        "<li>Recorded source: {} · Presenter: {}</li>",
+        escape(&track.git_commit),
+        escape(&track.presenter_id)
+    );
     for evidence in &observed.evidence {
         let _ = write!(
             html,
             "<li><a href=\"{}/{}\">{}</a><br><small>{} · {}</small></li>",
-            escape(&track.track_id),
+            escape(root),
             escape(&evidence.path.to_string_lossy()),
             escape(&evidence.documentary_description),
             escape(&evidence.sha256),

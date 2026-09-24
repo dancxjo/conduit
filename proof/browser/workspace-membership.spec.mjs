@@ -10,7 +10,6 @@ let entrance;
 test.beforeEach(async () => { entrance = await startStaticProduct("target/workspace-product", "/conduit/workspace/"); });
 test.afterEach(() => entrance?.child.kill());
 
-test.describe("three-body documentary", () => {
 test.use({ video: { mode: "on", size: { width: 1280, height: 800 } }, viewport: { width: 1280, height: 800 } });
 test("the ordinary face binds and admits one compiler-free reviewed browser Host", async ({ page, context }, testInfo) => {
   test.setTimeout(120_000);
@@ -249,7 +248,6 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   const videoPath = testInfo.outputPath("browser-body-session.webm");
   await video.saveAs(videoPath);
   await writeBrowserBodyJourneyTrack(retainedJourney, screenshot, testInfo.outputPath("body-journey-track"), captures, videoPath);
-});
 });
 
 test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context, browser }) => {
