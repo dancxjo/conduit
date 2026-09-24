@@ -64,6 +64,7 @@ try {
   assert.equal(packed.status, 0, packed.stderr);
   const listing = JSON.parse(packed.stdout)[0].files.map(({ path: file }) => file);
   assert(listing.includes("browser-sdk.mjs"));
+  assert(listing.includes("browser-sdk-forms.mjs"));
   assert(listing.includes("bundle/runtime.wasm"));
 
   await writeFile(path.join(source, "runtime.wasm"), new Uint8Array([1, 2, 3]));

@@ -10,6 +10,8 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
 const mounted = new WeakMap();
 const BROWSER_HOST_KEY = Symbol("Conduit BrowserHost");
+import { BrowserForm, birthBrowserBody, reviewBrowserForms, setBrowserSdkErrors } from "./browser-sdk-forms.mjs";
+export { BrowserForm, BrowserBody } from "./browser-sdk-forms.mjs";
 
 export class ConduitSdkError extends Error {
   constructor({ code, category = "RuntimeRefusal", message, operation, evidence, identities = {}, cause }) {
@@ -38,6 +40,8 @@ export class PermissionDeniedError extends ConduitSdkError {
 export class IncompatibleRuntimeAbiError extends ConduitSdkError {
   constructor(details) { super({ ...details, category: "IncompatibleRuntimeAbi" }); this.name = "IncompatibleRuntimeAbiError"; }
 }
+
+setBrowserSdkErrors({ PlanRefusalError, ResourceLossError, InvalidLifecycleError });
 
 /** Exact Host + Boot incarnation. Its mutable projection is refreshed from Boot evidence. */
 export class BrowserHost {
@@ -74,6 +78,28 @@ export class BrowserHost {
   async refresh() {
     await this.#state.refresh();
     return this.current();
+  }
+
+  form(source) { return new BrowserForm(source, this.#state.bridge); }
+
+  async review(forms) {
+    return reviewBrowserForms({ bridge: this.#state.bridge, host: this.id, boot: this.bootId, forms });
+  }
+
+  async birth({ name, forms }) {
+    if (typeof name !== "string" || !Array.isArray(forms)) throw new TypeError("BrowserHost.birth requires a name and checked Forms");
+    return birthBrowserBody({
+      bridge: this.#state.bridge,
+      host: this.id,
+      boot: this.bootId,
+      membership: this.#state.membership,
+      name,
+      forms,
+      sequence: () => {
+        if (this.#state.sequence >= Number.MAX_SAFE_INTEGER - 1) throw new RangeError("Body event sequence exhausted");
+        return ++this.#state.sequence;
+      },
+    });
   }
 }
 
@@ -130,7 +156,7 @@ export const Conduit = Object.freeze({
       const instantiated = await WebAssembly.instantiate(runtimeBytes, {});
       const instance = instantiated.instance;
       const api = instance.exports;
-      bridgeModule.bindBrowserRuntimeBridge(api, { context: "public Browser SDK runtime" });
+      const bridge = bridgeModule.bindBrowserRuntimeBridge(api, { context: "public Browser SDK runtime" });
       const initialize = await materializeModule("browser-host-membership.mjs", distribution, payloads);
       const initialized = await initialize.initializeBrowserHostInstance(instance, { durable, bootId });
       if (initialized.bootId !== bootId || initialized.membership.bootId !== bootId
@@ -141,6 +167,9 @@ export const Conduit = Object.freeze({
         packageVersion: pkg.package_version,
         runtimeAbi: pkg.runtime_abi,
         hostId: initialized.hostId,
+        bridge,
+        membership: initialized.membership,
+        sequence: 0,
         boot,
         offers: Object.freeze(boot.offers.map((offer) => Object.freeze({ ...offer }))),
         async refresh() {

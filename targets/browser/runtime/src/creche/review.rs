@@ -14,12 +14,30 @@ pub(super) struct InitialWorkloadReview {
     pub(super) disposition: String,
     pub(super) selected_form_count: usize,
     pub(super) required_kinds: Vec<String>,
+    #[serde(skip)]
+    pub(super) required_resources: Vec<RequiredResource>,
+    #[serde(skip)]
+    pub(super) required_capabilities: Vec<RequiredCapability>,
     pub(super) proposed_hosts: Vec<ProposedHost>,
     pub(super) reviewed_realization_count: usize,
     pub(super) body_plan_created: bool,
     pub(super) play_created: bool,
     pub(super) authority_acquired: bool,
     pub(super) resources_acquired: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub(super) struct RequiredResource {
+    pub(super) host_id: String,
+    pub(super) resource_class_id: String,
+    pub(super) units: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub(super) struct RequiredCapability {
+    pub(super) host_id: String,
+    pub(super) capability_id: String,
+    pub(super) active_instances: u32,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -123,6 +141,24 @@ pub(super) fn review(
         disposition: "realizable".into(),
         selected_form_count: selected.len(),
         required_kinds: required_kinds.into_iter().collect(),
+        required_resources: resource_totals
+            .into_iter()
+            .map(|((host_id, class_id), units)| RequiredResource {
+                host_id: host_id.as_str().into(),
+                resource_class_id: class_id.as_str().into(),
+                units,
+            })
+            .collect(),
+        required_capabilities: capability_totals
+            .into_iter()
+            .map(
+                |((host_id, capability_id), active_instances)| RequiredCapability {
+                    host_id: host_id.as_str().into(),
+                    capability_id: capability_id.as_str().into(),
+                    active_instances,
+                },
+            )
+            .collect(),
         proposed_hosts: hosts
             .iter()
             .map(|host| ProposedHost {
@@ -282,6 +318,14 @@ mod tests {
             assert!(!result.play_created);
             assert!(!result.authority_acquired);
             assert!(!result.resources_acquired);
+            assert!(result.required_resources.iter().all(|item| item.units > 0));
+            assert!(result
+                .required_capabilities
+                .iter()
+                .all(|item| item.active_instances > 0));
+            let retained = serde_json::to_value(&result).unwrap();
+            assert!(retained.get("required_resources").is_none());
+            assert!(retained.get("required_capabilities").is_none());
         }
     }
 
