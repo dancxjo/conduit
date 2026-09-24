@@ -17,11 +17,18 @@ function boundedLength(length, { minimum, maximum, label }) {
   }
 }
 
+function boundedView(buffer, pointer, length, label) {
+  if (!Number.isSafeInteger(pointer) || pointer < 0 || pointer + length > buffer.byteLength) {
+    throw new Error(`${label} exceeds its bound`);
+  }
+}
+
 function writeInput(api, bytes, { pointerExport, capacityExport, minimum = 0, label }) {
   if (!(bytes instanceof Uint8Array)) throw new TypeError(`${label} must be encoded bytes`);
   const capacity = Number(exported(api, capacityExport, label).call(api));
   boundedLength(bytes.length, { minimum, maximum: capacity, label });
   const pointer = Number(exported(api, pointerExport, label).call(api));
+  boundedView(api.memory.buffer, pointer, bytes.length, label);
   const view = new Uint8Array(api.memory.buffer, pointer, bytes.length);
   view.set(bytes);
   return view;
@@ -34,6 +41,7 @@ function readOutputBytes(api, { pointerExport, lengthExport, capacityExport = nu
     : maximum;
   boundedLength(length, { minimum, maximum: Math.min(maximum, bound), label });
   const pointer = Number(exported(api, pointerExport, label).call(api));
+  boundedView(api.memory.buffer, pointer, length, label);
   return new Uint8Array(api.memory.buffer, pointer, length).slice();
 }
 

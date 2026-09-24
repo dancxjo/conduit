@@ -23,7 +23,9 @@ function runtime(revision = 1) {
 
 test("refuses unsupported runtime ABI revision", () => {
   assert.throws(() => bindBrowserRuntimeBridge(runtime(2), { context: "bridge proof" }), (error) =>
-    error?.code === "IncompatibleRuntimeAbi");
+    error?.code === "IncompatibleRuntimeAbi"
+    && error?.required_runtime_abi === "conduit.browser/runtime-abi@1"
+    && error?.runtime_abi_revision === 2);
 });
 
 test("rejects malformed input bytes", () => {
