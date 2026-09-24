@@ -56,6 +56,24 @@ test("rejects output beyond bounds", () => {
   );
 });
 
+test("rejects malformed output capacity export", () => {
+  const api = runtime();
+  api.conduit_test_output_capacity = () => -1;
+  api.setOutput(Uint8Array.from([1]));
+  const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });
+  assert.throws(
+    () => bridge.readOutputBytes({
+      pointerExport: "conduit_test_output_ptr",
+      lengthExport: "conduit_test_output_len",
+      capacityExport: "conduit_test_output_capacity",
+      minimum: 1,
+      maximum: 8,
+      label: "test output",
+    }),
+    /test output exceeds its bound/,
+  );
+});
+
 test("refreshes memory views after linear memory growth", () => {
   const api = runtime();
   const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });

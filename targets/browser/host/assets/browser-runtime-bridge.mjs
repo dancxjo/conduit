@@ -39,6 +39,9 @@ function readOutputBytes(api, { pointerExport, lengthExport, capacityExport = nu
   const bound = capacityExport
     ? Number(exported(api, capacityExport, label).call(api))
     : maximum;
+  if (!Number.isSafeInteger(bound) || bound < 0) {
+    throw new Error(`${label} exceeds its bound`);
+  }
   boundedLength(length, { minimum, maximum: Math.min(maximum, bound), label });
   const pointer = Number(exported(api, pointerExport, label).call(api));
   boundedView(api.memory.buffer, pointer, length, label);
