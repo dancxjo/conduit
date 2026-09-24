@@ -4,7 +4,7 @@ import { bindBrowserRuntimeBridge } from "./browser-runtime-bridge.mjs";
 
 const ABI = new TextEncoder().encode("conduit.browser/runtime-abi");
 
-function runtime({ revision = 1, identity = ABI, inputCapacity = 64, inputPointer = 0 } = {}) {
+function runtime({ revision = 1, identity = ABI, inputCapacity = 64, inputPointer = 0, outputCapacity = 1024, outputPointer = 0 } = {}) {
   const memory = new WebAssembly.Memory({ initial: 1 });
   const state = { workspaceOutputLength: 0, bodyOutputLength: 0 };
   const api = {
@@ -14,9 +14,9 @@ function runtime({ revision = 1, identity = ABI, inputCapacity = 64, inputPointe
     conduit_browser_runtime_abi_identity_len: () => identity.length,
     conduit_workspace_input_ptr: () => inputPointer,
     conduit_workspace_input_capacity: () => inputCapacity,
-    conduit_workspace_output_ptr: () => 0,
+    conduit_workspace_output_ptr: () => outputPointer,
     conduit_workspace_output_len: () => state.workspaceOutputLength,
-    conduit_workspace_output_capacity: () => 1024,
+    conduit_workspace_output_capacity: () => outputCapacity,
     conduit_workspace_request: () => 0,
     conduit_creche_input_ptr: () => 0,
     conduit_creche_input_capacity: () => 1024,
@@ -90,6 +90,25 @@ test("rejects malformed workspace input pointer", () => {
   api.conduit_workspace_input_ptr = () => Number.MAX_SAFE_INTEGER;
   const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });
   assert.throws(() => bridge.workspaceRequest({ action: "Proof" }), /Workspace input exceeds its bound/);
+});
+
+test("rejects malformed workspace output capacity", () => {
+  const api = runtime({ outputCapacity: Number.NaN });
+  const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });
+  assert.throws(() => bridge.workspaceRequest({ action: "Proof" }), /Workspace output exceeds its bound/);
+});
+
+test("rejects workspace output pointers outside current memory", () => {
+  const api = runtime({ outputPointer: Number.MAX_SAFE_INTEGER });
+  const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });
+  assert.throws(() => bridge.workspaceRequest({ action: "Proof" }), /Workspace output exceeds its bound/);
+});
+
+test("rejects malformed workspace output lengths", () => {
+  const api = runtime();
+  api.conduit_workspace_output_len = () => -1;
+  const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });
+  assert.throws(() => bridge.workspaceRequest({ action: "Proof" }), /Workspace output exceeds its bound/);
 });
 
 test("workspace binary request permits empty output", () => {

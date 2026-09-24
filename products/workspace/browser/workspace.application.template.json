@@ -173,6 +173,18 @@
       "kind": "module",
       "path": "workspace-session.mjs",
       "maximum_bytes": 12288,
+      "dependencies": [
+        {
+          "role": "browser-runtime-bridge",
+          "specifier": "./browser-runtime-bridge.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-runtime-bridge",
+      "kind": "module",
+      "path": "browser-runtime-bridge.mjs",
+      "maximum_bytes": 32768,
       "dependencies": []
     },
     {
@@ -455,6 +467,10 @@
         {
           "role": "application-presentation",
           "specifier": "./application-presentation.mjs"
+        },
+        {
+          "role": "browser-runtime-bridge",
+          "specifier": "./browser-runtime-bridge.mjs"
         }
       ]
     },
