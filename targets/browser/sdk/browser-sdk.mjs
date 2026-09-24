@@ -9,6 +9,73 @@ const MAXIMUM_FILES = 16;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
 const mounted = new WeakMap();
+const BROWSER_HOST_KEY = Symbol("Conduit BrowserHost");
+
+export class ConduitSdkError extends Error {
+  constructor({ code, category = "RuntimeRefusal", message, operation, evidence, identities = {}, cause }) {
+    super(message, cause ? { cause } : undefined);
+    this.name = "ConduitSdkError";
+    this.code = code;
+    this.category = category;
+    this.operation = operation;
+    this.evidence = evidence;
+    this.identities = Object.freeze({ ...identities });
+  }
+}
+
+export class PlanRefusalError extends ConduitSdkError {
+  constructor(details) { super({ ...details, category: "PlanRefusal" }); this.name = "PlanRefusalError"; }
+}
+export class ResourceLossError extends ConduitSdkError {
+  constructor(details) { super({ ...details, category: "ResourceLoss" }); this.name = "ResourceLossError"; }
+}
+export class InvalidLifecycleError extends ConduitSdkError {
+  constructor(details) { super({ ...details, category: "InvalidLifecycle" }); this.name = "InvalidLifecycleError"; }
+}
+export class PermissionDeniedError extends ConduitSdkError {
+  constructor(details) { super({ ...details, category: "PermissionDenied" }); this.name = "PermissionDeniedError"; }
+}
+export class IncompatibleRuntimeAbiError extends ConduitSdkError {
+  constructor(details) { super({ ...details, category: "IncompatibleRuntimeAbi" }); this.name = "IncompatibleRuntimeAbiError"; }
+}
+
+/** Exact Host + Boot incarnation. Its mutable projection is refreshed from Boot evidence. */
+export class BrowserHost {
+  #state;
+
+  constructor(key, state) {
+    if (key !== BROWSER_HOST_KEY) throw new TypeError("BrowserHost values come from Conduit.browser()");
+    this.#state = state;
+    Object.freeze(this);
+  }
+
+  get schema() { return "conduit.browser/host@1"; }
+  get packageVersion() { return this.#state.packageVersion; }
+  get runtimeAbi() { return this.#state.runtimeAbi; }
+  get id() { return this.#state.hostId; }
+  get bootId() { return this.#state.boot.boot_id; }
+  get profileId() { return this.#state.boot.profile_id; }
+  get imageId() { return this.#state.boot.image_id; }
+  get offers() { return this.#state.offers; }
+  get state() { return Object.freeze({ schema: "conduit.browser/boot-truth@1", generation: this.#state.boot.offer_generation }); }
+
+  current() {
+    return Object.freeze({
+      schema: "conduit.browser/host-snapshot@1",
+      id: this.id,
+      bootId: this.bootId,
+      profileId: this.profileId,
+      imageId: this.imageId,
+      offers: this.offers,
+      state: this.state,
+    });
+  }
+
+  async refresh() {
+    await this.#state.refresh();
+    return this.current();
+  }
+}
 
 /**
  * Start one exact BrowserBundle as a BrowserHost in an ordinary static page.
@@ -70,20 +137,20 @@ export const Conduit = Object.freeze({
         || initialized.hostId !== initialized.membership.hostId) {
         refuse("HostIncarnationMismatch", "initialized membership does not match the admitted Host and Boot identity");
       }
-      const offers = Object.freeze(boot.offers.map((offer) => Object.freeze({ ...offer })));
-      renderHostRoot(root, initialized.hostId, bootId, pkg.profile_id, offers);
-
-      const host = Object.freeze({
-        schema: "conduit.browser/host@1",
+      const state = {
         packageVersion: pkg.package_version,
         runtimeAbi: pkg.runtime_abi,
-        id: initialized.hostId,
-        bootId,
-        profileId: pkg.profile_id,
-        imageId: pkg.image_id,
-        offers,
-        state: Object.freeze({ schema: "conduit.browser/boot-truth@1", generation: boot.offer_generation }),
-      });
+        hostId: initialized.hostId,
+        boot,
+        offers: Object.freeze(boot.offers.map((offer) => Object.freeze({ ...offer }))),
+        async refresh() {
+          this.boot = bootModule.refreshBrowserBootTruth(this.boot, await bootModule.observeBrowserHostEnvironment(globalThis));
+          this.offers = Object.freeze(this.boot.offers.map((offer) => Object.freeze({ ...offer })));
+          renderHostRoot(root, this.hostId, this.boot.boot_id, this.boot.profile_id, this.offers);
+        },
+      };
+      const host = new BrowserHost(BROWSER_HOST_KEY, state);
+      renderHostRoot(root, host.id, host.bootId, host.profileId, host.offers);
       return host;
     } catch (error) {
       if (error?.evidence?.schema === "conduit.browser/sdk-load-failure@1") throw error;
@@ -298,8 +365,12 @@ function safeRelativePath(value) {
     && !value.split("/").some((segment) => !segment || segment === "." || segment === "..");
 }
 function refuse(code, message, cause) {
-  const error = new Error(message, cause ? { cause } : undefined);
-  error.code = code;
-  error.evidence = Object.freeze({ schema: "conduit.browser/sdk-load-failure@1", terminal: code, message });
-  throw error;
+  const evidence = cause?.evidence ?? cause?.refusal ?? Object.freeze({ schema: "conduit.browser/sdk-load-failure@1", terminal: code, message });
+  const details = { code, message, operation: cause?.operation ?? "BrowserHost.initialize", evidence, identities: cause?.identities ?? {}, cause };
+  const ErrorType = code === "IncompatibleRuntimeAbi" ? IncompatibleRuntimeAbiError
+    : code === "PermissionDenied" ? PermissionDeniedError
+      : code === "ResourceLost" ? ResourceLossError
+        : /Plan|OfferUnavailable|AdmissionRefused/.test(code) ? PlanRefusalError
+          : /Lifecycle|Transition/.test(code) ? InvalidLifecycleError : ConduitSdkError;
+  throw new ErrorType(details);
 }

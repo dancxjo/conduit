@@ -17,6 +17,7 @@ import { Conduit } from "@conduit/browser";
 const host = await Conduit.browser({ root: document.querySelector("#conduit") });
 console.log(host.id, host.bootId, host.profileId, host.offers);
 console.log(host.packageVersion, host.runtimeAbi); // diagnostics; these grant no authority
+const snapshot = await host.refresh(); // current offers come from a new Boot observation
 ```
 
 For a no-bundler static page, serve the complete package directory from the
@@ -81,7 +82,8 @@ entries with `bundle/browser-bundle-release.json`; then inspect
 `browser-page.json` for the reviewed distribution ABI and module graph. The
 loader repeats these identity and closure checks at runtime.
 
-The BrowserHost surface in this package is intentionally a read-only identity
-and current-offer projection. Forms, Body lifecycle operations, typed events,
-effects, and recovery are separate API contracts that build on the same
-admitted Host and Boot.
+The BrowserHost surface in this package is a read-only identity and current-offer
+projection. Each refresh returns a snapshot correlated to its exact Host and
+Boot; it cannot rewrite a Body identity. Typed refusal classes retain machine
+category, operation, and runtime evidence. Forms, Body lifecycle operations,
+typed events, effects, and recovery build on this same admitted Host and Boot.
