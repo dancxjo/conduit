@@ -176,7 +176,7 @@
       "dependencies": [
         {
           "role": "browser-runtime-bridge",
-          "specifier": "./browser-runtime-bridge.mjs"
+          "specifier": "../../../targets/browser/host/assets/browser-runtime-bridge.mjs"
         }
       ]
     },
