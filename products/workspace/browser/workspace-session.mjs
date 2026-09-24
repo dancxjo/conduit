@@ -32,7 +32,7 @@ export function openWorkspaceSession({ host, storage }) {
         pointerExport: "conduit_workspace_output_ptr",
         lengthExport: "conduit_workspace_output_len",
         capacityExport: "conduit_workspace_output_capacity",
-        minimum: 1,
+        minimum: 0,
         maximum: 256 * 1024,
         label: "Workspace output",
       },
@@ -43,6 +43,7 @@ export function openWorkspaceSession({ host, storage }) {
     if (status < 0 && !output) throw new Error(`Workspace refused (${status})`);
     if (!output) throw new Error("Workspace output is unavailable");
     if (status >= 0 && binary) return output;
+    if (output.length < 1) throw new Error("Workspace output is unavailable");
     const result = bridge.decodeJson(output);
     if (status < 0) throw Object.assign(new Error(result.message ?? 'Workspace refused'), { code: result.code, refusal: result });
     if (result.schema === 'conduit.workspace/body@1') workspace = result;
