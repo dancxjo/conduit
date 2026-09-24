@@ -37,6 +37,7 @@ export function openWorkspaceSession({ host, storage }) {
         label: "Workspace output",
       },
       invoke: (length) => api.conduit_workspace_request(length),
+      readOutputWhen: () => true,
       retireInput: true,
     });
     if (status >= 0 && binary) return output;

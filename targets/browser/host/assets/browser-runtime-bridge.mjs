@@ -75,11 +75,11 @@ export function bindBrowserRuntimeBridge(api, { context, requiredExports = [] })
     decodeJson: (bytes) => JSON.parse(decoder.decode(bytes)),
     writeInput: (bytes, fields) => writeInput(api, bytes, fields),
     readOutputBytes: (fields) => readOutputBytes(api, fields),
-    transact({ inputBytes, input, output = null, invoke, retireInput = false }) {
+    transact({ inputBytes, input, output = null, invoke, retireInput = false, readOutputWhen = status => status >= 0 }) {
       const written = writeInput(api, inputBytes, input);
       try {
         const status = invoke(written.length);
-        const outputBytes = output ? readOutputBytes(api, output) : null;
+        const outputBytes = output && readOutputWhen(status) ? readOutputBytes(api, output) : null;
         return { status, outputBytes };
       } finally {
         if (retireInput) written.fill(0);

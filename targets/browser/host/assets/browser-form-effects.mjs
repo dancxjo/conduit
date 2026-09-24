@@ -119,11 +119,11 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
           let result;
           try {
             result = api.conduit_browser_form_acknowledge_cancellation(play.length, placement.length, effect.request_sequence);
+            if (result < 0) throw new Error(`cancellation acknowledgement refused (${result})`);
+            progress = readOutput();
           } finally {
             input.fill(0);
           }
-          if (result < 0) throw new Error(`cancellation acknowledgement refused (${result})`);
-          progress = readOutput();
           continue;
         }
         if (effects.has(key) || effects.size >= capacity) {
@@ -188,14 +188,14 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
               completed.error.disposition === "denied" ? 1 : 2, completed.error.detail)
           : api.conduit_browser_form_complete_effect(play.length, placement.length,
               effect.request_sequence ?? effect.observation_sequence, output.length);
+        if (completion < 0) {
+          const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput() : null;
+          throw new Error(`effect completion refused (${completion})${refusal?.message ? `: ${refusal.message}` : ""}`);
+        }
+        progress = readOutput();
       } finally {
         input.fill(0);
       }
-      if (completion < 0) {
-        const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput() : null;
-        throw new Error(`effect completion refused (${completion})${refusal?.message ? `: ${refusal.message}` : ""}`);
-      }
-      progress = readOutput();
     }
     return isCurrent() ? progress : undefined;
   } finally {
