@@ -41,7 +41,7 @@ export function openWorkspaceSession({ host, storage }) {
       retireInput: true,
     });
     if (status < 0 && !output) throw new Error(`Workspace refused (${status})`);
-    if (!output) throw new Error("Workspace output exceeds its bound");
+    if (!output) throw new Error("Workspace output is unavailable");
     if (status >= 0 && binary) return output;
     const result = bridge.decodeJson(output);
     if (status < 0) throw Object.assign(new Error(result.message ?? 'Workspace refused'), { code: result.code, refusal: result });
