@@ -92,8 +92,9 @@ export function bindBrowserRuntimeBridge(api, { context, requiredExports = [] })
       let outputBytes = null;
       try {
         status = invoke(written.length);
-        if (acceptedStatuses.includes(status)) lifecycleStarted = true;
-        outputBytes = output ? readOutputBytes(api, output) : null;
+        const accepted = acceptedStatuses.includes(status);
+        if (accepted) lifecycleStarted = true;
+        outputBytes = output && accepted ? readOutputBytes(api, output) : null;
       } finally {
         if (retireInput) written.fill(0);
       }
