@@ -123,7 +123,7 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
             input.fill(0);
           }
           if (result < 0) throw new Error(`cancellation acknowledgement refused (${result})`);
-          progress = readOutput(api);
+          progress = readOutput();
           continue;
         }
         if (effects.has(key) || effects.size >= capacity) {
@@ -142,7 +142,7 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
         );
         const poll = api.conduit_browser_form_poll_effect();
         if (poll < 0) throw new Error(`effect poll refused (${poll})`);
-        progress = readOutput(api);
+        progress = readOutput();
       }
       if (progress.disposition !== "waiting") {
         if (effects.size) throw new Error("Play completed with platform effects pending");
@@ -192,10 +192,10 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
         input.fill(0);
       }
       if (completion < 0) {
-        const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
+        const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput() : null;
         throw new Error(`effect completion refused (${completion})${refusal?.message ? `: ${refusal.message}` : ""}`);
       }
-      progress = readOutput(api);
+      progress = readOutput();
     }
     return isCurrent() ? progress : undefined;
   } finally {

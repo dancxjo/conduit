@@ -1117,7 +1117,7 @@ async function runListing(runner, source, recursive) {
       renderIdentities, renderRunIdentities, renderMorse, setIndicator,
     });
     progress = await drainBrowserEffects({
-      api, initialProgress: progress, readOutput, perform,
+      api, initialProgress: progress, readOutput: () => readOutput(api), perform,
       isCurrent: () => current === generation,
       onWaiting: (pending) => {
         setLifecycleDisposition(runner, "waiting");
