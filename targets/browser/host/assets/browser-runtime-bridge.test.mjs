@@ -123,3 +123,31 @@ test("refuses duplicate start", () => {
     /duplicate start refused/,
   );
 });
+
+test("allows retry when start status is not accepted", () => {
+  const bridge = bindBrowserRuntimeBridge(runtime(), { context: "bridge proof" });
+  bridge.start({
+    inputBytes: Uint8Array.from([1]),
+    input: {
+      pointerExport: "conduit_test_input_ptr",
+      capacityExport: "conduit_test_input_capacity",
+      minimum: 1,
+      label: "test input",
+    },
+    invoke: () => 1,
+    acceptedStatuses: [0],
+    label: "proof lifecycle",
+  });
+  bridge.start({
+    inputBytes: Uint8Array.from([2]),
+    input: {
+      pointerExport: "conduit_test_input_ptr",
+      capacityExport: "conduit_test_input_capacity",
+      minimum: 1,
+      label: "test input",
+    },
+    invoke: () => 0,
+    acceptedStatuses: [0],
+    label: "proof lifecycle",
+  });
+});

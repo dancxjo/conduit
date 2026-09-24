@@ -82,14 +82,14 @@ export function bindBrowserRuntimeBridge(api, { context, requiredExports = [] })
         if (retireInput) written.fill(0);
       }
     },
-    start({ inputBytes, input, output = null, invoke, retireInput = false, label = "runtime" }) {
+    start({ inputBytes, input, output = null, invoke, retireInput = false, label = "runtime", acceptedStatuses = [0] }) {
       if (lifecycleStarted) throw new Error(`${label} duplicate start refused`);
       const written = writeInput(api, inputBytes, input);
       let status;
       let outputBytes = null;
       try {
         status = invoke(inputBytes.length);
-        if (status >= 0) lifecycleStarted = true;
+        if (acceptedStatuses.includes(status)) lifecycleStarted = true;
         outputBytes = output ? readOutputBytes(api, output) : null;
       } finally {
         if (retireInput) written.fill(0);
