@@ -11,6 +11,8 @@ use conduit_host_fabrication::{
 
 use crate::cli::GlobalOpts;
 
+#[path = "host_browser_sdk_package.rs"]
+mod host_browser_sdk_package;
 #[path = "host_capstone.rs"]
 mod host_capstone;
 #[path = "host_configurator.rs"]
@@ -101,6 +103,15 @@ enum HostCommand {
         /// Monotonically increasing release-channel generation.
         #[arg(long, value_parser = clap::value_parser!(u64).range(1..))]
         generation: u64,
+    },
+    /// Package one exact reviewed BrowserBundle for the zero-dependency ESM SDK.
+    BrowserSdkPackage {
+        /// Directory containing the sealed BrowserBundle and IMAGE.
+        #[arg(long)]
+        bundle: PathBuf,
+        /// New output directory for the npm-style package.
+        #[arg(long)]
+        output: PathBuf,
     },
     /// Verify one final target IMAGE and its exact BUILD closure.
     Verify {
@@ -534,6 +545,9 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
         }
         HostCommand::ReleaseCatalog { root, generation } => {
             host_release_catalog::run(&root, generation, opts.dry_run, opts.json, opts.quiet)
+        }
+        HostCommand::BrowserSdkPackage { bundle, output } => {
+            host_browser_sdk_package::run(&bundle, &output, opts)
         }
         HostCommand::Capstone {
             output,
