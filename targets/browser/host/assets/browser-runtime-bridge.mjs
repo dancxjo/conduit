@@ -75,7 +75,7 @@ export function bindBrowserRuntimeBridge(api, { context, requiredExports = [] })
     transact({ inputBytes, input, output = null, invoke, retireInput = false }) {
       const written = writeInput(api, inputBytes, input);
       try {
-        const status = invoke(inputBytes.length);
+        const status = invoke(written.length);
         const outputBytes = output ? readOutputBytes(api, output) : null;
         return { status, outputBytes };
       } finally {
