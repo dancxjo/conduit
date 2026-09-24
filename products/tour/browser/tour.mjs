@@ -10,6 +10,7 @@ import { createReviewedFormGallery, presentGalleryExperience, presentTourInvento
 import { openBrowserHumanInput } from "../../../targets/browser/host/assets/browser-human-input.mjs";
 import { createTourEffectPerformer } from "./tour-runner-effects.mjs";
 import { drainBrowserEffects } from "../../../targets/browser/host/assets/browser-form-effects.mjs";
+import { bindBrowserRuntimeBridge } from "../../../targets/browser/host/assets/browser-runtime-bridge.mjs";
 import { COMPACT_PATCHBAY_CONTRACT, compactPatchbaySnapshot } from "./tour-compact-patchbay.mjs";
 import { admitTourChapter } from "./tour-chapter-model.mjs";
 
@@ -1111,6 +1112,10 @@ async function runListing(runner, source, recursive) {
   runner.playStatus.ordinary("Playing through this browser Host…");
   runner.actionControls.render(true);
   try {
+    const runtimeBridge = bindBrowserRuntimeBridge(api, {
+      context: "tour runtime",
+      requiredExports: ["conduit_browser_form_input_ptr", "conduit_browser_form_input_capacity"],
+    });
     const perform = createTourEffectPerformer({
       api, runner, humanInput, openHumanInput, isCurrent: () => current === generation,
       delay: (milliseconds, signal) => delay(milliseconds, current, signal),
@@ -1118,6 +1123,7 @@ async function runListing(runner, source, recursive) {
     });
     progress = await drainBrowserEffects({
       api, initialProgress: progress, readOutput: () => readOutput(api), perform,
+      bridge: runtimeBridge,
       isCurrent: () => current === generation,
       onWaiting: (pending) => {
         setLifecycleDisposition(runner, "waiting");
