@@ -60,7 +60,7 @@ export function bindBrowserRuntimeBridge(api, { context, requiredExports = [] })
   if (!supportedRevisions.includes(abiRevision)) {
     throw Object.assign(new Error(`${context} requires ${ABI.identity}@${supportedRevisions.join(",")}; runtime reported @${abiRevision}`), {
       code: "IncompatibleRuntimeAbi",
-      required_runtime_abi: `${ABI.identity}@${supportedRevisions.join(",")}`,
+      required_runtime_abi: `${ABI.identity}@${ABI.revision}`,
       runtime_abi_revision: abiRevision,
       supported_runtime_abi_revisions: supportedRevisions,
     });
