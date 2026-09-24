@@ -1,51 +1,38 @@
+import { bindBrowserRuntimeBridge } from "../../../targets/browser/host/assets/browser-runtime-bridge.mjs";
+
 // Workspace orchestration of the existing Crèche lifecycle. Rust owns Body truth.
 const encoder = new TextEncoder();
-const decoder = new TextDecoder('utf-8', { fatal: true });
 
 export function openWorkspaceSession({ host, storage }) {
   const api = host.runtime;
+  const bridge = bindBrowserRuntimeBridge(api, { context: "workspace session runtime" });
   const localAdvertisement = host.membership.advertisement();
   let sequence = 0;
   let write = Promise.resolve();
   let persistenceFailure = null;
   let workspace = null;
   const request = (action, fields = {}, binary = false) => {
-    const bytes = encoder.encode(JSON.stringify({ action, ...fields }));
-    if (bytes.length > api.conduit_workspace_input_capacity()) throw new Error('Workspace input exceeds its bound');
-    const pointer = api.conduit_workspace_input_ptr();
-    new Uint8Array(api.memory.buffer, pointer, bytes.length).set(bytes);
-    const status = api.conduit_workspace_request(bytes.length);
-    const length = api.conduit_workspace_output_len();
-    if (length < 1 || length > api.conduit_workspace_output_capacity()) throw new Error('Workspace output exceeds its bound');
-    const output = new Uint8Array(api.memory.buffer, api.conduit_workspace_output_ptr(), length).slice();
+    const { status, outputBytes: output, outputJson } = bridge.workspaceRequest({ action, ...fields }, { binary });
+    if (status < 0 && !output) throw new Error(`Workspace refused (${status})`);
+    if (!output) throw new Error("Workspace output is unavailable");
     if (status >= 0 && binary) return output;
-    const result = JSON.parse(decoder.decode(output));
+    const result = outputJson;
+    if (!result) throw new Error("Workspace output is unavailable");
     if (status < 0) throw Object.assign(new Error(result.message ?? 'Workspace refused'), { code: result.code, refusal: result });
     if (result.schema === 'conduit.workspace/body@1') workspace = result;
     return result;
   };
   const here = { host_id: host.hostId, boot_id: host.bootId };
-  const read = () => {
-    const length = api.conduit_creche_output_len();
-    if (!Number.isSafeInteger(length) || length < 1 || length > 65536) throw new Error('Body output exceeds its bound');
-    return JSON.parse(decoder.decode(new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), length)));
-  };
-  const call = (name, ...args) => {
-    const status = api[name](...args);
-    if (status < 0) throw new Error(read().message ?? `Body operation refused (${status})`);
-    return status === 1 ? null : read();
-  };
-  const put = bytes => {
-    if (bytes.length < 1 || bytes.length > api.conduit_creche_input_capacity()) throw new Error('Body input exceeds its bound');
-    const pointer = api.conduit_creche_input_ptr();
-    new Uint8Array(api.memory.buffer, pointer, bytes.length).set(bytes);
+  const call = (result) => {
+    if (result.status < 0) throw new Error(result.outputJson?.message ?? `Body operation refused (${result.status})`);
+    return result.outputJson;
   };
   const nextSequence = () => {
     if (sequence >= Number.MAX_SAFE_INTEGER - 2) throw new Error('Body event sequence exhausted');
     return ++sequence;
   };
   const save = () => {
-    const snapshot = workspace ? request('Durable') : call('conduit_creche_durable_snapshot');
+    const snapshot = workspace ? request('Durable') : call(bridge.crecheDurableSnapshot());
     if (!snapshot) return write;
     write = write.then(async () => {
       const archives = snapshot.pending_archives ?? [];
@@ -67,7 +54,7 @@ export function openWorkspaceSession({ host, storage }) {
     // First-Host admission records both membership and presence.
     nextMembershipSequence() { const next = nextSequence(); nextSequence(); return next; },
     current() {
-      if (!workspace) return call('conduit_creche_current');
+      if (!workspace) return call(bridge.crecheCurrent());
       const { evidence, realization } = request('Current');
       const part = evidence.membership.parts.find(part => part.current?.host_id === host.hostId && part.current?.boot_id === host.bootId);
       const state = typeof evidence.body.state === 'object' && evidence.body.state?.Fulfilled
@@ -81,10 +68,8 @@ export function openWorkspaceSession({ host, storage }) {
     },
     attachHere() {
       const parts = [host.hostId, host.bootId].map(value => encoder.encode(value));
-      const bytes = new Uint8Array(parts[0].length + parts[1].length);
-      bytes.set(parts[0]); bytes.set(parts[1], parts[0].length); put(bytes);
       const at = nextSequence(); nextSequence();
-      return call('conduit_creche_attach_here', parts[0].length, parts[1].length, BigInt(at));
+      return call(bridge.crecheAttachHere(parts[0], parts[1], BigInt(at)));
     },
     selectForm(form) { request('SelectForm', { form }); return save(); },
     libraryView(source, query, revision, joinedLines = []) { return request('LibraryView', { ...here, source, query, revision, joined_lines: joinedLines }, true); },
@@ -193,17 +178,15 @@ export function openWorkspaceSession({ host, storage }) {
         return { body: workspace, resume_wake: resumeWake };
       }
       const bytes = encoder.encode(JSON.stringify(snapshot));
-      put(bytes);
-      const receipt = call('conduit_creche_restore_durable', bytes.length);
+      const receipt = call(bridge.crecheRestoreDurable(bytes));
       const sequences = [receipt.birth_sequence, ...(snapshot.biography?.records ?? []).map(record => record.sequence)];
       if (sequences.some(value => !Number.isSafeInteger(value) || value < 0)) throw new Error('Retained body sequence is invalid');
       sequence = Math.max(...sequences);
       if (receipt.here_part_id) {
         const parts = [host.hostId, host.bootId].map(value => encoder.encode(value));
-        const input = new Uint8Array(parts[0].length + parts[1].length);
-        input.set(parts[0]); input.set(parts[1], parts[0].length); put(input);
-        const restored = call('conduit_creche_attach_here', parts[0].length, parts[1].length, BigInt(nextSequence()));
+        const at = nextSequence();
         nextSequence();
+        const restored = call(bridge.crecheAttachHere(parts[0], parts[1], BigInt(at)));
         if (restored.host_id !== host.hostId || restored.boot_id !== host.bootId) throw new Error('Body membership did not reconcile to this host and Boot');
         await save();
         return { body: restored, resume_wake: false };

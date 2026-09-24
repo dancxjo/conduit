@@ -2,17 +2,23 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { acquireBrowserBodyHost } from "../../targets/browser/host/assets/browser-body-host.mjs";
 
+const ABI_IDENTITY = new TextEncoder().encode("conduit.browser/runtime-abi");
+
 function fixture({ timer = false, timerEffects = timer ? 1 : 0, timerDuration = 10_000, inputUnits = 0, text = "hello", quiescent = false, immediate = false } = {}) {
-  const memory = { buffer: new ArrayBuffer(512 * 1024) };
+  const memory = new WebAssembly.Memory({ initial: 8 });
   let length = 0, starts = 0, cancels = 0, polls = 0, completions = 0, request;
   const output = value => {
     const bytes = new TextEncoder().encode(JSON.stringify(value));
     new Uint8Array(memory.buffer, 0, bytes.length).set(bytes);length = bytes.length;
   };
+  new Uint8Array(memory.buffer, 448 * 1024, ABI_IDENTITY.length).set(ABI_IDENTITY);
   const effect = index => ({ host_id: "host", boot_id: "boot", active_play_id: "play", placement_id: `placement-${index}`, plan_id: "partition", request_sequence: index,
     ...(timerEffects ? { effect_kind: "timer", duration_millis: timerDuration } : { effect_kind: "manifestation", presentation_kind: "presentation/text", text }) });
   const api = {
     memory,
+    conduit_browser_runtime_abi_revision: () => 1,
+    conduit_browser_runtime_abi_identity_ptr: () => 448 * 1024,
+    conduit_browser_runtime_abi_identity_len: () => ABI_IDENTITY.length,
     conduit_browser_form_human_machinery() { output({ schema: "conduit.browser/selected-human-machinery@1", limits: { maximum_gears: 32 }, implementations: [{ id: "browser/dom-presentation@1", revision: 1 }, { id: "browser/pointer-events@1", revision: 1 }] });return 0; },
     conduit_browser_form_output_ptr: () => 0, conduit_browser_form_output_len: () => length,
     conduit_browser_body_input_ptr: () => 256 * 1024, conduit_browser_body_input_capacity: () => 256 * 1024,
@@ -232,10 +238,12 @@ test("pre-start refusal and an unknown WASM start outcome remain distinct", () =
 
 test("first access to the body input arena may replace the WASM memory buffer", () => {
   const f = fixture();
+  let grown = false;
   f.api.conduit_browser_body_input_ptr = () => {
-    const next = new ArrayBuffer(1024 * 1024);
-    new Uint8Array(next).set(new Uint8Array(f.api.memory.buffer));
-    f.api.memory.buffer = next;
+    if (!grown) {
+      grown = true;
+      f.api.memory.grow(8);
+    }
     return 256 * 1024;
   };
   const owner = acquireBrowserBodyHost(f);

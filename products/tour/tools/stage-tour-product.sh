@@ -18,6 +18,7 @@ cp products/tour/browser/tour-chapter-model.mjs "$destination/tour-chapter-model
 cp products/tour/browser/tour-state.mjs "$destination/tour-state.mjs"
 cp targets/browser/host/assets/browser-human-input.mjs "$destination/browser-human-input.mjs"
 cp targets/browser/host/assets/browser-form-effects.mjs "$destination/browser-form-effects.mjs"
+cp targets/browser/host/assets/browser-runtime-bridge.mjs "$destination/browser-runtime-bridge.mjs"
 cp products/tour/browser/tour-navigation.mjs "$destination/tour-navigation.mjs"
 cp products/tour/browser/tour-inventory-presentation.mjs "$destination/tour-inventory-presentation.mjs"
 cp products/tour/browser/tour-routing.mjs "$destination/tour-routing.mjs"
@@ -93,5 +94,5 @@ node targets/browser/tools/build-browser-application-package.mjs \
 
 # Includes the shared admitted host-effect dispatcher used by Tour and Body.
 test -f "$destination/browser-form-effects.mjs"
-test "$(find "$destination" -type f | wc -l)" -eq 62
+test "$(find "$destination" -type f | wc -l)" -eq 63
 test -z "$(find "$destination" -type f \( -name 'creche*.mjs' -o -name 'creche*.css' -o -path '*/artifacts/*' -o -path '*/targets/*' \) -print -quit)"
