@@ -4,6 +4,7 @@ const ABI = Object.freeze({
   identity: "conduit.browser/runtime-abi",
   revision: 1,
 });
+const supportedRevisions = Object.freeze([ABI.revision]);
 
 function exported(api, name, context) {
   const value = api?.[name];
@@ -53,11 +54,12 @@ export function bindBrowserRuntimeBridge(api, { context, requiredExports = [] })
     throw new Error(`${context} requires WebAssembly linear memory`);
   }
   const abiRevision = exported(api, "conduit_browser_runtime_abi_revision", context).call(api);
-  if (abiRevision !== ABI.revision) {
-    throw Object.assign(new Error(`${context} requires ${ABI.identity}@${ABI.revision}; runtime reported @${abiRevision}`), {
+  if (!supportedRevisions.includes(abiRevision)) {
+    throw Object.assign(new Error(`${context} requires ${ABI.identity}@${supportedRevisions.join(",")}; runtime reported @${abiRevision}`), {
       code: "IncompatibleRuntimeAbi",
-      required_runtime_abi: `${ABI.identity}@${ABI.revision}`,
+      required_runtime_abi: `${ABI.identity}@${supportedRevisions.join(",")}`,
       runtime_abi_revision: abiRevision,
+      supported_runtime_abi_revisions: supportedRevisions,
     });
   }
   if (requiredExports.some((name) => typeof api[name] !== "function")) {
@@ -87,12 +89,12 @@ export function bindBrowserRuntimeBridge(api, { context, requiredExports = [] })
       let outputBytes = null;
       try {
         status = invoke(inputBytes.length);
+        if (status >= 0) lifecycleStarted = true;
         outputBytes = output ? readOutputBytes(api, output) : null;
       } finally {
         if (retireInput) written.fill(0);
       }
       const result = { status, outputBytes };
-      if (result.status >= 0) lifecycleStarted = true;
       return result;
     },
   });

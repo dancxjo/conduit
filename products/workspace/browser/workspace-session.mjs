@@ -20,6 +20,7 @@ export function openWorkspaceSession({ host, storage }) {
   let write = Promise.resolve();
   let persistenceFailure = null;
   let workspace = null;
+  let pendingBodyInput = null;
   const request = (action, fields = {}, binary = false) => {
     const { status, outputBytes: output } = bridge.transact({
       inputBytes: bridge.encodeJson({ action, ...fields }),
@@ -56,12 +57,17 @@ export function openWorkspaceSession({ host, storage }) {
     }));
   };
   const call = (name, ...args) => {
-    const status = api[name](...args);
-    if (status < 0) throw new Error(read().message ?? `Body operation refused (${status})`);
-    return status === 1 ? null : read();
+    try {
+      const status = api[name](...args);
+      if (status < 0) throw new Error(read().message ?? `Body operation refused (${status})`);
+      return status === 1 ? null : read();
+    } finally {
+      pendingBodyInput?.fill(0);
+      pendingBodyInput = null;
+    }
   };
   const put = bytes => {
-    bridge.writeInput(bytes, {
+    pendingBodyInput = bridge.writeInput(bytes, {
       pointerExport: "conduit_creche_input_ptr",
       capacityExport: "conduit_creche_input_capacity",
       minimum: 1,
