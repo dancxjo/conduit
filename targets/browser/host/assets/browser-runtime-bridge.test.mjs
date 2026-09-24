@@ -2,188 +2,102 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { bindBrowserRuntimeBridge } from "./browser-runtime-bridge.mjs";
 
-function runtime(revision = 1) {
+const ABI = new TextEncoder().encode("conduit.browser/runtime-abi");
+
+function runtime({ revision = 1, identity = ABI, inputCapacity = 64, inputPointer = 0 } = {}) {
   const memory = new WebAssembly.Memory({ initial: 1 });
-  let outputLength = 0;
-  return {
+  const state = { workspaceOutputLength: 0, bodyOutputLength: 0 };
+  const api = {
     memory,
     conduit_browser_runtime_abi_revision: () => revision,
-    conduit_test_input_ptr: () => 0,
-    conduit_test_input_capacity: () => 64,
-    conduit_test_output_ptr: () => 0,
-    conduit_test_output_len: () => outputLength,
-    conduit_test_output_capacity: () => 64,
-    conduit_test_start: () => 0,
-    setOutput(bytes) {
+    conduit_browser_runtime_abi_identity_ptr: () => 1024,
+    conduit_browser_runtime_abi_identity_len: () => identity.length,
+    conduit_workspace_input_ptr: () => inputPointer,
+    conduit_workspace_input_capacity: () => inputCapacity,
+    conduit_workspace_output_ptr: () => 0,
+    conduit_workspace_output_len: () => state.workspaceOutputLength,
+    conduit_workspace_output_capacity: () => 1024,
+    conduit_workspace_request: () => 0,
+    conduit_creche_input_ptr: () => 0,
+    conduit_creche_input_capacity: () => 1024,
+    conduit_creche_output_ptr: () => 0,
+    conduit_creche_output_len: () => 0,
+    conduit_creche_current: () => 1,
+    conduit_creche_durable_snapshot: () => 1,
+    conduit_creche_attach_here: () => 0,
+    conduit_creche_restore_durable: () => 0,
+    conduit_browser_body_input_ptr: () => 0,
+    conduit_browser_body_input_capacity: () => 1024,
+    conduit_browser_body_start: () => 0,
+    conduit_browser_form_input_ptr: () => 0,
+    conduit_browser_form_input_capacity: () => 1024,
+    conduit_browser_form_output_ptr: () => 0,
+    conduit_browser_form_output_len: () => state.bodyOutputLength,
+    conduit_browser_form_acknowledge_cancellation: () => 0,
+    conduit_browser_form_complete_effect: () => 0,
+    conduit_browser_form_refuse_effect: () => 0,
+    setWorkspaceOutput(bytes) {
       new Uint8Array(memory.buffer, 0, bytes.length).set(bytes);
-      outputLength = bytes.length;
+      state.workspaceOutputLength = bytes.length;
+    },
+    setBodyOutput(bytes) {
+      new Uint8Array(memory.buffer, 0, bytes.length).set(bytes);
+      state.bodyOutputLength = bytes.length;
     },
   };
+  new Uint8Array(memory.buffer, 1024, identity.length).set(identity);
+  return api;
 }
 
 test("refuses unsupported runtime ABI revision", () => {
-  assert.throws(() => bindBrowserRuntimeBridge(runtime(2), { context: "bridge proof" }), (error) =>
-    error?.code === "IncompatibleRuntimeAbi"
-    && error?.required_runtime_abi === "conduit.browser/runtime-abi@1"
-    && error?.runtime_abi_revision === 2
-    && Array.isArray(error?.supported_runtime_abi_revisions)
-    && error.supported_runtime_abi_revisions.includes(1));
+  assert.throws(() => bindBrowserRuntimeBridge(runtime({ revision: 2 }), { context: "bridge proof" }), (error) =>
+    error?.code === "IncompatibleRuntimeAbi" && error.runtime_abi_revision === 2);
 });
 
 test("refuses malformed runtime ABI revision export", () => {
-  assert.throws(
-    () => bindBrowserRuntimeBridge(runtime("broken"), { context: "bridge proof" }),
-    /malformed runtime ABI revision export/,
-  );
+  const api = runtime();
+  api.conduit_browser_runtime_abi_revision = () => "broken";
+  assert.throws(() => bindBrowserRuntimeBridge(api, { context: "bridge proof" }), /malformed runtime ABI revision export/);
 });
 
-test("treats missing runtime ABI export as incompatible revision zero", () => {
-  const api = runtime();
-  delete api.conduit_browser_runtime_abi_revision;
+test("refuses ABI identity mismatch", () => {
+  const api = runtime({ identity: new TextEncoder().encode("wrong/runtime-abi") });
   assert.throws(() => bindBrowserRuntimeBridge(api, { context: "bridge proof" }), (error) =>
-    error?.code === "IncompatibleRuntimeAbi" && error?.runtime_abi_revision === 0);
+    error?.code === "IncompatibleRuntimeAbi" && error.runtime_abi_revision === null);
 });
 
-test("rejects malformed input bytes", () => {
-  const bridge = bindBrowserRuntimeBridge(runtime(), { context: "bridge proof" });
-  assert.throws(
-    () => bridge.writeInput("not-bytes", {
-      pointerExport: "conduit_test_input_ptr",
-      capacityExport: "conduit_test_input_capacity",
-      label: "test input",
-    }),
-    /must be encoded bytes/,
-  );
-});
-
-test("rejects output beyond bounds", () => {
+test("workspace request retires input even when invocation grows memory", () => {
   const api = runtime();
-  api.setOutput(Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9]));
+  api.conduit_workspace_request = (length) => {
+    api.memory.grow(1);
+    return 0;
+  };
+  api.setWorkspaceOutput(new TextEncoder().encode(JSON.stringify({ ok: true })));
   const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });
-  assert.throws(
-    () => bridge.readOutputBytes({
-      pointerExport: "conduit_test_output_ptr",
-      lengthExport: "conduit_test_output_len",
-      minimum: 1,
-      maximum: 8,
-      label: "test output",
-    }),
-    /test output exceeds its bound/,
-  );
+  bridge.workspaceRequest({ action: "Proof" });
+  assert.deepEqual([...new Uint8Array(api.memory.buffer, 0, 16)], new Array(16).fill(0));
 });
 
-test("rejects malformed output capacity export", () => {
+test("rejects malformed workspace input capacity", () => {
   const api = runtime();
-  api.conduit_test_output_capacity = () => -1;
-  api.setOutput(Uint8Array.from([1]));
+  api.conduit_workspace_input_capacity = () => Number.NaN;
   const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });
-  assert.throws(
-    () => bridge.readOutputBytes({
-      pointerExport: "conduit_test_output_ptr",
-      lengthExport: "conduit_test_output_len",
-      capacityExport: "conduit_test_output_capacity",
-      minimum: 1,
-      maximum: 8,
-      label: "test output",
-    }),
-    /test output exceeds its bound/,
-  );
+  assert.throws(() => bridge.workspaceRequest({ action: "Proof" }), /Workspace input exceeds its bound/);
 });
 
-test("refreshes memory views after linear memory growth", () => {
+test("rejects malformed workspace input pointer", () => {
   const api = runtime();
+  api.conduit_workspace_input_ptr = () => Number.MAX_SAFE_INTEGER;
   const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });
-  bridge.writeInput(Uint8Array.from([1]), {
-    pointerExport: "conduit_test_input_ptr",
-    capacityExport: "conduit_test_input_capacity",
-    label: "test input",
-  });
-  const initialBuffer = api.memory.buffer;
-  api.memory.grow(1);
-  bridge.writeInput(Uint8Array.from([2, 3]), {
-    pointerExport: "conduit_test_input_ptr",
-    capacityExport: "conduit_test_input_capacity",
-    label: "test input",
-  });
-  assert.notEqual(api.memory.buffer, initialBuffer);
-  assert.deepEqual([...new Uint8Array(api.memory.buffer, 0, 2)], [2, 3]);
+  assert.throws(() => bridge.workspaceRequest({ action: "Proof" }), /Workspace input exceeds its bound/);
 });
 
-test("refuses duplicate start", () => {
-  const bridge = bindBrowserRuntimeBridge(runtime(), { context: "bridge proof" });
-  bridge.start({
-    inputBytes: Uint8Array.from([1]),
-    input: {
-      pointerExport: "conduit_test_input_ptr",
-      capacityExport: "conduit_test_input_capacity",
-      minimum: 1,
-      label: "test input",
-    },
-    invoke: () => 0,
-    label: "proof lifecycle",
-  });
-  assert.throws(
-    () => bridge.start({
-      inputBytes: Uint8Array.from([2]),
-      input: {
-        pointerExport: "conduit_test_input_ptr",
-        capacityExport: "conduit_test_input_capacity",
-        minimum: 1,
-        label: "test input",
-      },
-      invoke: () => 0,
-      label: "proof lifecycle",
-    }),
-    /duplicate start refused/,
-  );
-});
-
-test("allows retry when start status is not accepted", () => {
-  const bridge = bindBrowserRuntimeBridge(runtime(), { context: "bridge proof" });
-  bridge.start({
-    inputBytes: Uint8Array.from([1]),
-    input: {
-      pointerExport: "conduit_test_input_ptr",
-      capacityExport: "conduit_test_input_capacity",
-      minimum: 1,
-      label: "test input",
-    },
-    invoke: () => 1,
-    acceptedStatuses: [0],
-    label: "proof lifecycle",
-  });
-  bridge.start({
-    inputBytes: Uint8Array.from([2]),
-    input: {
-      pointerExport: "conduit_test_input_ptr",
-      capacityExport: "conduit_test_input_capacity",
-      minimum: 1,
-      label: "test input",
-    },
-    invoke: () => 0,
-    acceptedStatuses: [0],
-    label: "proof lifecycle",
-  });
-});
-
-test("start forwards the written input length", () => {
-  const bridge = bindBrowserRuntimeBridge(runtime(), { context: "bridge proof" });
-  let observedLength = null;
-  const bytes = Uint8Array.from([9, 8, 7]).subarray(1);
-  bridge.start({
-    inputBytes: bytes,
-    input: {
-      pointerExport: "conduit_test_input_ptr",
-      capacityExport: "conduit_test_input_capacity",
-      minimum: 1,
-      label: "test input",
-    },
-    invoke: (length) => {
-      observedLength = length;
-      return 0;
-    },
-    acceptedStatuses: [0],
-    label: "proof lifecycle",
-  });
-  assert.equal(observedLength, bytes.length);
+test("workspace binary request permits empty output", () => {
+  const api = runtime();
+  api.conduit_workspace_request = () => 0;
+  const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });
+  const result = bridge.workspaceRequest({ action: "BinaryProof" });
+  assert.equal(result.status, 0);
+  assert.equal(result.outputBytes.length, 0);
+  assert.equal(result.outputJson, null);
 });

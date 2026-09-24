@@ -1112,10 +1112,7 @@ async function runListing(runner, source, recursive) {
   runner.playStatus.ordinary("Playing through this browser Host…");
   runner.actionControls.render(true);
   try {
-    const runtimeBridge = bindBrowserRuntimeBridge(api, {
-      context: "tour runtime",
-      requiredExports: ["conduit_browser_form_input_ptr", "conduit_browser_form_input_capacity"],
-    });
+    const runtimeBridge = bindBrowserRuntimeBridge(api, { context: "tour runtime" });
     const perform = createTourEffectPerformer({
       api, runner, humanInput, openHumanInput, isCurrent: () => current === generation,
       delay: (milliseconds, signal) => delay(milliseconds, current, signal),

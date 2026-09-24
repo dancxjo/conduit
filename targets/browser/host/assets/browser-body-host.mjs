@@ -19,13 +19,7 @@ const pools = new Map([
 ]);
 
 function readOutput(bridge) {
-  return bridge.decodeJson(bridge.readOutputBytes({
-    pointerExport: "conduit_browser_form_output_ptr",
-    lengthExport: "conduit_browser_form_output_len",
-    minimum: 1,
-    maximum: 256 * 1024,
-    label: "browser Body output",
-  }));
+  return bridge.browserFormReadOutputJson();
 }
 
 function refuseUnavailableExecutionLine(proposal, fragment) {
@@ -70,14 +64,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       !outputRoot?.isConnected || !inputTarget?.isConnected) {
     throw new Error("invalid browser Body acquisition inputs");
   }
-  const bridge = bindBrowserRuntimeBridge(api, {
-    context: "browser Body host runtime",
-    requiredExports: [
-      "conduit_browser_form_output_ptr", "conduit_browser_form_output_len",
-      "conduit_browser_form_input_ptr", "conduit_browser_form_input_capacity",
-      "conduit_browser_body_input_ptr", "conduit_browser_body_input_capacity", "conduit_browser_body_start",
-    ],
-  });
+  const bridge = bindBrowserRuntimeBridge(api, { context: "browser Body host runtime" });
   if (api.conduit_browser_form_human_machinery() < 0) throw new Error("browser machinery unavailable");
   const machinery = readOutput(bridge);
   const maximumPlacements = machinery?.limits?.maximum_gears;
@@ -298,13 +285,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
         event.delta_x, event.delta_y, event.primary_pressed ? 1 : 0, event.coalesced,
         event.dropped, event.queue_capacity, event.sequence);
       if (status < 0) throw new Error("pointer encoding refused");
-      return bridge.readOutputBytes({
-        pointerExport: "conduit_browser_form_output_ptr",
-        lengthExport: "conduit_browser_form_output_len",
-        minimum: 1,
-        maximum: 256 * 1024,
-        label: "pointer encoding output",
-      });
+      return bridge.browserFormReadOutputBytes();
     }
     if (effect.effect_kind === "key-event" || effect.effect_kind === "button-transition") {
       if (!input) throw new Error("browser input not acquired");
@@ -316,13 +297,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
         const event = await (routing ? routing.next("button", effect.placement_id, signal) : input.nextButton());
         assertCurrent();
         if (api.conduit_tour_encode_button_transition(event.pressed ? 1 : 0, BigInt(event.sequence)) < 0) throw new Error("button encoding refused");
-        return bridge.readOutputBytes({
-          pointerExport: "conduit_browser_form_output_ptr",
-          lengthExport: "conduit_browser_form_output_len",
-          minimum: 1,
-          maximum: 256 * 1024,
-          label: "button encoding output",
-        });
+        return bridge.browserFormReadOutputBytes();
       } finally { signal.removeEventListener("abort", abort); }
     }
     if (effect.effect_kind === "application-event") {
@@ -370,7 +345,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     start(playSequence) {
       assertCurrent();
       if (startAccepted || !Number.isSafeInteger(playSequence) || playSequence < 1) throw new Error("browser Body start refused");
-      const request = bridge.encodeJson({
+      const request = {
         wake: proposal.wake,
         plan: proposal.plan,
         local_host_id: hostId,
@@ -381,23 +356,12 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
         foreground_checked_form_id: foregroundForm?.() ?? proposal.plan.forms[0].form?.checked_form_id ?? proposal.plan.forms[0].plan.checked_form_id,
         play_sequence: playSequence,
         observations: observations(),
-      });
+      };
       startOutcome = "unknown";
-      const { status: startStatus } = bridge.start({
-        inputBytes: request,
-        input: {
-          pointerExport: "conduit_browser_body_input_ptr",
-          capacityExport: "conduit_browser_body_input_capacity",
-          minimum: 1,
-          label: "browser Body input",
-        },
-        invoke: (length) => api.conduit_browser_body_start(length),
-        retireInput: true,
-        label: "browser Body",
-      });
+      const { status: startStatus, outputJson } = bridge.browserBodyStart(request);
       if (startStatus < 0) {
         startOutcome = "refused-before-play";
-        const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(bridge) : null;
+        const refusal = outputJson;
         const rejection = refusal?.rejections?.[0];
         const detail = rejection
           ? `${rejection.stage} could not fit ${rejection.resource}: required ${rejection.required}, available ${rejection.available} on Host ${rejection.host_id} / Boot ${rejection.boot_id}`
@@ -408,7 +372,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       }
       startOutcome = "accepted";
       startAccepted = true;
-      started = readOutput(bridge);
+      started = outputJson;
       if (started.schema !== "conduit.browser/body-started@1" ||
           typeof started.play?.active_play_id !== "string" || !started.play.active_play_id ||
           started.play.plan_id !== proposal.plan.plan_id || started.play.wake_id !== proposal.wake.wake_id ||

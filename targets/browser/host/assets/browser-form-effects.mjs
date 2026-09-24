@@ -79,7 +79,7 @@ export function createPitchTonePerformer(window) {
 // It does not plan work or schedule semantic operations.
 export async function drainBrowserEffects({ api, initialProgress, readOutput, perform,
   isCurrent = () => true, onWaiting = () => {}, bridge = null }) {
-  const encoder = new TextEncoder();
+  if (!bridge) throw new Error("browser runtime bridge is required");
   const effects = new Map();
   let wake = null;
   let progress = initialProgress;
@@ -97,33 +97,13 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
           }
           pending.controller.abort();
           effects.delete(key);
-          const play = encoder.encode(effect.active_play_id);
-          const placement = encoder.encode(effect.placement_id);
-          const bytes = new Uint8Array(play.length + placement.length);
-          bytes.set(play);
-          bytes.set(placement, play.length);
-          const input = bridge
-            ? bridge.writeInput(bytes, {
-                pointerExport: "conduit_browser_form_input_ptr",
-                capacityExport: "conduit_browser_form_input_capacity",
-                label: "cancellation acknowledgement input",
-              })
-            : (() => {
-                if (bytes.length > api.conduit_browser_form_input_capacity()) {
-                  throw new Error("cancellation acknowledgement exceeds the admitted input bound");
-                }
-                const view = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), bytes.length);
-                view.set(bytes);
-                return view;
-              })();
-          let result;
-          try {
-            result = api.conduit_browser_form_acknowledge_cancellation(play.length, placement.length, effect.request_sequence);
-            if (result < 0) throw new Error(`cancellation acknowledgement refused (${result})`);
-            progress = readOutput();
-          } finally {
-            input.fill(0);
-          }
+          const { status } = bridge.browserFormAcknowledgeCancellation(
+            effect.active_play_id,
+            effect.placement_id,
+            effect.request_sequence,
+          );
+          if (status < 0) throw new Error(`cancellation acknowledgement refused (${status})`);
+          progress = readOutput();
           continue;
         }
         if (effects.has(key) || effects.size >= capacity) {
@@ -160,42 +140,26 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
       effects.delete(completed.key);
       if (completed.error && !(completed.error instanceof BrowserHostEffectRefusal)) throw completed.error;
       const { effect, output = new Uint8Array() } = completed;
-      const play = encoder.encode(effect.active_play_id);
-      const placement = encoder.encode(effect.placement_id);
-      const bytes = new Uint8Array(play.length + placement.length + output.length);
-      bytes.set(play);
-      bytes.set(placement, play.length);
-      bytes.set(output, play.length + placement.length);
-      const input = bridge
-        ? bridge.writeInput(bytes, {
-            pointerExport: "conduit_browser_form_input_ptr",
-            capacityExport: "conduit_browser_form_input_capacity",
-            label: "effect completion input",
-          })
-        : (() => {
-            if (bytes.length > api.conduit_browser_form_input_capacity()) {
-              throw new Error("effect completion exceeds the admitted input bound");
-            }
-            const view = new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), bytes.length);
-            view.set(bytes);
-            return view;
-          })();
       let completion;
-      try {
-        completion = completed.error
-          ? api.conduit_browser_form_refuse_effect(play.length, placement.length,
-              effect.request_sequence ?? effect.observation_sequence,
-              completed.error.disposition === "denied" ? 1 : 2, completed.error.detail)
-          : api.conduit_browser_form_complete_effect(play.length, placement.length,
-              effect.request_sequence ?? effect.observation_sequence, output.length);
-        if (completion < 0) {
-          const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput() : null;
-          throw new Error(`effect completion refused (${completion})${refusal?.message ? `: ${refusal.message}` : ""}`);
-        }
-        progress = readOutput();
-      } finally {
-        input.fill(0);
+      completion = completed.error
+        ? bridge.browserFormRefuseEffect(
+            effect.active_play_id,
+            effect.placement_id,
+            effect.request_sequence ?? effect.observation_sequence,
+            completed.error.disposition === "denied" ? 1 : 2,
+            completed.error.detail,
+          ).status
+        : bridge.browserFormCompleteEffect(
+            effect.active_play_id,
+            effect.placement_id,
+            effect.request_sequence ?? effect.observation_sequence,
+            output,
+          ).status;
+      if (completion < 0) {
+        const refusal = bridge.browserFormReadOutputJson();
+        throw new Error(`effect completion refused (${completion})${refusal?.message ? `: ${refusal.message}` : ""}`);
       }
+      progress = readOutput();
     }
     return isCurrent() ? progress : undefined;
   } finally {

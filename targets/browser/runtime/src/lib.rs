@@ -98,6 +98,7 @@ const ERROR_TERMINAL_FAILURE: i32 = -13;
 const ERROR_CAPACITY_GROWTH: i32 = -14;
 const ERROR_KERNEL: i32 = -15;
 const BROWSER_RUNTIME_ABI_REVISION: u32 = 1;
+const BROWSER_RUNTIME_ABI_IDENTITY: &[u8] = b"conduit.browser/runtime-abi";
 
 type BrowserScheduler = FixedScheduler<
     SignalBack,
@@ -1142,6 +1143,16 @@ pub extern "C" fn conduit_browser_start(host_index: u32) -> i32 {
 #[no_mangle]
 pub extern "C" fn conduit_browser_runtime_abi_revision() -> u32 {
     BROWSER_RUNTIME_ABI_REVISION
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_runtime_abi_identity_ptr() -> *const u8 {
+    BROWSER_RUNTIME_ABI_IDENTITY.as_ptr()
+}
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_runtime_abi_identity_len() -> u32 {
+    BROWSER_RUNTIME_ABI_IDENTITY.len() as u32
 }
 
 #[no_mangle]
