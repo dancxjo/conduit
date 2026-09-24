@@ -110,8 +110,12 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
               })
             : new Uint8Array(api.memory.buffer, api.conduit_browser_form_input_ptr(), bytes.length);
           if (!bridge) input.set(bytes);
-          const result = api.conduit_browser_form_acknowledge_cancellation(play.length, placement.length, effect.request_sequence);
-          input.fill(0);
+          let result;
+          try {
+            result = api.conduit_browser_form_acknowledge_cancellation(play.length, placement.length, effect.request_sequence);
+          } finally {
+            input.fill(0);
+          }
           if (result < 0) throw new Error(`cancellation acknowledgement refused (${result})`);
           progress = readOutput(api);
           continue;
@@ -170,13 +174,17 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
             view.set(bytes);
             return view;
           })();
-      const completion = completed.error
-        ? api.conduit_browser_form_refuse_effect(play.length, placement.length,
-            effect.request_sequence ?? effect.observation_sequence,
-            completed.error.disposition === "denied" ? 1 : 2, completed.error.detail)
-        : api.conduit_browser_form_complete_effect(play.length, placement.length,
-            effect.request_sequence ?? effect.observation_sequence, output.length);
-      input.fill(0);
+      let completion;
+      try {
+        completion = completed.error
+          ? api.conduit_browser_form_refuse_effect(play.length, placement.length,
+              effect.request_sequence ?? effect.observation_sequence,
+              completed.error.disposition === "denied" ? 1 : 2, completed.error.detail)
+          : api.conduit_browser_form_complete_effect(play.length, placement.length,
+              effect.request_sequence ?? effect.observation_sequence, output.length);
+      } finally {
+        input.fill(0);
+      }
       if (completion < 0) {
         const refusal = api.conduit_browser_form_output_len() > 0 ? readOutput(api) : null;
         throw new Error(`effect completion refused (${completion})${refusal?.message ? `: ${refusal.message}` : ""}`);
