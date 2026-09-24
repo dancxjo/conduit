@@ -1,0 +1,62 @@
+name: live local-model conformance
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Already-pinned Ollama model tag to exercise
+        required: false
+        default: gemma3:latest
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-local-model-conformance
+  cancel-in-progress: false
+
+jobs:
+  ollama:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+          shared-key: live-local-model-conformance
+      - name: Restore model blobs
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/ollama-cache/models
+          key: ollama-${{ runner.os }}-0.12.3-${{ inputs.model }}-v1
+      - name: Run real Ollama and model conformance
+        env:
+          MODEL: ${{ inputs.model }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/ollama-cache/models"
+          docker run --detach --name conduit-ollama -p 11434:11434 \
+            --volume "$RUNNER_TEMP/ollama-cache/models:/root/.ollama/models" \
+            ollama/ollama:0.12.3@sha256:36ccf1b4c161179a198a19e897aa0a1acd54cd5eeb6ab99c80f2ef50ba7fa106
+          docker cp conduit-ollama:/bin/ollama "$RUNNER_TEMP/ollama"
+          chmod 755 "$RUNNER_TEMP/ollama"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:11434/api/version >/dev/null; then break; fi
+            test "$attempt" -lt 30
+            sleep 1
+          done
+          PATH="$RUNNER_TEMP:$PATH" "$RUNNER_TEMP/ollama" pull "$MODEL"
+          PATH="$RUNNER_TEMP:$PATH" cargo xtask --json host prove-local-model --locked \
+            --model "$MODEL" --admitted-memory-mib 8192 --orifina-presenter \
+            > "$RUNNER_TEMP/live-model-receipt.json"
+      - name: Retain live conformance
+        if: always()
+        uses: ./.github/actions/upload-artifact-retry
+        with:
+          name: conduit-live-local-model-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/live-model-receipt.json
+            target/journeys/three-bodies/hosted-generative
+          if-no-files-found: warn
+          retention-days: 30

@@ -26,6 +26,8 @@ mod host_hears_speaks;
 mod host_home_voice;
 #[path = "host_local_model.rs"]
 mod host_local_model;
+#[path = "host_local_model_journey.rs"]
+mod host_local_model_journey;
 #[path = "host_microphone.rs"]
 mod host_microphone;
 #[path = "host_microphone_house.rs"]

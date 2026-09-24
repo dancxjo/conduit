@@ -429,7 +429,7 @@ fn emit_relayout_sign(
     fabrication: &FabricationRecord,
 ) {
     let line = format!(
-        "CONDUIT_RESIZE_SIGN {{\"schema\":\"conduit.conduitos.surface-relayout/v1\",\"status\":\"current\",\"surface_id\":\"{}\",\"previous_x\":{},\"previous_y\":{},\"previous_width\":{},\"previous_height\":{},\"current_x\":{},\"current_y\":{},\"current_width\":{},\"current_height\":{},\"invalidated_manifestation_id\":\"{}\",\"current_presentation_id\":\"{}\",\"current_manifestation_id\":\"{}\",\"input_refused_while_invalidated\":{},\"frame_sequence\":{},\"damage_count\":{},\"pixels_written\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"bounded\":true}}\n",
+        "CONDUIT_RESIZE_SIGN {{\"schema\":\"conduit.conduitos.surface-relayout/v1\",\"status\":\"current\",\"surface_id\":\"{}\",\"previous_x\":{},\"previous_y\":{},\"previous_width\":{},\"previous_height\":{},\"current_x\":{},\"current_y\":{},\"current_width\":{},\"current_height\":{},\"invalidated_manifestation_id\":\"{}\",\"loss_sign_id\":\"conduitos/surface-loss/{}\",\"current_presentation_id\":\"{}\",\"current_manifestation_id\":\"{}\",\"input_refused_while_invalidated\":{},\"frame_sequence\":{},\"damage_count\":{},\"pixels_written\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"bounded\":true}}\n",
         receipt.surface_id,
         receipt.previous_bounds.x,
         receipt.previous_bounds.y,
@@ -439,6 +439,7 @@ fn emit_relayout_sign(
         receipt.current_bounds.y,
         receipt.current_bounds.width,
         receipt.current_bounds.height,
+        receipt.invalidated_manifestation_id.as_str(),
         receipt.invalidated_manifestation_id.as_str(),
         receipt.current.presentation_id.as_str(),
         receipt.current.manifestation_id.as_str(),

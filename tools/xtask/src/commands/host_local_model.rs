@@ -69,13 +69,13 @@ pub(super) fn prove(
     } else {
         None
     };
-    let presenter_requests = journey
-        .as_ref()
-        .and_then(|journey| journey.requests.first())
-        .map_or_else(Vec::new, |request| {
-            conduit_std_host::local_model_proof::presenter_policy_experiment(request.clone())
-        });
+    let presenter_requests = journey.as_ref().map_or_else(Vec::new, |journey| {
+        journey.requests.first().cloned().into_iter().collect()
+    });
     let receipt = conduit_std_host::local_model_proof::run(adapter, &presenter_requests)?;
+    if let Some(journey) = journey.as_ref() {
+        super::host_local_model_journey::write(journey, &receipt)?;
+    }
     if opts.json {
         println!(
             "{}",
@@ -140,24 +140,24 @@ pub(super) fn prove(
     Ok(())
 }
 
-struct PreparedOrifinaJourney {
-    requests: Vec<conduit_presentation::GenerativePresenterRequest>,
-    receipt: OrifinaJourneyReceipt,
+pub(super) struct PreparedOrifinaJourney {
+    pub(super) requests: Vec<conduit_presentation::GenerativePresenterRequest>,
+    pub(super) receipt: OrifinaJourneyReceipt,
 }
 
 #[derive(Serialize)]
-struct OrifinaJourneyReceipt {
-    schema: &'static str,
-    body_id: String,
-    host_ids: Vec<String>,
-    boot_ids: Vec<String>,
-    plan_ids: Vec<String>,
-    play_ids: Vec<String>,
-    workload_revision: u64,
-    fault_reason: &'static str,
-    repaired: bool,
-    fulfilled: bool,
-    biography: BodyBiographyEvidence,
+pub(super) struct OrifinaJourneyReceipt {
+    pub(super) schema: &'static str,
+    pub(super) body_id: String,
+    pub(super) host_ids: Vec<String>,
+    pub(super) boot_ids: Vec<String>,
+    pub(super) plan_ids: Vec<String>,
+    pub(super) play_ids: Vec<String>,
+    pub(super) workload_revision: u64,
+    pub(super) fault_reason: &'static str,
+    pub(super) repaired: bool,
+    pub(super) fulfilled: bool,
+    pub(super) biography: BodyBiographyEvidence,
 }
 
 fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error>> {

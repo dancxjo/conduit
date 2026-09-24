@@ -1,0 +1,11 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "4ac95aa41915fa68bec8fadea9c4fd895d107acd",
+  "track": "hosted-generative",
+  "step_id": "bootstrap.started",
+  "assertion": "bootstrap-started",
+  "source_facts": {
+    "model": "gemma3:latest/a2af6cc3eb7fa8be8504abaf9b04e88f17a119ec3f04a3addf55f92841195f5a",
+    "provider": "ollama/ollama version is 0.23.2"
+  }
+}

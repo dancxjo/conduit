@@ -6,6 +6,7 @@ use super::ConduitosError;
 
 pub(super) struct ResizeEvidence {
     pub(super) surface_id: String,
+    pub(super) loss_sign_id: String,
     pub(super) invalidated_manifestation_id: String,
     pub(super) current_manifestation_id: String,
     pub(super) input_refused_while_invalidated: bool,
@@ -31,6 +32,7 @@ pub(super) fn validate(
         ));
     }
     let surface_id = text(record, "surface_id")?;
+    let loss_sign_id = text(record, "loss_sign_id")?;
     let invalidated_manifestation_id = text(record, "invalidated_manifestation_id")?;
     let current_manifestation_id = text(record, "current_manifestation_id")?;
     let focused = pointer_records
@@ -47,6 +49,7 @@ pub(super) fn validate(
     }
     Ok(ResizeEvidence {
         surface_id,
+        loss_sign_id,
         invalidated_manifestation_id,
         current_manifestation_id,
         input_refused_while_invalidated: true,
@@ -112,6 +115,7 @@ mod tests {
         let resize = json!({
             "status":"current", "surface_id":"conduitos/shell/inspector",
             "invalidated_manifestation_id":"old", "current_manifestation_id":"new",
+            "loss_sign_id":"conduitos/surface-loss/old",
             "previous_width":200, "current_width":160, "previous_height":300, "current_height":300,
             "input_refused_while_invalidated":true, "damage_count":2, "pixels_written":600,
             "profile_id":"p","build_id":"b","image_id":"i","host_id":"h","boot_id":"boot"

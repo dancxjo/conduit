@@ -11,6 +11,7 @@ use conduit_ai::{
     ValidatedExtraction,
 };
 use conduit_core::PlannedGear;
+use conduit_presentation::GenerativePresenterInput;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::io::{Read, Write};
@@ -270,6 +271,7 @@ impl OllamaLocalModelAdapter {
         let mut request = json!({
             "model": self.model_name,
             "prompt": input,
+            "think": false,
             "stream": false,
             "keep_alive": "5m",
             "options": { "num_predict": maximum_tokens }
@@ -300,6 +302,20 @@ impl OllamaLocalModelAdapter {
         semantic_data: &str,
         maximum_tokens: u64,
     ) -> Result<ChatResponse, String> {
+        let input: GenerativePresenterInput =
+            serde_json::from_str(semantic_data).map_err(|error| error.to_string())?;
+        let available_actions = input
+            .presentation
+            .actions
+            .iter()
+            .filter(|action| action.availability.is_available())
+            .map(|action| action.identity.clone())
+            .collect::<Vec<_>>();
+        let action_items = if available_actions.is_empty() {
+            json!({ "type": "string" })
+        } else {
+            json!({ "type": "string", "enum": available_actions })
+        };
         let body = serde_json::to_vec(&json!({
             "model": self.model_name,
             "messages": [
@@ -307,9 +323,23 @@ impl OllamaLocalModelAdapter {
                 { "role": "user", "content": semantic_data }
             ],
             "stream": false,
-            "format": "json",
+            "think": false,
+            "format": {
+                "type": "object",
+                "properties": {
+                    "speech": { "type": "string", "minLength": 1, "maxLength": 1024 },
+                    "presented_thought": { "type": ["string", "null"], "maxLength": 1024 },
+                    "suggested_action_identities": {
+                        "type": "array",
+                        "items": action_items,
+                        "maxItems": available_actions.len()
+                    }
+                },
+                "required": ["speech", "presented_thought", "suggested_action_identities"],
+                "additionalProperties": false
+            },
             "keep_alive": "5m",
-            "options": { "num_predict": maximum_tokens }
+            "options": { "num_predict": maximum_tokens, "temperature": 0 }
         }))
         .map_err(|error| error.to_string())?;
         serde_json::from_slice(&curl_json("/api/chat", Some(&body))?)

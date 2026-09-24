@@ -31,7 +31,11 @@ pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
     for (step_index, contract) in index.semantic_steps.iter().enumerate() {
         render_step_comparison(&mut html, contract, step_index, &index.tracks);
     }
-    html.push_str("</section></body></html>");
+    html.push_str(
+        "</section><section id=\"live-conformance\"><h2>The physical universe also agreed</h2>\
+         <p>The required release proof uses a deterministic service speaking the real Ollama HTTP API. Separately retained live conformance ran the same adapter through real Ollama and Gemma, completed ordinary Plan/Play, and produced the Manifestation used by its thirteen-step track.</p>\
+         <p><a href=\"live-conformance/track.json\">Inspect the retained live Ollama track</a>. This evidence belongs to development commit <code>4ac95aa41915fa68bec8fadea9c4fd895d107acd</code>; it is not represented as an exact-main release gate.</p></section></body></html>",
+    );
     html
 }
 

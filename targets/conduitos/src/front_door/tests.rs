@@ -42,6 +42,7 @@ pub(super) fn born_projection(body_id: conduit_body::BodyId) -> JourneyProjectio
         fulfilled_sign_id: None,
         workload_revision: Some(0),
         workload_sign_id: None,
+        lull_sign_id: None,
         workload_capacity_available: false,
         part_id: None,
         wake_id: None,

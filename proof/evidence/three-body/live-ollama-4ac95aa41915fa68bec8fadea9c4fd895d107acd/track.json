@@ -1,0 +1,361 @@
+{
+  "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+  "distributed_plan_ids": [],
+  "embodiment": "hosted-open-weight-model-body",
+  "git_commit": "4ac95aa41915fa68bec8fadea9c4fd895d107acd",
+  "hosts": [
+    {
+      "boot_id": "boot/orifina-local-model",
+      "host_id": "host/orifina-local-model"
+    },
+    {
+      "boot_id": "boot/orifina-companion",
+      "host_id": "host/orifina-companion"
+    }
+  ],
+  "journey_id": "orifina/tutorial@1",
+  "line_ids": [],
+  "presenter_id": "std/local-open-weight-model@1",
+  "schema": "conduit.evidence/body-journey-track@2",
+  "steps": [
+    {
+      "assertion": "body-absent",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.absent",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.absent.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/01-body.absent.json",
+          "sha256": "sha256:3dccbbaa5726821e16e6ca5650c7606ba923e3b98c2f46f4f5b4d40fc04bfb12"
+        }
+      ],
+      "provenance": {
+        "body_id": null,
+        "boot_id": "boot/orifina-local-model",
+        "host_id": "host/orifina-local-model",
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": null
+      },
+      "step_id": "body.absent"
+    },
+    {
+      "assertion": "bootstrap-started",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/bootstrap.started",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for bootstrap.started.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/02-bootstrap.started.json",
+          "sha256": "sha256:3e6cf285dac260c20cbcd64dbe378dc7e62480647c268744005708eae4d4eb30"
+        }
+      ],
+      "provenance": {
+        "body_id": null,
+        "boot_id": "boot/orifina-local-model",
+        "host_id": "host/orifina-local-model",
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": null
+      },
+      "step_id": "bootstrap.started"
+    },
+    {
+      "assertion": "body-born",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.born",
+          "assertion_rung": "body-biography",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.born.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/03-body.born.json",
+          "sha256": "sha256:8d180a3a8e18159ff849721c7bdeec1b3a9083fdb5a0f9e2dec32aa14e01f5a5"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": "boot/orifina-local-model",
+        "host_id": "host/orifina-local-model",
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": "sign/orifina-provider-proof/birth"
+      },
+      "step_id": "body.born"
+    },
+    {
+      "assertion": "body-awake",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.awake",
+          "assertion_rung": "body-biography",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.awake.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/04-body.awake.json",
+          "sha256": "sha256:f44cc2e0d24606029dc84d3f8796f8cab855649e33feebf03a7ea8c871247980"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": "06bc7c04fd0ebfc6ca6eef84c1452b33ac71e30c813461f45e6c108eba2fd611"
+      },
+      "step_id": "body.awake"
+    },
+    {
+      "assertion": "standing-form-used",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/form.used",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for form.used.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/05-form.used.json",
+          "sha256": "sha256:353be961d18505c0c17b2b051266c24fb571245a2c51c3159fe9175bf5a97acb"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": "body-plan/sha256:37bd101cb0acaa391728c53e0919fb104dbea24f2e3e8e28bc9b3bd52a7befa3",
+        "play_id": "body-play/sha256:28b9ffc01c676964a824d0c6ff69fd94df319253b5ca7de179661036b73d473b",
+        "presentation_id": null,
+        "sign_id": "476082a6c2d349a7f08e0cb6427c4b68d4221357f0473b89854d7ba44389955e"
+      },
+      "step_id": "form.used"
+    },
+    {
+      "assertion": "body-inspected",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.inspected",
+          "assertion_rung": "semantic-presentation",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.inspected.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/06-body.inspected.json",
+          "sha256": "sha256:60bb43d8a82cdfb45859f04541b5b20073dee27cc25b3b8e4f37519b53fa0fd3"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": "manifestation/ollama/5",
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": "7d5f7313dc44638a5888862c89b01a125adcb6c907695d96de916c8015bd8ebc",
+        "sign_id": null
+      },
+      "step_id": "body.inspected"
+    },
+    {
+      "assertion": "workload-revised",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/workload.revised",
+          "assertion_rung": "body-biography",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for workload.revised.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/07-workload.revised.json",
+          "sha256": "sha256:5c419426ff7bd69ec13d00cf0e135fff16d366d3b0a6114d195938f38c911419"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": "body-plan/sha256:37bd101cb0acaa391728c53e0919fb104dbea24f2e3e8e28bc9b3bd52a7befa3",
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": "331055a89cda8c26d12d76533234ec165e32cec377d0c7bf9821c33fd708b20b"
+      },
+      "step_id": "workload.revised"
+    },
+    {
+      "assertion": "host-added",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/host.added",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for host.added.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/08-host.added.json",
+          "sha256": "sha256:0d078d3bdfe591dd6cdf6a568ddac18f70030cf251e4c8a94a89d1e7ef2812fe"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": "boot/orifina-companion",
+        "host_id": "host/orifina-companion",
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": "body-plan/sha256:37bd101cb0acaa391728c53e0919fb104dbea24f2e3e8e28bc9b3bd52a7befa3",
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": "sign/orifina-companion/joined"
+      },
+      "step_id": "host.added"
+    },
+    {
+      "assertion": "fault-observed",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/fault.observed",
+          "assertion_rung": "stream-disposition",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for fault.observed.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/09-fault.observed.json",
+          "sha256": "sha256:bf1bf44cf712443bba7eb7a75e4fed971c879ddaf37225e9073af3466f087386"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": "4992c09186e039f7f436c1a5a4176d80b429238aaa802ccf243120b0581e4950"
+      },
+      "step_id": "fault.observed"
+    },
+    {
+      "assertion": "body-repaired",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.repaired",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.repaired.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/10-body.repaired.json",
+          "sha256": "sha256:c01a51bf9d3ebeb01ac4fd3662a407d05f7b43ce3b3595de72cf923a99691b4b"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": "body-plan/sha256:37bd101cb0acaa391728c53e0919fb104dbea24f2e3e8e28bc9b3bd52a7befa3",
+        "play_id": "body-play/sha256:28b9ffc01c676964a824d0c6ff69fd94df319253b5ca7de179661036b73d473b",
+        "presentation_id": null,
+        "sign_id": "476082a6c2d349a7f08e0cb6427c4b68d4221357f0473b89854d7ba44389955e"
+      },
+      "step_id": "body.repaired"
+    },
+    {
+      "assertion": "body-long-running",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.long-running",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.long-running.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/11-body.long-running.json",
+          "sha256": "sha256:ad5e7510546ea4f3b653c776fa525cc7483011439b09c28664fd993eaf85298b"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": "body-play/sha256:28b9ffc01c676964a824d0c6ff69fd94df319253b5ca7de179661036b73d473b",
+        "presentation_id": null,
+        "sign_id": "476082a6c2d349a7f08e0cb6427c4b68d4221357f0473b89854d7ba44389955e"
+      },
+      "step_id": "body.long-running"
+    },
+    {
+      "assertion": "body-lulled",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.lulled",
+          "assertion_rung": "lifecycle-action",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.lulled.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/12-body.lulled.json",
+          "sha256": "sha256:355561b6c42f8885cf77f63639349f6ab69a310b51802bcc52a37dbea7f9f2c1"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": "9214f2c5c2f4e7abaf53dda8f07d27e6c3dbc7b2b81aa1283dcf14c3df7ab608"
+      },
+      "step_id": "body.lulled"
+    },
+    {
+      "assertion": "body-fulfilled",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.fulfilled",
+          "assertion_rung": "fulfilled-transition",
+          "documentary_description": "hosted-open-weight-model-body producer receipt for body.fulfilled.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/13-body.fulfilled.json",
+          "sha256": "sha256:ab15ab9a8926f94c558607e2cd57cbb7ccbac80b5514de45ff48cfad43504433"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "host_id": null,
+        "line_id": null,
+        "manifestation_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "presentation_id": null,
+        "sign_id": "f7c46ad3fde073df05ffce70e5e8f38d335d2650a6567351c9e81da6eba520d9"
+      },
+      "step_id": "body.fulfilled"
+    }
+  ],
+  "track_id": "hosted-generative"
+}

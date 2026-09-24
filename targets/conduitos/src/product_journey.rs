@@ -141,6 +141,7 @@ pub struct JourneyProjection {
     pub fulfilled_sign_id: Option<SignId>,
     pub workload_revision: Option<u64>,
     pub workload_sign_id: Option<SignId>,
+    pub lull_sign_id: Option<SignId>,
     pub workload_capacity_available: bool,
     pub part_id: Option<PartId>,
     pub wake_id: Option<conduit_body::WakeId>,
@@ -424,6 +425,14 @@ impl ProductJourney {
             workload_sign_id: self.body.as_ref().and_then(|body| {
                 body.events.iter().rev().find_map(|event| match event {
                     conduit_body::BodyLifecycleEvent::FormAdmitted { sign_id, .. } => {
+                        Some(sign_id.clone())
+                    }
+                    _ => None,
+                })
+            }),
+            lull_sign_id: self.body.as_ref().and_then(|body| {
+                body.events.iter().rev().find_map(|event| match event {
+                    conduit_body::BodyLifecycleEvent::LullRetained { sign_id, .. } => {
                         Some(sign_id.clone())
                     }
                     _ => None,
