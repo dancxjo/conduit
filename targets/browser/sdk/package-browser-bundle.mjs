@@ -75,7 +75,7 @@ for (const file of release.files) {
 for (const name of ["browser-page.json", "browser-bundle-release.json"]) {
   await copyFile(path.join(bundleRoot, name), path.join(outputRoot, "bundle", name));
 }
-for (const name of ["package.json", "browser-sdk.mjs", "browser-sdk.d.ts", "README.md"]) {
+for (const name of ["package.json", "browser-sdk.mjs", "browser-sdk-forms.mjs", "browser-sdk.d.ts", "README.md"]) {
   await copyFile(path.join(ROOT, name), path.join(outputRoot, name));
 }
 await writeFile(path.join(outputRoot, "bundle", "browser-sdk-package.json"), JSON.stringify({

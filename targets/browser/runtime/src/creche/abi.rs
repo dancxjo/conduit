@@ -73,12 +73,58 @@ pub extern "C" fn conduit_creche_reviewed_inventory(source_length: usize) -> i32
         let result = core::str::from_utf8(&input[..source_length])
             .map_err(|_| "reviewed form inventory is not UTF-8".to_string())
             .and_then(super::initial_forms::reviewed_inventory);
+        let diagnostics = result.as_ref().err().map(|_| {
+            core::str::from_utf8(&input[..source_length])
+                .ok()
+                .map(conduit_form::parse_syntax_document)
+                .map(|syntax| {
+                    syntax
+                        .diagnostics
+                        .into_iter()
+                        .map(|diagnostic| {
+                            serde_json::json!({
+                                "code": diagnostic.code,
+                                "message": diagnostic.message,
+                                "span": {
+                                    "start": diagnostic.span.start,
+                                    "end": diagnostic.span.end,
+                                    "line": diagnostic.span.line,
+                                    "column": diagnostic.span.column,
+                                    "endLine": diagnostic.span.end_line,
+                                    "endColumn": diagnostic.span.end_column,
+                                },
+                            })
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default()
+        });
         input[..source_length].fill(0);
         match result {
             Ok(inventory) => write_output(&inventory)
                 .map(|()| STATUS_READY)
                 .unwrap_or(ERROR_OUTPUT),
-            Err(message) => refuse(message, ERROR_INVENTORY),
+            Err(message) => {
+                let diagnostics = diagnostics.unwrap_or_default();
+                let code = if diagnostics.is_empty() {
+                    "FormCheckRefused"
+                } else {
+                    "FormSyntaxInvalid"
+                };
+                if write_output(&serde_json::json!({
+                    "schema": "conduit.creche/form-check-refusal@1",
+                    "disposition": "refused",
+                    "code": code,
+                    "message": message,
+                    "diagnostics": diagnostics,
+                }))
+                .is_err()
+                {
+                    ERROR_OUTPUT
+                } else {
+                    ERROR_INVENTORY
+                }
+            }
         }
     })
 }
@@ -133,9 +179,20 @@ pub extern "C" fn conduit_creche_review_initial_workload(
         })();
         input[..total_length].fill(0);
         match result {
-            Ok(review) => write_output(&review)
-                .map(|()| STATUS_READY)
-                .unwrap_or(ERROR_OUTPUT),
+            Ok(review) => {
+                let receipt = serde_json::json!({
+                    "schema": "conduit.creche/form-workload-review@1",
+                    "review": &review.review,
+                    "requirements": {
+                        "kinds": &review.review.required_kinds,
+                        "resources": &review.required_resources,
+                        "capabilities": &review.required_capabilities,
+                    },
+                });
+                write_output(&receipt)
+                    .map(|()| STATUS_READY)
+                    .unwrap_or(ERROR_OUTPUT)
+            }
             Err(message) => refuse(message, ERROR_REVIEW),
         }
     })
@@ -451,4 +508,79 @@ pub(super) fn take_input(length: usize) -> Result<Vec<u8>, i32> {
         input[..length].fill(0);
         bytes
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn checked_source_refusal_projects_canonical_parser_span() {
+        let source = b"clock {";
+        INPUT.with(|input| input.borrow_mut()[..source.len()].copy_from_slice(source));
+        assert_eq!(
+            conduit_creche_reviewed_inventory(source.len()),
+            ERROR_INVENTORY
+        );
+        let bytes = OUTPUT.with(|output| {
+            let length = OUTPUT_LEN.with(|length| *length.borrow());
+            output.borrow()[..length].to_vec()
+        });
+        let refusal: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(refusal["schema"], "conduit.creche/form-check-refusal@1");
+        assert_eq!(refusal["code"], "FormSyntaxInvalid");
+        let span = &refusal["diagnostics"][0]["span"];
+        assert!(span["start"].as_u64().is_some());
+        assert_eq!(span["line"], 1);
+        assert_eq!(span["column"], 1);
+    }
+
+    #[test]
+    fn workload_review_exposes_requirements_without_mutating_the_durable_birth_receipt() {
+        let source = "form clock {\n    tick: time/every(1s)\n}";
+        let form = super::super::initial_forms::reviewed_inventory(source)
+            .unwrap()
+            .forms
+            .remove(0);
+        let selection = serde_json::to_vec(&[super::super::initial_forms::InitialFormSelection {
+            name: form.name,
+            source_document_id: form.source_document_id,
+            checked_form_id: form.checked_form_id,
+        }])
+        .unwrap();
+        let host = b"host/review";
+        let boot = b"boot/review";
+        let bytes = [
+            host.as_slice(),
+            boot.as_slice(),
+            selection.as_slice(),
+            source.as_bytes(),
+        ]
+        .concat();
+        INPUT.with(|input| input.borrow_mut()[..bytes.len()].copy_from_slice(&bytes));
+        assert_eq!(
+            conduit_creche_review_initial_workload(
+                host.len(),
+                boot.len(),
+                selection.len(),
+                source.len(),
+            ),
+            STATUS_READY
+        );
+        let response = OUTPUT.with(|output| {
+            let length = OUTPUT_LEN.with(|length| *length.borrow());
+            serde_json::from_slice::<serde_json::Value>(&output.borrow()[..length]).unwrap()
+        });
+        assert_eq!(response["schema"], "conduit.creche/form-workload-review@1");
+        assert_eq!(
+            response["requirements"]["kinds"][0],
+            conduit_time::TIME_EVERY_KIND
+        );
+        assert!(response["requirements"]["resources"].is_array());
+        assert!(response["requirements"]["capabilities"].is_array());
+        assert_eq!(response["review"]["body_plan_created"], false);
+        assert_eq!(response["review"]["authority_acquired"], false);
+        assert!(response["review"].get("required_resources").is_none());
+        assert!(response["review"].get("required_capabilities").is_none());
+    }
 }

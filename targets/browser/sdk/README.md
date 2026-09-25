@@ -20,6 +20,79 @@ console.log(host.packageVersion, host.runtimeAbi); // diagnostics; these grant n
 const snapshot = await host.refresh(); // current offers come from a new Boot observation
 ```
 
+## Source, checked meaning, and Body work
+
+Conduit keeps authorship separate from realization. A Form says what a
+computation means; a Host says which implementations it currently offers; a
+Plan can later choose exact realizations. Source text is therefore not a graph
+of browser callbacks, and checking source does not silently acquire resources,
+ask for permissions, or promise that a Plan can run.
+
+The browser SDK sends ordinary Conduitese text to the checked Rust runtime.
+JavaScript retains the exact text as a source value; it does not tokenize,
+parse, normalize, or infer a second language. Rust returns the canonical source
+document identity, each checked Form identity, and the Kind requirements it
+derived. These are different facts: changing whitespace can change the source
+identity while preserving a checked Form identity, and neither identity is a
+Plan or a running Play.
+
+```js
+const clock = host.form(`
+clock {
+  every: time/every(1s)
+  tick: presentation/tick
+  every >> tick
+}.
+`);
+
+const checked = await clock.check();
+if (!checked.ok) {
+  for (const diagnostic of checked.diagnostics) {
+    console.error(diagnostic.code, diagnostic.message, diagnostic.span);
+  }
+} else {
+  console.log(checked.sourceDocumentId, checked.forms[0].checkedFormId);
+  console.log(checked.requirements.kinds);
+
+  // Rust reviews exact requirements without creating a Plan or acquiring them.
+  const review = await host.review(checked.forms);
+  console.log(review.requirements.resources, review.requirements.capabilities);
+  console.log(review.bodyPlanCreated, review.resourcesAcquired); // false, false
+
+  const body = await host.birth({ name: "Clock", forms: checked.forms });
+  await body.install(clock);
+  await body.remove(checked.forms[0]);
+}
+```
+
+`check()` is a semantic boundary, not a promise of execution. A successful
+result means the canonical checker accepted the source against its checked
+Kind vocabulary. The `kinds` list is useful before planning; `resources` and
+`capabilities` are `null` at source-check time because their exact requirements
+depend on expanded meaning and a proposed realization. `host.review()` asks
+Rust to expand the selected workload against this exact Host's current offers.
+It returns per-Host resource and capability requirements but creates no Body
+Plan, acquires no resource, and obtains no authority. The SDK does not
+substitute an empty list for information the checker has not established. Parser diagnostics
+carry the canonical UTF-8 byte range and one-based line and column when the
+grammar provides them. Other refusals remain structured with a stable code and
+message; the SDK never scrapes prose to recover an error category.
+
+`birth()` requires checked Forms and sends the exact source, source identity,
+and checked Form identities to Rust. Rust admits the source interaction,
+validates initial membership and the bounded workload, and returns the Body
+receipt. The Body begins lulled: birth does not imply a plan, selected
+implementation, permission, or active Play. `install()` and `remove()` operate
+on that Body's workload. Each operation reads the current authoritative
+workload revision and submits it as the expected revision; a stale update is a
+typed refusal with the runtime evidence and revision that was used. Form
+identity and workload revision are not browser-side mutable state.
+
+Forms intentionally contain no DOM selector, browser API, implementation ID,
+permission decision, or resource handle. Those belong to later Host and Plan
+decisions. This is what lets one checked meaning remain portable without
+pretending each Host can realize it.
+
 For a no-bundler static page, serve the complete package directory from the
 same origin and import `browser-sdk.mjs` directly:
 
@@ -82,8 +155,8 @@ entries with `bundle/browser-bundle-release.json`; then inspect
 `browser-page.json` for the reviewed distribution ABI and module graph. The
 loader repeats these identity and closure checks at runtime.
 
-The BrowserHost surface in this package is a read-only identity and current-offer
-projection. Each refresh returns a snapshot correlated to its exact Host and
-Boot; it cannot rewrite a Body identity. Typed refusal classes retain machine
-category, operation, and runtime evidence. Forms, Body lifecycle operations,
-typed events, effects, and recovery build on this same admitted Host and Boot.
+The BrowserHost surface carries exact Host and Boot identity, while its current
+offers remain a refreshed projection of Boot evidence. Forms and Body workload
+operations use that same admitted Browser runtime. Typed refusal classes retain
+machine category, operation, and runtime evidence. Typed events, full Play
+lifecycle, effects, and recovery are layered on the same Host and Body contracts.
