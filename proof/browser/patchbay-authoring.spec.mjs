@@ -127,7 +127,7 @@ test("actual browser entrance authors, saves, plans, and plays one canonical For
     const saved = await readFile(server.source, "utf8");
     expect(saved).toContain('literal: text/literal("Browser-authored truth")');
     expect(saved).not.toContain("literal-2:");
-    expect(saved).toContain("literal.text > text.text");
+    expect(saved).toContain("literal.text >> text.text");
 
     await page.getByRole("button", { name: "Inspect", exact: true }).click();
     await expect(page.locator("body")).toHaveAttribute("data-inspector-open", "false");
