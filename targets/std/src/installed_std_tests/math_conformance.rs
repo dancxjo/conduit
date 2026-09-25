@@ -444,7 +444,7 @@ form quantity_composition {{
  map: {name}
  wrap: structured-info/wrap-quantity
  show: presentation/structured-info
- source.value > input.in
+ source.value >> input.in
  input.out >> map.control
  map.{output} >> wrap.in
  wrap.out >> show.input
