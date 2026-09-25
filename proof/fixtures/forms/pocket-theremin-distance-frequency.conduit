@@ -1,3 +1,4 @@
+# Canonical semantic control path only; audio realization is deliberately outside this Form.
 form pocket-theremin-distance-frequency (
     >> distance: Distance
     frequency: $Frequency >>
