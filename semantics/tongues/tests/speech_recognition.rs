@@ -178,14 +178,14 @@ fn clip_recognition_is_separate_from_the_accepted_single_frame_contract() {
 fn ordinary_form_consumes_pcm_and_emits_only_committed_chat_messages_as_flows() {
     let source = r#"
 form live-recognized-turn (
-    audio: PcmFrames...| > message: ChatMessage...|
+    audio: PcmFrames...| >> message: ChatMessage...|
 ) {
     recognize: speech/recognize-stream
     commit: speech/commit-recognized-turn
 
     audio >> recognize.audio
     recognize.events >> commit.events
-    commit.message > message
+    commit.message >> message
 }
 "#;
     let mut startup = StartupCatalog::new();
