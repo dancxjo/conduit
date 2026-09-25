@@ -53,7 +53,7 @@ fn quantity_range_map_lowers_with_production_map_quantity_contract_and_exact_uni
     let parsed = parse_syntax_document(source);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let checked = check_syntax_document(&parsed, &startup).unwrap();
-    let authored = expand_canonical_form_for_authoring(&checked, "quantity-range-map", &profile).unwrap();
+    let authored =\n        expand_canonical_form_for_authoring(&checked, "quantity-range-map", &profile).unwrap();
     let map = authored
         .expanded
         .gears
@@ -94,7 +94,7 @@ fn production_quantity_map_refuses_invalid_enum_fields() {
     let parsed = parse_syntax_document(&wrong_unit);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let checked = check_syntax_document(&parsed, &startup).unwrap();
-    let error = expand_canonical_form_for_authoring(&checked, "quantity-range-map", &profile).unwrap_err();
+    let error =\n        expand_canonical_form_for_authoring(&checked, "quantity-range-map", &profile).unwrap_err();
     assert_eq!(error.code, "CND-FRM-040");
     assert!(error.message.contains("unit"));
 }
@@ -107,7 +107,7 @@ fn target_maximum_value_is_not_semantically_bounded_by_current_quantity_map_cont
     let parsed = parse_syntax_document(&source);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let checked = check_syntax_document(&parsed, &startup).unwrap();
-    let authored = expand_canonical_form_for_authoring(&checked, "quantity-range-map", &profile).unwrap();
+    let authored =\n        expand_canonical_form_for_authoring(&checked, "quantity-range-map", &profile).unwrap();
     let map = authored
         .expanded
         .gears
@@ -133,7 +133,7 @@ fn target_maximum_should_refuse_after_quantity_map_range_enforcement() {
     let parsed = parse_syntax_document(&source);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let checked = check_syntax_document(&parsed, &startup).unwrap();
-    let error = expand_canonical_form_for_authoring(&checked, "quantity-range-map", &profile).unwrap_err();
+    let error =\n        expand_canonical_form_for_authoring(&checked, "quantity-range-map", &profile).unwrap_err();
     assert_eq!(error.code, "CND-FRM-040");
     assert!(error.message.contains("target-maximum"));
 }
@@ -152,7 +152,7 @@ fn canonical_distance_frequency_surface_holes_are_reported_without_private_catal
     let parsed = parse_syntax_document(keep_surface);
     assert_eq!(parsed.diagnostics.len(), 1);
     assert_eq!(parsed.diagnostics[0].code, "CND-FRM-019");
-    assert!(parsed.diagnostics[0].message.contains("keep Frequency(440Hz) for this play"));
+    assert!(parsed.diagnostics[0]\n        .message\n        .contains("keep Frequency(440Hz) for this play"));
 }
 
 #[test]
