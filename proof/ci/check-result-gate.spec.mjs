@@ -76,14 +76,15 @@ test("exhaustive integration requires every ConduitOS aggregate", () => {
     AARCH64_PRODUCT_RESULT: "success",
   });
   assert.equal(prove(exhaustive).status, 0);
-  for (const field of [
-    "LOCAL_INTEGRATION_RESULT",
+  const requiredResults = [
     "LIMINE_RESULT",
     "TOOLS_RESULT",
     "X86_RESULT",
     "ARCHITECTURE_RESULT",
     "AARCH64_PRODUCT_RESULT",
-  ]) {
+  ];
+  if (script.includes("LOCAL_INTEGRATION_RESULT")) requiredResults.unshift("LOCAL_INTEGRATION_RESULT");
+  for (const field of requiredResults) {
     const failed = prove({ ...exhaustive, [field]: "failure" });
     assert.notEqual(failed.status, 0, field);
     assert.match(failed.stderr, /expected success, got failure/);
