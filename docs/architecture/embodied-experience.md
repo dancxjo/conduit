@@ -197,13 +197,13 @@ composition can be written today in the style of the existing
 ```conduit
 # Existing syntax and existing semantic family.
 form vision-observe (
-    > image: ImageObservationReference
+    >> image: ImageObservationReference
     detections: VisionDetectionsFour >
 ) {
     detect: vision/deterministic-detector
 
-    image > detect.image
-    detect.detections > detections
+    image >> detect.image
+    detect.detections >> detections
 }
 ```
 
@@ -225,7 +225,7 @@ that must be reviewed and implemented before this exact source can compile.
 ```conduit
 # PROPOSED SOURCE: illustrates the intended composition, not current support.
 form vision (
-    > frames: ImageObservationReference...
+    >> frames: ImageObservationReference...
     experience: VisualExperience... >
 ) {
     ingress: flow/coalesce-latest(maximum-pending-items = 1)
@@ -245,28 +245,28 @@ form vision (
 
     experience: experience/visual(maximum-observations = 32)
 
-    frames > ingress.in
-    ingress.out > normalize.image
-    normalize.image > fanout.in
+    frames >> ingress.in
+    ingress.out >> normalize.image
+    normalize.image >> fanout.in
 
-    fanout.left > change.image
-    fanout.right > objects.image
-    normalize.image > text.image
+    fanout.left >> change.image
+    fanout.right >> objects.image
+    normalize.image >> text.image
 
-    objects.detections > tracks.detections
+    objects.detections >> tracks.detections
 
-    normalize.image > describe.image
-    objects.detections > describe.observations
-    text.observations > describe.observations
-    tracks.tracks > describe.observations
+    normalize.image >> describe.image
+    objects.detections >> describe.observations
+    text.observations >> describe.observations
+    tracks.tracks >> describe.observations
 
-    change.observations > experience.observations
-    objects.detections > experience.observations
-    text.observations > experience.observations
-    tracks.tracks > experience.observations
-    describe.impression > experience.observations
+    change.observations >> experience.observations
+    objects.detections >> experience.observations
+    text.observations >> experience.observations
+    tracks.tracks >> experience.observations
+    describe.impression >> experience.observations
 
-    experience.experience > experience
+    experience.experience >> experience
 }
 ```
 
@@ -644,11 +644,11 @@ candidates, not current checked syntax beyond the ordinary form/port/cord shape.
 ```conduit
 # PROPOSED SOURCE.
 form experiencer (
-    > visual: VisualExperience...
-    > heard: AuditoryExperience...
-    > location: LocationExperience...
-    > self: BodyExperience...
-    > memory: RecollectedExperience...
+    >> visual: VisualExperience...
+    >> heard: AuditoryExperience...
+    >> location: LocationExperience...
+    >> self: BodyExperience...
+    >> memory: RecollectedExperience...
     current: CurrentExperience >
 ) {
     relate: experience/current(
@@ -658,13 +658,13 @@ form experiencer (
         maximum-output-bytes = 8192
     )
 
-    visual > relate.observations
-    heard > relate.observations
-    location > relate.observations
-    self > relate.observations
-    memory > relate.memory
+    visual >> relate.observations
+    heard >> relate.observations
+    location >> relate.observations
+    self >> relate.observations
+    memory >> relate.memory
 
-    relate.current > current
+    relate.current >> current
 }
 ```
 
@@ -1021,12 +1021,12 @@ A deterministic purpose evaluation might look conceptually like:
 ```conduit
 # PROPOSED SOURCE.
 form fulfillment-readiness (
-    > purpose: PurposeState
+    >> purpose: PurposeState
     readiness: FulfillmentReadiness >
 ) {
     evaluate: purpose/fulfillment-readiness
-    purpose > evaluate.purpose
-    evaluate.readiness > readiness
+    purpose >> evaluate.purpose
+    evaluate.readiness >> readiness
 }
 ```
 

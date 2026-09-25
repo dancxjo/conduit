@@ -266,13 +266,13 @@ fn duplicate_connect_and_remove_are_atomic_canonical_form_edits() {
         .connect_ports(3, &graph.expanded_form_id, &output, &input)
         .unwrap();
     let view = editor.view();
-    assert!(view.source.contains("literal.text > upper.text"));
+    assert!(view.source.contains("literal.text >> upper.text"));
     let graph = PatchbayGraph::from_expanded(&editor.expand_form("compose").unwrap()).unwrap();
     assert_eq!(graph.cords.len(), 1);
     editor
         .remove_cord(4, &graph.expanded_form_id, &graph.cords[0].identity)
         .unwrap();
-    assert!(!editor.view().source.contains("literal.text > upper.text"));
+    assert!(!editor.view().source.contains("literal.text >> upper.text"));
 
     let graph = PatchbayGraph::from_expanded(&editor.expand_form("compose").unwrap()).unwrap();
     let output = graph
@@ -294,13 +294,16 @@ fn duplicate_connect_and_remove_are_atomic_canonical_form_edits() {
     editor
         .connect_ports(5, &graph.expanded_form_id, &output, &input)
         .unwrap();
-    assert!(editor.view().source.contains("literal-2.text > upper.text"));
+    assert!(editor
+        .view()
+        .source
+        .contains("literal-2.text >> upper.text"));
 
     editor.remove_gear(6, "upper").unwrap();
     let view = editor.view();
     assert!(!view.source.contains("upper:"));
-    assert!(!view.source.contains("literal.text > upper.text"));
-    assert!(!view.source.contains("literal-2.text > upper.text"));
+    assert!(!view.source.contains("literal.text >> upper.text"));
+    assert!(!view.source.contains("literal-2.text >> upper.text"));
     assert!(view.source.contains("literal-2: text/literal(\"hello\")"));
     assert_eq!(
         PatchbayGraph::from_expanded(&editor.expand_form("compose").unwrap())
@@ -341,7 +344,7 @@ fn incompatible_duplicate_and_stale_composition_edits_preserve_source() {
 fn reroute_either_cord_endpoint_changes_identities_and_can_be_reversed() {
     let mut editor = FormEditor::from_source(
         PathBuf::from("reroute.conduit"),
-        "form reroute {\n    literal: text/literal(\"hello\")\n    literal-2: text/literal(\"again\")\n    upper: text/upper\n    upper-2: text/upper\n    count: state/count(0)\n    literal.text > upper.text\n}\n".into(),
+        "form reroute {\n    literal: text/literal(\"hello\")\n    literal-2: text/literal(\"again\")\n    upper: text/upper\n    upper-2: text/upper\n    count: state/count(0)\n    literal.text >> upper.text\n}\n".into(),
     )
     .unwrap();
     let original = PatchbayGraph::from_expanded(&editor.expand_form("reroute").unwrap()).unwrap();
@@ -385,7 +388,10 @@ fn reroute_either_cord_endpoint_changes_identities_and_can_be_reversed() {
             &second_sink,
         )
         .unwrap();
-    assert!(editor.view().source.contains("literal.text > upper-2.text"));
+    assert!(editor
+        .view()
+        .source
+        .contains("literal.text >> upper-2.text"));
     let rerouted = PatchbayGraph::from_expanded(&editor.expand_form("reroute").unwrap()).unwrap();
     assert_ne!(
         original_ids,
@@ -422,7 +428,7 @@ fn reroute_either_cord_endpoint_changes_identities_and_can_be_reversed() {
     assert!(editor
         .view()
         .source
-        .contains("literal-2.text > upper-2.text"));
+        .contains("literal-2.text >> upper-2.text"));
     let source_rerouted =
         PatchbayGraph::from_expanded(&editor.expand_form("reroute").unwrap()).unwrap();
     editor
@@ -433,7 +439,10 @@ fn reroute_either_cord_endpoint_changes_identities_and_can_be_reversed() {
             &original_sink,
         )
         .unwrap();
-    assert!(editor.view().source.contains("literal-2.text > upper.text"));
+    assert!(editor
+        .view()
+        .source
+        .contains("literal-2.text >> upper.text"));
     let sink_reversed =
         PatchbayGraph::from_expanded(&editor.expand_form("reroute").unwrap()).unwrap();
     let original_source = sink_reversed
@@ -452,5 +461,5 @@ fn reroute_either_cord_endpoint_changes_identities_and_can_be_reversed() {
             &original_source,
         )
         .unwrap();
-    assert!(editor.view().source.contains("literal.text > upper.text"));
+    assert!(editor.view().source.contains("literal.text >> upper.text"));
 }

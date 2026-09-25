@@ -8,19 +8,19 @@ form pocket-theremin {
     manifest: presentation/quantity
     tone: sound/pitch-tone
 
-    controller.pointer > project(PointerEvent.position) > project(Point2.x) > normalize.in
-    normalize.out > pitch.control
-    pitch.quantity > inspect.in
-    pitch.quantity > tone.pitch
-    inspect.out > manifest.input
+    controller.pointer >> project(PointerEvent.position) >> project(Point2.x) >> normalize.in
+    normalize.out >> pitch.control
+    pitch.quantity >> inspect.in
+    pitch.quantity >> tone.pitch
+    inspect.out >> manifest.input
 }
 
 # Reusable typed pitch mapping; other controllers can supply the same normalized
 # scalar without importing pointer or presentation meaning.
 form quantity-range-map (
-    control: Scalar > quantity: Quantity
+    control: Scalar >> quantity: Quantity
 ) {
     map: math/map-quantity(source-minimum = 0, source-maximum = 1000000, target-minimum = 20, target-maximum = 20000, target-granularity = 1, unit = "Hz", range-policy = "clamp", quantization = "nearest")
-    control > map.in
-    map.out > quantity
+    control >> map.in
+    map.out >> quantity
 }

@@ -358,7 +358,7 @@ mod tests {
     fn cord_waypoint_round_trip_is_bounded_presentation_only() {
         let editor = FormEditor::from_source(
             PathBuf::from("route.conduit"),
-            "form route {\n    literal: text/literal(\"hello\")\n    upper: text/upper\n    literal.text > upper.text\n}\n".into(),
+            "form route {\n    literal: text/literal(\"hello\")\n    upper: text/upper\n    literal.text >> upper.text\n}\n".into(),
         )
         .unwrap();
         let graph = PatchbayGraph::from_expanded(&editor.expand_form("route").unwrap()).unwrap();

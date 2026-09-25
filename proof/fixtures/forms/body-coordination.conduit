@@ -4,6 +4,6 @@ form body-coordination {
     reply: text/literal("received issue 1633; evidence acknowledged")
     receive-reply: presentation/text
 
-    message.text > receive-message.text
-    reply.text > receive-reply.text
+    message.text >> receive-message.text
+    reply.text >> receive-reply.text
 }

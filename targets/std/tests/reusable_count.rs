@@ -50,7 +50,7 @@ fn reusable_count_runs_through_two_nested_levels_in_one_kernel_play() {
         .checked_form_id
         .clone();
     let proof_source = format!(
-        "{COUNT_SOURCE}\nform nested-count (\n    bump: Tick...| > value: $Count\n) {{\n    counter: count(7)\n    bump > counter.bump\n    counter.value > value\n}}\n\nform count-nesting-driver {{\n    clock: time/every(1s)\n    nested: nested-count\n    show: presentation/count\n    clock > nested > show\n}}\n"
+        "{COUNT_SOURCE}\nform nested-count (\n    bump: Tick...| >> value: $Count\n) {{\n    counter: count(7)\n    bump >> counter.bump\n    counter.value >> value\n}}\n\nform count-nesting-driver {{\n    clock: time/every(1s)\n    nested: nested-count\n    show: presentation/count\n    clock >> nested >> show\n}}\n"
     );
     let checked = check_syntax_document(&parse_syntax_document(&proof_source), &startup).unwrap();
     assert_eq!(

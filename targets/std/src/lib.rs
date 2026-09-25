@@ -1985,7 +1985,7 @@ mod tests {
             offer_generation: OfferGeneration(1),
         });
         let form = parse_with_startup(
-            "form virtual {\n pulse: flow/pulse(count = 3, period-ms = 7, initial = false)\n show: presentation/show\n pulse > show\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
+            "form virtual {\n pulse: flow/pulse(count = 3, period-ms = 7, initial = false)\n show: presentation/show\n pulse >> show\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
         .expect("virtual-clock form parses");
         let plan = host.plan_local(&form, None).expect("local plan resolves");
         let fragment = plan.fragments[0].clone();
@@ -2135,7 +2135,7 @@ mod tests {
             offer_generation: OfferGeneration(1),
         });
         let form = parse_with_startup(
-            "form wider {\n first: flow/pulse(count = 1)\n second: flow/pulse(count = 1)\n left: presentation/show\n right: presentation/show\n first > left\n second > right\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
+            "form wider {\n first: flow/pulse(count = 1)\n second: flow/pulse(count = 1)\n left: presentation/show\n right: presentation/show\n first >> left\n second >> right\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
         .expect("unsupported wider form remains semantically valid");
         let plan = host
             .plan_local(&form, None)

@@ -122,14 +122,14 @@ fn expanded() -> conduit_form::ExpandedCanonicalForm {
     let (startup, profile, high) = catalogs();
     let user = check_syntax_document(
         &parse_syntax_document(&format!(
-            "form distributed {{\n source: {SOURCE}\n generate: {HIGH}\n sink: {SINK}\n source > generate > sink\n}}\n"
+            "form distributed {{\n source: {SOURCE}\n generate: {HIGH}\n sink: {SINK}\n source >> generate >> sink\n}}\n"
         )),
         &startup,
     )
     .unwrap();
     let back = check_syntax_document(
         &parse_syntax_document(&format!(
-            "form {HIGH} (\n in: {} > out: {}\n) {{\n request: {REQUEST}\n encode: {ENCODE}\n http: {HTTP}\n decode: {DECODE}\n result: {RESULT}\n in > request > encode > http > decode > result > out\n}}\n",
+            "form {HIGH} (\n in: {} >> out: {}\n) {{\n request: {REQUEST}\n encode: {ENCODE}\n http: {HTTP}\n decode: {DECODE}\n result: {RESULT}\n in >> request >> encode >> http >> decode >> result >> out\n}}\n",
             VALUES[0], VALUES[5]
         )),
         &startup,
@@ -144,7 +144,7 @@ fn direct_expanded() -> conduit_form::ExpandedCanonicalForm {
     let (startup, profile, _) = catalogs();
     let user = check_syntax_document(
         &parse_syntax_document(&format!(
-            "form distributed {{\n source: {SOURCE}\n generate: {HIGH}\n sink: {SINK}\n source > generate > sink\n}}\n"
+            "form distributed {{\n source: {SOURCE}\n generate: {HIGH}\n sink: {SINK}\n source >> generate >> sink\n}}\n"
         )),
         &startup,
     )
@@ -311,14 +311,14 @@ fn ordinary_selection_prefers_direct_and_falls_back_to_the_exact_recursive_back(
     let (startup, profile, high) = catalogs();
     let user = check_syntax_document(
         &parse_syntax_document(&format!(
-            "form distributed {{\n source: {SOURCE}\n generate: {HIGH}\n sink: {SINK}\n source > generate > sink\n}}\n"
+            "form distributed {{\n source: {SOURCE}\n generate: {HIGH}\n sink: {SINK}\n source >> generate >> sink\n}}\n"
         )),
         &startup,
     )
     .unwrap();
     let back = check_syntax_document(
         &parse_syntax_document(&format!(
-            "form {HIGH} (\n in: {} > out: {}\n) {{\n request: {REQUEST}\n encode: {ENCODE}\n http: {HTTP}\n decode: {DECODE}\n result: {RESULT}\n in > request > encode > http > decode > result > out\n}}\n",
+            "form {HIGH} (\n in: {} >> out: {}\n) {{\n request: {REQUEST}\n encode: {ENCODE}\n http: {HTTP}\n decode: {DECODE}\n result: {RESULT}\n in >> request >> encode >> http >> decode >> result >> out\n}}\n",
             VALUES[0], VALUES[5]
         )),
         &startup,

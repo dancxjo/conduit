@@ -110,7 +110,7 @@ fn fixture(
         })
         .unwrap();
     let form = conduit_form::parse_with_startup(
-        "form retained {\n source: conduit-test/structured-source\n cell: state/value(initial = true)\n sink: conduit-test/structured-sink\n source.output > cell.next\n cell.current > sink.input\n}\n", &startup, &profile,
+        "form retained {\n source: conduit-test/structured-source\n cell: state/value(initial = true)\n sink: conduit-test/structured-sink\n source.output >> cell.next\n cell.current >> sink.input\n}\n", &startup, &profile,
     ).unwrap();
     let mut advertisement = host("typed-state-host").advertisement().clone();
     advertisement.capabilities.extend([

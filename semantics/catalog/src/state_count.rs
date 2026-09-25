@@ -206,7 +206,7 @@ mod tests {
         conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
         crate::install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
         install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
-        let source = "form count (\n    start: Count = 0\n    bump: Tick... > value: $Count\n) {\n    gear: state/count(start)\n    bump > gear.bump\n    gear.value > value\n}\nform main {\n    clock: time/every(1s)\n    count: count\n    show: presentation/count\n    clock > count > show\n}\n";
+        let source = "form count (\n    start: Count = 0\n    bump: Tick... >> value: $Count\n) {\n    gear: state/count(start)\n    bump >> gear.bump\n    gear.value >> value\n}\nform main {\n    clock: time/every(1s)\n    count: count\n    show: presentation/count\n    clock >> count >> show\n}\n";
         let syntax = conduit_form::parse_syntax_document(source);
         let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
         let expanded = conduit_form::expand_canonical_form(&checked, "main", &profile).unwrap();

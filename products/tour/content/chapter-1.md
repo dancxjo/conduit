@@ -23,7 +23,7 @@ form meet-one-gear {
     change: text/upper
     result: presentation/text
 
-    words > change > result
+    words >> change >> result
 }
 ```
 
@@ -39,7 +39,7 @@ form edit-one-gear {
     change: text/upper
     result: presentation/text
 
-    words > change > result
+    words >> change >> result
 }
 ```
 
@@ -55,8 +55,8 @@ form branch-a-cord {
     morse: text/morse(80)
     light: presentation/indicator
 
-    source > loud > show
-    source > morse > light
+    source >> loud >> show
+    source >> morse >> light
 }
 ```
 

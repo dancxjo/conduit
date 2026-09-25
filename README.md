@@ -11,7 +11,7 @@ form hello {
     upper: text/upper
     show: presentation/text
 
-    "Hello, world." > upper > show
+    "Hello, world." >> upper >> show
 }
 ```
 
@@ -203,7 +203,7 @@ form loud {
     upper: text/upper
     show: presentation/text
 
-    "Hello." > upper > show
+    "Hello." >> upper >> show
 }
 ```
 

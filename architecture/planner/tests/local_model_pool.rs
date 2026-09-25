@@ -34,7 +34,7 @@ form model-worker (
     maximum-context-tokens: Count = 4096
     maximum-output-tokens: Count = 512
     temperature-milli: Count = 0
-    prompt: Text > text: Text
+    prompt: Text >> text: Text
 ) {
 }
 

@@ -1,6 +1,6 @@
 use super::*;
 
-const FORM: &str = "form typed_gate {\n script: conduit-test/gate-script\n latest: state/latest\n split: flow/tee\n gate: flow/gate(maximum-enable-updates = 3)\n gated: conduit-test/scalar-sink(expected = 1)\n slow: conduit-test/slow-scalar-sink\n script.scalar > latest.in\n latest.out > split.in\n split.left > gate.in\n script.enable > gate.enable\n gate.out > gated.in\n split.right > slow.in\n}\n";
+const FORM: &str = "form typed_gate {\n script: conduit-test/gate-script\n latest: state/latest\n split: flow/tee\n gate: flow/gate(maximum-enable-updates = 3)\n gated: conduit-test/scalar-sink(expected = 1)\n slow: conduit-test/slow-scalar-sink\n script.scalar >> latest.in\n latest.out >> split.in\n split.left >> gate.in\n script.enable >> gate.enable\n gate.out >> gated.in\n split.right >> slow.in\n}\n";
 
 #[test]
 fn latest_tee_and_gate_run_together_with_closed_open_closed_and_uneven_pressure() {

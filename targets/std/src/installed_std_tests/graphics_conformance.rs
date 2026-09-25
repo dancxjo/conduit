@@ -32,12 +32,12 @@ const FORM: &str = r#"form canonical_gear_front {
  text: graphics/text(text = "ready")
  glyph: graphics/icon(icon = "presentation")
  sink: presentation/graphics
- icon.presented > frame.content
- frame.presented > badge.content
- badge.presented > rect.input
- rect.scene > text.input
- text.scene > glyph.input
- glyph.scene > sink.scene
+ icon.presented >> frame.content
+ frame.presented >> badge.content
+ badge.presented >> rect.input
+ rect.scene >> text.input
+ text.scene >> glyph.input
+ glyph.scene >> sink.scene
 }
 "#;
 

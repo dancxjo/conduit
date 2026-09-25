@@ -1,67 +1,67 @@
 # Reusable count-bounded measurement retention. The full policy is semantic and
 # explicit; no renderer or acquisition mechanism owns this state.
 form measurement-window (
-    > profile: MeasurementWindowProfile
-    measurement: MeasurementSample...| > window: MeasurementWindow
+    >> profile: MeasurementWindowProfile
+    measurement: MeasurementSample...| >> window: MeasurementWindow
 ) {
     retain: data/measurement-count-window
-    profile > retain.profile
-    measurement > retain.measurement
-    retain.window > window
+    profile >> retain.profile
+    measurement >> retain.measurement
+    retain.window >> window
 }
 
 form measurement-summary (
-    window: MeasurementWindow > summary: MeasurementSummary
+    window: MeasurementWindow >> summary: MeasurementSummary
 ) {
     summarize: data/measurement-summary
-    window > summarize.window
-    summarize.summary > summary
+    window >> summarize.window
+    summarize.summary >> summary
 }
 
 form measurement-threshold (
-    > profile: MeasurementHysteresisProfile
-    > summary: MeasurementSummary
-    decision: MeasurementThresholdDecision >
+    >> profile: MeasurementHysteresisProfile
+    >> summary: MeasurementSummary
+    decision: MeasurementThresholdDecision >>
 ) {
     threshold: data/measurement-hysteresis
-    profile > threshold.profile
-    summary > threshold.summary
-    threshold.decision > decision
+    profile >> threshold.profile
+    summary >> threshold.summary
+    threshold.decision >> decision
 }
 
 form measurement-plot (
-    window: MeasurementWindow > series: MeasurementPlotSeries
+    window: MeasurementWindow >> series: MeasurementPlotSeries
 ) {
     project: data/measurement-plot(points = 8, when-full = "evenly-spaced")
-    window > project.window
-    project.series > series
+    window >> project.window
+    project.series >> series
 }
 
 # The processing waist accepts any compatible exact typed measurement flow.
 form little-seismograph-processing (
-    > profile: MeasurementWindowProfile
-    > measurement: MeasurementSample...|
-    > threshold-profile: MeasurementHysteresisProfile
-    window: MeasurementWindow >
-    summary: MeasurementSummary >
-    decision: MeasurementThresholdDecision >
-    series: MeasurementPlotSeries >
+    >> profile: MeasurementWindowProfile
+    >> measurement: MeasurementSample...|
+    >> threshold-profile: MeasurementHysteresisProfile
+    window: MeasurementWindow >>
+    summary: MeasurementSummary >>
+    decision: MeasurementThresholdDecision >>
+    series: MeasurementPlotSeries >>
 ) {
     samples: measurement-window
     summarize: measurement-summary
     decide: measurement-threshold
     plot: measurement-plot
 
-    profile > samples.profile
-    measurement > samples.measurement
-    samples.window > window
-    samples.window > summarize.window
-    samples.window > plot.window
-    summarize.summary > summary
-    summarize.summary > decide.summary
-    threshold-profile > decide.profile
-    decide.decision > decision
-    plot.series > series
+    profile >> samples.profile
+    measurement >> samples.measurement
+    samples.window >> window
+    samples.window >> summarize.window
+    samples.window >> plot.window
+    summarize.summary >> summary
+    summarize.summary >> decide.summary
+    threshold-profile >> decide.profile
+    decide.decision >> decision
+    plot.series >> series
 }
 
 # Deterministic proving composition. Acquisition remains a replaceable source;
@@ -74,9 +74,9 @@ form little-seismograph-display {
     plot: presentation/measurement-plot
     threshold: presentation/measurement-threshold
 
-    source.profile > processing.profile
-    source.measurement > processing.measurement
-    source.threshold-profile > processing.threshold-profile
-    processing.series > plot.series
-    processing.decision > threshold.decision
+    source.profile >> processing.profile
+    source.measurement >> processing.measurement
+    source.threshold-profile >> processing.threshold-profile
+    processing.series >> plot.series
+    processing.decision >> threshold.decision
 }

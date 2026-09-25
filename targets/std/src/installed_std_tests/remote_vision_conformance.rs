@@ -70,7 +70,7 @@ fn image_crosses_an_exact_line_into_the_production_vision_back() {
         crate::kernel_preparation::KernelResourceLedger::new(&vision_host.advertisement).unwrap();
 
     let source = format!(
-        "form remote-vision {{\n source: conduit-test/vision-remote-source(value = \"{}\")\n motion: vision/local-motion\n sink: conduit-test/local-model-result\n source.image > motion.image\n motion.motions > sink.value\n}}\n",
+        "form remote-vision {{\n source: conduit-test/vision-remote-source(value = \"{}\")\n motion: vision/local-motion\n sink: conduit-test/local-model-result\n source.image >> motion.image\n motion.motions >> sink.value\n}}\n",
         hex(&encoded)
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();

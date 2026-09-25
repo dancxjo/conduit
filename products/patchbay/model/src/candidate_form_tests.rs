@@ -14,7 +14,7 @@ use conduit_semantic_catalog::install_vision_catalogs;
 
 const INTENT: &str =
     "Watch this camera, recognize birds, count them by species, and show a dashboard.";
-const SOURCE: &str = "form bird-observations {\n    camera: vision/deterministic-image\n    recognize: vision/deterministic-detector\n    camera.image > recognize.image\n}\n";
+const SOURCE: &str = "form bird-observations {\n    camera: vision/deterministic-image\n    recognize: vision/deterministic-detector\n    camera.image >> recognize.image\n}\n";
 
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
@@ -116,7 +116,7 @@ fn malformed_invented_kind_and_invented_port_refuse_with_exact_diagnostics() {
             "no startup signature is available for 'vision/magical-bird-counter'",
         ),
         (
-            "form bad-port {\n camera: vision/deterministic-image\n recognize: vision/deterministic-detector\n camera.invented > recognize.image\n}\n",
+            "form bad-port {\n camera: vision/deterministic-image\n recognize: vision/deterministic-detector\n camera.invented >> recognize.image\n}\n",
             "gear 'camera' has no runtime port 'invented'",
         ),
     ] {

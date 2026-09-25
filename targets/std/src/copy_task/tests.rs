@@ -62,7 +62,7 @@ fn planned_copy(
     conduit_semantic_catalog::install_copy_file_catalog(&mut catalog)
         .expect("install copy catalog");
     let form = conduit_form::parse(
-        "form copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task > show\n}\n",
+        "form copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task >> show\n}\n",
         &catalog,
     )
     .expect("copy Form checks without resource paths");

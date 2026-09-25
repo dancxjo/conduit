@@ -178,7 +178,7 @@ pub fn install_provider_back(
     backs: &mut CanonicalBackCatalog,
 ) -> Result<(), String> {
     let source = format!(
-        "form {GENERATE_TEXT_KIND} (\n maximum-input-bytes: Count = 4096\n maximum-context-tokens: Count = 4096\n maximum-output-tokens: Count = 512\n temperature-milli: Count = 0\n prompt: {TEXT_VALUE_KIND} > text: {TEXT_VALUE_KIND}\n) {{\n request: {PROVIDER_REQUEST_KIND}\n encode: {}\n envelope: {PROVIDER_ENVELOPE_KIND}\n http: {}\n response: {PROVIDER_RESPONSE_KIND}\n decode: {}\n result: {PROVIDER_RESULT_KIND}\n prompt > request.prompt\n request.value > encode.value\n encode.value > envelope.json\n envelope.request > http.request\n http.response > response.response\n response.json > decode.value\n decode.value > result.value\n result.text > text\n}}\n",
+        "form {GENERATE_TEXT_KIND} (\n maximum-input-bytes: Count = 4096\n maximum-context-tokens: Count = 4096\n maximum-output-tokens: Count = 512\n temperature-milli: Count = 0\n prompt: {TEXT_VALUE_KIND} >> text: {TEXT_VALUE_KIND}\n) {{\n request: {PROVIDER_REQUEST_KIND}\n encode: {}\n envelope: {PROVIDER_ENVELOPE_KIND}\n http: {}\n response: {PROVIDER_RESPONSE_KIND}\n decode: {}\n result: {PROVIDER_RESULT_KIND}\n prompt >> request.prompt\n request.value >> encode.value\n encode.value >> envelope.json\n envelope.request >> http.request\n http.response >> response.response\n response.json >> decode.value\n decode.value >> result.value\n result.text >> text\n}}\n",
         conduit_web::JSON_ENCODE_KIND,
         conduit_web::HTTP_CLIENT_KIND,
         conduit_web::JSON_DECODE_KIND,

@@ -188,7 +188,7 @@ pub(super) fn request_source(request: &PatchbayInteractionRequest) -> String {
         .collect::<Vec<_>>()
         .join(", ");
     format!(
-        "form patchbay-interaction {{\n    request: {kind}({arguments})\n    apply: {APPLY_KIND}\n    request > apply\n}}\n"
+        "form patchbay-interaction {{\n    request: {kind}({arguments})\n    apply: {APPLY_KIND}\n    request >> apply\n}}\n"
     )
 }
 
@@ -244,7 +244,7 @@ fn edit_request_source(request_id: &PatchbayInteractionRequestId, edit: &Patchba
         ),
     };
     format!(
-        "form patchbay-interaction {{\n    request: {EDIT_KIND}(\"{}\", \"{}\", {}, \"{}\", \"{}\", \"{}\", \"{}\", \"{}\", \"{}\", {}, {}, {}, \"{}\")\n    apply: {APPLY_KIND}\n    request > apply\n}}\n",
+        "form patchbay-interaction {{\n    request: {EDIT_KIND}(\"{}\", \"{}\", {}, \"{}\", \"{}\", \"{}\", \"{}\", \"{}\", \"{}\", {}, {}, {}, \"{}\")\n    apply: {APPLY_KIND}\n    request >> apply\n}}\n",
         escape_form_text(request_id.as_str()),
         escape_form_text(basis.source_document_id.as_str()),
         basis.source_revision,

@@ -1,14 +1,14 @@
 # Lenia as portable meaning with realization facts absent from the form.
 form lenia (
-    > initial: ScalarField2
-    > tick: Tick...|
-    field: ScalarField2...| >
+    >> initial: ScalarField2
+    >> tick: Tick...|
+    field: ScalarField2...| >>
 ) {
     evolve: alife/lenia-step(kernel_radius = 13, kernel_mu = 0.5, kernel_sigma = 0.15, growth_mu = 0.15, growth_sigma = 0.015, dt = 0.1, boundary = "wrap", numeric_profile = "fixed-q16.16")
 
-    initial > evolve.initial
-    tick > evolve.tick
-    evolve.field > field
+    initial >> evolve.initial
+    tick >> evolve.tick
+    evolve.field >> field
 }
 
 # Autonomous Orbium specimen: deterministic seed and no human feedback.
@@ -18,7 +18,7 @@ form lenia-orbium-demo {
     organism: lenia
     show: presentation/scalar-field(title = "Orbium", minimum = 0.0, maximum = 1.0)
 
-    seed.field > organism.initial
-    clock > organism.tick
-    organism.field > show.field
+    seed.field >> organism.initial
+    clock >> organism.tick
+    organism.field >> show.field
 }

@@ -19,7 +19,7 @@ use crate::{
     text_planned_kernel::TextPlannedKernel,
 };
 
-pub const ORDINARY_FORM_SOURCE: &str = "form conduitos-text-upper {\n    upper: text/upper\n    show: presentation/text\n    \"Hello, ConduitOS\" > upper > show\n}\n";
+pub const ORDINARY_FORM_SOURCE: &str = "form conduitos-text-upper {\n    upper: text/upper\n    show: presentation/text\n    \"Hello, ConduitOS\" >> upper >> show\n}\n";
 pub const TEXT_LITERAL: &str = "Hello, ConduitOS";
 pub const TEXT_RESULT: &str = "HELLO, CONDUITOS";
 const CORD_BYTES: u32 = conduit_text::MAX_TEXT_BYTES;

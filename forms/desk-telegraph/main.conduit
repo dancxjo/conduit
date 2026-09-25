@@ -1,19 +1,19 @@
 # Reusable exact adaptation at the typed-record communication waist.
 form text-record (
-    text: Text > record: TypedRecord
+    text: Text >> record: TypedRecord
 ) {
     wrap: record/text-to-typed
-    text > wrap.text
-    wrap.record > record
+    text >> wrap.text
+    wrap.record >> record
 }
 
 # A non-text record refuses here instead of becoming presentation text.
 form text-from-record (
-    record: TypedRecord > text: Text
+    record: TypedRecord >> text: Text
 ) {
     unwrap: record/typed-to-text
-    record > unwrap.record
-    unwrap.text > text
+    record >> unwrap.record
+    unwrap.text >> text
 }
 
 # Each completed framed record crosses an explicitly finite ordered queue.
@@ -21,11 +21,11 @@ form text-from-record (
 form bounded-record-send (
     maximum-items: Count = 4
     maximum-frame-bytes: Count = 4096
-    frame: FramedTypedRecord > queued: FramedTypedRecord
+    frame: FramedTypedRecord >> queued: FramedTypedRecord
 ) {
     queue: record/ordered-send-queue(maximum-items, maximum-frame-bytes)
 
-    frame > queue > queued
+    frame >> queue >> queued
 }
 
 # The first honest local Desk Telegraph vertical. The queued remote Line,
@@ -42,7 +42,7 @@ form desk_telegraph {
     decode: text-from-record
     show: presentation/text
 
-    keyboard.key > keymap.key
-    keymap.text > message.fragment
-    message.submitted > encode > frame > send > deframe > decode > show
+    keyboard.key >> keymap.key
+    keymap.text >> message.fragment
+    message.submitted >> encode >> frame >> send >> deframe >> decode >> show
 }

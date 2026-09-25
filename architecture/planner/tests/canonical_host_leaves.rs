@@ -94,17 +94,17 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
 fn expanded() -> conduit_form::ExpandedCanonicalForm {
     let source = r#"form greet (
     prefix: Count = 1
-    name: test/text > text: test/text
+    name: test/text >> text: test/text
 ) {
     join: text/join(prefix)
-    name > join > text
+    name >> join >> text
 }
 
 form welcome {
     source: text/source
     hello: greet(2)
     show: presentation/text
-    source > hello > show
+    source >> hello >> show
 }
 "#;
     let (startup, profile) = catalogs();
@@ -237,7 +237,7 @@ fn explicit_form_completion_reaches_the_exact_plan() {
     .
     source: text/source
     show: presentation/text
-    source > show
+    source >> show
 }
 "#;
     let (startup, profile) = catalogs();

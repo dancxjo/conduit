@@ -175,14 +175,14 @@ fn text_literals_reject_invalid_escape_and_the_exact_byte_bound() {
     let invalid = parse_syntax_document(
         r#"form bad {
     upper: text/upper
-    "bad\q" > upper
+    "bad\q" >> upper
 }
 "#,
     );
     assert!(check_syntax_document(&invalid, &startup).is_err());
 
     let oversized = "x".repeat(conduit_text::MAX_TEXT_BYTES as usize + 1);
-    let source = format!("form bad {{\n    upper: text/upper\n    \"{oversized}\" > upper\n}}\n");
+    let source = format!("form bad {{\n    upper: text/upper\n    \"{oversized}\" >> upper\n}}\n");
     let syntax = parse_syntax_document(&source);
     let checked = check_syntax_document(&syntax, &startup).expect("syntax remains lossless");
     let error = expand_canonical_form(&checked, "bad", &profile)

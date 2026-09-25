@@ -66,7 +66,7 @@ fn checked_form() -> conduit_form::CheckedForm {
     let (startup, profile) = catalogs();
     conduit_form::parse_with_startup(
         &format!(
-            "form diversity {{\n source: {SOURCE}\n first: {STAGE}\n second: {STAGE}\n sink: {SINK}\n source > first > second > sink\n}}\n"
+            "form diversity {{\n source: {SOURCE}\n first: {STAGE}\n second: {STAGE}\n sink: {SINK}\n source >> first >> second >> sink\n}}\n"
         ),
         &startup,
         &profile,

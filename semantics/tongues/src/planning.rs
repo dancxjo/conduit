@@ -19,7 +19,7 @@ use std::collections::BTreeMap;
 pub const SPEECH_FORM: &str = r#"form tongues_text_to_speech {
     tts: speech/synthesize
     output: audio/play
-    "Hello from Tongues." > tts > output
+    "Hello from Tongues." >> tts >> output
 }
 "#;
 
@@ -41,7 +41,7 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
     }
     let encoded = serde_json::to_string(text).map_err(|error| error.to_string())?;
     let source = format!(
-        "form tongues_text_to_speech {{\n    tts: speech/synthesize\n    output: audio/play\n    {encoded} > tts > output\n}}\n"
+        "form tongues_text_to_speech {{\n    tts: speech/synthesize\n    output: audio/play\n    {encoded} >> tts >> output\n}}\n"
     );
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();

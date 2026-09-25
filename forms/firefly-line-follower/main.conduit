@@ -8,8 +8,8 @@ form firefly-line-follower {
     synchronize: time/phase-synchronize
     manifest: presentation/rhythm
 
-    ticks > observe.tick
-    local.state > synchronize.local
-    observe.observation > synchronize.peer
-    synchronize.updated > manifest.state
+    ticks >> observe.tick
+    local.state >> synchronize.local
+    observe.observation >> synchronize.peer
+    synchronize.updated >> manifest.state
 }

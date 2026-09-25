@@ -2,8 +2,8 @@
 # These fixture sources and sinks are deliberately absent from the canonical
 # live-conversation Form.
 form recorded-house-core (
-    > clip: PcmClip
-    response: Text >
+    >> clip: PcmClip
+    response: Text >>
 ) {
     recognize: speech/recognize-clip
     recognized: speech/recognition-to-text
@@ -12,13 +12,13 @@ form recorded-house-core (
     context: conduit-test/house-context-source
     house: house-conversation
 
-    clip > recognize.clip
-    recognize.result > recognized.result
-    recognized.text > addressed.recognized
-    addresses.value > addressed.addresses
-    addressed.detection > house.detection
-    context.value > house.context
-    house.response > response
+    clip >> recognize.clip
+    recognize.result >> recognized.result
+    recognized.text >> addressed.recognized
+    addresses.value >> addressed.addresses
+    addressed.detection >> house.detection
+    context.value >> house.context
+    house.response >> response
 }
 
 form recorded-house-proof {
@@ -26,8 +26,8 @@ form recorded-house-proof {
     conversation: recorded-house-core
     sink: conduit-test/house-text-sink
 
-    audio.value > conversation.clip
-    conversation.response > sink.value
+    audio.value >> conversation.clip
+    conversation.response >> sink.value
 }
 
 form recorded-house-spoken-proof {
@@ -37,10 +37,10 @@ form recorded-house-spoken-proof {
     convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right")
     output: audio/play
 
-    audio.value > conversation.clip
-    conversation.response > synthesize.text
-    synthesize.audio > convert.audio
-    convert.converted > output.audio
+    audio.value >> conversation.clip
+    conversation.response >> synthesize.text
+    synthesize.audio >> convert.audio
+    convert.converted >> output.audio
 }
 
 form microphone-house-proof {
@@ -48,9 +48,9 @@ form microphone-house-proof {
     conversation: recorded-house-core
     sink: conduit-test/house-text-sink
 
-    "capture" > audio.request
-    audio.clip > conversation.clip
-    conversation.response > sink.value
+    "capture" >> audio.request
+    audio.clip >> conversation.clip
+    conversation.response >> sink.value
 }
 
 form microphone-house-spoken-proof {
@@ -60,9 +60,9 @@ form microphone-house-spoken-proof {
     convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right")
     output: audio/play
 
-    "capture" > audio.request
-    audio.clip > conversation.clip
-    conversation.response > synthesize.text
-    synthesize.audio > convert.audio
-    convert.converted > output.audio
+    "capture" >> audio.request
+    audio.clip >> conversation.clip
+    conversation.response >> synthesize.text
+    synthesize.audio >> convert.audio
+    convert.converted >> output.audio
 }

@@ -25,7 +25,7 @@ fn reusable_normalization_form_executes_outside_secret_knock_without_play_alloca
     let sink_offer = fixture_offer(&normalized, PortDirection::Input);
     let (startup, profile) = catalogs(&intervals, &normalized, &source_offer, &sink_offer);
     let source = format!(
-        "{}\nform protocol-cadence-proof {{\n    intervals: {SOURCE_KIND}(value = \"{}\")\n    normalize: normalize-durations\n    result: {SINK_KIND}(value = \"{}\")\n    intervals.output > normalize.intervals\n    normalize.normalized > result.input\n}}\n",
+        "{}\nform protocol-cadence-proof {{\n    intervals: {SOURCE_KIND}(value = \"{}\")\n    normalize: normalize-durations\n    result: {SINK_KIND}(value = \"{}\")\n    intervals.output >> normalize.intervals\n    normalize.normalized >> result.input\n}}\n",
         include_str!("../../../../forms/secret-knock/main.conduit"),
         hex(&intervals.canonical_bytes().unwrap()),
         hex(&normalized.canonical_bytes().unwrap()),

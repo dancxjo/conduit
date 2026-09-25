@@ -25,9 +25,9 @@ const FORM: &str = r#"form project_history_rag {
     context: context/select("context/chronological-diverse@1", "tokens/exact-fixture@1", "keep-all", "chronological-oldest-first", 16, 16384, 4096, 64)
     answer: rag/answer("grounding/exact-context-citations@1", "value/text-utf8@1", 16384, 16, 32, 4096)
 
-    fusion.candidates > rerank.candidates
-    rerank.result > context.candidates
-    context.result > answer.context
+    fusion.candidates >> rerank.candidates
+    rerank.result >> context.candidates
+    context.result >> answer.context
 }
 "#;
 

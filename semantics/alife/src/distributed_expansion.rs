@@ -25,7 +25,7 @@ pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalForm, alloc::str
     let checked = check_syntax_document(&parse_syntax_document(source), &startup)
         .map_err(|diagnostics| format!("portable Lenia source: {diagnostics:?}"))?;
     let back_source = format!(
-        "form alife/lenia-step (\n kernel_radius: Count = 13\n kernel_mu: Scalar = 0.5\n kernel_sigma: Scalar = 0.15\n growth_mu: Scalar = 0.15\n growth_sigma: Scalar = 0.015\n dt: Scalar = 0.1\n boundary: Text = \"wrap\"\n numeric_profile: Text = \"fixed-q16.16\"\n > initial: {}\n > tick: {}...|\n field: {}...| >\n) {{\n partition: {LENIA_PARTITION_KIND}\n region0: {LENIA_REGION_STEP_KIND}\n region1: {LENIA_REGION_STEP_KIND}\n region2: {LENIA_REGION_STEP_KIND}\n join: {LENIA_JOIN_KIND}\n initial > partition.initial\n tick > partition.tick\n partition.work0 > region0.work\n partition.work1 > region1.work\n partition.work2 > region2.work\n region0.result > join.result0\n region1.result > join.result1\n region2.result > join.result2\n join.field > field\n}}\n",
+        "form alife/lenia-step (\n kernel_radius: Count = 13\n kernel_mu: Scalar = 0.5\n kernel_sigma: Scalar = 0.15\n growth_mu: Scalar = 0.15\n growth_sigma: Scalar = 0.015\n dt: Scalar = 0.1\n boundary: Text = \"wrap\"\n numeric_profile: Text = \"fixed-q16.16\"\n >> initial: {}\n >> tick: {}...|\n field: {}...| >>\n) {{\n partition: {LENIA_PARTITION_KIND}\n region0: {LENIA_REGION_STEP_KIND}\n region1: {LENIA_REGION_STEP_KIND}\n region2: {LENIA_REGION_STEP_KIND}\n join: {LENIA_JOIN_KIND}\n initial >> partition.initial\n tick >> partition.tick\n partition.work0 >> region0.work\n partition.work1 >> region1.work\n partition.work2 >> region2.work\n region0.result >> join.result0\n region1.result >> join.result1\n region2.result >> join.result2\n join.field >> field\n}}\n",
         crate::SCALAR_FIELD2_INFO_ID,
         conduit_time::TICK_VALUE_KIND,
         crate::SCALAR_FIELD2_INFO_ID,
@@ -41,7 +41,7 @@ pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalForm, alloc::str
         .insert(&definition, &back, LENIA_STEP_KIND)
         .map_err(|error| format!("distributed Lenia Back: {error:?}"))?;
     let presentation_back_source = format!(
-        "form presentation/scalar-field (\n title: Text = \"Scalar field\"\n minimum: Scalar = 0.0\n maximum: Scalar = 1.0\n > field: {}...|\n) {{\n bitmap: {SCALAR_FIELD_GRAY8_KIND}\n manifest: {}\n field > bitmap.field\n bitmap.bitmap > manifest.bitmap\n}}\n",
+        "form presentation/scalar-field (\n title: Text = \"Scalar field\"\n minimum: Scalar = 0.0\n maximum: Scalar = 1.0\n >> field: {}...|\n) {{\n bitmap: {SCALAR_FIELD_GRAY8_KIND}\n manifest: {}\n field >> bitmap.field\n bitmap.bitmap >> manifest.bitmap\n}}\n",
         crate::SCALAR_FIELD2_INFO_ID,
         conduit_presentation::BITMAP_PRESENTATION_KIND,
     );

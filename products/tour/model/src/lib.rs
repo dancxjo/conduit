@@ -41,7 +41,7 @@ pub const CANONICAL_SOURCE: &str = concat!(
     "    words: text/literal(\"hello\")\n",
     "    change: text/upper\n",
     "    result: presentation/text\n\n",
-    "    words > change > result\n",
+    "    words >> change >> result\n",
     "}"
 );
 pub const RUN_ACTION_ID: &str = "tour.run";

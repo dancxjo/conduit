@@ -2,14 +2,14 @@
 # local address; host admission still decides whether it can be realized.
 form echo-client (
     url: Url
-    > send: WebSocketMessage...|
-    recv: WebSocketMessage...| >
-    live: $Boolean >
+    >> send: WebSocketMessage...|
+    recv: WebSocketMessage...| >>
+    live: $Boolean >>
 ) {
     sock: net/websocket(url)
-    send > sock.send
-    sock.recv > recv
-    sock.live > live
+    send >> sock.send
+    sock.recv >> recv
+    sock.live >> live
 }
 
 form echo-client-demo {

@@ -74,7 +74,7 @@ fn fragment() -> PlanFragment {
     source_host.boot_id = "fixture/measurement-source-boot".into();
     source_host.capabilities = vec![source_offer];
 
-    let syntax = parse_syntax_document("form plot {\n source: fixture/measurement-window\n project: data/measurement-plot(points = 2, when-full = \"evenly-spaced\")\n result: conduit-test/measurement-plot-sink\n source.window > project.window\n project.series > result.series\n}\n");
+    let syntax = parse_syntax_document("form plot {\n source: fixture/measurement-window\n project: data/measurement-plot(points = 2, when-full = \"evenly-spaced\")\n result: conduit-test/measurement-plot-sink\n source.window >> project.window\n project.series >> result.series\n}\n");
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "plot", &catalog).unwrap();
     let hosts = [source_host.clone(), browser.clone()];

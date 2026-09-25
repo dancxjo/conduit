@@ -23,9 +23,9 @@ An exact closed structured variant can be routed as an exhaustive railway
 switch:
 
 ```conduit
-event > ? {
-    [MusicEvent.note] > _ > play-note
-    [MusicEvent.rest] > _ > keep-silence
+event >> ? {
+    [MusicEvent.note] >> . >> play-note
+    [MusicEvent.rest] >> . >> keep-silence
 }
 ```
 

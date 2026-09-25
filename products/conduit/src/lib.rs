@@ -97,7 +97,7 @@ mod tests {
     fn library_entrance_runs_the_same_real_hosted_form_pipeline() {
         let mut output = Vec::new();
         let execution = execute_hosted_form(
-            "form hosted-library {\n  .\n  words: text/literal(\"hello\")\n  change: text/upper\n  result: presentation/text\n  words > change > result\n}\n",
+            "form hosted-library {\n  .\n  words: text/literal(\"hello\")\n  change: text/upper\n  result: presentation/text\n  words >> change >> result\n}\n",
             &mut output,
         )
         .unwrap();
@@ -113,7 +113,7 @@ mod tests {
     fn two_host_entrance_retains_fragments_plays_line_and_delivery() {
         let mut output = Vec::new();
         let execution = execute_hosted_two_std_form(
-            "form hello-across {\n  message: text/literal(\"hello across one Cord\")\n  show: presentation/text\n  message > show\n}\n",
+            "form hello-across {\n  message: text/literal(\"hello across one Cord\")\n  show: presentation/text\n  message >> show\n}\n",
             &mut output,
         )
         .unwrap();

@@ -91,7 +91,7 @@ fn host(id: &str) -> StdHost {
 fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
     let mut host = host("typed-tick-host");
     let form = parse(
-        "form typed_tick {\n clock: time/tick(count = 3, period-ms = 7)\n observe: conduit-test/tick-observer\n clock.tick > observe.in\n}\n",
+        "form typed_tick {\n clock: time/tick(count = 3, period-ms = 7)\n observe: conduit-test/tick-observer\n clock.tick >> observe.in\n}\n",
         &installed_std::test_catalog(),
     )
     .expect("typed tick fixture parses");
@@ -166,7 +166,7 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
 fn typed_latest_and_tee_plan_and_execute_with_capacity_one_pressure() {
     let mut host = host("typed-flow-state-host");
     let form = parse(
-        "form typed_flow_state {\n source: conduit-test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit-test/scalar-sink\n right: conduit-test/scalar-sink\n source.value > latest.in\n latest.out > split.in\n split.left > left.in\n split.right > right.in\n}\n",
+        "form typed_flow_state {\n source: conduit-test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit-test/scalar-sink\n right: conduit-test/scalar-sink\n source.value >> latest.in\n latest.out >> split.in\n split.left >> left.in\n split.right >> right.in\n}\n",
         &installed_std::test_catalog(),
     )
     .expect("typed flow/state form parses");
@@ -248,7 +248,7 @@ fn typed_latest_and_tee_plan_and_execute_with_capacity_one_pressure() {
 fn mutated_typed_tee_identity_fails_before_play() {
     let baseline_host = host("mutated-flow-state-host");
     let form = parse(
-        "form typed_flow_state {\n source: conduit-test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit-test/scalar-sink\n right: conduit-test/scalar-sink\n source.value > latest.in\n latest.out > split.in\n split.left > left.in\n split.right > right.in\n}\n",
+        "form typed_flow_state {\n source: conduit-test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit-test/scalar-sink\n right: conduit-test/scalar-sink\n source.value >> latest.in\n latest.out >> split.in\n split.left >> left.in\n split.right >> right.in\n}\n",
         &installed_std::test_catalog(),
     )
     .expect("typed flow/state form parses");
@@ -291,7 +291,7 @@ fn mutated_typed_tee_identity_fails_before_play() {
 fn zero_count_tick_completes_without_wait_or_value_receipt() {
     let mut host = host("zero-tick-host");
     let form = parse(
-        "form zero_tick {\n clock: time/tick(count = 0, period-ms = 99)\n observe: conduit-test/tick-observer\n clock.tick > observe.in\n}\n",
+        "form zero_tick {\n clock: time/tick(count = 0, period-ms = 99)\n observe: conduit-test/tick-observer\n clock.tick >> observe.in\n}\n",
         &installed_std::test_catalog(),
     )
     .expect("zero tick fixture parses");
@@ -319,7 +319,7 @@ fn zero_count_tick_completes_without_wait_or_value_receipt() {
 fn mutated_tick_executable_identity_fails_before_any_wait() {
     let mut host = host("mutated-tick-host");
     let form = parse(
-        "form mutated_tick {\n clock: time/tick(count = 1, period-ms = 7)\n observe: conduit-test/tick-observer\n clock.tick > observe.in\n}\n",
+        "form mutated_tick {\n clock: time/tick(count = 1, period-ms = 7)\n observe: conduit-test/tick-observer\n clock.tick >> observe.in\n}\n",
         &installed_std::test_catalog(),
     )
     .expect("typed tick fixture parses");
@@ -346,7 +346,7 @@ fn mutated_tick_executable_identity_fails_before_any_wait() {
 fn text_plan(host: &StdHost, invalid: bool) -> conduit_core::Plan {
     let form = parse(
         &format!(
-            "form text_demo {{\n source: conduit-test/text-source(invalid = {invalid})\n show: presentation/text\n source.text > show.text\n}}\n"
+            "form text_demo {{\n source: conduit-test/text-source(invalid = {invalid})\n show: presentation/text\n source.text >> show.text\n}}\n"
         ),
         &installed_std::test_catalog(),
     )
@@ -425,7 +425,7 @@ fn planned_generate_text_uses_the_lowered_kernel_and_exact_fixture_base() {
     conduit_ai::install_generate_text_catalog(&mut startup, &mut catalog)
         .expect("generate-text catalog installs");
     let form = parse(
-        "form generate_demo {\n source: conduit-test/text-source(invalid = false)\n generate: ai/generate-text\n show: presentation/text\n source.text > generate.prompt\n generate.text > show.text\n}\n",
+        "form generate_demo {\n source: conduit-test/text-source(invalid = false)\n generate: ai/generate-text\n show: presentation/text\n source.text >> generate.prompt\n generate.text >> show.text\n}\n",
         &catalog,
     )
     .expect("generate-text execution form parses");
@@ -597,7 +597,7 @@ fn canonical_text_pipeline_has_zero_successful_post_play_start_allocations() {
     let source = r#"form hello {
     upper: text/upper
     show: presentation/text
-    "Hello, world." > upper > show
+    "Hello, world." >> upper >> show
 }
 "#;
     let mut startup = conduit_form::StartupCatalog::new();
@@ -623,14 +623,14 @@ fn canonical_text_pipeline_has_zero_successful_post_play_start_allocations() {
 fn canonical_greet_has_zero_successful_post_play_start_allocations() {
     let source = r#"form greet (
     greeting: Text = "Hello"
-    name: Text > text: Text
+    name: Text >> text: Text
 ) {
     join: text/join(greeting)
-    name > join > text
+    name >> join >> text
 }
 form welcome {
     hello: greet("Welcome")
-    "Travis" > hello > presentation/text
+    "Travis" >> hello >> presentation/text
 }
 "#;
     let mut startup = conduit_form::StartupCatalog::new();
@@ -654,7 +654,8 @@ form welcome {
 
 #[test]
 fn canonical_clock_has_zero_successful_post_play_start_allocations() {
-    let source = "form clock-demo {\n    clock: time/every(1s)\n    clock > presentation/tick\n}\n";
+    let source =
+        "form clock-demo {\n    clock: time/every(1s)\n    clock >> presentation/tick\n}\n";
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
@@ -686,17 +687,17 @@ fn canonical_clock_has_zero_successful_post_play_start_allocations() {
 fn canonical_state_count_executes_current_values_with_bounded_sign() {
     let source = r#"form count (
     start: Count = 0
-    bump: Tick... > value: $Count
+    bump: Tick... >> value: $Count
 ) {
     gear: state/count(start)
-    bump > gear.bump
-    gear.value > value
+    bump >> gear.bump
+    gear.value >> value
 }
 form count-demo {
     clock: time/every(1s)
     count: count(2)
     show: presentation/count
-    clock > count > show
+    clock >> count >> show
 }
 "#;
     let mut startup = conduit_form::StartupCatalog::new();

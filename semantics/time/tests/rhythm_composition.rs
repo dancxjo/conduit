@@ -14,9 +14,9 @@ const CONSUMER: &str = "form sampling-heartbeat {
     follower: phase-synchronization
     result: proof/result
     ticks.tick > pulse.tick
-    pulse.observation > follower.peer
-    state.state > follower.local
-    follower.updated > result.state
+    pulse.observation >> follower.peer
+    state.state >> follower.local
+    follower.updated >> result.state
 }";
 
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {

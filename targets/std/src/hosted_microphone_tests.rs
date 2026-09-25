@@ -322,7 +322,7 @@ fn authorized_microphone_clip_runs_through_whisper_in_one_plan_play() {
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profiles).unwrap();
     let checked = conduit_form::check_syntax_document(
         &conduit_form::parse_syntax_document(
-            "form microphone-whisper {\n microphone: media/capture-microphone-clip\n recognize: speech/recognize-clip\n text: speech/recognition-to-text\n show: presentation/text\n \"capture\" > microphone.request\n microphone.clip > recognize.clip\n recognize.result > text.result\n text.text > show.text\n}\n",
+            "form microphone-whisper {\n microphone: media/capture-microphone-clip\n recognize: speech/recognize-clip\n text: speech/recognition-to-text\n show: presentation/text\n \"capture\" >> microphone.request\n microphone.clip >> recognize.clip\n recognize.result >> text.result\n text.text >> show.text\n}\n",
         ),
         &startup,
     )

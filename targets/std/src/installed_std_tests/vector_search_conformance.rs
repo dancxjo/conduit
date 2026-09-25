@@ -24,7 +24,7 @@ use conduit_form::{
 };
 use std::collections::BTreeMap;
 
-const FORM: &str = "form run {\n source: conduit-test/local-model-request\n search: retrieval/vector-search(4096, 4096, 65536, 2)\n sink: conduit-test/local-model-result\n source.value > search.query\n search.hits > sink.value\n}\n";
+const FORM: &str = "form run {\n source: conduit-test/local-model-request\n search: retrieval/vector-search(4096, 4096, 65536, 2)\n sink: conduit-test/local-model-result\n source.value >> search.query\n search.hits >> sink.value\n}\n";
 
 fn profile() -> EmbeddingProfile {
     EmbeddingProfile {

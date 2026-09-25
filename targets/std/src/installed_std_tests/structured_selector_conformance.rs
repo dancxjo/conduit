@@ -101,7 +101,7 @@ fn execute_case(
             .unwrap();
     }
     let source = format!(
-        "form pipeline {{\n source: {}\n sink: {}\n source > project({type_name}.{field}) > sink\n}}\n",
+        "form pipeline {{\n source: {}\n sink: {}\n source >> project({type_name}.{field}) >> sink\n}}\n",
         installed_std::test_structured_selector::SOURCE_KIND,
         installed_std::test_structured_selector::SINK_KIND,
     );

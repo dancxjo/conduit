@@ -3,5 +3,5 @@ form camera-summary {
     camera: media/camera
     sink: media/frame-sink
 
-    camera.frame > sink.frame
+    camera.frame >> sink.frame
 }

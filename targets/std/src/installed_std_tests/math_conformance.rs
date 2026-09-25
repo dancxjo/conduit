@@ -9,10 +9,10 @@ const FORM: &str = r#"form math_control {
  scale: math/scale(gain = 1000000)
  clamp: math/clamp(minimum = -1, maximum = -1)
  sink: conduit-test/logic-sink
- source.value > deadband.in
- deadband.out > scale.in
- scale.out > clamp.in
- clamp.out > sink.in
+ source.value >> deadband.in
+ deadband.out >> scale.in
+ scale.out >> clamp.in
+ clamp.out >> sink.in
 }
 "#;
 
@@ -125,7 +125,7 @@ fn quantity_range_and_quantization_refusals_reach_the_production_kernel() {
             r#"form quantity_refusal {{
  source: conduit-test/scalar-literal
  map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-minimum = 0, target-maximum = 100, target-granularity = 1, unit = "%", range-policy = "refuse", quantization = "exact")
- source.value > map.in
+ source.value >> map.in
 }}
 "#
         );
@@ -295,9 +295,9 @@ fn quantity_mapping_completes_one_admitted_kernel_request() {
  map: math/map-quantity(source-minimum = -2, source-maximum = 0, target-maximum = 100, unit = "%")
  wrap: structured-info/wrap-quantity
  show: presentation/structured-info
- source.value > map.in
- map.out > wrap.in
- wrap.out > show.input
+ source.value >> map.in
+ map.out >> wrap.in
+ wrap.out >> show.input
 }
 "#;
     let (plan, report) = run_presented_quantity(source, "quantity_success");
@@ -379,9 +379,9 @@ fn quantity_refusals_do_not_fabricate_a_connected_presentation() {
  map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-maximum = 100, unit = "%", range-policy = "refuse", quantization = "exact")
  wrap: structured-info/wrap-quantity
  show: presentation/structured-info
- source.value > map.in
- map.out > wrap.in
- wrap.out > show.input
+ source.value >> map.in
+ map.out >> wrap.in
+ wrap.out >> show.input
 }}"#
         );
         let (plan, report) = run_presented_quantity(&source, "quantity_refusal");
@@ -445,9 +445,9 @@ form quantity_composition {{
  wrap: structured-info/wrap-quantity
  show: presentation/structured-info
  source.value > input.in
- input.out > map.control
- map.{output} > wrap.in
- wrap.out > show.input
+ input.out >> map.control
+ map.{output} >> wrap.in
+ wrap.out >> show.input
 }}"#
         );
         let (plan, report) = run_presented_quantity(&source, "quantity_composition");

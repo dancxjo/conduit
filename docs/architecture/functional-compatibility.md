@@ -67,10 +67,10 @@ Conceptually:
 
 ```conduit
 form loud (
-    text: Text > text: Text
+    text: Text >> text: Text
 ) {
     upper: text/upper
-    text > upper > text
+    text >> upper >> text
 }
 ```
 

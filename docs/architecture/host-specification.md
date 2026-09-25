@@ -896,7 +896,7 @@ host B:
 An internal form connects them:
 
 ```text
-pulse > show
+pulse >> show
 ```
 
 The resulting composite host might expose:
@@ -1049,7 +1049,7 @@ signal-demo {
     pulse.period-ms = 250
     pulse.initial = false
 
-    pulse > show
+    pulse >> show
 }
 ```
 

@@ -73,7 +73,7 @@ fn catalogs() -> (
 #[test]
 fn authored_quantities_survive_plan_play_sign_and_typed_presentation() {
     let (startup, profile, value_type, _) = catalogs();
-    let source = "form quantity-proof {\n    value: structured-info/literal(value = {elapsed: 17ms, frequency: 440Hz})\n    show: presentation/structured-info\n    value > show\n}\n";
+    let source = "form quantity-proof {\n    value: structured-info/literal(value = {elapsed: 17ms, frequency: 440Hz})\n    show: presentation/structured-info\n    value >> show\n}\n";
     let syntax = parse_syntax_document(source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).expect("quantity Form checks");
@@ -165,7 +165,7 @@ fn malformed_or_untyped_quantity_literals_refuse_before_play() {
         "{elapsed: 17, frequency: 440Hz}",
     ] {
         let source = format!(
-            "form refusal {{\n value: structured-info/literal(value = {authored})\n show: presentation/structured-info\n value > show\n}}\n"
+            "form refusal {{\n value: structured-info/literal(value = {authored})\n show: presentation/structured-info\n value >> show\n}}\n"
         );
         let syntax = parse_syntax_document(&source);
         assert!(

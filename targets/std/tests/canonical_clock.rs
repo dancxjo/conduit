@@ -11,8 +11,8 @@ use std::time::Duration;
 
 const POSITIONAL: &str = include_str!("../../../forms/clock/main.conduit");
 const NAMED: &str =
-    "form clock-demo {\n    clock: time/every(freq = 1s)\n    clock > presentation/tick\n}\n";
-const LOCAL: &str = "form clock-demo {\n    freq = 1s\n    clock: time/every(freq)\n    clock > presentation/tick\n}\n";
+    "form clock-demo {\n    clock: time/every(freq = 1s)\n    clock >> presentation/tick\n}\n";
+const LOCAL: &str = "form clock-demo {\n    freq = 1s\n    clock: time/every(freq)\n    clock >> presentation/tick\n}\n";
 
 #[derive(Default)]
 struct RecordingTimer {
@@ -124,7 +124,7 @@ fn duration_and_selected_wait_contract_fail_before_tick_presentation() {
     let (startup, profile) = catalogs();
     for invalid in ["1", "1m", "-1s", "18446744073709551615s"] {
         let source = format!(
-            "form bad {{\n    clock: time/every({invalid})\n    clock > presentation/tick\n}}\n"
+            "form bad {{\n    clock: time/every({invalid})\n    clock >> presentation/tick\n}}\n"
         );
         let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
         assert!(expand_canonical_form(&checked, "bad", &profile).is_err());

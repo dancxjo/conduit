@@ -7,7 +7,7 @@ use conduit_core::{BootId, HostId};
 const SEED: &str = r#"form hello_across {
     message: text/literal("hello")
     show: presentation/text
-    message > show
+    message >> show
 }"#;
 
 fn initial_selection() -> String {

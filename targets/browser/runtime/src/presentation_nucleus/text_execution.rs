@@ -18,7 +18,7 @@ const TEXT_FORM: &str = r#"form browser-text-nucleus {
  source: browser-fixture/text-source
  upper: text/upper
  present: presentation/text
- source > upper > present
+ source >> upper >> present
 }"#;
 
 type TextScheduler = FixedScheduler<

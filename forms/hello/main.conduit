@@ -4,5 +4,5 @@ form hello {
     upper: text/upper
     show: presentation/text
 
-    "Hello, world." > upper > show
+    "Hello, world." >> upper >> show
 }

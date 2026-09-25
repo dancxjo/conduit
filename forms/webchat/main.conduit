@@ -1,23 +1,23 @@
 # Explicit external-WebSocket transport fronts for the bounded local webchat.
 form chat/client (
     url: Url
-    > send: WebSocketMessage...|
-    recv: WebSocketMessage...| >
-    live: $Boolean >
+    >> send: WebSocketMessage...|
+    recv: WebSocketMessage...| >>
+    live: $Boolean >>
 ) {
     socket: net/websocket(url)
-    send > socket.send
-    socket.recv > recv
-    socket.live > live
+    send >> socket.send
+    socket.recv >> recv
+    socket.live >> live
 }
 
 form chat/server (
     bind: NetAddress
-    live: $Boolean >
+    live: $Boolean >>
 ) {
     listen: net/websocket/listen(bind)
-    listen.recv > listen.send
-    listen.live > live
+    listen.recv >> listen.send
+    listen.live >> live
 }
 
 form webchat-transport-demo {
@@ -42,17 +42,17 @@ form chat/browser-client (
     outgoing: chat/to-websocket
     connection: chat/connection-from-websocket
 
-    socket.recv > incoming.value
-    incoming.value > state.message
-    socket.live > connection.value
-    connection.value > state.live
-    state.presentation > spread.presentation
-    spread.presentation > render.presentation
-    spread.presentation > human.presentation
-    render.manifestation > human.manifestation
-    human.interaction > submit.interaction
-    submit.message > outgoing.value
-    outgoing.value > socket.send
+    socket.recv >> incoming.value
+    incoming.value >> state.message
+    socket.live >> connection.value
+    connection.value >> state.live
+    state.presentation >> spread.presentation
+    spread.presentation >> render.presentation
+    spread.presentation >> human.presentation
+    render.manifestation >> human.manifestation
+    human.interaction >> submit.interaction
+    submit.message >> outgoing.value
+    outgoing.value >> socket.send
 }
 
 form webchat-browser-demo {
@@ -72,17 +72,17 @@ form chat/browser-client-label-oracle (
     outgoing: chat/to-websocket
     connection: chat/connection-from-websocket
 
-    socket.recv > incoming.value
-    incoming.value > state.message
-    socket.live > connection.value
-    connection.value > state.live
-    state.presentation > spread.presentation
-    spread.presentation > render.presentation
-    spread.presentation > human.presentation
-    render.manifestation > human.manifestation
-    human.interaction > submit.interaction
-    submit.message > outgoing.value
-    outgoing.value > socket.send
+    socket.recv >> incoming.value
+    incoming.value >> state.message
+    socket.live >> connection.value
+    connection.value >> state.live
+    state.presentation >> spread.presentation
+    spread.presentation >> render.presentation
+    spread.presentation >> human.presentation
+    render.manifestation >> human.manifestation
+    human.interaction >> submit.interaction
+    submit.message >> outgoing.value
+    outgoing.value >> socket.send
 }
 
 form webchat-browser-label-oracle {

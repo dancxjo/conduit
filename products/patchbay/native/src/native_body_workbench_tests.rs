@@ -19,7 +19,7 @@ fn fixture(choice: BodyGraduationChoice) -> (patchbay_model::PatchbayGraph, Vec<
     upper: text/upper
     show: presentation/text
 
-    "SOS" > upper > show
+    "SOS" >> upper >> show
 }"#;
     let editor =
         patchbay_model::FormEditor::from_source("signal.conduit".into(), source.into()).unwrap();

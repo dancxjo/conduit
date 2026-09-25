@@ -41,7 +41,7 @@ pub(super) fn checked_plan(
 > {
     let (startup, profiles) = catalogs().map_err(|_| ObligationRefusal::StepFailed)?;
     let source = format!(
-        "form proof-catalog-obligation {{\n    obligation: {SOURCE_KIND}(\"{}\", \"{}\", \"{}\", \"{}\", \"{}\", \"{}\", \"{}\")\n    execute: {EXECUTE_KIND}\n    obligation > execute\n}}\n",
+        "form proof-catalog-obligation {{\n    obligation: {SOURCE_KIND}(\"{}\", \"{}\", \"{}\", \"{}\", \"{}\", \"{}\", \"{}\")\n    execute: {EXECUTE_KIND}\n    obligation >> execute\n}}\n",
         basis.source_commit,
         basis.command,
         basis.tool,

@@ -106,7 +106,7 @@ fn native_ros_topic_round_trip_has_no_sibling_or_reflection_effect() {
     // The selected ROS value becomes ordinary semantic input. The checked
     // Form and its planner/kernel path contain no ROS name, type, QoS, or ABI.
     let form_source = format!(
-        "form selected_text {{\n    upper: text/upper\n    show: presentation/text(maximum-values = 1)\n    {:?} > upper > show\n}}\n",
+        "form selected_text {{\n    upper: text/upper\n    show: presentation/text(maximum-values = 1)\n    {:?} >> upper >> show\n}}\n",
         semantic_text
     );
     assert!(!form_source.contains("/fixture"));

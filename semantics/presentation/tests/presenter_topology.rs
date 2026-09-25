@@ -14,7 +14,7 @@ use conduit_presentation::{
 };
 use std::collections::BTreeMap;
 
-const SOURCE: &str = "form spoken-front {\n normalize: presentation/presenter-stage\n speech: presentation/renderer\n normalize.presentation > speech.presentation\n}\n";
+const SOURCE: &str = "form spoken-front {\n normalize: presentation/presenter-stage\n speech: presentation/renderer\n normalize.presentation >> speech.presentation\n}\n";
 
 #[test]
 fn ordinary_plan_cords_seal_a_typed_two_stage_presenter_chain() {

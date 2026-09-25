@@ -12,18 +12,18 @@ form body-chat {
     model: llm/generate-flow(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 2560, maximum-work-units = 4096, maximum-history-items = 0)
     text: llm/result-flow-to-text
 
-    available.value > availability.value
-    availability.value > ui.live
-    ui.presentation > spread.presentation
-    spread.presentation > render.presentation
-    spread.presentation > human.presentation
-    render.manifestation > human.manifestation
-    human.interaction > submit.interaction
-    submit.message > prompt.message
-    context.context > prompt.context
-    prompt.human-message > ui.message
-    prompt.request > model.request
-    model.result > text.result
-    text.text > prompt.response
-    prompt.body-message > ui.message
+    available.value >> availability.value
+    availability.value >> ui.live
+    ui.presentation >> spread.presentation
+    spread.presentation >> render.presentation
+    spread.presentation >> human.presentation
+    render.manifestation >> human.manifestation
+    human.interaction >> submit.interaction
+    submit.message >> prompt.message
+    context.context >> prompt.context
+    prompt.human-message >> ui.message
+    prompt.request >> model.request
+    model.result >> text.result
+    text.text >> prompt.response
+    prompt.body-message >> ui.message
 }

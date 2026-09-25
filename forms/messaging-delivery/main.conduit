@@ -1,15 +1,15 @@
 # Portable message construction and delivery admission.
 form messaging-delivery (
-    message: PortableMessage >
-    notification: NotificationEvent >
-    request: DeliveryRequest >
-    update: DeliveryUpdate >
+    message: PortableMessage >>
+    notification: NotificationEvent >>
+    request: DeliveryRequest >>
+    update: DeliveryUpdate >>
 ) {
     message-source: messaging/message
     delivery: messaging/deliver
-    message-source.request > delivery.request
-    message-source.message > message
-    message-source.request > request
-    delivery.notification > notification
-    delivery.update > update
+    message-source.request >> delivery.request
+    message-source.message >> message
+    message-source.request >> request
+    delivery.notification >> notification
+    delivery.update >> update
 }

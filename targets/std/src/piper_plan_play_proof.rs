@@ -66,7 +66,7 @@ pub fn run_with_playback(
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profile)?;
     let quoted_text = serde_json::to_string(text)?;
     let source = format!(
-        "form piper_playback_proof {{\n synthesize: speech/synthesize(maximum-output-bytes = {})\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n output: audio/play\n {} > synthesize.text\n synthesize.audio > convert.audio\n convert.converted > output.audio\n}}\n",
+        "form piper_playback_proof {{\n synthesize: speech/synthesize(maximum-output-bytes = {})\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n output: audio/play\n {} >> synthesize.text\n synthesize.audio >> convert.audio\n convert.converted >> output.audio\n}}\n",
         conduit_tongues::MAXIMUM_PCM_BYTES,
         quoted_text,
     );
@@ -152,7 +152,7 @@ pub fn run(
     crate::installed_std::test_speech_sink::install_catalog(&mut profile);
     let quoted_text = serde_json::to_string(text)?;
     let source = format!(
-        "form piper_proof {{\n synthesize: speech/synthesize(maximum-output-bytes = {})\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n sink: {}\n {} > synthesize.text\n synthesize.audio > convert.audio\n convert.converted > sink.audio\n}}\n",
+        "form piper_proof {{\n synthesize: speech/synthesize(maximum-output-bytes = {})\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n sink: {}\n {} >> synthesize.text\n synthesize.audio >> convert.audio\n convert.converted >> sink.audio\n}}\n",
         conduit_tongues::MAXIMUM_PCM_BYTES,
         crate::installed_std::test_speech_sink::KIND,
         quoted_text,

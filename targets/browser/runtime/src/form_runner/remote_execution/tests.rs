@@ -12,7 +12,7 @@ pub(super) fn fixture() -> (Plan, HostAdvertisement, HostAdvertisement, SessionB
 
 pub(super) fn finite_fixture() -> (Plan, HostAdvertisement, HostAdvertisement, SessionBinding) {
     fixture_for(
-        "form remote_once {\n .\n message: text/literal(\"hello\")\n show: presentation/text\n message > show\n}\n",
+        "form remote_once {\n .\n message: text/literal(\"hello\")\n show: presentation/text\n message >> show\n}\n",
         "remote_once",
         "text/literal",
     )

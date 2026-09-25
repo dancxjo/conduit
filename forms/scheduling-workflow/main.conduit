@@ -3,12 +3,12 @@ form bounded-schedule {
 }
 
 form workflow-state (
-    assessment: ScheduleAssessment >
+    assessment: ScheduleAssessment >>
 ) {
     fixture: schedule/deterministic-fixture
     assess: schedule/assess-workflow
-    fixture.intent > assess.intent
-    fixture.lifecycle > assess.lifecycle
-    fixture.observation > assess.observation
-    assess.assessment > assessment
+    fixture.intent >> assess.intent
+    fixture.lifecycle >> assess.lifecycle
+    fixture.observation >> assess.observation
+    assess.assessment >> assessment
 }

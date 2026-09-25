@@ -31,7 +31,7 @@ pub fn graphics_presentation_contract() -> StandardKindContract {
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
-        example: "scene: graphics/icon > display: presentation/graphics".to_string(),
+        example: "scene: graphics/icon >> display: presentation/graphics".to_string(),
     }
 }
 
@@ -55,7 +55,7 @@ pub fn bitmap_presentation_contract() -> StandardKindContract {
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
-        example: "bitmap: graphics/scalar-field-gray8 > display: presentation/bitmap".to_string(),
+        example: "bitmap: graphics/scalar-field-gray8 >> display: presentation/bitmap".to_string(),
     }
 }
 
