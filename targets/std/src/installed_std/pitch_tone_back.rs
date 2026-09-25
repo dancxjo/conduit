@@ -305,7 +305,7 @@ fn encode_block(
     let encoded_len = header_bytes.len() + mono.len() * 4;
     encoded[..header_bytes.len()].copy_from_slice(&header_bytes);
     let payload = &mut encoded[header_bytes.len()..encoded_len];
-    for (frame, sample) in payload.chunks_exact_mut(4).zip(mono.iter()) {
+    for (frame, sample) in payload.as_chunks_mut::<4>().0.iter_mut().zip(mono.iter()) {
         let sample = sample.to_le_bytes();
         frame[..2].copy_from_slice(&sample);
         frame[2..].copy_from_slice(&sample);
