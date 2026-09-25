@@ -65,7 +65,7 @@ fn live_drained_play_stays_attached_until_explicit_cancellation() {
 
 #[test]
 fn explicit_completion_policy_finishes_the_attached_product_runner() {
-    let source = "form specimen {\n .\n value: text/literal(\"done\")\n show: presentation/text\n value >> show\n}\n";
+    let source = "form specimen {\n value: text/literal(\"done\")\n show: presentation/text\n value >> show\n}.\n";
     let (mut host, fragment) = plan(source);
     assert_eq!(
         fragment.completion_policy,
