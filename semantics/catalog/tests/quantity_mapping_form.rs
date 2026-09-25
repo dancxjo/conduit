@@ -20,6 +20,12 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     (startup, profile)
 }
 
+fn catalogs_with_flow_state() -> (StartupCatalog, ProfileCatalog) {
+    let (mut startup, mut profile) = catalogs();
+    conduit_semantic_catalog::install_flow_state_catalogs(&mut startup, &mut profile).unwrap();
+    (startup, profile)
+}
+
 #[test]
 fn reusable_mapping_and_outside_consumer_are_checked_and_host_neutral() {
     let mapping = include_str!("../../../forms/quantity-range-map/main.conduit");
@@ -134,4 +140,16 @@ fn canonical_distance_frequency_surface_holes_are_reported_without_private_catal
     assert_eq!(parsed.diagnostics.len(), 1);
     assert_eq!(parsed.diagnostics[0].code, "CND-FRM-019");
     assert!(parsed.diagnostics[0].message.contains("keep Frequency(440Hz) for this play"));
+}
+
+#[test]
+fn production_catalog_out_of_range_validation_still_runs_in_normal_tests() {
+    let (startup, profile) = catalogs_with_flow_state();
+    let source = "form gate-bounds {\n    gate: flow/gate(maximum-enable-updates = 0)\n}\n";
+    let parsed = parse_syntax_document(source);
+    assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+    let checked = check_syntax_document(&parsed, &startup).unwrap();
+    let error = expand_canonical_form_for_authoring(&checked, "gate-bounds", &profile).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-040");
+    assert!(error.message.contains("maximum-enable-updates"));
 }
