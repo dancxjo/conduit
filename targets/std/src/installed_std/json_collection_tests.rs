@@ -33,9 +33,9 @@ pub(super) fn execute_entry(
     }
     let restoring = entry == "todo/restore-summary";
     let wiring = if restoring {
-        "source.value > application.snapshot\n application.result > sink.value"
+        "source.value >> application.snapshot\n application.result >> sink.value"
     } else {
-        "decode: json/decode\n source.value > decode.value\n decode.value > application.request\n application.snapshot > sink.value"
+        "decode: json/decode\n source.value >> decode.value\n decode.value >> application.request\n application.snapshot >> sink.value"
     };
     let source = format!("{TODO}\nform todo-fixture {{\n source: conduit-test/json-text-source\n application: {entry}\n sink: conduit-test/json-text-sink\n {wiring}\n}}\n");
     let parsed = parse_syntax_document(&source);

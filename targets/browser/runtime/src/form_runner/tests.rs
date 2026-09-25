@@ -786,7 +786,7 @@ fn browser_gear_bound_refuses_before_play() {
     }
     source.push_str(" result: presentation/text\n source");
     for index in 0..15 {
-        source.push_str(&format!(" > step{index}"));
+        source.push_str(&format!(" >> step{index}"));
     }
     source.push_str(" >> result\n}\n");
     let message = TourSession::prepare("browser/tour-test", "browser-boot/tour-test", &source, 13)
@@ -805,7 +805,7 @@ fn browser_cord_bound_refuses_before_play() {
     }
     for index in 0..13 {
         source.push_str(&format!(
-            " source > compare{index}.left\n source > compare{index}.right\n"
+            " source >> compare{index}.left\n source >> compare{index}.right\n"
         ));
     }
     source.push_str("}\n");

@@ -222,7 +222,7 @@ form zz-quantity-output {{
  map: {name}
  wrap: structured-info/wrap-quantity
  show: presentation/quantity
- input.value > map.control
+ input.value >> map.control
  map.{output} >> wrap.in
  wrap.out >> show.input
 }}"#
