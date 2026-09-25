@@ -89,5 +89,8 @@ test("workset refusal retains the exact expected revision", async () => {
   const body = await birthBrowserBody({ bridge, host: "host/1", boot: "boot/1", membership: { advertisement: () => ({}) }, name: "Clock", forms: [checked], sequence: () => 1 });
   await assert.rejects(body.install(checked), (error) => error.code === "StaleWorkload"
     && error instanceof InvalidLifecycleError
+    && error.identities.bodyId === "body/1"
+    && error.identities.hostId === "host/1"
+    && error.identities.bootId === "boot/1"
     && error.identities.expectedWorkloadRevision === "4");
 });
