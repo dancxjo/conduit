@@ -424,16 +424,48 @@ fn theremin_catalogs() -> (StartupCatalog, ProfileCatalog) {
 
 #[test]
 fn canonical_theremin_distance_to_frequency_fixture_checks_and_lowers() {
-    for unit in ["0cm", "30cm", "220Hz", "880Hz", "440Hz"] {
-        assert!(
-            POCKET_THEREMIN_DISTANCE_FREQUENCY.contains(unit),
-            "fixture lost canonical unit literal {unit}"
-        );
-    }
     let (startup, profile) = theremin_catalogs();
     let syntax = parse_syntax_document(POCKET_THEREMIN_DISTANCE_FREQUENCY);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
+    let checked_form = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "pocket-theremin-distance-frequency")
+        .unwrap();
+    let checked_map = checked_form
+        .gears
+        .iter()
+        .find(|gear| gear.name.as_deref() == Some("map"))
+        .unwrap();
+    let map_bindings = checked_map
+        .startup_bindings
+        .iter()
+        .map(|binding| {
+            let crate::CanonicalStartupValue::Literal(value) = &binding.value else {
+                panic!("expected literal startup binding for {}", binding.name);
+            };
+            (binding.name.clone(), value.clone())
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        map_bindings,
+        vec![
+            ("source-minimum".into(), "0cm".into()),
+            ("source-maximum".into(), "30cm".into()),
+            ("target-minimum".into(), "220Hz".into()),
+            ("target-maximum".into(), "880Hz".into()),
+        ]
+    );
+    let checked_keep = checked_form
+        .gears
+        .iter()
+        .find(|gear| gear.name.as_deref() == Some("keep"))
+        .unwrap();
+    assert_eq!(
+        checked_keep.startup_bindings[0].value,
+        crate::CanonicalStartupValue::Literal("440Hz".into())
+    );
     let authored =
         expand_canonical_form_for_authoring(&checked, "pocket-theremin-distance-frequency", &profile)
             .unwrap();
@@ -459,11 +491,43 @@ fn canonical_theremin_distance_to_frequency_fixture_checks_and_lowers() {
         .find(|gear| gear.kind_id.as_str() == "current/keep")
         .unwrap();
     assert_eq!(
-        map.configuration[0].value,
+        map.configuration
+            .iter()
+            .find(|entry| entry.key == "source-minimum")
+            .unwrap()
+            .value,
         ConfigurationValue::Quantity(Quantity::new(0, QuantityUnit::Centimeter))
     );
     assert_eq!(
-        keep.configuration[0].value,
+        map.configuration
+            .iter()
+            .find(|entry| entry.key == "source-maximum")
+            .unwrap()
+            .value,
+        ConfigurationValue::Quantity(Quantity::new(30, QuantityUnit::Centimeter))
+    );
+    assert_eq!(
+        map.configuration
+            .iter()
+            .find(|entry| entry.key == "target-minimum")
+            .unwrap()
+            .value,
+        ConfigurationValue::Quantity(Quantity::new(220, QuantityUnit::Hertz))
+    );
+    assert_eq!(
+        map.configuration
+            .iter()
+            .find(|entry| entry.key == "target-maximum")
+            .unwrap()
+            .value,
+        ConfigurationValue::Quantity(Quantity::new(880, QuantityUnit::Hertz))
+    );
+    assert_eq!(
+        keep.configuration
+            .iter()
+            .find(|entry| entry.key == "initial")
+            .unwrap()
+            .value,
         ConfigurationValue::Quantity(Quantity::new(440, QuantityUnit::Hertz))
     );
 }
