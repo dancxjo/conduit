@@ -16,6 +16,7 @@ function results(overrides = {}) {
   return {
     CLASSIFY_RESULT: "success",
     DOCS_ONLY: "false",
+    LOCAL_INTEGRATION_RESULT: "success",
     WORKSPACE_RESULT: "success",
     WORKSPACE_MATRIX: '["test-products"]',
     ESP32_RESULT: "skipped",
@@ -47,6 +48,12 @@ test("selective pull request admits intentionally skipped ConduitOS", () => {
   assert.equal(prove(results()).status, 0);
 });
 
+test("trusted controller fixture from before local integration remains compatible", () => {
+  const legacy = results();
+  delete legacy.LOCAL_INTEGRATION_RESULT;
+  assert.equal(prove(legacy).status, 0);
+});
+
 test("selective pull request admits only its required x86 subset", () => {
   assert.equal(prove(results({
     CONDUITOS_REQUIRED: "true",
@@ -70,6 +77,7 @@ test("exhaustive integration requires every ConduitOS aggregate", () => {
   });
   assert.equal(prove(exhaustive).status, 0);
   for (const field of [
+    "LOCAL_INTEGRATION_RESULT",
     "LIMINE_RESULT",
     "TOOLS_RESULT",
     "X86_RESULT",
@@ -85,6 +93,7 @@ test("exhaustive integration requires every ConduitOS aggregate", () => {
 test("documentation-only behavior does not promote skipped machine proof", () => {
   assert.equal(prove(results({
     DOCS_ONLY: "true",
+    LOCAL_INTEGRATION_RESULT: "skipped",
     WORKSPACE_RESULT: "skipped",
   })).status, 0);
 });

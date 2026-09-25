@@ -4,6 +4,37 @@ use crate::cli::{GlobalOpts, PatchbayDemoArgs, PatchbayHost};
 use crate::process::{run_step, Step};
 use crate::workspace::workspace_root;
 
+pub(crate) const STD_STEP: Step = Step::new(
+    "demo.std",
+    "Launch the ordinary std Host with the canonical Hello Form",
+    "cargo",
+    &[
+        "run",
+        "-p",
+        "conduit",
+        "--",
+        "run",
+        "forms/hello/main.conduit",
+    ],
+);
+
+pub(crate) const TRIPLE_STEP: Step = Step::new(
+    "demo.triple",
+    "Run the three-sink Form locally",
+    "cargo",
+    &[
+        "run",
+        "-p",
+        "conduit",
+        "--",
+        "run",
+        "proof/fixtures/forms/triple-signal.conduit",
+        "--placements",
+        "proof/fixtures/placements/triple-local.placements",
+        "--await-terminal",
+    ],
+);
+
 pub fn run_tour(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
     let product = root.join("target/tour-product");
@@ -66,48 +97,12 @@ pub fn run_tour(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 pub fn run_std(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
-    run(
-        "demo.std",
-        "Launch the ordinary std Host with the canonical Hello Form",
-        &[
-            "run",
-            "-p",
-            "conduit",
-            "--",
-            "run",
-            "forms/hello/main.conduit",
-        ],
-        opts,
-    )
+    run_step(&STD_STEP, &workspace_root()?, opts)?;
+    Ok(())
 }
 
 pub fn run_triple(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
-    run(
-        "demo.triple",
-        "Run the three-sink Form locally",
-        &[
-            "run",
-            "-p",
-            "conduit",
-            "--",
-            "run",
-            "proof/fixtures/forms/triple-signal.conduit",
-            "--placements",
-            "proof/fixtures/placements/triple-local.placements",
-        ],
-        opts,
-    )
-}
-
-fn run(
-    id: &'static str,
-    description: &'static str,
-    args: &'static [&'static str],
-    opts: &GlobalOpts,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let root = workspace_root()?;
-    let step = Step::new(id, description, "cargo", args);
-    run_step(&step, &root, opts)?;
+    run_step(&TRIPLE_STEP, &workspace_root()?, opts)?;
     Ok(())
 }
 

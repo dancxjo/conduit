@@ -22,6 +22,7 @@ pub mod evidence_little_life;
 pub mod forms;
 pub mod host;
 mod host_configuration_prompt;
+pub mod integrate;
 pub mod light_switch;
 mod local_model_pool_receipt;
 pub mod messaging_github;

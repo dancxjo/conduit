@@ -6,6 +6,7 @@ pub enum LifecycleClass {
     Demo,
     Prove,
     Check,
+    Integrate,
     Fabricate,
 }
 
@@ -36,6 +37,11 @@ const BROWSER_CHECK_ALIASES: &[CommandAlias] = &[CommandAlias {
 }];
 
 pub const REPOSITORY_COMMANDS: &[RepositoryCommand] = &[
+    RepositoryCommand {
+        canonical: &["integrate"],
+        lifecycle: LifecycleClass::Integrate,
+        aliases: &[],
+    },
     RepositoryCommand {
         canonical: &["host", "browser"],
         lifecycle: LifecycleClass::Host,
