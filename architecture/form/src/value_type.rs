@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 
 use crate::{FormSyntax, RuntimePortDirection, RuntimePortTemporal, SyntaxCheckDiagnostic};
+use alloc::format;
 use conduit_core::{
     kind_id, CheckedFront, FrontStartupParameter, KindId, PortDescriptor, PortDirection,
     StructuredInfoRefusal,
@@ -59,14 +60,16 @@ pub(crate) fn checked_front(
         .map(|parameter| {
             Ok(FrontStartupParameter {
                 name: parameter.name.text.clone(),
-                value_type: checked_value_kind(&parameter.value_type.text, catalog).map_err(
-                    |_| SyntaxCheckDiagnostic {
-                        code: "CND-FRM-053",
-                        span: parameter.value_type.span,
-                        message: "structured startup parameter profile exceeds canonical bounds"
-                            .into(),
-                    },
-                )?,
+                value_type: checked_value_kind_with_modality(
+                    &parameter.value_type.text,
+                    parameter.optional,
+                    catalog,
+                )
+                .map_err(|_| SyntaxCheckDiagnostic {
+                    code: "CND-FRM-053",
+                    span: parameter.value_type.span,
+                    message: "structured startup parameter profile exceeds canonical bounds".into(),
+                })?,
                 // Presence is callable compatibility: callers need to know
                 // whether omission is legal. The checked form identity owns
                 // the canonical default expression and therefore its meaning.
@@ -79,12 +82,18 @@ pub(crate) fn checked_front(
     for port in &form.front.runtime_ports {
         let descriptor = PortDescriptor {
             port_id: conduit_core::port_id(&port.name.text),
-            value_kind: checked_value_kind(&port.value_type.text, catalog).map_err(|_| {
-                SyntaxCheckDiagnostic {
-                    code: "CND-FRM-053",
-                    span: port.value_type.span,
-                    message: "structured runtime Port profile exceeds canonical bounds".into(),
-                }
+            value_kind: checked_value_kind_with_modality(
+                &port.value_type.text,
+                matches!(
+                    port.temporal,
+                    RuntimePortTemporal::OptionalValue | RuntimePortTemporal::CurrentOptional
+                ),
+                catalog,
+            )
+            .map_err(|_| SyntaxCheckDiagnostic {
+                code: "CND-FRM-053",
+                span: port.value_type.span,
+                message: "structured runtime Port profile exceeds canonical bounds".into(),
             })?,
             direction: match port.direction {
                 RuntimePortDirection::Input => PortDirection::Input,
@@ -112,10 +121,27 @@ pub(crate) fn checked_front(
 
 pub(crate) fn canonical_port_temporal(source: RuntimePortTemporal) -> conduit_core::PortTemporal {
     match source {
-        RuntimePortTemporal::Value => conduit_core::PortTemporal::Value,
+        RuntimePortTemporal::Value | RuntimePortTemporal::OptionalValue => {
+            conduit_core::PortTemporal::Value
+        }
         RuntimePortTemporal::Flow { closes } => conduit_core::PortTemporal::Flow { closes },
-        RuntimePortTemporal::Current => conduit_core::PortTemporal::Current,
+        RuntimePortTemporal::Current | RuntimePortTemporal::CurrentOptional => {
+            conduit_core::PortTemporal::Current
+        }
     }
+}
+
+fn checked_value_kind_with_modality(
+    source_type: &str,
+    optional: bool,
+    catalog: &StartupCatalog,
+) -> Result<KindId, StructuredInfoRefusal> {
+    let value_kind = checked_value_kind(source_type, catalog)?;
+    Ok(if optional {
+        kind_id(&format!("optional<{}>", value_kind.as_str()))
+    } else {
+        value_kind
+    })
 }
 
 #[cfg(test)]

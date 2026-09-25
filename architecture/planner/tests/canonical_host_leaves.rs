@@ -234,11 +234,10 @@ fn nested_form_terminates_only_in_exact_planned_host_call_leaves() {
 #[test]
 fn explicit_form_completion_reaches_the_exact_plan() {
     let source = r#"form finite {
-    .
     source: text/source
     show: presentation/text
     source >> show
-}
+}.
 "#;
     let (startup, profile) = catalogs();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup)

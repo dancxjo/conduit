@@ -2,6 +2,7 @@ use crate::{
     check_syntax_document, parse_syntax_document, CanonicalStartupValue, KindSignature,
     StartupCatalog, StartupParameterSignature,
 };
+use alloc::vec::Vec;
 
 fn catalog() -> StartupCatalog {
     let mut catalog = StartupCatalog::new();
@@ -56,7 +57,7 @@ fn check(source: &str) -> crate::CheckedSyntaxDocument {
 #[test]
 fn completion_policy_is_exact_checked_meaning() {
     let live = check("form example {\n tick: time/every(1s)\n}\n");
-    let finite = check("form example {\n .\n tick: time/every(1s)\n}\n");
+    let finite = check("form example {\n tick: time/every(1s)\n}.\n");
     assert_eq!(live.forms[0].completion, crate::FormCompletionPolicy::Live);
     assert_eq!(
         finite.forms[0].completion,
@@ -65,6 +66,33 @@ fn completion_policy_is_exact_checked_meaning() {
     assert_ne!(
         live.forms[0].checked_form_id,
         finite.forms[0].checked_form_id
+    );
+}
+
+#[test]
+fn keep_lifetime_optional_and_bound_are_exact_checked_meaning() {
+    let mut catalog = StartupCatalog::new();
+    catalog
+        .insert(KindSignature {
+            kind: "state/latest".into(),
+            startup_parameters: Vec::new(),
+        })
+        .unwrap();
+    let check_keep = |declaration: &str| {
+        let source = format!("form retained {{\n cell: {declaration}\n}}\n");
+        check_syntax_document(&parse_syntax_document(&source), &catalog)
+            .expect("canonical KEEP checks")
+            .forms[0]
+            .checked_form_id
+            .clone()
+    };
+    let step = check_keep("keep Text");
+    assert_ne!(step, check_keep("keep Text for this play"));
+    assert_ne!(step, check_keep("keep Text?"));
+    assert_ne!(step, check_keep("keep Text <= 128B"));
+    assert_eq!(
+        check_keep("keep Text for life"),
+        check_keep("keep Text for this body")
     );
 }
 

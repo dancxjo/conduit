@@ -93,6 +93,8 @@ pub struct FormFront {
 pub struct StartupParameter {
     pub name: SpannedText,
     pub value_type: SpannedText,
+    pub optional: bool,
+    pub maximum_bytes: Option<u64>,
     pub default: Option<Expression>,
     pub span: Span,
 }
@@ -106,8 +108,10 @@ pub enum RuntimePortDirection {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuntimePortTemporal {
     Value,
+    OptionalValue,
     Flow { closes: bool },
     Current,
+    CurrentOptional,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -116,6 +120,7 @@ pub struct RuntimePort {
     pub value_type: SpannedText,
     pub direction: RuntimePortDirection,
     pub temporal: RuntimePortTemporal,
+    pub maximum_bytes: Option<u64>,
     pub span: Span,
 }
 
@@ -177,7 +182,26 @@ pub struct PoolDeclaration {
 pub struct NamedGear {
     pub name: SpannedText,
     pub invocation: Invocation,
+    pub retained: Option<RetainedValue>,
     pub span: Span,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RetainedDuration {
+    Step,
+    Play,
+    Wake,
+    Boot,
+    Body,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RetainedValue {
+    pub value_type: SpannedText,
+    pub optional: bool,
+    pub maximum_bytes: Option<u64>,
+    pub initial: Option<Expression>,
+    pub duration: RetainedDuration,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

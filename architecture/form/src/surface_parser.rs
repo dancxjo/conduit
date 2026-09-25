@@ -1,14 +1,15 @@
 use crate::prelude::*;
 use crate::surface_lex::{
     delimiters_are_balanced, is_name, is_operation, is_reference, location, split_declaration,
-    split_top_level, split_top_level_once, split_top_level_token, top_level_positions,
-    top_level_token_positions, SourceLine,
+    split_top_level, split_top_level_token, top_level_positions, top_level_token_positions,
+    SourceLine,
 };
 use crate::syntax::{
     Argument, BackStatement, ConstructionRole, ConstructionSyntax, Cord, CordStage, Expression,
     FormCompletionPolicy, FormFront, FormSyntax, Invocation, LocalValue, MatchedRoute,
-    MatchedRouteArm, MatchedRoutePattern, NamedGear, RuntimePort, RuntimePortDirection,
-    RuntimePortTemporal, ShorthandPair, SpannedText, StartupParameter, SyntaxDocument,
+    MatchedRouteArm, MatchedRoutePattern, NamedGear, RetainedDuration, RetainedValue, RuntimePort,
+    RuntimePortDirection, RuntimePortTemporal, ShorthandPair, SpannedText, StartupParameter,
+    SyntaxDocument,
 };
 use crate::{
     diagnostic, eof_span, tokenize_losslessly, FormError, Span, MAXIMUM_FORM_SOURCE_BYTES,
@@ -59,20 +60,75 @@ pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
 }
 
 fn parse_port_type(value_type: &str) -> Option<(&str, RuntimePortTemporal)> {
-    let (value_type, temporal) = if let Some(value_type) = value_type.strip_prefix('$') {
+    let (value_type, temporal) = if let Some(value_type) = value_type
+        .strip_prefix('$')
+        .and_then(|value| value.strip_suffix('?'))
+    {
+        (value_type, RuntimePortTemporal::CurrentOptional)
+    } else if let Some(value_type) = value_type.strip_prefix('$') {
         (value_type, RuntimePortTemporal::Current)
     } else if let Some(value_type) = value_type.strip_suffix("...|") {
         (value_type, RuntimePortTemporal::Flow { closes: true })
     } else if let Some(value_type) = value_type.strip_suffix("...") {
         (value_type, RuntimePortTemporal::Flow { closes: false })
+    } else if let Some(value_type) = value_type.strip_suffix('?') {
+        (value_type, RuntimePortTemporal::OptionalValue)
     } else {
         (value_type, RuntimePortTemporal::Value)
     };
     (!value_type.is_empty()
         && !value_type.starts_with('$')
         && !value_type.ends_with("...")
-        && !value_type.ends_with("...|"))
+        && !value_type.ends_with("...|")
+        && !value_type.ends_with('?'))
     .then_some((value_type, temporal))
+}
+
+fn parse_finite_bound(source: &str) -> Option<u64> {
+    let source = source.trim();
+    let (digits, multiplier) = if let Some(value) = source.strip_suffix("KiB") {
+        (value, 1_024_u64)
+    } else if let Some(value) = source.strip_suffix("MiB") {
+        (value, 1_048_576_u64)
+    } else if let Some(value) = source.strip_suffix('B') {
+        (value, 1_u64)
+    } else {
+        return None;
+    };
+    digits
+        .trim()
+        .parse::<u64>()
+        .ok()
+        .and_then(|value| value.checked_mul(multiplier))
+        .filter(|value| *value > 0)
+}
+
+fn split_type_bound(value_type: &str) -> Option<(&str, Option<u64>)> {
+    let parts = split_top_level_token(value_type, "<=");
+    match parts.as_slice() {
+        [value_type] => Some((value_type.trim(), None)),
+        [value_type, bound] => Some((value_type.trim(), Some(parse_finite_bound(bound)?))),
+        _ => None,
+    }
+}
+
+fn canonical_default_bound(value_type: &str) -> Option<u64> {
+    match value_type {
+        "Text" => Some(256),
+        "Bytes" => Some(65_536),
+        _ => None,
+    }
+}
+
+fn split_default(text: &str) -> (&str, Option<&str>) {
+    top_level_positions(text, '=')
+        .into_iter()
+        .find(|position| {
+            *position == 0 || !matches!(text.as_bytes()[position - 1], b'<' | b'>' | b'!' | b'=')
+        })
+        .map_or((text, None), |position| {
+            (&text[..position], Some(&text[position + 1..]))
+        })
 }
 
 struct Parser<'a> {
@@ -236,13 +292,25 @@ impl<'a> Parser<'a> {
         text: &str,
         start: usize,
     ) -> Result<StartupParameter, (FormError, Span)> {
-        let (left, default) = split_top_level_once(text, '=');
+        let (left, default) = split_default(text);
         let (name, value_type) =
             split_declaration(left).ok_or_else(|| self.invalid_statement(text, start))?;
         let span = self.span(start, start + text.len());
+        let (value_type, explicit_bound) =
+            split_type_bound(value_type).ok_or_else(|| self.invalid_statement(text, start))?;
+        let (value_type, temporal) =
+            parse_port_type(value_type).ok_or_else(|| self.invalid_statement(text, start))?;
+        if !matches!(
+            temporal,
+            RuntimePortTemporal::Value | RuntimePortTemporal::OptionalValue
+        ) {
+            return Err(self.invalid_statement(text, start));
+        }
         Ok(StartupParameter {
             name: self.spanned_at(name, text, start),
             value_type: self.spanned_at(value_type, text, start),
+            optional: temporal == RuntimePortTemporal::OptionalValue,
+            maximum_bytes: explicit_bound.or_else(|| canonical_default_bound(value_type)),
             default: default
                 .map(|value| self.expression_at(value, text, start))
                 .transpose()?,
@@ -309,6 +377,8 @@ impl<'a> Parser<'a> {
     ) -> Result<RuntimePort, (FormError, Span)> {
         let (name, value_type) =
             split_declaration(declaration).ok_or_else(|| self.invalid_statement(line, start))?;
+        let (value_type, explicit_bound) =
+            split_type_bound(value_type).ok_or_else(|| self.invalid_statement(line, start))?;
         let (value_type, temporal) =
             parse_port_type(value_type).ok_or_else(|| self.invalid_statement(line, start))?;
         Ok(RuntimePort {
@@ -316,6 +386,7 @@ impl<'a> Parser<'a> {
             value_type: self.spanned_at(value_type, line, start),
             direction,
             temporal,
+            maximum_bytes: explicit_bound.or_else(|| canonical_default_bound(value_type)),
             span: self.span(
                 start + line.find(declaration).unwrap(),
                 start + line.find(declaration).unwrap() + declaration.len(),
@@ -327,11 +398,15 @@ impl<'a> Parser<'a> {
         &mut self,
     ) -> Result<(Vec<BackStatement>, FormCompletionPolicy), (FormError, Span)> {
         let mut statements = Vec::new();
-        let mut completion = FormCompletionPolicy::Live;
         while self.index < self.lines.len() {
             let line = self.lines[self.index];
             let (text, start) = line.statement();
-            if text == "}" {
+            if text == "}" || text == "}." {
+                let completion = if text == "}." {
+                    FormCompletionPolicy::SemanticCompletion
+                } else {
+                    FormCompletionPolicy::Live
+                };
                 self.index += 1;
                 return Ok((statements, completion));
             }
@@ -344,22 +419,19 @@ impl<'a> Parser<'a> {
                 continue;
             }
             if text == "." {
-                if completion == FormCompletionPolicy::SemanticCompletion {
-                    return Err((
-                        FormError::InvalidSyntax(
-                            "a form may contain only one semantic full stop".into(),
-                        ),
-                        self.span(start, start + text.len()),
-                    ));
-                }
-                completion = FormCompletionPolicy::SemanticCompletion;
-                self.index += 1;
-                continue;
+                return Err((
+                    FormError::InvalidSyntax(
+                        "a semantic full stop belongs after the form body; use '}' followed immediately by '.' ('}.')"
+                            .into(),
+                    ),
+                    self.span(start, start + text.len()),
+                ));
             }
             if text == "complete" {
                 return Err((
                     FormError::InvalidSyntax(
-                        "'complete' is not Conduitese; use a standalone '.' full stop".into(),
+                        "'complete' is not Conduitese; use a trailing full stop after the form body ('}.')"
+                            .into(),
                     ),
                     self.span(start, start + text.len()),
                 ));
@@ -546,10 +618,26 @@ impl<'a> Parser<'a> {
                     self.span(start, start + text.len()),
                 ));
             }
-            let invocation = self.parse_invocation(invoked, start + text.find(invoked).unwrap())?;
+            let invoked_start = start + text.find(invoked).unwrap();
+            if let Some(retained) = invoked.strip_prefix("keep ") {
+                let retained =
+                    self.parse_retained_value(retained, invoked_start + "keep ".len())?;
+                return Ok(BackStatement::NamedGear(NamedGear {
+                    name: self.spanned_at(name, text, start),
+                    invocation: Invocation {
+                        kind: self.spanned("state/latest", invoked_start),
+                        arguments: Vec::new(),
+                        span: self.span(invoked_start, start + text.len()),
+                    },
+                    retained: Some(retained),
+                    span: self.span(start, start + text.len()),
+                }));
+            }
+            let invocation = self.parse_invocation(invoked, invoked_start)?;
             return Ok(BackStatement::NamedGear(NamedGear {
                 name: self.spanned_at(name, text, start),
                 invocation,
+                retained: None,
                 span: self.span(start, start + text.len()),
             }));
         }
@@ -566,6 +654,70 @@ impl<'a> Parser<'a> {
             }));
         }
         Err(self.invalid_statement(text, start))
+    }
+
+    fn parse_retained_value(
+        &self,
+        source: &str,
+        start: usize,
+    ) -> Result<RetainedValue, (FormError, Span)> {
+        let durations = [
+            (" for this step", RetainedDuration::Step),
+            (" for this play", RetainedDuration::Play),
+            (" for this wake", RetainedDuration::Wake),
+            (" for this boot", RetainedDuration::Boot),
+            (" for this body", RetainedDuration::Body),
+            (" for life", RetainedDuration::Body),
+        ];
+        let (value, duration) = durations
+            .iter()
+            .find_map(|(suffix, duration)| {
+                source
+                    .strip_suffix(suffix)
+                    .map(|value| (value.trim(), *duration))
+            })
+            .unwrap_or((source.trim(), RetainedDuration::Step));
+        let parts = split_top_level_token(value, "<=");
+        let (value, explicit_bound) = match parts.as_slice() {
+            [value] => (value.trim(), None),
+            [value, bound] => (
+                value.trim(),
+                Some(
+                    parse_finite_bound(bound)
+                        .ok_or_else(|| self.invalid_statement(source, start))?,
+                ),
+            ),
+            _ => return Err(self.invalid_statement(source, start)),
+        };
+        let (value_type, initial) = if let Some(open) = value.find('(') {
+            if !value.ends_with(')') {
+                return Err(self.invalid_statement(source, start));
+            }
+            let initial = value[open + 1..value.len() - 1].trim();
+            if initial.is_empty() {
+                return Err(self.invalid_statement(source, start));
+            }
+            (
+                &value[..open],
+                Some(self.expression_at(initial, value, start)?),
+            )
+        } else {
+            (value, None)
+        };
+        let (value_type, temporal) = parse_port_type(value_type.trim())
+            .ok_or_else(|| self.invalid_statement(source, start))?;
+        let optional = match temporal {
+            RuntimePortTemporal::Value => false,
+            RuntimePortTemporal::OptionalValue => true,
+            _ => return Err(self.invalid_statement(source, start)),
+        };
+        Ok(RetainedValue {
+            value_type: self.spanned(value_type, start + source.find(value_type).unwrap_or(0)),
+            optional,
+            maximum_bytes: explicit_bound.or_else(|| canonical_default_bound(value_type)),
+            initial,
+            duration,
+        })
     }
 
     fn parse_cord(&self, text: &str, start: usize) -> Result<Cord, (FormError, Span)> {

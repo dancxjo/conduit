@@ -142,6 +142,7 @@ pub(super) fn resolve_selectors(
                 value_type: "Text".to_string(),
                 value: CanonicalStartupValue::Literal(format!("\"{selector_configuration}\"")),
             }],
+            retained: None,
             source_span: *source_span,
         };
         let instance = instantiate_gear(

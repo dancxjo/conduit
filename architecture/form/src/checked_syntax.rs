@@ -145,6 +145,8 @@ pub struct CheckedStartupParameter {
     pub name: String,
     pub value_type: String,
     pub default: Option<CanonicalStartupValue>,
+    pub optional: bool,
+    pub maximum_bytes: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
@@ -153,6 +155,7 @@ pub struct CheckedCanonicalGear {
     pub kind: String,
     pub startup_parameters: Vec<conduit_core::FrontStartupParameter>,
     pub startup_bindings: Vec<CheckedStartupBinding>,
+    pub retained: Option<crate::RetainedValue>,
     pub source_span: Span,
 }
 
@@ -162,6 +165,7 @@ impl PartialEq for CheckedCanonicalGear {
             && self.kind == other.kind
             && self.startup_parameters == other.startup_parameters
             && self.startup_bindings == other.startup_bindings
+            && self.retained == other.retained
     }
 }
 
