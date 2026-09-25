@@ -76,7 +76,7 @@ for (const file of release.files) {
 for (const name of ["browser-page.json", "browser-bundle-release.json"]) {
   await copyFile(path.join(bundleRoot, name), path.join(outputRoot, "bundle", name));
 }
-for (const name of ["package.json", "browser-sdk.mjs", "browser-sdk-forms.mjs", "browser-sdk.d.ts", "README.md"]) {
+for (const name of ["package.json", "browser-sdk.mjs", "browser-sdk-forms.mjs", "browser-sdk-events.mjs", "browser-sdk.d.ts", "README.md"]) {
   await copyFile(path.join(ROOT, name), path.join(outputRoot, name));
 }
 for (const name of ["browser-body-host.mjs", "browser-body-input.mjs", "browser-human-input.mjs", "browser-audio-cue.mjs", "browser-pcm-audio.mjs", "browser-form-effects.mjs", "application-presentation.mjs", "application-theme.mjs", "browser-runtime-bridge.mjs"]) {

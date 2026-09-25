@@ -1,3 +1,5 @@
+import { createBodyEventStream, maximumBodyEventSubscriptions, projectBodySnapshot } from "./browser-sdk-events.mjs";
+
 const SOURCE_SCHEMA = "conduit.browser/form-source@1";
 const CHECK_SCHEMA = "conduit.browser/checked-source@1";
 const FORM_SCHEMA = "conduit.browser/checked-form@1";
@@ -68,6 +70,7 @@ export class BrowserBody {
   #createPlay;
   #play = null;
   #opened = false;
+  #eventSubscriptions = 0;
   constructor(key, { bridge, host, boot, api, root, createPlay, advertisement, source, receipt, sequence }) {
     if (key !== BODY_KEY) throw new TypeError("BrowserBody values come from an admitted Host BIRTH");
     this.#bridge = bridge; this.#host = host; this.#boot = boot;
@@ -84,7 +87,22 @@ export class BrowserBody {
     this.#openWorkspace();
     const { status, outputJson } = this.#bridge.workspaceRequest({ action: "Current" });
     if (status < 0) throw sdkRefusal("Body.current", outputJson, this.#identities());
-    return outputJson;
+    return projectBodySnapshot(outputJson);
+  }
+
+  snapshot() { return this.current(); }
+
+  events({ replay = false, pollIntervalMillis = 250, signal } = {}) {
+    return createBodyEventStream({
+      readSnapshot: () => this.current(), signal, replay, pollIntervalMillis,
+      reserve: () => {
+        if (this.#eventSubscriptions >= maximumBodyEventSubscriptions) {
+          throw sdkRefusal("Body.events", { code: "EventPressure", message: "Body event subscription capacity is full" }, this.#identities());
+        }
+        this.#eventSubscriptions++;
+      },
+      release: () => { this.#eventSubscriptions = Math.max(0, this.#eventSubscriptions - 1); },
+    });
   }
 
   /** Admit one exact Plan and return the Play receipt emitted by the Rust runtime. */

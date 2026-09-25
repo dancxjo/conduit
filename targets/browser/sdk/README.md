@@ -122,6 +122,41 @@ permission decision, or resource handle. Those belong to later Host and Plan
 decisions. This is what lets one checked meaning remain portable without
 pretending each Host can realize it.
 
+## Snapshots and evidence events
+
+`body.snapshot()` independently refreshes the exact Workspace snapshot. Its
+Body biography records, membership records, workload revision, realization,
+and current Host offers remain Rust evidence; the SDK returns a recursively
+frozen projection and keeps no second mutable Body store.
+
+`body.events()` reads that same bounded snapshot and projects only retained
+Body biography records with their exact sequence and Sign identity. It joins a
+wake record to its indexed Rust wake event and returns the raw structured
+event as evidence. Host-offer notifications include the observed before/after
+offers and identify generation advances that were coalesced between polls.
+They are change notifications, not additional Signs. If biography detail was
+compacted while a consumer was away, the stream reports the exact compaction
+boundary; it does not invent missing history.
+
+Subscriptions poll at a bounded interval (50–5,000 ms), yield one event at a
+time, and hold no unbounded event queue. Re-subscribing starts at current
+evidence by default. Set `replay: true` to read the finite retained biography
+window explicitly. Pass an `AbortSignal` to stop the iterator. An event can
+only describe a Rust record already present in the snapshot, so a refused
+transition never appears as a success event. Refusals remain attached to the
+operation's typed error; lifecycle evidence remains inspectable through the
+snapshot independently of subscriptions.
+
+```js
+const snapshot = await body.snapshot();
+console.log(snapshot.evidence.body_id, snapshot.evidence.body.workload_revision);
+
+const controller = new AbortController();
+for await (const event of body.events({ signal: controller.signal })) {
+  console.log(event.type, event.identity, event.evidence);
+}
+```
+
 For a no-bundler static page, serve the complete package directory from the
 same origin and import `browser-sdk.mjs` directly:
 

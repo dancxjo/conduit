@@ -11,6 +11,10 @@ const form = {
   checked_form_id: "sha256:checked",
   required_kinds: ["presentation/tick"],
 };
+const bodySnapshot = (revision) => ({ schema: "conduit.workspace/body@1", evidence: {
+  schema: "conduit.body/biography-evidence@2", body_id: "body/1", body: { workload_revision: revision },
+  membership: { revision: 0 }, records: [], wakes: [],
+}, current_host_offers: [] });
 
 test("Form check projects Rust source and checked identities without parsing in JavaScript", async () => {
   const bridge = { crecheReviewedInventory(input) {
@@ -58,7 +62,7 @@ test("Host workload review returns bounded realization requirements without crea
 
 test("workset changes send canonical checked identity and exact observed workload revision", async () => {
   const requests = [];
-  const snapshot = { schema: "conduit.workspace/body@1", evidence: { body: { workload_revision: 7 } } };
+  const snapshot = bodySnapshot(7);
   const bridge = {
     crecheAdmitSourceInteraction: () => ({ status: 0, outputJson: {} }),
     crecheBirth: () => ({ status: 0, outputJson: { body_id: "body/1" } }),
@@ -83,7 +87,7 @@ test("workset refusal retains the exact expected revision", async () => {
   const bridge = { workspaceRequest(request) {
     return request.action === "ChangeWorkset"
       ? { status: -2, outputJson: { code: "StaleWorkload", message: "revision changed" } }
-      : { status: 0, outputJson: { schema: "conduit.workspace/body@1", evidence: { body: { workload_revision: 4 } } } };
+      : { status: 0, outputJson: bodySnapshot(4) };
   }, crecheAdmitSourceInteraction: () => ({ status: 0, outputJson: {} }), crecheBirth: () => ({ status: 0, outputJson: { body_id: "body/1" } }), crecheAttachHere: () => ({ status: 0, outputJson: { body_id: "body/1" } }) };
   const checked = { schema: "conduit.browser/checked-form@1", name: "clock", source, documentSource: source, sourceDocumentId: "sha256:source", checkedFormId: "sha256:checked" };
   const body = await birthBrowserBody({ bridge, host: "host/1", boot: "boot/1", membership: { advertisement: () => ({}) }, name: "Clock", forms: [checked], sequence: () => 1 });
