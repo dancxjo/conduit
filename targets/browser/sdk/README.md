@@ -61,7 +61,9 @@ if (!checked.ok) {
 
   const body = await host.birth({ name: "Clock", forms: checked.forms });
   await body.install(clock);
-  await body.remove(checked.forms[0]);
+  const play = await body.wake();
+  console.log(play.id, play.plan.planId, play.state);
+  await body.lull();
 }
 ```
 
@@ -87,6 +89,33 @@ on that Body's workload. Each operation reads the current authoritative
 workload revision and submits it as the expected revision; a stale update is a
 typed refusal with the runtime evidence and revision that was used. Form
 identity and workload revision are not browser-side mutable state.
+
+## From workload to Play
+
+`wake()` asks the Rust Workspace to propose a Plan for the Body's current
+workset against the current Host offers. The proposal is still not execution.
+The reviewed Browser Host adapter then acquires exactly the Plan's local
+resources and supplies their observations to the Rust start boundary. Only the
+runtime's admitted `BodyPlayIdentity` becomes the returned `BrowserPlay`; a
+refused proposal or resource admission remains a typed refusal with its source
+evidence. Once started, the same adapter dispatches kernel effects through the
+existing browser timer, input, presentation, audio, and resource adapters.
+Application code never implements a Gear or effect dispatcher.
+
+`play.id` is the runtime's active Play identity, and `play.plan` exposes the
+exact Body, Plan, and Wake identities that admitted it. `play.dispatch()` gives
+access to the bounded adapter completion receipt. `body.lull()` closes the
+current adapter and records the exact terminated Play against current Workspace
+truth. A Plan proposal is not exposed as a Play, and a rejected start does not
+produce a successful lifecycle receipt. Host, Boot, Body, Plan, Wake, and Play
+identities therefore keep their separate meanings even on one page.
+
+The initial SDK profile has a finite, reviewed local adapter set. A capability
+that is absent, unselected, unavailable, permission-denied, or lost remains a
+distinct Host/runtime outcome; the SDK does not infer readiness from bundled
+code or prompt while planning. Distributed execution Lines and permission-
+gated acquisition are only usable when the admitted Plan and selected Host
+profile provide their exact support.
 
 Forms intentionally contain no DOM selector, browser API, implementation ID,
 permission decision, or resource handle. Those belong to later Host and Plan
@@ -159,4 +188,4 @@ The BrowserHost surface carries exact Host and Boot identity, while its current
 offers remain a refreshed projection of Boot evidence. Forms and Body workload
 operations use that same admitted Browser runtime. Typed refusal classes retain
 machine category, operation, and runtime evidence. Typed events, full Play
-lifecycle, effects, and recovery are layered on the same Host and Body contracts.
+lifecycle, and reload recovery are layered on the same Host and Body contracts.

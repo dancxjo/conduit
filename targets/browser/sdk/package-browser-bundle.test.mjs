@@ -65,7 +65,10 @@ try {
   const listing = JSON.parse(packed.stdout)[0].files.map(({ path: file }) => file);
   assert(listing.includes("browser-sdk.mjs"));
   assert(listing.includes("browser-sdk-forms.mjs"));
+  assert(listing.includes("host/assets/browser-body-host.mjs"));
   assert(listing.includes("bundle/runtime.wasm"));
+  const imported = spawnSync(process.execPath, ["--input-type=module", "-e", "await import('./browser-sdk.mjs')"], { cwd: output, encoding: "utf8" });
+  assert.equal(imported.status, 0, imported.stderr);
 
   await writeFile(path.join(source, "runtime.wasm"), new Uint8Array([1, 2, 3]));
   const rejected = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), source, path.join(scratch, "rejected")], { encoding: "utf8" });
