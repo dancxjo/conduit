@@ -43,6 +43,7 @@ pub(super) fn expand_literal(
             value_type: "Text".to_string(),
             value: value.clone(),
         }],
+        retained: None,
         source_span,
     };
     let instance = instantiate_gear(

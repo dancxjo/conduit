@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 
 #[test]
 fn forms_are_live_by_default_and_completion_is_explicit() {
-    let source = "form live {\n    source: text/literal(\"ready\")\n}\nform finite {\n    .\n    source: text/literal(\"done\")\n}\n";
+    let source = "form live {\n    source: text/literal(\"ready\")\n}\nform finite {\n    source: text/literal(\"done\")\n}.\n";
     let document = parse_syntax_document(source);
     assert!(
         document.diagnostics.is_empty(),
@@ -22,12 +22,12 @@ fn forms_are_live_by_default_and_completion_is_explicit() {
 }
 
 #[test]
-fn duplicate_completion_declarations_are_rejected() {
-    let document = parse_syntax_document("form invalid {\n    .\n    .\n}\n");
+fn freestanding_completion_full_stop_is_rejected() {
+    let document = parse_syntax_document("form invalid {\n    .\n}\n");
     assert_eq!(document.diagnostics.len(), 1);
     assert!(document.diagnostics[0]
         .message
-        .contains("only one semantic full stop"));
+        .contains("belongs after the form body"));
 }
 
 #[test]
@@ -39,7 +39,7 @@ fn english_completion_keyword_is_not_retained_as_an_alias() {
         &source[diagnostic.span.start..diagnostic.span.end],
         "complete"
     );
-    assert!(diagnostic.message.contains("standalone '.' full stop"));
+    assert!(diagnostic.message.contains("after the form body"));
 }
 
 #[test]
@@ -55,6 +55,61 @@ fn legacy_single_greater_than_is_not_retained_as_a_cord_alias() {
             .iter()
             .any(|diagnostic| diagnostic.code == "CND-FRM-019"));
     }
+}
+
+#[test]
+fn all_canonical_temporal_modalities_and_finite_bounds_are_retained() {
+    let source = "form temporal (\n    >> one: Text\n    >> current: $Text\n    >> flow: Text...\n    >> closing: Text...|\n    >> maybe: Text?\n    current-maybe: $Text? >>\n    bounded: Text <= 4KiB >>\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let ports = &document.forms[0].front.runtime_ports;
+    assert_eq!(ports[0].temporal, RuntimePortTemporal::Value);
+    assert_eq!(ports[1].temporal, RuntimePortTemporal::Current);
+    assert_eq!(
+        ports[2].temporal,
+        RuntimePortTemporal::Flow { closes: false }
+    );
+    assert_eq!(
+        ports[3].temporal,
+        RuntimePortTemporal::Flow { closes: true }
+    );
+    assert_eq!(ports[4].temporal, RuntimePortTemporal::OptionalValue);
+    assert_eq!(ports[5].temporal, RuntimePortTemporal::CurrentOptional);
+    assert_eq!(ports[0].maximum_bytes, Some(256));
+    assert_eq!(ports[6].maximum_bytes, Some(4 * 1024));
+}
+
+#[test]
+fn keep_parses_initializers_bounds_and_every_canonical_lifetime() {
+    let source = "form retained {\n    step: keep Text\n    play: keep Integer for this play\n    wake: keep Text <= 128B for this wake\n    boot: keep Bytes <= 2MiB for this boot\n    body: keep Text? <= 4KiB for this body\n    life: keep Count(0) for life\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let retained = document.forms[0]
+        .back
+        .iter()
+        .map(|statement| match statement {
+            BackStatement::NamedGear(gear) => gear.retained.as_ref().unwrap(),
+            _ => panic!("expected KEEP-backed Gear"),
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(retained[0].duration, crate::RetainedDuration::Step);
+    assert_eq!(retained[1].duration, crate::RetainedDuration::Play);
+    assert_eq!(retained[2].duration, crate::RetainedDuration::Wake);
+    assert_eq!(retained[3].duration, crate::RetainedDuration::Boot);
+    assert_eq!(retained[4].duration, crate::RetainedDuration::Body);
+    assert_eq!(retained[5].duration, crate::RetainedDuration::Body);
+    assert_eq!(retained[2].maximum_bytes, Some(128));
+    assert_eq!(retained[3].maximum_bytes, Some(2 * 1024 * 1024));
+    assert!(retained[4].optional);
+    assert_eq!(retained[5].initial.as_ref().unwrap().text, "0");
 }
 
 #[test]

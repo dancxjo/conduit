@@ -18,13 +18,12 @@ Start with one tiny form:
 
 ```conduit run
 form meet-one-gear {
-    .
     words: text/literal("hello")
     change: text/upper
     result: presentation/text
 
     words >> change >> result
-}
+}.
 ```
 
 Run it, then inspect the graph. The source and the Patchbay show the same form from different views. The Patchbay **projects** checked form truth; it is not the form itself.

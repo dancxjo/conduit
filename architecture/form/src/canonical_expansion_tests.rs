@@ -50,6 +50,42 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
     }
 }
 
+#[test]
+fn canonical_keep_uses_the_existing_retained_current_gear_and_direction_sugar() {
+    let source = "form retained {\n cell: keep Scalar for this play\n}\n";
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert(KindSignature {
+            kind: "state/latest".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let mut profiles = ProfileCatalog::new();
+    profiles
+        .insert(KindProjection {
+            kind_id: kind_id("state/latest"),
+            kind_contract_revision: KindIdentity::from("state/latest-scalar@1"),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("in"),
+                value_kind: kind_id("value/scalar"),
+                direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Flow { closes: true },
+            }],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("out"),
+                value_kind: kind_id("value/scalar"),
+                direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Current,
+            }],
+            configuration: vec![],
+        })
+        .unwrap();
+    let expanded = expand_canonical_form(&checked, "retained", &profiles).unwrap();
+    assert_eq!(expanded.gears.len(), 1);
+    assert_eq!(expanded.gears[0].kind_id.as_str(), "state/latest");
+}
+
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     startup

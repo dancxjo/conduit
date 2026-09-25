@@ -8,6 +8,7 @@ use conduit_core::CheckedFormId;
 pub(crate) fn checked_identity(
     meaning: (&str, FormCompletionPolicy),
     parameters: &[CheckedStartupParameter],
+    runtime_ports: &[crate::RuntimePort],
     runtime_front: &conduit_core::CheckedFront,
     shorthand: Option<(&str, &str)>,
     gears: &[CheckedCanonicalGear],
@@ -28,6 +29,20 @@ pub(crate) fn checked_identity(
         canonical.push_str("param");
         push_field(&mut canonical, &parameter.name);
         push_field(&mut canonical, &parameter.value_type);
+        push_field(
+            &mut canonical,
+            if parameter.optional {
+                "optional"
+            } else {
+                "required-value"
+            },
+        );
+        push_field(
+            &mut canonical,
+            &parameter
+                .maximum_bytes
+                .map_or_else(|| "intrinsic".into(), |value| value.to_string()),
+        );
         let default = parameter
             .default
             .as_ref()
@@ -41,6 +56,17 @@ pub(crate) fn checked_identity(
         push_field(&mut canonical, port.value_kind.as_str());
         push_field(&mut canonical, &format!("{:?}", port.direction));
         push_field(&mut canonical, port.temporal.as_str());
+    }
+    for port in runtime_ports {
+        canonical.push_str("port-contract");
+        push_field(&mut canonical, &port.name.text);
+        push_field(&mut canonical, &format!("{:?}", port.temporal));
+        push_field(
+            &mut canonical,
+            &port
+                .maximum_bytes
+                .map_or_else(|| "intrinsic".into(), |value| value.to_string()),
+        );
     }
     if let Some((input, output)) = shorthand {
         canonical.push_str("shorthand");
@@ -98,6 +124,32 @@ pub(crate) fn canonical_gear(gear: &CheckedCanonicalGear) -> String {
         push_field(&mut value, &binding.name);
         push_field(&mut value, &binding.value_type);
         push_field(&mut value, &canonical_value(&binding.value));
+    }
+    if let Some(retained) = &gear.retained {
+        push_field(&mut value, "keep");
+        push_field(&mut value, &retained.value_type.text);
+        push_field(
+            &mut value,
+            if retained.optional {
+                "optional"
+            } else {
+                "required-value"
+            },
+        );
+        push_field(
+            &mut value,
+            &retained
+                .maximum_bytes
+                .map_or_else(|| "intrinsic".into(), |bound| bound.to_string()),
+        );
+        push_field(&mut value, &format!("{:?}", retained.duration));
+        push_field(
+            &mut value,
+            retained
+                .initial
+                .as_ref()
+                .map_or("none", |initial| initial.text.as_str()),
+        );
     }
     value
 }
