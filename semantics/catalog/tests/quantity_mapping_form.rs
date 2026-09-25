@@ -81,7 +81,7 @@ fn quantity_range_map_lowers_with_production_map_quantity_contract_and_exact_uni
 }
 
 #[test]
-fn production_quantity_map_refuses_invalid_enum_fields_and_exposes_range_hole() {
+fn production_quantity_map_refuses_invalid_enum_fields() {
     let (startup, profile) = catalogs();
     let source = include_str!("../../../forms/quantity-range-map/main.conduit");
     let wrong_unit = source.replace("unit = \"Hz\"", "unit = \"GHz\"");
@@ -91,7 +91,12 @@ fn production_quantity_map_refuses_invalid_enum_fields_and_exposes_range_hole() 
     let error = expand_canonical_form_for_authoring(&checked, "quantity-range-map", &profile).unwrap_err();
     assert_eq!(error.code, "CND-FRM-040");
     assert!(error.message.contains("unit"));
+}
 
+#[test]
+fn target_maximum_range_validation_is_a_known_blocker_in_production_quantity_map() {
+    let (startup, profile) = catalogs();
+    let source = include_str!("../../../forms/quantity-range-map/main.conduit");
     let out_of_range = source.replace("target-maximum = 20000", "target-maximum = 200000000000");
     let parsed = parse_syntax_document(&out_of_range);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
