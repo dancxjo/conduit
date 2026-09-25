@@ -118,7 +118,8 @@ fn canonical_distance_frequency_keep_is_real_production_language() {
 
 #[test]
 fn dimension_and_range_mistakes_refuse_on_the_production_path() {
-    let source = include_str!("../../../proof/fixtures/forms/pocket-theremin-distance-frequency.conduit");
+    let source =
+        include_str!("../../../proof/fixtures/forms/pocket-theremin-distance-frequency.conduit");
 
     let wrong_dimension = source.replacen("source-maximum = 30cm", "source-maximum = 30Hz", 1);
     let error = expand_theremin(&wrong_dimension).unwrap_err();
