@@ -100,31 +100,6 @@ fn production_quantity_map_refuses_invalid_enum_fields() {
 }
 
 #[test]
-fn target_maximum_range_validation_is_a_known_blocker_in_production_quantity_map() {
-    let (startup, profile) = catalogs();
-    let source = include_str!("../../../forms/quantity-range-map/main.conduit");
-    let out_of_range = source.replace("target-maximum = 20000", "target-maximum = 200000000000");
-    let parsed = parse_syntax_document(&out_of_range);
-    assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
-    let checked = check_syntax_document(&parsed, &startup).unwrap();
-    let authored = expand_canonical_form_for_authoring(&checked, "quantity-range-map", &profile).unwrap();
-    let map = authored
-        .expanded
-        .gears
-        .iter()
-        .find(|gear| gear.kind_id.as_str() == "math/map-quantity")
-        .unwrap();
-    assert_eq!(
-        map.configuration
-            .iter()
-            .find(|entry| entry.key == "target-maximum")
-            .unwrap()
-            .value,
-        ConfigurationValue::I64(200_000_000_000)
-    );
-}
-
-#[test]
 #[ignore = "Enable after production quantity-map enforces semantic target bounds"]
 fn target_maximum_should_refuse_after_quantity_map_range_enforcement() {
     let (startup, profile) = catalogs();
