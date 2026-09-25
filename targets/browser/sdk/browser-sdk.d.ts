@@ -137,7 +137,7 @@ export class BrowserPlay {
   readonly id: string;
   readonly identity: Readonly<Record<string, string>>;
   readonly plan: Readonly<{ planId: string; wakeId: string; bodyId: string }>;
-  readonly state: "playing" | "terminal" | "refused";
+  readonly state: "playing" | "terminal" | "failed";
   readonly receipts: readonly Readonly<Record<string, unknown>>[];
   dispatch(): Promise<Readonly<Record<string, unknown>> | null>;
   terminate(): Promise<Readonly<Record<string, unknown>> | null>;

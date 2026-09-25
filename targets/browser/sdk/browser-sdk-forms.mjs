@@ -111,7 +111,7 @@ export class BrowserBody {
       if (accepted.status < 0) throw sdkRefusal("Body.wake.started", accepted.outputJson, this.#identities());
       const play = this.#createPlay({ started, adapter });
       this.#play = play;
-      play.dispatch();
+      play.dispatch().catch(() => {});
       return play;
     } catch (error) {
       const closed = adapter?.close();
@@ -237,7 +237,7 @@ async function checkedFormValue(value, bridge) {
   return value.forms[0];
 }
 
-function sdkRefusal(operation, refusal, identity, revision) {
+export function sdkRefusal(operation, refusal, identity, revision) {
   const code = refusal?.code ?? "FormRefused";
   const details = {
     code,
