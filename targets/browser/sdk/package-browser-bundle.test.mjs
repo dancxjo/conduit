@@ -65,6 +65,7 @@ try {
   const listing = JSON.parse(packed.stdout)[0].files.map(({ path: file }) => file);
   assert(listing.includes("browser-sdk.mjs"));
   assert(listing.includes("browser-sdk-forms.mjs"));
+  assert(listing.includes("browser-sdk-events.mjs"));
   assert(listing.includes("host/assets/browser-body-host.mjs"));
   assert(listing.includes("bundle/runtime.wasm"));
   const imported = spawnSync(process.execPath, ["--input-type=module", "-e", "await import('./browser-sdk.mjs')"], { cwd: output, encoding: "utf8" });

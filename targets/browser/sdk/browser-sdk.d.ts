@@ -123,12 +123,36 @@ export class BrowserBody {
   readonly id: string;
   readonly receipt: Readonly<Record<string, unknown>>;
   current(): Promise<Readonly<Record<string, unknown>>>;
+  /** Refresh one immutable projection of current Rust Body and Host evidence. */
+  snapshot(): Promise<BrowserBodySnapshot>;
+  /** Stream retained runtime events; replay is opt-in and notifications are polled/coalesced from bounded evidence. */
+  events(options?: { replay?: boolean; pollIntervalMillis?: number; signal?: AbortSignal }): AsyncIterable<BrowserBodyEvent>;
   /** Propose, admit, and start one exact runtime Play through the reviewed Browser Host adapters. */
   wake(): Promise<BrowserPlay>;
   /** Terminate or close the current Play and record the exact Body lull transition. */
   lull(): Promise<Readonly<Record<string, unknown>>>;
   install(form: BrowserForm | CheckedForm | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
   remove(form: BrowserForm | CheckedForm | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
+}
+
+export interface BrowserBodySnapshot extends Readonly<Record<string, unknown>> {
+  readonly schema: "conduit.workspace/body@1";
+  readonly evidence: Readonly<Record<string, unknown>> & {
+    readonly body_id: string;
+    readonly records: readonly Readonly<Record<string, unknown>>[];
+    readonly membership: Readonly<{ revision: number }>;
+    readonly body: Readonly<{ workload_revision: number }>;
+  };
+  readonly current_host_offers: readonly BrowserOffer[];
+}
+
+export interface BrowserBodyEvent {
+  readonly schema: "conduit.browser/body-event@1";
+  readonly id: string;
+  readonly type: string;
+  readonly identity: Readonly<Record<string, string | number | readonly string[]>>;
+  readonly pressure?: Readonly<{ coalescedGenerationAdvances: number }>;
+  readonly evidence: Readonly<Record<string, unknown>>;
 }
 
 export class BrowserPlay {
