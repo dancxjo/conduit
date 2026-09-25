@@ -429,7 +429,7 @@ mod tests {
                 .starts_with("One Program, Many Computers\n\n")
         );
         assert!(scene.commands()[7].payload().starts_with("Output\n\n"));
-        assert!(scene.commands()[5].payload().ends_with("}"));
+        assert!(scene.commands()[5].payload().ends_with("}."));
         assert!(scene.commands()[7].payload().contains("Patchbay open"));
         assert!(scene.commands().iter().take(16).all(|command| {
             command.clip_class() == conduit_presentation::GraphicsClipClass::FullyVisible
