@@ -7,7 +7,7 @@ use crate::{
 };
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, FrontStartupParameter, Kind, KindIdentity, PortDescriptor,
-    PortDirection,
+    PortDirection, Quantity, QuantityUnit,
 };
 
 fn canonical_kind(projection: KindProjection) -> Kind {
@@ -496,6 +496,7 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
             })
             .unwrap();
     }
+
     let mut profile = ProfileCatalog::new();
     profile
         .insert(KindProjection {
@@ -567,4 +568,83 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
             .code,
         "CND-FRM-045"
     );
+}
+
+#[test]
+fn quantity_startup_bindings_and_current_ports_expand_together() {
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert(KindSignature {
+            kind: "test/quantity-current".into(),
+            startup_parameters: vec![StartupParameterSignature {
+                name: "initial".into(),
+                value_type: "Quantity".into(),
+                default: Some("440Hz".into()),
+            }],
+        })
+        .unwrap();
+    startup
+        .insert(KindSignature {
+            kind: "test/current-sink".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+
+    let mut profile = ProfileCatalog::new();
+    profile
+        .insert_kind(canonical_kind(KindProjection {
+            kind_id: kind_id("test/quantity-current"),
+            kind_contract_revision: KindIdentity::from("test/quantity-current@1"),
+            inputs: vec![],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("out"),
+                value_kind: kind_id("value/quantity"),
+                direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Current,
+            }],
+            configuration: vec![KindConfigurationField {
+                key: "initial".into(),
+                default_value: ConfigurationValue::Quantity(Quantity::new(440, QuantityUnit::Hertz)),
+                rule: KindConfigurationRule::QuantityRange {
+                    minimum: 220,
+                    maximum: 880,
+                    canonical_unit: QuantityUnit::Hertz,
+                },
+            }],
+        }))
+        .unwrap();
+    profile
+        .insert_kind(canonical_kind(KindProjection {
+            kind_id: kind_id("test/current-sink"),
+            kind_contract_revision: KindIdentity::from("test/current-sink@1"),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("in"),
+                value_kind: kind_id("value/quantity"),
+                direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Current,
+            }],
+            outputs: vec![],
+            configuration: vec![],
+        }))
+        .unwrap();
+
+    let source =
+        "form main {\n    hold: test/quantity-current(initial = 440Hz)\n    sink: test/current-sink\n    hold.out > sink.in\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "main", &profile).unwrap();
+    let hold = expanded
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == "test/quantity-current")
+        .unwrap();
+    assert_eq!(
+        hold.configuration
+            .iter()
+            .find(|entry| entry.key == "initial")
+            .unwrap()
+            .value,
+        ConfigurationValue::Quantity(Quantity::new(440, QuantityUnit::Hertz))
+    );
+    assert_eq!(hold.outputs[0].temporal, conduit_core::PortTemporal::Current);
+    assert_eq!(expanded.connections.len(), 1);
 }
