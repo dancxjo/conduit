@@ -496,7 +496,7 @@ test("long source and output remain inside their laboratory panes", async ({ pag
   const laboratory = page.locator("#laboratory-slot");
   const longText = "bounded ".repeat(24);
   const verticalPadding = "\n".repeat(80);
-  await laboratory.locator("textarea").fill(`form bounded-pane {\n  words: text/literal("${longText}")\n  result: presentation/text\n  words > result${verticalPadding}\n}`);
+  await laboratory.locator("textarea").fill(`form bounded-pane {\n  words: text/literal("${longText}")\n  result: presentation/text\n  words >> result${verticalPadding}\n}`);
   expect(await laboratory.locator("textarea").evaluate((field) => field.scrollHeight)).toBeGreaterThan(
     await laboratory.locator("textarea").evaluate((field) => field.clientHeight),
   );
@@ -629,7 +629,7 @@ test("read-only Conduit prose examples use the admitted canonical syntax project
   await expect(example.locator(".syntax-keyword")).toHaveText("form");
   await expect(example.locator(".syntax-name").first()).toHaveText("morse-network");
   await expect(example.locator(".syntax-identity").first()).toHaveText("text/literal");
-  await expect(example).toContainText("message > morse > light");
+  await expect(example).toContainText("message >> morse >> light");
 
   await openStep(page, 5);
   await expect(page.locator(".concept-diagram")).toHaveCount(1);
@@ -910,7 +910,7 @@ stage: canonical-form:declared-form|run
 form substituted-form {
     words: text/literal("not admitted")
     result: presentation/text
-    words > result
+    words >> result
 }
 \`\`\``;
   await page.route("**/tour/chapter-1.md", (route) => route.fulfill({
@@ -1118,7 +1118,7 @@ test("Form Gallery keeps source discoverable and usable at desktop and phone wid
     expect(geometry.syntaxBottom).toBeLessThanOrEqual(geometry.profileTop);
     expect(geometry.syntaxHeight).toBeGreaterThan(150);
     expect(geometry.overflow).toBeLessThanOrEqual(1);
-    await runner.locator("textarea").fill('form hello {\n    words: text/literal("HELLO")\n    show: presentation/text\n    words > show\n}');
+    await runner.locator("textarea").fill('form hello {\n    words: text/literal("HELLO")\n    show: presentation/text\n    words >> show\n}');
     await runner.getByRole("button", { name: "Run", exact: true }).click();
     await expect(runner.locator(".morse")).toHaveText("HELLO");
   }
@@ -2134,7 +2134,7 @@ test("unsupported capability and type mismatch remain ordinary pre-play refusals
     source: text/literal("still planned")
     result: presentation/text
     missing: layout/inset
-    source > result
+    source >> result
   }`);
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText(
@@ -2144,7 +2144,7 @@ test("unsupported capability and type mismatch remain ordinary pre-play refusals
     source: scalar/literal(1.0)
     invert: logic/not
     result: presentation/bool-value
-    source > invert > result
+    source >> invert >> result
   }`);
   await runner.getByRole("button", { name: "Run" }).click();
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText(
