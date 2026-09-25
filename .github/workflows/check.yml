@@ -484,6 +484,25 @@ jobs:
           evidence: workspace-${{ matrix.shard }}
           candidate-sha: ${{ env.CONDUIT_CHECKOUT_SHA }}
 
+  local-integration:
+    needs: classify
+    if: always() && !cancelled() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.CONDUIT_CHECKOUT_SHA }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+          shared-key: local-integration
+      - name: Run the local software truth loop
+        run: cargo xtask integrate --locked
+
   standalone-locks:
     needs: classify
     if: always() && !cancelled() && needs.classify.result == 'success' && needs.classify.outputs.docs_only != 'true' && ((github.event_name != 'pull_request' && inputs.candidate_sha == '') || needs.classify.outputs.standalone_locks_required == 'true')
@@ -597,7 +616,7 @@ jobs:
     # This is the sole branch-protection gate. Keep every independently
     # selectable proof aggregate in this join so success cannot precede a late
     # proof failure.
-    needs: [classify, workspace-check, standalone-locks, esp32-firmware, browser-host, conduitos-limine, conduitos-tools, conduitos-x86, conduitos-architecture, conduitos-aarch64-product]
+    needs: [classify, local-integration, workspace-check, standalone-locks, esp32-firmware, browser-host, conduitos-limine, conduitos-tools, conduitos-x86, conduitos-architecture, conduitos-aarch64-product]
     # A deliberately cancelled duplicate lifecycle run is not new proof
     # failure. Real dependency failures still reach this gate and fail it.
     if: ${{ always() && !cancelled() }}
@@ -608,6 +627,7 @@ jobs:
         env:
           CLASSIFY_RESULT: ${{ needs.classify.result }}
           DOCS_ONLY: ${{ needs.classify.outputs.docs_only }}
+          LOCAL_INTEGRATION_RESULT: ${{ needs.local-integration.result }}
           WORKSPACE_RESULT: ${{ needs.workspace-check.result }}
           WORKSPACE_MATRIX: ${{ needs.classify.outputs.workspace_matrix }}
           ESP32_RESULT: ${{ needs.esp32-firmware.result }}
@@ -644,6 +664,7 @@ jobs:
             exit 1
           fi
           if test "$DOCS_ONLY" != true; then
+            require_result local-integration "$LOCAL_INTEGRATION_RESULT" success
             if test "$WORKSPACE_MATRIX" = '[]'; then require_result workspace "$WORKSPACE_RESULT" skipped; else require_result workspace "$WORKSPACE_RESULT" success; fi
             if test "$EVENT_NAME" != pull_request || test "$STANDALONE_LOCKS_REQUIRED" = true; then require_result standalone-locks "$STANDALONE_LOCKS_RESULT" success; else require_result standalone-locks "$STANDALONE_LOCKS_RESULT" skipped; fi
             if test "$EVENT_NAME" != pull_request || test "$ESP32_REQUIRED" = true; then require_result esp32 "$ESP32_RESULT" success; else require_result esp32 "$ESP32_RESULT" skipped; fi
@@ -655,6 +676,7 @@ jobs:
           fi
           {
             printf '## Final proof results\n\n'
+            printf -- '- Local integration: `%s`\n' "$LOCAL_INTEGRATION_RESULT"
             printf -- '- ConduitOS Limine: `%s`\n' "$LIMINE_RESULT"
             printf -- '- ConduitOS tools: `%s`\n' "$TOOLS_RESULT"
             printf -- '- ConduitOS x86: `%s`\n' "$X86_RESULT"

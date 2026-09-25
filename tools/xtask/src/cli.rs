@@ -59,6 +59,8 @@ pub enum Command {
     Catalog(CatalogArgs),
     /// Execute repository validation check suites.
     Check(CheckArgs),
+    /// Run the fast, local end-to-end developer truth loop.
+    Integrate,
     /// Plan repository CI obligations from an exact change.
     Ci(CiArgs),
     /// Execute platform and protocol proof suites.

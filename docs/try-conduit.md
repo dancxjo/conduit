@@ -11,6 +11,19 @@ binary or `just`. See [contributor setup](../CONTRIBUTING.md) for prerequisites.
 The first invocation compiles repository tooling; browser and ConduitOS builds
 need additional tools and disk space.
 
+## Check that the pieces work together
+
+```bash
+cargo xtask integrate
+```
+
+This is the fast local developer truth loop. It exercises representative real
+language, planning, kernel, std Host, Body lifecycle, multi-placement,
+failure/recovery, and Patchbay paths. If the `wasm32-unknown-unknown` target is
+installed, it also builds the production browser runtime; otherwise it reports
+the exact prerequisite. It does not perform release promotion, generate Journey
+or gallery evidence, run QEMU, or claim physical hardware proof.
+
 ## Run a first form
 
 ```bash

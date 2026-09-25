@@ -16,6 +16,7 @@ function results(overrides = {}) {
   return {
     CLASSIFY_RESULT: "success",
     DOCS_ONLY: "false",
+    LOCAL_INTEGRATION_RESULT: "success",
     WORKSPACE_RESULT: "success",
     WORKSPACE_MATRIX: '["test-products"]',
     ESP32_RESULT: "skipped",
@@ -70,6 +71,7 @@ test("exhaustive integration requires every ConduitOS aggregate", () => {
   });
   assert.equal(prove(exhaustive).status, 0);
   for (const field of [
+    "LOCAL_INTEGRATION_RESULT",
     "LIMINE_RESULT",
     "TOOLS_RESULT",
     "X86_RESULT",
@@ -85,6 +87,7 @@ test("exhaustive integration requires every ConduitOS aggregate", () => {
 test("documentation-only behavior does not promote skipped machine proof", () => {
   assert.equal(prove(results({
     DOCS_ONLY: "true",
+    LOCAL_INTEGRATION_RESULT: "skipped",
     WORKSPACE_RESULT: "skipped",
   })).status, 0);
 });
