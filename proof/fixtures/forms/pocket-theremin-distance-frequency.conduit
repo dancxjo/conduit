@@ -1,0 +1,10 @@
+# Canonical semantic control path only: Distance -> finite map/range -> Frequency -> keep current for this play.
+form pocket-theremin-distance-frequency (
+    distance: Quantity > frequency: $Quantity
+) {
+    map: map/range(source-minimum = 0cm, source-maximum = 30cm, target-minimum = 220Hz, target-maximum = 880Hz)
+    keep: current/keep(initial = 440Hz)
+    distance > map.in
+    map.out > keep.next
+    keep.current > frequency
+}

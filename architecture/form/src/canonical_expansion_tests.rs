@@ -1,14 +1,17 @@
 use crate::prelude::*;
 
 use crate::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationValue,
-    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
-    StartupCatalog, StartupParameterSignature,
+    check_syntax_document, expand_canonical_form, expand_canonical_form_for_authoring,
+    parse_syntax_document, ConfigurationValue, KindConfigurationField, KindConfigurationRule,
+    KindProjection, KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, FrontStartupParameter, Kind, KindIdentity, PortDescriptor,
-    PortDirection,
+    PortDirection, Quantity, QuantityUnit,
 };
+
+const POCKET_THEREMIN_DISTANCE_FREQUENCY: &str =
+    include_str!("../../../proof/fixtures/forms/pocket-theremin-distance-frequency.conduit");
 
 fn canonical_kind(projection: KindProjection) -> Kind {
     let startup_parameters = projection
@@ -277,6 +280,211 @@ fn expand(source: &str, root: &str) -> crate::ExpandedCanonicalForm {
     let syntax = parse_syntax_document(source);
     let checked = check_syntax_document(&syntax, &startup).expect("source checks");
     expand_canonical_form(&checked, root, &profile).expect("source expands")
+}
+
+fn theremin_catalogs() -> (StartupCatalog, ProfileCatalog) {
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert(KindSignature {
+            kind: "map/range".into(),
+            startup_parameters: vec![
+                StartupParameterSignature {
+                    name: "source-minimum".into(),
+                    value_type: "Quantity".into(),
+                    default: Some("0cm".into()),
+                },
+                StartupParameterSignature {
+                    name: "source-maximum".into(),
+                    value_type: "Quantity".into(),
+                    default: Some("30cm".into()),
+                },
+                StartupParameterSignature {
+                    name: "target-minimum".into(),
+                    value_type: "Quantity".into(),
+                    default: Some("220Hz".into()),
+                },
+                StartupParameterSignature {
+                    name: "target-maximum".into(),
+                    value_type: "Quantity".into(),
+                    default: Some("880Hz".into()),
+                },
+            ],
+        })
+        .unwrap();
+    startup
+        .insert(KindSignature {
+            kind: "current/keep".into(),
+            startup_parameters: vec![StartupParameterSignature {
+                name: "initial".into(),
+                value_type: "Quantity".into(),
+                default: Some("440Hz".into()),
+            }],
+        })
+        .unwrap();
+
+    let quantity_value = kind_id("value/quantity");
+    let mut profile = ProfileCatalog::new();
+    profile
+        .insert_kind(canonical_kind(KindProjection {
+            kind_id: kind_id("map/range"),
+            kind_contract_revision: KindIdentity::from("test/map-range@1"),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("in"),
+                value_kind: quantity_value.clone(),
+                direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Value,
+            }],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("out"),
+                value_kind: quantity_value.clone(),
+                direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Value,
+            }],
+            configuration: vec![
+                KindConfigurationField {
+                    key: "source-minimum".into(),
+                    default_value: ConfigurationValue::Quantity(Quantity::new(
+                        0,
+                        QuantityUnit::Centimeter,
+                    )),
+                    rule: KindConfigurationRule::QuantityRange {
+                        minimum: 0,
+                        maximum: 30,
+                        canonical_unit: QuantityUnit::Centimeter,
+                    },
+                },
+                KindConfigurationField {
+                    key: "source-maximum".into(),
+                    default_value: ConfigurationValue::Quantity(Quantity::new(
+                        30,
+                        QuantityUnit::Centimeter,
+                    )),
+                    rule: KindConfigurationRule::QuantityRange {
+                        minimum: 0,
+                        maximum: 30,
+                        canonical_unit: QuantityUnit::Centimeter,
+                    },
+                },
+                KindConfigurationField {
+                    key: "target-minimum".into(),
+                    default_value: ConfigurationValue::Quantity(Quantity::new(
+                        220,
+                        QuantityUnit::Hertz,
+                    )),
+                    rule: KindConfigurationRule::QuantityRange {
+                        minimum: 220,
+                        maximum: 880,
+                        canonical_unit: QuantityUnit::Hertz,
+                    },
+                },
+                KindConfigurationField {
+                    key: "target-maximum".into(),
+                    default_value: ConfigurationValue::Quantity(Quantity::new(
+                        880,
+                        QuantityUnit::Hertz,
+                    )),
+                    rule: KindConfigurationRule::QuantityRange {
+                        minimum: 220,
+                        maximum: 880,
+                        canonical_unit: QuantityUnit::Hertz,
+                    },
+                },
+            ],
+        }))
+        .unwrap();
+    profile
+        .insert_kind(canonical_kind(KindProjection {
+            kind_id: kind_id("current/keep"),
+            kind_contract_revision: KindIdentity::from("test/current-keep@1"),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("next"),
+                value_kind: quantity_value.clone(),
+                direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Value,
+            }],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("current"),
+                value_kind: quantity_value,
+                direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Current,
+            }],
+            configuration: vec![KindConfigurationField {
+                key: "initial".into(),
+                default_value: ConfigurationValue::Quantity(Quantity::new(440, QuantityUnit::Hertz)),
+                rule: KindConfigurationRule::QuantityRange {
+                    minimum: 220,
+                    maximum: 880,
+                    canonical_unit: QuantityUnit::Hertz,
+                },
+            }],
+        }))
+        .unwrap();
+    (startup, profile)
+}
+
+#[test]
+fn canonical_theremin_distance_to_frequency_fixture_checks_and_lowers() {
+    for unit in ["0cm", "30cm", "220Hz", "880Hz", "440Hz"] {
+        assert!(
+            POCKET_THEREMIN_DISTANCE_FREQUENCY.contains(unit),
+            "fixture lost canonical unit literal {unit}"
+        );
+    }
+    let (startup, profile) = theremin_catalogs();
+    let syntax = parse_syntax_document(POCKET_THEREMIN_DISTANCE_FREQUENCY);
+    assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
+    let checked = check_syntax_document(&syntax, &startup).unwrap();
+    let authored =
+        expand_canonical_form_for_authoring(&checked, "pocket-theremin-distance-frequency", &profile)
+            .unwrap();
+    let kinds = authored
+        .expanded
+        .gears
+        .iter()
+        .map(|gear| gear.kind_id.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(kinds, ["current/keep", "map/range"]);
+    assert!(kinds.iter().all(|kind| !kind.contains("theremin")));
+    let map = authored
+        .expanded
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == "map/range")
+        .unwrap();
+    let keep = authored
+        .expanded
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == "current/keep")
+        .unwrap();
+    assert_eq!(
+        map.configuration[0].value,
+        ConfigurationValue::Quantity(Quantity::new(0, QuantityUnit::Centimeter))
+    );
+    assert_eq!(
+        keep.configuration[0].value,
+        ConfigurationValue::Quantity(Quantity::new(440, QuantityUnit::Hertz))
+    );
+}
+
+#[test]
+fn canonical_theremin_fixture_refuses_dimension_and_range_violations() {
+    let (startup, profile) = theremin_catalogs();
+    let wrong_dimension = POCKET_THEREMIN_DISTANCE_FREQUENCY.replace("220Hz", "220cm");
+    let checked = check_syntax_document(&parse_syntax_document(&wrong_dimension), &startup).unwrap();
+    let error =
+        expand_canonical_form_for_authoring(&checked, "pocket-theremin-distance-frequency", &profile)
+            .unwrap_err();
+    assert_eq!(error.code, "CND-FRM-040");
+    assert!(error.message.contains("target-minimum"));
+
+    let out_of_range = POCKET_THEREMIN_DISTANCE_FREQUENCY.replace("30cm", "31cm");
+    let checked = check_syntax_document(&parse_syntax_document(&out_of_range), &startup).unwrap();
+    let error =
+        expand_canonical_form_for_authoring(&checked, "pocket-theremin-distance-frequency", &profile)
+            .unwrap_err();
+    assert_eq!(error.code, "CND-FRM-040");
+    assert!(error.message.contains("source-maximum"));
 }
 
 #[test]
