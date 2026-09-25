@@ -182,9 +182,9 @@ pub extern "C" fn conduit_creche_review_initial_workload(
             Ok(review) => {
                 let receipt = serde_json::json!({
                     "schema": "conduit.creche/form-workload-review@1",
-                    "review": &review,
+                    "review": &review.review,
                     "requirements": {
-                        "kinds": &review.required_kinds,
+                        "kinds": &review.review.required_kinds,
                         "resources": &review.required_resources,
                         "capabilities": &review.required_capabilities,
                     },

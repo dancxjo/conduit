@@ -14,16 +14,19 @@ pub(super) struct InitialWorkloadReview {
     pub(super) disposition: String,
     pub(super) selected_form_count: usize,
     pub(super) required_kinds: Vec<String>,
-    #[serde(skip)]
-    pub(super) required_resources: Vec<RequiredResource>,
-    #[serde(skip)]
-    pub(super) required_capabilities: Vec<RequiredCapability>,
     pub(super) proposed_hosts: Vec<ProposedHost>,
     pub(super) reviewed_realization_count: usize,
     pub(super) body_plan_created: bool,
     pub(super) play_created: bool,
     pub(super) authority_acquired: bool,
     pub(super) resources_acquired: bool,
+}
+
+#[derive(Debug)]
+pub(super) struct WorkloadReview {
+    pub(super) review: InitialWorkloadReview,
+    pub(super) required_resources: Vec<RequiredResource>,
+    pub(super) required_capabilities: Vec<RequiredCapability>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -53,7 +56,7 @@ pub(super) fn review(
     selection_json: &str,
     hosts: &[HostAdvertisement],
     bases: &[BaseImplementationId],
-) -> Result<InitialWorkloadReview, String> {
+) -> Result<WorkloadReview, String> {
     let selected: Vec<InitialFormSelection> = serde_json::from_str(selection_json)
         .map_err(|_| "initial Form selection is not an exact identity list".to_string())?;
     if selected.len() > conduit_body::MAX_BODY_FORMS {
@@ -136,11 +139,27 @@ pub(super) fn review(
     validate_combined_resources(hosts, &resource_totals)?;
     validate_combined_capabilities(hosts, &capability_totals)?;
 
-    Ok(InitialWorkloadReview {
-        schema: "conduit.creche/initial-workload-review@1".into(),
-        disposition: "realizable".into(),
-        selected_form_count: selected.len(),
-        required_kinds: required_kinds.into_iter().collect(),
+    Ok(WorkloadReview {
+        review: InitialWorkloadReview {
+            schema: "conduit.creche/initial-workload-review@1".into(),
+            disposition: "realizable".into(),
+            selected_form_count: selected.len(),
+            required_kinds: required_kinds.into_iter().collect(),
+            proposed_hosts: hosts
+                .iter()
+                .map(|host| ProposedHost {
+                    host_id: host.host_id.as_str().into(),
+                    boot_id: host.boot_id.as_str().into(),
+                    profile_id: host.profile.as_str().into(),
+                    offer_generation: host.offer_generation.0,
+                })
+                .collect(),
+            reviewed_realization_count: selected.len(),
+            body_plan_created: false,
+            play_created: false,
+            authority_acquired: false,
+            resources_acquired: false,
+        },
         required_resources: resource_totals
             .into_iter()
             .map(|((host_id, class_id), units)| RequiredResource {
@@ -159,20 +178,6 @@ pub(super) fn review(
                 },
             )
             .collect(),
-        proposed_hosts: hosts
-            .iter()
-            .map(|host| ProposedHost {
-                host_id: host.host_id.as_str().into(),
-                boot_id: host.boot_id.as_str().into(),
-                profile_id: host.profile.as_str().into(),
-                offer_generation: host.offer_generation.0,
-            })
-            .collect(),
-        reviewed_realization_count: selected.len(),
-        body_plan_created: false,
-        play_created: false,
-        authority_acquired: false,
-        resources_acquired: false,
     })
 }
 
@@ -312,18 +317,18 @@ mod tests {
                 &crate::installed_browser::local_bases(),
             )
             .unwrap();
-            assert_eq!(result.selected_form_count, names.len());
-            assert_eq!(result.reviewed_realization_count, names.len());
-            assert!(!result.body_plan_created);
-            assert!(!result.play_created);
-            assert!(!result.authority_acquired);
-            assert!(!result.resources_acquired);
+            assert_eq!(result.review.selected_form_count, names.len());
+            assert_eq!(result.review.reviewed_realization_count, names.len());
+            assert!(!result.review.body_plan_created);
+            assert!(!result.review.play_created);
+            assert!(!result.review.authority_acquired);
+            assert!(!result.review.resources_acquired);
             assert!(result.required_resources.iter().all(|item| item.units > 0));
             assert!(result
                 .required_capabilities
                 .iter()
                 .all(|item| item.active_instances > 0));
-            let retained = serde_json::to_value(&result).unwrap();
+            let retained = serde_json::to_value(&result.review).unwrap();
             assert!(retained.get("required_resources").is_none());
             assert!(retained.get("required_capabilities").is_none());
         }
@@ -350,8 +355,8 @@ mod tests {
             &crate::installed_browser::local_bases(),
         )
         .unwrap();
-        assert_eq!(result.selected_form_count, 3);
-        assert_eq!(result.reviewed_realization_count, 3);
+        assert_eq!(result.review.selected_form_count, 3);
+        assert_eq!(result.review.reviewed_realization_count, 3);
     }
 
     #[test]
@@ -424,7 +429,7 @@ form note {
             &crate::installed_browser::local_bases(),
         )
         .unwrap();
-        assert_eq!(result.proposed_hosts.len(), 2);
-        assert_eq!(result.reviewed_realization_count, 2);
+        assert_eq!(result.review.proposed_hosts.len(), 2);
+        assert_eq!(result.review.reviewed_realization_count, 2);
     }
 }
