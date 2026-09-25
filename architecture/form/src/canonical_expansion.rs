@@ -424,7 +424,9 @@ fn instantiate_gear(
                 port_id: conduit_core::port_id("in"),
                 value_kind: value_kind.clone(),
                 direction: conduit_core::PortDirection::Input,
-                temporal: conduit_core::PortTemporal::Flow { closes: true },
+                // A retained declaration accepts each admitted value occurrence; upstream
+                // flow-to-value lifting remains explicit in the ordinary cord checker.
+                temporal: conduit_core::PortTemporal::Value,
             };
             let output = PortDescriptor {
                 port_id: conduit_core::port_id("out"),
