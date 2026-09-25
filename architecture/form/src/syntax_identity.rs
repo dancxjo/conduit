@@ -5,17 +5,27 @@ use crate::{
 };
 use conduit_core::CheckedFormId;
 
+pub(crate) struct CheckedIdentityFront<'a> {
+    pub parameters: &'a [CheckedStartupParameter],
+    pub runtime_ports: &'a [crate::RuntimePort],
+    pub runtime_front: &'a conduit_core::CheckedFront,
+    pub shorthand: Option<(&'a str, &'a str)>,
+}
+
 pub(crate) fn checked_identity(
     meaning: (&str, FormCompletionPolicy),
-    parameters: &[CheckedStartupParameter],
-    runtime_ports: &[crate::RuntimePort],
-    runtime_front: &conduit_core::CheckedFront,
-    shorthand: Option<(&str, &str)>,
+    front: CheckedIdentityFront<'_>,
     gears: &[CheckedCanonicalGear],
     cords: &[CheckedCanonicalCord],
     pools: &[crate::CheckedPoolDeclaration],
 ) -> CheckedFormId {
     let (name, completion) = meaning;
+    let CheckedIdentityFront {
+        parameters,
+        runtime_ports,
+        runtime_front,
+        shorthand,
+    } = front;
     let mut canonical = String::from("canonical-form");
     push_field(&mut canonical, name);
     push_field(

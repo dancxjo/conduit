@@ -90,10 +90,8 @@ fn parse_finite_bound(source: &str) -> Option<u64> {
         (value, 1_024_u64)
     } else if let Some(value) = source.strip_suffix("MiB") {
         (value, 1_048_576_u64)
-    } else if let Some(value) = source.strip_suffix('B') {
-        (value, 1_u64)
     } else {
-        return None;
+        (source.strip_suffix('B')?, 1_u64)
     };
     digits
         .trim()
@@ -629,7 +627,7 @@ impl<'a> Parser<'a> {
                         arguments: Vec::new(),
                         span: self.span(invoked_start, start + text.len()),
                     },
-                    retained: Some(retained),
+                    retained: Some(Box::new(retained)),
                     span: self.span(start, start + text.len()),
                 }));
             }
