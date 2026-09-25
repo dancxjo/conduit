@@ -6,6 +6,11 @@ pub(crate) use super::http::client_offer_for as http_client_offer_for;
 pub(crate) use super::http::{
     client_offer as http_client_offer, server_offer as http_server_offer,
 };
+pub(crate) use super::pitch_tone_back::offer as pitch_tone_offer;
+#[cfg(test)]
+pub(crate) use super::pitch_tone_back::{
+    IMPLEMENTATION as PITCH_TONE_IMPLEMENTATION, TONE_BLOCKS as PITCH_TONE_BLOCKS,
+};
 pub(crate) use super::render_demand_back::offer as render_demand_offer;
 pub(crate) use super::synth_back::offer as synth_offer;
 #[cfg(test)]

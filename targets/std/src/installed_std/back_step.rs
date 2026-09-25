@@ -138,6 +138,7 @@ installed_step_dispatch!(
     InstrumentMap,
     RhythmCompare,
     PatternComparison,
+    PitchTone,
     SequenceNormalization,
     FinalNormalizedPattern,
     TimedPattern,

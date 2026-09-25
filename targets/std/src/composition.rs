@@ -344,6 +344,7 @@ pub(super) fn build_advertisement(
     }
     if playback.is_some() {
         capabilities.push(conduit_std_offers::audio_play_alsa_hw_offer());
+        capabilities.push(installed_std::pitch_tone_offer());
     }
     if midi_input.is_some() {
         capabilities.push(conduit_std_offers::music_input_midi_offer());

@@ -66,6 +66,8 @@ pub struct HostedPlaybackSelection {
     pub offer_generation: OfferGeneration,
     #[cfg(test)]
     fake_behavior: Option<fake::FakePlaybackBehavior>,
+    #[cfg(test)]
+    capture_commits: bool,
 }
 
 impl HostedPlaybackSelection {
@@ -80,6 +82,8 @@ impl HostedPlaybackSelection {
             offer_generation,
             #[cfg(test)]
             fake_behavior: None,
+            #[cfg(test)]
+            capture_commits: false,
         }
     }
 
@@ -170,6 +174,23 @@ impl HostedPlaybackSelection {
             boot_id,
             offer_generation,
             fake_behavior: Some(behavior),
+            capture_commits: false,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn deterministic_fake_with_capture(
+        observation: AlsaPlaybackObservation,
+        boot_id: BootId,
+        offer_generation: OfferGeneration,
+        behavior: fake::FakePlaybackBehavior,
+    ) -> Self {
+        Self {
+            observation,
+            boot_id,
+            offer_generation,
+            fake_behavior: Some(behavior),
+            capture_commits: true,
         }
     }
 }
@@ -206,7 +227,12 @@ impl PlaybackSession {
     pub(crate) fn resolved(selection: HostedPlaybackSelection) -> Self {
         #[cfg(test)]
         if let Some(behavior) = selection.fake_behavior {
-            return Self::Fake(fake::FakePlaybackSession::new(selection, behavior));
+            let capture_commits = selection.capture_commits;
+            return Self::Fake(fake::FakePlaybackSession::new(
+                selection,
+                behavior,
+                capture_commits,
+            ));
         }
         Self::Alsa(AlsaAplaySession::resolved(selection))
     }

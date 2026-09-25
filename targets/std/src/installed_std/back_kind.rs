@@ -35,6 +35,7 @@ use super::navigation_backs::NavigationBack;
 use super::pacing_backs::{DelayBack, ThrottleBack};
 use super::pattern_comparison_back::PatternComparisonBack;
 use super::pcm_profile_conversion_back::PcmProfileConversionBack;
+use super::pitch_tone_back::PitchToneBack;
 use super::presentation_composition::{GraphicsPresentationBack, PresentationCompositionBack};
 use super::recognized_turn_commit_back::RecognizedTurnCommitBack;
 use super::record_delivery_back::RecordDeliveryStatusBack;
@@ -130,6 +131,7 @@ pub(super) enum InstalledBack {
     InstrumentMap(InstrumentMapBack),
     RhythmCompare(RhythmCompareBack),
     PatternComparison(PatternComparisonBack),
+    PitchTone(PitchToneBack),
     SequenceNormalization(SequenceNormalizationBack),
     FinalNormalizedPattern(FinalNormalizedPatternBack),
     TimedPattern(TimedPatternBack),

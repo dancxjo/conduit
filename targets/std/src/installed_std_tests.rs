@@ -27,6 +27,7 @@ mod midi_input_conformance;
 mod midi_output_conformance;
 mod navigation_conformance;
 mod pattern_comparison_conformance;
+mod pitch_tone_conformance;
 mod presentation_composition;
 mod recurrence_conformance;
 mod remote_fragment_conformance;

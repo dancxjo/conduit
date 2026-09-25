@@ -3,6 +3,10 @@ use super::{
     PERIOD_FRAMES, SAMPLE_RATE_HZ, SOURCE_CLOCK_ID,
 };
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
+#[cfg(test)]
+use std::collections::hash_map::DefaultHasher;
+#[cfg(test)]
+use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum FakePlaybackBehavior {
@@ -20,16 +24,26 @@ pub(crate) enum FakePlaybackBehavior {
 pub(crate) struct FakePlaybackSession {
     selection: HostedPlaybackSelection,
     behavior: FakePlaybackBehavior,
+    capture_commits: bool,
     lifecycle: PlaybackLifecycle,
     metrics: PlaybackMetrics,
     expected_start_frame: Option<u64>,
+    #[cfg(test)]
+    committed_headers: Vec<PcmFrameHeader>,
+    #[cfg(test)]
+    committed_payload_digests: Vec<u64>,
 }
 
 impl FakePlaybackSession {
-    pub(crate) fn new(selection: HostedPlaybackSelection, behavior: FakePlaybackBehavior) -> Self {
+    pub(crate) fn new(
+        selection: HostedPlaybackSelection,
+        behavior: FakePlaybackBehavior,
+        capture_commits: bool,
+    ) -> Self {
         Self {
             selection,
             behavior,
+            capture_commits,
             lifecycle: PlaybackLifecycle::ResolvedAvailable,
             metrics: PlaybackMetrics {
                 blocks_committed: 0,
@@ -44,6 +58,10 @@ impl FakePlaybackSession {
                 buffer_frames: super::BUFFER_FRAMES,
             },
             expected_start_frame: None,
+            #[cfg(test)]
+            committed_headers: Vec::with_capacity(8),
+            #[cfg(test)]
+            committed_payload_digests: Vec::with_capacity(8),
         }
     }
 
@@ -94,6 +112,13 @@ impl FakePlaybackSession {
         self.metrics.blocks_committed += 1;
         self.metrics.frames_committed += u64::from(header.frame_count);
         self.expected_start_frame = Some(header.start_frame + u64::from(header.frame_count));
+        #[cfg(test)]
+        if self.capture_commits {
+            self.committed_headers.push(header);
+            let mut hasher = DefaultHasher::new();
+            encoded[conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN..].hash(&mut hasher);
+            self.committed_payload_digests.push(hasher.finish());
+        }
         self.lifecycle = if self.metrics.blocks_committed == 1 {
             PlaybackLifecycle::FirstFrameCommitted
         } else {
@@ -141,6 +166,10 @@ impl FakePlaybackSession {
             clock_correlation: "fixture-exact",
             controlled_staging_bytes: 0,
             external_buffer_class: "fixture-none",
+            #[cfg(test)]
+            committed_headers: self.committed_headers.clone(),
+            #[cfg(test)]
+            committed_payload_digests: self.committed_payload_digests.clone(),
         }
     }
 }
@@ -217,7 +246,8 @@ mod tests {
                 PcmChannelLayout::Mono,
             ),
         ] {
-            let mut session = FakePlaybackSession::new(selection(), FakePlaybackBehavior::Success);
+            let mut session =
+                FakePlaybackSession::new(selection(), FakePlaybackBehavior::Success, false);
             assert_eq!(
                 session.write_frame(&encoded),
                 Err(PlaybackFailure::InvalidPcm)
@@ -237,6 +267,7 @@ mod tests {
         let mut session = FakePlaybackSession::new(
             selection(),
             FakePlaybackBehavior::ProviderLossAfterFirstBlock,
+            false,
         );
         session.write_frame(&encoded).unwrap();
         assert_eq!(session.lifecycle(), PlaybackLifecycle::FirstFrameCommitted);
@@ -262,7 +293,8 @@ mod tests {
             PlaybackLifecycle::Active,
             PlaybackLifecycle::DrainRequested,
         ] {
-            let mut session = FakePlaybackSession::new(selection(), FakePlaybackBehavior::Success);
+            let mut session =
+                FakePlaybackSession::new(selection(), FakePlaybackBehavior::Success, false);
             session.lifecycle = lifecycle;
             session.stop().unwrap();
             assert_eq!(session.lifecycle(), PlaybackLifecycle::StoppedClosed);
@@ -273,7 +305,8 @@ mod tests {
 
     #[test]
     fn injected_cleanup_failure_is_not_clean_completion() {
-        let mut session = FakePlaybackSession::new(selection(), FakePlaybackBehavior::CloseFailure);
+        let mut session =
+            FakePlaybackSession::new(selection(), FakePlaybackBehavior::CloseFailure, false);
         session.lifecycle = PlaybackLifecycle::Active;
         assert_eq!(session.stop(), Err(PlaybackFailure::CloseFailed));
         assert_eq!(session.lifecycle(), PlaybackLifecycle::Failed);

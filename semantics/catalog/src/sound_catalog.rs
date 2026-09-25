@@ -14,6 +14,7 @@ pub fn install_sound_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
+    crate::install_pitch_tone_catalog(startup, profile)?;
     for (contract, revision) in sound_contracts_with_revisions() {
         install_contract(startup, profile, contract, revision)?;
     }

@@ -60,6 +60,7 @@ mod navigation_backs;
 mod pacing_backs;
 mod pattern_comparison_back;
 mod pcm_profile_conversion_back;
+mod pitch_tone_back;
 mod preparation;
 pub(super) use preparation::{
     lower_fragment_with_continuity, state_storage_profile, validate_retained_inputs,
@@ -557,8 +558,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         .map(|placement| {
             if placement.implementation_id.as_str()
                 == conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION
+                || placement.implementation_id.as_str() == pitch_tone_back::IMPLEMENTATION
             {
-                audio_play_back::prepare_session(placement, playback).map(Some)
+                if placement.implementation_id.as_str() == pitch_tone_back::IMPLEMENTATION {
+                    pitch_tone_back::prepare_session(placement, playback).map(Some)
+                } else {
+                    audio_play_back::prepare_session(placement, playback).map(Some)
+                }
             } else {
                 Ok(None)
             }
@@ -660,14 +666,19 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     operation.node == cancellation.node && operation.call == cancellation.call
                 })
                 .ok_or_else(|| "cancelled host request has no lowered identity".to_string())?;
-            if cancelled_operation.contract_id.as_str() == audio_play_back::HOST_CALL {
+            if matches!(
+                cancelled_operation.contract_id.as_str(),
+                audio_play_back::HOST_CALL | pitch_tone_back::HOST_CALL
+            ) {
                 let session = playback_sessions
                     .get_mut(usize::from(cancellation.node.0))
                     .and_then(Option::as_mut)
-                    .ok_or_else(|| "cancelled audio/play has no admitted session".to_string())?;
+                    .ok_or_else(|| {
+                        "cancelled audio playback has no admitted session".to_string()
+                    })?;
                 session
                     .stop()
-                    .map_err(|error| format!("stop cancelled audio/play: {error:?}"))?;
+                    .map_err(|error| format!("stop cancelled audio playback: {error:?}"))?;
             } else if cancelled_operation.contract_id.as_str() == wav_artifact_back::HOST_CALL {
                 // The incomplete artifact is never finalized on cancellation.
             } else if matches!(
@@ -1706,18 +1717,25 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete reference synth render: {error:?}"))?;
                 continue;
-            } else if contract.as_str() == audio_play_back::HOST_CALL {
+            } else if matches!(
+                contract.as_str(),
+                audio_play_back::HOST_CALL | pitch_tone_back::HOST_CALL
+            ) {
                 let session = playback_sessions
                     .get_mut(usize::from(request.node.0))
                     .and_then(Option::as_mut)
                     .ok_or_else(|| {
-                        "audio/play request has no exact admitted session".to_string()
+                        "audio playback request has no exact admitted session".to_string()
                     })?;
-                let outcome = audio_play_back::execute(session, input);
+                let outcome = if contract.as_str() == pitch_tone_back::HOST_CALL {
+                    pitch_tone_back::execute(session, input)
+                } else {
+                    audio_play_back::execute(session, input)
+                };
                 record_request(&mut requests, request);
                 scheduler
                     .complete_host_call(request.node, request.request, outcome)
-                    .map_err(|error| format!("complete audio/play host-call: {error:?}"))?;
+                    .map_err(|error| format!("complete audio playback host-call: {error:?}"))?;
                 continue;
             } else if contract.as_str() == wav_artifact_back::HOST_CALL {
                 let session = wav_artifact_sessions

@@ -65,6 +65,10 @@ pub struct PlaybackReport {
     pub clock_correlation: &'static str,
     pub controlled_staging_bytes: u32,
     pub external_buffer_class: &'static str,
+    #[cfg(test)]
+    pub committed_headers: Vec<PcmFrameHeader>,
+    #[cfg(test)]
+    pub committed_payload_digests: Vec<u64>,
 }
 
 impl PlaybackMetrics {
@@ -130,6 +134,10 @@ impl AlsaAplaySession {
             clock_correlation: "first-commit-monotonic-observed-no-hardware-timestamp-guarantee",
             controlled_staging_bytes: 0,
             external_buffer_class: "configured-alsa-hw-1024-frames",
+            #[cfg(test)]
+            committed_headers: Vec::new(),
+            #[cfg(test)]
+            committed_payload_digests: Vec::new(),
         }
     }
 

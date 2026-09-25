@@ -1485,6 +1485,40 @@ impl StdHost {
         })
     }
 
+    pub fn pitch_tone_authority_grant(
+        &self,
+        grant_id: &str,
+    ) -> Result<conduit_core::AuthorityGrant, String> {
+        let playback = self
+            .playback
+            .as_ref()
+            .ok_or_else(|| "std Host has no selected playback resource".to_string())?;
+        if playback.boot_id != self.advertisement.boot_id
+            || playback.offer_generation != self.advertisement.offer_generation
+        {
+            return Err("selected playback observation is stale for this host".into());
+        }
+        let capability = self
+            .advertisement
+            .capabilities
+            .iter()
+            .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::PITCH_TONE_KIND)
+            .ok_or_else(|| "selected pitch-tone capability is not advertised".to_string())?;
+        let requirement = capability
+            .authority_requirements
+            .first()
+            .ok_or_else(|| "pitch-tone capability has no authority contract".to_string())?;
+        Ok(conduit_core::AuthorityGrant {
+            grant_id: conduit_core::AuthorityGrantId::from(grant_id),
+            contract_id: requirement.contract_id.clone(),
+            host_call_contract_id: requirement.host_call_contract_id.clone(),
+            subject_kind: requirement.subject_kind.clone(),
+            host_id: self.advertisement.host_id.clone(),
+            boot_id: self.advertisement.boot_id.clone(),
+            capability_id: capability.capability_id.clone(),
+        })
+    }
+
     pub fn wav_artifact_authority_grant(
         &self,
         grant_id: &str,
