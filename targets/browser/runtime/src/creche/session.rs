@@ -65,7 +65,8 @@ pub(super) fn birth(
         initial_forms_json,
         &proposed_hosts,
         &crate::installed_browser::local_bases(),
-    )?;
+    )?
+    .review;
     let birth_sign = bind_sign(&host_id, &boot_id, None, birth_sequence);
     let body = Body::born_with_forms(workset, birth_sequence, birth_sign.sign_id.clone())
         .map_err(|error| format!("birth Body: {error:?}"))?;

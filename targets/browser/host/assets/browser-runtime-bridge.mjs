@@ -184,6 +184,82 @@ export function bindBrowserRuntimeBridge(api, { context }) {
         label: "Body output",
       }) };
     },
+    crecheReviewedInventory(source) {
+      const input = encoder.encode(source);
+      return withInput(api, input, {
+        pointerExport: "conduit_creche_input_ptr",
+        capacityExport: "conduit_creche_input_capacity",
+        label: "Form source",
+      }, (length) => {
+        const status = call("conduit_creche_reviewed_inventory", length);
+        return { status, outputJson: readJson(api, {
+          pointerExport: "conduit_creche_output_ptr",
+          lengthExport: "conduit_creche_output_len",
+          minimum: 1,
+          maximum: 32 * 1024,
+          label: "Form check output",
+        }) };
+      }, { retireInput: true });
+    },
+    crecheReviewInitialWorkload({ host, boot, initialForms, source }) {
+      const parts = [host, boot, JSON.stringify(initialForms), source].map((value) => encoder.encode(value));
+      const input = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
+      let offset = 0;
+      for (const part of parts) { input.set(part, offset); offset += part.length; }
+      return withInput(api, input, {
+        pointerExport: "conduit_creche_input_ptr",
+        capacityExport: "conduit_creche_input_capacity",
+        minimum: 1,
+        label: "Form realization review input",
+      }, () => {
+        const status = call("conduit_creche_review_initial_workload", parts[0].length, parts[1].length, parts[2].length, parts[3].length);
+        return { status, outputJson: readJson(api, {
+          pointerExport: "conduit_creche_output_ptr",
+          lengthExport: "conduit_creche_output_len",
+          minimum: 1,
+          maximum: 32 * 1024,
+          label: "Form realization review output",
+        }) };
+      }, { retireInput: true });
+    },
+    crecheAdmitSourceInteraction(source, sequence) {
+      const input = encoder.encode(source);
+      return withInput(api, input, {
+        pointerExport: "conduit_creche_input_ptr",
+        capacityExport: "conduit_creche_input_capacity",
+        label: "Form source interaction",
+      }, (length) => {
+        const status = call("conduit_creche_admit_source_interaction", length, sequence);
+        return { status, outputJson: readJson(api, {
+          pointerExport: "conduit_creche_output_ptr",
+          lengthExport: "conduit_creche_output_len",
+          minimum: 1,
+          maximum: 32 * 1024,
+          label: "Form source interaction output",
+        }) };
+      }, { retireInput: true });
+    },
+    crecheBirth({ host, boot, friendlyName, initialForms, source, sequence }) {
+      const parts = [host, boot, friendlyName, JSON.stringify(initialForms), source].map((value) => encoder.encode(value));
+      const input = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
+      let offset = 0;
+      for (const part of parts) { input.set(part, offset); offset += part.length; }
+      return withInput(api, input, {
+        pointerExport: "conduit_creche_input_ptr",
+        capacityExport: "conduit_creche_input_capacity",
+        minimum: 1,
+        label: "Body birth input",
+      }, () => {
+        const status = call("conduit_creche_birth", parts[0].length, parts[1].length, parts[2].length, parts[3].length, parts[4].length, sequence);
+        return { status, outputJson: readJson(api, {
+          pointerExport: "conduit_creche_output_ptr",
+          lengthExport: "conduit_creche_output_len",
+          minimum: 1,
+          maximum: 32 * 1024,
+          label: "Body birth output",
+        }) };
+      }, { retireInput: true });
+    },
     crecheDurableSnapshot() {
       const status = call("conduit_creche_durable_snapshot");
       return { status, outputJson: status === 1 ? null : readJson(api, {

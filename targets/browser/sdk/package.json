@@ -1,0 +1,27 @@
+{
+  "name": "@conduit/browser",
+  "version": "0.1.0",
+  "description": "Reviewed ESM SDK for embedding Conduit Browser Hosts",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./browser-sdk.d.ts",
+      "browser": "./browser-sdk.mjs",
+      "default": "./browser-sdk.mjs"
+    }
+  },
+  "types": "./browser-sdk.d.ts",
+  "files": [
+    "browser-sdk.mjs",
+    "browser-sdk-forms.mjs",
+    "browser-sdk-events.mjs",
+    "host/assets/*.mjs",
+    "browser-sdk.d.ts",
+    "README.md",
+    "bundle/**"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}

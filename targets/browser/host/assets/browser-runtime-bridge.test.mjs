@@ -165,3 +165,31 @@ test("workspace request admits a bounded whole-Body snapshot larger than one ope
   const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });
   assert.deepEqual(bridge.workspaceRequest({ action: "Proof" }).outputJson, expected);
 });
+
+test("initial workload review preserves its four exact fields and retires source bytes", () => {
+  const api = runtime();
+  const inputPointer = 256;
+  const outputPointer = 2048;
+  const inputCapacity = 1024;
+  let outputLength = 0;
+  let lengths;
+  api.conduit_creche_input_ptr = () => inputPointer;
+  api.conduit_creche_input_capacity = () => inputCapacity;
+  api.conduit_creche_output_ptr = () => outputPointer;
+  api.conduit_creche_output_len = () => outputLength;
+  api.conduit_creche_review_initial_workload = (...args) => {
+    lengths = args;
+    const value = { schema: "conduit.creche/form-workload-review@1", requirements: { kinds: [] } };
+    const bytes = new TextEncoder().encode(JSON.stringify(value));
+    new Uint8Array(api.memory.buffer, outputPointer, bytes.length).set(bytes);
+    outputLength = bytes.length;
+    return 0;
+  };
+  const bridge = bindBrowserRuntimeBridge(api, { context: "Form review proof" });
+  const selected = [{ name: "clock", source_document_id: "sha256:source", checked_form_id: "sha256:checked" }];
+  const result = bridge.crecheReviewInitialWorkload({ host: "host/1", boot: "boot/1", initialForms: selected, source: "clock {}" });
+  assert.equal(lengths.length, 4);
+  assert.deepEqual(result.outputJson.requirements.kinds, []);
+  assert.deepEqual([...new Uint8Array(api.memory.buffer, inputPointer, lengths.reduce((sum, length) => sum + length, 0))],
+    new Array(lengths.reduce((sum, length) => sum + length, 0)).fill(0));
+});

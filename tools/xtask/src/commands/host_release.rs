@@ -119,6 +119,11 @@ fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
             "text/javascript; charset=utf-8",
         ),
         (
+            "targets/browser/host/assets/browser-runtime-bridge.mjs",
+            "browser-runtime-bridge.mjs",
+            "text/javascript; charset=utf-8",
+        ),
+        (
             "targets/browser/host/assets/browser-relay-line.mjs",
             "browser-relay-line.mjs",
             "text/javascript; charset=utf-8",
