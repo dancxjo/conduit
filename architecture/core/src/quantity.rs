@@ -5,6 +5,10 @@ use serde::{Deserialize, Serialize};
 use crate::semantic_digest;
 
 pub const QUANTITY_INFO_ID: &str = "value/quantity";
+/// Exact length-dimension quantity. Uses the canonical Quantity wire encoding.
+pub const DISTANCE_INFO_ID: &str = "value/distance";
+/// Exact frequency-dimension quantity. Uses the canonical Quantity wire encoding.
+pub const FREQUENCY_INFO_ID: &str = "value/frequency";
 pub const QUANTITY_ENCODED_LEN: usize = 9;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
