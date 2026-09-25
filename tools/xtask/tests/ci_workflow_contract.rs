@@ -45,6 +45,7 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
     assert!(required_gate.contains("if: ${{ always() && !cancelled() }}"));
     for aggregate in [
         "classify",
+        "local-integration",
         "workspace-check",
         "esp32-firmware",
         "browser-host",
