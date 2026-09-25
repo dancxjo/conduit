@@ -263,7 +263,9 @@ fn install_mapping_contract(
                             maximum,
                             canonical_unit,
                         },
-                        _ => unreachable!("quantity mapping uses exact scalar/text/quantity fields"),
+                        _ => {
+                            unreachable!("quantity mapping uses exact scalar/text/quantity fields")
+                        }
                     },
                 })
                 .collect(),
@@ -272,19 +274,18 @@ fn install_mapping_contract(
 }
 
 fn distance_frequency_configuration_fields() -> Vec<KindConfigurationField> {
-    let quantity = |key: &str,
-                    value: Quantity,
-                    minimum: i64,
-                    maximum: i64,
-                    canonical_unit: QuantityUnit| KindConfigurationField {
-        key: key.into(),
-        default_value: ConfigurationValue::Quantity(value),
-        rule: KindConfigurationRule::QuantityRange {
-            minimum,
-            maximum,
-            canonical_unit,
-        },
-    };
+    let quantity =
+        |key: &str, value: Quantity, minimum: i64, maximum: i64, canonical_unit: QuantityUnit| {
+            KindConfigurationField {
+                key: key.into(),
+                default_value: ConfigurationValue::Quantity(value),
+                rule: KindConfigurationRule::QuantityRange {
+                    minimum,
+                    maximum,
+                    canonical_unit,
+                },
+            }
+        };
     vec![
         quantity(
             "source-minimum",
