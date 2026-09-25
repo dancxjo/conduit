@@ -10,6 +10,8 @@ fn primitive_registry_is_exact_and_has_no_boolean_alias() {
         (TEXT_INFO_ID, PrimitiveInfoKind::Text),
         (BYTES_INFO_ID, PrimitiveInfoKind::Bytes),
         (QUANTITY_INFO_ID, PrimitiveInfoKind::Quantity),
+        (DISTANCE_INFO_ID, PrimitiveInfoKind::Distance),
+        (FREQUENCY_INFO_ID, PrimitiveInfoKind::Frequency),
     ];
     for (identity, kind) in registered {
         assert_eq!(primitive_info_kind(identity), Some(kind));
@@ -53,6 +55,30 @@ fn every_primitive_has_one_canonical_leaf_contract() {
             &Quantity::new(-17, QuantityUnit::Millivolt).encode(),
         ),
         Ok(())
+    );
+    assert_eq!(
+        validate_primitive_info(
+            DISTANCE_INFO_ID,
+            &Quantity::new(30, QuantityUnit::Centimeter).encode(),
+        ),
+        Ok(())
+    );
+    assert_eq!(
+        validate_primitive_info(
+            FREQUENCY_INFO_ID,
+            &Quantity::new(440, QuantityUnit::Hertz).encode(),
+        ),
+        Ok(())
+    );
+    assert_eq!(
+        validate_primitive_info(
+            FREQUENCY_INFO_ID,
+            &Quantity::new(30, QuantityUnit::Centimeter).encode(),
+        ),
+        Err(PrimitiveInfoRefusal::WrongQuantityDimension {
+            expected: QuantityDimension::Frequency,
+            actual: QuantityDimension::Length,
+        })
     );
     assert_eq!(validate_primitive_info("domain/leaf@1", b"owned"), Ok(()));
 }
