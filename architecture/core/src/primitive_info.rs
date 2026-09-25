@@ -3,7 +3,9 @@
 //! This is a small reviewed registry, not a dynamic runtime type system.
 //! Domain-owned leaves remain the responsibility of their semantic owners.
 
-use crate::{InfoBool, InfoDecodeError, Quantity, QuantityDecodeRefusal, Scalar};
+use crate::{
+    InfoBool, InfoDecodeError, Quantity, QuantityDecodeRefusal, QuantityDimension, Scalar,
+};
 
 pub const UNIT_INFO_ID: &str = "value/unit";
 pub const COUNT_INFO_ID: &str = "value/count";
@@ -20,6 +22,8 @@ pub enum PrimitiveInfoKind {
     Text,
     Bytes,
     Quantity,
+    Distance,
+    Frequency,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,6 +34,10 @@ pub enum PrimitiveInfoRefusal {
     Scalar(InfoDecodeError),
     TextUtf8,
     Quantity(QuantityDecodeRefusal),
+    WrongQuantityDimension {
+        expected: QuantityDimension,
+        actual: QuantityDimension,
+    },
 }
 
 pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
@@ -41,6 +49,8 @@ pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
         b"value/text" => Some(PrimitiveInfoKind::Text),
         b"value/bytes" => Some(PrimitiveInfoKind::Bytes),
         b"value/quantity" => Some(PrimitiveInfoKind::Quantity),
+        b"value/distance" => Some(PrimitiveInfoKind::Distance),
+        b"value/frequency" => Some(PrimitiveInfoKind::Frequency),
         _ => None,
     }
 }
@@ -69,6 +79,20 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
         Some(PrimitiveInfoKind::Quantity) => Quantity::decode(encoded)
             .map(|_| ())
             .map_err(PrimitiveInfoRefusal::Quantity),
+        Some(PrimitiveInfoKind::Distance | PrimitiveInfoKind::Frequency) => {
+            let quantity = Quantity::decode(encoded).map_err(PrimitiveInfoRefusal::Quantity)?;
+            let expected = match primitive_info_kind(identity) {
+                Some(PrimitiveInfoKind::Distance) => QuantityDimension::Length,
+                Some(PrimitiveInfoKind::Frequency) => QuantityDimension::Frequency,
+                _ => unreachable!("matched dimensioned quantity kind"),
+            };
+            let actual = quantity.dimension();
+            if actual == expected {
+                Ok(())
+            } else {
+                Err(PrimitiveInfoRefusal::WrongQuantityDimension { expected, actual })
+            }
+        },
     }
 }
 
