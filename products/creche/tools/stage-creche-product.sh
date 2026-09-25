@@ -71,7 +71,7 @@ if test "$mode" = release; then
     cp "$release_artifacts/esp32-$target-generic-release.bin" "$destination/artifacts/"
     cp "$release_artifacts/esp32-$target-generic-release.json" "$destination/artifacts/"
   done
-  for artifact in hosted-linux-x86_64.json conduit-linux-x86_64 conduit-tour-linux-x86_64 conduit-home-linux-x86_64 install-linux-x86_64.sh hosted-windows-x86_64.json conduit-windows-x86_64.exe conduit-tour-windows-x86_64.exe conduit-home-windows-x86_64.exe hosted-macos-aarch64.json conduit-macos-aarch64 install-macos-aarch64.sh browser-page.json runtime.wasm index.html host.mjs browser-host-bootstrap.mjs browser-host-membership.mjs browser-host-identity.mjs browser-boot-profile.mjs browser-relay-line.mjs media-host.mjs device-base.mjs usb-device-base.mjs; do
+  for artifact in hosted-linux-x86_64.json conduit-linux-x86_64 conduit-tour-linux-x86_64 conduit-home-linux-x86_64 install-linux-x86_64.sh hosted-windows-x86_64.json conduit-windows-x86_64.exe conduit-tour-windows-x86_64.exe conduit-home-windows-x86_64.exe hosted-macos-aarch64.json conduit-macos-aarch64 install-macos-aarch64.sh browser-page.json runtime.wasm index.html host.mjs browser-host-bootstrap.mjs browser-host-membership.mjs browser-host-identity.mjs browser-runtime-bridge.mjs browser-boot-profile.mjs browser-relay-line.mjs media-host.mjs device-base.mjs usb-device-base.mjs; do
     test -f "$release_artifacts/$artifact"
     cp "$release_artifacts/$artifact" "$destination/artifacts/"
   done
