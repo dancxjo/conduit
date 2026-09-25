@@ -155,7 +155,7 @@ pub struct CheckedCanonicalGear {
     pub kind: String,
     pub startup_parameters: Vec<conduit_core::FrontStartupParameter>,
     pub startup_bindings: Vec<CheckedStartupBinding>,
-    pub retained: Option<crate::RetainedValue>,
+    pub retained: Option<Box<crate::RetainedValue>>,
     pub source_span: Span,
 }
 

@@ -37,12 +37,11 @@ pub const CANONICAL_LITERAL: &str = "hello";
 pub const CANONICAL_RESULT: &str = "HELLO";
 pub const CANONICAL_SOURCE: &str = concat!(
     "form meet-one-gear {\n",
-    "    .\n",
     "    words: text/literal(\"hello\")\n",
     "    change: text/upper\n",
     "    result: presentation/text\n\n",
     "    words >> change >> result\n",
-    "}"
+    "}."
 );
 pub const RUN_ACTION_ID: &str = "tour.run";
 pub const PREVIOUS_CHAPTER_ACTION_ID: &str = "tour.chapter.previous";

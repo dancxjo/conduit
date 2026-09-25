@@ -182,7 +182,7 @@ pub struct PoolDeclaration {
 pub struct NamedGear {
     pub name: SpannedText,
     pub invocation: Invocation,
-    pub retained: Option<RetainedValue>,
+    pub retained: Option<Box<RetainedValue>>,
     pub span: Span,
 }
 

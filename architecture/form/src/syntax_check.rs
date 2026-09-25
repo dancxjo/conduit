@@ -220,15 +220,17 @@ fn check_form(
         .clone();
     let checked_form_id = checked_identity(
         (&form.name.text, form.completion),
-        &parameters,
-        &form.front.runtime_ports,
-        &runtime_front,
-        form.front.shorthand.as_ref().map(|pair| {
-            (
-                pair.input_port.text.as_str(),
-                pair.output_port.text.as_str(),
-            )
-        }),
+        crate::syntax_identity::CheckedIdentityFront {
+            parameters: &parameters,
+            runtime_ports: &form.front.runtime_ports,
+            runtime_front: &runtime_front,
+            shorthand: form.front.shorthand.as_ref().map(|pair| {
+                (
+                    pair.input_port.text.as_str(),
+                    pair.output_port.text.as_str(),
+                )
+            }),
+        },
         &gears,
         &cords,
         &pools,
