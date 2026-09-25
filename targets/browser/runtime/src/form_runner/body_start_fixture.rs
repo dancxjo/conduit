@@ -3,8 +3,8 @@ use super::super::*;
 
 pub(in crate::form_runner) fn request() -> BodyStartRequest {
     request_from_sources(&[
-        "form first {\n .\n text: text/literal(\"first\")\n show: presentation/text\n text >> show\n}\n",
-        "form second {\n .\n text: text/literal(\"second\")\n show: presentation/text\n text >> show\n}\n",
+        "form first {\n text: text/literal(\"first\")\n show: presentation/text\n text >> show\n}.\n",
+        "form second {\n text: text/literal(\"second\")\n show: presentation/text\n text >> show\n}.\n",
     ])
 }
 
