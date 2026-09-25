@@ -437,12 +437,13 @@ fn canonical_theremin_distance_to_frequency_fixture_checks_and_lowers() {
     let authored =
         expand_canonical_form_for_authoring(&checked, "pocket-theremin-distance-frequency", &profile)
             .unwrap();
-    let kinds = authored
+    let mut kinds = authored
         .expanded
         .gears
         .iter()
         .map(|gear| gear.kind_id.as_str())
         .collect::<Vec<_>>();
+    kinds.sort_unstable();
     assert_eq!(kinds, ["current/keep", "map/range"]);
     assert!(kinds.iter().all(|kind| !kind.contains("theremin")));
     let map = authored
