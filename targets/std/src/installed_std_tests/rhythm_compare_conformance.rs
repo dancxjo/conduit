@@ -70,7 +70,7 @@ fn portable_lesson_executes_with_generic_structured_sources() {
     );
 
     let source = format!(
-        "form lesson {{\n performance: {PERFORMANCE_SOURCE}\n reference: {REFERENCE_SOURCE}\n feedback: {FEEDBACK_SINK}\n compare: music/rhythm-compare(target-offset-micros = 0, tolerance-micros = 30000)\n performance > compare.performance\n reference > compare.reference\n compare.feedback > feedback\n}}\n"
+        "form lesson {{\n performance: {PERFORMANCE_SOURCE}\n reference: {REFERENCE_SOURCE}\n feedback: {FEEDBACK_SINK}\n compare: music/rhythm-compare(target-offset-micros = 0, tolerance-micros = 30000)\n performance >> compare.performance\n reference >> compare.reference\n compare.feedback >> feedback\n}}\n"
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);

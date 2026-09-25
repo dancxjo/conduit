@@ -133,12 +133,12 @@ fn authored_local_vision_runs(
         crate::kernel_preparation::KernelResourceLedger::new(&host.advertisement).unwrap();
     let source = if track_objects {
         format!(
-            "form proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n {gear_name}: {vision_kind}\n track: vision/local-track\n sink: conduit-test/local-model-result\n source.image > {gear_name}.image\n {gear_name}.{output_port} > track.detections\n track.tracks > sink.value\n}}\n",
+            "form proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n {gear_name}: {vision_kind}\n track: vision/local-track\n sink: conduit-test/local-model-result\n source.image >> {gear_name}.image\n {gear_name}.{output_port} >> track.detections\n track.tracks >> sink.value\n}}\n",
             hex(&encoded),
         )
     } else {
         format!(
-            "form proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n {gear_name}: {vision_kind}\n sink: conduit-test/local-model-result\n source.image > {gear_name}.image\n {gear_name}.{output_port} > sink.value\n}}\n",
+            "form proof {{\n source: conduit-test/vision-image-source(value = \"{}\")\n {gear_name}: {vision_kind}\n sink: conduit-test/local-model-result\n source.image >> {gear_name}.image\n {gear_name}.{output_port} >> sink.value\n}}\n",
             hex(&encoded),
         )
     };

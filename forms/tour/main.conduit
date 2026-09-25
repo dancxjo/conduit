@@ -5,6 +5,6 @@ form tour (
   state: application/retained(application = application)
   view: presentation/application-view
 
-  events.event > state.event
-  state.view > view.view
+  events.event >> state.event
+  state.view >> view.view
 }

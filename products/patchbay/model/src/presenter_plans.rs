@@ -11,7 +11,7 @@ use conduit_form::{
 
 pub use conduit_semantic_catalog::PATCHBAY_PRESENTATION_KIND;
 
-const USER_SOURCE: &str = "form patchbay-capstone {\n subject: text/literal(\"Gear demo with typed Ports and one Cord\")\n canvas: presentation/patchbay\n subject > canvas.subject\n}\n";
+const USER_SOURCE: &str = "form patchbay-capstone {\n subject: text/literal(\"Gear demo with typed Ports and one Cord\")\n canvas: presentation/patchbay\n subject >> canvas.subject\n}\n";
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchbayPresenterPlans {
     pub direct_expanded: conduit_form::ExpandedCanonicalForm,

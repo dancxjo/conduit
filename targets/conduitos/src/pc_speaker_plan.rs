@@ -25,7 +25,7 @@ const TONE_SOURCE_REVISION: &str = "conduitos.fixture/tone-source@1";
 const TONE_SOURCE_PROFILE: &str = "conduitos/proof-tone-source@1";
 const TONE_SOURCE_IMPLEMENTATION: &str = "conduitos.fixture/tone-source@1";
 pub const TONE_SOURCE_HOST_CALL: &str = "conduitos.fixture/tone-sequence-step@1";
-pub const PC_SPEAKER_FORM_SOURCE: &str = "form conduitos-tone {\n    source: conduitos-fixture/tone-source\n    speaker: sound/tone-play\n    source > speaker.tone\n}\n";
+pub const PC_SPEAKER_FORM_SOURCE: &str = "form conduitos-tone {\n    source: conduitos-fixture/tone-source\n    speaker: sound/tone-play\n    source >> speaker.tone\n}\n";
 
 pub struct PreparedPcSpeakerPlay {
     pub advertisement: HostAdvertisement,
@@ -330,7 +330,7 @@ pub(crate) mod tests {
         );
 
         let syntax = conduit_form::parse_syntax_document(
-            "form invalid (\n > audio: audio/pcm-frame@1\n) {\n speaker: sound/tone-play\n audio > speaker.tone\n}\n",
+            "form invalid (\n >> audio: audio/pcm-frame@1\n) {\n speaker: sound/tone-play\n audio >> speaker.tone\n}\n",
         );
         let mut startup = conduit_form::StartupCatalog::new();
         let mut profile = conduit_form::ProfileCatalog::new();
@@ -352,7 +352,7 @@ pub(crate) mod tests {
     fn exclusive_base_and_operation_resources_refuse_a_second_tone_sink() {
         let (identities, offer) = fixture();
         let form = checked_expanded(
-            "form conflict {\n left-source: conduitos-fixture/tone-source\n right-source: conduitos-fixture/tone-source\n left: sound/tone-play\n right: sound/tone-play\n left-source > left.tone\n right-source > right.tone\n}\n",
+            "form conflict {\n left-source: conduitos-fixture/tone-source\n right-source: conduitos-fixture/tone-source\n left: sound/tone-play\n right: sound/tone-play\n left-source >> left.tone\n right-source >> right.tone\n}\n",
             "conflict",
         )
         .unwrap();

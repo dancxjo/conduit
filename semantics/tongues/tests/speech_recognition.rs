@@ -183,8 +183,8 @@ form live-recognized-turn (
     recognize: speech/recognize-stream
     commit: speech/commit-recognized-turn
 
-    audio > recognize.audio
-    recognize.events > commit.events
+    audio >> recognize.audio
+    recognize.events >> commit.events
     commit.message > message
 }
 "#;

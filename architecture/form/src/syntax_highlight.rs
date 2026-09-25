@@ -223,7 +223,7 @@ mod tests {
 
     #[test]
     fn canonical_source_is_lossless_and_grammar_aware() {
-        let source = "form hello (\n  name: value/text = \"reader\"\n  tick: value/u64@1... >\n) {\n  .\n  count = 42\n  source: text/constant(value=\"hi\")\n  source.output > sink.input\n}\n";
+        let source = "form hello (\n  name: value/text = \"reader\"\n  tick: value/u64@1... >>\n) {\n  .\n  count = 42\n  source: text/constant(value=\"hi\")\n  source.output >> sink.input\n}\n";
         let spans = highlight_syntax(source).unwrap();
         let reconstructed: String = spans
             .iter()

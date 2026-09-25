@@ -47,7 +47,7 @@ fn found_storage_result_feeds_reusable_comparison_through_checked_selectors() {
         install_fixture(&mut startup, &mut profile, kind, value, offer);
     }
     let source = format!(
-        "form proof {{\n found: {FOUND_KIND}(value = \"{}\")\n candidate: {CANDIDATE_KIND}(value = \"{}\")\n compare: sequence/compare-normalized-pattern(metric = \"{}\", tolerance-millionths = 20000)\n sink: {SINK_KIND}(value = \"{}\")\n found > select(NamedPatternTemplateResult.found, unmatched=refuse) > project(NamedPatternTemplate.pattern) > compare.template\n candidate.output > compare.candidate\n compare.comparison > sink.input\n}}\n",
+        "form proof {{\n found: {FOUND_KIND}(value = \"{}\")\n candidate: {CANDIDATE_KIND}(value = \"{}\")\n compare: sequence/compare-normalized-pattern(metric = \"{}\", tolerance-millionths = 20000)\n sink: {SINK_KIND}(value = \"{}\")\n found >> select(NamedPatternTemplateResult.found, unmatched=refuse) >> project(NamedPatternTemplate.pattern) >> compare.template\n candidate.output >> compare.candidate\n compare.comparison >> sink.input\n}}\n",
         hex(&found.canonical_bytes().unwrap()),
         hex(&candidate.canonical_bytes().unwrap()),
         conduit_semantic_catalog::MAXIMUM_ABSOLUTE_METRIC,

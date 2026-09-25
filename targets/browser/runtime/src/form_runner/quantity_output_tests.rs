@@ -223,8 +223,8 @@ form zz-quantity-output {{
  wrap: structured-info/wrap-quantity
  show: presentation/quantity
  input.value > map.control
- map.{output} > wrap.in
- wrap.out > show.input
+ map.{output} >> wrap.in
+ wrap.out >> show.input
 }}"#
             );
             let (mut session, effect) = TourSession::prepare_with_profile(

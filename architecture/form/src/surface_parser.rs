@@ -1,7 +1,8 @@
 use crate::prelude::*;
 use crate::surface_lex::{
     delimiters_are_balanced, is_name, is_operation, is_reference, location, split_declaration,
-    split_top_level, split_top_level_once, top_level_positions, SourceLine,
+    split_top_level, split_top_level_once, split_top_level_token, top_level_positions,
+    top_level_token_positions, SourceLine,
 };
 use crate::syntax::{
     Argument, BackStatement, ConstructionRole, ConstructionSyntax, Cord, CordStage, Expression,
@@ -211,8 +212,15 @@ impl<'a> Parser<'a> {
                 self.index += 1;
                 continue;
             }
-            if text.contains('>') {
+            if text.contains(">>") {
                 self.parse_front_runtime(text, start, &mut front)?;
+            } else if !top_level_positions(text, '>').is_empty() {
+                return Err((
+                    FormError::InvalidSyntax(
+                        "'>' is not a Conduitese cord or fore; use '>>'".into(),
+                    ),
+                    self.span(start, start + text.len()),
+                ));
             } else {
                 front
                     .startup_parameters
@@ -248,7 +256,7 @@ impl<'a> Parser<'a> {
         start: usize,
         front: &mut FormFront,
     ) -> Result<(), (FormError, Span)> {
-        let arrows = top_level_positions(text, '>');
+        let arrows = top_level_token_positions(text, ">>");
         if arrows.len() != 1 {
             return Err((
                 FormError::InvalidSyntax("malformed front arrows".into()),
@@ -257,7 +265,7 @@ impl<'a> Parser<'a> {
         }
         let arrow = arrows[0];
         let left = text[..arrow].trim();
-        let right = text[arrow + 1..].trim();
+        let right = text[arrow + 2..].trim();
         match (left.is_empty(), right.is_empty()) {
             (true, false) => front.runtime_ports.push(self.runtime_port(
                 right,
@@ -356,7 +364,7 @@ impl<'a> Parser<'a> {
                     self.span(start, start + text.len()),
                 ));
             }
-            if let Some(source) = text.strip_suffix("> ? {").map(str::trim) {
+            if let Some(source) = text.strip_suffix(">> ? {").map(str::trim) {
                 statements.push(BackStatement::MatchedRoute(
                     self.parse_matched_route(source, text, start)?,
                 ));
@@ -409,16 +417,16 @@ impl<'a> Parser<'a> {
                 self.index += 1;
                 continue;
             }
-            let Some(split) = top_level_positions(text, '>').first().copied() else {
+            let Some(split) = top_level_token_positions(text, ">>").first().copied() else {
                 return Err((
                     FormError::InvalidSyntax(
-                        "matched routing track requires PATTERN > ROUTE".into(),
+                        "matched routing track requires PATTERN >> ROUTE".into(),
                     ),
                     self.line_span(line),
                 ));
             };
             let pattern_text = text[..split].trim();
-            let tail = text[split + 1..].trim();
+            let tail = text[split + 2..].trim();
             if tail.is_empty() {
                 return Err(self.invalid_statement(text, arm_start));
             }
@@ -526,7 +534,7 @@ impl<'a> Parser<'a> {
         if let Some(declaration) = text.strip_prefix("pool ") {
             return parse_pool_declaration(self, declaration, text, start).map(BackStatement::Pool);
         }
-        if !top_level_positions(text, '>').is_empty() {
+        if !top_level_token_positions(text, ">>").is_empty() {
             return self.parse_cord(text, start).map(BackStatement::Cord);
         }
         if let Some(colon) = top_level_positions(text, ':').first().copied() {
@@ -561,7 +569,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_cord(&self, text: &str, start: usize) -> Result<Cord, (FormError, Span)> {
-        let parts = split_top_level(text, '>');
+        let parts = split_top_level_token(text, ">>");
         if parts.len() < 2 || parts.iter().any(|part| part.trim().is_empty()) {
             return Err(self.invalid_statement(text, start));
         }
@@ -577,7 +585,7 @@ impl<'a> Parser<'a> {
         text: &str,
         start: usize,
     ) -> Result<Vec<CordStage>, (FormError, Span)> {
-        let parts = split_top_level(text, '>');
+        let parts = split_top_level_token(text, ">>");
         if parts.iter().any(|part| part.trim().is_empty()) {
             return Err(self.invalid_statement(text, start));
         }

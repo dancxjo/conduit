@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 #[test]
 fn button_completion_progresses_while_an_independent_timer_remains_pending() {
-    let source = "form concurrent {\n button: input/button\n state: input/button-indicator-state\n indicator: presentation/indicator-state\n clock: time/every(freq = 100ms)\n count: state/count(start = 0)\n show: presentation/count\n button > state > indicator\n clock.tick > count.bump\n count.value > show.value\n}\n";
+    let source = "form concurrent {\n button: input/button\n state: input/button-indicator-state\n indicator: presentation/indicator-state\n clock: time/every(freq = 100ms)\n count: state/count(start = 0)\n show: presentation/count\n button >> state >> indicator\n clock.tick >> count.bump\n count.value >> show.value\n}\n";
     let (startup, catalog) = crate::installed_browser::catalogs().unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "concurrent", &catalog).unwrap();

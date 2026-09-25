@@ -70,9 +70,9 @@ fn completion_policy_is_exact_checked_meaning() {
 
 #[test]
 fn comment_only_edits_change_source_identity_but_not_checked_meaning() {
-    let plain = check("form a {\n clock: time/every(1s)\n clock > sink\n}\n");
+    let plain = check("form a {\n clock: time/every(1s)\n clock >> sink\n}\n");
     let commented = check(
-        "# document note\nform a { # header\n clock: time/every(1s) # source\n clock > sink # route\n} # close\n",
+        "# document note\nform a { # header\n clock: time/every(1s) # source\n clock >> sink # route\n} # close\n",
     );
 
     assert_ne!(plain.source_document_id, commented.source_document_id);
@@ -105,8 +105,8 @@ fn positional_named_and_local_reference_bindings_are_semantically_equivalent() {
 
 #[test]
 fn local_values_and_gears_resolve_independently_of_statement_order() {
-    let first = check("form a {\n freq = 1s\n clock: time/every(freq)\n clock > sink\n}\n");
-    let reordered = check("form a {\n clock > sink\n clock: time/every(freq)\n freq = 1s\n}\n");
+    let first = check("form a {\n freq = 1s\n clock: time/every(freq)\n clock >> sink\n}\n");
+    let reordered = check("form a {\n clock >> sink\n clock: time/every(freq)\n freq = 1s\n}\n");
 
     assert_ne!(first.source_document_id, reordered.source_document_id);
     assert_eq!(
@@ -270,29 +270,30 @@ fn front_default_cycles_are_rejected_even_before_invocation() {
 
 #[test]
 fn runtime_ports_cannot_masquerade_as_startup_values() {
-    let error = diagnostic("form a (\n > freq: Duration\n) {\n clock: time/every(freq)\n}\n");
+    let error = diagnostic("form a (\n >> freq: Duration\n) {\n clock: time/every(freq)\n}\n");
     assert_eq!(error.code, "CND-FRM-027");
     assert!(error.message.contains("runtime port 'freq'"));
 }
 
 #[test]
 fn runtime_ports_hidden_inside_unsupported_expressions_still_fail_as_runtime_values() {
-    let error = diagnostic("form a (\n > freq: Duration\n) {\n clock: time/every(list(freq))\n}\n");
+    let error =
+        diagnostic("form a (\n >> freq: Duration\n) {\n clock: time/every(list(freq))\n}\n");
     assert_eq!(error.code, "CND-FRM-027");
 }
 
 #[test]
 fn local_bindings_cannot_shadow_front_values_or_runtime_ports() {
     let parameter = diagnostic("form a (\n freq: Duration\n) {\n freq = 1s\n}\n");
-    let runtime = diagnostic("form a (\n > freq: Duration\n) {\n freq = 1s\n}\n");
+    let runtime = diagnostic("form a (\n >> freq: Duration\n) {\n freq = 1s\n}\n");
     assert_eq!(parameter.code, "CND-FRM-020");
     assert_eq!(runtime.code, "CND-FRM-020");
 }
 
 #[test]
 fn public_front_names_cannot_be_duplicated_or_shadowed_by_gears() {
-    let duplicate = diagnostic("form a (\n > value: Text\n > value: Text\n) {\n}\n");
-    let shadow = diagnostic("form a (\n > clock: Duration\n) {\n clock: time/every(1s)\n}\n");
+    let duplicate = diagnostic("form a (\n >> value: Text\n >> value: Text\n) {\n}\n");
+    let shadow = diagnostic("form a (\n >> clock: Duration\n) {\n clock: time/every(1s)\n}\n");
     assert_eq!(duplicate.code, "CND-FRM-050");
     assert_eq!(shadow.code, "CND-FRM-050");
     assert!(shadow.message.contains("ambiguously shadowed"));
@@ -316,8 +317,8 @@ fn unsupported_expression_forms_fail_instead_of_becoming_opaque_literals() {
 
 #[test]
 fn shorthand_pair_participates_in_checked_identity() {
-    let shorthand = check("form a (\n input: Tick > output: Tick\n) {\n}\n");
-    let auxiliary = check("form a (\n > input: Tick\n output: Tick >\n) {\n}\n");
+    let shorthand = check("form a (\n input: Tick >> output: Tick\n) {\n}\n");
+    let auxiliary = check("form a (\n >> input: Tick\n output: Tick >>\n) {\n}\n");
     assert_ne!(
         shorthand.forms[0].checked_form_id,
         auxiliary.forms[0].checked_form_id
@@ -337,7 +338,7 @@ fn delimiter_like_literal_text_is_bound_unambiguously_into_identity() {
 #[test]
 fn checked_front_equality_ignores_callable_name_and_back() {
     let checked = check(
-        "form first (\n count: Count = 1\n input: Tick > output: Tick\n) {\n}\n\nform second (\n count: Count = 2\n input: Tick > output: Tick\n) {\n clock: time/every(1s)\n}\n",
+        "form first (\n count: Count = 1\n input: Tick >> output: Tick\n) {\n}\n\nform second (\n count: Count = 2\n input: Tick >> output: Tick\n) {\n clock: time/every(1s)\n}\n",
     );
     assert_eq!(
         checked.forms[0].checked_front(),
@@ -402,14 +403,15 @@ fn startup_type_and_default_semantics_have_explicit_identity_boundaries() {
 
 #[test]
 fn checked_front_equality_binds_startup_ports_and_shorthand() {
-    let baseline = check("form a (\n count: Count = 1\n input: Tick > output: Tick\n) {\n}\n");
-    let required = check("form a (\n count: Count\n input: Tick > output: Tick\n) {\n}\n");
-    let renamed = check("form a (\n limit: Count = 1\n input: Tick > output: Tick\n) {\n}\n");
-    let auxiliary = check("form a (\n count: Count = 1\n > input: Tick\n output: Tick >\n) {\n}\n");
-    let flow = check("form a (\n count: Count = 1\n input: Tick... > output: Tick...\n) {\n}\n");
+    let baseline = check("form a (\n count: Count = 1\n input: Tick >> output: Tick\n) {\n}\n");
+    let required = check("form a (\n count: Count\n input: Tick >> output: Tick\n) {\n}\n");
+    let renamed = check("form a (\n limit: Count = 1\n input: Tick >> output: Tick\n) {\n}\n");
+    let auxiliary =
+        check("form a (\n count: Count = 1\n >> input: Tick\n output: Tick >>\n) {\n}\n");
+    let flow = check("form a (\n count: Count = 1\n input: Tick... >> output: Tick...\n) {\n}\n");
     let closing_flow =
-        check("form a (\n count: Count = 1\n input: Tick...| > output: Tick...|\n) {\n}\n");
-    let current = check("form a (\n count: Count = 1\n input: $Tick > output: $Tick\n) {\n}\n");
+        check("form a (\n count: Count = 1\n input: Tick...| >> output: Tick...|\n) {\n}\n");
+    let current = check("form a (\n count: Count = 1\n input: $Tick >> output: $Tick\n) {\n}\n");
     for changed in [required, renamed, auxiliary, flow, closing_flow, current] {
         assert_ne!(
             baseline.forms[0].checked_front(),
@@ -420,10 +422,11 @@ fn checked_front_equality_binds_startup_ports_and_shorthand() {
 
 #[test]
 fn checked_front_canonicalizes_runtime_port_declaration_order() {
-    let first =
-        check("form a (\n > alpha: Tick\n > beta: Text\n omega: Text >\n zeta: Tick >\n) {\n}\n");
+    let first = check(
+        "form a (\n >> alpha: Tick\n >> beta: Text\n omega: Text >>\n zeta: Tick >>\n) {\n}\n",
+    );
     let reordered = check(
-        "form renamed (\n zeta: Tick >\n omega: Text >\n > beta: Text\n > alpha: Tick\n) {\n}\n",
+        "form renamed (\n zeta: Tick >>\n omega: Text >>\n >> beta: Text\n >> alpha: Tick\n) {\n}\n",
     );
     assert_eq!(
         first.forms[0].checked_front(),
@@ -434,10 +437,10 @@ fn checked_front_canonicalizes_runtime_port_declaration_order() {
 #[test]
 fn pool_declaration_seals_member_front_and_bound_without_nominal_identity() {
     let first = check(
-        "form chat/peer (\n recv: ChatMessage...| > send: ChatMessage...|\n) {\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n}\n",
+        "form chat/peer (\n recv: ChatMessage...| >> send: ChatMessage...|\n) {\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n}\n",
     );
     let renamed = check(
-        "form renamed/peer (\n recv: ChatMessage...| > send: ChatMessage...|\n) {\n}\n\nform room {\n pool peers: renamed/peer(size = 2)\n}\n",
+        "form renamed/peer (\n recv: ChatMessage...| >> send: ChatMessage...|\n) {\n}\n\nform room {\n pool peers: renamed/peer(size = 2)\n}\n",
     );
     let first_room = first.forms.iter().find(|form| form.name == "room").unwrap();
     let renamed_room = renamed
@@ -452,7 +455,7 @@ fn pool_declaration_seals_member_front_and_bound_without_nominal_identity() {
     assert_eq!(first_room.checked_form_id, renamed_room.checked_form_id);
 
     let larger = check(
-        "form chat/peer (\n recv: ChatMessage...| > send: ChatMessage...|\n) {\n}\n\nform room {\n pool peers: chat/peer(size = 3)\n}\n",
+        "form chat/peer (\n recv: ChatMessage...| >> send: ChatMessage...|\n) {\n}\n\nform room {\n pool peers: chat/peer(size = 3)\n}\n",
     );
     let larger_room = larger
         .forms

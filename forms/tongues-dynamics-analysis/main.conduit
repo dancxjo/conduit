@@ -5,9 +5,9 @@ form tongues-dynamics-analysis {
     dynamics: tongues/analyze-continuous-dynamics
     overlay: tongues/post-freeze-analysis
 
-    observations.acoustic > extract.acoustic
-    observations.articulation > extract.articulation
-    extract.latent > dynamics.latent
-    observations.articulation > dynamics.articulation
-    dynamics.analysis > overlay.analysis
+    observations.acoustic >> extract.acoustic
+    observations.articulation >> extract.articulation
+    extract.latent >> dynamics.latent
+    observations.articulation >> dynamics.articulation
+    dynamics.analysis >> overlay.analysis
 }

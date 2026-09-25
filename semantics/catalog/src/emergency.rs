@@ -215,7 +215,7 @@ mod tests {
         let mut startup = conduit_form::StartupCatalog::new();
         let mut profile = conduit_form::ProfileCatalog::new();
         install_emergency_observation_catalogs(&mut startup, &mut profile).unwrap();
-        let source = "form emergency_observation (\n > audio: audio/pcm-frames@1\n trigger: emergency/trigger-observation@1 >\n) {\n spotter: emergency/keyword-spotter\n sequence: emergency/sequence-match(maximum-word-gap-millis = 2000)\n audio > spotter.audio\n spotter.observation > sequence.observation\n sequence.trigger > trigger\n}\n";
+        let source = "form emergency_observation (\n >> audio: audio/pcm-frames@1\n trigger: emergency/trigger-observation@1 >>\n) {\n spotter: emergency/keyword-spotter\n sequence: emergency/sequence-match(maximum-word-gap-millis = 2000)\n audio >> spotter.audio\n spotter.observation >> sequence.observation\n sequence.trigger >> trigger\n}\n";
         let syntax = conduit_form::parse_syntax_document(source);
         let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
         let expanded = conduit_form::expand_canonical_form_for_authoring(

@@ -14,7 +14,7 @@ fn checked_civil_recurrence_executes_through_the_production_kernel() {
     let source = r#"form meeting {
   expand: time/expand-recurrence({ excluded_ordinals: [unused(""), unused(""), unused(""), unused("")], fold_policy: "earlier", gap_policy: "skip", identity: "recurrence/weekly-meeting", maximum_occurrences: 3, maximum_results: 2, resolutions: [unique({ instant: { basis: "utc", resolution_ticks: 1, scale: "seconds", ticks: 100 }, local_date: "2026-03-02", local_time: "09:00:00", ordinal: 0, rule_set: "tzdb/2026a", zone: "America/Los_Angeles" }), unique({ instant: { basis: "utc", resolution_ticks: 1, scale: "seconds", ticks: 300 }, local_date: "2026-03-16", local_time: "09:00:00", ordinal: 2, rule_set: "tzdb/2026a", zone: "America/Los_Angeles" }), unused(""), unused(""), unused(""), unused(""), unused(""), unused("")], rule: civil_weekdays({ excluded_dates: [exclude("2026-03-09"), unused(""), unused(""), unused("")], first_date: "2026-03-02", local_time: "09:00:00", rule_set: "tzdb/2026a", weekdays: 1, zone: "America/Los_Angeles" }), until: civil_date("2026-03-16"), window: wall({ end: { basis: "utc", resolution_ticks: 1, scale: "seconds", ticks: 300 }, start: { basis: "utc", resolution_ticks: 1, scale: "seconds", ticks: 100 } }) })
   sink: conduit-test/recurrence-sink(2)
-  expand.occurrences > sink.occurrences
+  expand.occurrences >> sink.occurrences
 }
 "#;
     let sink_offer = installed_std::test_recurrence_sink_offer();

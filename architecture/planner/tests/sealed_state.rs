@@ -29,7 +29,7 @@ fn checked_state_is_sealed_into_a_fresh_plan_with_exact_evidence_capacity() {
         .unwrap();
     let startup = profile.startup_catalog().unwrap();
     let form = conduit_form::parse_with_startup(
-        "form retained {\n source: fixture/scalar-flow\n cell: state/latest\n source.value > cell.in\n}\n",
+        "form retained {\n source: fixture/scalar-flow\n cell: state/latest\n source.value >> cell.in\n}\n",
         &startup,
         &profile,
     ).unwrap();

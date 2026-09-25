@@ -12,12 +12,12 @@ const FORM: &str = r#"form patchbay_shell {
  stack: layout/stack
  front: layout/align(horizontal = "center", vertical = "end")
  sink: conduit-test/layout-sink
- viewport.placements > inset.frame
- inset.placements > row.frame
- row.placements > column.frame
- column.placements > stack.frame
- stack.placements > front.frame
- front.placements > sink.in
+ viewport.placements >> inset.frame
+ inset.placements >> row.frame
+ row.placements >> column.frame
+ column.placements >> stack.frame
+ stack.placements >> front.frame
+ front.placements >> sink.in
 }
 "#;
 

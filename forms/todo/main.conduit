@@ -2,69 +2,69 @@
 # State evolution uses the ordinary bounded collection contract. The request
 # carries the prior collection and one explicit command; no Host owns edits.
 form todo/state-step (
-    request: value/json@1 > tasks: value/json@1
+    request: value/json@1 >> tasks: value/json@1
 ) {
     edit: json/collection-step
-    request > edit.value
-    edit.value > tasks
+    request >> edit.value
+    edit.value >> tasks
 }
 
 # The same portable JSON waist supplies bounded persisted-state encoding.
 form todo/snapshot (
-    tasks: value/json@1 > snapshot: text/json-utf8@1
+    tasks: value/json@1 >> snapshot: text/json-utf8@1
 ) {
     encode: json/encode
-    tasks > encode.value
-    encode.value > snapshot
+    tasks >> encode.value
+    encode.value >> snapshot
 }
 
 form todo/command-snapshot (
-    request: value/json@1 > snapshot: text/json-utf8@1
+    request: value/json@1 >> snapshot: text/json-utf8@1
 ) {
     update: todo/state-step
     persistable: todo/snapshot
-    request > update.request
-    update.tasks > persistable.tasks
-    persistable.snapshot > snapshot
+    request >> update.request
+    update.tasks >> persistable.tasks
+    persistable.snapshot >> snapshot
 }
 
 form todo/summary (
-    tasks: value/json@1 > summary: value/json@1
+    tasks: value/json@1 >> summary: value/json@1
 ) {
     count: json/boolean-summary(field = "complete")
-    tasks > count.value
-    count.value > summary
+    tasks >> count.value
+    count.value >> summary
 }
 
 form todo/command-summary (
-    request: value/json@1 > snapshot: text/json-utf8@1
+    request: value/json@1 >> snapshot: text/json-utf8@1
 ) {
     update: todo/state-step
     count: todo/summary
     encode: todo/snapshot
-    request > update.request
-    update.tasks > count.tasks
-    count.summary > encode.tasks
-    encode.snapshot > snapshot
+    request >> update.request
+    update.tasks >> count.tasks
+    count.summary >> encode.tasks
+    encode.snapshot >> snapshot
 }
 
 # Storage supplies encoded content; meaning is recovered in an authored form.
 form todo/restore (
-    snapshot: text/json-utf8@1 > tasks: value/json@1
+    snapshot: text/json-utf8@1 >> tasks: value/json@1
 ) {
     decode: json/decode
-    snapshot > decode.value
-    decode.value > tasks
+    snapshot >> decode.value
+    decode.value >> tasks
 }
 
 form todo/restore-summary (
-    snapshot: text/json-utf8@1 > result: text/json-utf8@1
+    snapshot: text/json-utf8@1 >> result: text/json-utf8@1
 ) {
     restore: todo/restore
     count: todo/summary
     encode: todo/snapshot
-    snapshot > restore.snapshot
-    restore.tasks > count.tasks
-    count.summary > encode.tasks
-    encode.snapshot > result
+    snapshot >> restore.snapshot
+    restore.tasks >> count.tasks
+    count.summary >> encode.tasks
+    encode.snapshot >> result
 }

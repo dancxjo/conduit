@@ -110,7 +110,7 @@ fn composition_preserves_each_domain_and_multiplies_raw_representations() {
 #[test]
 fn analysis_retains_the_identity_validated_by_ordinary_graph_admission() {
     let mut form = conduit_form::parse_with_startup(
-        "form signal-demo {\n pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n show: presentation/show\n pulse > show\n}\n",
+        "form signal-demo {\n pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n show: presentation/show\n pulse >> show\n}\n",
         &conduit_signal::signal_startup_catalog(),
         &conduit_signal::signal_profile_catalog(),
     ).unwrap();

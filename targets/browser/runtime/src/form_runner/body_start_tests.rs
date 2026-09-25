@@ -48,7 +48,7 @@ fn checked_tutorial_form_projects_current_body_truth_inside_its_admitted_play() 
 #[test]
 fn ordinary_five_form_body_is_not_confined_to_the_single_form_gear_table() {
     let sources = (0..5)
-        .map(|index| format!("form body_{index} {{\n message: text/literal(\"hello\")\n first: text/upper\n second: text/upper\n result: presentation/text\n message > first > second > result\n}}\n"))
+        .map(|index| format!("form body_{index} {{\n message: text/literal(\"hello\")\n first: text/upper\n second: text/upper\n result: presentation/text\n message >> first >> second >> result\n}}\n"))
         .collect::<Vec<_>>();
     let source_refs = sources.iter().map(String::as_str).collect::<Vec<_>>();
     let request = request_from_sources(&source_refs);
@@ -204,7 +204,7 @@ fn living_button_keeps_the_completed_clock_and_telegraph_in_one_body_play() {
 fn canonical_firefly_and_unrelated_text_remain_in_one_body_play_until_stop() {
     let request = request_from_sources(&[
         include_str!("../../../../../forms/firefly-choir/main.conduit"),
-        "form unrelated {\n .\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message > show\n}\n",
+        "form unrelated {\n .\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message >> show\n}\n",
     ]);
     let original = request.plan.clone();
     let (mut session, started) = prepare(request).unwrap();
@@ -266,7 +266,7 @@ fn canonical_firefly_and_unrelated_text_remain_in_one_body_play_until_stop() {
 fn canonical_signal_garden_and_unrelated_text_complete_in_one_body_play() {
     let request = request_from_sources(&[
         include_str!("../../../../../forms/signal-garden/main.conduit"),
-        "form unrelated {\n .\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message > show\n}\n",
+        "form unrelated {\n .\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message >> show\n}\n",
     ]);
     let original = request.plan.clone();
     let (mut session, started) = prepare(request).unwrap();

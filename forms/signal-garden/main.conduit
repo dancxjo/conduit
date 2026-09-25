@@ -1,52 +1,52 @@
 # Reusable minimal evolution from explicit prior state and clock observation.
 form garden-state-step (
-    > prior: GardenState
-    > clock: GardenClockObservation
-    next: GardenState >
+    >> prior: GardenState
+    >> clock: GardenClockObservation
+    next: GardenState >>
 ) {
     evolve: state/garden-step
-    prior > evolve.prior
-    clock > evolve.clock
-    evolve.next > next
+    prior >> evolve.prior
+    clock >> evolve.clock
+    evolve.next >> next
 }
 
 # Contact enrichment is a second exact front, not an optional or erased input.
 form garden-state-step-contact (
-    > prior: GardenState
-    > clock: GardenClockObservation
-    > contact: GardenContactObservation
-    next: GardenState >
+    >> prior: GardenState
+    >> clock: GardenClockObservation
+    >> contact: GardenContactObservation
+    next: GardenState >>
 ) {
     combine: observation/garden-clock-contact
     evolve: state/garden-step-enriched-reducer
-    prior > evolve.prior
-    clock > combine.clock
-    contact > combine.contact
-    combine.observation > evolve.observation
-    evolve.next > next
+    prior >> evolve.prior
+    clock >> combine.clock
+    contact >> combine.contact
+    combine.observation >> evolve.observation
+    evolve.next >> next
 }
 
 # A meaningful minimal Garden has only its explicitly required clock source.
 form signal-garden-minimal (
-    state: GardenState >
+    state: GardenState >>
 ) {
     observations: garden/deterministic-observations
     evolve: garden-state-step
-    observations.prior > evolve.prior
-    observations.clock > evolve.clock
-    evolve.next > state
+    observations.prior >> evolve.prior
+    observations.clock >> evolve.clock
+    evolve.next >> state
 }
 
 # Contact enriches the same state family through a distinct mandatory typed port.
 form signal-garden-interactive (
-    state: GardenState >
+    state: GardenState >>
 ) {
     observations: garden/deterministic-observations
     evolve: garden-state-step-contact
-    observations.prior > evolve.prior
-    observations.clock > evolve.clock
-    observations.contact > evolve.contact
-    evolve.next > state
+    observations.prior >> evolve.prior
+    observations.clock >> evolve.clock
+    observations.contact >> evolve.contact
+    evolve.next >> state
 }
 
 # Presentation consumes the semantic state after evolution and does not own the reducer.
@@ -56,8 +56,8 @@ form signal-garden-interactive-display {
     observations: garden/deterministic-observations
     evolve: garden-state-step-contact
     show: presentation/garden-state
-    observations.prior > evolve.prior
-    observations.clock > evolve.clock
-    observations.contact > evolve.contact
-    evolve.next > show.state
+    observations.prior >> evolve.prior
+    observations.clock >> evolve.clock
+    observations.contact >> evolve.contact
+    evolve.next >> show.state
 }

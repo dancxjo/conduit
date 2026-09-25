@@ -54,7 +54,7 @@ fn pointer_moves_presentation_route_then_reroutes_authored_sink() {
     let path = directory.join("cord.conduit");
     std::fs::write(
         &path,
-        "form cord {\n    literal: text/literal(\"hello\")\n    literal-2: text/literal(\"again\")\n    upper: text/upper\n    upper-2: text/upper\n    literal.text > upper.text\n}\n",
+        "form cord {\n    literal: text/literal(\"hello\")\n    literal-2: text/literal(\"again\")\n    upper: text/upper\n    upper-2: text/upper\n    literal.text >> upper.text\n}\n",
     )
     .unwrap();
     let mut application = PatchbayApplication::new(Arguments {
@@ -143,7 +143,7 @@ fn pointer_moves_presentation_route_then_reroutes_authored_sink() {
         .unwrap()
         .view()
         .source
-        .contains("literal.text > upper-2.text"));
+        .contains("literal.text >> upper-2.text"));
     assert_ne!(
         unchanged_ids,
         (
@@ -192,7 +192,7 @@ fn pointer_moves_presentation_route_then_reroutes_authored_sink() {
         .unwrap()
         .view()
         .source
-        .contains("literal-2.text > upper-2.text"));
+        .contains("literal-2.text >> upper-2.text"));
     assert!(application
         .interaction
         .as_ref()

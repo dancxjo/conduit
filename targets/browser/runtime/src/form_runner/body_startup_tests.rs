@@ -3,7 +3,7 @@ use super::{tests::request_from_sources, *};
 use conduit_body::BodyBiographyEvidence;
 
 fn source(kind: &str) -> String {
-    format!("form startup {{\n wake: {kind}\n show: presentation/bool-value\n wake.pulse > show.value\n}}\n")
+    format!("form startup {{\n wake: {kind}\n show: presentation/bool-value\n wake.pulse >> show.value\n}}\n")
 }
 fn next(history: &BodyBiographyEvidence) -> u64 {
     history.records.last().unwrap().sequence + 1
@@ -111,7 +111,7 @@ fn startup_sources_refuse_missing_or_altered_history_before_execution() {
 fn combined_body_lowering_reports_exact_capacity_and_provenance() {
     let sources = (0..8)
         .map(|index| format!(
-            "form capacity-{index} {{\n a: text/literal(\"a\")\n show-a: presentation/text\n b: text/literal(\"b\")\n show-b: presentation/text\n c: text/literal(\"c\")\n show-c: presentation/text\n a > show-a\n b > show-b\n c > show-c\n}}\n"
+            "form capacity-{index} {{\n a: text/literal(\"a\")\n show-a: presentation/text\n b: text/literal(\"b\")\n show-b: presentation/text\n c: text/literal(\"c\")\n show-c: presentation/text\n a >> show-a\n b >> show-b\n c >> show-c\n}}\n"
         ))
         .collect::<Vec<_>>();
     let refs = sources.iter().map(String::as_str).collect::<Vec<_>>();

@@ -9,13 +9,13 @@ const FORM: &str = r#"form logic_decision {
  invert: logic/not
  choose: logic/select
  sink: conduit-test/logic-sink
- script.compare-left > compare.left
- script.compare-right > compare.right
- compare.out > invert.in
- invert.out > choose.selector
- script.when-false > choose.when-false
- script.when-true > choose.when-true
- choose.out > sink.in
+ script.compare-left >> compare.left
+ script.compare-right >> compare.right
+ compare.out >> invert.in
+ invert.out >> choose.selector
+ script.when-false >> choose.when-false
+ script.when-true >> choose.when-true
+ choose.out >> sink.in
 }
 "#;
 
@@ -102,7 +102,7 @@ fn unsupported_operator_and_incompatible_select_branch_fail_as_authored_forms() 
     let incompatible = r#"form incompatible_select {
  invert: logic/not
  choose: logic/select
- invert.out > choose.when-true
+ invert.out >> choose.when-true
 }
 "#;
     assert!(parse(incompatible, &installed_std::test_catalog()).is_err());

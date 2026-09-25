@@ -93,7 +93,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     let transition_values = encoded_values(&transitions);
     let command_values = encoded_values(&commands);
     let source = format!(
-        "{}\nform secret-knock-proof {{\n    buttons: {BUTTON_SOURCE}(values = \"{transition_values}\")\n    commands: {COMMAND_SOURCE}(values = \"{command_values}\")\n    knock: secret-knock\n    buttons.output > knock.transitions\n    commands.output > knock.template_commands\n}}\n",
+        "{}\nform secret-knock-proof {{\n    buttons: {BUTTON_SOURCE}(values = \"{transition_values}\")\n    commands: {COMMAND_SOURCE}(values = \"{command_values}\")\n    knock: secret-knock\n    buttons.output >> knock.transitions\n    commands.output >> knock.template_commands\n}}\n",
         include_str!("../../../../forms/secret-knock/main.conduit"),
     );
     let syntax = parse_syntax_document(&source);
@@ -217,7 +217,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         plan.checked_form_id.clone(),
     );
     let unrelated = conduit_form::parse(
-        "form unrelated_status {\n clock: time/tick(count = 2, period-ms = 5)\n observe: conduit-test/tick-observer\n clock.tick > observe.in\n}\n",
+        "form unrelated_status {\n clock: time/tick(count = 2, period-ms = 5)\n observe: conduit-test/tick-observer\n clock.tick >> observe.in\n}\n",
         &installed_std::test_catalog(),
     )
     .unwrap();

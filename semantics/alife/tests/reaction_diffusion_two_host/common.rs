@@ -42,7 +42,7 @@ pub fn distributed_plan() -> (conduit_form::ExpandedCanonicalForm, conduit_core:
     .unwrap();
     let back = check_syntax_document(
         &parse_syntax_document(&format!(
-            "form field/evolve (\n > state: {STATE}\n > request: {REQUEST}\n {NEXT_STATE}: {STATE} >\n) {{\n prepare-west: {PREPARE}\n prepare-east: {PREPARE}\n west: {WORKER}\n east: {WORKER}\n join: {JOIN}\n state > prepare-west.state\n request > prepare-west.request\n state > prepare-east.state\n request > prepare-east.request\n prepare-west.work > west.work\n prepare-east.work > east.work\n prepare-west.boundary > east.boundary\n prepare-east.boundary > west.boundary\n west.result > join.west\n east.result > join.east\n join.state > {NEXT_STATE}\n}}\n"
+            "form field/evolve (\n >> state: {STATE}\n >> request: {REQUEST}\n {NEXT_STATE}: {STATE} >>\n) {{\n prepare-west: {PREPARE}\n prepare-east: {PREPARE}\n west: {WORKER}\n east: {WORKER}\n join: {JOIN}\n state >> prepare-west.state\n request >> prepare-west.request\n state >> prepare-east.state\n request >> prepare-east.request\n prepare-west.work >> west.work\n prepare-east.work >> east.work\n prepare-west.boundary >> east.boundary\n prepare-east.boundary >> west.boundary\n west.result >> join.west\n east.result >> join.east\n join.state >> {NEXT_STATE}\n}}\n"
         )),
         &startup,
     )

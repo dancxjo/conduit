@@ -5,7 +5,7 @@ use conduit_plan_lowering::fragment_set::{lower_local_fragment_set, FragmentSetB
 use std::collections::BTreeMap;
 
 fn fragment(name: &str, message: &str) -> PlanFragment {
-    let source = format!("form {name} {{\n .\n source: text/literal(\"{message}\")\n result: presentation/text\n source > result\n}}\n");
+    let source = format!("form {name} {{\n .\n source: text/literal(\"{message}\")\n result: presentation/text\n source >> result\n}}\n");
     let (startup, catalog) = crate::installed_browser::catalogs().unwrap();
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, name, &catalog).unwrap();
@@ -126,7 +126,7 @@ fn exercise_session_projection(
     parts: &[(&PlanFragment, &LoweredPlanFragment)],
 ) {
     use super::super::{TourHostEffect, TourProgress, TourSession};
-    let source = "form first {\n source: text/literal(\"FIRST\")\n result: presentation/text\n source > result\n}\n";
+    let source = "form first {\n source: text/literal(\"FIRST\")\n result: presentation/text\n source >> result\n}\n";
     let (mut session, _) = TourSession::prepare("body-browser", "body-boot", source, 1).unwrap();
     session.scheduler = preparation::prepare_partition_scheduler(parts).unwrap();
     session.pending.clear();

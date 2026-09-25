@@ -73,7 +73,7 @@ pub fn prepare_state_select(
             .map_err(|_| StateSelectError::Catalog)?;
     }
     let source = format!(
-        "form state_select {{\n selector: {SELECTOR_SOURCE_KIND}\n when_false: {FALSE_SOURCE_KIND}\n when_true: {TRUE_SOURCE_KIND}\n select: state/select\n sink: {SINK_KIND}\n selector.value > select.selector\n when_false.value > select.when-false\n when_true.value > select.when-true\n select.out > sink.value\n}}\n"
+        "form state_select {{\n selector: {SELECTOR_SOURCE_KIND}\n when_false: {FALSE_SOURCE_KIND}\n when_true: {TRUE_SOURCE_KIND}\n select: state/select\n sink: {SINK_KIND}\n selector.value >> select.selector\n when_false.value >> select.when-false\n when_true.value >> select.when-true\n select.out >> sink.value\n}}\n"
     );
     let form = parse(&source, &catalog).map_err(|_| StateSelectError::Form)?;
     let advertisement = advertisement(host, boot, sequence);

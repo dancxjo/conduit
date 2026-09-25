@@ -4,5 +4,5 @@ form button_across_room {
     state: input/button-indicator-state
     indicator: presentation/indicator-state
 
-    button > state > indicator
+    button >> state >> indicator
 }

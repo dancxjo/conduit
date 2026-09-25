@@ -35,7 +35,7 @@ fn checked_and_definitions() -> (
             })
             .unwrap();
     }
-    let source = "form pipeline {\n source: test/source\n sink: test/sink\n source > project(Feedback.status) > sink\n}\n";
+    let source = "form pipeline {\n source: test/source\n sink: test/sink\n source >> project(Feedback.status) >> sink\n}\n";
     let checked =
         check_syntax_document(&parse_syntax_document(source), &startup).expect("Form checks");
     let CheckedCordStage::StructuredSelector { selector, .. } =

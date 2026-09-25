@@ -43,7 +43,7 @@ fn fragment() -> conduit_core::PlanFragment {
         })
         .unwrap();
     let source = format!(
-        "{NORMALIZED_MEASUREMENT}\n\nform normalized-control-measurement-proof {{\n    input: scalar/literal(value = 250000)\n    observe: normalized-control-measurement\n    output: {}\n    input.value > observe.control\n    observe.measurement > output.measurement\n}}\n",
+        "{NORMALIZED_MEASUREMENT}\n\nform normalized-control-measurement-proof {{\n    input: scalar/literal(value = 250000)\n    observe: normalized-control-measurement\n    output: {}\n    input.value >> observe.control\n    observe.measurement >> output.measurement\n}}\n",
         crate::installed_browser::test_measurement_observation_sink::KIND
     );
     let syntax = conduit_form::parse_syntax_document(&source);
@@ -114,7 +114,7 @@ fn interactive_fragment() -> conduit_core::PlanFragment {
         })
         .unwrap();
     let source = format!(
-        "{NORMALIZED_MEASUREMENT}\n\nform browser-control-measurement-proof {{\n    controller: input/pointer-source\n    normalize: math/normalized-quantity-scalar\n    observe: normalized-control-measurement\n    output: {}\n    controller.pointer > project(PointerEvent.position) > project(Point2.x) > normalize.in\n    normalize.out > observe.control\n    observe.measurement > output.measurement\n}}\n",
+        "{NORMALIZED_MEASUREMENT}\n\nform browser-control-measurement-proof {{\n    controller: input/pointer-source\n    normalize: math/normalized-quantity-scalar\n    observe: normalized-control-measurement\n    output: {}\n    controller.pointer >> project(PointerEvent.position) >> project(Point2.x) >> normalize.in\n    normalize.out >> observe.control\n    observe.measurement >> output.measurement\n}}\n",
         crate::installed_browser::test_measurement_observation_sink::KIND
     );
     let syntax = conduit_form::parse_syntax_document(&source);

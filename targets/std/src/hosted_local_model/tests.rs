@@ -341,7 +341,7 @@ fn ordinary_form_planning_selects_only_the_exact_local_model_offer() {
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles).unwrap();
-    let source = "form generation (\n request: llm/generation-request@1 > result: llm/generated-result@1\n) {\n model: llm/generate\n request > model.request\n model.result > result\n}\n";
+    let source = "form generation (\n request: llm/generation-request@1 >> result: llm/generated-result@1\n) {\n model: llm/generate\n request >> model.request\n model.result >> result\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authoring =
         conduit_form::expand_canonical_form_for_authoring(&checked, "generation", &profiles)
@@ -393,7 +393,7 @@ fn ordinary_form_planning_selects_only_the_exact_local_model_offer() {
     let mut generate_profiles = ProfileCatalog::new();
     conduit_ai::install_generate_text_catalog(&mut generate_startup, &mut generate_profiles)
         .unwrap();
-    let generate_source = "form generation (\n prompt: value/text > text: value/text\n) {\n model: ai/generate-text\n prompt > model.prompt\n model.text > text\n}\n";
+    let generate_source = "form generation (\n prompt: value/text >> text: value/text\n) {\n model: ai/generate-text\n prompt >> model.prompt\n model.text >> text\n}\n";
     let generate_checked =
         check_syntax_document(&parse_syntax_document(generate_source), &generate_startup).unwrap();
     let generate_authoring = conduit_form::expand_canonical_form_for_authoring(
@@ -415,7 +415,7 @@ fn ordinary_form_planning_selects_only_the_exact_local_model_offer() {
 
     let classify = conduit_ai::llm_contract(conduit_ai::LLM_CLASSIFY_KIND).unwrap();
     let unsupported = format!(
-        "form classification (\n request: {} > result: {}\n) {{\n model: {}\n request > model.request\n model.result > result\n}}\n",
+        "form classification (\n request: {} >> result: {}\n) {{\n model: {}\n request >> model.request\n model.result >> result\n}}\n",
         classify.inputs[0].value_kind.as_str(),
         classify.outputs[0].value_kind.as_str(),
         conduit_ai::LLM_CLASSIFY_KIND,
@@ -443,7 +443,7 @@ fn house_prompt_projection_plans_the_exact_std_realization() {
     let mut profiles = ProfileCatalog::new();
     conduit_text::install_text_catalogs(&mut startup, &mut profiles).unwrap();
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profiles).unwrap();
-    let source = "form prompt-only (\n > detection: AddressDetection\n > context: HouseContext\n request_value: llm/generation-request@1 >\n) {\n request: house/context-to-prompt\n detection > request.detection\n context > request.context\n request.request > request_value\n}\n";
+    let source = "form prompt-only (\n >> detection: AddressDetection\n >> context: HouseContext\n request_value: llm/generation-request@1 >>\n) {\n request: house/context-to-prompt\n detection >> request.detection\n context >> request.context\n request.request >> request_value\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored =
         conduit_form::expand_canonical_form_for_authoring(&checked, "prompt-only", &profiles)
@@ -488,7 +488,7 @@ fn plan_and_play(profile: LocalModelKindProfile) {
         contract.outputs[0].value_kind.as_str(),
     );
     let source = format!(
-        "form run {{\n source: conduit-test/local-model-request\n model: {}(4096, 1, 4096, 4096, 0)\n sink: conduit-test/local-model-result\n source.value > model.request\n model.result > sink.value\n}}\n",
+        "form run {{\n source: conduit-test/local-model-request\n model: {}(4096, 1, 4096, 4096, 0)\n sink: conduit-test/local-model-result\n source.value >> model.request\n model.result >> sink.value\n}}\n",
         profile.kind()
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();

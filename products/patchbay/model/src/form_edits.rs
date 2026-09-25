@@ -230,7 +230,7 @@ impl FormEditor {
             crate::PatchbayPortCompatibility::UnknownPort
             | crate::PatchbayPortCompatibility::InvalidDirection => {
                 return Err(FormEditorError::UnknownPort(format!(
-                    "{source_port_identity} > {sink_port_identity}"
+                    "{source_port_identity} >> {sink_port_identity}"
                 )))
             }
         }
@@ -270,7 +270,7 @@ impl FormEditor {
         };
         let form = self.open_graph_form()?;
         let close = form_close(&self.source, form)?;
-        let statement = format!("    {source_reference} > {sink_reference}\n");
+        let statement = format!("    {source_reference} >> {sink_reference}\n");
         let mut candidate = self.source.clone();
         candidate.insert_str(close, &statement);
         self.apply_candidate(candidate)
@@ -412,7 +412,7 @@ impl FormEditor {
         let source_name = direct_gear_name(&self.open_form, source_port.gear_id.as_str())?;
         let sink_name = direct_gear_name(&self.open_form, sink_port.gear_id.as_str())?;
         let statement = format!(
-            "{source_name}.{} > {sink_name}.{}",
+            "{source_name}.{} >> {sink_name}.{}",
             source_port.descriptor.port_id.as_str(),
             sink_port.descriptor.port_id.as_str()
         );

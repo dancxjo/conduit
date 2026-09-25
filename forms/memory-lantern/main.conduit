@@ -4,7 +4,7 @@ form memory_lantern {
     message: text/edit(maximum-bytes = 256)
     show: presentation/text
 
-    keyboard.key > keymap.key
-    keymap.text > message.fragment
-    message.current > show.text
+    keyboard.key >> keymap.key
+    keymap.text >> message.fragment
+    message.current >> show.text
 }

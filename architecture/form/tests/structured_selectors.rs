@@ -98,7 +98,7 @@ fn check(source: &str) -> conduit_form::CheckedSyntaxDocument {
 #[test]
 fn required_domain_selectors_are_statically_typed_cord_stages() {
     let checked = check(
-        "form examples {\n button > index(PitchTable[1]) > synth\n events > select(MusicEvent.note, unmatched=drop) > notes\n feedback > project(Feedback.status) > presentation\n}\n",
+        "form examples {\n button >> index(PitchTable[1]) >> synth\n events >> select(MusicEvent.note, unmatched=drop) >> notes\n feedback >> project(Feedback.status) >> presentation\n}\n",
     );
     let cords = &checked.forms[0].cords;
     assert_eq!(cords.len(), 3);
@@ -133,7 +133,7 @@ fn required_domain_selectors_are_statically_typed_cord_stages() {
 
 #[test]
 fn exhaustive_variant_route_lowers_to_exact_drop_selectors() {
-    let source = "form route {\n events > ? {\n  [MusicEvent.note] > _ > notes\n  [MusicEvent.rest] > _ > rests\n }\n}\n";
+    let source = "form route {\n events >> ? {\n  [MusicEvent.note] >> _ >> notes\n  [MusicEvent.rest] >> _ >> rests\n }\n}\n";
     let parsed = parse_syntax_document(source);
     assert_eq!(parsed.round_trip(), source);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
@@ -168,7 +168,7 @@ fn exhaustive_variant_route_lowers_to_exact_drop_selectors() {
 
 #[test]
 fn guarded_route_round_trips_and_lowers_to_exact_record_carrying_tracks() {
-    let source = "form route {\n notice > ? {\n  [Notice.delivery == \"visible\"] > _ > display\n  [Notice.delivery == \"spoken\"] > _ > speak\n  _ > _ > silence\n }\n}\n";
+    let source = "form route {\n notice >> ? {\n  [Notice.delivery == \"visible\"] >> _ >> display\n  [Notice.delivery == \"spoken\"] >> _ >> speak\n  _ >> _ >> silence\n }\n}\n";
     let parsed = parse_syntax_document(source);
     assert_eq!(parsed.round_trip(), source);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
@@ -189,7 +189,7 @@ fn guarded_route_round_trips_and_lowers_to_exact_record_carrying_tracks() {
 
 #[test]
 fn guarded_route_retains_every_possible_track_in_the_expanded_graph() {
-    let source = "form route {\n source: test/source\n visible: test/sink\n spoken: test/sink\n silent: test/sink\n source > ? {\n  [Notice.delivery == \"visible\"] > visible\n  [Notice.delivery == \"spoken\"] > spoken\n  _ > silent\n }\n}\n";
+    let source = "form route {\n source: test/source\n visible: test/sink\n spoken: test/sink\n silent: test/sink\n source >> ? {\n  [Notice.delivery == \"visible\"] >> visible\n  [Notice.delivery == \"spoken\"] >> spoken\n  _ >> silent\n }\n}\n";
     let parsed = parse_syntax_document(source);
     let checked = check_syntax_document(&parsed, &guarded_selector_catalog()).unwrap();
     let notice = thoughtful_notice_type();
@@ -234,23 +234,23 @@ fn guarded_route_retains_every_possible_track_in_the_expanded_graph() {
 fn guarded_routes_refuse_gaps_overlap_mixed_fields_and_nonfinal_otherwise() {
     let cases = [
         (
-            "form route {\n notice > ? {\n  [Notice.delivery == \"visible\"] > show\n }\n}\n",
+            "form route {\n notice >> ? {\n  [Notice.delivery == \"visible\"] >> show\n }\n}\n",
             "final otherwise track",
         ),
         (
-            "form route {\n notice > ? {\n  [Notice.delivery == \"visible\"] > show\n  [Notice.delivery == \"visible\"] > show\n  _ > silence\n }\n}\n",
+            "form route {\n notice >> ? {\n  [Notice.delivery == \"visible\"] >> show\n  [Notice.delivery == \"visible\"] >> show\n  _ >> silence\n }\n}\n",
             "duplicate or overlapping guard",
         ),
         (
-            "form route {\n notice > ? {\n  [Notice.delivery == \"visible\"] > show\n  [Notice.body == \"hello\"] > show\n  _ > silence\n }\n}\n",
+            "form route {\n notice >> ? {\n  [Notice.delivery == \"visible\"] >> show\n  [Notice.body == \"hello\"] >> show\n  _ >> silence\n }\n}\n",
             "same typed field",
         ),
         (
-            "form route {\n notice > ? {\n  _ > silence\n  [Notice.delivery == \"visible\"] > show\n }\n}\n",
+            "form route {\n notice >> ? {\n  _ >> silence\n  [Notice.delivery == \"visible\"] >> show\n }\n}\n",
             "otherwise track must be final",
         ),
         (
-            "form route {\n notice > ? {\n  [Notice.delivery == \"visible\"] > show\n  _ > silence\n  _ > silence\n }\n}\n",
+            "form route {\n notice >> ? {\n  [Notice.delivery == \"visible\"] >> show\n  _ >> silence\n  _ >> silence\n }\n}\n",
             "exactly one final otherwise track",
         ),
     ];
@@ -266,10 +266,10 @@ fn guarded_routes_refuse_gaps_overlap_mixed_fields_and_nonfinal_otherwise() {
 #[test]
 fn route_trivia_changes_source_identity_but_not_checked_meaning() {
     let plain = check(
-        "form route {\n events > ? {\n  [MusicEvent.note] > notes\n  [MusicEvent.rest] > rests\n }\n}\n",
+        "form route {\n events >> ? {\n  [MusicEvent.note] >> notes\n  [MusicEvent.rest] >> rests\n }\n}\n",
     );
     let commented = check(
-        "# railway prose is not meaning\nform route {\n events > ? {\n  [MusicEvent.note] > notes # audible\n  [MusicEvent.rest] > rests\n }\n}\n",
+        "# railway prose is not meaning\nform route {\n events >> ? {\n  [MusicEvent.note] >> notes # audible\n  [MusicEvent.rest] >> rests\n }\n}\n",
     );
     assert_ne!(plain.source_document_id, commented.source_document_id);
     assert_eq!(
@@ -280,7 +280,7 @@ fn route_trivia_changes_source_identity_but_not_checked_meaning() {
 
 #[test]
 fn exhaustive_variant_route_expands_every_track_into_the_immutable_graph() {
-    let source = "form route {\n source: test/source\n notes: test/note-sink\n rests: test/rest-sink\n source > ? {\n  [MusicEvent.note] > notes\n  [MusicEvent.rest] > rests\n }\n}\n";
+    let source = "form route {\n source: test/source\n notes: test/note-sink\n rests: test/rest-sink\n source >> ? {\n  [MusicEvent.note] >> notes\n  [MusicEvent.rest] >> rests\n }\n}\n";
     let checked = check(source);
     let (.., event, _) = selector_types();
     let rest = StructuredInfoType::leaf(KindId::from("music/rest@1")).unwrap();
@@ -337,27 +337,27 @@ fn exhaustive_variant_route_expands_every_track_into_the_immutable_graph() {
 fn closed_variant_routes_refuse_gaps_duplicates_mixed_types_and_otherwise() {
     let cases = [
         (
-            "form route {\n events > ? {\n  [MusicEvent.note] > notes\n }\n}\n",
+            "form route {\n events >> ? {\n  [MusicEvent.note] >> notes\n }\n}\n",
             "name every case exactly once",
         ),
         (
-            "form route {\n events > ? {\n  [MusicEvent.note] > notes\n  [MusicEvent.note] > notes\n }\n}\n",
+            "form route {\n events >> ? {\n  [MusicEvent.note] >> notes\n  [MusicEvent.note] >> notes\n }\n}\n",
             "duplicate matched route track",
         ),
         (
-            "form route {\n events > ? {\n  [MusicEvent.note] > notes\n  [Feedback.status] > status\n }\n}\n",
+            "form route {\n events >> ? {\n  [MusicEvent.note] >> notes\n  [Feedback.status] >> status\n }\n}\n",
             "same variant type",
         ),
         (
-            "form route {\n events > ? {\n  [MusicEvent.note] > notes\n  _ > rest\n }\n}\n",
+            "form route {\n events >> ? {\n  [MusicEvent.note] >> notes\n  _ >> rest\n }\n}\n",
             "explicit exhaustive tracks",
         ),
         (
-            "form route {\n events > ? {\n  _ > rest\n  [MusicEvent.note] > notes\n }\n}\n",
+            "form route {\n events >> ? {\n  _ >> rest\n  [MusicEvent.note] >> notes\n }\n}\n",
             "otherwise track must be final",
         ),
         (
-            "form route {\n events > ? {\n  [MusicEvent.note] > notes > _\n  [MusicEvent.rest] > rests\n }\n}\n",
+            "form route {\n events >> ? {\n  [MusicEvent.note] >> notes >> _\n  [MusicEvent.rest] >> rests\n }\n}\n",
             "carried value '_' must be the first stage",
         ),
     ];
@@ -373,12 +373,12 @@ fn closed_variant_routes_refuse_gaps_duplicates_mixed_types_and_otherwise() {
 #[test]
 fn selector_identity_ignores_trivia_but_includes_unmatched_policy() {
     let first =
-        check("form choose {\n input > select(MusicEvent.note, unmatched=drop) > output\n}\n");
+        check("form choose {\n input >> select(MusicEvent.note, unmatched=drop) >> output\n}\n");
     let trivia = check(
-        "# same meaning\nform choose {\n input > select( MusicEvent.note , unmatched = drop ) > output\n}\n",
+        "# same meaning\nform choose {\n input >> select( MusicEvent.note , unmatched = drop ) >> output\n}\n",
     );
     let refusal =
-        check("form choose {\n input > select(MusicEvent.note, unmatched=refuse) > output\n}\n");
+        check("form choose {\n input >> select(MusicEvent.note, unmatched=refuse) >> output\n}\n");
 
     assert_ne!(first.source_document_id, trivia.source_document_id);
     assert_eq!(
@@ -408,7 +408,7 @@ fn invalid_members_bounds_and_policies_refuse_explicitly() {
         ("select(MusicEvent.note, unmatched=skip)", "drop or refuse"),
     ];
     for (selector, message) in cases {
-        let source = format!("form bad {{\n input > {selector} > output\n}}\n");
+        let source = format!("form bad {{\n input >> {selector} >> output\n}}\n");
         let parsed = parse_syntax_document(&source);
         if let Some(error) = parsed.diagnostics.first() {
             assert!(error.message.contains(message), "{}", error.message);
@@ -428,7 +428,7 @@ fn invalid_members_bounds_and_policies_refuse_explicitly() {
 
 #[test]
 fn expansion_lowers_selector_to_one_exact_ordinary_gear_for_value_and_flow() {
-    let source = "form pipeline {\n source: test/source\n sink: test/sink\n source > project(Feedback.status) > sink\n}\n";
+    let source = "form pipeline {\n source: test/source\n sink: test/sink\n source >> project(Feedback.status) >> sink\n}\n";
     let checked = check(source);
     let CheckedCordStage::StructuredSelector { selector, .. } =
         &checked.forms[0].cords[0].stages[1]
@@ -476,7 +476,7 @@ fn expansion_lowers_selector_to_one_exact_ordinary_gear_for_value_and_flow() {
 #[test]
 fn unsupported_selector_profile_refuses_before_plan_or_play() {
     let checked = check(
-        "form pipeline {\n source: test/source\n sink: test/sink\n source > project(Feedback.status) > sink\n}\n",
+        "form pipeline {\n source: test/source\n sink: test/sink\n source >> project(Feedback.status) >> sink\n}\n",
     );
     let error = expand_canonical_form(&checked, "pipeline", &ProfileCatalog::new()).unwrap_err();
     assert_eq!(error.code, "CND-FRM-037");

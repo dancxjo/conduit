@@ -1,8 +1,8 @@
 # The canonical live voice conversation. Audio acquisition, presentation,
 # provider choice, devices, and placement remain realization truth.
 form live-conversation (
-    > audio: PcmFrames...|
-    spoken: PcmFrames...| >
+    >> audio: PcmFrames...|
+    spoken: PcmFrames...| >>
 ) {
     recognize: speech/recognize-stream
     commit-turn: speech/commit-recognized-turn
@@ -14,16 +14,16 @@ form live-conversation (
     speech-commit: speech/commit-generated-text
     synthesize: speech/synthesize-stream(maximum-output-bytes = 32768)
 
-    audio > recognize.audio
-    recognize.events > commit-turn.events
-    commit-turn.message > turn-text.message
-    turn-text.text > conversation.message
-    context.context > conversation.context
-    conversation.request > model.request
-    model.result > generated-text.chunk
-    generated-text.text > speech-commit.generated
-    speech-commit.segments > synthesize.text
-    synthesize.audio > spoken
+    audio >> recognize.audio
+    recognize.events >> commit-turn.events
+    commit-turn.message >> turn-text.message
+    turn-text.text >> conversation.message
+    context.context >> conversation.context
+    conversation.request >> model.request
+    model.result >> generated-text.chunk
+    generated-text.text >> speech-commit.generated
+    speech-commit.segments >> synthesize.text
+    synthesize.audio >> spoken
 }
 
 # An ordinary complete spoken turn. The reusable live-conversation Front above
@@ -34,6 +34,6 @@ form spoken-live-conversation {
     conversation: live-conversation
     speaker: audio/play
 
-    microphone.audio > conversation.audio
-    conversation.spoken > speaker.audio
+    microphone.audio >> conversation.audio
+    conversation.spoken >> speaker.audio
 }

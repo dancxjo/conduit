@@ -114,7 +114,7 @@ fn exact_resource_reference_kind_survives_checked_form_and_plan_without_locator_
             .unwrap();
         profile.insert(definition.clone()).unwrap();
     }
-    let source = "form content_pipeline {\n source: content/reference-source\n sink: content/reference-consumer\n source > sink\n}\n";
+    let source = "form content_pipeline {\n source: content/reference-source\n sink: content/reference-consumer\n source >> sink\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "content_pipeline", &profile).unwrap();
     let host = HostAdvertisement {

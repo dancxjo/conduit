@@ -4,7 +4,7 @@ use super::session::{Role, Session};
 const SOURCE: &str = r#"form hello-across {
     message: text/literal("hello across one planned Cord")
     show: presentation/text
-    message > show
+    message >> show
 }"#;
 
 fn prepare_pair() -> ((Session, Output), (Session, Output)) {
@@ -332,7 +332,7 @@ fn ordinary_transform_can_run_after_the_remote_cord() {
         message: text/literal("hello")
         upper: text/upper
         show: presentation/text
-        message > upper > show
+        message >> upper >> show
     }"#;
     let plan = super::plan::prepare("browser/a", "boot/a", "browser/b", "boot/b", source).unwrap();
     assert_eq!(plan.plan.fragments.len(), 2);

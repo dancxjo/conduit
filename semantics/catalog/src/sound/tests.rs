@@ -138,7 +138,7 @@ fn synth_playback_realization_is_an_ordinary_recursive_form() {
             })
             .unwrap();
     }
-    let source = "form music/play-through-synth (\n > notes: music/note-event@1\n > controls: music/control-event@1\n) {\n synth: music/synth\n output: audio/play\n notes > synth.notes\n controls > synth.controls\n synth.audio > output.audio\n}\n\nform instrument-output {\n notes: test/note-source\n controls: test/control-source\n realization: music/play-through-synth\n notes > realization.notes\n controls > realization.controls\n}\n";
+    let source = "form music/play-through-synth (\n >> notes: music/note-event@1\n >> controls: music/control-event@1\n) {\n synth: music/synth\n output: audio/play\n notes >> synth.notes\n controls >> synth.controls\n synth.audio >> output.audio\n}\n\nform instrument-output {\n notes: test/note-source\n controls: test/control-source\n realization: music/play-through-synth\n notes >> realization.notes\n controls >> realization.controls\n}\n";
     let syntax = conduit_form::parse_syntax_document(source);
     let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
     let expanded =

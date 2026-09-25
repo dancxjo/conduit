@@ -22,7 +22,7 @@ struct Fixture {
 
 fn fixture() -> Fixture {
     let form = conduit_form::parse(
-        "form fusion {\n source: time/tick(count = 10, period-ms = 1)\n transform: state/count(0)\n analysis: presentation/count\n source.tick > transform.bump\n transform.value > analysis.value\n}\n",
+        "form fusion {\n source: time/tick(count = 10, period-ms = 1)\n transform: state/count(0)\n analysis: presentation/count\n source.tick >> transform.bump\n transform.value >> analysis.value\n}\n",
         &conduit_semantic_catalog::standard_profile_catalog(),
     )
     .expect("three-Gear fusion Form checks");

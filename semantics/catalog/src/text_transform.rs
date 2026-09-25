@@ -13,7 +13,7 @@ pub fn text_literal_contract() -> StandardKindContract {
         "Text literal",
         "Emit one bounded immutable UTF-8 startup value.",
         KindTerminalBehavior::EmitsOnce,
-        "\"Hello\" > presentation/text",
+        "\"Hello\" >> presentation/text",
     )
 }
 

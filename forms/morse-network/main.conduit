@@ -5,6 +5,6 @@ form morse_network {
     morse: text/morse(120)
     light: presentation/indicator
 
-    keyboard.key > keymap.key
-    keymap.text > morse > light
+    keyboard.key >> keymap.key
+    keymap.text >> morse >> light
 }

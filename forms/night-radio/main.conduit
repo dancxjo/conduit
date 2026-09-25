@@ -14,7 +14,7 @@ form night-radio {
     decode: record/typed-to-text
     show: presentation/text
 
-    keyboard.key > keymap.key
-    keymap.text > report.fragment
-    report.submitted > encode > frame > queue > deframe > decode > show
+    keyboard.key >> keymap.key
+    keymap.text >> report.fragment
+    report.submitted >> encode >> frame >> queue >> deframe >> decode >> show
 }

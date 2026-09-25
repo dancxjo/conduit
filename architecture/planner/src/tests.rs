@@ -26,7 +26,7 @@ mod protected_resource_tests;
 
 fn form() -> conduit_form::CheckedForm {
     parse_with_startup(
-            "form signal-demo {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse > show\n}\n",
+            "form signal-demo {\n    pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n    show: presentation/show\n\n\n    pulse >> show\n}\n",
             &conduit_signal::signal_startup_catalog(),
             &signal_profile_catalog(),
         )

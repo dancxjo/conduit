@@ -1,7 +1,7 @@
 use super::*;
 use crate::{RunControl, RunControlRequestId};
 
-const CLEAR_FORM: &str = "form prewake_drive {\n intent: robotics/velocity-intent(linear-microunits = 750000, angular-microunits = -250000)\n drive: robotics/drive-differential(ttl-ms = 1000)\n intent.linear > drive.linear\n intent.angular > drive.angular\n}\n";
+const CLEAR_FORM: &str = "form prewake_drive {\n intent: robotics/velocity-intent(linear-microunits = 750000, angular-microunits = -250000)\n drive: robotics/drive-differential(ttl-ms = 1000)\n intent.linear >> drive.linear\n intent.angular >> drive.angular\n}\n";
 
 fn plan(source: &str, id: &str) -> (StdHost, conduit_core::PlanFragment) {
     let host = host(id);

@@ -88,7 +88,7 @@ fn five_unrelated_forms_use_exact_structured_values_and_the_same_selector_substr
             .insert_structured_type("SelectedValue", specimen.selected_type.clone())
             .unwrap();
         let source = format!(
-            "form {} (\n    selected: SelectedValue >\n) {{\n value: structured-info/literal(value = {})\n value > project({}.{}) > selected\n}}\n",
+            "form {} (\n    selected: SelectedValue >>\n) {{\n value: structured-info/literal(value = {})\n value >> project({}.{}) >> selected\n}}\n",
             specimen.form_name,
             specimen.literal,
             specimen.type_name,

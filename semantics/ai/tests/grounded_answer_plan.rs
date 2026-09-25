@@ -20,7 +20,7 @@ use std::collections::BTreeMap;
 
 fn form(answer_kind: &str, maximum_citations: u16) -> String {
     format!(
-        "form r4 {{\n rerank: retrieval/rerank(\"rerank/preserve-hybrid-deterministic@1\", 8, 32)\n select: context/select(\"context/reranked-diverse@1\", \"tokens/exact-fixture@1\", \"keep-all\", \"reranked\", 8, 4096, 1024, 32)\n answer: rag/answer(\"grounding/exact-context-citations@1\", \"{answer_kind}\", 4096, 16, {maximum_citations}, 1024)\n rerank.result > select.candidates\n select.result > answer.context\n}}\n"
+        "form r4 {{\n rerank: retrieval/rerank(\"rerank/preserve-hybrid-deterministic@1\", 8, 32)\n select: context/select(\"context/reranked-diverse@1\", \"tokens/exact-fixture@1\", \"keep-all\", \"reranked\", 8, 4096, 1024, 32)\n answer: rag/answer(\"grounding/exact-context-citations@1\", \"{answer_kind}\", 4096, 16, {maximum_citations}, 1024)\n rerank.result >> select.candidates\n select.result >> answer.context\n}}\n"
     )
 }
 

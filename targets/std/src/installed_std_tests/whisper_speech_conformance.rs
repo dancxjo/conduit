@@ -59,7 +59,7 @@ fn initialized_whisper_runs_portable_recognition_through_ordinary_plan_and_play(
         &mut catalog,
     );
     let source = format!(
-        "form whisper_proof {{\n audio: {}\n recognize: speech/recognize\n text: speech/recognition-to-text\n sink: {}\n audio.value > recognize.audio\n recognize.result > text.result\n text.text > sink.value\n}}\n",
+        "form whisper_proof {{\n audio: {}\n recognize: speech/recognize\n text: speech/recognition-to-text\n sink: {}\n audio.value >> recognize.audio\n recognize.result >> text.result\n text.text >> sink.value\n}}\n",
         crate::installed_std::test_local_model_io::HOUSE_AUDIO_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_TEXT_SINK_KIND,
     );
@@ -168,7 +168,7 @@ fn initialized_whisper_assembles_a_bounded_clip_in_one_ordinary_play() {
         &mut catalog,
     );
     let source = format!(
-        "form whisper_clip_proof {{\n audio: {}\n recognize: speech/recognize-clip\n text: speech/recognition-to-text\n sink: {}\n audio.value > recognize.clip\n recognize.result > text.result\n text.text > sink.value\n}}\n",
+        "form whisper_clip_proof {{\n audio: {}\n recognize: speech/recognize-clip\n text: speech/recognition-to-text\n sink: {}\n audio.value >> recognize.clip\n recognize.result >> text.result\n text.text >> sink.value\n}}\n",
         crate::installed_std::test_local_model_io::HOUSE_AUDIO_CLIP_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_TEXT_SINK_KIND,
     );

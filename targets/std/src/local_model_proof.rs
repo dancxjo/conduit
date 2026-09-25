@@ -298,7 +298,7 @@ pub(crate) fn run_house(host: &mut StdHost) -> Result<(String, bool), Box<dyn st
         &mut profiles,
     );
     let source = format!(
-        "{}\n{}\nform house-live-proof {{\n audio: {}\n recognize: speech/recognize\n recognized: speech/recognition-to-text\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n sink: {}\n audio.value > recognize.audio\n recognize.result > recognized.result\n recognized.text > addressed.recognized\n addresses.value > addressed.addresses\n addressed.detection > house.detection\n context.value > house.context\n house.response > sink.value\n}}\n",
+        "{}\n{}\nform house-live-proof {{\n audio: {}\n recognize: speech/recognize\n recognized: speech/recognition-to-text\n addresses: {}\n addressed: addressed-utterance\n context: {}\n house: house-conversation\n sink: {}\n audio.value >> recognize.audio\n recognize.result >> recognized.result\n recognized.text >> addressed.recognized\n addresses.value >> addressed.addresses\n addressed.detection >> house.detection\n context.value >> house.context\n house.response >> sink.value\n}}\n",
         include_str!("../../../forms/addressed-utterance/main.conduit"),
         include_str!("../../../forms/house-conversation/main.conduit"),
         crate::installed_std::test_local_model_io::HOUSE_AUDIO_SOURCE_KIND,
@@ -357,7 +357,7 @@ fn run_profile(
             (4_096, 4_096, 4_096)
         };
     let source = format!(
-        "form run {{\n source: conduit-test/local-model-request\n model: {}({}, 1, {}, {}, 0)\n sink: conduit-test/local-model-result\n source.value > model.request\n model.result > sink.value\n}}\n",
+        "form run {{\n source: conduit-test/local-model-request\n model: {}({}, 1, {}, {}, 0)\n sink: conduit-test/local-model-result\n source.value >> model.request\n model.result >> sink.value\n}}\n",
         profile.kind(), maximum_input_bytes, maximum_output_bytes, maximum_work_units,
     );
     let checked =

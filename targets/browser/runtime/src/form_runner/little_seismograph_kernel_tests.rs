@@ -121,7 +121,7 @@ fn fragment() -> PlanFragment {
 
     let canonical = include_str!("../../../../../forms/little-seismograph/main.conduit");
     let syntax = parse_syntax_document(&format!(
-        "{canonical}\nform browser-proof {{\n source: {SOURCE_KIND}\n processing: little-seismograph-processing\n decision: conduit-test/measurement-decision-sink\n plot: conduit-test/measurement-plot-sink\n source.profile > processing.profile\n source.measurement > processing.measurement\n source.threshold-profile > processing.threshold-profile\n processing.decision > decision.decision\n processing.series > plot.series\n}}\n"
+        "{canonical}\nform browser-proof {{\n source: {SOURCE_KIND}\n processing: little-seismograph-processing\n decision: conduit-test/measurement-decision-sink\n plot: conduit-test/measurement-plot-sink\n source.profile >> processing.profile\n source.measurement >> processing.measurement\n source.threshold-profile >> processing.threshold-profile\n processing.decision >> decision.decision\n processing.series >> plot.series\n}}\n"
     ));
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "browser-proof", &catalog).unwrap();

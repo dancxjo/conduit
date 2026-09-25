@@ -60,7 +60,7 @@ fn portable_button_flow_becomes_one_timed_attempt_in_the_production_kernel() {
         .collect::<Vec<_>>()
         .join(",");
     let source = format!(
-        "form proof {{\n transitions: {SOURCE_KIND}(values = \"{encoded}\")\n attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 4, timeout-ms = 1000ms)\n sink: {SINK_KIND}(value = \"{}\")\n transitions.output > attempt.transition\n attempt.events > sink.input\n}}\n",
+        "form proof {{\n transitions: {SOURCE_KIND}(values = \"{encoded}\")\n attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 4, timeout-ms = 1000ms)\n sink: {SINK_KIND}(value = \"{}\")\n transitions.output >> attempt.transition\n attempt.events >> sink.input\n}}\n",
         hex(&expected.canonical_bytes().unwrap()),
     );
     let syntax = parse_syntax_document(&source);

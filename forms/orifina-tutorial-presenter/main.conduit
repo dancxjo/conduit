@@ -3,6 +3,6 @@ form orifina-tutorial-presenter {
   present: llm/present
   manifestation: workspace/tutorial-manifestation
 
-  request.request > present.request
-  present.result > manifestation.manifestation
+  request.request >> present.request
+  present.result >> manifestation.manifestation
 }

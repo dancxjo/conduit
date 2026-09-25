@@ -174,24 +174,24 @@ fn replay_source_is_an_ordinary_checked_form_between_history_and_control() {
     );
 
     let composition = r#"form history-replay-pipeline (
-    > command: HistoricalTimelineCommand...|
-    > control: ReplayControl...|
-    > clock: PlaybackTick...|
-    event: ReplayEvent...| >
-    state: ReplayState...| >
-    gap: HistoricalRetentionGap >
+    >> command: HistoricalTimelineCommand...|
+    >> control: ReplayControl...|
+    >> clock: PlaybackTick...|
+    event: ReplayEvent...| >>
+    state: ReplayState...| >>
+    gap: HistoricalRetentionGap >>
 ) {
     history: history/bounded-typed(value-profile = "bench/record@1", clock-basis = "bench/session-clock", time-scale = "milliseconds", maximum-entries = 8, maximum-referenced-bytes = 4096, overflow-policy = "evict-oldest-with-gap", first-sequence = 0)
     source: history/replay-source
     replay: time/replay-control("original-timing", 1, 1)
-    command > history.command
-    history.timeline > source.timeline
-    source.replay > replay.timeline
-    control > replay.control
-    clock > replay.clock
-    replay.event > event
-    replay.state > state
-    source.gap > gap
+    command >> history.command
+    history.timeline >> source.timeline
+    source.replay >> replay.timeline
+    control >> replay.control
+    clock >> replay.clock
+    replay.event >> event
+    replay.state >> state
+    source.gap >> gap
 }
 "#;
     let checked = check_syntax_document(&parse_syntax_document(composition), &startup).unwrap();

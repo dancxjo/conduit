@@ -8,22 +8,22 @@ form pete-homeostasis (
     thermal-critical-milli-celsius: Scalar = 90000
     pressure-high-permille: Count = 800
     pressure-critical-permille: Count = 950
-    > power: PetePowerObservation...|
-    > thermal: PeteThermalObservation...|
-    > compute-pressure: PeteComputePressureObservation...|
-    > storage-pressure: PeteStoragePressureObservation...|
-    > motion-safety: PeteMotionSafetyObservation...|
-    > important-capability: PeteImportantCapabilityObservation...|
-    > reduction-at: PeteReductionInstant...|
-    state: PeteHomeostaticState >
+    >> power: PetePowerObservation...|
+    >> thermal: PeteThermalObservation...|
+    >> compute-pressure: PeteComputePressureObservation...|
+    >> storage-pressure: PeteStoragePressureObservation...|
+    >> motion-safety: PeteMotionSafetyObservation...|
+    >> important-capability: PeteImportantCapabilityObservation...|
+    >> reduction-at: PeteReductionInstant...|
+    state: PeteHomeostaticState >>
 ) {
     reduce: pete/reduce-homeostasis(policy-revision = policy-revision, energy-low-permille = energy-low-permille, energy-critical-permille = energy-critical-permille, thermal-constrained-milli-celsius = thermal-constrained-milli-celsius, thermal-critical-milli-celsius = thermal-critical-milli-celsius, pressure-high-permille = pressure-high-permille, pressure-critical-permille = pressure-critical-permille)
-    power > reduce.power
-    thermal > reduce.thermal
-    compute-pressure > reduce.compute_pressure
-    storage-pressure > reduce.storage_pressure
-    motion-safety > reduce.motion_safety
-    important-capability > reduce.important_capability
-    reduction-at > reduce.reduction_at
-    reduce.state > state
+    power >> reduce.power
+    thermal >> reduce.thermal
+    compute-pressure >> reduce.compute_pressure
+    storage-pressure >> reduce.storage_pressure
+    motion-safety >> reduce.motion_safety
+    important-capability >> reduce.important_capability
+    reduction-at >> reduce.reduction_at
+    reduce.state >> state
 }

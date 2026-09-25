@@ -19,16 +19,16 @@ const FORM: &str = r#"form navigation_play {
  timing: navigation/time-parameterize
  controller: navigation/local-control
  sink: conduit-test/local-model-result
- pose.value > route.pose
- goal.value > route.goal
- grid.value > route.traversability
- time.value > route.time
- route.decision > select(NavigationRouteDecision.route, unmatched=drop) > timing.route
- time.value > timing.time
- timing.trajectory > controller.trajectory
- pose.value > controller.pose
- time.value > controller.time
- controller.control > select(NavigationControl.motion, unmatched=drop) > sink.value
+ pose.value >> route.pose
+ goal.value >> route.goal
+ grid.value >> route.traversability
+ time.value >> route.time
+ route.decision >> select(NavigationRouteDecision.route, unmatched=drop) >> timing.route
+ time.value >> timing.time
+ timing.trajectory >> controller.trajectory
+ pose.value >> controller.pose
+ time.value >> controller.time
+ controller.control >> select(NavigationControl.motion, unmatched=drop) >> sink.value
 }
 "#;
 

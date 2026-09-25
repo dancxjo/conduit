@@ -3,6 +3,6 @@ form tongues-latent-training {
     corpus: tongues/paired-observations
     train: tongues/train-shared-latent
 
-    corpus.acoustic > train.acoustic
-    corpus.articulation > train.articulation
+    corpus.acoustic >> train.acoustic
+    corpus.articulation >> train.articulation
 }

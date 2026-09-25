@@ -1,8 +1,8 @@
 # A bounded timing-pattern Form. Trigger, clock, storage, and presentation
 # realizations remain Host choices made by an exact plan.
 form secret-knock (
-    > transitions: InputButtonTransition...
-    > template_commands: NamedPatternTemplateCommand...|
+    >> transitions: InputButtonTransition...
+    >> template_commands: NamedPatternTemplateCommand...|
 ) {
     # Three presses include two intervening releases; finish on the third press.
     # Six slots admit the release separating two physical attempts as well as
@@ -15,48 +15,48 @@ form secret-knock (
     compare: compare-pattern(metric = "maximum-absolute-millionths@1", tolerance-millionths = 150000)
     manifest: presentation/structured-info
 
-    transitions > attempt.transition
-    attempt.events > intervals.events
-    intervals.intervals > normalize.intervals
-    normalize.normalized > compare.candidate
-    template_commands > storage.command
-    storage.result > select(NamedPatternTemplateResult.found, unmatched=drop) > project(NamedPatternTemplate.pattern) > final_template.patterns
-    final_template.pattern > compare.template
-    compare.comparison > manifest.input
+    transitions >> attempt.transition
+    attempt.events >> intervals.events
+    intervals.intervals >> normalize.intervals
+    normalize.normalized >> compare.candidate
+    template_commands >> storage.command
+    storage.result >> select(NamedPatternTemplateResult.found, unmatched=drop) >> project(NamedPatternTemplate.pattern) >> final_template.patterns
+    final_template.pattern >> compare.template
+    compare.comparison >> manifest.input
 }
 
 # Reusable finite relative-duration normalization through its typed Front.
 form normalize-durations (
-    > intervals: IntervalSequence
-    normalized: NormalizedDurationSequence >
+    >> intervals: IntervalSequence
+    normalized: NormalizedDurationSequence >>
 ) {
     normalize: sequence/normalize-relative-duration
-    intervals > normalize.intervals
-    normalize.normalized > normalized
+    intervals >> normalize.intervals
+    normalize.normalized >> normalized
 }
 
 # Reusable ordered-event interval derivation through its typed Front.
 form derive-intervals (
-    > events: TimedEventSequence
-    intervals: IntervalSequence >
+    >> events: TimedEventSequence
+    intervals: IntervalSequence >>
 ) {
     derive: time/ordered-event-intervals
-    events > derive.events
-    derive.intervals > intervals
+    events >> derive.events
+    derive.intervals >> intervals
 }
 
 # Reusable pattern comparison with explicit semantic policy.
 form compare-pattern (
     metric: Text = "maximum-absolute-millionths@1"
     tolerance-millionths: Count = 1
-    > candidate: NormalizedDurationSequence
-    > template: NormalizedDurationSequence
-    comparison: PatternComparison >
+    >> candidate: NormalizedDurationSequence
+    >> template: NormalizedDurationSequence
+    comparison: PatternComparison >>
 ) {
     compare: sequence/compare-normalized-pattern(metric = metric, tolerance-millionths = tolerance-millionths)
-    candidate > compare.candidate
-    template > compare.template
-    compare.comparison > comparison
+    candidate >> compare.candidate
+    template >> compare.template
+    compare.comparison >> comparison
 }
 
 # The Gallery entry is a living ordinary form: pointer, device, or fixture
@@ -68,6 +68,6 @@ form secret-knock-demo {
     template: storage/named-pattern-template-initializer(name = "gallery-knock", normalized-values = "333333,1000000")
     recognize: secret-knock
 
-    button.transition > recognize.transitions
-    template.commands > recognize.template_commands
+    button.transition >> recognize.transitions
+    template.commands >> recognize.template_commands
 }

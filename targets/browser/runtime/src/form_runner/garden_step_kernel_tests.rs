@@ -84,7 +84,7 @@ fn fragment(interactive: bool) -> PlanFragment {
     source_host.capabilities = vec![source];
 
     let contact_cord = if interactive {
-        " source.contact > evolve.contact\n"
+        " source.contact >> evolve.contact\n"
     } else {
         ""
     };
@@ -94,7 +94,7 @@ fn fragment(interactive: bool) -> PlanFragment {
         "garden-state-step"
     };
     let source = format!(
-        "{}\nform garden-kernel-proof {{\n source: {}\n evolve: {}\n result: {}\n source.prior > evolve.prior\n source.clock > evolve.clock\n{} evolve.next > result.state\n}}\n",
+        "{}\nform garden-kernel-proof {{\n source: {}\n evolve: {}\n result: {}\n source.prior >> evolve.prior\n source.clock >> evolve.clock\n{} evolve.next >> result.state\n}}\n",
         include_str!("../../../../../forms/signal-garden/main.conduit"),
         SOURCE_KIND,
         evolve_form,

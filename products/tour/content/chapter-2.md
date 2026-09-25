@@ -14,7 +14,7 @@ form same-morse-caller {
     morse: text/morse(40)
     light: presentation/indicator
 
-    message > morse > light
+    message >> morse >> light
 }
 ```
 

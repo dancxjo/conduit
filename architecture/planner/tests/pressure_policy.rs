@@ -117,7 +117,7 @@ fn coalesce_latest_seals_distinct_downstream_pressure_policy_in_the_plan() {
         .unwrap();
 
     let form = conduit_form::parse_with_startup(
-        "form coalesced_ticks {\n    clock: time/tick(count = 2, period-ms = 1)\n    latest: flow/coalesce-latest\n    sink: fixture/tick-current-sink\n    clock.tick > latest.in\n    latest.out > sink.in\n}\n",
+        "form coalesced_ticks {\n    clock: time/tick(count = 2, period-ms = 1)\n    latest: flow/coalesce-latest\n    sink: fixture/tick-current-sink\n    clock.tick >> latest.in\n    latest.out >> sink.in\n}\n",
         &startup,
         &profile,
     )

@@ -14,7 +14,7 @@ form hello-across {
     message: text/literal("hello across one cord")
     show: presentation/text
 
-    message > show
+    message >> show
 }
 ```
 
@@ -34,7 +34,7 @@ form hello-across {
     message: text/literal("hello across one cord")
     show: presentation/text
 
-    message > show
+    message >> show
 }
 ```
 

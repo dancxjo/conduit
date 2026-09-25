@@ -71,7 +71,7 @@ fn fragment() -> PlanFragment {
     source_host.capabilities = vec![source_offer];
 
     let syntax = parse_syntax_document(
-        "form history {\n source: fixture/history-command\n history: history/bounded-typed(maximum-entries = 4)\n replay: history/replay-source\n result: conduit-test/replay-sink\n source.command > history.command\n history.timeline > replay.timeline\n replay.replay > result.replay\n}\n",
+        "form history {\n source: fixture/history-command\n history: history/bounded-typed(maximum-entries = 4)\n replay: history/replay-source\n result: conduit-test/replay-sink\n source.command >> history.command\n history.timeline >> replay.timeline\n replay.replay >> result.replay\n}\n",
     );
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "history", &catalog).unwrap();

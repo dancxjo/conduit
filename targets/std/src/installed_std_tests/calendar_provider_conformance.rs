@@ -60,7 +60,7 @@ fn read_and_free_busy_use_distinct_authority_through_plan_and_play() {
         ),
     ] {
         let source = format!(
-            "form proof {{\n provider: {kind}(request = {{semantic_json: \"{{}}\"}})\n sink: conduit-test/structured-sink(value = \"{}\")\n provider.{output_port} > sink.input\n}}\n",
+            "form proof {{\n provider: {kind}(request = {{semantic_json: \"{{}}\"}})\n sink: conduit-test/structured-sink(value = \"{}\")\n provider.{output_port} >> sink.input\n}}\n",
             hex(&result_value(result_type.clone(), &result))
         );
         let (startup, profile, sink) = catalogs(&result_type);
@@ -106,7 +106,7 @@ fn authorized_create_update_and_cancel_chain_exact_receipts_through_plan_and_pla
         &cancelled,
     );
     let source = format!(
-        "form proof {{\n create: calendar/create-event(request = {{semantic_json: \"{{}}\"}})\n update: calendar/update-event(request = {{semantic_json: \"{{}}\"}})\n cancel: calendar/cancel-event(request = {{semantic_json: \"{{}}\"}})\n sink: conduit-test/structured-sink(value = \"{}\")\n create.receipt > update.prior\n update.receipt > cancel.prior\n cancel.receipt > sink.input\n}}\n",
+        "form proof {{\n create: calendar/create-event(request = {{semantic_json: \"{{}}\"}})\n update: calendar/update-event(request = {{semantic_json: \"{{}}\"}})\n cancel: calendar/cancel-event(request = {{semantic_json: \"{{}}\"}})\n sink: conduit-test/structured-sink(value = \"{}\")\n create.receipt >> update.prior\n update.receipt >> cancel.prior\n cancel.receipt >> sink.input\n}}\n",
         hex(&expected)
     );
     let result_type = conduit_semantic_catalog::calendar_cancel_receipt_type();

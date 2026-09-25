@@ -6,7 +6,7 @@ use conduit_form::CheckedForm;
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
 
-const COPY_FORM_SOURCE: &str = "form copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task > show\n}\n";
+const COPY_FORM_SOURCE: &str = "form copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task >> show\n}\n";
 
 #[derive(Debug, Clone)]
 pub struct PreparedCopyTask {
