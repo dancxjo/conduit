@@ -36,7 +36,6 @@ fn reusable_mapping_and_outside_consumer_are_checked_and_host_neutral() {
     }
 }
 
-
 fn theremin_catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
@@ -52,16 +51,13 @@ fn expand_theremin(
     let syntax = parse_syntax_document(source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    expand_canonical_form_for_authoring(
-        &checked,
-        "pocket-theremin-distance-frequency",
-        &profile,
-    )
+    expand_canonical_form_for_authoring(&checked, "pocket-theremin-distance-frequency", &profile)
 }
 
 #[test]
 fn canonical_distance_frequency_keep_is_real_production_language() {
-    let source = include_str!("../../../proof/fixtures/forms/pocket-theremin-distance-frequency.conduit");
+    let source =
+        include_str!("../../../proof/fixtures/forms/pocket-theremin-distance-frequency.conduit");
     let syntax = parse_syntax_document(source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     assert_eq!(syntax.round_trip(), source);
@@ -76,9 +72,7 @@ fn canonical_distance_frequency_keep_is_real_production_language() {
     let map = expanded
         .gears
         .iter()
-        .find(|gear| {
-            gear.kind_id.as_str() == conduit_semantic_catalog::DISTANCE_FREQUENCY_MAP_KIND
-        })
+        .find(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::DISTANCE_FREQUENCY_MAP_KIND)
         .unwrap();
     assert_eq!(map.inputs[0].value_kind.as_str(), DISTANCE_INFO_ID);
     assert_eq!(map.outputs[0].value_kind.as_str(), FREQUENCY_INFO_ID);
@@ -131,11 +125,7 @@ fn dimension_and_range_mistakes_refuse_on_the_production_path() {
     assert_eq!(error.code, "CND-FRM-040");
     assert!(error.message.contains("source-maximum"));
 
-    let outside_range = source.replacen(
-        "source-maximum = 30cm",
-        "source-maximum = 10001cm",
-        1,
-    );
+    let outside_range = source.replacen("source-maximum = 30cm", "source-maximum = 10001cm", 1);
     let error = expand_theremin(&outside_range).unwrap_err();
     assert_eq!(error.code, "CND-FRM-040");
     assert!(error.message.contains("source-maximum"));
