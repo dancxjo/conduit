@@ -395,8 +395,8 @@ fn instantiate_gear(
                 ));
             }
             if let Some(initial) = retained.initial.as_ref() {
-                let quantity = conduit_core::Quantity::parse_form_literal(&initial.text).map_err(
-                    |_| {
+                let quantity =
+                    conduit_core::Quantity::parse_form_literal(&initial.text).map_err(|_| {
                         CanonicalExpansionDiagnostic::new(
                             "CND-FRM-041",
                             format!(
@@ -404,8 +404,7 @@ fn instantiate_gear(
                                 retained.value_type.text, initial.text
                             ),
                         )
-                    },
-                )?;
+                    })?;
                 if quantity.dimension() != expected_dimension {
                     return Err(CanonicalExpansionDiagnostic::new(
                         "CND-FRM-040",
