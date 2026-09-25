@@ -15,6 +15,7 @@
   "files": [
     "browser-sdk.mjs",
     "browser-sdk-forms.mjs",
+    "host/assets/*.mjs",
     "browser-sdk.d.ts",
     "README.md",
     "bundle/**"

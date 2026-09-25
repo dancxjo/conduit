@@ -63,10 +63,16 @@ export class BrowserBody {
   #source;
   #receipt;
   #sequence;
+  #api;
+  #root;
+  #createPlay;
+  #play = null;
   #opened = false;
-  constructor(key, { bridge, host, boot, advertisement, source, receipt, sequence }) {
+  constructor(key, { bridge, host, boot, api, root, createPlay, advertisement, source, receipt, sequence }) {
     if (key !== BODY_KEY) throw new TypeError("BrowserBody values come from an admitted Host BIRTH");
     this.#bridge = bridge; this.#host = host; this.#boot = boot;
+    this.#api = api; this.#root = root;
+    this.#createPlay = createPlay;
     this.#advertisement = advertisement; this.#source = source;
     this.#receipt = receipt; this.#sequence = sequence;
   }
@@ -77,17 +83,71 @@ export class BrowserBody {
   async current() {
     this.#openWorkspace();
     const { status, outputJson } = this.#bridge.workspaceRequest({ action: "Current" });
-    if (status < 0) throw sdkRefusal("Body.current", outputJson, this.id);
+    if (status < 0) throw sdkRefusal("Body.current", outputJson, this.#identities());
     return outputJson;
+  }
+
+  /** Admit one exact Plan and return the Play receipt emitted by the Rust runtime. */
+  async wake() {
+    if (this.#play) throw sdkRefusal("Body.wake", { code: "PlayAlreadyActive", message: "Body already has an active Play" }, this.#identities());
+    this.#openWorkspace();
+    const proposalResult = this.#bridge.workspaceRequest({
+      action: "Propose", host_id: this.#host, boot_id: this.#boot,
+      source: this.#source, joined_lines: [], browser_audio_authority: false,
+    });
+    if (proposalResult.status < 0) throw sdkRefusal("Body.wake.propose", proposalResult.outputJson, this.#identities());
+    const proposal = proposalResult.outputJson;
+    let adapter;
+    let playStarted = false;
+    try {
+      adapter = acquireBrowserBodyHost({
+        api: this.#api, hostId: this.#host, bootId: this.#boot, proposal,
+        inputTarget: this.#root, outputRoot: this.#root,
+        foregroundForm: () => proposal.plan.forms[0]?.form?.checked_form_id ?? proposal.plan.forms[0]?.plan.checked_form_id,
+      });
+      const started = adapter.start(proposal.wake.wake_sequence);
+      playStarted = true;
+      const accepted = this.#bridge.workspaceRequest({ action: "Started", host_id: this.#host, boot_id: this.#boot, play: started.play, wake_at_start: started.wake_at_start });
+      if (accepted.status < 0) throw sdkRefusal("Body.wake.started", accepted.outputJson, this.#identities());
+      const play = this.#createPlay({ started, adapter });
+      this.#play = play;
+      play.dispatch().catch(() => {});
+      return play;
+    } catch (error) {
+      const closed = adapter?.close();
+      const refusal = error?.refusal ?? error?.evidence ?? {};
+      this.#bridge.workspaceRequest({
+        action: "Failed", host_id: this.#host, boot_id: this.#boot,
+        rejections: Array.isArray(refusal.rejections) ? refusal.rejections : [],
+      });
+      if (playStarted && closed?.receipt) this.#play = null;
+      if (error?.category) throw error;
+      throw sdkRefusal("Body.wake", { code: error?.refusal?.code ?? error?.code ?? "HostRefusal", message: error?.message ?? "Browser Host refused Play admission", ...(error?.refusal ?? {}) }, this.#identities());
+    }
+  }
+
+  async lull() {
+    if (!this.#play) throw sdkRefusal("Body.lull", { code: "NoActivePlay", message: "Body has no active Play" }, this.#identities());
+    const play = this.#play;
+    const receipt = await play.terminate();
+    const response = this.#bridge.workspaceRequest({
+      action: "Lull", host_id: this.#host, boot_id: this.#boot,
+      terminated_play: receipt ? play.identity : null,
+    });
+    if (response.status < 0) throw sdkRefusal("Body.lull", response.outputJson, this.#identities());
+    this.#play = null;
+    return this.current();
   }
 
   async install(form) { return this.#changeWorkset("Install", form); }
   async remove(form) { return this.#changeWorkset("Remove", form); }
 
+  #identities() { return { bodyId: this.id, hostId: this.#host, bootId: this.#boot }; }
+
   #openWorkspace() {
     if (this.#opened) return;
     const { status, outputJson } = this.#bridge.workspaceRequest({ action: "Arrive", advertisement: this.#advertisement });
-    if (status < 0) throw sdkRefusal("Body.open", outputJson, this.id);
+    if (status < 0) throw sdkRefusal("Body.open", outputJson, this.#identities());
     this.#opened = true;
   }
 
@@ -102,12 +162,12 @@ export class BrowserBody {
       form: { source_document_id: checked.sourceDocumentId, checked_form_id: checked.checkedFormId },
       source: this.#source, edit,
     });
-    if (status < 0) throw sdkRefusal(`Body.${edit.toLowerCase()}`, outputJson, this.id, expectedRevision);
+    if (status < 0) throw sdkRefusal(`Body.${edit.toLowerCase()}`, outputJson, this.#identities(), expectedRevision);
     return this.current();
   }
 }
 
-export async function birthBrowserBody({ bridge, host, boot, membership, name, forms, sequence }) {
+export async function birthBrowserBody({ bridge, host, boot, api, root, createPlay, membership, name, forms, sequence }) {
   if (!Array.isArray(forms) || forms.length === 0) throw new TypeError("BIRTH requires at least one checked Form");
   const checked = await Promise.all(forms.map((form) => checkedFormValue(form, bridge)));
   const source = checked[0].documentSource;
@@ -124,7 +184,7 @@ export async function birthBrowserBody({ bridge, host, boot, membership, name, f
   if (receipt.status < 0) throw sdkRefusal("Body.birth", receipt.outputJson, host);
   const attached = bridge.crecheAttachHere(new TextEncoder().encode(host), new TextEncoder().encode(boot), BigInt(sequence()));
   if (attached.status < 0) throw sdkRefusal("Body.attach", attached.outputJson, receipt.outputJson.body_id);
-  return new BrowserBody(BODY_KEY, { bridge, host, boot, advertisement: membership.advertisement(), source, receipt: attached.outputJson, sequence });
+  return new BrowserBody(BODY_KEY, { bridge, host, boot, api, root, createPlay, advertisement: membership.advertisement(), source, receipt: attached.outputJson, sequence });
 }
 
 export async function reviewBrowserForms({ bridge, host, boot, forms }) {
@@ -177,18 +237,20 @@ async function checkedFormValue(value, bridge) {
   return value.forms[0];
 }
 
-function sdkRefusal(operation, refusal, identity, revision) {
+export function sdkRefusal(operation, refusal, identity, revision) {
   const code = refusal?.code ?? "FormRefused";
   const details = {
     code,
     message: refusal?.message ?? `${operation} was refused`,
     operation,
     evidence: Object.freeze({ ...(refusal ?? {}) }),
-    identities: Object.freeze({ ...(identity === undefined ? {} : { body: identity }), ...(revision === undefined ? {} : { expectedWorkloadRevision: String(revision) }) }),
+    identities: Object.freeze({ ...(identity === undefined ? {} : typeof identity === "string" ? { bodyId: identity } : identity), ...(revision === undefined ? {} : { expectedWorkloadRevision: String(revision) }) }),
   };
   const ErrorType = /Plan|Offer|Unrealizable/.test(code) ? sdkErrors?.PlanRefusalError
-    : code === "ResourceLost" ? sdkErrors?.ResourceLossError
-      : sdkErrors?.InvalidLifecycleError;
+    : /ResourceLost|ResourceUnavailable/.test(code) ? sdkErrors?.ResourceLossError
+      : /PermissionDenied|PermissionRefused/.test(code) ? sdkErrors?.PermissionDeniedError
+        : /IncompatibleRuntimeAbi/.test(code) ? sdkErrors?.IncompatibleRuntimeAbiError
+          : sdkErrors?.InvalidLifecycleError;
   if (ErrorType) return new ErrorType(details);
   const error = new Error(details.message);
   error.name = "InvalidLifecycleError";

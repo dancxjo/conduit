@@ -10,7 +10,8 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
 const mounted = new WeakMap();
 const BROWSER_HOST_KEY = Symbol("Conduit BrowserHost");
-import { BrowserForm, birthBrowserBody, reviewBrowserForms, setBrowserSdkErrors } from "./browser-sdk-forms.mjs";
+import { BrowserForm, birthBrowserBody, reviewBrowserForms, sdkRefusal, setBrowserSdkErrors } from "./browser-sdk-forms.mjs";
+import { acquireBrowserBodyHost } from "../host/assets/browser-body-host.mjs";
 export { BrowserForm, BrowserBody } from "./browser-sdk-forms.mjs";
 
 export class ConduitSdkError extends Error {
@@ -41,7 +42,7 @@ export class IncompatibleRuntimeAbiError extends ConduitSdkError {
   constructor(details) { super({ ...details, category: "IncompatibleRuntimeAbi" }); this.name = "IncompatibleRuntimeAbiError"; }
 }
 
-setBrowserSdkErrors({ PlanRefusalError, ResourceLossError, InvalidLifecycleError });
+setBrowserSdkErrors({ PlanRefusalError, ResourceLossError, InvalidLifecycleError, PermissionDeniedError, IncompatibleRuntimeAbiError });
 
 /** Exact Host + Boot incarnation. Its mutable projection is refreshed from Boot evidence. */
 export class BrowserHost {
@@ -92,7 +93,10 @@ export class BrowserHost {
       bridge: this.#state.bridge,
       host: this.id,
       boot: this.bootId,
+      api: this.#state.api,
+      root: this.#state.root,
       membership: this.#state.membership,
+      createPlay: (options) => new BrowserPlay(BROWSER_HOST_KEY, options),
       name,
       forms,
       sequence: () => {
@@ -100,6 +104,48 @@ export class BrowserHost {
         return ++this.#state.sequence;
       },
     });
+  }
+}
+
+export class BrowserPlay {
+  #started;
+  #adapter;
+  #completion = null;
+  #terminal = null;
+  #failure = null;
+  constructor(key, { started, adapter } = {}) {
+    if (key !== BROWSER_HOST_KEY) throw new TypeError("BrowserPlay values come from an admitted runtime start");
+    this.#started = started;
+    this.#adapter = adapter;
+    Object.freeze(this);
+  }
+  get schema() { return "conduit.browser/play@1"; }
+  get id() { return this.#started.play.active_play_id; }
+  get identity() { return Object.freeze({ ...this.#started.play }); }
+  get plan() { return Object.freeze({ planId: this.#started.play.plan_id, wakeId: this.#started.play.wake_id, bodyId: this.#started.play.body_id }); }
+  get state() { return this.#terminal ? "terminal" : this.#failure ? "failed" : "playing"; }
+  get receipts() { return Object.freeze(this.#terminal ? [this.#terminal] : []); }
+  dispatch() {
+    if (!this.#completion) this.#completion = this.#adapter.run().then(receipt => {
+      this.#terminal = receipt;
+      return receipt;
+    }, error => {
+      this.#failure = sdkRefusal("Play.dispatch", {
+        code: error?.refusal?.code ?? error?.code ?? "PlayExecutionFailed",
+        message: error?.message ?? "Browser Host effect dispatch failed",
+        ...(error?.refusal ?? {}),
+      }, { bodyId: this.#started.play.body_id, planId: this.#started.play.plan_id,
+        wakeId: this.#started.play.wake_id, playId: this.id });
+      throw this.#failure;
+    });
+    return this.#completion;
+  }
+  async terminate() {
+    if (this.#failure) throw this.#failure;
+    const closed = this.#adapter.close();
+    const receipt = closed.receipt ?? this.#terminal;
+    this.#terminal = receipt;
+    return receipt;
   }
 }
 
@@ -167,6 +213,8 @@ export const Conduit = Object.freeze({
         packageVersion: pkg.package_version,
         runtimeAbi: pkg.runtime_abi,
         hostId: initialized.hostId,
+        api,
+        root,
         bridge,
         membership: initialized.membership,
         sequence: 0,

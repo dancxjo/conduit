@@ -123,8 +123,24 @@ export class BrowserBody {
   readonly id: string;
   readonly receipt: Readonly<Record<string, unknown>>;
   current(): Promise<Readonly<Record<string, unknown>>>;
+  /** Propose, admit, and start one exact runtime Play through the reviewed Browser Host adapters. */
+  wake(): Promise<BrowserPlay>;
+  /** Terminate or close the current Play and record the exact Body lull transition. */
+  lull(): Promise<Readonly<Record<string, unknown>>>;
   install(form: BrowserForm | CheckedForm | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
   remove(form: BrowserForm | CheckedForm | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
+}
+
+export class BrowserPlay {
+  private constructor();
+  readonly schema: "conduit.browser/play@1";
+  readonly id: string;
+  readonly identity: Readonly<Record<string, string>>;
+  readonly plan: Readonly<{ planId: string; wakeId: string; bodyId: string }>;
+  readonly state: "playing" | "terminal" | "failed";
+  readonly receipts: readonly Readonly<Record<string, unknown>>[];
+  dispatch(): Promise<Readonly<Record<string, unknown>> | null>;
+  terminate(): Promise<Readonly<Record<string, unknown>> | null>;
 }
 
 export interface BrowserOptions {

@@ -7,6 +7,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
 const RELEASE_SCHEMA = "conduit.release/host-bundle@1";
 const IMAGE_PATH = "conduit-browser-image.json";
 const encoder = new TextEncoder();
+const HOST_ASSETS = path.resolve(ROOT, "../host/assets");
 
 const [bundleArgument, outputArgument] = process.argv.slice(2);
 if (!bundleArgument || !outputArgument || process.argv.length !== 4) {
@@ -78,6 +79,16 @@ for (const name of ["browser-page.json", "browser-bundle-release.json"]) {
 for (const name of ["package.json", "browser-sdk.mjs", "browser-sdk-forms.mjs", "browser-sdk.d.ts", "README.md"]) {
   await copyFile(path.join(ROOT, name), path.join(outputRoot, name));
 }
+for (const name of ["browser-body-host.mjs", "browser-body-input.mjs", "browser-human-input.mjs", "browser-audio-cue.mjs", "browser-pcm-audio.mjs", "browser-form-effects.mjs", "application-presentation.mjs", "application-theme.mjs", "browser-runtime-bridge.mjs"]) {
+  const source = path.join(HOST_ASSETS, name);
+  const destination = path.join(outputRoot, "host", "assets", name);
+  await mkdir(path.dirname(destination), { recursive: true });
+  await copyFile(source, destination);
+}
+const sdkModule = await readFile(path.join(outputRoot, "browser-sdk.mjs"), "utf8");
+await writeFile(path.join(outputRoot, "browser-sdk.mjs"), sdkModule.replace(
+  '"../host/assets/browser-body-host.mjs"', '"./host/assets/browser-body-host.mjs"',
+));
 await writeFile(path.join(outputRoot, "bundle", "browser-sdk-package.json"), JSON.stringify({
   schema: "conduit.browser/sdk-package@1",
   package_id: "@conduit/browser",
