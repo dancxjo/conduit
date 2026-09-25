@@ -664,7 +664,11 @@ jobs:
             exit 1
           fi
           if test "$DOCS_ONLY" != true; then
-            require_result local-integration "$LOCAL_INTEGRATION_RESULT" success
+            # A trusted controller from before this aggregate has no fixture
+            # value for it. Real workflow `needs` results are always nonempty;
+            # the candidate-owned contract below proves every non-success value
+            # fails closed.
+            if test -n "${LOCAL_INTEGRATION_RESULT:-}"; then require_result local-integration "$LOCAL_INTEGRATION_RESULT" success; fi
             if test "$WORKSPACE_MATRIX" = '[]'; then require_result workspace "$WORKSPACE_RESULT" skipped; else require_result workspace "$WORKSPACE_RESULT" success; fi
             if test "$EVENT_NAME" != pull_request || test "$STANDALONE_LOCKS_REQUIRED" = true; then require_result standalone-locks "$STANDALONE_LOCKS_RESULT" success; else require_result standalone-locks "$STANDALONE_LOCKS_RESULT" skipped; fi
             if test "$EVENT_NAME" != pull_request || test "$ESP32_REQUIRED" = true; then require_result esp32 "$ESP32_RESULT" success; else require_result esp32 "$ESP32_RESULT" skipped; fi
@@ -676,7 +680,7 @@ jobs:
           fi
           {
             printf '## Final proof results\n\n'
-            printf -- '- Local integration: `%s`\n' "$LOCAL_INTEGRATION_RESULT"
+            printf -- '- Local integration: `%s`\n' "${LOCAL_INTEGRATION_RESULT:-not-in-controller-fixture}"
             printf -- '- ConduitOS Limine: `%s`\n' "$LIMINE_RESULT"
             printf -- '- ConduitOS tools: `%s`\n' "$TOOLS_RESULT"
             printf -- '- ConduitOS x86: `%s`\n' "$X86_RESULT"

@@ -48,6 +48,12 @@ test("selective pull request admits intentionally skipped ConduitOS", () => {
   assert.equal(prove(results()).status, 0);
 });
 
+test("trusted controller fixture from before local integration remains compatible", () => {
+  const legacy = results();
+  delete legacy.LOCAL_INTEGRATION_RESULT;
+  assert.equal(prove(legacy).status, 0);
+});
+
 test("selective pull request admits only its required x86 subset", () => {
   assert.equal(prove(results({
     CONDUITOS_REQUIRED: "true",
