@@ -604,7 +604,7 @@ fn quantity_startup_bindings_and_current_ports_expand_together() {
             }],
             configuration: vec![KindConfigurationField {
                 key: "initial".into(),
-                default_value: ConfigurationValue::Quantity(Quantity::new(440, QuantityUnit::Hertz)),
+                default_value: ConfigurationValue::Quantity(Quantity::new(\n                    440,\n                    QuantityUnit::Hertz,\n                )),
                 rule: KindConfigurationRule::QuantityRange {
                     minimum: 220,
                     maximum: 880,
@@ -645,6 +645,6 @@ fn quantity_startup_bindings_and_current_ports_expand_together() {
             .value,
         ConfigurationValue::Quantity(Quantity::new(440, QuantityUnit::Hertz))
     );
-    assert_eq!(hold.outputs[0].temporal, conduit_core::PortTemporal::Current);
+    assert_eq!(\n        hold.outputs[0].temporal,\n        conduit_core::PortTemporal::Current\n    );
     assert_eq!(expanded.connections.len(), 1);
 }
