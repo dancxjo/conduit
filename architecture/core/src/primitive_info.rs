@@ -30,7 +30,9 @@ pub enum PrimitiveInfoKind {
 pub enum PrimitiveInfoRefusal {
     UnitNotEmpty,
     Bool(InfoDecodeError),
-    CountLength { actual: usize },
+    CountLength {
+        actual: usize,
+    },
     Scalar(InfoDecodeError),
     TextUtf8,
     Quantity(QuantityDecodeRefusal),
@@ -92,7 +94,7 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
             } else {
                 Err(PrimitiveInfoRefusal::WrongQuantityDimension { expected, actual })
             }
-        },
+        }
     }
 }
 
