@@ -7,8 +7,8 @@ on:
         description: Exact successful promotion head that produced the provider evidence
         required: true
         type: string
-      promotion_run_id:
-        description: Successful promotion run containing the full accepted Pages carrier
+      documentary_run_id:
+        description: Successful downstream documentary run containing the accepted full carrier
         required: true
         type: number
       evidence_sha256:
@@ -23,7 +23,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: tour-and-creche-pages
+  group: journey-documentary-publication
   cancel-in-progress: false
 
 jobs:
@@ -35,7 +35,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     env:
       ACCEPTED_SOURCE_SHA: ${{ inputs.accepted_source_sha }}
-      PROMOTION_RUN_ID: ${{ inputs.promotion_run_id }}
+      DOCUMENTARY_RUN_ID: ${{ inputs.documentary_run_id }}
       EVIDENCE_SHA256: ${{ inputs.evidence_sha256 }}
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -44,15 +44,13 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - name: Admit one exact successful stable source and promotion
+      - name: Admit one exact successful stable source and documentary publication
         run: |
           [[ "$ACCEPTED_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$EVIDENCE_SHA256" =~ ^[0-9a-f]{64}$ ]]
-          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PROMOTION_RUN_ID")
-          test "$(jq -r .name <<<"$run")" = promotion
-          test "$(jq -r .event <<<"$run")" = pull_request
+          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$DOCUMENTARY_RUN_ID")
+          test "$(jq -r .name <<<"$run")" = journey-documentary-publication
           test "$(jq -r .conclusion <<<"$run")" = success
-          test "$(jq -r .head_sha <<<"$run")" = "$ACCEPTED_SOURCE_SHA"
           git fetch --no-tags origin "$ACCEPTED_SOURCE_SHA" main
           test "$(git rev-parse "$ACCEPTED_SOURCE_SHA^{tree}")" = "$(git rev-parse origin/main^{tree})"
       - name: Check out the exact accepted product source
@@ -64,13 +62,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: false
-      - name: Receive the exact promoted full Pages carrier
+      - name: Receive the exact downstream documentary carrier
         uses: actions/download-artifact@v8
         with:
-          name: conduit-pages-carrier-with-conduitos
+          name: conduit-documentary-pages-carrier-${{ inputs.accepted_source_sha }}
           path: target/accepted-carrier
           repository: ${{ github.repository }}
-          run-id: ${{ inputs.promotion_run_id }}
+          run-id: ${{ inputs.documentary_run_id }}
           github-token: ${{ github.token }}
       - name: Receive the small host-local evidence archive
         run: |

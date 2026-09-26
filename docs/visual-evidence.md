@@ -125,16 +125,17 @@ gh release create "journey-evidence/$ACCEPTED_SOURCE_SHA" \
   --title "Hears and Speaks evidence for $ACCEPTED_SOURCE_SHA"
 gh workflow run admit-hears-speaks.yml \
   -f accepted_source_sha="$ACCEPTED_SOURCE_SHA" \
-  -f promotion_run_id="$PROMOTION_RUN_ID" \
+  -f documentary_run_id="$DOCUMENTARY_RUN_ID" \
   -f evidence_sha256="$ARCHIVE_SHA256"
 ```
 
-The trusted default-branch workflow accepts only a successful promotion head
-whose tree equals current `main`, downloads that run's already-sealed complete
-Pages carrier, verifies the archive digest and exact evidence manifest, then
-reseals and deploys the full site with the audio gallery added. A later commit
-cannot reuse the archive because the manifest, release tag, promotion run, and
-accepted tree must all agree. The archive contains only the bounded outputs;
+The trusted default-branch workflow accepts only a successful downstream
+documentary run whose source tree equals current `main`, downloads that run's
+already-sealed documentary carrier, verifies the archive digest and exact
+evidence manifest, then reseals and deploys the full site with the audio gallery
+added. A later commit cannot reuse the archive because the manifest, release
+tag, documentary run, and accepted tree must all agree. The archive contains
+only the bounded outputs;
 Whisper, Ollama, Piper, and their model stores remain local to the machine that
 ran them.
 
@@ -247,6 +248,11 @@ live-recording reuse when any exact structured Presenter request changes.
 The recorded source commit remains distinct from the current release commit.
 Model repetitions and weak phrasing are preserved rather than rewritten into
 an invented dialogue. See the retained recording's README for its exact limits.
+Release promotion does not run this publisher. `journey-publication.yml` runs
+only after the accepted software carrier has deployed, consumes immutable
+claim-specific artifacts from the successful promotion, and refuses to replace
+Pages if `main` has advanced. Its failure leaves both the release and the base
+software publication intact.
 
 `cargo xtask evidence check-three-body-journey --publication-root <directory>
 --output <new-review-directory>` checks the assembled documentary in the pinned

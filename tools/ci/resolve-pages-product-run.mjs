@@ -73,12 +73,7 @@ if (requestedMain) {
   if (!run) throw new Error(`exact-head Pages product run did not complete successfully for pull request #${requestedNumber} within the bounded wait`);
   runId = String(run.id);
   const artifacts = await api(`/repos/${repository}/actions/runs/${runId}/artifacts?per_page=100`);
-  if (hasRetainedArtifact(artifacts.artifacts, "conduit-pages-carrier-with-conduitos")) {
-    carrierName = "conduit-pages-carrier-with-conduitos";
-    carrierPresent = true;
-  } else {
-    carrierPresent = hasRetainedArtifact(artifacts.artifacts, carrierName);
-  }
+  carrierPresent = hasRetainedArtifact(artifacts.artifacts, carrierName);
 }
 
 await appendFile(output, [
