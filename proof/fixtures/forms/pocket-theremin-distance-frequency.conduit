@@ -3,12 +3,7 @@ form pocket-theremin-distance-frequency (
     >> distance: Distance
     frequency: $Frequency >>
 ) {
-    map: math/map-distance-frequency(
-        source-minimum = 0cm,
-        source-maximum = 30cm,
-        target-minimum = 220Hz,
-        target-maximum = 880Hz
-    )
+    map: math/map-distance-frequency(source-minimum = 0cm, source-maximum = 30cm, target-minimum = 220Hz, target-maximum = 880Hz)
     current: keep Frequency(440Hz) for this play
 
     distance >> map.distance
