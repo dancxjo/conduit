@@ -6,7 +6,10 @@ use crate::expression_numeric_type::{
 use crate::prelude::*;
 use crate::{BinaryOperator, ExpressionProjection, ExpressionSyntax, Span, UnaryOperator};
 use alloc::collections::{BTreeMap, BTreeSet};
-use conduit_core::{kind_id, KindId, StructuredInfoType, StructuredInfoTypeShape};
+use conduit_core::{
+    kind_id, semantic_digest, KindId, StructuredFieldType, StructuredInfoRefusal,
+    StructuredInfoType, StructuredInfoTypeShape,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CheckedExpressionType {
@@ -67,6 +70,86 @@ impl CheckedExpressionType {
             _ => None,
         }
     }
+
+    /// Materializes the exact finite Info type carried by an expression result.
+    ///
+    /// Anonymous records and tuples receive identities derived solely from their
+    /// checked semantic members. Source location, spelling and target do not
+    /// participate, so every Host plans the same Port type.
+    pub fn structured_info_type(&self) -> Result<StructuredInfoType, StructuredInfoRefusal> {
+        match self {
+            Self::Semantic(kind) => StructuredInfoType::leaf(kind.clone()),
+            Self::Collection { element, length } => {
+                StructuredInfoType::collection(element.structured_info_type()?, Some(*length))
+            }
+            Self::Tuple(values) => {
+                let fields = values
+                    .iter()
+                    .enumerate()
+                    .map(|(index, value)| {
+                        StructuredFieldType::new(
+                            format!("item-{index:05}"),
+                            value.structured_info_type()?,
+                        )
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                anonymous_record("tuple", fields)
+            }
+            Self::Record(values) => {
+                let fields = values
+                    .iter()
+                    .map(|(name, value)| {
+                        StructuredFieldType::new(name.clone(), value.structured_info_type()?)
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                anonymous_record("record", fields)
+            }
+        }
+    }
+
+    pub fn exact_value_kind(&self) -> Result<KindId, StructuredInfoRefusal> {
+        match self {
+            Self::Semantic(kind) => Ok(kind.clone()),
+            _ => Ok(self.structured_info_type()?.profile()?.value_kind().clone()),
+        }
+    }
+}
+
+fn anonymous_record(
+    shape: &str,
+    mut fields: Vec<StructuredFieldType>,
+) -> Result<StructuredInfoType, StructuredInfoRefusal> {
+    fields.sort_by(|left, right| left.name().cmp(right.name()));
+    let mut identity = Vec::new();
+    for field in &fields {
+        push_identity_field(&mut identity, field.name());
+        let member = field.value_type().profile()?;
+        push_identity_field(&mut identity, member.value_kind().as_str());
+    }
+    let digest = semantic_digest(
+        &format!("conduit.conduitese.anonymous-{shape}.v1"),
+        &identity,
+    );
+    let schema = kind_id(&format!(
+        "conduitese/anonymous-{shape}-{}@1",
+        encode_hex(&digest)
+    ));
+    StructuredInfoType::record(schema, fields)
+}
+
+fn push_identity_field(encoded: &mut Vec<u8>, value: &str) {
+    encoded.extend_from_slice(&(value.len() as u64).to_le_bytes());
+    encoded.extend_from_slice(value.as_bytes());
+}
+
+fn encode_hex(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        encoded.push(char::from(HEX[usize::from(byte >> 4)]));
+        encoded.push(char::from(HEX[usize::from(byte & 0x0f)]));
+    }
+    encoded
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
