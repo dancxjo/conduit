@@ -248,3 +248,53 @@ fn reviewed_pure_semantic_kind_call_uses_its_exact_front() {
     );
     assert!(check_expression(&expression("math/sin(.)"), &context).is_err());
 }
+
+#[test]
+fn anonymous_expression_types_have_stable_exact_port_identities() {
+    let first = CheckedExpressionType::Record(vec![
+        (
+            "label".into(),
+            CheckedExpressionType::semantic("value/text"),
+        ),
+        (
+            "point".into(),
+            CheckedExpressionType::Tuple(vec![
+                CheckedExpressionType::semantic("value/i16"),
+                CheckedExpressionType::semantic("value/i16"),
+            ]),
+        ),
+    ]);
+    let reordered = CheckedExpressionType::Record(vec![
+        (
+            "point".into(),
+            CheckedExpressionType::Tuple(vec![
+                CheckedExpressionType::semantic("value/i16"),
+                CheckedExpressionType::semantic("value/i16"),
+            ]),
+        ),
+        (
+            "label".into(),
+            CheckedExpressionType::semantic("value/text"),
+        ),
+    ]);
+    assert_eq!(first.exact_value_kind(), reordered.exact_value_kind());
+    assert_eq!(
+        first.structured_info_type().unwrap(),
+        reordered.structured_info_type().unwrap()
+    );
+
+    let changed = CheckedExpressionType::Record(vec![
+        (
+            "label".into(),
+            CheckedExpressionType::semantic("value/text"),
+        ),
+        (
+            "point".into(),
+            CheckedExpressionType::Tuple(vec![
+                CheckedExpressionType::semantic("value/i16"),
+                CheckedExpressionType::semantic("value/i32"),
+            ]),
+        ),
+    ]);
+    assert_ne!(first.exact_value_kind(), changed.exact_value_kind());
+}
