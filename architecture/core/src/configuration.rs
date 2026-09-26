@@ -127,6 +127,51 @@ pub enum KindConfigurationRule {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum KindSemanticLaw {
     Terminal(KindTerminalBehavior),
+    ExternalEffects(ExternalEffectBehavior),
+    TemporalState(TemporalStateBehavior),
+    TimeDependence(SemanticDependence),
+    RandomDependence(SemanticDependence),
+    ResourceDependence(SemanticDependence),
+    Suspension(SuspensionBehavior),
+    Variability(VariabilityBehavior),
+    Replay(ReplayBehavior),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExternalEffectBehavior {
+    None,
+    Observable,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TemporalStateBehavior {
+    None,
+    Retained,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SemanticDependence {
+    None,
+    ExplicitInput,
+    Ambient,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SuspensionBehavior {
+    Never,
+    MaySuspend,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum VariabilityBehavior {
+    DeterministicFromInputs,
+    AdmittedVariability,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReplayBehavior {
+    Exact,
+    Ineligible,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
