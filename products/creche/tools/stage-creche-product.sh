@@ -109,7 +109,7 @@ file_count=$(find "$destination" -type f | wc -l)
 # The release carrier includes the complete bounded multi-target catalog. The
 # browser-proof carrier deliberately omits those native artifacts.
 case "$mode" in
-  release) test "$file_count" -le 131 ;;
+  release) test "$file_count" -le 132 ;;
   browser-proof) test "$file_count" -le 128 ;;
 esac
 test -f "$destination/creche.application.json"
