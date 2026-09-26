@@ -235,6 +235,9 @@ fn unit_tag(unit: QuantityUnit) -> u8 {
         Microradian => 33,
         Milliradian => 34,
         Radian => 35,
+        Pixel => 36,
+        MilliFahrenheit => 37,
+        Fahrenheit => 38,
     }
 }
 fn decode_unit(tag: u8) -> Result<QuantityUnit, TensorRefusal> {
@@ -276,6 +279,9 @@ fn decode_unit(tag: u8) -> Result<QuantityUnit, TensorRefusal> {
         33 => Microradian,
         34 => Milliradian,
         35 => Radian,
+        36 => Pixel,
+        37 => MilliFahrenheit,
+        38 => Fahrenheit,
         _ => return Err(TensorRefusal::UnsupportedUnit),
     })
 }
