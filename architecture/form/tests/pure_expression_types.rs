@@ -1,6 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use conduit_core::{KindId, StructuredFieldType, StructuredInfoType};
+use conduit_core::{
+    kind_id, port_id, CapabilityLimits, ExternalEffectBehavior, Kind, KindId, KindIdentity,
+    KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal, ReplayBehavior,
+    SemanticDependence, StructuredFieldType, StructuredInfoType, SuspensionBehavior,
+    TemporalStateBehavior, VariabilityBehavior,
+};
 use conduit_form::{
     check_expression, parse_syntax_document, BackStatement, CheckedExpressionType, CordStage,
     ExpressionSyntax, ExpressionTypeContext,
@@ -30,6 +35,7 @@ fn context<'a>(
     structured_types: &'a BTreeMap<KindId, StructuredInfoType>,
     literal_types: &'a BTreeMap<String, CheckedExpressionType>,
     numeric_types: &'a BTreeSet<KindId>,
+    semantic_kinds: &'a BTreeMap<String, Kind>,
 ) -> ExpressionTypeContext<'a> {
     ExpressionTypeContext {
         input,
@@ -37,6 +43,44 @@ fn context<'a>(
         structured_types,
         literal_types,
         numeric_types,
+        semantic_kinds,
+    }
+}
+
+fn pure_kind(name: &str) -> Kind {
+    Kind {
+        startup_parameters: Vec::new(),
+        shorthand: Some((port_id("value"), port_id("result"))),
+        kind_id: kind_id(name),
+        kind_contract_revision: KindIdentity::from(format!("{name}@1")),
+        inputs: vec![PortDescriptor {
+            port_id: port_id("value"),
+            value_kind: kind_id("value/scalar"),
+            direction: PortDirection::Input,
+            temporal: PortTemporal::Value,
+        }],
+        outputs: vec![PortDescriptor {
+            port_id: port_id("result"),
+            value_kind: kind_id("value/scalar"),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Value,
+        }],
+        configuration: Vec::new(),
+        semantic_laws: vec![
+            KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::None),
+            KindSemanticLaw::TemporalState(TemporalStateBehavior::None),
+            KindSemanticLaw::TimeDependence(SemanticDependence::None),
+            KindSemanticLaw::RandomDependence(SemanticDependence::None),
+            KindSemanticLaw::ResourceDependence(SemanticDependence::None),
+            KindSemanticLaw::Suspension(SuspensionBehavior::Never),
+            KindSemanticLaw::Variability(VariabilityBehavior::DeterministicFromInputs),
+            KindSemanticLaw::Replay(ReplayBehavior::Exact),
+        ],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: 16,
+        },
     }
 }
 
@@ -46,7 +90,15 @@ fn fixed_integer_operators_retain_width_and_comparisons_return_boolean() {
     let empty = BTreeMap::new();
     let no_structured = BTreeMap::new();
     let no_numeric = BTreeSet::new();
-    let context = context(&input, &empty, &no_structured, &empty, &no_numeric);
+    let no_kinds = BTreeMap::new();
+    let context = context(
+        &input,
+        &empty,
+        &no_structured,
+        &empty,
+        &no_numeric,
+        &no_kinds,
+    );
 
     assert_eq!(
         check_expression(&expression("(. <<< 1) | 0x03"), &context)
@@ -68,7 +120,15 @@ fn ambiguous_and_out_of_range_integer_literals_refuse_during_checking() {
     let empty = BTreeMap::new();
     let no_structured = BTreeMap::new();
     let no_numeric = BTreeSet::new();
-    let context = context(&input, &empty, &no_structured, &empty, &no_numeric);
+    let no_kinds = BTreeMap::new();
+    let context = context(
+        &input,
+        &empty,
+        &no_structured,
+        &empty,
+        &no_numeric,
+        &no_kinds,
+    );
 
     assert!(check_expression(&expression("255"), &context).is_err());
     let error = check_expression(&expression(". + 256"), &context).unwrap_err();
@@ -81,7 +141,15 @@ fn conditional_is_boolean_and_unifies_one_exact_branch_type() {
     let empty = BTreeMap::new();
     let no_structured = BTreeMap::new();
     let no_numeric = BTreeSet::new();
-    let context = context(&input, &empty, &no_structured, &empty, &no_numeric);
+    let no_kinds = BTreeMap::new();
+    let context = context(
+        &input,
+        &empty,
+        &no_structured,
+        &empty,
+        &no_numeric,
+        &no_kinds,
+    );
 
     assert_eq!(
         check_expression(&expression(". ? \"yes\" : \"no\""), &context)
@@ -108,7 +176,8 @@ fn nominal_structured_input_projects_into_anonymous_structures() {
     let empty = BTreeMap::new();
     let structured = BTreeMap::from([(KindId::from("weather/reading@1"), reading)]);
     let no_numeric = BTreeSet::new();
-    let context = context(&input, &empty, &structured, &empty, &no_numeric);
+    let no_kinds = BTreeMap::new();
+    let context = context(&input, &empty, &structured, &empty, &no_numeric, &no_kinds);
 
     assert_eq!(
         check_expression(&expression("(.label, { n: .samples })"), &context)
@@ -132,7 +201,15 @@ fn scientific_literal_type_comes_from_the_semantic_literal_catalog() {
     let no_structured = BTreeMap::new();
     let literals = BTreeMap::from([("30°C".into(), temperature)]);
     let numeric = BTreeSet::from([KindId::from("value/temperature")]);
-    let context = context(&input, &empty, &no_structured, &literals, &numeric);
+    let no_kinds = BTreeMap::new();
+    let context = context(
+        &input,
+        &empty,
+        &no_structured,
+        &literals,
+        &numeric,
+        &no_kinds,
+    );
 
     assert_eq!(
         check_expression(&expression(". > 30°C"), &context)
@@ -140,4 +217,34 @@ fn scientific_literal_type_comes_from_the_semantic_literal_catalog() {
             .value_type,
         CheckedExpressionType::semantic("value/bool")
     );
+}
+
+#[test]
+fn reviewed_pure_semantic_kind_call_uses_its_exact_front() {
+    let input = CheckedExpressionType::semantic("value/scalar");
+    let empty = BTreeMap::new();
+    let no_structured = BTreeMap::new();
+    let no_numeric = BTreeSet::new();
+    let kinds = BTreeMap::from([("math/sin".into(), pure_kind("math/sin"))]);
+    let pure_context = context(&input, &empty, &no_structured, &empty, &no_numeric, &kinds);
+    assert_eq!(
+        check_expression(&expression("math/sin(.)"), &pure_context)
+            .unwrap()
+            .value_type,
+        input
+    );
+
+    let mut effectful = pure_kind("math/sin");
+    effectful.semantic_laws[0] =
+        KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::Observable);
+    let effectful = BTreeMap::from([("math/sin".into(), effectful)]);
+    let context = context(
+        &input,
+        &empty,
+        &no_structured,
+        &empty,
+        &no_numeric,
+        &effectful,
+    );
+    assert!(check_expression(&expression("math/sin(.)"), &context).is_err());
 }

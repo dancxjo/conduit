@@ -25,6 +25,8 @@ mod canonical_expansion;
 mod checked_syntax;
 mod diagnostic;
 mod expression_check;
+mod expression_numeric_type;
+mod expression_semantic_call;
 mod functional_front;
 mod integer_literal;
 mod pure_expression;
