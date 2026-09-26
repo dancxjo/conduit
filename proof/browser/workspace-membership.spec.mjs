@@ -453,6 +453,8 @@ test("an unavailable running host leaves the current body and browser Host intac
   await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await expect.poll(async () => page.evaluate(() => globalThis.__conduitWorkspace.evidence()?.evidence?.body?.body_id))
+    .toBe(await page.evaluate(() => globalThis.__conduitWorkspace.current().body_id));
   const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
 
   await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
