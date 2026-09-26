@@ -359,3 +359,111 @@ fn checked_expression_retains_its_exact_input_and_output_contract() {
             .kind_id
     );
 }
+
+#[test]
+fn portable_fixed_integer_evaluation_is_checked_and_conditional_is_lazy() {
+    let input = CheckedExpressionType::semantic("value/u8");
+    let empty = BTreeMap::new();
+    let no_structured = BTreeMap::new();
+    let no_numeric = BTreeSet::new();
+    let no_kinds = BTreeMap::new();
+    let context = context(
+        &input,
+        &empty,
+        &no_structured,
+        &empty,
+        &no_numeric,
+        &no_kinds,
+    );
+
+    let add = check_expression(&expression(". + 1"), &context).unwrap();
+    assert_eq!(
+        PortableExpressionProgram::from_checked(&add)
+            .unwrap()
+            .evaluate(&[41])
+            .unwrap(),
+        [42]
+    );
+
+    let lazy = check_expression(&expression(". == 0 ? . : (. / 0)"), &context).unwrap();
+    assert_eq!(
+        PortableExpressionProgram::from_checked(&lazy)
+            .unwrap()
+            .evaluate(&[0])
+            .unwrap(),
+        [0]
+    );
+
+    let shift = check_expression(&expression(". <<< 8"), &context).unwrap();
+    assert!(PortableExpressionProgram::from_checked(&shift)
+        .unwrap()
+        .evaluate(&[1])
+        .is_err());
+}
+
+#[test]
+fn portable_anonymous_structures_carry_their_exact_checked_profile() {
+    let input = CheckedExpressionType::semantic("value/u8");
+    let empty = BTreeMap::new();
+    let no_structured = BTreeMap::new();
+    let no_numeric = BTreeSet::new();
+    let no_kinds = BTreeMap::new();
+    let context = context(
+        &input,
+        &empty,
+        &no_structured,
+        &empty,
+        &no_numeric,
+        &no_kinds,
+    );
+    let checked = check_expression(&expression("(., { doubled: . + . })"), &context).unwrap();
+    let program = PortableExpressionProgram::from_checked(&checked).unwrap();
+    let output = program.evaluate(&[3]).unwrap();
+    let value = conduit_core::StructuredInfoValue::from_canonical_bytes(&output).unwrap();
+    assert_eq!(value.value_type(), &program.output_type);
+}
+
+#[test]
+fn semantic_count_and_scalar_arithmetic_remain_exact_and_checked() {
+    let empty = BTreeMap::new();
+    let no_structured = BTreeMap::new();
+    let no_numeric = BTreeSet::new();
+    let no_kinds = BTreeMap::new();
+
+    let count = CheckedExpressionType::semantic("value/count");
+    let count_context = context(
+        &count,
+        &empty,
+        &no_structured,
+        &empty,
+        &no_numeric,
+        &no_kinds,
+    );
+    let checked = check_expression(&expression(". + 2"), &count_context).unwrap();
+    assert_eq!(
+        PortableExpressionProgram::from_checked(&checked)
+            .unwrap()
+            .evaluate(&conduit_core::encode_count(40))
+            .unwrap(),
+        conduit_core::encode_count(42)
+    );
+
+    let scalar = CheckedExpressionType::semantic("value/scalar");
+    let scalar_context = context(
+        &scalar,
+        &empty,
+        &no_structured,
+        &empty,
+        &no_numeric,
+        &no_kinds,
+    );
+    let checked = check_expression(&expression(". / 2"), &scalar_context).unwrap();
+    let three = conduit_core::Scalar::from_raw_microunits(3_000_000).encode();
+    assert_eq!(
+        PortableExpressionProgram::from_checked(&checked)
+            .unwrap()
+            .evaluate(&three)
+            .unwrap(),
+        conduit_core::Scalar::from_raw_microunits(1_500_000).encode()
+    );
+}

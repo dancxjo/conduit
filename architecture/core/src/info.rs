@@ -40,6 +40,7 @@ pub enum InfoDecodeError {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ScalarArithmeticError {
     Overflow,
+    DivisionByZero,
 }
 
 /// The exact two-state value carried by `value/bool`.
@@ -142,6 +143,33 @@ impl Scalar {
         i64::try_from(scaled)
             .map(Self)
             .map_err(|_| ScalarArithmeticError::Overflow)
+    }
+
+    pub fn checked_div(self, rhs: Self) -> Result<Self, ScalarArithmeticError> {
+        if rhs.0 == 0 {
+            return Err(ScalarArithmeticError::DivisionByZero);
+        }
+        let scaled = i128::from(self.0) * i128::from(Self::SCALE) / i128::from(rhs.0);
+        i64::try_from(scaled)
+            .map(Self)
+            .map_err(|_| ScalarArithmeticError::Overflow)
+    }
+
+    pub const fn checked_rem(self, rhs: Self) -> Result<Self, ScalarArithmeticError> {
+        if rhs.0 == 0 {
+            return Err(ScalarArithmeticError::DivisionByZero);
+        }
+        match self.0.checked_rem(rhs.0) {
+            Some(value) => Ok(Self(value)),
+            None => Err(ScalarArithmeticError::Overflow),
+        }
+    }
+
+    pub const fn checked_neg(self) -> Result<Self, ScalarArithmeticError> {
+        match self.0.checked_neg() {
+            Some(value) => Ok(Self(value)),
+            None => Err(ScalarArithmeticError::Overflow),
+        }
     }
 
     pub fn semantic_digest(self) -> [u8; 32] {
