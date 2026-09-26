@@ -442,6 +442,61 @@ fn startup_type_and_default_semantics_have_explicit_identity_boundaries() {
 }
 
 #[test]
+fn fixed_width_integer_literals_are_range_checked_and_canonicalized() {
+    let mut catalog = StartupCatalog::new();
+    catalog
+        .insert(KindSignature {
+            kind: "system/register".into(),
+            startup_parameters: vec![StartupParameterSignature {
+                name: "value".into(),
+                value_type: "U8".into(),
+                default: None,
+            }],
+        })
+        .unwrap();
+    let checked = |literal: &str| {
+        let source = format!("form register {{\n value: system/register({literal})\n}}\n");
+        check_syntax_document(&parse_syntax_document(&source), &catalog)
+    };
+
+    let decimal = checked("255").unwrap();
+    for equivalent in ["0xff", "0b1111_1111", "0o377"] {
+        let checked = checked(equivalent).unwrap();
+        assert_eq!(
+            checked.forms[0].checked_form_id, decimal.forms[0].checked_form_id,
+            "{equivalent}"
+        );
+        assert_eq!(
+            checked.forms[0].gears[0].startup_bindings[0].value,
+            CanonicalStartupValue::Literal("255".into())
+        );
+    }
+    for refused in ["256", "-1", "0x_1", "0b2"] {
+        let error = checked(refused).unwrap_err();
+        assert_eq!(error.code, "CND-FRM-055", "{refused}");
+    }
+}
+
+#[test]
+fn fixed_width_integer_defaults_are_checked_before_identity() {
+    let accepted = check_syntax_document(
+        &parse_syntax_document("form accepted (\n value: I8 = -128\n) {\n}\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    assert_eq!(
+        accepted.forms[0].startup_parameters[0].default,
+        Some(CanonicalStartupValue::Literal("-128".into()))
+    );
+    let error = check_syntax_document(
+        &parse_syntax_document("form refused (\n value: I8 = 128\n) {\n}\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap_err();
+    assert_eq!(error.code, "CND-FRM-055");
+}
+
+#[test]
 fn checked_front_equality_binds_startup_ports_and_shorthand() {
     let baseline = check("form a (\n count: Count = 1\n input: Tick >> output: Tick\n) {\n}\n");
     let required = check("form a (\n count: Count\n input: Tick >> output: Tick\n) {\n}\n");
