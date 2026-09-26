@@ -163,6 +163,33 @@ fn expand_instance_inner(
                 CheckedCordStage::Reference(reference) => structured_selector::PendingStage::Ready(
                     resolve_reference(reference, &instances, &front_ports)?,
                 ),
+                CheckedCordStage::TerminalProjection { source_span, .. } => {
+                    return Err(CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-046",
+                        format!(
+                            "terminal projection at {}:{} has not yet been lowered",
+                            source_span.line, source_span.column
+                        ),
+                    ));
+                }
+                CheckedCordStage::Cancellation { source_span, .. } => {
+                    return Err(CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-046",
+                        format!(
+                            "semantic cancellation at {}:{} has not yet been lowered",
+                            source_span.line, source_span.column
+                        ),
+                    ));
+                }
+                CheckedCordStage::When { source_span, .. } => {
+                    return Err(CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-046",
+                        format!(
+                            "when filter at {}:{} has not yet been lowered",
+                            source_span.line, source_span.column
+                        ),
+                    ));
+                }
                 CheckedCordStage::InlineGear(gear) => {
                     let key = inline_key(gear);
                     let count = anonymous_counts.entry(key.clone()).or_default();
