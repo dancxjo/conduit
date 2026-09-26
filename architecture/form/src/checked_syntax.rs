@@ -120,6 +120,25 @@ impl StartupCatalog {
         self.structured_types.get(name)
     }
 
+    pub(crate) fn structured_types_by_value_kind(
+        &self,
+    ) -> Result<
+        BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+        conduit_core::StructuredInfoRefusal,
+    > {
+        let mut checked = BTreeMap::new();
+        for value_type in self.structured_types.values() {
+            let value_kind = value_type.profile()?.value_kind().clone();
+            if checked
+                .insert(value_kind.clone(), value_type.clone())
+                .is_some_and(|prior| prior != *value_type)
+            {
+                return Err(conduit_core::StructuredInfoRefusal::WrongType);
+            }
+        }
+        Ok(checked)
+    }
+
     pub(crate) fn value_kind_alias(&self, name: &str) -> Option<&conduit_core::KindId> {
         self.value_kind_aliases.get(name)
     }
@@ -235,6 +254,20 @@ pub struct CheckedCanonicalForm {
 pub struct CheckedSyntaxDocument {
     pub source_document_id: SourceDocumentId,
     pub forms: Vec<CheckedCanonicalForm>,
+    pub(crate) structured_types: BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+}
+
+impl CheckedSyntaxDocument {
+    /// Returns the exact finite structured type behind one checked value Kind.
+    ///
+    /// Source aliases are deliberately absent here: expression checking and
+    /// expansion consume canonical semantic identity, never author spelling.
+    pub fn structured_type(
+        &self,
+        value_kind: &conduit_core::KindId,
+    ) -> Option<&conduit_core::StructuredInfoType> {
+        self.structured_types.get(value_kind)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

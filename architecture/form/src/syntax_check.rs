@@ -54,6 +54,20 @@ pub(crate) fn check_document(
             document.round_trip()
         ))),
         forms,
+        structured_types: catalog.structured_types_by_value_kind().map_err(|_| {
+            SyntaxCheckDiagnostic {
+                code: "CND-FRM-053",
+                span: crate::Span {
+                    start: 0,
+                    end: 0,
+                    line: 1,
+                    column: 1,
+                    end_line: 1,
+                    end_column: 1,
+                },
+                message: "structured type registry exceeds canonical bounds".into(),
+            }
+        })?,
     })
 }
 
