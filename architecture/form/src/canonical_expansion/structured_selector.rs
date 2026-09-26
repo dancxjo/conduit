@@ -5,6 +5,9 @@ use conduit_core::{
     StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
+mod temporal;
+use temporal::{input_temporal, output_temporal};
+
 pub fn structured_selector_definition(
     selector: &StructuredSelector,
     temporal: PortTemporal,
@@ -190,29 +193,6 @@ pub(super) fn resolve_selectors(
         stages.push(stage_for_instance(&name, &instance, None)?);
     }
     Ok(stages)
-}
-
-fn output_temporal(stage: &Stage) -> Option<PortTemporal> {
-    match &stage.output {
-        Some(StageSource::Internal(endpoint)) => Some(endpoint.port.temporal),
-        Some(StageSource::FaceInput(_, _, temporal)) => Some(*temporal),
-        None => None,
-    }
-}
-
-fn input_temporal(stage: &Stage) -> Option<PortTemporal> {
-    let inputs = stage.input.as_ref()?;
-    let first = inputs.first().map(|sink| match sink {
-        StageSink::Internal(endpoint) => endpoint.port.temporal,
-        StageSink::FaceOutput(_, _, temporal) => *temporal,
-    })?;
-    inputs
-        .iter()
-        .all(|sink| match sink {
-            StageSink::Internal(endpoint) => endpoint.port.temporal == first,
-            StageSink::FaceOutput(_, _, temporal) => *temporal == first,
-        })
-        .then_some(first)
 }
 
 fn substitute_immutable_values(
