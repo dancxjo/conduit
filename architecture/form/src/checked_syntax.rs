@@ -128,6 +128,7 @@ impl StartupCatalog {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CanonicalStartupValue {
     Literal(String),
+    Quantity(conduit_core::Quantity),
     FormParameter(String),
     PoolReference(conduit_core::SharedPoolId),
     Structured(crate::CanonicalStructuredStartupValue),
@@ -311,6 +312,7 @@ pub(crate) enum SyntaxCheckError {
     UnsupportedKind(String),
     DuplicateGear(String),
     UnsupportedExpression(String),
+    QuantityLiteral(String),
     AmbiguousFrontName(String),
     StructuredExpression(String, Option<Span>),
 }
@@ -373,6 +375,7 @@ impl SyntaxCheckError {
                 format!("unsupported pure startup expression '{expression}'"),
                 None,
             ),
+            Self::QuantityLiteral(detail) => ("CND-FRM-055", detail, None),
             Self::AmbiguousFrontName(name) => (
                 "CND-FRM-050",
                 format!("front name '{name}' is duplicated or ambiguously shadowed"),

@@ -24,6 +24,12 @@ pub enum PrimitiveInfoKind {
     Quantity,
     Distance,
     Frequency,
+    Duration,
+    Voltage,
+    Temperature,
+    Angle,
+    Ratio,
+    PixelCount,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,6 +59,12 @@ pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
         b"value/quantity" => Some(PrimitiveInfoKind::Quantity),
         b"value/distance" => Some(PrimitiveInfoKind::Distance),
         b"value/frequency" => Some(PrimitiveInfoKind::Frequency),
+        b"value/duration" => Some(PrimitiveInfoKind::Duration),
+        b"value/voltage" => Some(PrimitiveInfoKind::Voltage),
+        b"value/temperature" => Some(PrimitiveInfoKind::Temperature),
+        b"value/angle" => Some(PrimitiveInfoKind::Angle),
+        b"value/ratio" => Some(PrimitiveInfoKind::Ratio),
+        b"value/pixel-count" => Some(PrimitiveInfoKind::PixelCount),
         _ => None,
     }
 }
@@ -81,11 +93,26 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
         Some(PrimitiveInfoKind::Quantity) => Quantity::decode(encoded)
             .map(|_| ())
             .map_err(PrimitiveInfoRefusal::Quantity),
-        Some(PrimitiveInfoKind::Distance | PrimitiveInfoKind::Frequency) => {
+        Some(
+            PrimitiveInfoKind::Distance
+            | PrimitiveInfoKind::Frequency
+            | PrimitiveInfoKind::Duration
+            | PrimitiveInfoKind::Voltage
+            | PrimitiveInfoKind::Temperature
+            | PrimitiveInfoKind::Angle
+            | PrimitiveInfoKind::Ratio
+            | PrimitiveInfoKind::PixelCount,
+        ) => {
             let quantity = Quantity::decode(encoded).map_err(PrimitiveInfoRefusal::Quantity)?;
             let expected = match primitive_info_kind(identity) {
                 Some(PrimitiveInfoKind::Distance) => QuantityDimension::Length,
                 Some(PrimitiveInfoKind::Frequency) => QuantityDimension::Frequency,
+                Some(PrimitiveInfoKind::Duration) => QuantityDimension::Time,
+                Some(PrimitiveInfoKind::Voltage) => QuantityDimension::Voltage,
+                Some(PrimitiveInfoKind::Temperature) => QuantityDimension::Temperature,
+                Some(PrimitiveInfoKind::Angle) => QuantityDimension::Angle,
+                Some(PrimitiveInfoKind::Ratio) => QuantityDimension::Ratio,
+                Some(PrimitiveInfoKind::PixelCount) => QuantityDimension::PixelCount,
                 _ => unreachable!("matched dimensioned quantity kind"),
             };
             let actual = quantity.dimension();

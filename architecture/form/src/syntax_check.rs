@@ -473,6 +473,13 @@ fn checked_parameters(
         } else {
             None
         };
+        if let Some(value) = &default {
+            validate_quantity_type(
+                value,
+                &parameter.value_type,
+                form.front.startup_parameters[index].span,
+            )?;
+        }
         checked.push(CheckedStartupParameter {
             name: parameter.name.clone(),
             value_type: parameter.value_type.clone(),
@@ -551,6 +558,7 @@ fn check_invocation(
         let value =
             resolve_bound_value(index, &mut values, signature, catalog, &mut BTreeSet::new())
                 .map_err(|error| error.diagnostic(invocation.span))?;
+        validate_quantity_type(&value, &parameter.value_type, invocation.span)?;
         startup_bindings.push(CheckedStartupBinding {
             name: parameter.name.clone(),
             value_type: parameter.value_type.clone(),
@@ -639,9 +647,43 @@ fn resolve_bound_value(
         }
         CanonicalStartupValue::Structured(checked)
     } else {
-        CanonicalStartupValue::Literal(default.to_string())
+        match conduit_core::Quantity::parse_form_literal(default) {
+            Ok(value) => CanonicalStartupValue::Quantity(value),
+            Err(conduit_core::QuantityLiteralRefusal::NonCanonicalUnit { canonical }) => {
+                return Err(SyntaxCheckError::QuantityLiteral(format!(
+                    "non-canonical quantity unit in '{default}'; use '{canonical}'"
+                )))
+            }
+            Err(_) => CanonicalStartupValue::Literal(default.to_string()),
+        }
     };
     visiting.remove(&index);
     values[index] = Some(value.clone());
     Ok(value)
+}
+
+fn validate_quantity_type(
+    value: &CanonicalStartupValue,
+    source_type: &str,
+    span: crate::Span,
+) -> Result<(), SyntaxCheckDiagnostic> {
+    let CanonicalStartupValue::Quantity(quantity) = value else {
+        return Ok(());
+    };
+    let kind = crate::value_type::canonical_value_kind(source_type);
+    if kind.as_str() == conduit_core::QUANTITY_INFO_ID
+        || conduit_core::validate_primitive_info(kind.as_str(), &quantity.encode()).is_ok()
+    {
+        return Ok(());
+    }
+    Err(SyntaxCheckDiagnostic {
+        code: "CND-FRM-055",
+        span,
+        message: format!(
+            "quantity unit '{}' has dimension {:?}, which cannot satisfy '{}'",
+            quantity.unit().form_suffix(),
+            quantity.dimension(),
+            source_type
+        ),
+    })
 }
