@@ -30,6 +30,16 @@ pub enum PrimitiveInfoKind {
     Angle,
     Ratio,
     PixelCount,
+    U8,
+    U16,
+    U32,
+    U64,
+    U128,
+    I8,
+    I16,
+    I32,
+    I64,
+    I128,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,6 +55,10 @@ pub enum PrimitiveInfoRefusal {
     WrongQuantityDimension {
         expected: QuantityDimension,
         actual: QuantityDimension,
+    },
+    IntegerLength {
+        expected: usize,
+        actual: usize,
     },
 }
 
@@ -65,6 +79,16 @@ pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
         b"value/angle" => Some(PrimitiveInfoKind::Angle),
         b"value/ratio" => Some(PrimitiveInfoKind::Ratio),
         b"value/pixel-count" => Some(PrimitiveInfoKind::PixelCount),
+        b"value/u8" => Some(PrimitiveInfoKind::U8),
+        b"value/u16" => Some(PrimitiveInfoKind::U16),
+        b"value/u32" => Some(PrimitiveInfoKind::U32),
+        b"value/u64" => Some(PrimitiveInfoKind::U64),
+        b"value/u128" => Some(PrimitiveInfoKind::U128),
+        b"value/i8" => Some(PrimitiveInfoKind::I8),
+        b"value/i16" => Some(PrimitiveInfoKind::I16),
+        b"value/i32" => Some(PrimitiveInfoKind::I32),
+        b"value/i64" => Some(PrimitiveInfoKind::I64),
+        b"value/i128" => Some(PrimitiveInfoKind::I128),
         _ => None,
     }
 }
@@ -122,6 +146,39 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
                 Err(PrimitiveInfoRefusal::WrongQuantityDimension { expected, actual })
             }
         }
+        Some(
+            kind @ (PrimitiveInfoKind::U8
+            | PrimitiveInfoKind::U16
+            | PrimitiveInfoKind::U32
+            | PrimitiveInfoKind::U64
+            | PrimitiveInfoKind::U128
+            | PrimitiveInfoKind::I8
+            | PrimitiveInfoKind::I16
+            | PrimitiveInfoKind::I32
+            | PrimitiveInfoKind::I64
+            | PrimitiveInfoKind::I128),
+        ) => {
+            let expected = fixed_integer_bytes(kind);
+            if encoded.len() == expected {
+                Ok(())
+            } else {
+                Err(PrimitiveInfoRefusal::IntegerLength {
+                    expected,
+                    actual: encoded.len(),
+                })
+            }
+        }
+    }
+}
+
+pub const fn fixed_integer_bytes(kind: PrimitiveInfoKind) -> usize {
+    match kind {
+        PrimitiveInfoKind::U8 | PrimitiveInfoKind::I8 => 1,
+        PrimitiveInfoKind::U16 | PrimitiveInfoKind::I16 => 2,
+        PrimitiveInfoKind::U32 | PrimitiveInfoKind::I32 => 4,
+        PrimitiveInfoKind::U64 | PrimitiveInfoKind::I64 => 8,
+        PrimitiveInfoKind::U128 | PrimitiveInfoKind::I128 => 16,
+        _ => 0,
     }
 }
 
