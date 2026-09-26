@@ -190,6 +190,15 @@ fn expand_instance_inner(
                         ),
                     ));
                 }
+                CheckedCordStage::PureExpression { source_span, .. } => {
+                    return Err(CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-046",
+                        format!(
+                            "pure expression at {}:{} has not yet been lowered",
+                            source_span.line, source_span.column
+                        ),
+                    ));
+                }
                 CheckedCordStage::InlineGear(gear) => {
                     let key = inline_key(gear);
                     let count = anonymous_counts.entry(key.clone()).or_default();
