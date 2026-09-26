@@ -333,6 +333,146 @@ fn instantiate_gear(
         });
     }
 
+    if let Some(retained) = gear.retained.as_deref() {
+        let value_kind = crate::value_type::canonical_value_kind(&retained.value_type.text);
+        if matches!(
+            value_kind.as_str(),
+            conduit_core::DISTANCE_INFO_ID | conduit_core::FREQUENCY_INFO_ID
+        ) {
+            if retained.optional {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-041",
+                    "dimensioned KEEP optionality is not yet lowered; use a non-optional retained value"
+                        .into(),
+                ));
+            }
+            let gear_id = GearId::from(child_path.join("/"));
+            if !gear_ids.insert(gear_id.clone()) {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-038",
+                    format!("expanded gear path '{}' is not unique", gear_id.as_str()),
+                ));
+            }
+            let expected_dimension = if value_kind.as_str() == conduit_core::DISTANCE_INFO_ID {
+                conduit_core::QuantityDimension::Length
+            } else {
+                conduit_core::QuantityDimension::Frequency
+            };
+            let mut configuration = vec![
+                conduit_core::ConfigurationEntry {
+                    key: "retained-duration".into(),
+                    value: conduit_core::ConfigurationValue::Text(
+                        match retained.duration {
+                            crate::RetainedDuration::Step => "step",
+                            crate::RetainedDuration::Play => "play",
+                            crate::RetainedDuration::Wake => "wake",
+                            crate::RetainedDuration::Boot => "boot",
+                            crate::RetainedDuration::Body => "body",
+                        }
+                        .into(),
+                    ),
+                },
+                conduit_core::ConfigurationEntry {
+                    key: "maximum-bytes".into(),
+                    value: conduit_core::ConfigurationValue::U64(
+                        retained
+                            .maximum_bytes
+                            .unwrap_or(conduit_core::QUANTITY_ENCODED_LEN as u64),
+                    ),
+                },
+            ];
+            if retained
+                .maximum_bytes
+                .is_some_and(|maximum| maximum < conduit_core::QUANTITY_ENCODED_LEN as u64)
+            {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-041",
+                    format!(
+                        "KEEP '{}' bound is smaller than its {}-byte canonical quantity encoding",
+                        retained.value_type.text,
+                        conduit_core::QUANTITY_ENCODED_LEN
+                    ),
+                ));
+            }
+            if let Some(initial) = retained.initial.as_ref() {
+                let quantity =
+                    conduit_core::Quantity::parse_form_literal(&initial.text).map_err(|_| {
+                        CanonicalExpansionDiagnostic::new(
+                            "CND-FRM-041",
+                            format!(
+                                "KEEP '{}' initializer '{}' is not an exact quantity literal",
+                                retained.value_type.text, initial.text
+                            ),
+                        )
+                    })?;
+                if quantity.dimension() != expected_dimension {
+                    return Err(CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-040",
+                        format!(
+                            "KEEP '{}' initializer '{}' has the wrong quantity dimension",
+                            retained.value_type.text, initial.text
+                        ),
+                    ));
+                }
+                configuration.push(conduit_core::ConfigurationEntry {
+                    key: "initial".into(),
+                    value: conduit_core::ConfigurationValue::Quantity(quantity),
+                });
+            }
+            let input = PortDescriptor {
+                port_id: conduit_core::port_id("in"),
+                value_kind: value_kind.clone(),
+                direction: conduit_core::PortDirection::Input,
+                // A retained declaration accepts each admitted value occurrence; upstream
+                // flow-to-value lifting remains explicit in the ordinary cord checker.
+                temporal: conduit_core::PortTemporal::Value,
+            };
+            let output = PortDescriptor {
+                port_id: conduit_core::port_id("out"),
+                value_kind: value_kind.clone(),
+                direction: conduit_core::PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Current,
+            };
+            gears.push(CheckedGear {
+                gear_id: gear_id.clone(),
+                kind_id: KindId::from("state/latest"),
+                kind_contract_revision: conduit_core::KindIdentity::from(
+                    "conduit.form/dimensioned-retained-current@1",
+                ),
+                startup_parameters: gear.startup_parameters.clone(),
+                shorthand: Some((input.port_id.clone(), output.port_id.clone())),
+                inputs: vec![input.clone()],
+                outputs: vec![output.clone()],
+                configuration,
+                pool_references: Vec::new(),
+            });
+            provenance.push(ExpandedGearProvenance {
+                gear_id: gear_id.as_str().to_string(),
+                form_path: path.to_vec(),
+                source_form: source_form.name.clone(),
+                source_gear: instance_name.to_string(),
+                source_span: gear.source_span,
+            });
+            return Ok(Instance {
+                inputs: BTreeMap::from([(
+                    "in".to_string(),
+                    vec![Endpoint {
+                        gear_id: gear_id.clone(),
+                        port: input,
+                    }],
+                )]),
+                outputs: BTreeMap::from([(
+                    "out".to_string(),
+                    Endpoint {
+                        gear_id,
+                        port: output,
+                    },
+                )]),
+                bare_ports: Some((Some("in".into()), Some("out".into()))),
+            });
+        }
+    }
+
     let kind_id = KindId::from(gear.kind.as_str());
     let definition = catalog.get(&kind_id).ok_or_else(|| {
         CanonicalExpansionDiagnostic::new(

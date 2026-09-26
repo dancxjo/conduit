@@ -3,8 +3,8 @@
 use alloc::{format, string::ToString, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal, Quantity, QuantityUnit, Scalar, QUANTITY_ENCODED_LEN,
-    QUANTITY_INFO_ID, SCALAR_INFO_ID,
+    PortDirection, PortTemporal, Quantity, QuantityDimension, QuantityUnit, Scalar,
+    DISTANCE_INFO_ID, FREQUENCY_INFO_ID, QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID, SCALAR_INFO_ID,
 };
 
 use crate::{
@@ -13,6 +13,8 @@ use crate::{
 
 pub const QUANTITY_MAP_KIND: &str = "math/map-quantity";
 pub const QUANTITY_MAP_REVISION: &str = "conduit.std/math-map-quantity@1";
+pub const DISTANCE_FREQUENCY_MAP_KIND: &str = "math/map-distance-frequency";
+pub const DISTANCE_FREQUENCY_MAP_REVISION: &str = "conduit.std/math-map-distance-frequency@1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RangePolicy {
@@ -132,6 +134,33 @@ pub fn quantity_map_contract() -> StandardKindContract {
     }
 }
 
+pub fn distance_frequency_map_contract() -> StandardKindContract {
+    StandardKindContract {
+        kind_id: kind_id(DISTANCE_FREQUENCY_MAP_KIND),
+        plain_name: "Map distance to frequency".into(),
+        summary: "Map one exact bounded distance range into one exact bounded frequency range."
+            .into(),
+        inputs: vec![port("distance", DISTANCE_INFO_ID, PortDirection::Input)],
+        outputs: vec![port(
+            "frequency",
+            FREQUENCY_INFO_ID,
+            PortDirection::Output,
+        )],
+        configuration: distance_frequency_configuration_fields(),
+        limits: CapabilityLimits {
+            max_active_instances: 16,
+            max_queue_items: 1,
+            max_queue_bytes: QUANTITY_ENCODED_LEN as u32,
+        },
+        terminal_behavior:
+            KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
+        hosted_implementation_required: true,
+        browser_manifestation_honest: false,
+        pico_manifestation_honest: false,
+        example: "map: math/map-distance-frequency(source-minimum = 0cm, source-maximum = 30cm, target-minimum = 220Hz, target-maximum = 880Hz)".into(),
+    }
+}
+
 pub fn quantity_map_semantic_contract() -> Kind {
     let contract = quantity_map_contract();
     Kind {
@@ -154,28 +183,54 @@ pub fn install_quantity_mapping_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
+    for (contract, revision) in [
+        (quantity_map_contract(), QUANTITY_MAP_REVISION),
+        (
+            distance_frequency_map_contract(),
+            DISTANCE_FREQUENCY_MAP_REVISION,
+        ),
+    ] {
+        install_mapping_contract(startup, profile, contract, revision)?;
+    }
+    Ok(())
+}
+
+#[cfg(feature = "form-catalog")]
+fn install_mapping_contract(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+    contract: StandardKindContract,
+    revision: &'static str,
+) -> Result<(), alloc::string::String> {
     use conduit_form::{
         KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
         StartupParameterSignature,
     };
-    let contract = quantity_map_contract();
     startup.insert(KindSignature {
-        kind: QUANTITY_MAP_KIND.into(),
+        kind: contract.kind_id.as_str().into(),
         startup_parameters: contract
             .configuration
             .iter()
             .map(|field| StartupParameterSignature {
                 name: field.key.clone(),
-                value_type: match field.default_value {
+                value_type: match &field.default_value {
                     ConfigurationValue::I64(_) => "Scalar",
                     ConfigurationValue::Text(_) => "Text",
-                    _ => unreachable!(),
+                    ConfigurationValue::Quantity(quantity) => match quantity.dimension() {
+                        QuantityDimension::Length => "Distance",
+                        QuantityDimension::Frequency => "Frequency",
+                        _ => "Quantity",
+                    },
+                    _ => unreachable!("quantity mapping startup uses scalar, text, or quantity"),
                 }
                 .into(),
                 default: Some(match &field.default_value {
                     ConfigurationValue::I64(value) => value.to_string(),
                     ConfigurationValue::Text(value) => format!("\"{value}\""),
-                    _ => unreachable!(),
+                    ConfigurationValue::Quantity(value) => {
+                        format!("{}{}", value.value(), value.unit().form_suffix())
+                    }
+                    _ => unreachable!("quantity mapping startup uses scalar, text, or quantity"),
                 }),
             })
             .collect(),
@@ -183,7 +238,7 @@ pub fn install_quantity_mapping_catalog(
     profile
         .insert(KindProjection {
             kind_id: contract.kind_id,
-            kind_contract_revision: KindIdentity::from(QUANTITY_MAP_REVISION),
+            kind_contract_revision: KindIdentity::from(revision),
             inputs: contract.inputs,
             outputs: contract.outputs,
             configuration: contract
@@ -199,12 +254,68 @@ pub fn install_quantity_mapping_catalog(
                         KindConfigurationRule::TextOneOf { values } => {
                             KindConfigurationRule::TextOneOf { values }
                         }
-                        _ => unreachable!(),
+                        KindConfigurationRule::QuantityRange {
+                            minimum,
+                            maximum,
+                            canonical_unit,
+                        } => KindConfigurationRule::QuantityRange {
+                            minimum,
+                            maximum,
+                            canonical_unit,
+                        },
+                        _ => {
+                            unreachable!("quantity mapping uses exact scalar/text/quantity fields")
+                        }
                     },
                 })
                 .collect(),
         })
         .map_err(|error| error.to_string())
+}
+
+fn distance_frequency_configuration_fields() -> Vec<KindConfigurationField> {
+    let quantity =
+        |key: &str, value: Quantity, minimum: i64, maximum: i64, canonical_unit: QuantityUnit| {
+            KindConfigurationField {
+                key: key.into(),
+                default_value: ConfigurationValue::Quantity(value),
+                rule: KindConfigurationRule::QuantityRange {
+                    minimum,
+                    maximum,
+                    canonical_unit,
+                },
+            }
+        };
+    vec![
+        quantity(
+            "source-minimum",
+            Quantity::new(0, QuantityUnit::Centimeter),
+            0,
+            10_000,
+            QuantityUnit::Centimeter,
+        ),
+        quantity(
+            "source-maximum",
+            Quantity::new(30, QuantityUnit::Centimeter),
+            0,
+            10_000,
+            QuantityUnit::Centimeter,
+        ),
+        quantity(
+            "target-minimum",
+            Quantity::new(220, QuantityUnit::Hertz),
+            1,
+            20_000,
+            QuantityUnit::Hertz,
+        ),
+        quantity(
+            "target-maximum",
+            Quantity::new(880, QuantityUnit::Hertz),
+            1,
+            20_000,
+            QuantityUnit::Hertz,
+        ),
+    ]
 }
 
 fn configuration_fields() -> Vec<KindConfigurationField> {
@@ -307,6 +418,23 @@ mod tests {
             invalid.validate(),
             Err(QuantityMappingRefusal::InvalidRange)
         );
+    }
+
+    #[test]
+    fn distance_frequency_contract_is_dimensioned_before_execution() {
+        let contract = distance_frequency_map_contract();
+        assert_eq!(contract.inputs[0].value_kind.as_str(), DISTANCE_INFO_ID);
+        assert_eq!(contract.outputs[0].value_kind.as_str(), FREQUENCY_INFO_ID);
+        assert!(matches!(
+            contract.configuration[0].default_value,
+            ConfigurationValue::Quantity(value)
+                if value.dimension() == QuantityDimension::Length
+        ));
+        assert!(matches!(
+            contract.configuration[2].default_value,
+            ConfigurationValue::Quantity(value)
+                if value.dimension() == QuantityDimension::Frequency
+        ));
     }
 
     #[test]
