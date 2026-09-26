@@ -117,6 +117,62 @@ fn canonical_keep_uses_the_existing_retained_current_gear_and_direction_sugar() 
     assert_eq!(expanded.gears[0].kind_id.as_str(), "state/latest");
 }
 
+#[test]
+fn pure_expression_lowers_to_one_exact_ordinary_gear() {
+    let mut startup = StartupCatalog::new();
+    for kind in ["test/u8-source", "test/u8-sink"] {
+        startup
+            .insert(KindSignature {
+                kind: kind.into(),
+                startup_parameters: vec![],
+            })
+            .unwrap();
+    }
+    let u8_port = |name, direction| PortDescriptor {
+        port_id: port_id(name),
+        value_kind: kind_id("value/u8"),
+        direction,
+        temporal: conduit_core::PortTemporal::Value,
+    };
+    let mut profile = ProfileCatalog::new();
+    profile
+        .insert(KindProjection {
+            kind_id: kind_id("test/u8-source"),
+            kind_contract_revision: KindIdentity::from("test/u8-source@1"),
+            inputs: vec![],
+            outputs: vec![u8_port("out", PortDirection::Output)],
+            configuration: vec![],
+        })
+        .unwrap();
+    profile
+        .insert(KindProjection {
+            kind_id: kind_id("test/u8-sink"),
+            kind_contract_revision: KindIdentity::from("test/u8-sink@1"),
+            inputs: vec![u8_port("in", PortDirection::Input)],
+            outputs: vec![],
+            configuration: vec![],
+        })
+        .unwrap();
+    let source = "form arithmetic {\n source: test/u8-source\n sink: test/u8-sink\n source >> (. + 1) >> sink\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "arithmetic", &profile).unwrap();
+    let expression = expanded
+        .gears
+        .iter()
+        .find(|gear| {
+            gear.kind_contract_revision.as_str() == "conduitese/pure-expression-operation@1"
+        })
+        .expect("checked expression becomes an ordinary Gear");
+    assert!(expression
+        .kind_id
+        .as_str()
+        .starts_with("conduitese/pure-expression/"));
+    assert_eq!(expression.inputs[0].value_kind.as_str(), "value/u8");
+    assert_eq!(expression.outputs[0].value_kind.as_str(), "value/u8");
+    assert_eq!(expanded.connections.len(), 2);
+    expanded.validate_expansion().unwrap();
+}
+
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     startup

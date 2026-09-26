@@ -268,6 +268,12 @@ impl CheckedSyntaxDocument {
     ) -> Option<&conduit_core::StructuredInfoType> {
         self.structured_types.get(value_kind)
     }
+
+    pub(crate) fn structured_types(
+        &self,
+    ) -> &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType> {
+        &self.structured_types
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
