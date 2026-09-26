@@ -290,6 +290,10 @@ impl Parser<'_> {
                     self.bump();
                     continue;
                 }
+                if character == '%' && self.percentage_suffix(start) {
+                    self.bump();
+                    continue;
+                }
                 if operator::is_delimiter(character) {
                     break;
                 }
@@ -337,6 +341,19 @@ impl Parser<'_> {
         } else {
             Err(("variant literal requires exactly one payload".into(), span))
         }
+    }
+
+    fn percentage_suffix(&self, atom_start: usize) -> bool {
+        self.text[atom_start..self.offset]
+            .chars()
+            .last()
+            .is_some_and(|character| character.is_ascii_digit())
+            && self.text[self.offset + 1..]
+                .chars()
+                .next()
+                .is_none_or(|character| {
+                    character.is_whitespace() || matches!(character, ')' | ']' | '}' | ',')
+                })
     }
 
     fn quoted(&mut self) -> Result<ExpressionSyntax, (String, Span)> {
