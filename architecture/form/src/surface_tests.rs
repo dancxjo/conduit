@@ -84,6 +84,32 @@ fn all_canonical_temporal_modalities_and_finite_bounds_are_retained() {
 }
 
 #[test]
+fn data_references_and_exact_width_integer_types_are_canonical_fore_types() {
+    let source = "form systems (\n    >> saved: &Text\n    >> image: &media/image@4\n    >> word: U32\n    signed: I128 >>\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let ports = &document.forms[0].front.runtime_ports;
+    assert_eq!(ports[0].value_type.text, "&Text");
+    assert_eq!(ports[1].value_type.text, "&media/image@4");
+    assert_eq!(ports[2].value_type.text, "U32");
+    assert_eq!(ports[3].value_type.text, "I128");
+}
+
+#[test]
+fn recursive_or_empty_data_reference_types_are_rejected() {
+    for value_type in ["&", "&&Text"] {
+        let source = alloc::format!("form bad (\n    >> value: {value_type}\n) {{\n}}\n");
+        let document = parse_syntax_document(&source);
+        assert!(document.forms().is_err(), "{value_type}");
+        assert_eq!(document.diagnostics[0].code, "CND-FRM-019");
+    }
+}
+
+#[test]
 fn keep_parses_initializers_bounds_and_every_canonical_lifetime() {
     let source = "form retained {\n    step: keep Text\n    play: keep Integer for this play\n    wake: keep Text <= 128B for this wake\n    boot: keep Bytes <= 2MiB for this boot\n    body: keep Text? <= 4KiB for this body\n    life: keep Count(0) for life\n}\n";
     let document = parse_syntax_document(source);

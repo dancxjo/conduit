@@ -10,6 +10,12 @@ use conduit_core::{
 use crate::StartupCatalog;
 
 pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
+    if let Some(value_type) = source_type.strip_prefix('&') {
+        return kind_id(&format!(
+            "data/generation-reference<{}>",
+            canonical_value_kind(value_type).as_str()
+        ));
+    }
     match source_type {
         "Text" => kind_id("value/text"),
         "Tick" => kind_id("value/tick@1"),
@@ -19,6 +25,16 @@ pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
         "Bytes" => kind_id("value/bytes"),
         "Unit" => kind_id("value/unit"),
         "Quantity" => kind_id("value/quantity"),
+        "U8" => kind_id("value/u8"),
+        "U16" => kind_id("value/u16"),
+        "U32" => kind_id("value/u32"),
+        "U64" => kind_id("value/u64"),
+        "U128" => kind_id("value/u128"),
+        "I8" => kind_id("value/i8"),
+        "I16" => kind_id("value/i16"),
+        "I32" => kind_id("value/i32"),
+        "I64" => kind_id("value/i64"),
+        "I128" => kind_id("value/i128"),
         "Distance" => kind_id(conduit_core::DISTANCE_INFO_ID),
         "Frequency" => kind_id(conduit_core::FREQUENCY_INFO_ID),
         "Duration" => kind_id(conduit_core::DURATION_INFO_ID),
@@ -36,6 +52,15 @@ pub(crate) fn checked_value_kind(
     source_type: &str,
     catalog: &StartupCatalog,
 ) -> Result<KindId, StructuredInfoRefusal> {
+    if let Some(value_type) = source_type.strip_prefix('&') {
+        if value_type.is_empty() || value_type.starts_with('&') {
+            return Err(StructuredInfoRefusal::WrongType);
+        }
+        return Ok(kind_id(&format!(
+            "data/generation-reference<{}>",
+            checked_value_kind(value_type, catalog)?.as_str()
+        )));
+    }
     if let Some(value_kind) = catalog.value_kind_alias(source_type) {
         return Ok(value_kind.clone());
     }
@@ -177,6 +202,11 @@ mod tests {
             "value/pool-reference"
         );
         assert_eq!(canonical_value_kind("test/value").as_str(), "test/value");
+        assert_eq!(canonical_value_kind("U32").as_str(), "value/u32");
+        assert_eq!(
+            canonical_value_kind("&Text").as_str(),
+            "data/generation-reference<value/text>"
+        );
     }
 
     #[test]
@@ -209,6 +239,23 @@ mod tests {
                 .unwrap()
                 .as_str(),
             "weather/exact-map@2"
+        );
+    }
+
+    #[test]
+    fn data_reference_wraps_the_exact_checked_content_type_once() {
+        let mut catalog = StartupCatalog::new();
+        catalog
+            .insert_value_kind_alias("Image", kind_id("media/image@4"))
+            .unwrap();
+
+        assert_eq!(
+            checked_value_kind("&Image", &catalog).unwrap().as_str(),
+            "data/generation-reference<media/image@4>"
+        );
+        assert_eq!(
+            checked_value_kind("&&Image", &catalog),
+            Err(StructuredInfoRefusal::WrongType)
         );
     }
 }
