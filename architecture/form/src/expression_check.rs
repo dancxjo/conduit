@@ -155,6 +155,7 @@ fn encode_hex(bytes: &[u8]) -> String {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedExpression {
     pub syntax: ExpressionSyntax,
+    pub input_type: CheckedExpressionType,
     pub value_type: CheckedExpressionType,
 }
 
@@ -188,6 +189,7 @@ pub fn check_expression(
     let value_type = infer(syntax, None, context)?;
     Ok(CheckedExpression {
         syntax: syntax.clone(),
+        input_type: context.input.clone(),
         value_type,
     })
 }
