@@ -214,6 +214,18 @@ fn parenthesized_runtime_expression_is_one_cord_stage() {
 }
 
 #[test]
+fn percentage_quantity_suffix_is_not_a_remainder_without_a_right_operand() {
+    let source = "form classify (\n    >> charge: Ratio\n    label: Text >>\n) {\n    charge >> (. > 75% ? \"full\" : \"charging\") >> label\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+}
+
+#[test]
 fn when_terminal_and_cancellation_stages_are_not_ordinary_references() {
     let source = "form controls {\n    temperature >> when(. > limit) >> alarm\n    items| >> finish\n    items! >> explain\n    deadline >> work~\n}\n";
     let document = parse_syntax_document(source);
