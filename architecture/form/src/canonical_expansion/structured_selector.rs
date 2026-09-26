@@ -321,7 +321,11 @@ fn expand_expression(
         gear_id: gear_id.clone(),
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
-        startup_parameters: Vec::new(),
+        startup_parameters: vec![conduit_core::FrontStartupParameter {
+            name: "program".into(),
+            value_type: conduit_core::kind_id("value/text"),
+            has_default: false,
+        }],
         shorthand: Some((input.port_id.clone(), output.port_id.clone())),
         inputs: vec![input.clone()],
         outputs: vec![output.clone()],

@@ -19,24 +19,30 @@ pub fn pure_expression_definition(
     expression: &CheckedExpression,
     temporal: PortTemporal,
 ) -> Result<KindProjection, StructuredInfoRefusal> {
-    let program = PortableExpressionProgram::from_checked(expression)
-        .map_err(|refusal| match refusal {
-            crate::PortableExpressionProgramRefusal::InvalidType(refusal) => refusal,
-            _ => StructuredInfoRefusal::MalformedCanonicalEncoding,
-        })?
-        .canonical_hex()
-        .map_err(|refusal| match refusal {
+    let program =
+        PortableExpressionProgram::from_checked(expression).map_err(|refusal| match refusal {
             crate::PortableExpressionProgramRefusal::InvalidType(refusal) => refusal,
             _ => StructuredInfoRefusal::MalformedCanonicalEncoding,
         })?;
-    let input = expression.input_type.exact_value_kind()?;
-    let output = expression.value_type.exact_value_kind()?;
+    portable_expression_definition(&program, temporal)
+}
+
+pub fn portable_expression_definition(
+    program: &PortableExpressionProgram,
+    temporal: PortTemporal,
+) -> Result<KindProjection, StructuredInfoRefusal> {
+    let encoded_program = program.canonical_hex().map_err(|refusal| match refusal {
+        crate::PortableExpressionProgramRefusal::InvalidType(refusal) => refusal,
+        _ => StructuredInfoRefusal::MalformedCanonicalEncoding,
+    })?;
+    let input = expression_port_kind(&program.input_type)?;
+    let output = expression_port_kind(&program.output_type)?;
     let identity = hash_string(&format!(
         "pure-expression:{PURE_EXPRESSION_REVISION}:{}:{}:{}:{}",
         input.as_str(),
         output.as_str(),
         temporal.as_str(),
-        program
+        encoded_program
     ));
     Ok(KindProjection {
         kind_id: kind_id(&format!("conduitese/pure-expression/{identity}")),
@@ -55,10 +61,19 @@ pub fn pure_expression_definition(
         }],
         configuration: vec![KindConfigurationField {
             key: "program".into(),
-            default_value: ConfigurationValue::Text(program),
+            default_value: ConfigurationValue::Text(encoded_program),
             rule: KindConfigurationRule::TextBytes {
                 maximum: (MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES * 2) as u32,
             },
         }],
     })
+}
+
+fn expression_port_kind(
+    value_type: &conduit_core::StructuredInfoType,
+) -> Result<conduit_core::KindId, StructuredInfoRefusal> {
+    match value_type.shape() {
+        conduit_core::StructuredInfoTypeShape::Leaf(kind) => Ok(kind.clone()),
+        _ => Ok(value_type.profile()?.value_kind().clone()),
+    }
 }
