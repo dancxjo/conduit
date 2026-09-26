@@ -333,7 +333,7 @@ fn checked_expression_retains_its_exact_input_and_output_contract() {
         "conduitese/pure-expression-operation@1"
     );
 
-    let same = check_expression(&expression(". + 1"), &context).unwrap();
+    let same = check_expression(&expression(".+1"), &context).unwrap();
     assert_eq!(
         definition.kind_id,
         pure_expression_definition(&same, PortTemporal::Value)
