@@ -70,6 +70,7 @@ pub(super) struct TourScheduler {
         Vec<Option<Box<crate::installed_browser::template_storage::PreparedTemplateStore>>>,
     structured_selectors:
         Vec<Option<crate::installed_browser::structured_selector::PreparedSelector>>,
+    pure_expressions: Vec<Option<crate::installed_browser::pure_expression::PreparedExpression>>,
     measurement_windows:
         Vec<Option<Box<crate::installed_browser::measurement_window::PreparedWindow>>>,
     measurement_hysteresis:

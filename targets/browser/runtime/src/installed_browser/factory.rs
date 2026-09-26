@@ -158,6 +158,9 @@ pub(crate) fn factory(
     if implementation_id.as_str() == super::structured_selector::IMPLEMENTATION {
         return Some(&super::structured_selector::INSTALLATION);
     }
+    if implementation_id.as_str() == super::pure_expression::IMPLEMENTATION {
+        return Some(&super::pure_expression::INSTALLATION);
+    }
     if let Some(resource) = super::resource::factory(implementation_id.as_str()) {
         return Some(resource);
     }

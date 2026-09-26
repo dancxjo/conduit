@@ -36,6 +36,7 @@ use super::pacing_backs::{DelayBack, ThrottleBack};
 use super::pattern_comparison_back::PatternComparisonBack;
 use super::pcm_profile_conversion_back::PcmProfileConversionBack;
 use super::presentation_composition::{GraphicsPresentationBack, PresentationCompositionBack};
+use super::pure_expression_back::PureExpressionBack;
 use super::recognized_turn_commit_back::RecognizedTurnCommitBack;
 use super::record_delivery_back::RecordDeliveryStatusBack;
 use super::record_queue_back::RecordQueueBack;
@@ -181,6 +182,7 @@ pub(super) enum InstalledBack {
     RecordDeliveryStatus(RecordDeliveryStatusBack),
     RecordTranscript(RecordTranscriptBack),
     StructuredSelector(StructuredSelectorBack),
+    PureExpression(PureExpressionBack),
     StructuredLiteral(StructuredLiteralBack),
     StructuredPresentation(StructuredPresentationBack),
     #[cfg(test)]

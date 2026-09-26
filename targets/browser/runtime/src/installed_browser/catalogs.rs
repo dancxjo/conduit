@@ -172,6 +172,31 @@ pub(crate) fn install_checked_structured_selectors(
     Ok(offers)
 }
 
+pub(crate) fn offers_for_expanded_pure_expressions(
+    expanded: &conduit_form::ExpandedCanonicalForm,
+) -> Result<Vec<CapabilityOffer>, String> {
+    let mut offers = Vec::new();
+    for gear in &expanded.gears {
+        if gear.kind_contract_revision.as_str() != conduit_form::PURE_EXPRESSION_REVISION {
+            continue;
+        }
+        let program = super::pure_expression::program_from_configuration(&gear.configuration)?;
+        let temporal = gear
+            .inputs
+            .first()
+            .map(|port| port.temporal)
+            .ok_or("expanded pure expression input is absent")?;
+        let offer = super::pure_expression::offer(&program, temporal)?;
+        if !offers
+            .iter()
+            .any(|current: &CapabilityOffer| current.kind_id == offer.kind_id)
+        {
+            offers.push(offer);
+        }
+    }
+    Ok(offers)
+}
+
 pub(crate) fn backs(
     startup: &conduit_form::StartupCatalog,
     profile: &conduit_form::ProfileCatalog,

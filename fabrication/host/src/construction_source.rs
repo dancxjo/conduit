@@ -249,6 +249,15 @@ fn value(syntax: &ExpressionSyntax) -> Result<Value, String> {
             "variant '{}' is not a construction value",
             tag.text
         )),
+        ExpressionSyntax::Input(_)
+        | ExpressionSyntax::Projection { .. }
+        | ExpressionSyntax::Unary { .. }
+        | ExpressionSyntax::Binary { .. }
+        | ExpressionSyntax::Conditional { .. }
+        | ExpressionSyntax::Tuple { .. }
+        | ExpressionSyntax::SemanticCall { .. } => {
+            Err("runtime pure expression is not a construction value".into())
+        }
     }
 }
 

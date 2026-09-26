@@ -71,6 +71,7 @@ use super::presentation_composition::{
 };
 #[cfg(test)]
 use super::presentation_composition::{TEST_GRAPHICS_SINK_FACTORY, TEST_PRESENTATION_SINK_FACTORY};
+use super::pure_expression_back::FACTORY as PURE_EXPRESSION_FACTORY;
 use super::recognition_text_back::FACTORY as RECOGNITION_TEXT_FACTORY;
 use super::recognized_turn_commit_back::FACTORY as RECOGNIZED_TURN_COMMIT_FACTORY;
 use super::record_delivery_back::FACTORY as RECORD_DELIVERY_STATUS_FACTORY;
@@ -311,6 +312,7 @@ const FACTORIES: &[&BackFactory] = &[
     &JSON_BOOLEAN_SUMMARY_FACTORY,
     &JSON_DECODE_FACTORY,
     &STRUCTURED_SELECTOR_FACTORY,
+    &PURE_EXPRESSION_FACTORY,
     &STRUCTURED_LITERAL_FACTORY,
     &STRUCTURED_PRESENTATION_FACTORY,
     &TYPED_RECORD_FRAME_FACTORY,
