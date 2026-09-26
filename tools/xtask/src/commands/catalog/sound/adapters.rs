@@ -27,8 +27,8 @@ const VELOCITY_POLICY: &str = "discard-explicitly";
 const PITCH_POLICY: &str = "preserve-exact";
 const MAXIMUM_ACTIVE_NOTES: usize = 8;
 
-const ADAPTED_FORM: &str = "form explicit-loss {\n source: conduit-conformance/note-source\n adapt: music/to-monophonic-tone(polyphony-policy = \"newest-note-priority\", velocity-policy = \"discard-explicitly\", pitch-policy = \"preserve-exact\")\n output: sound/tone-play\n source.notes > adapt.notes\n adapt.tone > output.tone\n}\n";
-const UNADAPTED_FORM: &str = "form implicit-loss {\n source: conduit-conformance/note-source\n output: sound/tone-play\n source.notes > output.tone\n}\n";
+const ADAPTED_FORM: &str = "form explicit-loss {\n source: conduit-conformance/note-source\n adapt: music/to-monophonic-tone(polyphony-policy = \"newest-note-priority\", velocity-policy = \"discard-explicitly\", pitch-policy = \"preserve-exact\")\n output: sound/tone-play\n source.notes >> adapt.notes\n adapt.tone >> output.tone\n}\n";
+const UNADAPTED_FORM: &str = "form implicit-loss {\n source: conduit-conformance/note-source\n output: sound/tone-play\n source.notes >> output.tone\n}\n";
 
 #[derive(Debug, Serialize)]
 pub(super) struct LossyAdapterProof {

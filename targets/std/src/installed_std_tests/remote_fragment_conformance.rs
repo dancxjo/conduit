@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 #[test]
 fn generic_remote_fragment_routes_through_latest_and_atomic_tee() {
     let form = parse(
-        "form remote_typed_flow {\n source: conduit-test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit-test/scalar-sink\n right: conduit-test/scalar-sink\n source.value > latest.in\n latest.out > split.in\n split.left > left.in\n split.right > right.in\n}\n",
+        "form remote_typed_flow {\n source: conduit-test/scalar-source\n latest: state/latest\n split: flow/tee\n left: conduit-test/scalar-sink\n right: conduit-test/scalar-sink\n source.value >> latest.in\n latest.out >> split.in\n split.left >> left.in\n split.right >> right.in\n}\n",
         &installed_std::test_catalog(),
     )
     .unwrap();

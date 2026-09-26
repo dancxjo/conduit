@@ -14,18 +14,18 @@ Adding or changing a canonical form requires checker coverage and explicit
 consumer updates. form source grants no host, membership, authority, plan, or
 play truth.
 
-Conduitese forms remain alive when their admitted work drains unless the body
-ends with a standalone `.` full stop. The full stop means that draining fulfills
-the form's authored meaning; it is not a Gear, effect, or host instruction.
+Conduitese forms remain alive when their admitted work drains unless the closing
+brace carries a trailing full stop (`}.`). The full stop means that draining
+fulfills the form's authored meaning; it is not a Gear, effect, or host instruction.
 There is deliberately no `complete` keyword or compatibility spelling.
 
 An exact closed structured variant can be routed as an exhaustive railway
 switch:
 
 ```conduit
-event > ? {
-    [MusicEvent.note] > _ > play-note
-    [MusicEvent.rest] > _ > keep-silence
+event >> ? {
+    [MusicEvent.note] >> . >> play-note
+    [MusicEvent.rest] >> . >> keep-silence
 }
 ```
 

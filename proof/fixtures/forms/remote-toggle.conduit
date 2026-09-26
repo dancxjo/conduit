@@ -3,6 +3,6 @@ form remote-toggle {
     toggle: state/toggle(initial = true)
     show: presentation/bool
 
-    trigger > toggle
-    toggle > show
+    trigger >> toggle
+    toggle >> show
 }

@@ -78,7 +78,7 @@ fn fragment() -> PlanFragment {
     source_host.boot_id = "fixture/hysteresis-source-boot".into();
     source_host.capabilities = vec![source_offer];
 
-    let syntax = parse_syntax_document("form decide {\n source: fixture/measurement-hysteresis-inputs\n decide: data/measurement-hysteresis\n result: conduit-test/measurement-decision-sink\n source.profile > decide.profile\n source.summary > decide.summary\n decide.decision > result.decision\n}\n");
+    let syntax = parse_syntax_document("form decide {\n source: fixture/measurement-hysteresis-inputs\n decide: data/measurement-hysteresis\n result: conduit-test/measurement-decision-sink\n source.profile >> decide.profile\n source.summary >> decide.summary\n decide.decision >> result.decision\n}\n");
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "decide", &catalog).unwrap();
     let hosts = [source_host.clone(), browser.clone()];

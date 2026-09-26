@@ -41,7 +41,7 @@ pub fn run(
         &mut catalog,
     );
     let source = format!(
-        "form whisper_recorded_clip_proof {{\n audio: {}\n recognize: speech/recognize-clip\n sink: {}\n audio.value > recognize.clip\n recognize.result > sink.value\n}}\n",
+        "form whisper_recorded_clip_proof {{\n audio: {}\n recognize: speech/recognize-clip\n sink: {}\n audio.value >> recognize.clip\n recognize.result >> sink.value\n}}\n",
         crate::installed_std::test_local_model_io::HOUSE_AUDIO_CLIP_SOURCE_KIND,
         crate::installed_std::test_local_model_io::HOUSE_RECOGNITION_SINK_KIND,
     );

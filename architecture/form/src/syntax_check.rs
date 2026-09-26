@@ -169,13 +169,17 @@ fn check_form(
     let mut pools = Vec::new();
     for statement in &form.back {
         match statement {
-            BackStatement::NamedGear(gear) => gears.push(check_invocation(
-                Some(gear.name.text.clone()),
-                &gear.invocation,
-                catalog,
-                form_signatures,
-                &mut resolver,
-            )?),
+            BackStatement::NamedGear(gear) => {
+                let mut checked = check_invocation(
+                    Some(gear.name.text.clone()),
+                    &gear.invocation,
+                    catalog,
+                    form_signatures,
+                    &mut resolver,
+                )?;
+                checked.retained = gear.retained.clone();
+                gears.push(checked);
+            }
             BackStatement::Cord(cord) => {
                 let stages = check_cord_stages(
                     &cord.stages,
@@ -216,14 +220,17 @@ fn check_form(
         .clone();
     let checked_form_id = checked_identity(
         (&form.name.text, form.completion),
-        &parameters,
-        &runtime_front,
-        form.front.shorthand.as_ref().map(|pair| {
-            (
-                pair.input_port.text.as_str(),
-                pair.output_port.text.as_str(),
-            )
-        }),
+        crate::syntax_identity::CheckedIdentityFront {
+            parameters: &parameters,
+            runtime_ports: &form.front.runtime_ports,
+            runtime_front: &runtime_front,
+            shorthand: form.front.shorthand.as_ref().map(|pair| {
+                (
+                    pair.input_port.text.as_str(),
+                    pair.output_port.text.as_str(),
+                )
+            }),
+        },
         &gears,
         &cords,
         &pools,
@@ -470,6 +477,8 @@ fn checked_parameters(
             name: parameter.name.clone(),
             value_type: parameter.value_type.clone(),
             default,
+            optional: form.front.startup_parameters[index].optional,
+            maximum_bytes: form.front.startup_parameters[index].maximum_bytes,
         });
     }
     Ok(checked)
@@ -559,6 +568,7 @@ fn check_invocation(
                 message: "startup parameter profile exceeds canonical bounds".into(),
             })?,
         startup_bindings,
+        retained: None,
         source_span: invocation.span,
     })
 }

@@ -74,7 +74,7 @@ fn authored_image_text_runs_through_planner_and_production_kernel() {
     let image_hex = hex(&image_value.canonical_bytes().unwrap());
     let expected_hex = hex(&expected_value.canonical_bytes().unwrap());
     let source = format!(
-        "form talking-polaroid-kernel {{\n image: conduit-test/structured-source(value = \"{image_hex}\")\n caption: conduit-test/image-caption-source(value = \"{}\")\n compose: media/compose-image-text\n adapt: media/image-text-to-typed-record\n frame: record/frame-typed\n sink: conduit-test/structured-sink(value = \"{expected_hex}\")\n image > compose.image\n caption > compose.caption\n compose.record > adapt.record\n adapt.typed > frame.record\n frame.frame > sink\n}}\n",
+        "form talking-polaroid-kernel {{\n image: conduit-test/structured-source(value = \"{image_hex}\")\n caption: conduit-test/image-caption-source(value = \"{}\")\n compose: media/compose-image-text\n adapt: media/image-text-to-typed-record\n frame: record/frame-typed\n sink: conduit-test/structured-sink(value = \"{expected_hex}\")\n image >> compose.image\n caption >> compose.caption\n compose.record >> adapt.record\n adapt.typed >> frame.record\n frame.frame >> sink\n}}\n",
         hex(b"Inspection point A")
     );
     let syntax = parse_syntax_document(&source);
@@ -202,7 +202,7 @@ fn authored_image_text_plans_an_exact_remote_framed_record_session() {
     install_fixture(&mut startup, &mut profile, &record_sink);
 
     let source = format!(
-        "form talking-polaroid-remote {{\n image: conduit-test/structured-source(value = \"{}\")\n caption: conduit-test/image-caption-source(value = \"{}\")\n compose: media/compose-image-text\n adapt: media/image-text-to-typed-record\n frame: record/frame-typed\n sink: conduit-test/structured-sink(value = \"{}\")\n image > compose.image\n caption > compose.caption\n compose.record > adapt.record\n adapt.typed > frame.record\n frame.frame > sink\n}}\n",
+        "form talking-polaroid-remote {{\n image: conduit-test/structured-source(value = \"{}\")\n caption: conduit-test/image-caption-source(value = \"{}\")\n compose: media/compose-image-text\n adapt: media/image-text-to-typed-record\n frame: record/frame-typed\n sink: conduit-test/structured-sink(value = \"{}\")\n image >> compose.image\n caption >> compose.caption\n compose.record >> adapt.record\n adapt.typed >> frame.record\n frame.frame >> sink\n}}\n",
         hex(&image_value.canonical_bytes().unwrap()),
         hex(b"Inspection point B"),
         hex(&expected),

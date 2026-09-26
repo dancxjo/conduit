@@ -302,7 +302,7 @@ fn write_form(
     cancel: &serde_json::Value,
 ) -> String {
     format!(
-        "form proof {{\n create: calendar/create-event(request = {{semantic_json: {}}})\n update: calendar/update-event(request = {{semantic_json: {}}})\n cancel: calendar/cancel-event(request = {{semantic_json: {}}})\n create.receipt > update.prior\n update.receipt > cancel.prior\n}}\n",
+        "form proof {{\n create: calendar/create-event(request = {{semantic_json: {}}})\n update: calendar/update-event(request = {{semantic_json: {}}})\n cancel: calendar/cancel-event(request = {{semantic_json: {}}})\n create.receipt >> update.prior\n update.receipt >> cancel.prior\n}}\n",
         serde_json::to_string(&create.to_string()).unwrap(),
         serde_json::to_string(&update.to_string()).unwrap(),
         serde_json::to_string(&cancel.to_string()).unwrap(),

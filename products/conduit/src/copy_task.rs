@@ -13,7 +13,7 @@ use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 use std::time::Duration;
 
-const COPY_FORM_SOURCE: &str = "form copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task > show\n}\n";
+const COPY_FORM_SOURCE: &str = "form copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task >> show\n}\n";
 const DEFAULT_MAXIMUM_BYTES: u64 = 16 * 1024 * 1024;
 pub(crate) const USAGE: &str = "usage: conduit copy [OPTIONS] SOURCE DESTINATION\n\
        options: --mode create|replace  --max-bytes N  --run  --inspect";

@@ -16,7 +16,7 @@ use conduit_planner::{
 
 use super::TEXT_SOURCE_KIND;
 
-pub const FORM_SOURCE: &str = "form conduitos-gear-front {\n source: conduitos/fixture-text-source\n front: patchbay/gear-front\n source > front.subject\n}\n";
+pub const FORM_SOURCE: &str = "form conduitos-gear-front {\n source: conduitos/fixture-text-source\n front: patchbay/gear-front\n source >> front.subject\n}\n";
 
 pub struct PreparedPresentationPlay {
     pub advertisement: HostAdvertisement,

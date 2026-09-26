@@ -8,7 +8,7 @@ const FORM = `form text-chain {
     upper: text/upper
     result: presentation/text
 
-    source > prefix > upper > result
+    source >> prefix >> upper >> result
 }`;
 
 let entrance;
@@ -85,7 +85,7 @@ test("a normal browser Form session refuses an unsupported semantic Kind before 
       source: text/literal("hello")
       result: presentation/text
       unavailable: layout/inset
-      source > result
+      source >> result
     }`);
     const host = new TextEncoder().encode("browser/ordinary-negative");
     const boot = new TextEncoder().encode("browser-boot/ordinary-negative");
@@ -114,7 +114,7 @@ test("a living button stream handles three ordinary browser presses until explic
     button: input/button
     state: input/button-indicator-state
     indicator: presentation/indicator-state
-    button > state > indicator
+    button >> state >> indicator
   }`);
   await runner.getByRole("button", { name: "Run" }).click();
   const control = runner.getByRole("button", { name: "Hold to control indicator" });
@@ -148,9 +148,9 @@ test("button input progresses alongside a pending timer and the play can be canc
     clock: time/every(freq = 10000ms)
     count: state/count(start = 0)
     show: presentation/count
-    button > state > indicator
-    clock.tick > count.bump
-    count.value > show.value
+    button >> state >> indicator
+    clock.tick >> count.bump
+    count.value >> show.value
   }`);
   await runner.getByRole("button", { name: "Run", exact: true }).click();
   const control = runner.getByRole("button", { name: "Hold to control indicator" });
@@ -176,8 +176,8 @@ test("a released timed attempt reports bounded failure and leaves the runner reu
     button: input/button
     attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)
     derive: time/ordered-event-intervals
-    button.transition > attempt.transition
-    attempt.events > derive.events
+    button.transition >> attempt.transition
+    attempt.events >> derive.events
   }`);
   await runner.getByRole("button", { name: "Run", exact: true }).click();
   const control = runner.getByRole("button", { name: "Hold to control indicator" });
@@ -205,7 +205,7 @@ test("focus loss while waiting cancels the living Play without semantic completi
     button: input/button
     state: input/button-indicator-state
     indicator: presentation/indicator-state
-    button > state > indicator
+    button >> state >> indicator
   }`);
   await runner.getByRole("button", { name: "Run", exact: true }).click();
   await expect(runner.locator('[data-application-key="play-status"]')).toContainText("Waiting for one admitted button transition");
@@ -228,10 +228,10 @@ test("relative-duration output uses the selected profile for Patchbay and live t
     derive: time/ordered-event-intervals
     normalize: sequence/normalize-relative-duration
     show: presentation/structured-info
-    button.transition > attempt.transition
-    attempt.events > derive.events
-    derive.intervals > normalize.intervals
-    normalize.normalized > show.input
+    button.transition >> attempt.transition
+    attempt.events >> derive.events
+    derive.intervals >> normalize.intervals
+    normalize.normalized >> show.input
   }`);
   await expect(runner.locator(".compact-patchbay")).toHaveAttribute("data-disposition", "accepted");
   await runner.getByRole("button", { name: "Run", exact: true }).click();

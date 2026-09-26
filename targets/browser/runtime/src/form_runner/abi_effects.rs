@@ -195,7 +195,7 @@ mod tests {
 
     #[test]
     fn stale_correlated_completion_preserves_the_live_session() {
-        let source = "form test {\n .\n message: text/literal(\"SOS\")\n morse: text/morse(120)\n light: presentation/indicator\n message > morse > light\n}\n";
+        let source = "form test {\n message: text/literal(\"SOS\")\n morse: text/morse(120)\n light: presentation/indicator\n message >> morse >> light\n}.\n";
         let (session, _) = TourSession::prepare("browser/test", "boot/test", source, 1).unwrap();
         let play = session.active_play_id.as_str().to_owned();
         let request = session.pending[0].request;
@@ -230,7 +230,7 @@ mod tests {
     #[test]
     fn kernel_failure_category_and_detail_cross_the_completion_abi() {
         use conduit_kernel::{Failure, FailureCode, HostCallDisposition, HostCallOutcome};
-        let source = "form test {\n .\n message: text/literal(\"SOS\")\n morse: text/morse(120)\n light: presentation/indicator\n message > morse > light\n}\n";
+        let source = "form test {\n message: text/literal(\"SOS\")\n morse: text/morse(120)\n light: presentation/indicator\n message >> morse >> light\n}.\n";
         for (code, expected) in [
             (FailureCode::HostCallFailed, "host_call_failed"),
             (FailureCode::StorageExhausted, "storage_exhausted"),

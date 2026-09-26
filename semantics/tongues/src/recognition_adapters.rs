@@ -33,16 +33,16 @@ pub const SPEECH_WINDOW_TO_CLIP_REVISION: &str = "conduit.speech/window-to-clip@
 pub const SPEECH_RESULT_TO_EVENT_STREAM_KIND: &str = "speech/result-to-event-stream";
 pub const SPEECH_RESULT_TO_EVENT_STREAM_REVISION: &str = "conduit.speech/result-to-event-stream@1";
 const STREAMING_RECOGNITION_BACK: &str = r#"form speech/recognize-stream (
-    audio: audio/pcm-frames@1...| > events: speech/recognition-event@1...|
+    audio: audio/pcm-frames@1...| >> events: speech/recognition-event@1...|
 ) {
     window: speech/window-to-clip
     recognize: speech/recognize-clip
     stream: speech/result-to-event-stream
 
-    audio > window.frames
-    window.clip > recognize.clip
-    recognize.result > stream.result
-    stream.events > events
+    audio >> window.frames
+    window.clip >> recognize.clip
+    recognize.result >> stream.result
+    stream.events >> events
 }
 "#;
 
@@ -429,7 +429,7 @@ mod tests {
         crate::install_speech_recognition_catalog(&mut startup, &mut profile).unwrap();
         let checked = check_syntax_document(
             &parse_syntax_document(
-                "form main (\n    > audio: audio/pcm-frames@1...|\n    events: speech/recognition-event@1...| >\n) {\n    recognize: speech/recognize-stream\n    audio > recognize.audio\n    recognize.events > events\n}",
+                "form main (\n    >> audio: audio/pcm-frames@1...|\n    events: speech/recognition-event@1...| >>\n) {\n    recognize: speech/recognize-stream\n    audio >> recognize.audio\n    recognize.events >> events\n}",
             ),
             &startup,
         )

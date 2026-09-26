@@ -1,7 +1,7 @@
 # Dynamic chat semantics. Line selection belongs to the plan/host and is
 # deliberately absent from this authored form.
 form chat/peer (
-    recv: ChatMessage...| > send: ChatMessage...|
+    recv: ChatMessage...| >> send: ChatMessage...|
 ) {
 }
 
@@ -11,6 +11,6 @@ form pool-webchat {
     room: chat/room(peers)
     fan: flow/fan(peers)
 
-    merge.message > room.recv
-    room.send > fan.message
+    merge.message >> room.recv
+    room.send >> fan.message
 }

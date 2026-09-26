@@ -25,7 +25,7 @@ fn reusable_ordered_event_intervals_plan_and_execute_through_one_kernel_play() {
     let interval_offer = conduit_std_offers::ordered_event_intervals_std_offer();
     let (startup, profile) = catalogs(&events, &intervals, &source_offer, &sink_offer);
     let source = format!(
-        "{}\nform proof {{\n    events: {SOURCE_KIND}(value = \"{}\")\n    derive: derive-intervals\n    intervals: {SINK_KIND}(value = \"{}\")\n    events.output > derive.events\n    derive.intervals > intervals.input\n}}\n",
+        "{}\nform proof {{\n    events: {SOURCE_KIND}(value = \"{}\")\n    derive: derive-intervals\n    intervals: {SINK_KIND}(value = \"{}\")\n    events.output >> derive.events\n    derive.intervals >> intervals.input\n}}\n",
         include_str!("../../../../forms/secret-knock/main.conduit"),
         hex(&events.canonical_bytes().unwrap()),
         hex(&intervals.canonical_bytes().unwrap()),

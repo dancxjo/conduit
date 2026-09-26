@@ -8,7 +8,7 @@ fn fragment(minimum: i64, maximum: i64) -> PlanFragment {
         r#"form quantity-test {{
  input: scalar/literal(value = -1)
  map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-minimum = 0, target-maximum = 100, target-granularity = 1, unit = "%", range-policy = "refuse", quantization = "exact")
- input.value > map.in
+ input.value >> map.in
 }}"#
     );
     let (_, catalog) = crate::installed_browser::catalogs().unwrap();

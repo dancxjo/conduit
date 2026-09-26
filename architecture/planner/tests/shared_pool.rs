@@ -18,7 +18,7 @@ use conduit_planner::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 
-const SOURCE: &str = "form chat/peer (\n recv: ChatMessage...| > send: ChatMessage...|\n) {\n}\n\nform consumer (\n members: Pool\n) {\n use: flow/pool-observe(members)\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n left: consumer(peers)\n right: consumer(peers)\n}\n";
+const SOURCE: &str = "form chat/peer (\n recv: ChatMessage...| >> send: ChatMessage...|\n) {\n}\n\nform consumer (\n members: Pool\n) {\n use: flow/pool-observe(members)\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n left: consumer(peers)\n right: consumer(peers)\n}\n";
 
 fn peer_front() -> conduit_core::CheckedFront {
     let checked =

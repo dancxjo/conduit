@@ -102,7 +102,7 @@ fn canonical_image_text_composition_coexists_in_one_body_play() {
     }
 
     let polaroid_source = format!(
-        "{}\nform talking-polaroid-body {{\n image: conduit-test/body-image-source(value = \"{}\")\n caption: conduit-test/body-caption-source(value = \"{}\")\n compose: image-text-compose\n adapt: media/image-text-to-typed-record\n frame: record/frame-typed\n sink: conduit-test/body-frame-sink(value = \"{}\")\n image > compose.image\n caption > compose.caption\n compose.record > adapt.record\n adapt.typed > frame.record\n frame.frame > sink\n}}\n",
+        "{}\nform talking-polaroid-body {{\n image: conduit-test/body-image-source(value = \"{}\")\n caption: conduit-test/body-caption-source(value = \"{}\")\n compose: image-text-compose\n adapt: media/image-text-to-typed-record\n frame: record/frame-typed\n sink: conduit-test/body-frame-sink(value = \"{}\")\n image >> compose.image\n caption >> compose.caption\n compose.record >> adapt.record\n adapt.typed >> frame.record\n frame.frame >> sink\n}}\n",
         include_str!("../../../../forms/image-text-compose/main.conduit"),
         hex(&image_value.canonical_bytes().unwrap()),
         hex(b"Body inspection"),
@@ -110,7 +110,7 @@ fn canonical_image_text_composition_coexists_in_one_body_play() {
     );
     let status = StructuredInfoValue::leaf(text_type, b"unrelated status".to_vec()).unwrap();
     let unrelated_source = format!(
-        "form unrelated-status {{\n source: conduit-test/body-status-source(value = \"{}\")\n sink: conduit-test/body-status-sink(value = \"{}\")\n source > sink\n}}\n",
+        "form unrelated-status {{\n source: conduit-test/body-status-source(value = \"{}\")\n sink: conduit-test/body-status-sink(value = \"{}\")\n source >> sink\n}}\n",
         hex(&status.canonical_bytes().unwrap()),
         hex(&status.canonical_bytes().unwrap()),
     );

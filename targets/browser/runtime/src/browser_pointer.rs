@@ -35,7 +35,7 @@ mod tests;
 const SOURCE_OPERATION: &str = "browser.host/pointer-source@1";
 const PROFILE: &str = "browser/pointer-source@1";
 const ARTIFACT: &str = "conduit-browser-runtime/pointer-source@1";
-const FORM_SOURCE: &str = "form browser-pointer {\n pointer: input/pointer-source\n show: presentation/structured-info\n pointer.pointer > show.input\n}\n";
+const FORM_SOURCE: &str = "form browser-pointer {\n pointer: input/pointer-source\n show: presentation/structured-info\n pointer.pointer >> show.input\n}\n";
 const NODES: usize = 2;
 const CORDS: usize = 1;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;

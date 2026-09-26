@@ -13,10 +13,10 @@ const CONSUMER: &str = "form sampling-heartbeat {
     pulse: pulse-observation
     follower: phase-synchronization
     result: proof/result
-    ticks.tick > pulse.tick
-    pulse.observation > follower.peer
-    state.state > follower.local
-    follower.updated > result.state
+    ticks.tick >> pulse.tick
+    pulse.observation >> follower.peer
+    state.state >> follower.local
+    follower.updated >> result.state
 }";
 
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
@@ -125,7 +125,7 @@ fn missing_reusable_definition_and_incompatible_nested_port_refuse() {
             .code,
         "CND-FRM-028"
     );
-    let incompatible = CONSUMER.replace("ticks.tick > pulse.tick", "state.state > pulse.tick");
+    let incompatible = CONSUMER.replace("ticks.tick >> pulse.tick", "state.state >> pulse.tick");
     let source = [OBSERVATION, SYNCHRONIZATION, &incompatible].join("\n");
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     assert_eq!(

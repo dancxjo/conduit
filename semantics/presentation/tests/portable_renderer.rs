@@ -104,7 +104,7 @@ fn renderer_front_can_be_composed_as_an_ordinary_form_back() {
         })
         .unwrap();
     let syntax = parse_syntax_document(
-        "form patchbay-show (\n    > presentation: Presentation\n    manifestation: Manifestation >\n) {\n    renderer: presentation/renderer\n    presentation > renderer.presentation\n    renderer.manifestation > manifestation\n}\n",
+        "form patchbay-show (\n    >> presentation: Presentation\n    manifestation: Manifestation >>\n) {\n    renderer: presentation/renderer\n    presentation >> renderer.presentation\n    renderer.manifestation >> manifestation\n}\n",
     );
     let checked = check_syntax_document(&syntax, &startup).expect("portable renderer Back checks");
     let form = &checked.forms[0];

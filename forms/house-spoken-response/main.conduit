@@ -1,15 +1,15 @@
 form house-spoken-response (
-    > detection: AddressDetection
-    > context: HouseContext
-    response: Text >
+    >> detection: AddressDetection
+    >> context: HouseContext
+    response: Text >>
 ) {
     conversation: house-conversation
     synthesize: speech/synthesize(maximum-output-bytes = 32768)
     speaker: audio/play
 
-    detection > conversation.detection
-    context > conversation.context
-    conversation.response > response
-    conversation.response > synthesize.text
-    synthesize.audio > speaker.audio
+    detection >> conversation.detection
+    context >> conversation.context
+    conversation.response >> response
+    conversation.response >> synthesize.text
+    synthesize.audio >> speaker.audio
 }

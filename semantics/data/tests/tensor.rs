@@ -139,7 +139,7 @@ fn tensor_ports_survive_an_ordinary_checked_and_expanded_form() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_tensor_catalogs(&mut startup, &mut profile).unwrap();
-    let source = "form trajectory {\n  source: data/tensor-fixture\n  identity: data/tensor-identity\n  source > identity\n}\n";
+    let source = "form trajectory {\n  source: data/tensor-fixture\n  identity: data/tensor-identity\n  source >> identity\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "trajectory", &profile).unwrap();
     assert_eq!(expanded.connections.len(), 1);

@@ -50,6 +50,42 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
     }
 }
 
+#[test]
+fn canonical_keep_uses_the_existing_retained_current_gear_and_direction_sugar() {
+    let source = "form retained {\n cell: keep Scalar for this play\n}\n";
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert(KindSignature {
+            kind: "state/latest".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let mut profiles = ProfileCatalog::new();
+    profiles
+        .insert(KindProjection {
+            kind_id: kind_id("state/latest"),
+            kind_contract_revision: KindIdentity::from("state/latest-scalar@1"),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("in"),
+                value_kind: kind_id("value/scalar"),
+                direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Flow { closes: true },
+            }],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("out"),
+                value_kind: kind_id("value/scalar"),
+                direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Current,
+            }],
+            configuration: vec![],
+        })
+        .unwrap();
+    let expanded = expand_canonical_form(&checked, "retained", &profiles).unwrap();
+    assert_eq!(expanded.gears.len(), 1);
+    assert_eq!(expanded.gears[0].kind_id.as_str(), "state/latest");
+}
+
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     startup
@@ -146,7 +182,7 @@ fn selected_canonical_back_changes_only_expansion_identity_and_records_exact_pro
 
     let user = check_syntax_document(
         &parse_syntax_document(
-            "form main {\n source: test/source\n high: test/high\n sink: test/sink\n source > high > sink\n}\n",
+            "form main {\n source: test/source\n high: test/high\n sink: test/sink\n source >> high >> sink\n}\n",
         ),
         &startup,
     )
@@ -155,7 +191,7 @@ fn selected_canonical_back_changes_only_expansion_identity_and_records_exact_pro
 
     let back_document = check_syntax_document(
         &parse_syntax_document(
-            "form test/high (\n in: test/value > out: test/value\n) {\n leaf: test/pass\n in > leaf > out\n}\n",
+            "form test/high (\n in: test/value >> out: test/value\n) {\n leaf: test/pass\n in >> leaf >> out\n}\n",
         ),
         &startup,
     )
@@ -217,7 +253,7 @@ fn exact_back_admission_refuses_stale_source_and_checked_form_identities() {
     let high = profile.canonical_kind(&kind_id("test/pass")).unwrap();
     let document = check_syntax_document(
         &parse_syntax_document(
-            "form test/pass (\n count: Count = 1\n in: test/value > out: test/value\n) {\n leaf: test/pass(count)\n in > leaf > out\n}\n",
+            "form test/pass (\n count: Count = 1\n in: test/value >> out: test/value\n) {\n leaf: test/pass(count)\n in >> leaf >> out\n}\n",
         ),
         &startup,
     )
@@ -281,7 +317,7 @@ fn expand(source: &str, root: &str) -> crate::ExpandedCanonicalForm {
 
 #[test]
 fn parameterized_form_flattens_to_ordinary_primitive_graph() {
-    let source = "form relay (\n count: Count = 1\n input: test/value > output: test/value\n) {\n pass: test/pass(count)\n input > pass > output\n}\n\nform main {\n source: test/source\n relay: relay(2)\n sink: test/sink\n source > relay > sink\n}\n";
+    let source = "form relay (\n count: Count = 1\n input: test/value >> output: test/value\n) {\n pass: test/pass(count)\n input >> pass >> output\n}\n\nform main {\n source: test/source\n relay: relay(2)\n sink: test/sink\n source >> relay >> sink\n}\n";
     let expanded = expand(source, "main");
 
     assert_eq!(
@@ -308,7 +344,7 @@ fn parameterized_form_flattens_to_ordinary_primitive_graph() {
 
 #[test]
 fn two_explicit_consumers_share_one_exact_expanded_pool_reference() {
-    let source = "form chat/peer (\n recv: ChatMessage...| > send: ChatMessage...|\n) {\n}\n\nform consumer (\n members: Pool\n) {\n use: test/use-pool(members)\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n left: consumer(peers)\n right: consumer(peers)\n}\n";
+    let source = "form chat/peer (\n recv: ChatMessage...| >> send: ChatMessage...|\n) {\n}\n\nform consumer (\n members: Pool\n) {\n use: test/use-pool(members)\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n left: consumer(peers)\n right: consumer(peers)\n}\n";
     let expanded = expand(source, "room");
     assert_eq!(expanded.shared_pools.len(), 1);
     let pool = &expanded.shared_pools[0];
@@ -342,7 +378,7 @@ fn pool_name_is_not_ambiently_captured_by_nested_forms_or_graph_cords() {
     assert_eq!(diagnostic.code, "CND-FRM-041");
 
     let implicit = parse_syntax_document(
-        "form chat/peer {\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n source: test/source\n source > peers\n}\n",
+        "form chat/peer {\n}\n\nform room {\n pool peers: chat/peer(size = 2)\n source: test/source\n source >> peers\n}\n",
     );
     let checked = check_syntax_document(&implicit, &startup).unwrap();
     let diagnostic = expand_canonical_form(&checked, "room", &profile).unwrap_err();
@@ -351,8 +387,8 @@ fn pool_name_is_not_ambiently_captured_by_nested_forms_or_graph_cords() {
 
 #[test]
 fn nested_expansion_and_source_reordering_have_deterministic_identity() {
-    let first = "form inner (\n input: test/value > output: test/value\n) {\n pass: test/pass\n input > pass > output\n}\n\nform outer (\n input: test/value > output: test/value\n) {\n inner: inner\n input > inner > output\n}\n\nform main {\n source: test/source\n outer: outer\n sink: test/sink\n source > outer > sink\n}\n";
-    let reordered = "form main {\n source > outer > sink\n sink: test/sink\n outer: outer\n source: test/source\n}\n\nform outer (\n input: test/value > output: test/value\n) {\n input > inner > output\n inner: inner\n}\n\nform inner (\n input: test/value > output: test/value\n) {\n input > pass > output\n pass: test/pass\n}\n";
+    let first = "form inner (\n input: test/value >> output: test/value\n) {\n pass: test/pass\n input >> pass >> output\n}\n\nform outer (\n input: test/value >> output: test/value\n) {\n inner: inner\n input >> inner >> output\n}\n\nform main {\n source: test/source\n outer: outer\n sink: test/sink\n source >> outer >> sink\n}\n";
+    let reordered = "form main {\n source >> outer >> sink\n sink: test/sink\n outer: outer\n source: test/source\n}\n\nform outer (\n input: test/value >> output: test/value\n) {\n input >> inner >> output\n inner: inner\n}\n\nform inner (\n input: test/value >> output: test/value\n) {\n input >> pass >> output\n pass: test/pass\n}\n";
     let first = expand(first, "main");
     let reordered = expand(reordered, "main");
     assert_eq!(first.checked_form_id, reordered.checked_form_id);
@@ -363,7 +399,7 @@ fn nested_expansion_and_source_reordering_have_deterministic_identity() {
 
 #[test]
 fn two_uses_share_one_form_definition_but_have_distinct_occurrence_paths() {
-    let source = "form relay (\n input: test/value > output: test/value\n) {\n pass: test/pass\n input > pass > output\n}\n\nform main {\n source: test/source\n left: relay\n right: relay\n left_sink: test/sink\n right_sink: test/sink\n source > left > left_sink\n source > right > right_sink\n}\n";
+    let source = "form relay (\n input: test/value >> output: test/value\n) {\n pass: test/pass\n input >> pass >> output\n}\n\nform main {\n source: test/source\n left: relay\n right: relay\n left_sink: test/sink\n right_sink: test/sink\n source >> left >> left_sink\n source >> right >> right_sink\n}\n";
     let expanded = expand(source, "main");
     let relay_gears = expanded
         .provenance
@@ -405,7 +441,7 @@ fn recursion_and_expansion_depth_fail_with_distinct_diagnostics() {
 
 #[test]
 fn reusable_form_without_declared_shorthand_requires_named_port() {
-    let source = "form source (\n value: test/value >\n) {\n primitive: test/source\n primitive > value\n}\n\nform main {\n source: source\n sink: test/sink\n source > sink\n}\n";
+    let source = "form source (\n value: test/value >>\n) {\n primitive: test/source\n primitive >> value\n}\n\nform main {\n source: source\n sink: test/sink\n source >> sink\n}\n";
     let (startup, profile) = catalogs();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let error = expand_canonical_form(&checked, "main", &profile).unwrap_err();
@@ -414,7 +450,7 @@ fn reusable_form_without_declared_shorthand_requires_named_port() {
 
 #[test]
 fn primitive_contract_bounds_and_front_types_fail_closed() {
-    let bounded = "form main {\n source: test/source\n pass: test/pass(9)\n sink: test/sink\n source > pass > sink\n}\n";
+    let bounded = "form main {\n source: test/source\n pass: test/pass(9)\n sink: test/sink\n source >> pass >> sink\n}\n";
     let (startup, profile) = catalogs();
     let checked = check_syntax_document(&parse_syntax_document(bounded), &startup).unwrap();
     assert_eq!(
@@ -424,7 +460,7 @@ fn primitive_contract_bounds_and_front_types_fail_closed() {
         "CND-FRM-040"
     );
 
-    let wrong_front = "form relay (\n input: wrong/value > output: wrong/value\n) {\n pass: test/pass\n input > pass > output\n}\n\nform main {\n source: test/source\n relay: relay\n sink: test/sink\n source > relay > sink\n}\n";
+    let wrong_front = "form relay (\n input: wrong/value >> output: wrong/value\n) {\n pass: test/pass\n input >> pass >> output\n}\n\nform main {\n source: test/source\n relay: relay\n sink: test/sink\n source >> relay >> sink\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(wrong_front), &startup).unwrap();
     assert_eq!(
         expand_canonical_form(&checked, "main", &profile)
@@ -436,7 +472,7 @@ fn primitive_contract_bounds_and_front_types_fail_closed() {
 
 #[test]
 fn public_input_fanout_flattens_to_explicit_ordinary_connections() {
-    let source = "form fan (\n > input: test/value\n) {\n left: test/pass\n right: test/pass\n input > left\n input > right\n}\n\nform main {\n source: test/source\n fan: fan\n source > fan.input\n}\n";
+    let source = "form fan (\n >> input: test/value\n) {\n left: test/pass\n right: test/pass\n input >> left\n input >> right\n}\n\nform main {\n source: test/source\n fan: fan\n source >> fan.input\n}\n";
     let expanded = expand(source, "main");
     assert_eq!(expanded.connections.len(), 2);
     assert!(expanded.connections.iter().all(|connection| {
@@ -450,7 +486,7 @@ fn public_input_fanout_flattens_to_explicit_ordinary_connections() {
 
 #[test]
 fn expanded_identity_rejects_graph_contract_and_provenance_mutation() {
-    let source = "form main {\n source: test/source\n sink: test/sink\n source > sink\n}\n";
+    let source = "form main {\n source: test/source\n sink: test/sink\n source >> sink\n}\n";
     let baseline = expand(source, "main");
 
     let mut gear = baseline.clone();
@@ -475,7 +511,7 @@ fn expanded_identity_rejects_graph_contract_and_provenance_mutation() {
 
 #[test]
 fn inline_reusable_and_primitive_gears_expand_without_a_parallel_path() {
-    let source = "form relay (\n input: test/value > output: test/value\n) {\n input > test/pass > output\n}\n\nform main {\n test/source > relay() > test/sink\n}\n";
+    let source = "form relay (\n input: test/value >> output: test/value\n) {\n input >> test/pass >> output\n}\n\nform main {\n test/source >> relay() >> test/sink\n}\n";
     let expanded = expand(source, "main");
     assert_eq!(expanded.gears.len(), 3);
     assert_eq!(expanded.connections.len(), 2);
@@ -544,7 +580,7 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
             configuration: vec![],
         })
         .unwrap();
-    let source = "form count (\n    bump: Tick...| > value: $Count\n) {\n    gear: state/count\n    bump > gear.bump\n    gear.value > value\n}\n\nform main {\n    ticks: test/ticks\n    count: count\n    show: test/current\n    ticks > count > show\n}\n";
+    let source = "form count (\n    bump: Tick...| >> value: $Count\n) {\n    gear: state/count\n    bump >> gear.bump\n    gear.value >> value\n}\n\nform main {\n    ticks: test/ticks\n    count: count\n    show: test/current\n    ticks >> count >> show\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "main", &profile).unwrap();
     let count = checked

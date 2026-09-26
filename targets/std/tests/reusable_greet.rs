@@ -27,7 +27,7 @@ fn reusable_greet_runs_twice_with_exact_occurrences_in_one_kernel_play() {
         .checked_form_id
         .clone();
     let proof_source = format!(
-        "{GREET_SOURCE}\nform greet-double-driver {{\n    first: greet(\"Hi \")\n    second: greet(\"Bye \")\n    \"Ada\" > first > presentation/text\n    \"Bob\" > second > presentation/text\n}}\n"
+        "{GREET_SOURCE}\nform greet-double-driver {{\n    first: greet(\"Hi \")\n    second: greet(\"Bye \")\n    \"Ada\" >> first >> presentation/text\n    \"Bob\" >> second >> presentation/text\n}}\n"
     );
     let checked = check_syntax_document(&parse_syntax_document(&proof_source), &startup).unwrap();
     assert_eq!(

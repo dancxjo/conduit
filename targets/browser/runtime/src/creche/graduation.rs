@@ -10,7 +10,7 @@ use conduit_planner::{
 };
 use std::collections::BTreeMap;
 
-const PATCHBAY_SOURCE: &str = "form creche_graduation {\n    subject: text/literal(\"Body history\")\n    surface: presentation/patchbay\n    subject > surface.subject\n}\n";
+const PATCHBAY_SOURCE: &str = "form creche_graduation {\n    subject: text/literal(\"Body history\")\n    surface: presentation/patchbay\n    subject >> surface.subject\n}\n";
 
 pub(super) fn readiness() -> Result<GraduationReadiness, String> {
     let receipt =

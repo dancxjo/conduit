@@ -1,6 +1,6 @@
 form image-text-inspection (
-    > record: ImageTextRecord
+    >> record: ImageTextRecord
 ) {
     inspect: presentation/structured-info
-    record > inspect.input
+    record >> inspect.input
 }

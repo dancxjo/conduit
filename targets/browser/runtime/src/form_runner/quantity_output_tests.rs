@@ -217,15 +217,14 @@ fn browser_quantity_authored_forms_reach_typed_output_and_completed_receipts() {
             let source = format!(
                 r#"{authored}
 form zz-quantity-output {{
- .
  input: scalar/literal(value = {value})
  map: {name}
  wrap: structured-info/wrap-quantity
  show: presentation/quantity
- input.value > map.control
- map.{output} > wrap.in
- wrap.out > show.input
-}}"#
+ input.value >> map.control
+ map.{output} >> wrap.in
+ wrap.out >> show.input
+}}."#
             );
             let (mut session, effect) = TourSession::prepare_with_profile(
                 "browser/quantity-output",

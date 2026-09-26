@@ -35,7 +35,7 @@ fn reusable_pattern_comparison_executes_with_explicit_policy_through_one_play() 
         (SINK_KIND, &comparison, &sink_offer),
     ]);
     let source = format!(
-        "{}\nform gesture-cadence-proof {{\n    candidate: {CANDIDATE_KIND}(value = \"{}\")\n    template: {TEMPLATE_KIND}(value = \"{}\")\n    compare: compare-pattern(tolerance-millionths = 60000)\n    result: {SINK_KIND}(value = \"{}\")\n    candidate.output > compare.candidate\n    template.output > compare.template\n    compare.comparison > result.input\n}}\n",
+        "{}\nform gesture-cadence-proof {{\n    candidate: {CANDIDATE_KIND}(value = \"{}\")\n    template: {TEMPLATE_KIND}(value = \"{}\")\n    compare: compare-pattern(tolerance-millionths = 60000)\n    result: {SINK_KIND}(value = \"{}\")\n    candidate.output >> compare.candidate\n    template.output >> compare.template\n    compare.comparison >> result.input\n}}\n",
         include_str!("../../../../forms/secret-knock/main.conduit"),
         hex(&candidate.canonical_bytes().unwrap()),
         hex(&template.canonical_bytes().unwrap()),

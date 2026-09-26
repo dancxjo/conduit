@@ -12,7 +12,7 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ExpandedCanonicalForm,
     KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
 };
-pub const FRAME_SOURCE: &str = "form frames {\n source: frame/source\n compose: frame/compose\n display: frame/display\n encoder: frame/encoder\n source > compose\n compose > display\n compose > encoder\n}\n";
+pub const FRAME_SOURCE: &str = "form frames {\n source: frame/source\n compose: frame/compose\n display: frame/display\n encoder: frame/encoder\n source >> compose\n compose >> display\n compose >> encoder\n}\n";
 pub const FRAME_BYTES: u32 = 262144;
 pub const FRAME_OPERATION: &str = "conduit.host/frame-resource@1";
 pub const FRAME_AUTHORITY: &str = "conduit.authority/frame-resource@1";

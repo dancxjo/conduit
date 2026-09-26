@@ -28,9 +28,9 @@ pub(super) fn execute(input: &str, entry: &str) -> Result<String, String> {
         host.capabilities.push(offer);
     }
     let wiring = if entry == "todo/restore-summary" {
-        "source.value > application.snapshot\n application.result > sink.value"
+        "source.value >> application.snapshot\n application.result >> sink.value"
     } else {
-        "decode: json/decode\n source.value > decode.value\n decode.value > application.request\n application.snapshot > sink.value"
+        "decode: json/decode\n source.value >> decode.value\n decode.value >> application.request\n application.snapshot >> sink.value"
     };
     let source = format!("{TODO}\nform browser-todo-fixture {{\n source: conduit-test/json-source\n application: {entry}\n sink: conduit-test/json-sink\n {wiring}\n}}");
     let syntax = conduit_form::parse_syntax_document(&source);

@@ -59,7 +59,7 @@ const GRAPHICS_FORM: &str = r#"form browser-graphics-nucleus {
  text: graphics/text(text = "ready")
  glyph: graphics/icon(icon = "presentation")
  present: browser-fixture/graphics-present
- icon > frame > rect > text > glyph > present
+ icon >> frame >> rect >> text >> glyph >> present
 }"#;
 
 const LAYOUT_FORM: &str = r#"form browser-layout-nucleus {
@@ -69,7 +69,7 @@ const LAYOUT_FORM: &str = r#"form browser-layout-nucleus {
  stack: layout/stack
  align: layout/align(horizontal = "center", vertical = "end")
  present: browser-fixture/layout-present
- viewport > row > column > stack > align > present
+ viewport >> row >> column >> stack >> align >> present
 }"#;
 
 type NucleusScheduler = FixedScheduler<

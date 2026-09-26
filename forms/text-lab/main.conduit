@@ -4,7 +4,7 @@ form text-lab {
     uppercase: text/upper
     presentation: presentation/text
 
-    keyboard.key > keymap.key
-    keymap.text > uppercase.text
-    uppercase.text > presentation.text
+    keyboard.key >> keymap.key
+    keymap.text >> uppercase.text
+    uppercase.text >> presentation.text
 }

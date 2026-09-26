@@ -38,7 +38,7 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
         })
         .unwrap();
     let form = conduit_form::parse_with_startup(
-        "form retained {\n cell: state/value(initial = true)\n source: fixture/typed-flow\n source.current > cell.next\n}\n",
+        "form retained {\n cell: state/value(initial = true)\n source: fixture/typed-flow\n source.current >> cell.next\n}\n",
         &startup,
         &profile,
     )

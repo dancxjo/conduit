@@ -20,8 +20,8 @@ form count-over-time {
     show: presentation/count
     clock: time/every(freq = 120ms)
 
-    clock.tick > count.bump
-    count.value > show.value
+    clock.tick >> count.bump
+    count.value >> show.value
 }
 ```
 

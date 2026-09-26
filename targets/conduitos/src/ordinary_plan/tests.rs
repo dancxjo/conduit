@@ -263,7 +263,7 @@ fn undersized_cord_reserve_and_stale_planned_boot_fail_closed() {
 #[test]
 fn oversized_text_is_refused_during_source_checking() {
     let oversized = "x".repeat(conduit_text::MAX_TEXT_BYTES as usize + 1);
-    let source = format!("form too-large {{\n    \"{oversized}\" > presentation/text\n}}\n");
+    let source = format!("form too-large {{\n    \"{oversized}\" >> presentation/text\n}}\n");
     let syntax = conduit_form::parse_syntax_document(&source);
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
@@ -272,7 +272,7 @@ fn oversized_text_is_refused_during_source_checking() {
     assert!(conduit_form::expand_canonical_form(&checked, "too-large", &profile).is_err());
 
     let malformed = conduit_form::parse_syntax_document(
-        "form malformed {\n    \"bad\\q\" > presentation/text\n}\n",
+        "form malformed {\n    \"bad\\q\" >> presentation/text\n}\n",
     );
     assert!(conduit_form::check_syntax_document(&malformed, &startup).is_err());
 }

@@ -384,7 +384,7 @@ mod tests {
     message: text/literal("SOS")
     morse: text/morse
     light: presentation/indicator
-    message > morse > light
+    message >> morse >> light
 }"#;
 
     #[test]
@@ -407,10 +407,10 @@ mod tests {
     #[test]
     fn projects_reusable_form_with_unbound_front_port_for_authoring() {
         let source = r#"form pulse-manifestation (
-    > tick: value/tick@1...
+    >> tick: value/tick@1...
 ) {
     observe: time/pulse-observe(period-ms = 240)
-    tick > observe.tick
+    tick >> observe.tick
 }"#;
 
         let projection = project(source, 8, false).unwrap();
@@ -453,7 +453,7 @@ mod tests {
         let wrong_type = r#"form wrong {
     text: text/literal("x")
     light: presentation/indicator
-    text > light
+    text >> light
 }"#;
         let invalid = project(wrong_type, 2, false).unwrap();
         assert_eq!(invalid.realization, "invalid-source-proposal");

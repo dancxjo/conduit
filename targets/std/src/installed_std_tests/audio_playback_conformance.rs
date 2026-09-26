@@ -33,7 +33,7 @@ fn host(behavior: FakePlaybackBehavior) -> StdHost {
 
 fn form() -> conduit_form::CheckedForm {
     conduit_form::parse(
-        "form audio_fixture {\n source: conduit-proof/pcm-specimen-source\n output: audio/play\n source.audio > output.audio\n}\n",
+        "form audio_fixture {\n source: conduit-proof/pcm-specimen-source\n output: audio/play\n source.audio >> output.audio\n}\n",
         &crate::installed_std::test_catalog(),
     )
     .expect("audio fixture Form is valid")
@@ -131,7 +131,7 @@ fn speech_conversion_feeds_the_selected_playback_base_through_plan_and_play() {
     let mut startup = catalog.startup_catalog().unwrap();
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut catalog).unwrap();
     let form = conduit_form::parse(
-        "form spoken_audio {\n synthesize: speech/synthesize(maximum-output-bytes = 32768)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n output: audio/play\n \"Rosehip\" > synthesize.text\n synthesize.audio > convert.audio\n convert.converted > output.audio\n}\n",
+        "form spoken_audio {\n synthesize: speech/synthesize(maximum-output-bytes = 32768)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n output: audio/play\n \"Rosehip\" >> synthesize.text\n synthesize.audio >> convert.audio\n convert.converted >> output.audio\n}\n",
         &catalog,
     )
     .unwrap();

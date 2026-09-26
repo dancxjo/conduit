@@ -40,7 +40,7 @@ and production execution kernel. Its authored meaning is simply:
 form hello {
     upper: text/upper
     show: presentation/text
-    "Hello, world." > upper > show
+    "Hello, world." >> upper >> show
 }
 ```
 

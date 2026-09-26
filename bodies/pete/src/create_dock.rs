@@ -24,7 +24,7 @@ use crate::{
 pub const CREATE_DOCK_FORM: &str = r#"form seek_dock {
     request: state/toggle(initial = true)
     dock: robotics/dock(timeout-ms = 30000)
-    request.value > dock.request
+    request.value >> dock.request
 }
 "#;
 

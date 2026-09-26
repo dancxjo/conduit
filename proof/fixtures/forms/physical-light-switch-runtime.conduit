@@ -3,6 +3,6 @@ form physical-light-switch-runtime {
     switch: state/toggle(initial = false)
     every_light: presentation/bool
 
-    press > switch
-    switch > every_light
+    press >> switch
+    switch >> every_light
 }

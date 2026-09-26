@@ -434,7 +434,7 @@ One unchanged form must work with any valid placement:
 form signal-demo {
     pulse: flow/pulse(count = 16, period-ms = 250, initial = false)
     show: presentation/show
-    pulse > show
+    pulse >> show
 }
 ```
 
@@ -452,9 +452,9 @@ form triple-signal {
     local: presentation/show
     web: presentation/show
     light: presentation/show
-    pulse > local
-    pulse > web
-    pulse > light
+    pulse >> local
+    pulse >> web
+    pulse >> light
 }
 ```
 

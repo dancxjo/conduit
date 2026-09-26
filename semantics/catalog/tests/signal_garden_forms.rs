@@ -128,7 +128,7 @@ fn displayed_garden_keeps_presentation_downstream_of_semantic_state() {
 #[test]
 fn enriched_front_has_a_canonical_back_with_two_input_reusable_leaves() {
     let (startup, profile) = catalogs();
-    let source = "form main (\n > prior: GardenState\n > clock: GardenClockObservation\n > contact: GardenContactObservation\n next: GardenState >\n) {\n evolve: state/garden-step-contact\n prior > evolve.prior\n clock > evolve.clock\n contact > evolve.contact\n evolve.next > next\n}\n";
+    let source = "form main (\n >> prior: GardenState\n >> clock: GardenClockObservation\n >> contact: GardenContactObservation\n next: GardenState >>\n) {\n evolve: state/garden-step-contact\n prior >> evolve.prior\n clock >> evolve.clock\n contact >> evolve.contact\n evolve.next >> next\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let mut backs = CanonicalBackCatalog::new();
     install_signal_garden_backs(&startup, &profile, &mut backs).unwrap();

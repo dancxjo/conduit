@@ -309,7 +309,7 @@ fn cancelling_while_a_timer_is_pending_stays_distinct_from_semantic_completion()
 
 #[test]
 fn downstream_pending_capacity_failure_remains_distinct_from_semantic_completion() {
-    let source = "form concurrent {\n button: input/button\n state: input/button-indicator-state\n indicator: presentation/indicator-state\n clock: time/every(freq = 100ms)\n count: state/count(start = 0)\n show: presentation/count\n button > state > indicator\n clock.tick > count.bump\n count.value > show.value\n}\n";
+    let source = "form concurrent {\n button: input/button\n state: input/button-indicator-state\n indicator: presentation/indicator-state\n clock: time/every(freq = 100ms)\n count: state/count(start = 0)\n show: presentation/count\n button >> state >> indicator\n clock.tick >> count.bump\n count.value >> show.value\n}\n";
     let (mut session, _) =
         TourSession::prepare("browser/capacity-proof", "boot/capacity-proof", source, 67).unwrap();
     session.pending = Vec::with_capacity(0);
@@ -320,7 +320,7 @@ fn downstream_pending_capacity_failure_remains_distinct_from_semantic_completion
 
 #[test]
 fn explicit_transactional_form_still_reaches_semantic_completion() {
-    let source = "form text-chain {\n .\n source: text/literal(\"hello\")\n upper: text/upper\n result: presentation/text\n source > upper > result\n}\n";
+    let source = "form text-chain {\n source: text/literal(\"hello\")\n upper: text/upper\n result: presentation/text\n source >> upper >> result\n}.\n";
     let (session, first) = TourSession::prepare(
         "browser/completion-proof",
         "boot/completion-proof",

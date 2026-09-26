@@ -3,7 +3,7 @@ use conduit_form::{check_syntax_document, expand_canonical_form, parse_syntax_do
 use std::collections::BTreeMap;
 fn placements() -> Vec<conduit_core::PlannedGear> {
     let (startup, profile) = crate::installed_browser::catalogs().unwrap();
-    let syntax = parse_syntax_document("form timing {\n button: input/button\n attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)\n derive: time/ordered-event-intervals\n button.transition > attempt.transition\n attempt.events > derive.events\n}\n");
+    let syntax = parse_syntax_document("form timing {\n button: input/button\n attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 5, timeout-ms = 1000ms)\n derive: time/ordered-event-intervals\n button.transition >> attempt.transition\n attempt.events >> derive.events\n}\n");
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "timing", &profile).unwrap();
     let hosts = [crate::installed_browser::advertisement(

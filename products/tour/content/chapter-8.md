@@ -17,7 +17,7 @@ form morse-network {
     morse: text/morse(120)
     light: presentation/indicator
 
-    message > morse > light
+    message >> morse >> light
 }
 ```
 

@@ -30,7 +30,7 @@ fn scalar_source_can_use_coalesce_latest_as_a_continuous_std_form() {
     .unwrap();
 
     let form = parse_with_startup(
-        "form scalar_flow {\n    source: conduit-test/scalar-source\n    latest: flow/coalesce-latest\n    sink: conduit-test/scalar-sink(expected = 3)\n    source.value > latest.in\n    latest.out > sink.in\n}\n",
+        "form scalar_flow {\n    source: conduit-test/scalar-source\n    latest: flow/coalesce-latest\n    sink: conduit-test/scalar-sink(expected = 3)\n    source.value >> latest.in\n    latest.out >> sink.in\n}\n",
         &startup,
         &profile,
     )

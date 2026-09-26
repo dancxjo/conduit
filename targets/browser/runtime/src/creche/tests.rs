@@ -5,7 +5,7 @@ use conduit_body::{BodyLifecycleEvent, BodyState, MembershipEventKind, Membershi
 const SEED: &str = r#"form hello_across {
     message: text/literal("hello across one planned Cord")
     show: presentation/text
-    message > show
+    message >> show
 }"#;
 
 const TWO_FORMS: &str = concat!(

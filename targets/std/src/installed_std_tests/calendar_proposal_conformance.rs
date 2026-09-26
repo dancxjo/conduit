@@ -344,7 +344,7 @@ fn source(fixture: &Fixture, expected_hex: &str) -> String {
         conduit_semantic_catalog::CALENDAR_PROPOSAL_MAXIMUM_PARTICIPANTS,
     );
     format!(
-        "form calendar-proof {{\n  propose: calendar/propose-meeting({{ availability: [{availability}], candidates: [{candidates}], identity: \"{}\", maximum_results: {}, participant_identities: [{participants}], reference_at: {} }})\n  sink: {SINK}(value = \"{expected_hex}\")\n  propose.proposal > sink.input\n}}\n",
+        "form calendar-proof {{\n  propose: calendar/propose-meeting({{ availability: [{availability}], candidates: [{candidates}], identity: \"{}\", maximum_results: {}, participant_identities: [{participants}], reference_at: {} }})\n  sink: {SINK}(value = \"{expected_hex}\")\n  propose.proposal >> sink.input\n}}\n",
         fixture.request.identity,
         fixture.request.maximum_results,
         instant_source(&fixture.request.reference_at),

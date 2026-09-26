@@ -2,11 +2,11 @@
 # windowing, thresholding, acquisition, recording, commands, and presentation
 # remain separate Forms and Host truth; this slice owns one telemetry component.
 form bench-telemetry (
-    > window: MeasurementWindow
-    series: MeasurementPlotSeries >
+    >> window: MeasurementWindow
+    series: MeasurementPlotSeries >>
 ) {
     plot: data/bounded-measurement-plot
 
-    window > plot.window
-    plot.series > series
+    window >> plot.window
+    plot.series >> series
 }

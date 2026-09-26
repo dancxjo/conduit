@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 
 #[test]
 fn forms_are_live_by_default_and_completion_is_explicit() {
-    let source = "form live {\n    source: text/literal(\"ready\")\n}\nform finite {\n    .\n    source: text/literal(\"done\")\n}\n";
+    let source = "form live {\n    source: text/literal(\"ready\")\n}\nform finite {\n    source: text/literal(\"done\")\n}.\n";
     let document = parse_syntax_document(source);
     assert!(
         document.diagnostics.is_empty(),
@@ -22,12 +22,12 @@ fn forms_are_live_by_default_and_completion_is_explicit() {
 }
 
 #[test]
-fn duplicate_completion_declarations_are_rejected() {
-    let document = parse_syntax_document("form invalid {\n    .\n    .\n}\n");
+fn freestanding_completion_full_stop_is_rejected() {
+    let document = parse_syntax_document("form invalid {\n    .\n}\n");
     assert_eq!(document.diagnostics.len(), 1);
     assert!(document.diagnostics[0]
         .message
-        .contains("only one semantic full stop"));
+        .contains("belongs after the form body"));
 }
 
 #[test]
@@ -39,12 +39,82 @@ fn english_completion_keyword_is_not_retained_as_an_alias() {
         &source[diagnostic.span.start..diagnostic.span.end],
         "complete"
     );
-    assert!(diagnostic.message.contains("standalone '.' full stop"));
+    assert!(diagnostic.message.contains("after the form body"));
+}
+
+#[test]
+fn legacy_single_greater_than_is_not_retained_as_a_cord_alias() {
+    for source in [
+        "form invalid {\n    source > sink\n}\n",
+        "form invalid (\n    input: Text > output: Text\n) {\n}\n",
+    ] {
+        let document = parse_syntax_document(source);
+        assert!(document.forms().is_err());
+        assert!(document
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "CND-FRM-019"));
+    }
+}
+
+#[test]
+fn all_canonical_temporal_modalities_and_finite_bounds_are_retained() {
+    let source = "form temporal (\n    >> one: Text\n    >> current: $Text\n    >> flow: Text...\n    >> closing: Text...|\n    >> maybe: Text?\n    current-maybe: $Text? >>\n    bounded: Text <= 4KiB >>\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let ports = &document.forms[0].front.runtime_ports;
+    assert_eq!(ports[0].temporal, RuntimePortTemporal::Value);
+    assert_eq!(ports[1].temporal, RuntimePortTemporal::Current);
+    assert_eq!(
+        ports[2].temporal,
+        RuntimePortTemporal::Flow { closes: false }
+    );
+    assert_eq!(
+        ports[3].temporal,
+        RuntimePortTemporal::Flow { closes: true }
+    );
+    assert_eq!(ports[4].temporal, RuntimePortTemporal::OptionalValue);
+    assert_eq!(ports[5].temporal, RuntimePortTemporal::CurrentOptional);
+    assert_eq!(ports[0].maximum_bytes, Some(256));
+    assert_eq!(ports[6].maximum_bytes, Some(4 * 1024));
+}
+
+#[test]
+fn keep_parses_initializers_bounds_and_every_canonical_lifetime() {
+    let source = "form retained {\n    step: keep Text\n    play: keep Integer for this play\n    wake: keep Text <= 128B for this wake\n    boot: keep Bytes <= 2MiB for this boot\n    body: keep Text? <= 4KiB for this body\n    life: keep Count(0) for life\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let retained = document.forms[0]
+        .back
+        .iter()
+        .map(|statement| match statement {
+            BackStatement::NamedGear(gear) => gear.retained.as_ref().unwrap(),
+            _ => panic!("expected KEEP-backed Gear"),
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(retained[0].duration, crate::RetainedDuration::Step);
+    assert_eq!(retained[1].duration, crate::RetainedDuration::Play);
+    assert_eq!(retained[2].duration, crate::RetainedDuration::Wake);
+    assert_eq!(retained[3].duration, crate::RetainedDuration::Boot);
+    assert_eq!(retained[4].duration, crate::RetainedDuration::Body);
+    assert_eq!(retained[5].duration, crate::RetainedDuration::Body);
+    assert_eq!(retained[2].maximum_bytes, Some(128));
+    assert_eq!(retained[3].maximum_bytes, Some(2 * 1024 * 1024));
+    assert!(retained[4].optional);
+    assert_eq!(retained[5].initial.as_ref().unwrap().text, "0");
 }
 
 #[test]
 fn inline_comments_are_lossless_trivia_across_surface_roles() {
-    let source = "# before definitions\nform peer ( # front opens\n    label: Text = \"channel #7\" # startup\n    input: Text > output: Text # runtime front\n) { # back opens\n    # inside back\n    local = \"value # retained\" # local value\n    gear: text/constant(value = \"gear # retained\") # named gear\n    pool peers: peer(size = 2) # bounded pool\n    input > gear > output # cord\n} # form closes\nhost workstation { # host opens\n    profile = \"host # one\" # host declaration\n} # host closes\nbody household { # body opens\n    member = \"body # one\" # body declaration\n} # body closes\n";
+    let source = "# before definitions\nform peer ( # front opens\n    label: Text = \"channel #7\" # startup\n    input: Text >> output: Text # runtime front\n) { # back opens\n    # inside back\n    local = \"value # retained\" # local value\n    gear: text/constant(value = \"gear # retained\") # named gear\n    pool peers: peer(size = 2) # bounded pool\n    input >> gear >> output # cord\n} # form closes\nhost workstation { # host opens\n    profile = \"host # one\" # host declaration\n} # host closes\nbody household { # body opens\n    member = \"body # one\" # body declaration\n} # body closes\n";
     let document = parse_syntax_document(source);
     assert_eq!(document.round_trip(), source);
     assert!(
@@ -132,7 +202,7 @@ fn canonical_document_roles_share_tokens_declarations_values_and_diagnostics() {
 
 #[test]
 fn canonical_clock_form_round_trips_with_named_and_inline_gears() {
-    let source = "# canonical source\nform clock-demo {\n    clock: time/every(1s)\n    clock > presentation/tick\n}\n";
+    let source = "# canonical source\nform clock-demo {\n    clock: time/every(1s)\n    clock >> presentation/tick\n}\n";
     let document = parse_syntax_document(source);
     let forms = document.forms().expect("canonical form parses");
 
@@ -160,7 +230,7 @@ fn canonical_clock_form_round_trips_with_named_and_inline_gears() {
 
 #[test]
 fn canonical_front_keeps_startup_values_runtime_ports_and_shorthand_distinct() {
-    let source = "form badge (\n    title: Text\n    tone: Tone = calm\n    state: $Signal > view: WebFragment\n) {\n    hero: web/hero(title, tone)\n    state > hero.state\n    hero > view\n}\n";
+    let source = "form badge (\n    title: Text\n    tone: Tone = calm\n    state: $Signal >> view: WebFragment\n) {\n    hero: web/hero(title, tone)\n    state >> hero.state\n    hero >> view\n}\n";
     let document = parse_syntax_document(source);
     let form = &document.forms().expect("front parses")[0];
 
@@ -235,7 +305,7 @@ fn canonical_duplex_front_has_auxiliary_ports_without_a_shorthand_path() {
 
 #[test]
 fn canonical_back_represents_values_named_arguments_and_anonymous_gears() {
-    let source = "form demo {\n    freq = 1s\n    clock: time/every(freq = 1s)\n    time/every(freq) > sensors/read\n}\n";
+    let source = "form demo {\n    freq = 1s\n    clock: time/every(freq = 1s)\n    time/every(freq) >> sensors/read\n}\n";
     let document = parse_syntax_document(source);
     let form = &document.forms().expect("back parses")[0];
 
@@ -283,11 +353,11 @@ fn canonical_ast_spans_are_exact_utf8_byte_slices() {
 fn canonical_negative_corpus_has_stable_diagnostics_and_exact_spans() {
     let cases = [
         (
-            "form bad (\n    a: A >> b: B\n) {\n}\n",
+            "form bad (\n    a: A >> b: B >> c: C\n) {\n}\n",
             "malformed front arrows",
         ),
         (
-            "form bad (\n    a: A > b: B\n    c: C > d: D\n) {\n}\n",
+            "form bad (\n    a: A >> b: B\n    c: C >> d: D\n) {\n}\n",
             "more than one shorthand front pair",
         ),
         ("form bad {\n    clock:\n}\n", "missing Gear Kind"),
@@ -300,7 +370,7 @@ fn canonical_negative_corpus_has_stable_diagnostics_and_exact_spans() {
             "cannot have a form back",
         ),
         (
-            "form bad {\n    value = source > sink\n}\n",
+            "form bad {\n    value = source >> sink\n}\n",
             "expression cannot appear as a graph stage",
         ),
         (
@@ -332,10 +402,10 @@ fn canonical_negative_corpus_has_stable_diagnostics_and_exact_spans() {
 #[test]
 fn temporal_markers_cannot_be_combined_or_left_without_a_value_type() {
     for source in [
-        "form bad (\n    > port: $Tick...\n) {\n}\n",
-        "form bad (\n    > port: $Tick...|\n) {\n}\n",
-        "form bad (\n    > port: $\n) {\n}\n",
-        "form bad (\n    > port: ...\n) {\n}\n",
+        "form bad (\n    >> port: $Tick...\n) {\n}\n",
+        "form bad (\n    >> port: $Tick...|\n) {\n}\n",
+        "form bad (\n    >> port: $\n) {\n}\n",
+        "form bad (\n    >> port: ...\n) {\n}\n",
     ] {
         let document = parse_syntax_document(source);
         assert_eq!(document.diagnostics[0].code, "CND-FRM-019", "{source}");
@@ -345,7 +415,7 @@ fn temporal_markers_cannot_be_combined_or_left_without_a_value_type() {
 
 #[test]
 fn quoted_text_is_a_distinct_lossless_graph_stage() {
-    let source = "form hello {\n    \"Hello, world.\" > text/upper\n}\n";
+    let source = "form hello {\n    \"Hello, world.\" >> text/upper\n}\n";
     let document = parse_syntax_document(source);
     let forms = document.forms().expect("quoted text is valid graph syntax");
     let BackStatement::Cord(cord) = &forms[0].back[0] else {
@@ -363,7 +433,7 @@ fn quoted_text_is_a_distinct_lossless_graph_stage() {
 
 #[test]
 fn canonical_parser_accepts_multiple_forms_without_semantic_lowering() {
-    let source = "form greet (\n    greeting: Text = \"Hello\"\n    name: Text > text: Text\n) {\n    join: text/join(greeting)\n    name > join > text\n}\n\nform welcome {\n    hello: greet(\"Welcome\")\n}\n";
+    let source = "form greet (\n    greeting: Text = \"Hello\"\n    name: Text >> text: Text\n) {\n    join: text/join(greeting)\n    name >> join >> text\n}\n\nform welcome {\n    hello: greet(\"Welcome\")\n}\n";
     let document = parse_syntax_document(source);
     let forms = document.forms().expect("both forms parse");
 
@@ -375,7 +445,7 @@ fn canonical_parser_accepts_multiple_forms_without_semantic_lowering() {
 
 #[test]
 fn canonical_parser_handles_inline_form_calls_and_quoted_punctuation() {
-    let source = "form demo {\n    label = \"{ready} > waiting\"\n    greet(\"hello\") > presentation/text\n}\n";
+    let source = "form demo {\n    label = \"{ready} > waiting\"\n    greet(\"hello\") >> presentation/text\n}\n";
     let document = parse_syntax_document(source);
     let form = &document
         .forms()

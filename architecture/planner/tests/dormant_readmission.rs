@@ -64,7 +64,7 @@ fn form() -> conduit_form::CheckedForm {
         profile.insert(definition(kind)).unwrap();
     }
     conduit_form::parse_with_startup(
-        &format!("form dormant {{\n source: {SOURCE}\n sink: {SINK}\n source > sink\n}}\n"),
+        &format!("form dormant {{\n source: {SOURCE}\n sink: {SINK}\n source >> sink\n}}\n"),
         &startup,
         &profile,
     )

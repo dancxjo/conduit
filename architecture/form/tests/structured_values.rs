@@ -258,7 +258,7 @@ fn collection_length_leaf_type_and_runtime_port_fail_distinctly() {
         assert!(error.message.contains(message), "{}", error.message);
     }
 
-    let source = "form bad (\n current: $Count > out: Count\n) {\n sink: test/consume-event(note_on({ pitches: [60, 62, 64], velocity: current }))\n}\n";
+    let source = "form bad (\n current: $Count >> out: Count\n) {\n sink: test/consume-event(note_on({ pitches: [60, 62, 64], velocity: current }))\n}\n";
     let parsed = parse_syntax_document(source);
     let error = check_syntax_document(&parsed, &structured_catalog()).unwrap_err();
     assert_eq!(error.code, "CND-FRM-051");

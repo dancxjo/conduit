@@ -1,12 +1,12 @@
 form pete-situation (
-    > battery: BatteryObservation
-    > utterance: UtteranceObservation
-    > body: BodyCurrentState
-    situation: PeteSituation >
+    >> battery: BatteryObservation
+    >> utterance: UtteranceObservation
+    >> body: BodyCurrentState
+    situation: PeteSituation >>
 ) {
     select: pete/situation-select
-    battery > select.battery
-    utterance > select.utterance
-    body > select.body
-    select.situation > situation
+    battery >> select.battery
+    utterance >> select.utterance
+    body >> select.body
+    select.situation >> situation
 }

@@ -3,6 +3,6 @@ form r1-network-bootstrap {
     join: network/join
     attachment_sign: network/attachment-sign
 
-    credentials.request > join.request
-    join.attachment > attachment_sign.attachment
+    credentials.request >> join.request
+    join.attachment >> attachment_sign.attachment
 }

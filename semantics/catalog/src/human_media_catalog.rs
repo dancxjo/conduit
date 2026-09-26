@@ -236,7 +236,7 @@ mod tests {
         install_microphone_clip_catalogs(&mut startup, &mut profile).unwrap();
         let checked = conduit_form::check_syntax_document(
             &conduit_form::parse_syntax_document(
-                "form capture {\n microphone: media/capture-microphone-clip\n \"capture\" > microphone.request\n}\n",
+                "form capture {\n microphone: media/capture-microphone-clip\n \"capture\" >> microphone.request\n}\n",
             ),
             &startup,
         )

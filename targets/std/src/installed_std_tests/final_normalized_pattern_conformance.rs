@@ -26,7 +26,7 @@ fn final_pattern_adapter_is_reused_for_calibration_revisions() {
         .collect::<Vec<_>>()
         .join(",");
     let source = format!(
-        "form calibration-proof {{\n revisions: {SOURCE_KIND}(values = \"{values}\")\n final: sequence/final-normalized-pattern(maximum-values = 2)\n sink: {SINK_KIND}(value = \"{}\")\n revisions.output > final.patterns\n final.pattern > sink.input\n}}\n",
+        "form calibration-proof {{\n revisions: {SOURCE_KIND}(values = \"{values}\")\n final: sequence/final-normalized-pattern(maximum-values = 2)\n sink: {SINK_KIND}(value = \"{}\")\n revisions.output >> final.patterns\n final.pattern >> sink.input\n}}\n",
         hex(&final_value.canonical_bytes().unwrap()),
     );
     let syntax = parse_syntax_document(&source);

@@ -3,13 +3,12 @@ use super::*;
 const MAXIMUM_EFFECT_DRIVE_STEPS: usize = crate::installed_browser::BROWSER_ROUTE_SLOTS;
 
 const HELLO_LIGHT: &str = r#"form hello-light {
-    .
     message: text/literal("SOS")
     morse: text/morse(120)
     light: presentation/indicator
 
-    message > morse > light
-}
+    message >> morse >> light
+}.
 "#;
 
 fn manifestation(effect: TourHostEffect) -> TourEffect {
@@ -406,14 +405,13 @@ fn desk_telegraph_and_night_radio_submit_two_messages_in_one_play() {
 #[test]
 fn four_gear_text_form_runs_without_a_topology_special_case() {
     let source = r#"form text-chain {
-    .
     source: text/literal("hello")
     prefix: text/join("say: ")
     upper: text/upper
     result: presentation/text
 
-    source > prefix > upper > result
-}
+    source >> prefix >> upper >> result
+}.
 "#;
     let (session, effect) =
         TourSession::prepare("browser/tour-test", "browser-boot/tour-test", source, 2).unwrap();
@@ -425,7 +423,6 @@ fn four_gear_text_form_runs_without_a_topology_special_case() {
 #[test]
 fn explicit_record_temporal_boundary_runs_the_bounded_queue() {
     let source = r#"form queued-record {
-    .
     message: text/literal("CALLING")
     encode: record/text-to-typed
     frame: record/frame-typed
@@ -434,13 +431,13 @@ fn explicit_record_temporal_boundary_runs_the_bounded_queue() {
     decode: record/typed-to-text
     show: presentation/text
 
-    message.text > encode.text
-    encode.record > frame.record
-    frame.frame > queue.frame
-    queue.queued > deframe.frame
-    deframe.record > decode.record
-    decode.text > show.text
-}"#;
+    message.text >> encode.text
+    encode.record >> frame.record
+    frame.frame >> queue.frame
+    queue.queued >> deframe.frame
+    deframe.record >> decode.record
+    decode.text >> show.text
+}."#;
     let (session, effect) =
         TourSession::prepare("browser/queue", "browser-boot/queue", source, 3).unwrap();
     let effect = manifestation(effect);
@@ -451,13 +448,12 @@ fn explicit_record_temporal_boundary_runs_the_bounded_queue() {
 #[test]
 fn linguistic_structured_info_runs_through_the_same_browser_envelope() {
     let source = r#"form language-lab {
-    .
     tokens: language/tokenize-four("Bright stars shine.")
     annotate: language/annotate-four
     result: presentation/structured-info
 
-    tokens > annotate > result
-}
+    tokens >> annotate >> result
+}.
 "#;
     let (session, effect) =
         TourSession::prepare("browser/tour-test", "browser-boot/tour-test", source, 4).unwrap();
@@ -476,12 +472,11 @@ fn linguistic_structured_info_runs_through_the_same_browser_envelope() {
 #[test]
 fn math_and_logic_families_use_the_same_generic_host_path() {
     let math = r#"form math-lab {
-    .
     source: scalar/literal(1.5)
     scale: math/scale(2.0)
     result: presentation/scalar
-    source > scale > result
-}
+    source >> scale >> result
+}.
 "#;
     let (math_session, math_effect) =
         TourSession::prepare("browser/tour-test", "browser-boot/tour-test", math, 5).unwrap();
@@ -490,12 +485,11 @@ fn math_and_logic_families_use_the_same_generic_host_path() {
     assert_eq!(math_session.complete().unwrap().disposition, "completed");
 
     let logic = r#"form logic-lab {
-    .
     source: boolean/literal(true)
     invert: logic/not
     result: presentation/bool-value
-    source > invert > result
-}
+    source >> invert >> result
+}.
 "#;
     let (logic_session, logic_effect) =
         TourSession::prepare("browser/tour-test", "browser-boot/tour-test", logic, 6).unwrap();
@@ -507,17 +501,16 @@ fn math_and_logic_families_use_the_same_generic_host_path() {
 #[test]
 fn typed_fanout_reconverges_without_tour_topology_code() {
     let source = r#"form fanout-lab {
-    .
     source: scalar/literal(0.5)
     scaled: math/scale(2.0)
     quiet: math/deadband(0.6)
     compare: logic/compare("gt")
     result: presentation/bool-value
 
-    source > scaled > compare.left
-    source > quiet > compare.right
-    compare.out > result
-}
+    source >> scaled >> compare.left
+    source >> quiet >> compare.right
+    compare.out >> result
+}.
 "#;
     let (session, effect) =
         TourSession::prepare("browser/tour-test", "browser-boot/tour-test", source, 7).unwrap();
@@ -534,8 +527,8 @@ fn standing_browser_timer_drives_current_count_until_stop_in_one_kernel_play() {
     show: presentation/count
     clock: time/every(freq = 100ms)
 
-    clock.tick > count.bump
-    count.value > show.value
+    clock.tick >> count.bump
+    count.value >> show.value
 }
 "#;
     let first = state_time_trace(source);
@@ -655,8 +648,8 @@ fn pending_browser_timer_cancels_without_becoming_a_completed_tick() {
     show: presentation/count
     clock: time/every(freq = 100ms)
 
-    clock.tick > count.bump
-    count.value > show.value
+    clock.tick >> count.bump
+    count.value >> show.value
 }
 "#;
     let (session, initial) = TourSession::prepare(
@@ -731,7 +724,7 @@ fn semantic_kind_without_browser_installation_refuses_before_play() {
     source: text/literal("hello")
     result: presentation/text
     unavailable: layout/inset
-    source > result
+    source >> result
 }
 "#;
     let message = TourSession::prepare("browser/tour-test", "browser-boot/tour-test", source, 3)
@@ -745,17 +738,16 @@ fn semantic_kind_without_browser_installation_refuses_before_play() {
 #[test]
 fn newly_installed_logic_select_executes_through_the_generic_host() {
     let select = r#"form browser-select {
-    .
     selector: boolean/literal(true)
     when_false: scalar/literal(1.0)
     when_true: scalar/literal(2.0)
     choose: logic/select
     show: presentation/scalar
-    selector.value > choose.selector
-    when_false.value > choose.when-false
-    when_true.value > choose.when-true
-    choose.out > show.value
-}
+    selector.value >> choose.selector
+    when_false.value >> choose.when-false
+    when_true.value >> choose.when-true
+    choose.out >> show.value
+}.
 "#;
     let (session, effect) =
         TourSession::prepare("browser/select", "browser/select-boot", select, 31).unwrap();
@@ -769,7 +761,7 @@ fn exact_type_mismatch_refuses_before_play_as_source_contract_error() {
     source: scalar/literal(1.0)
     invert: logic/not
     result: presentation/bool-value
-    source > invert > result
+    source >> invert >> result
 }
 "#;
     let message = TourSession::prepare("browser/tour-test", "browser-boot/tour-test", source, 12)
@@ -786,9 +778,9 @@ fn browser_gear_bound_refuses_before_play() {
     }
     source.push_str(" result: presentation/text\n source");
     for index in 0..15 {
-        source.push_str(&format!(" > step{index}"));
+        source.push_str(&format!(" >> step{index}"));
     }
-    source.push_str(" > result\n}\n");
+    source.push_str(" >> result\n}\n");
     let message = TourSession::prepare("browser/tour-test", "browser-boot/tour-test", &source, 13)
         .err()
         .expect("seventeen Gears exceed the exact sixteen-Gear profile");
@@ -805,7 +797,7 @@ fn browser_cord_bound_refuses_before_play() {
     }
     for index in 0..13 {
         source.push_str(&format!(
-            " source > compare{index}.left\n source > compare{index}.right\n"
+            " source >> compare{index}.left\n source >> compare{index}.right\n"
         ));
     }
     source.push_str("}\n");
@@ -819,7 +811,7 @@ fn browser_cord_bound_refuses_before_play() {
 fn semantic_value_bound_refuses_before_play() {
     let oversized = "x".repeat(conduit_text::MAX_TEXT_BYTES as usize + 1);
     let source = format!(
-        "form too-much-text {{\n source: text/literal(\"{oversized}\")\n result: presentation/text\n source > result\n}}\n"
+        "form too-much-text {{\n source: text/literal(\"{oversized}\")\n result: presentation/text\n source >> result\n}}\n"
     );
     let message = TourSession::prepare("browser/tour-test", "browser-boot/tour-test", &source, 15)
         .err()

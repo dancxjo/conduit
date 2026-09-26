@@ -17,7 +17,7 @@ use crate::{
     ordinary_plan::{PreparationError, advertisement},
 };
 
-pub const FORM_SOURCE: &str = "form conduitos-keyboard-upper {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    upper: text/upper\n    show: presentation/text\n    keyboard.key > keymap.key\n    keymap.text > upper.text\n    upper.text > show.text\n}\n";
+pub const FORM_SOURCE: &str = "form conduitos-keyboard-upper {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    upper: text/upper\n    show: presentation/text\n    keyboard.key >> keymap.key\n    keymap.text >> upper.text\n    upper.text >> show.text\n}\n";
 pub const KEYMAP_IMPLEMENTATION: &str = "conduitos/kernel-keymap@1";
 pub const KEYMAP_EXECUTION_PROFILE: &str = "conduitos/portable-input-cooperative@1";
 const PLACEMENTS: usize = 4;

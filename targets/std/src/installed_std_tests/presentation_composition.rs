@@ -9,9 +9,9 @@ const FORM: &str = r#"form gear_front_presentation {
  frame: presentation/frame(role = "panel", accessibility-name = "Gear Front")
  badge: presentation/badge(state = "warning", accessibility-name = "Cord pressure")
  sink: conduit-test/presentation-sink
- icon.presented > frame.content
- frame.presented > badge.content
- badge.presented > sink.in
+ icon.presented >> frame.content
+ frame.presented >> badge.content
+ badge.presented >> sink.in
 }
 "#;
 

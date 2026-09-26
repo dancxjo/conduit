@@ -31,13 +31,13 @@ impl TimerAdapter for ScheduledTimer {
     }
 }
 
-const DEBOUNCE_FORM: &str = "form robot-debounce {\n    switch: test/timing-bool-source\n    stable: time/debounce(duration-ms = 5ms, policy = \"trailing\", maximum-values = 3)\n    sink: test/timing-bool-sink\n    switch > stable > sink\n}\n";
+const DEBOUNCE_FORM: &str = "form robot-debounce {\n    switch: test/timing-bool-source\n    stable: time/debounce(duration-ms = 5ms, policy = \"trailing\", maximum-values = 3)\n    sink: test/timing-bool-sink\n    switch >> stable >> sink\n}\n";
 
-const TIMEOUT_FORM: &str = "form robot-timeout {\n    clock: time/tick(count = 2, period-ms = 10)\n    stale: time/timeout(duration-ms = 7ms, maximum-values = 2)\n    sink: test/timing-bool-sink\n    clock > stale > sink\n}\n";
+const TIMEOUT_FORM: &str = "form robot-timeout {\n    clock: time/tick(count = 2, period-ms = 10)\n    stale: time/timeout(duration-ms = 7ms, maximum-values = 2)\n    sink: test/timing-bool-sink\n    clock >> stale >> sink\n}\n";
 
-const DELAY_FORM: &str = "form ordinary-delay {\n    source: test/timing-bool-source\n    paced: time/delay(duration-ms = 5ms, maximum-values = 3)\n    sink: test/timing-bool-sink\n    source > paced > sink\n}\n";
+const DELAY_FORM: &str = "form ordinary-delay {\n    source: test/timing-bool-source\n    paced: time/delay(duration-ms = 5ms, maximum-values = 3)\n    sink: test/timing-bool-sink\n    source >> paced >> sink\n}\n";
 
-const THROTTLE_FORM: &str = "form patchbay-refresh-throttle {\n    edits: test/timing-bool-source\n    refresh: time/throttle(duration-ms = 5ms, policy = \"leading\", maximum-values = 3)\n    presenter: test/timing-bool-sink\n    edits > refresh > presenter\n}\n";
+const THROTTLE_FORM: &str = "form patchbay-refresh-throttle {\n    edits: test/timing-bool-source\n    refresh: time/throttle(duration-ms = 5ms, policy = \"leading\", maximum-values = 3)\n    presenter: test/timing-bool-sink\n    edits >> refresh >> presenter\n}\n";
 
 fn fragment(host: &StdHost, source: &str) -> conduit_core::PlanFragment {
     let mut startup = conduit_form::StartupCatalog::new();

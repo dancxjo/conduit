@@ -79,7 +79,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
 
 fn definition() -> KernelCompositeDefinition {
     let form = parse(
-        "form test/two-child-echo (\n > input: value/bytes\n output: value/bytes >\n) {\n first: test/kernel-composite-echo\n second: test/kernel-composite-echo\n input > first.in\n first.out > second.in\n second.out > output\n}\n",
+        "form test/two-child-echo (\n >> input: value/bytes\n output: value/bytes >>\n) {\n first: test/kernel-composite-echo\n second: test/kernel-composite-echo\n input >> first.in\n first.out >> second.in\n second.out >> output\n}\n",
         &catalog(),
     )
     .unwrap();

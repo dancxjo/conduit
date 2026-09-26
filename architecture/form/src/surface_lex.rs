@@ -74,6 +74,28 @@ pub(crate) fn split_top_level(text: &str, delimiter: char) -> Vec<&str> {
     result
 }
 
+pub(crate) fn split_top_level_token<'a>(text: &'a str, token: &str) -> Vec<&'a str> {
+    let positions = top_level_token_positions(text, token);
+    let mut result = Vec::new();
+    let mut start = 0;
+    for position in positions {
+        result.push(&text[start..position]);
+        start = position + token.len();
+    }
+    result.push(&text[start..]);
+    result
+}
+
+pub(crate) fn top_level_token_positions(text: &str, token: &str) -> Vec<usize> {
+    if token.is_empty() {
+        return Vec::new();
+    }
+    top_level_positions(text, token.chars().next().unwrap())
+        .into_iter()
+        .filter(|position| text[*position..].starts_with(token))
+        .collect()
+}
+
 pub(crate) fn top_level_positions(text: &str, target: char) -> Vec<usize> {
     let mut positions = Vec::new();
     let mut delimiters = Vec::new();

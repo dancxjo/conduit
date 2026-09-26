@@ -7,31 +7,31 @@ use conduit_form::{
 
 const TEXT_MORSE_BACK: &str = r#"form text/morse (
     unit-ms: Count = 120
-    text: value/text > pattern: value/morse-pattern@1
+    text: value/text >> pattern: value/morse-pattern@1
 ) {
     symbols: text/morse-symbols
     timing: morse/symbols-to-pattern(unit-ms)
-    text > symbols > timing > pattern
+    text >> symbols >> timing >> pattern
 }
 "#;
 
 const TEXT_MORSE_SYMBOLS_BACK: &str = r#"form text/morse-symbols (
-    text: value/text > symbols: value/morse-symbols@1
+    text: value/text >> symbols: value/morse-symbols@1
 ) {
     characters: text/characters
     lookup: morse/lookup
     gaps: morse/intersperse
     flatten: morse/flatten
-    text > characters > lookup > gaps > flatten > symbols
+    text >> characters >> lookup >> gaps >> flatten >> symbols
 }
 "#;
 
 const MORSE_TEXT_BACK: &str = r#"form morse/text (
-    pattern: value/morse-pattern@1 > text: value/text
+    pattern: value/morse-pattern@1 >> text: value/text
 ) {
     symbols: morse/pattern-to-symbols
     decode: morse/symbols-to-text
-    pattern > symbols > decode > text
+    pattern >> symbols >> decode >> text
 }
 "#;
 
@@ -80,7 +80,7 @@ mod tests {
         crate::install_morse_catalogs(&mut startup, &mut profile).unwrap();
         let checked = check_syntax_document(
             &parse_syntax_document(
-                "form main (\n pattern: value/morse-pattern@1 >\n) {\n source: text/literal(\"SOS\")\n morse: text/morse(80)\n source > morse > pattern\n}\n",
+                "form main (\n pattern: value/morse-pattern@1 >>\n) {\n source: text/literal(\"SOS\")\n morse: text/morse(80)\n source >> morse >> pattern\n}\n",
             ),
             &startup,
         )
@@ -154,10 +154,10 @@ mod tests {
         crate::install_text_catalogs(&mut startup, &mut profile).unwrap();
         crate::install_morse_catalogs(&mut startup, &mut profile).unwrap();
         let cyclic_source = r#"form text/morse-symbols (
-    text: value/text > symbols: value/morse-symbols@1
+    text: value/text >> symbols: value/morse-symbols@1
 ) {
     again: text/morse-symbols
-    text > again > symbols
+    text >> again >> symbols
 }
 "#;
         let cyclic = check_syntax_document(&parse_syntax_document(cyclic_source), &startup)
@@ -177,11 +177,11 @@ mod tests {
             )
             .unwrap();
         let caller_source = r#"form main (
-    symbols: value/morse-symbols@1 >
+    symbols: value/morse-symbols@1 >>
 ) {
     source: text/literal("SOS")
     encode: text/morse-symbols
-    source > encode > symbols
+    source >> encode >> symbols
 }
 "#;
         let caller = check_syntax_document(&parse_syntax_document(caller_source), &startup)

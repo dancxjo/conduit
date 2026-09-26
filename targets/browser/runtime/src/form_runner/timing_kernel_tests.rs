@@ -65,7 +65,7 @@ fn fragment() -> PlanFragment {
     source_host.host_id = "fixture/timing-source".into();
     source_host.boot_id = "fixture/timing-boot".into();
     source_host.capabilities = vec![source_offer];
-    let syntax = parse_syntax_document("form timing {\n source: fixture/timed-events\n derive: time/ordered-event-intervals\n normalize: sequence/normalize-relative-duration\n result: conduit-test/timing-sink\n source.events > derive.events\n derive.intervals > normalize.intervals\n normalize.normalized > result.normalized\n}\n");
+    let syntax = parse_syntax_document("form timing {\n source: fixture/timed-events\n derive: time/ordered-event-intervals\n normalize: sequence/normalize-relative-duration\n result: conduit-test/timing-sink\n source.events >> derive.events\n derive.intervals >> normalize.intervals\n normalize.normalized >> result.normalized\n}\n");
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "timing", &catalog).unwrap();
     let hosts = [source_host.clone(), browser.clone()];

@@ -25,7 +25,7 @@ fn runtime_ports_use_semantic_profile_identity_instead_of_alias_spelling() {
     catalog
         .insert_structured_type("RenamedEvent", event_type(false))
         .unwrap();
-    let source = "form source (\n event: MusicEvent >\n) {\n}\n\nform sink (\n > event: RenamedEvent\n) {\n}\n";
+    let source = "form source (\n event: MusicEvent >>\n) {\n}\n\nform sink (\n >> event: RenamedEvent\n) {\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &catalog).unwrap();
     let source_front = checked.forms[1].checked_front();
     let sink_front = checked.forms[0].checked_front();
@@ -39,7 +39,7 @@ fn runtime_ports_use_semantic_profile_identity_instead_of_alias_spelling() {
 
 #[test]
 fn changing_shape_changes_checked_identity_and_port_compatibility() {
-    let source = "form source (\n event: MusicEvent >\n) {\n}\n";
+    let source = "form source (\n event: MusicEvent >>\n) {\n}\n";
     let parsed = parse_syntax_document(source);
     let mut first_catalog = StartupCatalog::new();
     first_catalog
@@ -64,7 +64,7 @@ fn changing_shape_changes_checked_identity_and_port_compatibility() {
 
 #[test]
 fn ordinary_unregistered_port_kinds_keep_the_existing_exact_vocabulary() {
-    let source = "form source (\n text: Text >\n exact: domain/custom@2 >\n) {\n}\n";
+    let source = "form source (\n text: Text >>\n exact: domain/custom@2 >>\n) {\n}\n";
     let checked =
         check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
     let front = checked.forms[0].checked_front();
@@ -87,7 +87,7 @@ fn canonical_expansion_checks_the_resolved_profile_not_the_alias() {
             startup_parameters: vec![],
         })
         .unwrap();
-    let source = "form source (\n event: MusicEvent >\n) {\n primitive: music/source\n primitive > event\n}\n";
+    let source = "form source (\n event: MusicEvent >>\n) {\n primitive: music/source\n primitive >> event\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
 
     let definition = |value_kind| KindProjection {

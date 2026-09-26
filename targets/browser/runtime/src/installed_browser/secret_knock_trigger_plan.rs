@@ -17,9 +17,9 @@ const SOURCE: &str = r#"form browser-knock-trigger {
     intervals: time/ordered-event-intervals
     normalize: sequence/normalize-relative-duration
 
-    button.transition > attempt.transition
-    attempt.events > intervals.events
-    intervals.intervals > normalize.intervals
+    button.transition >> attempt.transition
+    attempt.events >> intervals.events
+    intervals.intervals >> normalize.intervals
 }
 "#;
 

@@ -274,11 +274,11 @@ pub const PETE_CAPSTONE_FORM: &str = r#"form pete-capstone {
     safe_linear: state/select
     drive: robotics/drive-differential(ttl-ms = 250)
 
-    bump.observation > safe_linear.selector
-    requested.linear > safe_linear.when-false
-    stopped.linear > safe_linear.when-true
-    safe_linear.out > drive.linear
-    requested.angular > drive.angular
+    bump.observation >> safe_linear.selector
+    requested.linear >> safe_linear.when-false
+    stopped.linear >> safe_linear.when-true
+    safe_linear.out >> drive.linear
+    requested.angular >> drive.angular
 }
 "#;
 
