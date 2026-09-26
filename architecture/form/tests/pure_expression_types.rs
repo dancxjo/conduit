@@ -7,8 +7,8 @@ use conduit_core::{
     TemporalStateBehavior, VariabilityBehavior,
 };
 use conduit_form::{
-    check_expression, parse_syntax_document, BackStatement, CheckedExpressionType, CordStage,
-    ExpressionSyntax, ExpressionTypeContext,
+    check_expression, parse_syntax_document, pure_expression_definition, BackStatement,
+    CheckedExpressionType, CordStage, ExpressionSyntax, ExpressionTypeContext,
 };
 
 fn expression(source: &str) -> ExpressionSyntax {
@@ -297,4 +297,48 @@ fn anonymous_expression_types_have_stable_exact_port_identities() {
         ),
     ]);
     assert_ne!(first.exact_value_kind(), changed.exact_value_kind());
+}
+
+#[test]
+fn checked_expression_retains_its_exact_input_and_output_contract() {
+    let input = CheckedExpressionType::semantic("value/u16");
+    let empty = BTreeMap::new();
+    let no_structured = BTreeMap::new();
+    let no_numeric = BTreeSet::new();
+    let no_kinds = BTreeMap::new();
+    let context = context(
+        &input,
+        &empty,
+        &no_structured,
+        &empty,
+        &no_numeric,
+        &no_kinds,
+    );
+    let checked = check_expression(&expression(". + 1"), &context).unwrap();
+    assert_eq!(checked.input_type, input);
+    assert_eq!(
+        checked.value_type,
+        CheckedExpressionType::semantic("value/u16")
+    );
+    let definition = pure_expression_definition(&checked, PortTemporal::Value).unwrap();
+    assert_eq!(definition.inputs[0].value_kind.as_str(), "value/u16");
+    assert_eq!(definition.outputs[0].value_kind.as_str(), "value/u16");
+    assert_eq!(
+        definition.kind_contract_revision.as_str(),
+        "conduitese/pure-expression-operation@1"
+    );
+
+    let same = check_expression(&expression(". + 1"), &context).unwrap();
+    assert_eq!(
+        definition.kind_id,
+        pure_expression_definition(&same, PortTemporal::Value)
+            .unwrap()
+            .kind_id
+    );
+    assert_ne!(
+        definition.kind_id,
+        pure_expression_definition(&same, PortTemporal::Current)
+            .unwrap()
+            .kind_id
+    );
 }
