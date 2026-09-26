@@ -320,6 +320,11 @@ fn checked_expression_retains_its_exact_input_and_output_contract() {
         checked.value_type,
         CheckedExpressionType::semantic("value/u16")
     );
+    assert_eq!(checked.node_types.len(), 3);
+    assert!(checked
+        .node_types
+        .iter()
+        .all(|node| node.value_type == CheckedExpressionType::semantic("value/u16")));
     let definition = pure_expression_definition(&checked, PortTemporal::Value).unwrap();
     assert_eq!(definition.inputs[0].value_kind.as_str(), "value/u16");
     assert_eq!(definition.outputs[0].value_kind.as_str(), "value/u16");

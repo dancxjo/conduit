@@ -157,6 +157,13 @@ pub struct CheckedExpression {
     pub syntax: ExpressionSyntax,
     pub input_type: CheckedExpressionType,
     pub value_type: CheckedExpressionType,
+    pub node_types: Vec<CheckedExpressionNodeType>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedExpressionNodeType {
+    pub span: Span,
+    pub value_type: CheckedExpressionType,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -186,11 +193,22 @@ pub fn check_expression(
     syntax: &ExpressionSyntax,
     context: &ExpressionTypeContext<'_>,
 ) -> Result<CheckedExpression, ExpressionTypeDiagnostic> {
-    let value_type = infer(syntax, None, context)?;
+    let mut node_types = Vec::new();
+    let value_type = infer(syntax, None, context, &mut node_types)?;
+    node_types.sort_by_key(|node| (node.span.start, node.span.end));
+    node_types.dedup_by(|right, left| {
+        if right.span.start == left.span.start && right.span.end == left.span.end {
+            debug_assert_eq!(right.value_type, left.value_type);
+            true
+        } else {
+            false
+        }
+    });
     Ok(CheckedExpression {
         syntax: syntax.clone(),
         input_type: context.input.clone(),
         value_type,
+        node_types,
     })
 }
 
@@ -198,8 +216,9 @@ fn infer(
     syntax: &ExpressionSyntax,
     expected: Option<&CheckedExpressionType>,
     context: &ExpressionTypeContext<'_>,
+    node_types: &mut Vec<CheckedExpressionNodeType>,
 ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
-    match syntax {
+    let value_type = match syntax {
         ExpressionSyntax::Input(_) => Ok(context.input.clone()),
         ExpressionSyntax::Atomic(value) => atomic(&value.text, value.span, expected, context),
         ExpressionSyntax::Projection {
@@ -207,20 +226,20 @@ fn infer(
             member,
             span,
         } => {
-            let source = infer(value, None, context)?;
+            let source = infer(value, None, context, node_types)?;
             projection(&source, member, *span, context)
         }
         ExpressionSyntax::Unary {
             operator,
             operand,
             span,
-        } => unary(*operator, operand, *span, expected, context),
+        } => unary(*operator, operand, *span, expected, context, node_types),
         ExpressionSyntax::Binary {
             operator,
             left,
             right,
             span,
-        } => binary(*operator, left, right, *span, expected, context),
+        } => binary(*operator, left, right, *span, expected, context, node_types),
         ExpressionSyntax::Conditional {
             condition,
             when_true,
@@ -228,13 +247,13 @@ fn infer(
             span,
         } => {
             require(
-                infer(condition, Some(&boolean()), context)?,
+                infer(condition, Some(&boolean()), context, node_types)?,
                 &boolean(),
                 condition.span(),
                 "conditional condition must be Boolean",
             )?;
-            let true_type = infer(when_true, expected, context)?;
-            let false_type = infer(when_false, Some(&true_type), context)?;
+            let true_type = infer(when_true, expected, context, node_types)?;
+            let false_type = infer(when_false, Some(&true_type), context, node_types)?;
             require(
                 false_type,
                 &true_type,
@@ -263,6 +282,7 @@ fn infer(
                         value,
                         expected_values.and_then(|types| types.get(index)),
                         context,
+                        node_types,
                     )
                 })
                 .collect::<Result<Vec<_>, _>>()?;
@@ -286,7 +306,7 @@ fn infer(
                 };
                 checked.push((
                     field.name.text.clone(),
-                    infer(&field.value, expected_field, context)?,
+                    infer(&field.value, expected_field, context, node_types)?,
                 ));
             }
             if checked.is_empty() {
@@ -307,9 +327,9 @@ fn infer(
             let Some(first) = values.first() else {
                 return refuse(*span, "collection must contain at least one typed value");
             };
-            let element = infer(first, expected_element, context)?;
+            let element = infer(first, expected_element, context, node_types)?;
             for value in &values[1..] {
-                let actual = infer(value, Some(&element), context)?;
+                let actual = infer(value, Some(&element), context, node_types)?;
                 require(
                     actual,
                     &element,
@@ -335,9 +355,14 @@ fn infer(
             arguments,
             *span,
             context,
-            |argument, expected| infer(argument, Some(expected), context),
+            |argument, expected| infer(argument, Some(expected), context, node_types),
         ),
-    }
+    }?;
+    node_types.push(CheckedExpressionNodeType {
+        span: syntax.span(),
+        value_type: value_type.clone(),
+    });
+    Ok(value_type)
 }
 
 fn atomic(
@@ -417,15 +442,16 @@ fn unary(
     span: Span,
     expected: Option<&CheckedExpressionType>,
     context: &ExpressionTypeContext<'_>,
+    node_types: &mut Vec<CheckedExpressionNodeType>,
 ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
     match operator {
         UnaryOperator::Not => {
-            let actual = infer(operand, Some(&boolean()), context)?;
+            let actual = infer(operand, Some(&boolean()), context, node_types)?;
             require(actual, &boolean(), span, "! requires Boolean")?;
             Ok(boolean())
         }
         UnaryOperator::Negate => {
-            let actual = infer(operand, expected, context)?;
+            let actual = infer(operand, expected, context, node_types)?;
             if is_signed_numeric(&actual) {
                 Ok(actual)
             } else {
@@ -442,6 +468,7 @@ fn binary(
     span: Span,
     expected: Option<&CheckedExpressionType>,
     context: &ExpressionTypeContext<'_>,
+    node_types: &mut Vec<CheckedExpressionNodeType>,
 ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
     if matches!(
         operator,
@@ -449,27 +476,33 @@ fn binary(
     ) {
         let expected = boolean();
         require(
-            infer(left, Some(&expected), context)?,
+            infer(left, Some(&expected), context, node_types)?,
             &expected,
             left.span(),
             "Boolean operator requires Boolean operands",
         )?;
         require(
-            infer(right, Some(&expected), context)?,
+            infer(right, Some(&expected), context, node_types)?,
             &expected,
             right.span(),
             "Boolean operator requires Boolean operands",
         )?;
         return Ok(expected);
     }
-    let left_type = match infer(left, expected, context) {
+    let checkpoint = node_types.len();
+    let left_type = match infer(left, expected, context, node_types) {
         Ok(value_type) => value_type,
-        Err(left_error) => match infer(right, expected, context) {
-            Ok(right_type) => infer(left, Some(&right_type), context).map_err(|_| left_error)?,
-            Err(_) => return Err(left_error),
-        },
+        Err(left_error) => {
+            node_types.truncate(checkpoint);
+            match infer(right, expected, context, node_types) {
+                Ok(right_type) => {
+                    infer(left, Some(&right_type), context, node_types).map_err(|_| left_error)?
+                }
+                Err(_) => return Err(left_error),
+            }
+        }
     };
-    let right_type = infer(right, Some(&left_type), context)?;
+    let right_type = infer(right, Some(&left_type), context, node_types)?;
     require(
         right_type,
         &left_type,
