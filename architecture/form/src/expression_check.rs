@@ -387,6 +387,13 @@ fn atomic(
             span,
         );
     }
+    if let Ok(quantity) = conduit_core::Quantity::parse_form_literal(text) {
+        return expected_or_exact(
+            CheckedExpressionType::semantic(quantity.dimension().info_id()),
+            expected,
+            span,
+        );
+    }
     let Some(expected) = expected else {
         return refuse(
             span,
