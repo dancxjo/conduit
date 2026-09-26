@@ -5,7 +5,11 @@ import { bindBrowserRuntimeBridge } from "./browser-runtime-bridge.mjs";
 const ABI = new TextEncoder().encode("conduit.browser/runtime-abi");
 
 function runtime({ revision = 1, identity = ABI, inputCapacity = 64, inputPointer = 0, outputCapacity = 1024, outputPointer = 0 } = {}) {
-  const memory = new WebAssembly.Memory({ initial: 1 });
+  const extent = (pointer, capacity) => Number.isSafeInteger(pointer) && Number.isSafeInteger(capacity)
+    && pointer >= 0 && capacity >= 0 && pointer + capacity <= 16 * 1024 * 1024
+    ? pointer + capacity : 0;
+  const requiredBytes = Math.max(1024 + identity.length, extent(inputPointer, inputCapacity), extent(outputPointer, outputCapacity));
+  const memory = new WebAssembly.Memory({ initial: Math.ceil(requiredBytes / (64 * 1024)) });
   const state = { workspaceOutputLength: 0, bodyOutputLength: 0 };
   const api = {
     memory,
@@ -148,6 +152,18 @@ test("workspace binary request preserves opaque non-UTF-8 output", () => {
   const result = bridge.workspaceRequest({ action: "BinaryProof" }, { binary: true });
   assert.deepEqual([...result.outputBytes], [0xff, 0x00, 0xfe]);
   assert.equal(result.outputJson, null);
+});
+
+test("workspace request admits a bounded whole-Body snapshot larger than one operation", () => {
+  const outputCapacity = 16 * 128 * 1024 + 256 * 1024;
+  const api = runtime({ outputCapacity });
+  const expected = { schema: "conduit.workspace/proof@1", retained: "x".repeat(256 * 1024) };
+  api.conduit_workspace_request = () => {
+    api.setWorkspaceOutput(new TextEncoder().encode(JSON.stringify(expected)));
+    return 0;
+  };
+  const bridge = bindBrowserRuntimeBridge(api, { context: "bridge proof" });
+  assert.deepEqual(bridge.workspaceRequest({ action: "Proof" }).outputJson, expected);
 });
 
 test("initial workload review preserves its four exact fields and retires source bytes", () => {
