@@ -536,7 +536,29 @@ impl<'a> Parser<'a> {
             let relative = text[search..].find(part).unwrap() + search;
             let part_start = start + relative;
             search = relative + part.len();
-            if let Some(selector) = crate::structured_selector::parse(self.source, part, part_start)
+            if let Some(expression) = part
+                .strip_prefix("when(")
+                .and_then(|expression| expression.strip_suffix(')'))
+            {
+                let expression_start = part_start + "when(".len();
+                stages.push(CordStage::When(self.expression_at(
+                    expression,
+                    expression,
+                    expression_start,
+                )?));
+            } else if let Some((endpoint, terminal)) = parse_terminal_projection(part) {
+                stages.push(CordStage::TerminalProjection {
+                    endpoint: self.spanned(endpoint, part_start),
+                    terminal,
+                    span: self.span(part_start, part_start + part.len()),
+                });
+            } else if let Some(gear) = part.strip_suffix('~').filter(|gear| is_reference(gear)) {
+                stages.push(CordStage::Cancellation {
+                    gear: self.spanned(gear, part_start),
+                    span: self.span(part_start, part_start + part.len()),
+                });
+            } else if let Some(selector) =
+                crate::structured_selector::parse(self.source, part, part_start)
             {
                 let selector = selector
                     .map_err(|(message, span)| (FormError::InvalidSyntax(message), span))?;
@@ -717,4 +739,13 @@ fn top_level_assignment(text: &str) -> Option<usize> {
             .is_some_and(|character| matches!(character, '<' | '>' | '!' | '='))
             && !text[*position + 1..].starts_with('=')
     })
+}
+
+fn parse_terminal_projection(part: &str) -> Option<(&str, crate::TerminalProjection)> {
+    let (endpoint, terminal) = if let Some(endpoint) = part.strip_suffix('|') {
+        (endpoint, crate::TerminalProjection::NormalClose)
+    } else {
+        (part.strip_suffix('!')?, crate::TerminalProjection::Abnormal)
+    };
+    is_reference(endpoint).then_some((endpoint, terminal))
 }

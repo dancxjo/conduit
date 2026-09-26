@@ -214,6 +214,52 @@ fn parenthesized_runtime_expression_is_one_cord_stage() {
 }
 
 #[test]
+fn when_terminal_and_cancellation_stages_are_not_ordinary_references() {
+    let source = "form controls {\n    temperature >> when(. > limit) >> alarm\n    items| >> finish\n    items! >> explain\n    deadline >> work~\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let cords = document.forms[0]
+        .back
+        .iter()
+        .map(|statement| match statement {
+            BackStatement::Cord(cord) => cord,
+            _ => panic!("control specimen contains only cords"),
+        })
+        .collect::<Vec<_>>();
+    assert!(matches!(cords[0].stages[1], CordStage::When(_)));
+    assert!(matches!(
+        cords[1].stages[0],
+        CordStage::TerminalProjection {
+            terminal: crate::TerminalProjection::NormalClose,
+            ..
+        }
+    ));
+    assert!(matches!(
+        cords[2].stages[0],
+        CordStage::TerminalProjection {
+            terminal: crate::TerminalProjection::Abnormal,
+            ..
+        }
+    ));
+    assert!(matches!(cords[3].stages[1], CordStage::Cancellation { .. }));
+}
+
+#[test]
+fn where_is_not_a_when_compatibility_alias() {
+    let source = "form no-alias {\n    value >> where(. > 0) >> sink\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(document.diagnostics.is_empty());
+    let BackStatement::Cord(cord) = &document.forms[0].back[0] else {
+        panic!("source is a cord");
+    };
+    assert!(matches!(cord.stages[1], CordStage::InlineGear(_)));
+}
+
+#[test]
 fn keep_parses_initializers_bounds_and_every_canonical_lifetime() {
     let source = "form retained {\n    step: keep Text\n    play: keep Integer for this play\n    wake: keep Text <= 128B for this wake\n    boot: keep Bytes <= 2MiB for this boot\n    body: keep Text? <= 4KiB for this body\n    life: keep Count(0) for life\n}\n";
     let document = parse_syntax_document(source);

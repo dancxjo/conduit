@@ -220,10 +220,26 @@ pub struct Cord {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CordStage {
     Reference(SpannedText),
+    TerminalProjection {
+        endpoint: SpannedText,
+        terminal: TerminalProjection,
+        span: Span,
+    },
+    Cancellation {
+        gear: SpannedText,
+        span: Span,
+    },
+    When(Expression),
     InlineGear(Invocation),
     Literal(Expression),
     PureExpression(Expression),
     StructuredSelector(StructuredSelectorSyntax),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TerminalProjection {
+    NormalClose,
+    Abnormal,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

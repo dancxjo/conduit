@@ -267,6 +267,25 @@ fn check_cord_stages(
             CordStage::Reference(reference) => {
                 stages.push(CheckedCordStage::Reference(reference.text.clone()));
             }
+            CordStage::TerminalProjection {
+                endpoint,
+                terminal,
+                span,
+            } => stages.push(CheckedCordStage::TerminalProjection {
+                endpoint: endpoint.text.clone(),
+                terminal: *terminal,
+                source_span: *span,
+            }),
+            CordStage::Cancellation { gear, span } => {
+                stages.push(CheckedCordStage::Cancellation {
+                    gear: gear.text.clone(),
+                    source_span: *span,
+                });
+            }
+            CordStage::When(expression) => stages.push(CheckedCordStage::When {
+                expression: expression.syntax.clone(),
+                source_span: expression.span,
+            }),
             CordStage::InlineGear(invocation) => {
                 let gear = check_invocation(None, invocation, catalog, form_signatures, resolver)?;
                 stages.push(CheckedCordStage::InlineGear(gear.clone()));

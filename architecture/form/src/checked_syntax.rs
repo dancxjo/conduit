@@ -175,6 +175,19 @@ impl Eq for CheckedCanonicalGear {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CheckedCordStage {
     Reference(String),
+    TerminalProjection {
+        endpoint: String,
+        terminal: crate::TerminalProjection,
+        source_span: Span,
+    },
+    Cancellation {
+        gear: String,
+        source_span: Span,
+    },
+    When {
+        expression: crate::ExpressionSyntax,
+        source_span: Span,
+    },
     InlineGear(CheckedCanonicalGear),
     Literal {
         value: CanonicalStartupValue,
