@@ -339,11 +339,11 @@ impl<'a> Parser<'a> {
                         value_type: self
                             .spanned(value_type, body_offset + body.find(value_type).unwrap()),
                         field: self.spanned(field, body_offset + body.find(field).unwrap()),
-                        expected: Expression {
+                        expected: Box::new(Expression {
                             text: expected.to_string(),
                             syntax,
                             span: self.span(expected_offset, expected_offset + expected.len()),
-                        },
+                        }),
                         span: pattern_span,
                     }
                 } else {
@@ -394,8 +394,20 @@ impl<'a> Parser<'a> {
         if let Some(declaration) = text.strip_prefix("pool ") {
             return parse_pool_declaration(self, declaration, text, start).map(BackStatement::Pool);
         }
-        if !top_level_token_positions(text, ">>").is_empty() {
+        if has_top_level_cord(text) {
             return self.parse_cord(text, start).map(BackStatement::Cord);
+        }
+        if let Some(equal) = top_level_assignment(text) {
+            let name = text[..equal].trim();
+            let value = text[equal + 1..].trim();
+            if !is_name(name) || value.is_empty() || top_level_assignment(value).is_some() {
+                return Err(self.invalid_statement(text, start));
+            }
+            return Ok(BackStatement::LocalValue(LocalValue {
+                name: self.spanned_at(name, text, start),
+                value: self.expression_at(value, text, start)?,
+                span: self.span(start, start + text.len()),
+            }));
         }
         if let Some(colon) = top_level_positions(text, ':').first().copied() {
             let name = text[..colon].trim();
@@ -426,18 +438,6 @@ impl<'a> Parser<'a> {
                 name: self.spanned_at(name, text, start),
                 invocation,
                 retained: None,
-                span: self.span(start, start + text.len()),
-            }));
-        }
-        if let Some(equal) = top_level_positions(text, '=').first().copied() {
-            let name = text[..equal].trim();
-            let value = text[equal + 1..].trim();
-            if !is_name(name) || value.is_empty() {
-                return Err(self.invalid_statement(text, start));
-            }
-            return Ok(BackStatement::LocalValue(LocalValue {
-                name: self.spanned_at(name, text, start),
-                value: self.expression_at(value, text, start)?,
                 span: self.span(start, start + text.len()),
             }));
         }
@@ -541,6 +541,10 @@ impl<'a> Parser<'a> {
                 let selector = selector
                     .map_err(|(message, span)| (FormError::InvalidSyntax(message), span))?;
                 stages.push(CordStage::StructuredSelector(selector));
+            } else if part.starts_with('(') && part.ends_with(')') {
+                stages.push(CordStage::PureExpression(
+                    self.expression_at(part, part, part_start)?,
+                ));
             } else if part.contains('/') || part.contains('(') {
                 stages.push(CordStage::InlineGear(
                     self.parse_invocation(part, part_start)?,
@@ -639,15 +643,11 @@ impl<'a> Parser<'a> {
         start: usize,
     ) -> Result<Expression, (FormError, Span)> {
         let value = value.trim();
-        if value.is_empty()
-            || !delimiters_are_balanced(value)
-            || !top_level_positions(value, '>').is_empty()
-            || !top_level_positions(value, '=').is_empty()
-        {
+        if value.is_empty() || !delimiters_are_balanced(value) {
             return Err(self.invalid_statement(container, start));
         }
         let offset = start + container.find(value).unwrap();
-        let syntax = crate::structured_expression::parse(self.source, value, offset)
+        let syntax = crate::pure_expression::parse(self.source, value, offset)
             .map_err(|(message, span)| (FormError::InvalidSyntax(message), span))?;
         Ok(Expression {
             text: value.to_string(),
@@ -701,4 +701,20 @@ impl<'a> Parser<'a> {
             end_column,
         }
     }
+}
+
+fn has_top_level_cord(text: &str) -> bool {
+    top_level_token_positions(text, ">>")
+        .into_iter()
+        .any(|position| !text[..position].ends_with('>') && !text[position + 2..].starts_with('>'))
+}
+
+fn top_level_assignment(text: &str) -> Option<usize> {
+    top_level_positions(text, '=').into_iter().find(|position| {
+        !text[..*position]
+            .chars()
+            .next_back()
+            .is_some_and(|character| matches!(character, '<' | '>' | '!' | '='))
+            && !text[*position + 1..].starts_with('=')
+    })
 }
