@@ -7,8 +7,9 @@ use crate::{
 use alloc::{string::String, vec::Vec};
 use conduit_core::{
     decode_count, encode_count, primitive_info_kind, FixedInteger, InfoBool, PrimitiveInfoKind,
-    Scalar, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
-    StructuredInfoValueShape, BOOL_INFO_ID, COUNT_INFO_ID, SCALAR_INFO_ID, TEXT_INFO_ID,
+    Quantity, Scalar, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
+    StructuredInfoValue, StructuredInfoValueShape, BOOL_INFO_ID, COUNT_INFO_ID, SCALAR_INFO_ID,
+    TEXT_INFO_ID,
 };
 use core::cmp::Ordering;
 
@@ -188,6 +189,13 @@ fn literal_value(
             .ok_or(PortableExpressionEvaluationRefusal::InvalidLiteral)?
             .encode()
             .to_vec(),
+        Some(kind) if quantity_kind(kind) => {
+            let quantity = Quantity::parse_form_literal(literal)
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?;
+            conduit_core::validate_primitive_info(leaf_kind(value_type)?, &quantity.encode())
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?;
+            quantity.encode().to_vec()
+        }
         Some(kind) if fixed_integer(kind) => {
             let canonical = crate::integer_literal::canonicalize(literal, leaf_kind(value_type)?)
                 .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?
@@ -406,6 +414,16 @@ fn compare(left: &Value, right: &Value) -> Result<Ordering, PortableExpressionEv
                 &Scalar::decode(&right.encoded)
                     .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
             ))
+    } else if conduit_core::quantity_info_dimension(kind).is_some()
+        || kind == conduit_core::QUANTITY_INFO_ID
+    {
+        Quantity::decode(&left.encoded)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?
+            .compare(
+                Quantity::decode(&right.encoded)
+                    .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
+            )
+            .map_err(|_| PortableExpressionEvaluationRefusal::Arithmetic)
     } else {
         Err(PortableExpressionEvaluationRefusal::UnsupportedType(
             kind.into(),
@@ -522,5 +540,20 @@ const fn signed_integer(kind: PrimitiveInfoKind) -> bool {
             | PrimitiveInfoKind::I32
             | PrimitiveInfoKind::I64
             | PrimitiveInfoKind::I128
+    )
+}
+
+const fn quantity_kind(kind: PrimitiveInfoKind) -> bool {
+    matches!(
+        kind,
+        PrimitiveInfoKind::Quantity
+            | PrimitiveInfoKind::Distance
+            | PrimitiveInfoKind::Frequency
+            | PrimitiveInfoKind::Duration
+            | PrimitiveInfoKind::Voltage
+            | PrimitiveInfoKind::Temperature
+            | PrimitiveInfoKind::Angle
+            | PrimitiveInfoKind::Ratio
+            | PrimitiveInfoKind::PixelCount
     )
 }

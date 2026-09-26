@@ -1,5 +1,5 @@
 use super::{host, installed_std, RecordingTimer};
-use conduit_core::{BaseImplementationId, KindIdentity};
+use conduit_core::{BaseImplementationId, KindIdentity, Quantity, QuantityUnit};
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
@@ -9,15 +9,31 @@ use std::collections::BTreeMap;
 
 #[test]
 fn fixed_integer_expression_plans_and_plays_through_the_std_host() {
-    let input = vec![41];
-    let expected = vec![42];
+    assert_expression_plans_and_plays(&[41], &[42], "value/u8", "value/u8", ". + 1");
+}
+
+#[test]
+fn scientific_quantity_comparison_plans_and_plays_through_the_std_host() {
+    assert_expression_plans_and_plays(
+        &Quantity::new(31, QuantityUnit::Celsius).encode(),
+        &conduit_core::InfoBool::TRUE.encode(),
+        conduit_core::TEMPERATURE_INFO_ID,
+        conduit_core::BOOL_INFO_ID,
+        ". > 30°C",
+    );
+}
+
+fn assert_expression_plans_and_plays(
+    input: &[u8],
+    expected: &[u8],
+    input_kind: &str,
+    output_kind: &str,
+    expression_source: &str,
+) {
     let mut startup = StartupCatalog::new();
     for (kind, value) in [
-        (installed_std::test_structured_selector::SOURCE_KIND, &input),
-        (
-            installed_std::test_structured_selector::SINK_KIND,
-            &expected,
-        ),
+        (installed_std::test_structured_selector::SOURCE_KIND, input),
+        (installed_std::test_structured_selector::SINK_KIND, expected),
     ] {
         let default = installed_std::test_structured_selector::raw_configuration(value)
             .pop()
@@ -38,7 +54,7 @@ fn fixed_integer_expression_plans_and_plays_through_the_std_host() {
             .unwrap();
     }
     let source = format!(
-        "form pipeline {{\n source: {}\n sink: {}\n source >> (. + 1) >> sink\n}}\n",
+        "form pipeline {{\n source: {}\n sink: {}\n source >> ({expression_source}) >> sink\n}}\n",
         installed_std::test_structured_selector::SOURCE_KIND,
         installed_std::test_structured_selector::SINK_KIND,
     );
@@ -48,18 +64,18 @@ fn fixed_integer_expression_plans_and_plays_through_the_std_host() {
 
     let source_offer = installed_std::test_structured_selector::raw_source_offer(
         installed_std::test_structured_selector::SOURCE_KIND,
-        "value/u8",
+        input_kind,
     );
     let sink_offer = installed_std::test_structured_selector::raw_sink_offer(
         installed_std::test_structured_selector::SINK_KIND,
-        "value/u8",
+        output_kind,
     );
     let mut profile = ProfileCatalog::new();
     profile
-        .insert(fixture_definition(&source_offer, &input))
+        .insert(fixture_definition(&source_offer, input))
         .unwrap();
     profile
-        .insert(fixture_definition(&sink_offer, &expected))
+        .insert(fixture_definition(&sink_offer, expected))
         .unwrap();
     let expanded = expand_canonical_form(&checked, "pipeline", &profile)
         .expect("pure expression expands to an ordinary gear");
