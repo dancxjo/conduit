@@ -67,6 +67,7 @@ pub enum PortableExpressionProgramRefusal {
     MissingCheckedNodeType,
     InvalidTupleIndex,
     InvalidType(StructuredInfoRefusal),
+    MalformedEncoding,
     TooLarge,
 }
 

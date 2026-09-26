@@ -185,6 +185,26 @@ fn borrowed_node_validation_checks_nested_shape_without_reconstruction() {
 }
 
 #[test]
+fn exact_structured_type_round_trips_without_a_value_node() {
+    let value_type = StructuredInfoType::record(
+        KindId::from("test/type-round-trip@1"),
+        vec![StructuredFieldType::new("value", leaf_type("value/count")).unwrap()],
+    )
+    .unwrap();
+    let encoded = value_type.canonical_bytes().unwrap();
+    assert_eq!(
+        StructuredInfoType::from_canonical_bytes(&encoded),
+        Ok(value_type)
+    );
+    let mut trailing = encoded;
+    trailing.push(0);
+    assert_eq!(
+        StructuredInfoType::from_canonical_bytes(&trailing),
+        Err(StructuredInfoRefusal::MalformedCanonicalEncoding)
+    );
+}
+
+#[test]
 fn bounded_sequence_preserves_element_type_and_canonical_actual_length() {
     let element = leaf_type("value/count");
     let sequence_type = StructuredInfoType::sequence(element.clone(), 4).unwrap();

@@ -1,14 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ExternalEffectBehavior, Kind, KindId, KindIdentity,
-    KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal, ReplayBehavior,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, ExternalEffectBehavior, Kind, KindId,
+    KindIdentity, KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal, ReplayBehavior,
     SemanticDependence, StructuredFieldType, StructuredInfoType, SuspensionBehavior,
     TemporalStateBehavior, VariabilityBehavior,
 };
 use conduit_form::{
     check_expression, parse_syntax_document, pure_expression_definition, BackStatement,
     CheckedExpressionType, CordStage, ExpressionSyntax, ExpressionTypeContext,
+    PortableExpressionProgram,
 };
 
 fn expression(source: &str) -> ExpressionSyntax {
@@ -332,6 +333,17 @@ fn checked_expression_retains_its_exact_input_and_output_contract() {
         definition.kind_contract_revision.as_str(),
         "conduitese/pure-expression-operation@1"
     );
+    let ConfigurationValue::Text(program) = &definition.configuration[0].default_value else {
+        panic!("expression program must be exact text configuration")
+    };
+    let portable = PortableExpressionProgram::from_checked(&checked).unwrap();
+    assert_eq!(
+        PortableExpressionProgram::from_canonical_hex(program),
+        Ok(portable)
+    );
+    let mut malformed = program.clone();
+    malformed.push('0');
+    assert!(PortableExpressionProgram::from_canonical_hex(&malformed).is_err());
 
     let same = check_expression(&expression(".+1"), &context).unwrap();
     assert_eq!(
