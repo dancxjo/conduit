@@ -122,9 +122,11 @@ fn dimension_and_range_mistakes_refuse_on_the_production_path() {
         include_str!("../../../proof/fixtures/forms/pocket-theremin-distance-frequency.conduit");
 
     let wrong_dimension = source.replacen("source-maximum = 30cm", "source-maximum = 30Hz", 1);
-    let error = expand_theremin(&wrong_dimension).unwrap_err();
-    assert_eq!(error.code, "CND-FRM-040");
-    assert!(error.message.contains("source-maximum"));
+    let (startup, _) = theremin_catalogs();
+    let syntax = parse_syntax_document(&wrong_dimension);
+    let error = check_syntax_document(&syntax, &startup).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-055");
+    assert!(error.message.contains("Distance"));
 
     let outside_range = source.replacen("source-maximum = 30cm", "source-maximum = 10001cm", 1);
     let error = expand_theremin(&outside_range).unwrap_err();

@@ -601,7 +601,7 @@ fn substitute(
     environment: &BTreeMap<String, CanonicalStartupValue>,
 ) -> Result<CanonicalStartupValue, CanonicalExpansionDiagnostic> {
     match value {
-        CanonicalStartupValue::Literal(_) => Ok(value.clone()),
+        CanonicalStartupValue::Literal(_) | CanonicalStartupValue::Quantity(_) => Ok(value.clone()),
         CanonicalStartupValue::Structured(value) if value.try_concrete().is_some() => {
             Ok(CanonicalStartupValue::Structured(value.clone()))
         }

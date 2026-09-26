@@ -54,7 +54,14 @@ impl Kind {
             };
             // Configuration owns the canonical value and rule. The callable
             // Front independently owns whether authors may omit it.
-            if front.value_type != field.default_value.semantic_kind() {
+            let semantic_kind = match (&field.rule, &field.default_value) {
+                (
+                    crate::KindConfigurationRule::QuantityRange { canonical_unit, .. },
+                    crate::ConfigurationValue::Quantity(_),
+                ) => crate::kind_id(canonical_unit.dimension().info_id()),
+                _ => field.default_value.semantic_kind(),
+            };
+            if front.value_type != semantic_kind {
                 return Err(KindValidationError::ConfigurationFrontMismatch);
             }
         }

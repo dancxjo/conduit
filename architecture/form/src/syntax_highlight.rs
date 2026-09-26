@@ -182,6 +182,9 @@ fn classify_word(word: &str) -> SyntaxHighlightKind {
         _ if word.parse::<i128>().is_ok() || word.parse::<u128>().is_ok() => {
             SyntaxHighlightKind::Number
         }
+        _ if conduit_core::Quantity::parse_form_literal(word).is_ok() => {
+            SyntaxHighlightKind::Number
+        }
         _ if word.contains('/') || word.contains('.') || word.contains('@') => {
             SyntaxHighlightKind::Identity
         }
@@ -308,5 +311,22 @@ mod tests {
             "one bounded span describes each exact piece"
         );
         assert_ne!(spans, vec![]);
+    }
+
+    #[test]
+    fn scientific_quantity_typography_is_one_preserved_numeric_span() {
+        let source = "target = 21°C\ndistance = 3.2m\nangle = 90°\nwidth = 640px\n";
+        let spans = highlight_syntax(source).unwrap();
+        let pieces = pieces(source, &spans);
+        for literal in ["21°C", "3.2m", "90°", "640px"] {
+            assert!(pieces.contains(&(SyntaxHighlightKind::Number, literal)));
+        }
+        assert_eq!(
+            spans
+                .iter()
+                .map(|span| &source[span.start..span.end])
+                .collect::<String>(),
+            source
+        );
     }
 }

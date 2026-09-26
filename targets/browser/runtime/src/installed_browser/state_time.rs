@@ -342,7 +342,7 @@ mod tests {
         assert_eq!(offer.startup_parameters.len(), 1);
         assert_eq!(
             offer.startup_parameters[0].value_type.as_str(),
-            conduit_core::QUANTITY_INFO_ID
+            conduit_core::DURATION_INFO_ID
         );
         assert!(!offer.startup_parameters[0].has_default);
     }

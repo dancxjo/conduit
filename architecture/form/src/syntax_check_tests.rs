@@ -150,10 +150,19 @@ fn defaults_are_used_only_when_omitted_and_explicit_values_override_them() {
     let explicit = check("form a {\n clock: time/default(2s)\n}\n");
     let binding = &omitted.forms[0].gears[0].startup_bindings[0];
 
-    assert_eq!(binding.value, CanonicalStartupValue::Literal("1s".into()));
+    assert_eq!(
+        binding.value,
+        CanonicalStartupValue::Quantity(conduit_core::Quantity::new(
+            1,
+            conduit_core::QuantityUnit::Second,
+        ))
+    );
     assert_eq!(
         explicit.forms[0].gears[0].startup_bindings[0].value,
-        CanonicalStartupValue::Literal("2s".into())
+        CanonicalStartupValue::Quantity(conduit_core::Quantity::new(
+            2,
+            conduit_core::QuantityUnit::Second,
+        ))
     );
     assert_ne!(
         omitted.forms[0].checked_form_id,
@@ -208,7 +217,10 @@ fn forward_reference_chains_resolve_to_one_canonical_value() {
 
     assert_eq!(
         checked.forms[0].gears[0].startup_bindings[0].value,
-        CanonicalStartupValue::Literal("1s".into())
+        CanonicalStartupValue::Quantity(conduit_core::Quantity::new(
+            1,
+            conduit_core::QuantityUnit::Second,
+        ))
     );
 }
 
@@ -506,4 +518,42 @@ fn pool_member_must_be_declared_and_size_is_a_positive_finite_bound() {
         "form chat/peer {\n}\n\nform room {\n pool peers: chat/peer(size = 65536)\n}\n",
     );
     assert!(overflow.forms().is_err());
+}
+
+#[test]
+fn scientific_quantity_defaults_and_locals_are_checked_typed_values() {
+    let checked = check(
+        "form thermostat (\n target: Temperature = 21°C\n width: PixelCount = 640px\n) {\n distance = 3.2m\n angle = 90°\n}\n",
+    );
+    let form = &checked.forms[0];
+    assert_eq!(
+        form.startup_parameters[0].default,
+        Some(CanonicalStartupValue::Quantity(
+            conduit_core::Quantity::new(21, conduit_core::QuantityUnit::Celsius,)
+        ))
+    );
+    assert_eq!(
+        form.startup_parameters[1].default,
+        Some(CanonicalStartupValue::Quantity(
+            conduit_core::Quantity::new(640, conduit_core::QuantityUnit::Pixel,)
+        ))
+    );
+    assert!(form.local_values.iter().any(|(name, value)| {
+        name == "distance"
+            && *value
+                == CanonicalStartupValue::Quantity(conduit_core::Quantity::new(
+                    3_200_000,
+                    conduit_core::QuantityUnit::Micrometer,
+                ))
+    }));
+}
+
+#[test]
+fn scientific_quantity_dimension_and_canonical_spelling_are_checked() {
+    let wrong_dimension = diagnostic("form bad (\n target: Temperature = 12V\n) {\n}\n");
+    assert_eq!(wrong_dimension.code, "CND-FRM-055");
+
+    let near_miss = diagnostic("form bad (\n target: Temperature = 21C\n) {\n}\n");
+    assert_eq!(near_miss.code, "CND-FRM-055");
+    assert!(near_miss.message.contains("use '°C'"));
 }

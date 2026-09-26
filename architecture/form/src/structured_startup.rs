@@ -90,6 +90,27 @@ pub(crate) fn check_structured_expression(
                     node: CanonicalStructuredStartupNode::Literal { canonical },
                 })
             }
+            CanonicalStartupValue::Quantity(value) => {
+                let StructuredInfoTypeShape::Leaf(kind) = expected.shape() else {
+                    return Err(structured_diagnostic(
+                        atomic.span,
+                        "a quantity literal cannot satisfy a structured record, variant, or collection",
+                    ));
+                };
+                let canonical = value.encode().to_vec();
+                conduit_core::validate_primitive_info(kind.as_str(), &canonical).map_err(
+                    |error| {
+                        structured_diagnostic(
+                            atomic.span,
+                            &format!("quantity literal has the wrong exact dimension: {error:?}"),
+                        )
+                    },
+                )?;
+                Ok(CanonicalStructuredStartupValue {
+                    value_type: expected.clone(),
+                    node: CanonicalStructuredStartupNode::Literal { canonical },
+                })
+            }
             CanonicalStartupValue::FormParameter(name) => Ok(CanonicalStructuredStartupValue {
                 value_type: expected.clone(),
                 node: CanonicalStructuredStartupNode::Parameter(name),

@@ -57,13 +57,17 @@ pub fn startup_front(fields: &[KindConfigurationField]) -> Vec<FrontStartupParam
         .iter()
         .map(|field| FrontStartupParameter {
             name: field.key.clone(),
-            value_type: conduit_core::kind_id(match field.default_value {
-                ConfigurationValue::Bool(_) => "value/bool",
-                ConfigurationValue::U64(_) => "value/count",
-                ConfigurationValue::I64(_) => "value/scalar",
-                ConfigurationValue::Text(_) => "value/text",
-                ConfigurationValue::Quantity(_) => "value/quantity",
-                ConfigurationValue::Structured(ref value) => value.profile().as_str(),
+            value_type: conduit_core::kind_id(match (&field.rule, &field.default_value) {
+                (
+                    conduit_core::KindConfigurationRule::QuantityRange { canonical_unit, .. },
+                    ConfigurationValue::Quantity(_),
+                ) => canonical_unit.dimension().info_id(),
+                (_, ConfigurationValue::Bool(_)) => "value/bool",
+                (_, ConfigurationValue::U64(_)) => "value/count",
+                (_, ConfigurationValue::I64(_)) => "value/scalar",
+                (_, ConfigurationValue::Text(_)) => "value/text",
+                (_, ConfigurationValue::Quantity(_)) => "value/quantity",
+                (_, ConfigurationValue::Structured(value)) => value.profile().as_str(),
             }),
             has_default: true,
         })
