@@ -1,8 +1,8 @@
 //! Exact ordinary Gear contract for one checked pure expression.
 
 use crate::{
-    hash_string, syntax_identity::canonical_expression, CheckedExpression, KindConfigurationField,
-    KindConfigurationRule, KindProjection, MAXIMUM_FORM_SOURCE_BYTES,
+    hash_string, CheckedExpression, KindConfigurationField, KindConfigurationRule, KindProjection,
+    PortableExpressionProgram, MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES,
 };
 use conduit_core::{
     kind_id, port_id, ConfigurationValue, KindIdentity, PortDescriptor, PortDirection,
@@ -19,7 +19,16 @@ pub fn pure_expression_definition(
     expression: &CheckedExpression,
     temporal: PortTemporal,
 ) -> Result<KindProjection, StructuredInfoRefusal> {
-    let program = canonical_expression(&expression.syntax);
+    let program = PortableExpressionProgram::from_checked(expression)
+        .map_err(|refusal| match refusal {
+            crate::PortableExpressionProgramRefusal::InvalidType(refusal) => refusal,
+            _ => StructuredInfoRefusal::MalformedCanonicalEncoding,
+        })?
+        .canonical_hex()
+        .map_err(|refusal| match refusal {
+            crate::PortableExpressionProgramRefusal::InvalidType(refusal) => refusal,
+            _ => StructuredInfoRefusal::MalformedCanonicalEncoding,
+        })?;
     let input = expression.input_type.exact_value_kind()?;
     let output = expression.value_type.exact_value_kind()?;
     let identity = hash_string(&format!(
@@ -48,7 +57,7 @@ pub fn pure_expression_definition(
             key: "program".into(),
             default_value: ConfigurationValue::Text(program),
             rule: KindConfigurationRule::TextBytes {
-                maximum: MAXIMUM_FORM_SOURCE_BYTES as u32,
+                maximum: (MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES * 2) as u32,
             },
         }],
     })
