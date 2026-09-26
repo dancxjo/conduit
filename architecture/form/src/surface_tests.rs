@@ -1,6 +1,7 @@
 use crate::{
-    parse_syntax_document, Argument, BackStatement, ConstructionRole, CordStage, CstTokenKind,
-    ExpressionSyntax, FormCompletionPolicy, RuntimePortDirection, RuntimePortTemporal,
+    parse_syntax_document, Argument, BackStatement, BinaryOperator, ConstructionRole, CordStage,
+    CstTokenKind, Expression, ExpressionProjection, ExpressionSyntax, FormCompletionPolicy,
+    RuntimePortDirection, RuntimePortTemporal,
 };
 use alloc::vec::Vec;
 
@@ -107,6 +108,109 @@ fn recursive_or_empty_data_reference_types_are_rejected() {
         assert!(document.forms().is_err(), "{value_type}");
         assert_eq!(document.diagnostics[0].code, "CND-FRM-019");
     }
+}
+
+#[test]
+fn pure_expression_precedence_and_ternary_are_structural_not_opaque_text() {
+    let source = "form expressions {\n    result = a || b && c | d ^ e & f == g < h >>> 2 + 3 * 4 ? yes : no\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let BackStatement::LocalValue(local) = &document.forms[0].back[0] else {
+        panic!(
+            "expression is a local value: {:?}",
+            document.forms[0].back[0]
+        );
+    };
+    let ExpressionSyntax::Conditional { condition, .. } = &local.value.syntax else {
+        panic!("lowest-precedence ternary is explicit");
+    };
+    assert!(matches!(
+        condition.as_ref(),
+        ExpressionSyntax::Binary {
+            operator: BinaryOperator::BooleanOr,
+            ..
+        }
+    ));
+
+    fn contains_multiply(expression: &ExpressionSyntax) -> bool {
+        match expression {
+            ExpressionSyntax::Binary {
+                operator: BinaryOperator::Multiply,
+                ..
+            } => true,
+            ExpressionSyntax::Binary { left, right, .. } => {
+                contains_multiply(left) || contains_multiply(right)
+            }
+            _ => false,
+        }
+    }
+    assert!(contains_multiply(condition));
+}
+
+#[test]
+fn input_tuple_record_projection_and_semantic_calls_have_distinct_syntax() {
+    let source =
+        "form expressions {\n    tuple = (.field, .0, { reading, scaled: math/sin(.) })\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let BackStatement::LocalValue(local) = &document.forms[0].back[0] else {
+        panic!("expression is a local value");
+    };
+    let ExpressionSyntax::Tuple { values, .. } = &local.value.syntax else {
+        panic!("parenthesized comma expression is a tuple");
+    };
+    assert!(matches!(
+        &values[0],
+        ExpressionSyntax::Projection {
+            member: ExpressionProjection::Field(_),
+            ..
+        }
+    ));
+    assert!(matches!(
+        &values[1],
+        ExpressionSyntax::Projection {
+            member: ExpressionProjection::TupleIndex(_),
+            ..
+        }
+    ));
+    let ExpressionSyntax::Record { fields, .. } = &values[2] else {
+        panic!("third tuple element is a record");
+    };
+    assert!(fields[0].punned);
+    assert!(!fields[1].punned);
+    assert!(matches!(
+        fields[1].value,
+        ExpressionSyntax::SemanticCall { ref kind, .. } if kind.text == "math/sin"
+    ));
+}
+
+#[test]
+fn parenthesized_runtime_expression_is_one_cord_stage() {
+    let source = "form classify (\n    >> reading: Temperature\n    label: Text >>\n) {\n    reading >> (. > 30°C ? \"hot\" : \"fine\") >> label\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let BackStatement::Cord(cord) = &document.forms[0].back[0] else {
+        panic!("body contains one cord");
+    };
+    assert!(matches!(
+        &cord.stages[1],
+        CordStage::PureExpression(Expression {
+            syntax: ExpressionSyntax::Conditional { .. },
+            ..
+        })
+    ));
 }
 
 #[test]

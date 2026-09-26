@@ -289,6 +289,12 @@ fn check_cord_stages(
                     source_span: expression.span,
                 });
             }
+            CordStage::PureExpression(expression) => {
+                return Err(
+                    SyntaxCheckError::UnsupportedExpression(expression.text.clone())
+                        .diagnostic(expression.span),
+                );
+            }
             CordStage::StructuredSelector(selector) => {
                 stages.push(CheckedCordStage::StructuredSelector {
                     selector: structured_selector::check(selector, catalog)?,

@@ -135,6 +135,7 @@ impl Parser<'_> {
                 name,
                 span: self.span(field_start, value.span().end - self.source_start),
                 value,
+                punned: false,
             });
             self.skip_whitespace();
             if self.peek() == Some('}') {

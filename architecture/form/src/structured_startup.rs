@@ -259,6 +259,17 @@ pub(crate) fn check_structured_expression(
                 },
             })
         }
+        ExpressionSyntax::Input(_)
+        | ExpressionSyntax::Projection { .. }
+        | ExpressionSyntax::Unary { .. }
+        | ExpressionSyntax::Binary { .. }
+        | ExpressionSyntax::Conditional { .. }
+        | ExpressionSyntax::Tuple { .. }
+        | ExpressionSyntax::SemanticCall { .. } => Err(SyntaxCheckDiagnostic {
+            code: "CND-FRM-053",
+            span: expression.span(),
+            message: "pure runtime expression is not a structured startup value".into(),
+        }),
     }
 }
 

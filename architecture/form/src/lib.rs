@@ -25,6 +25,7 @@ mod canonical_expansion;
 mod checked_syntax;
 mod diagnostic;
 mod functional_front;
+mod pure_expression;
 mod structured_expression;
 mod structured_selector;
 mod structured_startup;
