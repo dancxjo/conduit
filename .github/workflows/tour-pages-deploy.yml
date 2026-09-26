@@ -31,7 +31,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  actions: read
+  actions: write
   contents: read
   pull-requests: read
   pages: write
@@ -194,6 +194,45 @@ jobs:
       - name: Deploy Conduit Pages
         id: deployment
         uses: actions/deploy-pages@v5
+      - name: Record exact downstream documentary context
+        if: needs.resolve.outputs.direct_main != 'true'
+        env:
+          PROMOTION_RUN_ID: ${{ needs.resolve.outputs.run_id }}
+          CARRIER_NAME: ${{ needs.resolve.outputs.carrier_name }}
+          RELEASE_PR: ${{ needs.resolve.outputs.pr_number }}
+          SOURCE_COMMIT: ${{ needs.resolve.outputs.source_head }}
+          SOURCE_TREE: ${{ needs.resolve.outputs.source_tree }}
+          MAIN_COMMIT: ${{ needs.resolve.outputs.merge_commit }}
+        run: |
+          mkdir -p target/release-publication-context
+          main_tree=$(git rev-parse 'HEAD^{tree}')
+          jq -n \
+            --arg schema conduit.release-publication-context/v1 \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg promotion_run_id "$PROMOTION_RUN_ID" \
+            --arg carrier_name "$CARRIER_NAME" \
+            --arg release_pr "$RELEASE_PR" \
+            --arg source_commit "$SOURCE_COMMIT" \
+            --arg source_tree "$SOURCE_TREE" \
+            --arg main_commit "$MAIN_COMMIT" \
+            --arg main_tree "$main_tree" \
+            '{schema:$schema,repository:$repository,promotion_run_id:$promotion_run_id,carrier_name:$carrier_name,release_pr:$release_pr,source_commit:$source_commit,source_tree:$source_tree,main_commit:$main_commit,main_tree:$main_tree}' \
+            > target/release-publication-context/context.json
+      - name: Retain downstream documentary context
+        if: needs.resolve.outputs.direct_main != 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: conduit-release-publication-context
+          path: target/release-publication-context/context.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Dispatch documentary publication after software deployment
+        if: needs.resolve.outputs.direct_main != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh workflow run journey-publication.yml --ref main
+          -f pages_run_id="$GITHUB_RUN_ID"
 
   deploy-first-rescue:
     if: >-

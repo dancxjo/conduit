@@ -550,34 +550,23 @@ fn little_life_evidence_is_exact_bounded_and_part_of_carrier_admission() {
 }
 
 #[test]
-fn sibling_gallery_is_exact_sealed_and_part_of_carrier_admission() {
+fn sibling_gallery_is_rendered_only_after_release_admission() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
-    let gallery = workflow
-        .split("\n  journey-gallery:\n")
-        .nth(1)
-        .and_then(|tail| tail.split("\n  pages-carrier:\n").next())
-        .expect("locate sibling gallery job");
-    let gate = workflow
-        .split("\n  products-proof:\n")
-        .nth(1)
-        .expect("locate stable product gate");
+    let gallery = fs::read_to_string(root.join(".github/workflows/journey-publication.yml"))
+        .expect("read downstream Journey workflow");
 
-    assert!(gallery.contains("needs: [plan, journey-evidence, little-life-evidence]"));
-    assert!(
-        gallery.contains("conduit-journey-one-form-two-fronts-${{ env.CONDUIT_CANDIDATE_SHA }}")
-    );
-    assert!(gallery.contains("conduit-journey-little-life-${{ env.CONDUIT_CANDIDATE_SHA }}"));
+    assert!(!products.contains("\n  journey-gallery:\n"));
+    assert!(!products.contains("JOURNEY_GALLERY_RESULT"));
+    assert!(gallery.contains("conduit-journey-one-form-two-fronts-"));
+    assert!(gallery.contains("conduit-journey-little-life-"));
     assert!(gallery.contains("--two-fronts-evidence-root"));
     assert!(gallery.contains("--little-life-evidence-root"));
-    assert!(gallery.contains("$RUNNER_TEMP/journey-gallery-carrier"));
-    assert!(gallery.contains("seal-pages-carrier.mjs"));
+    assert!(gallery.contains("target/journey-gallery-site"));
+    assert!(gallery.contains("target/documentary-pages-carrier"));
     assert!(gallery.contains("verify-pages-carrier.mjs"));
-    assert!(gallery.contains("name: conduit-journey-gallery-${{ env.CONDUIT_CANDIDATE_SHA }}"));
     assert!(gallery.contains("retention-days: 14"));
-    assert!(gate.contains("JOURNEY_GALLERY_RESULT: ${{ needs.journey-gallery.result }}"));
-    assert!(gate.contains("test \"$JOURNEY_GALLERY_RESULT\" = success"));
 }
 
 #[test]
@@ -819,25 +808,27 @@ fn browser_home_is_staged_proven_in_two_engines_and_carried_to_pages() {
 }
 
 #[test]
-fn promotion_requires_producer_owned_three_body_evidence() {
+fn promotion_is_independent_of_downstream_three_body_documentary() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/promotion.yml"))
+    let promotion = fs::read_to_string(root.join(".github/workflows/promotion.yml"))
         .expect("read promotion workflow");
+    let journey = fs::read_to_string(root.join(".github/workflows/journey-publication.yml"))
+        .expect("read downstream Journey workflow");
 
-    assert!(workflow.contains("\n  generative-body-journey:\n"));
-    assert!(workflow.contains("\n  three-body-journey:\n"));
-    assert!(workflow.contains("conduit-browser-body-journey-"));
-    assert!(workflow.contains("conduit-native-body-journey-"));
-    assert!(workflow.contains("conduit-generative-body-journey-"));
-    assert!(
-        workflow.contains("name: conduitos-x86-batch-${{ github.event.pull_request.head.sha }}")
-    );
-    assert!(workflow
-        .contains("conduitos-x86-batch/runs/product-journey/conduitos/x86_64/body-journey-track"));
-    assert!(workflow.contains("host prove-local-model"));
-    assert!(workflow.contains("evidence stage-three-body-journey"));
-    assert!(workflow.contains("needs: [products, conduitos-spore-acceptance, three-body-journey]"));
-    assert!(!workflow.contains("capture-three-body-track"));
+    assert!(promotion.contains("needs: [boundary, check, products, conduitos-spore-acceptance]"));
+    for documentary in [
+        "generative-body-journey",
+        "three-body-journey",
+        "journey-documentary",
+        "stage-three-body-journey",
+    ] {
+        assert!(!promotion.contains(documentary));
+    }
+    assert!(journey.contains("conduit-browser-body-journey-"));
+    assert!(journey.contains("name: conduitos-x86-batch-"));
+    assert!(journey.contains("host prove-local-model"));
+    assert!(journey.contains("evidence stage-three-body-journey"));
+    assert!(journey.contains("Refuse to overwrite a newer accepted release"));
 }
 
 #[test]

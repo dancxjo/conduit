@@ -106,6 +106,22 @@ the automatic development sync distinguish accepted release repairs from work
 that accumulated later in `dev`. Squashing an environment promotion erases that
 relationship and turns the routine return merge into a large false conflict.
 
+## Documentary publication is downstream
+
+Promotion does not generate or require a complete Three Bodies documentary.
+The first Pages deployment publishes the exact accepted software carrier and
+retains a bounded context linking its main commit, release source, promotion
+run, carrier, and source tree. Only after that deployment succeeds does
+`journey-publication.yml` consume immutable producer evidence and attempt the
+human documentary as a separate workflow.
+
+A documentary failure cannot fail, mutate, or revoke the accepted release. A
+successful documentary run reseals a new publication carrier over the same
+accepted source tree and refuses to deploy if `main` has advanced. It may be
+rerun explicitly with the exact successful Pages run that retained the context;
+it never guesses a release or upgrades documentary observations into runtime
+proof.
+
 ## Statuses
 
 | Status | Meaning | Action |

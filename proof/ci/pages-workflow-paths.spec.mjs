@@ -26,13 +26,13 @@ test("affected product proof begins after cheap PR entry while promotion stays p
   assert.doesNotMatch(closedTrigger, /^    paths(?:-ignore)?:/m);
 });
 
-test("host-local audio admission reuses one exact promotion without model downloads", () => {
+test("host-local audio admission extends one exact documentary carrier without model downloads", () => {
   const workflow = readFileSync(".github/workflows/admit-hears-speaks.yml", "utf8");
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /test "\$\(jq -r \.conclusion <<<"\$run"\)" = success/);
-  assert.match(workflow, /test "\$\(jq -r \.head_sha <<<"\$run"\)" = "\$ACCEPTED_SOURCE_SHA"/);
+  assert.match(workflow, /name <<<"\$run"\)" = journey-documentary-publication/);
   assert.match(workflow, /git rev-parse origin\/main\^\{tree\}/);
-  assert.match(workflow, /name: conduit-pages-carrier-with-conduitos/);
+  assert.match(workflow, /name: conduit-documentary-pages-carrier-/);
   assert.match(workflow, /gh release download "journey-evidence\/\$ACCEPTED_SOURCE_SHA"/);
   assert.match(workflow, /sha256sum --check --strict/);
   assert.match(workflow, /--proof journey-hears-speaks --suite journey-gallery/);
@@ -125,7 +125,8 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /Restore an identical admitted ConduitOS image/);
   assert.match(productWorkflow, /if: steps\.image-cache\.outputs\.cache-hit != 'true'/);
   assert.match(productWorkflow, /conduitos-releases:\n    needs: conduitos-release-images/);
-  assert.match(productWorkflow, /products-proof:\n    needs: \[plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, journey-evidence, little-life-evidence, journey-gallery, pages-carrier, proof-receipts\]/);
+  assert.match(productWorkflow, /products-proof:\n    needs: \[plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, journey-evidence, little-life-evidence, pages-carrier, proof-receipts\]/);
+  assert.doesNotMatch(productWorkflow, /^  journey-gallery:/m);
   assert.match(productWorkflow, /if test "\$PRODUCT_REQUIRED" != true/);
   assert.match(productWorkflow, /test "\$STAGE_RESULT" = success/);
   assert.match(productWorkflow, /test "\$TOUR_PATCHBAY_RESULT" = success/);
@@ -147,20 +148,26 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(deployWorkflow, /name: \$\{\{ needs\.resolve\.outputs\.carrier_name \}\}/);
 
   const promotionWorkflow = readFileSync(".github/workflows/promotion.yml", "utf8");
-  assert.match(promotionWorkflow, /pages-carrier-with-conduitos:\n(?:    #.*\n)+    needs: \[products, conduitos-spore-acceptance, three-body-journey\]/);
-  assert.match(promotionWorkflow, /  generative-body-journey:|  three-body-journey:/);
-  assert.match(promotionWorkflow, /conduit-(?:browser|native|generative)-body-journey/);
-  assert.match(promotionWorkflow, /proof\/fixtures\/ollama-http-service\.mjs/);
-  assert.doesNotMatch(promotionWorkflow, /ollama\/ollama:|ollama" pull|gemma3:latest/);
-  assert.match(promotionWorkflow, /sha256sum --check SHA256SUMS/);
-  assert.match(promotionWorkflow, /stage-three-body-journey/);
-  assert.match(promotionWorkflow, /name: conduitos-x86-batch-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
-  assert.match(promotionWorkflow, /target\/conduitos-x86-batch\/runs\/product-journey\/conduitos\/x86_64\/journey-frames/);
-  assert.match(promotionWorkflow, /stage-conduitos-pages-evidence\.mjs/);
-  assert.match(promotionWorkflow, /name: conduit-journey-gallery-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
-  assert.match(promotionWorkflow, /verify-pages-carrier\.mjs target\/journey-gallery-carrier/);
-  assert.match(promotionWorkflow, /stage-journey-pages-evidence\.mjs/);
-  assert.match(promotionWorkflow, /name: conduit-pages-carrier-with-conduitos/);
+  assert.match(promotionWorkflow, /promotion:\n    needs: \[boundary, check, products, conduitos-spore-acceptance\]/);
+  assert.doesNotMatch(promotionWorkflow, /generative-body-journey|three-body-journey|journey-documentary/);
+  assert.doesNotMatch(promotionWorkflow, /stage-(?:three-body-journey|journey-pages-evidence|conduitos-pages-evidence)/);
+
+  const journeyWorkflow = readFileSync(".github/workflows/journey-publication.yml", "utf8");
+  assert.match(journeyWorkflow, /workflow_dispatch:/);
+  assert.match(journeyWorkflow, /name: conduit-release-publication-context/);
+  assert.match(journeyWorkflow, /name: conduit-pages-carrier/);
+  assert.match(journeyWorkflow, /conduit-browser-body-journey-/);
+  assert.match(journeyWorkflow, /name: conduitos-x86-batch-/);
+  assert.match(journeyWorkflow, /conduit-journey-one-form-two-fronts-/);
+  assert.match(journeyWorkflow, /conduit-journey-little-life-/);
+  assert.match(journeyWorkflow, /cargo xtask evidence gallery/);
+  assert.match(journeyWorkflow, /proof\/fixtures\/ollama-http-service\.mjs/);
+  assert.match(journeyWorkflow, /three-body-journey-contract/);
+  assert.match(journeyWorkflow, /stage-three-body-journey/);
+  assert.match(journeyWorkflow, /stage-conduitos-pages-evidence\.mjs/);
+  assert.match(journeyWorkflow, /Refuse to overwrite a newer accepted release/);
+  assert.match(deployWorkflow, /name: conduit-release-publication-context/);
+  assert.match(deployWorkflow, /gh workflow run journey-publication\.yml --ref main/);
 
   const liveModelWorkflow = readFileSync(".github/workflows/live-local-model-conformance.yml", "utf8");
   assert.match(liveModelWorkflow, /workflow_dispatch:/);

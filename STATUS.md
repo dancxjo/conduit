@@ -42,9 +42,11 @@ Their presence is not an additional physical or release acceptance claim:
   one shared tutorial contract. Each track carries its own exact Body, Host,
   Boot, Plan, Play, Presentation, Manifestation, and lifecycle signs; the
   ConduitOS track additionally proves an admitted two-host Line and distributed
-  Plan. Promotion verifies the three producer-owned tracks together and stages
-  the resulting browsable collection for Pages. The required provider boundary
-  crosses real HTTP through a deterministic Ollama-compatible fixture;
+  Plan. Release promotion retains the claim-specific producer evidence but does
+  not require or render the documentary. After the accepted software carrier is
+  deployed, a separate downstream workflow verifies the three tracks and may
+  stage the resulting browsable collection for Pages. The required provider
+  boundary crosses real HTTP through a deterministic Ollama-compatible fixture;
   separately retained real Ollama/Gemma conformance proves actual inference
   without making runner/model latency a release condition. Until that exact
   candidate is accepted and published, this is development-tree and local

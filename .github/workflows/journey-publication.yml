@@ -1,0 +1,233 @@
+name: journey-documentary-publication
+
+on:
+  workflow_dispatch:
+    inputs:
+      pages_run_id:
+        description: Successful exact-main Pages run carrying release publication context
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: journey-documentary-publication
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      PAGES_RUN_ID: ${{ inputs.pages_run_id }}
+    steps:
+      - name: Check out trusted accepted workflow machinery
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Receive exact release publication context
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-release-publication-context
+          path: target/release-publication-context
+          repository: ${{ github.repository }}
+          run-id: ${{ env.PAGES_RUN_ID }}
+          github-token: ${{ github.token }}
+      - name: Admit one current accepted release and its successful promotion
+        id: context
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          context=target/release-publication-context/context.json
+          test "$(jq -r .schema "$context")" = conduit.release-publication-context/v1
+          test "$(jq -r .repository "$context")" = "$GITHUB_REPOSITORY"
+          promotion_run_id=$(jq -r .promotion_run_id "$context")
+          carrier_name=$(jq -r .carrier_name "$context")
+          release_pr=$(jq -r .release_pr "$context")
+          source_commit=$(jq -r .source_commit "$context")
+          source_tree=$(jq -r .source_tree "$context")
+          main_commit=$(jq -r .main_commit "$context")
+          main_tree=$(jq -r .main_tree "$context")
+          [[ "$promotion_run_id" =~ ^[1-9][0-9]*$ ]]
+          test "$carrier_name" = conduit-pages-carrier
+          [[ "$release_pr" =~ ^[1-9][0-9]*$ ]]
+          [[ "$source_commit" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$source_tree" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$main_commit" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$main_tree" =~ ^[0-9a-f]{40}$ ]]
+          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$promotion_run_id")
+          test "$(jq -r .name <<<"$run")" = promotion
+          test "$(jq -r .event <<<"$run")" = pull_request
+          test "$(jq -r .status <<<"$run")" = completed
+          test "$(jq -r .conclusion <<<"$run")" = success
+          test "$(jq -r .head_sha <<<"$run")" = "$source_commit"
+          git fetch --no-tags origin main "$source_commit" "$main_commit"
+          test "$(git rev-parse origin/main)" = "$main_commit"
+          test "$(git rev-parse "$source_commit^{tree}")" = "$source_tree"
+          test "$(git rev-parse "$main_commit^{tree}")" = "$main_tree"
+          test "$source_tree" = "$main_tree"
+          {
+            echo "promotion_run_id=$promotion_run_id"
+            echo "release_pr=$release_pr"
+            echo "source_commit=$source_commit"
+            echo "source_tree=$source_tree"
+            echo "main_commit=$main_commit"
+            echo "main_tree=$main_tree"
+          } >> "$GITHUB_OUTPUT"
+      - name: Check out the exact accepted product source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.context.outputs.source_commit }}
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: false
+          shared-key: three-body-journey
+      - name: Receive the accepted software carrier
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-pages-carrier
+          path: target/pages-carrier-base
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.context.outputs.promotion_run_id }}
+          github-token: ${{ github.token }}
+      - name: Receive the producer-owned browser Body track
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-browser-body-journey-${{ steps.context.outputs.source_commit }}
+          path: target/three-bodies/browser-graphical
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.context.outputs.promotion_run_id }}
+          github-token: ${{ github.token }}
+      - name: Receive the native product proof batch
+        uses: actions/download-artifact@v8
+        with:
+          name: conduitos-x86-batch-${{ steps.context.outputs.source_commit }}
+          path: target/conduitos-x86-batch
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.context.outputs.promotion_run_id }}
+          github-token: ${{ github.token }}
+      - name: Receive the exact One Form, Two Fronts evidence
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-journey-one-form-two-fronts-${{ steps.context.outputs.source_commit }}
+          path: target/journey-inputs/one-form-two-fronts
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.context.outputs.promotion_run_id }}
+          github-token: ${{ github.token }}
+      - name: Receive the exact Little Life evidence
+        uses: actions/download-artifact@v8
+        with:
+          name: conduit-journey-little-life-${{ steps.context.outputs.source_commit }}
+          path: target/journey-inputs/little-life
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.context.outputs.promotion_run_id }}
+          github-token: ${{ github.token }}
+      - name: Run the structured-Face generative Body journey through real HTTP
+        run: |
+          node proof/fixtures/ollama-http-service.mjs >"$RUNNER_TEMP/ollama-fixture.log" 2>&1 &
+          fixture_pid=$!
+          trap 'kill "$fixture_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:11434/api/version >/dev/null; then break; fi
+            test "$attempt" -lt 30
+            sleep 1
+          done
+          chmod 755 proof/fixtures/ollama
+          PATH="$PWD/proof/fixtures:$PATH" cargo xtask --json host prove-local-model --locked \
+            --model conduit-fixture:latest --admitted-memory-mib 64 --orifina-presenter --journey-documentary \
+            > "$RUNNER_TEMP/model-body.json"
+      - name: Verify the exact three-Body documentary from producer-owned evidence
+        env:
+          EXACT_COMMIT: ${{ steps.context.outputs.source_commit }}
+        run: |
+          mkdir -p target/three-bodies/native-graphical
+          cp -a \
+            target/conduitos-x86-batch/runs/product-journey/conduitos/x86_64/body-journey-track/. \
+            target/three-bodies/native-graphical/
+          live_evidence=proof/evidence/three-body/live-documentary-3de9d4bd1379e658e03f5ac664b2ccdf270ac633
+          (cd "$live_evidence" && sha256sum --check SHA256SUMS)
+          cp -a "$live_evidence" target/three-bodies/live-conformance
+          cp -a target/journeys/three-bodies/hosted-generative \
+            target/three-bodies/hosted-generative
+          cargo xtask evidence three-body-journey-contract --locked \
+            --commit "$EXACT_COMMIT" --output target/three-bodies/contract.json
+          cargo xtask evidence three-body-journey --locked \
+            --commit "$EXACT_COMMIT" --contract target/three-bodies/contract.json \
+            --track target/three-bodies/native-graphical/track.json \
+            --track target/three-bodies/browser-graphical/track.json \
+            --track target/three-bodies/hosted-generative/track.json \
+            --recorded-generative target/three-bodies/live-conformance/track.json \
+            --output target/three-bodies/index.json
+          live_evidence=proof/evidence/three-body/live-ollama-4ac95aa41915fa68bec8fadea9c4fd895d107acd
+          (cd "$live_evidence" && sha256sum --check SHA256SUMS)
+          cp -a "$live_evidence" target/three-bodies/live-provider-conformance
+      - name: Build a documentary carrier without changing the release artifact
+        env:
+          SOURCE_COMMIT: ${{ steps.context.outputs.source_commit }}
+          SOURCE_TREE: ${{ steps.context.outputs.source_tree }}
+          MAIN_COMMIT: ${{ steps.context.outputs.main_commit }}
+          RELEASE_PR: ${{ steps.context.outputs.release_pr }}
+          PRODUCT_RUN_ID: ${{ steps.context.outputs.promotion_run_id }}
+        run: |
+          node tools/ci/verify-pages-carrier.mjs target/pages-carrier-base "$SOURCE_TREE"
+          cargo xtask evidence gallery --locked \
+            --two-fronts-evidence-root target/journey-inputs/one-form-two-fronts \
+            --little-life-evidence-root target/journey-inputs/little-life \
+            --site-root target/journey-gallery-site --commit "$SOURCE_COMMIT"
+          cp -a target/pages-carrier-base/site target/documentary-pages-site
+          node tools/ci/stage-journey-pages-evidence.mjs \
+            target/journey-gallery-site target/documentary-pages-site "$SOURCE_COMMIT"
+          cargo xtask evidence stage-three-body-journey --locked \
+            --publication-root target/three-bodies \
+            --site-root target/documentary-pages-site --commit "$SOURCE_COMMIT"
+          node tools/ci/stage-conduitos-pages-evidence.mjs \
+            target/conduitos-x86-batch/runs/product-journey/conduitos/x86_64/journey-frames \
+            target/documentary-pages-site "$SOURCE_COMMIT"
+          git fetch --no-tags origin dev
+          development_sha=$(git rev-parse FETCH_HEAD)
+          node tools/ci/emit-current-product-truth.mjs \
+            target/documentary-pages-site/product-truth.json \
+            "$GITHUB_REPOSITORY" "$development_sha" "$SOURCE_COMMIT" \
+            "$MAIN_COMMIT" "$RELEASE_PR" \
+            "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/" \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$PRODUCT_RUN_ID" \
+            target/documentary-pages-site/supply-chain/conduitos-x86_64-pc
+          node tools/ci/seal-pages-carrier.mjs \
+            target/documentary-pages-site target/documentary-pages-carrier \
+            "$MAIN_COMMIT" "$SOURCE_TREE"
+          node tools/ci/verify-pages-carrier.mjs \
+            target/documentary-pages-carrier "$SOURCE_TREE"
+      - name: Refuse to overwrite a newer accepted release
+        env:
+          MAIN_COMMIT: ${{ steps.context.outputs.main_commit }}
+        run: |
+          git fetch --no-tags origin main
+          test "$(git rev-parse FETCH_HEAD)" = "$MAIN_COMMIT"
+      - name: Retain the exact downstream documentary carrier
+        uses: actions/upload-artifact@v7
+        with:
+          name: conduit-documentary-pages-carrier-${{ steps.context.outputs.source_commit }}
+          path: target/documentary-pages-carrier
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 14
+      - name: Upload the documentary carrier
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: target/documentary-pages-carrier/site
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+      - name: Publish only the independently verified documentary carrier
+        id: deployment
+        uses: actions/deploy-pages@v5
