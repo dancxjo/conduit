@@ -1,5 +1,8 @@
 //! Exact semantic typing for finite, one-input pure expressions.
 
+use crate::expression_numeric_type::{
+    boolean, is_fixed_integer, is_numeric, is_ordered_numeric, is_signed_numeric,
+};
 use crate::prelude::*;
 use crate::{BinaryOperator, ExpressionProjection, ExpressionSyntax, Span, UnaryOperator};
 use alloc::collections::{BTreeMap, BTreeSet};
@@ -92,6 +95,7 @@ pub struct ExpressionTypeContext<'a> {
     /// Fixed integers and the canonical scalar/count contracts are intrinsic;
     /// domain quantities join only through reviewed semantic registration.
     pub numeric_types: &'a BTreeSet<KindId>,
+    pub semantic_kinds: &'a BTreeMap<String, conduit_core::Kind>,
 }
 
 pub fn check_expression(
@@ -237,9 +241,16 @@ fn infer(
             *span,
             "variant expressions require an exact expected variant type",
         ),
-        ExpressionSyntax::SemanticCall { span, .. } => refuse(
+        ExpressionSyntax::SemanticCall {
+            kind,
+            arguments,
+            span,
+        } => crate::expression_semantic_call::check(
+            kind,
+            arguments,
             *span,
-            "semantic calls require a checked semantic effect contract",
+            context,
+            |argument, expected| infer(argument, Some(expected), context),
         ),
     }
 }
@@ -409,53 +420,6 @@ fn binary(
         }
         _ => refuse(span, "operator is not defined for this exact type"),
     }
-}
-
-fn boolean() -> CheckedExpressionType {
-    CheckedExpressionType::semantic("value/bool")
-}
-
-fn is_fixed_integer(value_type: &CheckedExpressionType) -> bool {
-    value_type.value_kind().is_some_and(|kind| {
-        matches!(
-            kind.as_str(),
-            "value/u8"
-                | "value/u16"
-                | "value/u32"
-                | "value/u64"
-                | "value/u128"
-                | "value/i8"
-                | "value/i16"
-                | "value/i32"
-                | "value/i64"
-                | "value/i128"
-        )
-    })
-}
-
-fn is_signed_numeric(value_type: &CheckedExpressionType) -> bool {
-    value_type.value_kind().is_some_and(|kind| {
-        matches!(
-            kind.as_str(),
-            "value/i8" | "value/i16" | "value/i32" | "value/i64" | "value/i128" | "value/scalar"
-        )
-    })
-}
-
-fn is_numeric(value_type: &CheckedExpressionType, context: &ExpressionTypeContext<'_>) -> bool {
-    is_fixed_integer(value_type)
-        || value_type.value_kind().is_some_and(|kind| {
-            matches!(kind.as_str(), "value/count" | "value/scalar")
-                || kind.as_str() == conduit_core::QUANTITY_INFO_ID
-                || context.numeric_types.contains(kind)
-        })
-}
-
-fn is_ordered_numeric(
-    value_type: &CheckedExpressionType,
-    context: &ExpressionTypeContext<'_>,
-) -> bool {
-    is_numeric(value_type, context)
 }
 
 fn expected_or_exact(
