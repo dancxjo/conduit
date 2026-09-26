@@ -378,13 +378,17 @@ impl ProfileCatalog {
                     .iter()
                     .map(|field| StartupParameterSignature {
                         name: field.key.clone(),
-                        value_type: match &field.default_value {
-                            ConfigurationValue::Bool(_) => "Boolean",
-                            ConfigurationValue::U64(_) => "Count",
-                            ConfigurationValue::I64(_) => "Scalar",
-                            ConfigurationValue::Text(_) => "Text",
-                            ConfigurationValue::Structured(_) => "Structured",
-                            ConfigurationValue::Quantity(_) => "Quantity",
+                        value_type: match (&field.rule, &field.default_value) {
+                            (
+                                KindConfigurationRule::QuantityRange { canonical_unit, .. },
+                                ConfigurationValue::Quantity(_),
+                            ) => canonical_unit.dimension().info_id(),
+                            (_, ConfigurationValue::Bool(_)) => "Boolean",
+                            (_, ConfigurationValue::U64(_)) => "Count",
+                            (_, ConfigurationValue::I64(_)) => "Scalar",
+                            (_, ConfigurationValue::Text(_)) => "Text",
+                            (_, ConfigurationValue::Structured(_)) => "Structured",
+                            (_, ConfigurationValue::Quantity(_)) => "Quantity",
                         }
                         .into(),
                         default: Some(render_value(&field.default_value)),

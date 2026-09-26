@@ -525,7 +525,7 @@ pub(crate) fn configuration_type(field: &KindConfigurationField) -> &'static str
         ConfigurationValue::U64(_) => "Count",
         ConfigurationValue::I64(_) => "Scalar",
         ConfigurationValue::Quantity(_) => "Quantity",
-        _ => unreachable!("robotics configuration is finite text/integer/quantity"),
+        _ => unreachable!("portable configuration is finite text/integer/quantity"),
     }
 }
 

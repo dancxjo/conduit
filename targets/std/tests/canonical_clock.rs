@@ -1,6 +1,6 @@
 use conduit_core::{
     ConfigurationValue, ObservationKind, Quantity, QuantityUnit, TerminalDisposition,
-    QUANTITY_INFO_ID,
+    DURATION_INFO_ID,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
@@ -80,7 +80,7 @@ fn duration_spellings_have_one_semantic_identity_and_execute_until_explicit_stop
         every.checked_front().startup_parameters()[0]
             .value_type
             .as_str(),
-        QUANTITY_INFO_ID
+        DURATION_INFO_ID
     );
     assert_eq!(
         every.configuration[0].value,
@@ -126,8 +126,11 @@ fn duration_and_selected_wait_contract_fail_before_tick_presentation() {
         let source = format!(
             "form bad {{\n    clock: time/every({invalid})\n    clock >> presentation/tick\n}}\n"
         );
-        let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
-        assert!(expand_canonical_form(&checked, "bad", &profile).is_err());
+        let refused = match check_syntax_document(&parse_syntax_document(&source), &startup) {
+            Ok(checked) => expand_canonical_form(&checked, "bad", &profile).is_err(),
+            Err(_) => true,
+        };
+        assert!(refused, "{invalid} must not become an executable duration");
     }
 
     let checked = checked(POSITIONAL);
