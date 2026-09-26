@@ -2,9 +2,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, ExternalEffectBehavior, Kind, KindId,
-    KindIdentity, KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal, ReplayBehavior,
-    SemanticDependence, StructuredFieldType, StructuredInfoType, SuspensionBehavior,
-    TemporalStateBehavior, VariabilityBehavior,
+    KindIdentity, KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal, Quantity,
+    QuantityUnit, ReplayBehavior, SemanticDependence, StructuredFieldType, StructuredInfoType,
+    SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
 };
 use conduit_form::{
     check_expression, parse_syntax_document, pure_expression_definition, BackStatement,
@@ -212,11 +212,30 @@ fn scientific_literal_type_comes_from_the_semantic_literal_catalog() {
         &no_kinds,
     );
 
+    let checked = check_expression(&expression(". > 30°C"), &context).unwrap();
     assert_eq!(
-        check_expression(&expression(". > 30°C"), &context)
-            .unwrap()
-            .value_type,
+        checked.value_type,
         CheckedExpressionType::semantic("value/bool")
+    );
+    let program = PortableExpressionProgram::from_checked(&checked).unwrap();
+    assert_eq!(
+        program
+            .evaluate(&Quantity::new(31, QuantityUnit::Celsius).encode())
+            .unwrap(),
+        conduit_core::InfoBool::TRUE.encode()
+    );
+    assert_eq!(
+        program
+            .evaluate(&Quantity::new(303_150, QuantityUnit::Millikelvin).encode())
+            .unwrap(),
+        conduit_core::InfoBool::FALSE.encode()
+    );
+    let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    assert_eq!(
+        prepared
+            .evaluate(&Quantity::new(31, QuantityUnit::Celsius).encode())
+            .unwrap(),
+        conduit_core::InfoBool::TRUE.encode()
     );
 }
 

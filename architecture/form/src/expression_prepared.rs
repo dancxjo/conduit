@@ -7,8 +7,8 @@ use crate::{
 use alloc::{boxed::Box, string::ToString, vec, vec::Vec};
 use conduit_core::{
     decode_count, encode_count, primitive_info_kind, FixedInteger, InfoBool, PrimitiveInfoKind,
-    Scalar, StructuredInfoTypeShape, BOOL_INFO_ID, COUNT_INFO_ID, MAXIMUM_STRUCTURED_LEAF_BYTES,
-    SCALAR_INFO_ID,
+    Quantity, QuantityUnit, Scalar, StructuredInfoTypeShape, BOOL_INFO_ID, COUNT_INFO_ID,
+    MAXIMUM_STRUCTURED_LEAF_BYTES, SCALAR_INFO_ID,
 };
 use core::cmp::Ordering;
 
@@ -143,6 +143,7 @@ fn canonical_zero(kind: PrimitiveInfoKind, literal: &str) -> Result<Vec<u8>, Ref
         PrimitiveInfoKind::Text => Vec::new(),
         PrimitiveInfoKind::Count => encode_count(0).to_vec(),
         PrimitiveInfoKind::Scalar => Scalar::from_raw_microunits(0).encode().to_vec(),
+        kind if quantity_kind(kind) => Quantity::new(0, quantity_unit(kind)).encode().to_vec(),
         kind if fixed_integer(kind) => {
             let encoded = FixedInteger::from_unsigned(kind, 0)
                 .map_err(|_| Refusal::InvalidLiteral)?
@@ -328,6 +329,10 @@ fn compare(left: &PrimitiveValue, right: &PrimitiveValue) -> Result<Ordering, Re
         PrimitiveInfoKind::Scalar => Ok(Scalar::decode(left.as_slice())
             .map_err(|_| Refusal::InvalidProgram)?
             .cmp(&Scalar::decode(right.as_slice()).map_err(|_| Refusal::InvalidProgram)?)),
+        kind if quantity_kind(kind) => Quantity::decode(left.as_slice())
+            .map_err(|_| Refusal::InvalidProgram)?
+            .compare(Quantity::decode(right.as_slice()).map_err(|_| Refusal::InvalidProgram)?)
+            .map_err(|_| Refusal::Arithmetic),
         kind if fixed_integer(kind) => decode_integer(left)?
             .compare(decode_integer(right)?)
             .map_err(|_| Refusal::InvalidProgram),
@@ -397,6 +402,36 @@ const fn signed_integer(kind: PrimitiveInfoKind) -> bool {
     )
 }
 
+const fn quantity_kind(kind: PrimitiveInfoKind) -> bool {
+    matches!(
+        kind,
+        PrimitiveInfoKind::Quantity
+            | PrimitiveInfoKind::Distance
+            | PrimitiveInfoKind::Frequency
+            | PrimitiveInfoKind::Duration
+            | PrimitiveInfoKind::Voltage
+            | PrimitiveInfoKind::Temperature
+            | PrimitiveInfoKind::Angle
+            | PrimitiveInfoKind::Ratio
+            | PrimitiveInfoKind::PixelCount
+    )
+}
+
+const fn quantity_unit(kind: PrimitiveInfoKind) -> QuantityUnit {
+    match kind {
+        PrimitiveInfoKind::Quantity => QuantityUnit::One,
+        PrimitiveInfoKind::Distance => QuantityUnit::Millimeter,
+        PrimitiveInfoKind::Frequency => QuantityUnit::Hertz,
+        PrimitiveInfoKind::Duration => QuantityUnit::Millisecond,
+        PrimitiveInfoKind::Voltage => QuantityUnit::Volt,
+        PrimitiveInfoKind::Temperature => QuantityUnit::Celsius,
+        PrimitiveInfoKind::Angle => QuantityUnit::Degree,
+        PrimitiveInfoKind::Ratio => QuantityUnit::Percent,
+        PrimitiveInfoKind::PixelCount => QuantityUnit::Pixel,
+        _ => QuantityUnit::One,
+    }
+}
+
 const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
     match kind {
         PrimitiveInfoKind::Bool => BOOL_INFO_ID,
@@ -413,6 +448,15 @@ const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
         PrimitiveInfoKind::I32 => "value/i32",
         PrimitiveInfoKind::I64 => "value/i64",
         PrimitiveInfoKind::I128 => "value/i128",
+        PrimitiveInfoKind::Quantity => conduit_core::QUANTITY_INFO_ID,
+        PrimitiveInfoKind::Distance => conduit_core::DISTANCE_INFO_ID,
+        PrimitiveInfoKind::Frequency => conduit_core::FREQUENCY_INFO_ID,
+        PrimitiveInfoKind::Duration => conduit_core::DURATION_INFO_ID,
+        PrimitiveInfoKind::Voltage => conduit_core::VOLTAGE_INFO_ID,
+        PrimitiveInfoKind::Temperature => conduit_core::TEMPERATURE_INFO_ID,
+        PrimitiveInfoKind::Angle => conduit_core::ANGLE_INFO_ID,
+        PrimitiveInfoKind::Ratio => conduit_core::RATIO_INFO_ID,
+        PrimitiveInfoKind::PixelCount => conduit_core::PIXEL_COUNT_INFO_ID,
         _ => "unsupported",
     }
 }
