@@ -212,6 +212,17 @@ pub(crate) fn raw_source_offer(kind: &str, value_kind: &str) -> CapabilityOffer 
     offer
 }
 
+pub(crate) fn raw_sink_offer(kind: &str, value_kind: &str) -> CapabilityOffer {
+    let mut offer = offer_named(
+        &StructuredInfoType::leaf(KindId::from("conduit-test/raw-placeholder@1")).unwrap(),
+        PortDirection::Input,
+        SOURCE_KIND,
+        kind,
+    );
+    offer.inputs[0].value_kind = KindId::from(value_kind);
+    offer
+}
+
 pub(crate) fn raw_configuration(value: &[u8]) -> Vec<ConfigurationEntry> {
     vec![ConfigurationEntry {
         key: "value".into(),
@@ -290,9 +301,15 @@ fn prepare_sink(
     } else {
         return Err("structured sink fixture configuration is malformed".into());
     };
-    for value in expected.iter().flatten() {
-        StructuredInfoValue::from_canonical_bytes(value)
-            .map_err(|error| format!("structured fixture refusal: {error:?}"))?;
+    if placement.inputs[0]
+        .value_kind
+        .as_str()
+        .starts_with("structured-info/profile-")
+    {
+        for value in expected.iter().flatten() {
+            StructuredInfoValue::from_canonical_bytes(value)
+                .map_err(|error| format!("structured fixture refusal: {error:?}"))?;
+        }
     }
     Ok(InstalledBack::TestStructuredSink(SinkBack {
         expected,

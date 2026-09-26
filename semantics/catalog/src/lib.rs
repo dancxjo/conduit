@@ -521,3 +521,7 @@ pub use structured_selector_back::StructuredSelectorBack;
 
 mod pure_expression;
 pub use pure_expression::pure_expression_contract;
+#[cfg(feature = "kernel-step")]
+mod pure_expression_back;
+#[cfg(feature = "kernel-step")]
+pub use pure_expression_back::PureExpressionBack;

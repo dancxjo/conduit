@@ -56,6 +56,8 @@ mod record_transcript;
 pub use record_transcript::*;
 mod structured_selector;
 pub use structured_selector::*;
+mod pure_expression;
+pub use pure_expression::*;
 mod keyboard;
 pub use keyboard::*;
 mod generalized_input;

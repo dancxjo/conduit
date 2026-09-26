@@ -165,6 +165,43 @@ pub(in crate::form_runner) fn complete_transform(
             .map_err(debug_error)?;
         return Ok(true);
     }
+    if operation.contract_id.as_str() == crate::installed_browser::pure_expression::HOST_CALL {
+        let input = scheduler
+            .kernel
+            .host_value(request.input.value)
+            .map_err(debug_error)?
+            .to_vec();
+        let result = scheduler.pure_expressions[usize::from(request.node.0)]
+            .as_mut()
+            .ok_or("pure expression was not prepared before Play")?
+            .execute(&input);
+        let outcome = match result {
+            Ok(output) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: Some(
+                    BoundedValueRef::new(
+                        scheduler
+                            .kernel
+                            .store_host_value(output)
+                            .map_err(debug_error)?,
+                        operation.maximum_output_bytes,
+                    )
+                    .map_err(debug_error)?,
+                ),
+                failure: None,
+            },
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
+                output: None,
+                failure: Some(failure),
+            },
+        };
+        scheduler
+            .kernel
+            .complete_host_call(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
     if operation.contract_id.as_str() == crate::installed_browser::template_storage::HOST_CALL {
         let input = scheduler
             .kernel

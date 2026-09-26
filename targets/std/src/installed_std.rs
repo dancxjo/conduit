@@ -74,6 +74,7 @@ mod presentation_construction_host;
 mod pulse_observation_back;
 #[cfg(test)]
 mod pulse_observation_sink;
+mod pure_expression_back;
 mod quantity_mapping;
 mod recognition_text_back;
 mod recognized_turn_commit_back;
@@ -444,6 +445,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         })
         .collect::<Result<Vec<_>, String>>()?;
     let mut structured_selector_hosts = structured_selector_back::prepare_hosts(fragment)?;
+    let mut pure_expression_hosts = pure_expression_back::prepare_hosts(fragment)?;
     let mut image_text_hosts = image_text_back::prepare_hosts(fragment);
     let mut image_text_record_hosts = image_text_record_back::prepare_hosts(fragment);
     let mut vision_request_sequence = 0_u64;
@@ -1298,6 +1300,56 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| {
                         format!("complete bounded structured selector operation: {error:?}")
+                    })?;
+                continue;
+            }
+            if contract.as_str() == conduit_std_offers::PURE_EXPRESSION_HOST_CALL {
+                let completion = pure_expression_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "pure expression request has no admitted host".to_string())?
+                    .execute(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(encoded) => {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
+                            format!("store bounded pure expression output: {error:?}")
+                        })?;
+                        (
+                            HostCallDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("bound pure expression output: {error:?}")
+                                })?,
+                            ),
+                            None,
+                        )
+                    }
+                    Err(refusal) => (
+                        HostCallDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail: pure_expression_back::refusal_detail(&refusal),
+                        }),
+                    ),
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        HostCallOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| {
+                        format!("complete bounded pure expression operation: {error:?}")
                     })?;
                 continue;
             }

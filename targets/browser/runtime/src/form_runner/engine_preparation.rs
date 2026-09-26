@@ -108,6 +108,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
     let mut replay_controls = empty_slots(active_nodes);
     let mut template_stores = empty_slots(active_nodes);
     let mut structured_selectors = empty_slots(active_nodes);
+    let mut pure_expressions = empty_slots(active_nodes);
     let mut measurement_windows = empty_slots(active_nodes);
     let mut measurement_hysteresis = empty_slots(active_nodes);
     let mut garden_steps = empty_slots(active_nodes);
@@ -183,6 +184,10 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
             .map(Box::new);
         structured_selectors[usize::from(node.node.0)] =
             crate::installed_browser::structured_selector::PreparedSelector::for_placement(
+                placement,
+            )?;
+        pure_expressions[usize::from(node.node.0)] =
+            crate::installed_browser::pure_expression::PreparedExpression::for_placement(
                 placement,
             )?;
         measurement_windows[usize::from(node.node.0)] =
@@ -317,6 +322,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
         replay_controls,
         template_stores,
         structured_selectors,
+        pure_expressions,
         measurement_windows,
         measurement_hysteresis,
         garden_steps,

@@ -9,7 +9,7 @@ use conduit_core::{
 use conduit_form::{
     check_expression, parse_syntax_document, pure_expression_definition, BackStatement,
     CheckedExpressionType, CordStage, ExpressionSyntax, ExpressionTypeContext,
-    PortableExpressionProgram,
+    PortableExpressionProgram, PreparedPortableExpressionEvaluator,
 };
 
 fn expression(source: &str) -> ExpressionSyntax {
@@ -399,6 +399,33 @@ fn portable_fixed_integer_evaluation_is_checked_and_conditional_is_lazy() {
         .unwrap()
         .evaluate(&[1])
         .is_err());
+}
+
+#[test]
+fn prepared_primitive_evaluation_matches_checked_meaning() {
+    let input = CheckedExpressionType::semantic("value/u8");
+    let empty = BTreeMap::new();
+    let no_structured = BTreeMap::new();
+    let no_numeric = BTreeSet::new();
+    let no_kinds = BTreeMap::new();
+    let context = context(
+        &input,
+        &empty,
+        &no_structured,
+        &empty,
+        &no_numeric,
+        &no_kinds,
+    );
+    for (source, input, expected) in [
+        (". + 1", 41_u8, 42_u8),
+        (". == 0 ? (. + 7) : (. / 0)", 0, 7),
+        ("(. <<< 1) | 1", 3, 7),
+    ] {
+        let checked = check_expression(&expression(source), &context).unwrap();
+        let program = PortableExpressionProgram::from_checked(&checked).unwrap();
+        let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+        assert_eq!(prepared.evaluate(&[input]).unwrap(), [expected]);
+    }
 }
 
 #[test]

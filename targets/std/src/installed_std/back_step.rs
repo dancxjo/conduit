@@ -188,6 +188,7 @@ installed_step_dispatch!(
     RecordDeliveryStatus,
     RecordTranscript,
     StructuredSelector,
+    PureExpression,
     StructuredLiteral,
     StructuredPresentation,
     #[cfg(test)]
