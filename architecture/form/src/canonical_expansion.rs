@@ -70,6 +70,7 @@ struct Stage {
 fn expand_instance(
     form: &CheckedCanonicalForm,
     forms: &BTreeMap<&str, &CheckedCanonicalForm>,
+    structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
@@ -96,6 +97,7 @@ fn expand_instance(
     let result = expand_instance_inner(
         form,
         forms,
+        structured_types,
         catalog,
         backs,
         environment,
@@ -112,6 +114,7 @@ fn expand_instance(
 fn expand_instance_inner(
     form: &CheckedCanonicalForm,
     forms: &BTreeMap<&str, &CheckedCanonicalForm>,
+    structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
@@ -135,6 +138,7 @@ fn expand_instance_inner(
             name,
             form,
             forms,
+            structured_types,
             catalog,
             backs,
             environment,
@@ -190,15 +194,13 @@ fn expand_instance_inner(
                         ),
                     ));
                 }
-                CheckedCordStage::PureExpression { source_span, .. } => {
-                    return Err(CanonicalExpansionDiagnostic::new(
-                        "CND-FRM-046",
-                        format!(
-                            "pure expression at {}:{} has not yet been lowered",
-                            source_span.line, source_span.column
-                        ),
-                    ));
-                }
+                CheckedCordStage::PureExpression {
+                    expression,
+                    source_span,
+                } => structured_selector::PendingStage::Expression {
+                    expression: expression.clone(),
+                    source_span: *source_span,
+                },
                 CheckedCordStage::InlineGear(gear) => {
                     let key = inline_key(gear);
                     let count = anonymous_counts.entry(key.clone()).or_default();
@@ -209,6 +211,7 @@ fn expand_instance_inner(
                         &name,
                         form,
                         forms,
+                        structured_types,
                         catalog,
                         backs,
                         environment,
@@ -232,6 +235,7 @@ fn expand_instance_inner(
                         *source_span,
                         form,
                         forms,
+                        structured_types,
                         catalog,
                         backs,
                         environment,
@@ -260,6 +264,7 @@ fn expand_instance_inner(
             pending,
             form,
             forms,
+            structured_types,
             catalog,
             backs,
             environment,
@@ -327,6 +332,7 @@ fn instantiate_gear(
     instance_name: &str,
     source_form: &CheckedCanonicalForm,
     forms: &BTreeMap<&str, &CheckedCanonicalForm>,
+    structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
@@ -347,6 +353,7 @@ fn instantiate_gear(
         let fragment = expand_instance(
             child,
             forms,
+            structured_types,
             catalog,
             backs,
             &child_environment,
@@ -524,6 +531,7 @@ fn instantiate_gear(
         let fragment = expand_instance(
             &back.form,
             forms,
+            structured_types,
             catalog,
             backs,
             &child_environment,

@@ -53,6 +53,10 @@ pub fn structured_selector_definition(
 
 pub(super) enum PendingStage {
     Ready(Stage),
+    Expression {
+        expression: crate::ExpressionSyntax,
+        source_span: crate::Span,
+    },
     Selector {
         selector: StructuredSelector,
         source_span: crate::Span,
@@ -64,6 +68,7 @@ pub(super) fn resolve_selectors(
     pending: Vec<PendingStage>,
     source_form: &CheckedCanonicalForm,
     forms: &BTreeMap<&str, &CheckedCanonicalForm>,
+    structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
     environment: &BTreeMap<String, CanonicalStartupValue>,
@@ -85,19 +90,36 @@ pub(super) fn resolve_selectors(
             source_span,
         } = stage
         else {
-            let PendingStage::Ready(stage) = stage else {
-                unreachable!()
-            };
-            stages.push(stage.clone());
+            match stage {
+                PendingStage::Ready(stage) => stages.push(stage.clone()),
+                PendingStage::Expression {
+                    expression,
+                    source_span,
+                } => stages.push(expand_expression(
+                    expression,
+                    *source_span,
+                    stages.last(),
+                    &pending[index + 1..],
+                    source_form,
+                    structured_types,
+                    catalog,
+                    path,
+                    gears,
+                    provenance,
+                    gear_ids,
+                    anonymous_counts,
+                )?),
+                PendingStage::Selector { .. } => unreachable!(),
+            }
             continue;
         };
         let left = pending[..index].iter().rev().find_map(|stage| match stage {
             PendingStage::Ready(stage) => output_temporal(stage),
-            PendingStage::Selector { .. } => None,
+            PendingStage::Selector { .. } | PendingStage::Expression { .. } => None,
         });
         let right = pending[index + 1..].iter().find_map(|stage| match stage {
             PendingStage::Ready(stage) => input_temporal(stage),
-            PendingStage::Selector { .. } => None,
+            PendingStage::Selector { .. } | PendingStage::Expression { .. } => None,
         });
         let temporal = match (left, right) {
             (
@@ -150,6 +172,7 @@ pub(super) fn resolve_selectors(
             &name,
             source_form,
             forms,
+            structured_types,
             catalog,
             backs,
             environment,
@@ -189,4 +212,137 @@ fn input_temporal(stage: &Stage) -> Option<PortTemporal> {
             StageSink::FaceOutput(_, _, temporal) => *temporal == first,
         })
         .then_some(first)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn expand_expression(
+    expression: &crate::ExpressionSyntax,
+    source_span: crate::Span,
+    left: Option<&Stage>,
+    right: &[PendingStage],
+    source_form: &CheckedCanonicalForm,
+    structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+    catalog: &ProfileCatalog,
+    path: &[String],
+    gears: &mut Vec<CheckedGear>,
+    provenance: &mut Vec<ExpandedGearProvenance>,
+    gear_ids: &mut BTreeSet<GearId>,
+    anonymous_counts: &mut BTreeMap<String, usize>,
+) -> Result<Stage, CanonicalExpansionDiagnostic> {
+    let source = left
+        .and_then(|stage| stage.output.as_ref())
+        .ok_or_else(|| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-046",
+                format!(
+                    "pure expression at {}:{} requires one typed input",
+                    source_span.line, source_span.column
+                ),
+            )
+        })?;
+    let (input_kind, temporal) = match source {
+        StageSource::Internal(endpoint) => {
+            (endpoint.port.value_kind.clone(), endpoint.port.temporal)
+        }
+        StageSource::FaceInput(_, kind, temporal) => (kind.clone(), *temporal),
+    };
+    if let Some(right_temporal) = right.iter().find_map(|stage| match stage {
+        PendingStage::Ready(stage) => input_temporal(stage),
+        PendingStage::Selector { .. } | PendingStage::Expression { .. } => None,
+    }) {
+        if right_temporal != temporal {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-046",
+                "pure expression cannot change a Cord's temporal contract".into(),
+            ));
+        }
+    }
+
+    let input_type = crate::CheckedExpressionType::Semantic(input_kind);
+    let immutable_values = BTreeMap::new();
+    let literal_types = BTreeMap::new();
+    let numeric_types = BTreeSet::new();
+    let semantic_kinds = catalog
+        .canonical_kinds()
+        .values()
+        .cloned()
+        .map(|kind| (kind.kind_id.as_str().to_string(), kind))
+        .collect::<BTreeMap<_, _>>();
+    let checked = crate::check_expression(
+        expression,
+        &crate::ExpressionTypeContext {
+            input: &input_type,
+            immutable_values: &immutable_values,
+            structured_types,
+            literal_types: &literal_types,
+            numeric_types: &numeric_types,
+            semantic_kinds: &semantic_kinds,
+        },
+    )
+    .map_err(|diagnostic| {
+        CanonicalExpansionDiagnostic::new(
+            "CND-FRM-046",
+            format!(
+                "pure expression at {}:{} is not well typed: {}",
+                diagnostic.span.line, diagnostic.span.column, diagnostic.message
+            ),
+        )
+    })?;
+    let definition = crate::pure_expression_definition(&checked, temporal).map_err(|_| {
+        CanonicalExpansionDiagnostic::new(
+            "CND-FRM-046",
+            "pure expression has no finite exact Port identity".into(),
+        )
+    })?;
+    let key = definition.kind_id.as_str().to_string();
+    let count = anonymous_counts.entry(key.clone()).or_default();
+    let name = format!("expression-{}-{count}", &hash_string(&key)[..12]);
+    *count += 1;
+    let mut child_path = path.to_vec();
+    child_path.push(name.clone());
+    let gear_id = GearId::from(child_path.join("/"));
+    if !gear_ids.insert(gear_id.clone()) {
+        return Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-038",
+            format!("expanded gear path '{}' is not unique", gear_id.as_str()),
+        ));
+    }
+    let input = definition.inputs[0].clone();
+    let output = definition.outputs[0].clone();
+    let configuration = definition
+        .configuration
+        .iter()
+        .map(|field| conduit_core::ConfigurationEntry {
+            key: field.key.clone(),
+            value: field.default_value.clone(),
+        })
+        .collect();
+    gears.push(CheckedGear {
+        gear_id: gear_id.clone(),
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        startup_parameters: Vec::new(),
+        shorthand: Some((input.port_id.clone(), output.port_id.clone())),
+        inputs: vec![input.clone()],
+        outputs: vec![output.clone()],
+        configuration,
+        pool_references: Vec::new(),
+    });
+    provenance.push(ExpandedGearProvenance {
+        gear_id: gear_id.as_str().to_string(),
+        form_path: path.to_vec(),
+        source_form: source_form.name.clone(),
+        source_gear: name,
+        source_span,
+    });
+    Ok(Stage {
+        input: Some(vec![StageSink::Internal(Endpoint {
+            gear_id: gear_id.clone(),
+            port: input,
+        })]),
+        output: Some(StageSource::Internal(Endpoint {
+            gear_id,
+            port: output,
+        })),
+    })
 }

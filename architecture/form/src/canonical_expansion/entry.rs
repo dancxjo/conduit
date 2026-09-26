@@ -73,6 +73,7 @@ pub fn expand_canonical_form_for_authoring_with_backs(
     let fragment = expand_instance(
         form,
         &forms,
+        document.structured_types(),
         catalog,
         backs,
         &environment,

@@ -373,6 +373,10 @@ impl ProfileCatalog {
         self.canonical_kinds.get(kind_id)
     }
 
+    pub(crate) fn canonical_kinds(&self) -> &BTreeMap<KindId, conduit_core::Kind> {
+        &self.canonical_kinds
+    }
+
     /// Derives the startup names and defaults needed to check canonical source.
     /// Structured startup types still require an explicitly assembled
     /// [`StartupCatalog`].
