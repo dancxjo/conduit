@@ -326,6 +326,7 @@ pub(crate) enum SyntaxCheckError {
     DuplicateGear(String),
     UnsupportedExpression(String),
     QuantityLiteral(String),
+    InvalidIntegerLiteral(String),
     AmbiguousFrontName(String),
     StructuredExpression(String, Option<Span>),
 }
@@ -389,6 +390,7 @@ impl SyntaxCheckError {
                 None,
             ),
             Self::QuantityLiteral(detail) => ("CND-FRM-055", detail, None),
+            Self::InvalidIntegerLiteral(detail) => ("CND-FRM-055", detail, None),
             Self::AmbiguousFrontName(name) => (
                 "CND-FRM-050",
                 format!("front name '{name}' is duplicated or ambiguously shadowed"),

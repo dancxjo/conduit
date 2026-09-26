@@ -483,7 +483,7 @@ fn checked_parameters(
     let mut checked = Vec::with_capacity(signature.startup_parameters.len());
     for (index, parameter) in signature.startup_parameters.iter().enumerate() {
         let default = if parameter.default.is_some() {
-            Some(
+            let value =
                 resolve_bound_value(index, &mut values, signature, catalog, &mut BTreeSet::new())
                     .map_err(|error| {
                     let parameter = &form.front.startup_parameters[index];
@@ -493,7 +493,10 @@ fn checked_parameters(
                             .as_ref()
                             .map_or(parameter.span, |value| value.span),
                     )
-                })?,
+                })?;
+            Some(
+                canonicalize_integer_value(value, &parameter.value_type, catalog)
+                    .map_err(|error| error.diagnostic(form.front.startup_parameters[index].span))?,
             )
         } else {
             None
@@ -583,6 +586,8 @@ fn check_invocation(
         let value =
             resolve_bound_value(index, &mut values, signature, catalog, &mut BTreeSet::new())
                 .map_err(|error| error.diagnostic(invocation.span))?;
+        let value = canonicalize_integer_value(value, &parameter.value_type, catalog)
+            .map_err(|error| error.diagnostic(invocation.span))?;
         validate_quantity_type(&value, &parameter.value_type, invocation.span)?;
         startup_bindings.push(CheckedStartupBinding {
             name: parameter.name.clone(),
@@ -604,6 +609,26 @@ fn check_invocation(
         retained: None,
         source_span: invocation.span,
     })
+}
+
+fn canonicalize_integer_value(
+    value: CanonicalStartupValue,
+    source_type: &str,
+    catalog: &StartupCatalog,
+) -> Result<CanonicalStartupValue, SyntaxCheckError> {
+    let CanonicalStartupValue::Literal(literal) = value else {
+        return Ok(value);
+    };
+    let value_kind = crate::value_type::checked_value_kind(source_type, catalog).map_err(|_| {
+        SyntaxCheckError::InvalidIntegerLiteral(format!(
+            "startup type '{source_type}' has no exact checked identity"
+        ))
+    })?;
+    match crate::integer_literal::canonicalize(&literal, value_kind.as_str()) {
+        Ok(Some(canonical)) => Ok(CanonicalStartupValue::Literal(canonical)),
+        Ok(None) => Ok(CanonicalStartupValue::Literal(literal)),
+        Err(detail) => Err(SyntaxCheckError::InvalidIntegerLiteral(detail)),
+    }
 }
 
 fn resolve_bound_value(
