@@ -214,6 +214,26 @@ fn parse_configuration_value(
             )),
         };
     }
+    if matches!(rule, KindConfigurationRule::DurationMillis { .. }) {
+        if let CanonicalStartupValue::Quantity(quantity) = value {
+            let milliseconds = quantity
+                .convert(conduit_core::QuantityUnit::Millisecond)
+                .map_err(|_| {
+                    CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-041",
+                        format!("primitive startup duration '{name}' is invalid or inexact"),
+                    )
+                })?;
+            return u64::try_from(milliseconds.value())
+                .map(ConfigurationValue::U64)
+                .map_err(|_| {
+                    CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-041",
+                        format!("primitive startup duration '{name}' is negative or overflows"),
+                    )
+                });
+        }
+    }
     let CanonicalStartupValue::Literal(literal) = value else {
         return Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-039",

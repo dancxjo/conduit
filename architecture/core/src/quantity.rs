@@ -34,6 +34,24 @@ pub enum QuantityDimension {
     PixelCount,
 }
 
+impl QuantityDimension {
+    pub const fn info_id(self) -> &'static str {
+        match self {
+            Self::Time => DURATION_INFO_ID,
+            Self::Frequency => FREQUENCY_INFO_ID,
+            Self::Voltage => VOLTAGE_INFO_ID,
+            Self::Temperature => TEMPERATURE_INFO_ID,
+            Self::Length => DISTANCE_INFO_ID,
+            Self::Angle => ANGLE_INFO_ID,
+            Self::Ratio => RATIO_INFO_ID,
+            Self::PixelCount => PIXEL_COUNT_INFO_ID,
+            // These dimensions have reviewed units and exact conversion laws,
+            // but do not yet own public dimension-specific Form aliases.
+            Self::Current | Self::Charge | Self::DataSize => QUANTITY_INFO_ID,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum QuantityUnit {
     Nanosecond,
