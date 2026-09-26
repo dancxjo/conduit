@@ -39,9 +39,9 @@ fn canonical_button_review_honors_the_selected_one_item_indicator_bound() {
         &crate::installed_browser::local_bases(),
     )
     .unwrap();
-    assert_eq!(review.selected_form_count, 1);
-    assert!(!review.body_plan_created);
-    assert!(!review.resources_acquired);
+    assert_eq!(review.review.selected_form_count, 1);
+    assert!(!review.review.body_plan_created);
+    assert!(!review.review.resources_acquired);
 }
 
 #[test]

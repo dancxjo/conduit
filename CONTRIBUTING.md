@@ -76,6 +76,17 @@ Avoid adding new checklists or repeating architecture rules across guides.
 
 ## Verify the change
 
+Start with the ordinary local integration loop:
+
+```sh
+cargo xtask integrate
+```
+
+It runs representative language, planner/kernel, std Host, Body lifecycle,
+multi-placement, recovery, Patchbay, and browser/WASM paths without performing
+release, publication, emulator, or physical-hardware work. A missing local WASM
+target is reported as a prerequisite instead of being replaced by a fixture.
+
 Choose the check that exercises your change. List supported suites with:
 
 ```sh
