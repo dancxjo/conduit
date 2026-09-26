@@ -39,6 +39,7 @@ pub(super) fn is_numeric(
         || value_type.value_kind().is_some_and(|kind| {
             matches!(kind.as_str(), "value/count" | "value/scalar")
                 || kind.as_str() == conduit_core::QUANTITY_INFO_ID
+                || conduit_core::quantity_info_dimension(kind.as_str()).is_some()
                 || context.numeric_types.contains(kind)
         })
 }

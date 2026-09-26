@@ -195,20 +195,19 @@ fn nominal_structured_input_projects_into_anonymous_structures() {
 }
 
 #[test]
-fn scientific_literal_type_comes_from_the_semantic_literal_catalog() {
+fn scientific_literal_unit_supplies_its_exact_expression_type() {
     let temperature = CheckedExpressionType::semantic("value/temperature");
     let input = temperature.clone();
     let empty = BTreeMap::new();
     let no_structured = BTreeMap::new();
-    let literals = BTreeMap::from([("30°C".into(), temperature)]);
-    let numeric = BTreeSet::from([KindId::from("value/temperature")]);
+    let no_numeric = BTreeSet::new();
     let no_kinds = BTreeMap::new();
     let context = context(
         &input,
         &empty,
         &no_structured,
-        &literals,
-        &numeric,
+        &empty,
+        &no_numeric,
         &no_kinds,
     );
 

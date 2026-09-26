@@ -52,6 +52,20 @@ impl QuantityDimension {
     }
 }
 
+pub fn quantity_info_dimension(identity: &str) -> Option<QuantityDimension> {
+    match identity {
+        DURATION_INFO_ID => Some(QuantityDimension::Time),
+        FREQUENCY_INFO_ID => Some(QuantityDimension::Frequency),
+        VOLTAGE_INFO_ID => Some(QuantityDimension::Voltage),
+        TEMPERATURE_INFO_ID => Some(QuantityDimension::Temperature),
+        DISTANCE_INFO_ID => Some(QuantityDimension::Length),
+        ANGLE_INFO_ID => Some(QuantityDimension::Angle),
+        RATIO_INFO_ID => Some(QuantityDimension::Ratio),
+        PIXEL_COUNT_INFO_ID => Some(QuantityDimension::PixelCount),
+        _ => None,
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum QuantityUnit {
     Nanosecond,
