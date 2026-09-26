@@ -103,6 +103,7 @@ pub(super) fn resolve_selectors(
                     source_form,
                     structured_types,
                     catalog,
+                    environment,
                     path,
                     gears,
                     provenance,
@@ -214,6 +215,172 @@ fn input_temporal(stage: &Stage) -> Option<PortTemporal> {
         .then_some(first)
 }
 
+fn substitute_immutable_values(
+    expression: &crate::ExpressionSyntax,
+    source_form: &CheckedCanonicalForm,
+    environment: &BTreeMap<String, CanonicalStartupValue>,
+) -> Result<crate::ExpressionSyntax, CanonicalExpansionDiagnostic> {
+    use crate::ExpressionSyntax;
+
+    let substitute = |value: &crate::SpannedText| {
+        let Some((_, local)) = source_form
+            .local_values
+            .iter()
+            .find(|(name, _)| name == &value.text)
+        else {
+            return Ok(None);
+        };
+        let local = match local {
+            CanonicalStartupValue::FormParameter(name) => {
+                environment.get(name).ok_or_else(|| {
+                    CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-046",
+                        format!("immutable local '{}' has no bound value", value.text),
+                    )
+                })?
+            }
+            local => local,
+        };
+        let text = match local {
+            CanonicalStartupValue::Literal(text) => text.clone(),
+            CanonicalStartupValue::Quantity(quantity) => {
+                format!("{}{}", quantity.value(), quantity.unit().form_suffix())
+            }
+            _ => {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-046",
+                    format!(
+                        "immutable local '{}' has no canonical pure-expression value",
+                        value.text
+                    ),
+                ));
+            }
+        };
+        Ok(Some(ExpressionSyntax::Atomic(crate::SpannedText {
+            text,
+            span: value.span,
+        })))
+    };
+
+    Ok(match expression {
+        ExpressionSyntax::Atomic(value) => substitute(value)?.unwrap_or_else(|| expression.clone()),
+        ExpressionSyntax::Input(_) => expression.clone(),
+        ExpressionSyntax::Projection {
+            value,
+            member,
+            span,
+        } => ExpressionSyntax::Projection {
+            value: Box::new(substitute_immutable_values(
+                value,
+                source_form,
+                environment,
+            )?),
+            member: member.clone(),
+            span: *span,
+        },
+        ExpressionSyntax::Unary {
+            operator,
+            operand,
+            span,
+        } => ExpressionSyntax::Unary {
+            operator: *operator,
+            operand: Box::new(substitute_immutable_values(
+                operand,
+                source_form,
+                environment,
+            )?),
+            span: *span,
+        },
+        ExpressionSyntax::Binary {
+            operator,
+            left,
+            right,
+            span,
+        } => ExpressionSyntax::Binary {
+            operator: *operator,
+            left: Box::new(substitute_immutable_values(left, source_form, environment)?),
+            right: Box::new(substitute_immutable_values(
+                right,
+                source_form,
+                environment,
+            )?),
+            span: *span,
+        },
+        ExpressionSyntax::Conditional {
+            condition,
+            when_true,
+            when_false,
+            span,
+        } => ExpressionSyntax::Conditional {
+            condition: Box::new(substitute_immutable_values(
+                condition,
+                source_form,
+                environment,
+            )?),
+            when_true: Box::new(substitute_immutable_values(
+                when_true,
+                source_form,
+                environment,
+            )?),
+            when_false: Box::new(substitute_immutable_values(
+                when_false,
+                source_form,
+                environment,
+            )?),
+            span: *span,
+        },
+        ExpressionSyntax::Tuple { values, span } => ExpressionSyntax::Tuple {
+            values: values
+                .iter()
+                .map(|value| substitute_immutable_values(value, source_form, environment))
+                .collect::<Result<_, _>>()?,
+            span: *span,
+        },
+        ExpressionSyntax::Collection { values, span } => ExpressionSyntax::Collection {
+            values: values
+                .iter()
+                .map(|value| substitute_immutable_values(value, source_form, environment))
+                .collect::<Result<_, _>>()?,
+            span: *span,
+        },
+        ExpressionSyntax::Record { fields, span } => ExpressionSyntax::Record {
+            fields: fields
+                .iter()
+                .map(|field| {
+                    Ok(crate::StructuredExpressionField {
+                        name: field.name.clone(),
+                        value: substitute_immutable_values(&field.value, source_form, environment)?,
+                        punned: field.punned,
+                        span: field.span,
+                    })
+                })
+                .collect::<Result<_, CanonicalExpansionDiagnostic>>()?,
+            span: *span,
+        },
+        ExpressionSyntax::Variant { tag, payload, span } => ExpressionSyntax::Variant {
+            tag: tag.clone(),
+            payload: Box::new(substitute_immutable_values(
+                payload,
+                source_form,
+                environment,
+            )?),
+            span: *span,
+        },
+        ExpressionSyntax::SemanticCall {
+            kind,
+            arguments,
+            span,
+        } => ExpressionSyntax::SemanticCall {
+            kind: kind.clone(),
+            arguments: arguments
+                .iter()
+                .map(|value| substitute_immutable_values(value, source_form, environment))
+                .collect::<Result<_, _>>()?,
+            span: *span,
+        },
+    })
+}
+
 #[allow(clippy::too_many_arguments)]
 fn expand_expression(
     expression: &crate::ExpressionSyntax,
@@ -223,6 +390,7 @@ fn expand_expression(
     source_form: &CheckedCanonicalForm,
     structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
     catalog: &ProfileCatalog,
+    environment: &BTreeMap<String, CanonicalStartupValue>,
     path: &[String],
     gears: &mut Vec<CheckedGear>,
     provenance: &mut Vec<ExpandedGearProvenance>,
@@ -259,6 +427,7 @@ fn expand_expression(
     }
 
     let input_type = crate::CheckedExpressionType::Semantic(input_kind);
+    let expression = substitute_immutable_values(expression, source_form, environment)?;
     let immutable_values = BTreeMap::new();
     let literal_types = BTreeMap::new();
     let numeric_types = BTreeSet::new();
@@ -269,7 +438,7 @@ fn expand_expression(
         .map(|kind| (kind.kind_id.as_str().to_string(), kind))
         .collect::<BTreeMap<_, _>>();
     let checked = crate::check_expression(
-        expression,
+        &expression,
         &crate::ExpressionTypeContext {
             input: &input_type,
             immutable_values: &immutable_values,
