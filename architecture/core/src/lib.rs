@@ -22,6 +22,7 @@ mod delivery;
 mod device;
 mod execution;
 mod execution_fusion;
+mod fixed_integer;
 mod front;
 mod implementation;
 mod info;
@@ -70,6 +71,7 @@ pub use delivery::*;
 pub use device::*;
 pub use execution::*;
 pub use execution_fusion::*;
+pub use fixed_integer::*;
 pub use front::{CheckedFront, FrontStartupParameter};
 pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
