@@ -434,7 +434,7 @@ fn canonical_leaf_literal(
     })
 }
 
-fn parse_scalar_literal(value: &str) -> Option<conduit_core::Scalar> {
+pub(crate) fn parse_scalar_literal(value: &str) -> Option<conduit_core::Scalar> {
     let (negative, value) = value
         .strip_prefix('-')
         .map_or((false, value), |value| (true, value));
