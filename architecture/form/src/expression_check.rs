@@ -1,0 +1,496 @@
+//! Exact semantic typing for finite, one-input pure expressions.
+
+use crate::prelude::*;
+use crate::{BinaryOperator, ExpressionProjection, ExpressionSyntax, Span, UnaryOperator};
+use alloc::collections::{BTreeMap, BTreeSet};
+use conduit_core::{kind_id, KindId, StructuredInfoType, StructuredInfoTypeShape};
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CheckedExpressionType {
+    Semantic(KindId),
+    Tuple(Vec<CheckedExpressionType>),
+    Record(Vec<(String, CheckedExpressionType)>),
+    Collection {
+        element: Box<CheckedExpressionType>,
+        length: u16,
+    },
+}
+
+impl CheckedExpressionType {
+    pub fn semantic(kind: impl AsRef<str>) -> Self {
+        Self::Semantic(kind_id(kind.as_ref()))
+    }
+
+    fn from_structured(value_type: &StructuredInfoType) -> Self {
+        match value_type.shape() {
+            StructuredInfoTypeShape::Leaf(kind) => Self::Semantic(kind.clone()),
+            StructuredInfoTypeShape::Collection { element, length } => Self::Collection {
+                element: Box::new(Self::from_structured(element)),
+                length,
+            },
+            StructuredInfoTypeShape::Sequence { .. } => {
+                let kind = value_type
+                    .profile()
+                    .expect("checked structured types have profiles")
+                    .value_kind()
+                    .clone();
+                Self::Semantic(kind)
+            }
+            StructuredInfoTypeShape::Record { fields, .. } => Self::Record(
+                fields
+                    .iter()
+                    .map(|field| {
+                        (
+                            field.name().to_string(),
+                            Self::from_structured(field.value_type()),
+                        )
+                    })
+                    .collect(),
+            ),
+            StructuredInfoTypeShape::Variant { .. } => {
+                let kind = value_type
+                    .profile()
+                    .expect("checked structured types have profiles")
+                    .value_kind()
+                    .clone();
+                Self::Semantic(kind)
+            }
+        }
+    }
+
+    pub fn value_kind(&self) -> Option<&KindId> {
+        match self {
+            Self::Semantic(kind) => Some(kind),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedExpression {
+    pub syntax: ExpressionSyntax,
+    pub value_type: CheckedExpressionType,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExpressionTypeDiagnostic {
+    pub span: Span,
+    pub message: String,
+}
+
+pub struct ExpressionTypeContext<'a> {
+    pub input: &'a CheckedExpressionType,
+    pub immutable_values: &'a BTreeMap<String, CheckedExpressionType>,
+    pub structured_types: &'a BTreeMap<KindId, StructuredInfoType>,
+    /// Semantic literal meanings supplied by the owning catalog.
+    ///
+    /// In particular, scientific Quantity work can resolve an authored unit
+    /// such as `30°C` to its exact dimension without this expression checker
+    /// growing a second unit catalog or erasing it to generic Quantity.
+    pub literal_types: &'a BTreeMap<String, CheckedExpressionType>,
+    /// Semantic numeric contracts admitted by the owning Kind catalog.
+    /// Fixed integers and the canonical scalar/count contracts are intrinsic;
+    /// domain quantities join only through reviewed semantic registration.
+    pub numeric_types: &'a BTreeSet<KindId>,
+}
+
+pub fn check_expression(
+    syntax: &ExpressionSyntax,
+    context: &ExpressionTypeContext<'_>,
+) -> Result<CheckedExpression, ExpressionTypeDiagnostic> {
+    let value_type = infer(syntax, None, context)?;
+    Ok(CheckedExpression {
+        syntax: syntax.clone(),
+        value_type,
+    })
+}
+
+fn infer(
+    syntax: &ExpressionSyntax,
+    expected: Option<&CheckedExpressionType>,
+    context: &ExpressionTypeContext<'_>,
+) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
+    match syntax {
+        ExpressionSyntax::Input(_) => Ok(context.input.clone()),
+        ExpressionSyntax::Atomic(value) => atomic(&value.text, value.span, expected, context),
+        ExpressionSyntax::Projection {
+            value,
+            member,
+            span,
+        } => {
+            let source = infer(value, None, context)?;
+            projection(&source, member, *span, context)
+        }
+        ExpressionSyntax::Unary {
+            operator,
+            operand,
+            span,
+        } => unary(*operator, operand, *span, expected, context),
+        ExpressionSyntax::Binary {
+            operator,
+            left,
+            right,
+            span,
+        } => binary(*operator, left, right, *span, expected, context),
+        ExpressionSyntax::Conditional {
+            condition,
+            when_true,
+            when_false,
+            span,
+        } => {
+            require(
+                infer(condition, Some(&boolean()), context)?,
+                &boolean(),
+                condition.span(),
+                "conditional condition must be Boolean",
+            )?;
+            let true_type = infer(when_true, expected, context)?;
+            let false_type = infer(when_false, Some(&true_type), context)?;
+            require(
+                false_type,
+                &true_type,
+                *span,
+                "conditional branches must have one exact type",
+            )?;
+            Ok(true_type)
+        }
+        ExpressionSyntax::Tuple { values, span } => {
+            if values.is_empty() {
+                return refuse(*span, "tuple must contain at least one value");
+            }
+            let expected_values = match expected {
+                Some(CheckedExpressionType::Tuple(expected_values))
+                    if expected_values.len() == values.len() =>
+                {
+                    Some(expected_values.as_slice())
+                }
+                _ => None,
+            };
+            let checked = values
+                .iter()
+                .enumerate()
+                .map(|(index, value)| {
+                    infer(
+                        value,
+                        expected_values.and_then(|types| types.get(index)),
+                        context,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(CheckedExpressionType::Tuple(checked))
+        }
+        ExpressionSyntax::Record { fields, span } => {
+            let mut checked = Vec::with_capacity(fields.len());
+            for field in fields {
+                if checked
+                    .iter()
+                    .any(|(name, _): &(String, CheckedExpressionType)| name == &field.name.text)
+                {
+                    return refuse(field.name.span, "record field names must be unique");
+                }
+                let expected_field = match expected {
+                    Some(CheckedExpressionType::Record(fields)) => fields
+                        .iter()
+                        .find(|(name, _)| name == &field.name.text)
+                        .map(|(_, value_type)| value_type),
+                    _ => None,
+                };
+                checked.push((
+                    field.name.text.clone(),
+                    infer(&field.value, expected_field, context)?,
+                ));
+            }
+            if checked.is_empty() {
+                return refuse(*span, "record must contain at least one field");
+            }
+            checked.sort_by(|left, right| left.0.cmp(&right.0));
+            Ok(CheckedExpressionType::Record(checked))
+        }
+        ExpressionSyntax::Collection { values, span } => {
+            let length = u16::try_from(values.len())
+                .map_err(|_| diagnostic(*span, "collection exceeds its finite length bound"))?;
+            let expected_element = match expected {
+                Some(CheckedExpressionType::Collection { element, length: n }) if *n == length => {
+                    Some(element.as_ref())
+                }
+                _ => None,
+            };
+            let Some(first) = values.first() else {
+                return refuse(*span, "collection must contain at least one typed value");
+            };
+            let element = infer(first, expected_element, context)?;
+            for value in &values[1..] {
+                let actual = infer(value, Some(&element), context)?;
+                require(
+                    actual,
+                    &element,
+                    value.span(),
+                    "collection elements must have one exact type",
+                )?;
+            }
+            Ok(CheckedExpressionType::Collection {
+                element: Box::new(element),
+                length,
+            })
+        }
+        ExpressionSyntax::Variant { span, .. } => refuse(
+            *span,
+            "variant expressions require an exact expected variant type",
+        ),
+        ExpressionSyntax::SemanticCall { span, .. } => refuse(
+            *span,
+            "semantic calls require a checked semantic effect contract",
+        ),
+    }
+}
+
+fn atomic(
+    text: &str,
+    span: Span,
+    expected: Option<&CheckedExpressionType>,
+    context: &ExpressionTypeContext<'_>,
+) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
+    if let Some(value_type) = context.immutable_values.get(text) {
+        return Ok(value_type.clone());
+    }
+    if let Some(value_type) = context.literal_types.get(text) {
+        return expected_or_exact(value_type.clone(), expected, span);
+    }
+    if matches!(text, "true" | "false") {
+        return expected_or_exact(boolean(), expected, span);
+    }
+    if crate::text_value::parse_quoted_text(text).is_some() {
+        return expected_or_exact(
+            CheckedExpressionType::semantic("value/text"),
+            expected,
+            span,
+        );
+    }
+    let Some(expected) = expected else {
+        return refuse(
+            span,
+            "numeric literal needs an exact semantic type from its expression context",
+        );
+    };
+    let Some(kind) = expected.value_kind() else {
+        return refuse(span, "literal cannot inhabit this structural type");
+    };
+    if crate::integer_literal::canonicalize(text, kind.as_str())
+        .map_err(|message| diagnostic(span, &message))?
+        .is_some()
+        || matches!(kind.as_str(), "value/count" | "value/scalar")
+    {
+        return Ok(expected.clone());
+    }
+    refuse(span, "literal is incompatible with its exact expected type")
+}
+
+fn projection(
+    source: &CheckedExpressionType,
+    member: &ExpressionProjection,
+    span: Span,
+    context: &ExpressionTypeContext<'_>,
+) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
+    let expanded = match source {
+        CheckedExpressionType::Semantic(kind) => context
+            .structured_types
+            .get(kind)
+            .map(CheckedExpressionType::from_structured)
+            .unwrap_or_else(|| source.clone()),
+        _ => source.clone(),
+    };
+    match (expanded, member) {
+        (CheckedExpressionType::Record(fields), ExpressionProjection::Field(field)) => fields
+            .into_iter()
+            .find(|(name, _)| name == &field.text)
+            .map(|(_, value_type)| value_type)
+            .ok_or_else(|| diagnostic(field.span, "record has no such field")),
+        (CheckedExpressionType::Tuple(values), ExpressionProjection::TupleIndex(index)) => index
+            .text
+            .parse::<usize>()
+            .ok()
+            .and_then(|index| values.get(index).cloned())
+            .ok_or_else(|| diagnostic(index.span, "tuple index is outside the exact tuple")),
+        _ => refuse(span, "projection does not match the exact input type"),
+    }
+}
+
+fn unary(
+    operator: UnaryOperator,
+    operand: &ExpressionSyntax,
+    span: Span,
+    expected: Option<&CheckedExpressionType>,
+    context: &ExpressionTypeContext<'_>,
+) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
+    match operator {
+        UnaryOperator::Not => {
+            let actual = infer(operand, Some(&boolean()), context)?;
+            require(actual, &boolean(), span, "! requires Boolean")?;
+            Ok(boolean())
+        }
+        UnaryOperator::Negate => {
+            let actual = infer(operand, expected, context)?;
+            if is_signed_numeric(&actual) {
+                Ok(actual)
+            } else {
+                refuse(span, "unary - requires an exact signed numeric type")
+            }
+        }
+    }
+}
+
+fn binary(
+    operator: BinaryOperator,
+    left: &ExpressionSyntax,
+    right: &ExpressionSyntax,
+    span: Span,
+    expected: Option<&CheckedExpressionType>,
+    context: &ExpressionTypeContext<'_>,
+) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
+    if matches!(
+        operator,
+        BinaryOperator::BooleanAnd | BinaryOperator::BooleanOr
+    ) {
+        let expected = boolean();
+        require(
+            infer(left, Some(&expected), context)?,
+            &expected,
+            left.span(),
+            "Boolean operator requires Boolean operands",
+        )?;
+        require(
+            infer(right, Some(&expected), context)?,
+            &expected,
+            right.span(),
+            "Boolean operator requires Boolean operands",
+        )?;
+        return Ok(expected);
+    }
+    let left_type = match infer(left, expected, context) {
+        Ok(value_type) => value_type,
+        Err(left_error) => match infer(right, expected, context) {
+            Ok(right_type) => infer(left, Some(&right_type), context).map_err(|_| left_error)?,
+            Err(_) => return Err(left_error),
+        },
+    };
+    let right_type = infer(right, Some(&left_type), context)?;
+    require(
+        right_type,
+        &left_type,
+        span,
+        "binary operands must have one exact type",
+    )?;
+    match operator {
+        BinaryOperator::Equal | BinaryOperator::NotEqual => Ok(boolean()),
+        BinaryOperator::Less
+        | BinaryOperator::LessOrEqual
+        | BinaryOperator::Greater
+        | BinaryOperator::GreaterOrEqual
+            if is_ordered_numeric(&left_type, context) =>
+        {
+            Ok(boolean())
+        }
+        BinaryOperator::BitAnd | BinaryOperator::BitXor | BinaryOperator::BitOr
+            if is_fixed_integer(&left_type) =>
+        {
+            Ok(left_type)
+        }
+        BinaryOperator::ShiftLeft | BinaryOperator::ShiftRight if is_fixed_integer(&left_type) => {
+            Ok(left_type)
+        }
+        BinaryOperator::Multiply
+        | BinaryOperator::Divide
+        | BinaryOperator::Remainder
+        | BinaryOperator::Add
+        | BinaryOperator::Subtract
+            if is_numeric(&left_type, context) =>
+        {
+            Ok(left_type)
+        }
+        _ => refuse(span, "operator is not defined for this exact type"),
+    }
+}
+
+fn boolean() -> CheckedExpressionType {
+    CheckedExpressionType::semantic("value/bool")
+}
+
+fn is_fixed_integer(value_type: &CheckedExpressionType) -> bool {
+    value_type.value_kind().is_some_and(|kind| {
+        matches!(
+            kind.as_str(),
+            "value/u8"
+                | "value/u16"
+                | "value/u32"
+                | "value/u64"
+                | "value/u128"
+                | "value/i8"
+                | "value/i16"
+                | "value/i32"
+                | "value/i64"
+                | "value/i128"
+        )
+    })
+}
+
+fn is_signed_numeric(value_type: &CheckedExpressionType) -> bool {
+    value_type.value_kind().is_some_and(|kind| {
+        matches!(
+            kind.as_str(),
+            "value/i8" | "value/i16" | "value/i32" | "value/i64" | "value/i128" | "value/scalar"
+        )
+    })
+}
+
+fn is_numeric(value_type: &CheckedExpressionType, context: &ExpressionTypeContext<'_>) -> bool {
+    is_fixed_integer(value_type)
+        || value_type.value_kind().is_some_and(|kind| {
+            matches!(kind.as_str(), "value/count" | "value/scalar")
+                || kind.as_str() == conduit_core::QUANTITY_INFO_ID
+                || context.numeric_types.contains(kind)
+        })
+}
+
+fn is_ordered_numeric(
+    value_type: &CheckedExpressionType,
+    context: &ExpressionTypeContext<'_>,
+) -> bool {
+    is_numeric(value_type, context)
+}
+
+fn expected_or_exact(
+    exact: CheckedExpressionType,
+    expected: Option<&CheckedExpressionType>,
+    span: Span,
+) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
+    if let Some(expected) = expected {
+        require(exact, expected, span, "literal has the wrong exact type")?;
+        Ok(expected.clone())
+    } else {
+        Ok(exact)
+    }
+}
+
+fn require(
+    actual: CheckedExpressionType,
+    expected: &CheckedExpressionType,
+    span: Span,
+    message: &str,
+) -> Result<(), ExpressionTypeDiagnostic> {
+    if &actual == expected {
+        Ok(())
+    } else {
+        refuse(span, message)
+    }
+}
+
+fn diagnostic(span: Span, message: &str) -> ExpressionTypeDiagnostic {
+    ExpressionTypeDiagnostic {
+        span,
+        message: message.to_string(),
+    }
+}
+
+fn refuse<T>(span: Span, message: &str) -> Result<T, ExpressionTypeDiagnostic> {
+    Err(diagnostic(span, message))
+}
