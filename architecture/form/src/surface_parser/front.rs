@@ -29,6 +29,8 @@ pub(super) fn parse_port_type(value_type: &str) -> Option<(&str, RuntimePortTemp
     };
     (!value_type.is_empty()
         && !value_type.starts_with('$')
+        && !value_type.starts_with("&&")
+        && value_type != "&"
         && !value_type.ends_with("...")
         && !value_type.ends_with("...|")
         && !value_type.ends_with('?'))
