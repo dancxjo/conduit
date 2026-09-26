@@ -268,6 +268,18 @@ impl StructuredInfoType {
         check_encoding_size(encoded)
     }
 
+    pub fn from_canonical_bytes(encoded: &[u8]) -> Result<Self, StructuredInfoRefusal> {
+        if encoded.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+            return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
+        let (value_type, remaining) = decode_type(encoded)?;
+        if remaining.is_empty() {
+            Ok(value_type)
+        } else {
+            Err(StructuredInfoRefusal::MalformedCanonicalEncoding)
+        }
+    }
+
     /// Validates one canonical value node against this exact type without allocating.
     pub fn validate_canonical_node(&self, encoded: &[u8]) -> Result<(), StructuredInfoRefusal> {
         if encoded.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES {

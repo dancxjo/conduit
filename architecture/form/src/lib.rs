@@ -28,6 +28,7 @@ mod expression_check;
 mod expression_definition;
 mod expression_numeric_type;
 mod expression_program;
+mod expression_program_decode;
 mod expression_semantic_call;
 mod functional_front;
 mod integer_literal;
